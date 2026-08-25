@@ -1,4 +1,3 @@
-using Cale.Api.Extensions;
 using Cale.Modules.Catalog.Application.Commands;
 using Cale.Modules.Catalog.Application.DTOs;
 using Cale.Modules.Catalog.Application.Queries;
@@ -21,7 +20,7 @@ public sealed class BanksController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize]
+    [Authorize(Policy = "CatalogReader")]
     public async Task<IActionResult> List(
         [FromQuery] bool activeOnly = false,
         CancellationToken ct = default) =>

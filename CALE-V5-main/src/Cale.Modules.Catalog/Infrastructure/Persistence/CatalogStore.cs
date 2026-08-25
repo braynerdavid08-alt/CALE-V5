@@ -41,6 +41,15 @@ public sealed class CatalogStore : ICatalogStore
     public Task<Block?> GetBlockAsync(int id, CancellationToken ct) =>
         _db.Set<Block>().FirstOrDefaultAsync(x => x.Id == id, ct);
 
+    public Task<Block?> GetBlockByNameAsync(string name, CancellationToken ct) =>
+        _db.Set<Block>().FirstOrDefaultAsync(x => x.Name == name, ct);
+
+    public async Task AddBlockAsync(Block block, CancellationToken ct) =>
+        await _db.Set<Block>().AddAsync(block, ct);
+
+    public Task<Bank?> GetBankByNameAsync(string name, CancellationToken ct) =>
+        _db.Set<Bank>().FirstOrDefaultAsync(x => x.Name == name, ct);
+
     public async Task<PagedResult<QuestionListDto>> ListQuestionsAsync(
         int page,
         int pageSize,
@@ -160,6 +169,16 @@ public sealed class CatalogStore : ICatalogStore
         await _db.Set<ExamGroupLink>()
             .Where(x => groupIds.Contains(x.GroupId))
             .ToListAsync(ct);
+
+    public async Task<IReadOnlySet<int>> ListAllExamGroupExamIdsAsync(
+        CancellationToken ct)
+    {
+        var ids = await _db.Set<ExamGroupLink>()
+            .Select(x => x.ExamId)
+            .Distinct()
+            .ToListAsync(ct);
+        return ids.ToHashSet();
+    }
 
     public async Task<IReadOnlyList<Question>> ListActiveQuestionsInBankAsync(
         int bankId,

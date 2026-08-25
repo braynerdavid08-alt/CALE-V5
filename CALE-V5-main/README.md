@@ -19,6 +19,10 @@ scripts\INICIAR_CALE.bat
 - API: http://localhost:5000
 - Swagger: http://localhost:5000/swagger
 - Admin: `admin@cale.local` / `Admin123!`
+- Profesor: `profesor@cale.local` / `Profesor123!`
+- Estudiante: `estudiante@cale.local` / `Estudiante123!`
+- Escuela: registro público en `/register-school` (facturación + plan Mensual/Semestral/Anual)
+- Demo escuela: `escuela@cale.local` / `Escuela123!`
 
 Detener:
 
@@ -45,8 +49,11 @@ cd frontend && npx ng build
 ## MVP (hecho)
 
 - Catalog, Assessment, Classroom, Engagement
-- Dashboards de 3 roles con datos reales
+- Dashboards de 3 roles con datos reales (Admin, Docente, Estudiante)
 - Simulador start/finish/review + volver al panel
 - Preguntas con radio de respuesta correcta
+- Bancos oficiales al arrancar la API (idempotente):
+  - **Normas de tránsito (Colombia)** — 500 preguntas (Ley 769/2002, RUCT)
+  - **Reconocimiento visual de señales** — 194 preguntas (Manual 2024) con imagen `/signals/{código}.svg`
 
 Especificación: ver `ARCHITECTURE.md` y los prompts de producto/arquitectura.

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="360" viewBox="0 0 320 360" role="img" aria-label="SITIO DE PARQUEO">
+  <rect width="320" height="360" fill="#f5f5f5"/>
+  <rect x="40" y="60" width="240" height="180" rx="18" fill="#1565c0" stroke="#0d47a1" stroke-width="8"/>
+  <text x="160" y="140.0" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#ffffff">SITIO DE PARQUEO</text>
+  <text x="160" y="340" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#616161">SI-07</text>
+</svg>

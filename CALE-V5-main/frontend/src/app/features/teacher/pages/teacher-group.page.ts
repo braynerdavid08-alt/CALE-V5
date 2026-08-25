@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { mapApiError } from '../../../core/http/map-api-error';
+import { itemStatusLabel } from '../../../shared/utils/item-status-label';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiEmptyComponent } from '../../../shared/ui/ui-empty.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
@@ -99,7 +100,7 @@ import {
           @for (sub of submissions()[act.id] || []; track sub.id) {
             <div class="sub">
               <p>
-                <strong>{{ sub.userName }}</strong> · {{ sub.status }}
+                <strong>{{ sub.userName }}</strong> · {{ statusLabel(sub.status) }}
                 <span>{{ sub.text || 'Sin texto' }}</span>
               </p>
               @if (sub.status !== 'Graded') {
@@ -151,6 +152,7 @@ import {
 export class TeacherGroupPage implements OnInit {
   private readonly api = inject(TeacherApi);
   private readonly route = inject(ActivatedRoute);
+  readonly statusLabel = itemStatusLabel;
   readonly error = signal<string | null>(null);
   readonly ok = signal<string | null>(null);
   readonly group = signal<GroupDto | null>(null);

@@ -47,4 +47,36 @@ public sealed class DashboardsController : ControllerBase
     [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> AllResults(CancellationToken ct) =>
         Ok(await _results.HandleAsync(null, null, ct));
+
+    [HttpGet("teacher/results")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> TeacherResults(CancellationToken ct)
+    {
+        var dashboard = await _classroom.TeacherDashboardAsync(
+            CurrentUser.GetId(User),
+            ct);
+        var userIds = dashboard.LowScores
+            .Select(x => x.UserId)
+            .Concat(dashboard.PendingGrades.Select(x => x.UserId))
+            .Distinct()
+            .ToList();
+
+        // Prefer members of teacher's groups for a complete view.
+        var memberIds = new HashSet<int>();
+        foreach (var group in dashboard.Groups)
+        {
+            var members = await _classroom.ListMembersAsync(
+                group.Id,
+                CurrentUser.GetId(User),
+                CurrentUser.GetRole(User),
+                ct);
+            foreach (var member in members)
+            {
+                memberIds.Add(member.UserId);
+            }
+        }
+
+        var ids = memberIds.Count > 0 ? memberIds.ToList() : userIds;
+        return Ok(await _results.HandleAsync(null, ids, ct));
+    }
 }

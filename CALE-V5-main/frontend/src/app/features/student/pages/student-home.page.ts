@@ -8,8 +8,10 @@ import { UiCardComponent } from '../../../shared/ui/ui-card.component';
 import { UiEmptyComponent } from '../../../shared/ui/ui-empty.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
+import { UiMotivationComponent } from '../../../shared/ui/ui-motivation.component';
 import { UiStatComponent } from '../../../shared/ui/ui-stat.component';
 import { NotificationDto, StudentApi, StudentDashboardDto } from '../api/student.api';
+import { itemStatusLabel } from '../../../shared/utils/item-status-label';
 
 @Component({
   selector: 'app-student-home-page',
@@ -22,6 +24,7 @@ import { NotificationDto, StudentApi, StudentDashboardDto } from '../api/student
     UiEmptyComponent,
     UiErrorComponent,
     UiLoadingComponent,
+    UiMotivationComponent,
     UiStatComponent
   ],
   templateUrl: './student-home.page.html',
@@ -34,6 +37,7 @@ export class StudentHomePage implements OnInit {
   readonly error = signal<string | null>(null);
   readonly data = signal<StudentDashboardDto | null>(null);
   readonly notifications = signal<NotificationDto[]>([]);
+  readonly statusLabel = itemStatusLabel;
   code = '';
 
   ngOnInit(): void {

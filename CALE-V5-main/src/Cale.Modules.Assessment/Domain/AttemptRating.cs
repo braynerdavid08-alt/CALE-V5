@@ -47,4 +47,17 @@ public sealed class AttemptRating
             UpdatedAt = utcNow
         };
     }
+
+    public void MarkReviewed(string? critique, DateTime utcNow)
+    {
+        Reviewed = true;
+        Critique = critique?.Trim();
+        UpdatedAt = utcNow;
+    }
+
+    public void SetHidden(bool hidden, DateTime utcNow)
+    {
+        Hidden = hidden;
+        UpdatedAt = utcNow;
+    }
 }

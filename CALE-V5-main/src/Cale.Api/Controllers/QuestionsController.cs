@@ -7,8 +7,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Cale.Api.Controllers;
 
+/// <summary>
+/// Catálogo jerárquico: solo Admin crea/edita.
+/// Escuela y Docente heredan el catálogo en lectura.
+/// </summary>
 [ApiController]
-[Authorize(Policy = "TeacherOrAdmin")]
+[Authorize(Policy = "CatalogReader")]
 [Route("api/questions")]
 public sealed class QuestionsController : ControllerBase
 {
@@ -36,12 +40,10 @@ public sealed class QuestionsController : ControllerBase
         [FromQuery] int? bankId = null,
         [FromQuery] string? search = null,
         [FromQuery] bool? active = null,
-        CancellationToken ct = default)
-    {
-        int? owner = CurrentUser.IsAdmin(User) ? null : CurrentUser.GetId(User);
-        return Ok(await _list.HandleAsync(
-            page, pageSize, bankId, search, active, owner, ct));
-    }
+        CancellationToken ct = default) =>
+        // Herencia: escuela/docente ven todo el catálogo del Admin (sin filtro por dueño).
+        Ok(await _list.HandleAsync(
+            page, pageSize, bankId, search, active, ownerId: null, ct));
 
     [HttpGet("blocks")]
     public async Task<IActionResult> Blocks(CancellationToken ct) =>
@@ -52,6 +54,7 @@ public sealed class QuestionsController : ControllerBase
         Ok(await _get.HandleAsync(id, ct));
 
     [HttpPost]
+    [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> Create(
         SaveQuestionRequest request,
         CancellationToken ct)
@@ -61,6 +64,7 @@ public sealed class QuestionsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> Update(
         int id,
         SaveQuestionRequest request,
@@ -70,7 +74,7 @@ public sealed class QuestionsController : ControllerBase
             id,
             request,
             CurrentUser.GetId(User),
-            CurrentUser.IsAdmin(User),
+            isAdmin: true,
             ct);
         return NoContent();
     }

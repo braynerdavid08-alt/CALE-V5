@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
+import { SessionStore } from '../../../core/auth/session.store';
 import { env } from '../../../core/config/env';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
@@ -8,6 +9,7 @@ import { UiCardComponent } from '../../../shared/ui/ui-card.component';
 import { UiEmptyComponent } from '../../../shared/ui/ui-empty.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
+import { UiMotivationComponent } from '../../../shared/ui/ui-motivation.component';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
 import { UiStatComponent } from '../../../shared/ui/ui-stat.component';
 
@@ -29,14 +31,24 @@ interface AdminDashboardDto {
     UiEmptyComponent,
     UiErrorComponent,
     UiLoadingComponent,
+    UiMotivationComponent,
     UiPageHeaderComponent,
     UiStatComponent
   ],
+  styles: [`
+    .home-tip {
+      display: block;
+      margin-bottom: var(--spacing-lg);
+    }
+  `],
   template: `
     <ui-page-header
       eyebrow="Administración"
       title="Dashboard"
       subtitle="Estado real de la plataforma." />
+
+    <ui-motivation class="home-tip" variant="card" [role]="session.user()?.role" />
+
     <ui-error [message]="error()" />
     @if (loading()) {
       <ui-loading />
@@ -64,6 +76,7 @@ interface AdminDashboardDto {
 })
 export class AdminHomePage implements OnInit {
   private readonly http = inject(HttpClient);
+  readonly session = inject(SessionStore);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly data = signal<AdminDashboardDto | null>(null);

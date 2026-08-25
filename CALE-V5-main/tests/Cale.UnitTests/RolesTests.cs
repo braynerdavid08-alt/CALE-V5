@@ -8,6 +8,8 @@ public class RolesTests
     [InlineData("Alumno", Roles.Student)]
     [InlineData("Estudiante", Roles.Student)]
     [InlineData("Profesor", Roles.Teacher)]
+    [InlineData("Escuela", Roles.School)]
+    [InlineData("School", Roles.School)]
     [InlineData("Admin", Roles.Admin)]
     [InlineData("Teacher", Roles.Teacher)]
     [InlineData("Student", Roles.Student)]
@@ -20,6 +22,14 @@ public class RolesTests
     public void IsValid_OnlyEnglishRoles()
     {
         Assert.True(Roles.IsValid(Roles.Admin));
+        Assert.True(Roles.IsValid(Roles.School));
         Assert.False(Roles.IsValid("Profesor"));
+    }
+
+    [Fact]
+    public void IsStaff_IncludesSchool()
+    {
+        Assert.True(Roles.IsStaff(Roles.School));
+        Assert.False(Roles.IsStaff(Roles.Student));
     }
 }

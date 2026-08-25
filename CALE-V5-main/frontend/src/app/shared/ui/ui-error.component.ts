@@ -15,7 +15,9 @@ import { Component, Input } from '@angular/core';
       border-radius: var(--radius-md);
       background: var(--color-danger-soft);
       color: var(--color-danger);
-      font-size: 0.92rem;
+      font-size: var(--text-sm);
+      line-height: var(--leading-body);
+      font-weight: 600;
     }
   `]
 })

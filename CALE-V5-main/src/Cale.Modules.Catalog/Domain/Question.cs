@@ -62,6 +62,20 @@ public sealed class Question
         return question;
     }
 
+    public void SetCatalogMeta(
+        string? subject,
+        string? topic,
+        string? subtopic,
+        string? difficulty,
+        string? source)
+    {
+        Subject = string.IsNullOrWhiteSpace(subject) ? null : subject.Trim();
+        Topic = string.IsNullOrWhiteSpace(topic) ? Topic : topic.Trim();
+        Subtopic = string.IsNullOrWhiteSpace(subtopic) ? null : subtopic.Trim();
+        Difficulty = string.IsNullOrWhiteSpace(difficulty) ? null : difficulty.Trim();
+        Source = string.IsNullOrWhiteSpace(source) ? null : source.Trim();
+    }
+
     public void Replace(
         int bankId,
         int blockId,
@@ -88,8 +102,7 @@ public sealed class Question
 
     public void SetActive(bool active) => IsActive = active;
 
-    public bool CanEdit(int userId, bool isAdmin) =>
-        isAdmin || CreatedById == userId;
+    public bool CanEdit(int userId, bool isAdmin) => isAdmin;
 
     private static void Validate(
         string text,

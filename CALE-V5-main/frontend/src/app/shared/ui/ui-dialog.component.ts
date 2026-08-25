@@ -33,7 +33,7 @@ import { UiButtonComponent } from './ui-button.component';
       position: fixed;
       inset: 0;
       z-index: var(--z-modal);
-      background: rgba(23, 28, 40, 0.45);
+      background: var(--color-scrim);
       display: grid;
       place-items: center;
       padding: var(--spacing-md);
@@ -41,12 +41,18 @@ import { UiButtonComponent } from './ui-button.component';
     .dialog {
       width: min(420px, 100%);
       background: var(--color-surface);
+      border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
       padding: var(--spacing-lg);
       box-shadow: var(--shadow-md);
+      color: var(--color-text);
     }
     h2 { margin: 0 0 0.4rem; font-size: var(--text-lg); }
-    p { margin: 0 0 var(--spacing-md); color: var(--color-text-secondary); }
+    p {
+      margin: 0 0 var(--spacing-md);
+      color: var(--color-text-secondary);
+      line-height: var(--leading-body);
+    }
     .actions { display: flex; justify-content: flex-end; gap: var(--spacing-sm); }
   `]
 })

@@ -8,12 +8,15 @@ import { Component, Input } from '@angular/core';
     .badge {
       display: inline-flex;
       align-items: center;
-      padding: 0.15rem 0.6rem;
-      border-radius: 999px;
+      min-height: 1.6rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: var(--radius-sm);
       background: var(--color-chip);
       color: var(--color-text);
       font-size: var(--text-xs);
       font-weight: 700;
+      line-height: 1.2;
+      white-space: nowrap;
     }
     .badge[data-tone='success'] { background: var(--color-success-soft); color: var(--color-success); }
     .badge[data-tone='danger'] { background: var(--color-danger-soft); color: var(--color-danger); }

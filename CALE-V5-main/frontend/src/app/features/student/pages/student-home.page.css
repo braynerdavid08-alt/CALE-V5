@@ -7,12 +7,12 @@
   padding: var(--spacing-lg);
   margin-bottom: var(--spacing-lg);
   border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, #eeebff 0%, #ffffff 60%);
+  background: linear-gradient(135deg, var(--color-welcome-start) 0%, var(--color-welcome-end) 65%);
   border: 1px solid var(--color-border);
 }
 
 .eyebrow {
-  margin: 0 0 0.2rem;
+  margin: 0 0 0.25rem;
   color: var(--color-primary);
   font-size: var(--text-xs);
   font-weight: 700;
@@ -20,10 +20,45 @@
   text-transform: uppercase;
 }
 
-.welcome h1 { margin-bottom: 0.35rem; }
+.welcome h1 {
+  margin-bottom: 0.35rem;
+  max-width: 18ch;
+}
 
-.welcome ui-stat { min-width: 160px; }
+.welcome p {
+  max-width: 36rem;
+  color: var(--color-text-secondary);
+  line-height: var(--leading-body);
+}
 
-ul { list-style: none; padding: 0; margin: 0; }
+.welcome ui-stat {
+  min-width: 160px;
+  flex: 1;
+}
 
-.input { flex: 1; min-width: 160px; }
+.home-tip {
+  margin-bottom: var(--spacing-lg);
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.input {
+  flex: 1;
+  min-width: 160px;
+}
+
+@media (max-width: 700px) {
+  .welcome {
+    padding: var(--spacing-md);
+  }
+
+  .welcome ui-stat {
+    min-width: 100%;
+  }
+}

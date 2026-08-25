@@ -27,6 +27,7 @@ public interface IAttemptStore
         CancellationToken ct);
 
     Task<AttemptRating?> FindRatingAsync(int attemptId, CancellationToken ct);
+    Task<AttemptRating?> GetRatingByIdAsync(int id, CancellationToken ct);
     Task AddRatingAsync(AttemptRating rating, CancellationToken ct);
     Task<IReadOnlyList<AttemptRating>> ListRatingsAsync(CancellationToken ct);
 

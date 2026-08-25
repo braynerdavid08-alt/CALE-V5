@@ -1,5 +1,10 @@
 * { box-sizing: border-box; }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+}
+
 html, body {
   margin: 0;
   min-height: 100%;
@@ -7,20 +12,23 @@ html, body {
   color: var(--color-text);
   font-family: var(--font);
   font-size: var(--text-md);
-  line-height: 1.5;
+  line-height: var(--leading-body);
+  font-weight: 500;
+  transition: background-color var(--transition), color var(--transition);
 }
 
 button, input, select, textarea, a { font: inherit; }
 
 h1, h2, h3, h4 {
   margin: 0 0 var(--spacing-sm);
-  line-height: 1.25;
+  line-height: var(--leading-tight);
   letter-spacing: -0.02em;
   color: var(--color-text);
+  font-weight: 700;
 }
 
-h1 { font-size: var(--text-2xl); font-weight: 700; }
-h2 { font-size: var(--text-xl); font-weight: 700; }
+h1 { font-size: var(--text-2xl); }
+h2 { font-size: var(--text-xl); }
 h3 { font-size: var(--text-lg); font-weight: 650; }
 h4 { font-size: var(--text-md); font-weight: 650; }
 
@@ -39,4 +47,9 @@ a:hover { color: var(--color-primary-hover); }
   outline-offset: 2px;
 }
 
-img { max-width: 100%; }
+img { max-width: 100%; height: auto; }
+
+::selection {
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+}

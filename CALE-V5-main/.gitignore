@@ -12,5 +12,8 @@ frontend/.angular/
 .env.*
 TestResults/
 *.trx
+*.db
+*.db-shm
+*.db-wal
 src/Cale.Api/wwwroot/uploads/*
 !src/Cale.Api/wwwroot/uploads/.gitkeep

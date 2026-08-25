@@ -21,4 +21,7 @@ public static class CurrentUser
 
     public static bool IsAdmin(ClaimsPrincipal user) =>
         GetRole(user) == Roles.Admin;
+
+    public static bool IsStaff(ClaimsPrincipal user) =>
+        Roles.IsStaff(GetRole(user));
 }

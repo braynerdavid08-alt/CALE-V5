@@ -11,6 +11,11 @@ import { Component } from '@angular/core';
       border-radius: var(--radius-lg);
       box-shadow: var(--shadow-sm);
       padding: var(--spacing-lg);
+      color: var(--color-text);
+    }
+
+    @media (max-width: 600px) {
+      .card { padding: var(--spacing-md); }
     }
   `]
 })

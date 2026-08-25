@@ -5,16 +5,17 @@ button {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  min-height: 2.6rem;
-  padding: 0.55rem 1.1rem;
+  min-height: var(--control-height);
+  padding: 0.55rem 1.15rem;
   border: 0;
   border-radius: var(--radius-sm);
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
   font: inherit;
   font-weight: 650;
+  line-height: 1;
   cursor: pointer;
-  transition: background var(--transition), transform var(--transition);
+  transition: background var(--transition), transform var(--transition), border-color var(--transition);
 }
 
 button:hover:not(:disabled) { background: var(--color-primary-hover); }
@@ -26,7 +27,10 @@ button.secondary {
   border: 1px solid var(--color-border);
 }
 
-button.secondary:hover:not(:disabled) { background: var(--color-chip); }
+button.secondary:hover:not(:disabled) {
+  background: var(--color-chip);
+  border-color: var(--color-border-strong);
+}
 
 button.ghost {
   background: transparent;
@@ -35,18 +39,28 @@ button.ghost {
 
 button.ghost:hover:not(:disabled) { background: var(--color-chip); }
 
-button.danger { background: var(--color-danger); }
-button.danger:hover:not(:disabled) { background: #d92d20; }
+button.danger {
+  background: var(--color-danger);
+  color: #fff;
+}
+
+button.danger:hover:not(:disabled) { background: var(--color-danger-hover); }
 
 button:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .spin {
-  width: 0.9rem;
-  height: 0.9rem;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  border-top-color: #fff;
+  width: 0.95rem;
+  height: 0.95rem;
+  border: 2px solid color-mix(in srgb, var(--color-on-primary) 35%, transparent);
+  border-top-color: var(--color-on-primary);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
+}
+
+button.secondary .spin,
+button.ghost .spin {
+  border-color: color-mix(in srgb, var(--color-text) 30%, transparent);
+  border-top-color: var(--color-text);
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }

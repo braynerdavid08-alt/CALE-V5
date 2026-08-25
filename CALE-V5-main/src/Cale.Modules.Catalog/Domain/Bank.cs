@@ -44,4 +44,6 @@ public sealed class Bank
     }
 
     public void SetActive(bool active) => IsActive = active;
+
+    public void MarkSeedCompleted() => SeedCompleted = true;
 }

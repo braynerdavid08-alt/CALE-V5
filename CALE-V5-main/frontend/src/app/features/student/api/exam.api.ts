@@ -19,6 +19,8 @@ export interface ExamDto {
   timeMinutes: number;
   allowedAttempts: number;
   published: boolean;
+  startsAt?: string | null;
+  endsAt?: string | null;
 }
 
 export interface TakeOptionDto {
@@ -51,6 +53,16 @@ export interface FinishResponse {
   percent: number;
   passed: boolean;
   timeSeconds: number;
+  byTopic: ScoreBreakdownDto[];
+  byBlock: ScoreBreakdownDto[];
+  bestPercent?: number | null;
+}
+
+export interface ScoreBreakdownDto {
+  label: string;
+  correctCount: number;
+  totalQuestions: number;
+  percent: number;
 }
 
 export interface ReviewOptionDto {

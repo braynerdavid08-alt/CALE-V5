@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { mapApiError } from '../../../core/http/map-api-error';
@@ -16,6 +17,7 @@ import { BankAdminDto, TeacherApi } from '../api/teacher.api';
   selector: 'app-teacher-exams-page',
   standalone: true,
   imports: [
+    DatePipe,
     FormsModule,
     UiBadgeComponent,
     UiButtonComponent,
@@ -54,6 +56,14 @@ import { BankAdminDto, TeacherApi } from '../api/teacher.api';
             <input type="number" [(ngModel)]="allowedAttempts" name="aa" min="1" />
           </label>
         </div>
+        <div class="grid-2">
+          <label class="field">Inicio (opcional)
+            <input type="datetime-local" [(ngModel)]="startsAt" name="sa" />
+          </label>
+          <label class="field">Fin (opcional)
+            <input type="datetime-local" [(ngModel)]="endsAt" name="ea" />
+          </label>
+        </div>
         <label class="row">
           <input type="checkbox" [(ngModel)]="randomize" name="rnd" /> Aleatorio
         </label>
@@ -72,6 +82,7 @@ import { BankAdminDto, TeacherApi } from '../api/teacher.api';
                 <th>Nombre</th>
                 <th>Preguntas</th>
                 <th>Tiempo</th>
+                <th>Ventana</th>
                 <th>Estado</th>
                 <th>Asignar</th>
               </tr>
@@ -82,6 +93,11 @@ import { BankAdminDto, TeacherApi } from '../api/teacher.api';
                   <td>{{ exam.name }}</td>
                   <td>{{ exam.questionCount }}</td>
                   <td>{{ exam.timeMinutes }} min</td>
+                  <td class="muted">
+                    {{ exam.startsAt ? (exam.startsAt | date:'short') : '—' }}
+                    →
+                    {{ exam.endsAt ? (exam.endsAt | date:'short') : '—' }}
+                  </td>
                   <td>
                     <ui-badge [tone]="exam.published ? 'success' : 'warning'">
                       {{ exam.published ? 'Publicado' : 'Borrador' }}
@@ -125,6 +141,8 @@ export class TeacherExamsPage implements OnInit {
   timeMinutes = 30;
   allowedAttempts = 1;
   randomize = true;
+  startsAt = '';
+  endsAt = '';
   assignTo: Record<number, number | null> = {};
 
   ngOnInit(): void {
@@ -150,10 +168,14 @@ export class TeacherExamsPage implements OnInit {
       questionCount: this.questionCount,
       timeMinutes: this.timeMinutes,
       allowedAttempts: this.allowedAttempts,
-      randomize: this.randomize
+      randomize: this.randomize,
+      startsAt: this.startsAt ? new Date(this.startsAt).toISOString() : null,
+      endsAt: this.endsAt ? new Date(this.endsAt).toISOString() : null
     }).subscribe({
       next: () => {
         this.name = '';
+        this.startsAt = '';
+        this.endsAt = '';
         this.reload();
         this.ok.set('Examen creado.');
       },

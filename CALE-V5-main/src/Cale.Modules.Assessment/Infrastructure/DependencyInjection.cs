@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<FinishExamHandler>();
         services.AddScoped<ReviewAttemptHandler>();
         services.AddScoped<SaveRatingHandler>();
+        services.AddScoped<ManageRatingHandler>();
         services.AddScoped<ListRatingsHandler>();
         services.AddScoped<ListResultsHandler>();
         return services;

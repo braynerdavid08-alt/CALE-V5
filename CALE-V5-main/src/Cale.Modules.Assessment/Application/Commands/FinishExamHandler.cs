@@ -1,3 +1,4 @@
+using Cale.BuildingBlocks.Domain.Abstractions;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Time;
 using Cale.Modules.Assessment.Application.Abstractions;
@@ -10,15 +11,18 @@ public sealed class FinishExamHandler
 {
     private readonly IAttemptStore _attempts;
     private readonly ICatalogStore _catalog;
+    private readonly IAttemptStats _stats;
     private readonly IClock _clock;
 
     public FinishExamHandler(
         IAttemptStore attempts,
         ICatalogStore catalog,
+        IAttemptStats stats,
         IClock clock)
     {
         _attempts = attempts;
         _catalog = catalog;
+        _stats = stats;
         _clock = clock;
     }
 
@@ -64,14 +68,81 @@ public sealed class FinishExamHandler
 
         attempt.Finish(correct, _clock.UtcNow);
         await _attempts.SaveChangesAsync(ct);
-        return Map(attempt);
+
+        answers = await _attempts.ListAnswersAsync(attemptId, ct);
+        var answerMap = answers.ToDictionary(x => x.QuestionId);
+        var byTopic = new Dictionary<string, (int Correct, int Total)>(
+            StringComparer.OrdinalIgnoreCase);
+        var byBlock = new Dictionary<string, (int Correct, int Total)>(
+            StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in snapshot)
+        {
+            var question = await _catalog.GetQuestionAsync(item.QuestionId, ct);
+            var topic = string.IsNullOrWhiteSpace(question?.Topic)
+                ? "Sin tema"
+                : question!.Topic!;
+            var block = question is null
+                ? "Sin bloque"
+                : (await _catalog.GetBlockAsync(question.BlockId, ct))?.Name
+                    ?? $"Bloque {question.BlockId}";
+
+            var isCorrect = answerMap.TryGetValue(item.QuestionId, out var ans)
+                && ans.IsCorrect;
+
+            Accumulate(byTopic, topic, isCorrect);
+            Accumulate(byBlock, block, isCorrect);
+        }
+
+        var best = await _stats.BestPercentAsync(userId, ct);
+        return Map(
+            attempt,
+            MapBreakdown(byTopic),
+            MapBreakdown(byBlock),
+            best);
     }
 
-    public static FinishResponse Map(Domain.Attempt attempt) => new(
+    public static FinishResponse Map(Domain.Attempt attempt) =>
+        Map(attempt, [], [], null);
+
+    public static FinishResponse Map(
+        Domain.Attempt attempt,
+        IReadOnlyList<ScoreBreakdownDto> byTopic,
+        IReadOnlyList<ScoreBreakdownDto> byBlock,
+        decimal? bestPercent) => new(
         attempt.Id,
         attempt.TotalQuestions,
         attempt.CorrectCount,
         attempt.Percent,
         attempt.Passed,
-        attempt.TimeSeconds);
+        attempt.TimeSeconds,
+        byTopic,
+        byBlock,
+        bestPercent);
+
+    private static void Accumulate(
+        IDictionary<string, (int Correct, int Total)> map,
+        string key,
+        bool isCorrect)
+    {
+        map.TryGetValue(key, out var current);
+        map[key] = (
+            current.Correct + (isCorrect ? 1 : 0),
+            current.Total + 1);
+    }
+
+    private static IReadOnlyList<ScoreBreakdownDto> MapBreakdown(
+        IReadOnlyDictionary<string, (int Correct, int Total)> source) =>
+        source
+            .OrderBy(x => x.Key)
+            .Select(x => new ScoreBreakdownDto(
+                x.Key,
+                x.Value.Correct,
+                x.Value.Total,
+                x.Value.Total == 0
+                    ? 0
+                    : Math.Round(
+                        (decimal)x.Value.Correct * 100m / x.Value.Total,
+                        2)))
+            .ToList();
 }

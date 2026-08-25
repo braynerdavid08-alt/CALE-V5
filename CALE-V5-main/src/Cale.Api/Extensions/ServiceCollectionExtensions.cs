@@ -92,6 +92,12 @@ public static class ServiceCollectionExtensions
         {
             options.AddPolicy("AdminOnly", p => p.RequireRole(Roles.Admin));
             options.AddPolicy(
+                "SchoolOnly",
+                p => p.RequireRole(Roles.School));
+            options.AddPolicy(
+                "CatalogReader",
+                p => p.RequireRole(Roles.Admin, Roles.School, Roles.Teacher));
+            options.AddPolicy(
                 "TeacherOrAdmin",
                 p => p.RequireRole(Roles.Teacher, Roles.Admin));
             options.AddPolicy(

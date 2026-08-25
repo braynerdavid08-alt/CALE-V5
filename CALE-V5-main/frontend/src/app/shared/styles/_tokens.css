@@ -1,35 +1,54 @@
-:root {
-  --color-primary: #6c5ce7;
-  --color-primary-hover: #5b4bd6;
-  --color-primary-soft: #eeebff;
-  --color-background: #f4f6fb;
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+
+  --color-primary: #1a6b8a;
+  --color-primary-hover: #155a74;
+  --color-primary-soft: #dceef5;
+  --color-on-primary: #ffffff;
+
+  --color-background: #eef2f6;
   --color-bg: var(--color-background);
   --color-surface: #ffffff;
-  --color-text: #1c2434;
-  --color-text-secondary: #667085;
+  --color-surface-raised: #f7f9fb;
+  --color-text: #14212b;
+  --color-text-secondary: #4a5b6a;
   --color-muted: var(--color-text-secondary);
-  --color-border: #e6eaf2;
-  --color-chip: #eef1f8;
-  --color-success: #12b76a;
-  --color-success-soft: #e7f8ef;
-  --color-warning: #f79009;
-  --color-warning-soft: #fef4e6;
-  --color-danger: #f04438;
-  --color-danger-soft: #fdecea;
-  --color-info: #2e90fa;
-  --color-info-soft: #e8f3ff;
-  --color-sidebar: #171c28;
-  --color-sidebar-text: #b8c0d4;
+  --color-border: #d5dee7;
+  --color-border-strong: #b7c4d0;
+  --color-chip: #e6edf3;
+
+  --color-success: #0f7a4d;
+  --color-success-soft: #def5ea;
+  --color-warning: #9a6700;
+  --color-warning-soft: #fff3d6;
+  --color-danger: #c0352b;
+  --color-danger-soft: #fde8e6;
+  --color-danger-hover: #a02c24;
+  --color-info: #1769aa;
+  --color-info-soft: #e4f1fb;
+
+  --color-sidebar: #132029;
+  --color-sidebar-text: #b7c5d0;
   --color-sidebar-active: #ffffff;
-  --color-sidebar-hover: rgba(255, 255, 255, 0.06);
+  --color-sidebar-hover: rgba(255, 255, 255, 0.07);
+  --color-brand-panel: #132029;
+  --color-brand-panel-text: #d7e2ea;
+  --color-scrim: rgba(20, 33, 43, 0.45);
+
+  --color-auth-glow: rgba(26, 107, 138, 0.16);
+  --color-welcome-start: #dceef5;
+  --color-welcome-end: #ffffff;
 
   --font: "DM Sans", "Segoe UI", system-ui, sans-serif;
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
-  --text-md: 1rem;
-  --text-lg: 1.125rem;
-  --text-xl: 1.375rem;
-  --text-2xl: 1.75rem;
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+  --text-md: 1.0625rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 1.875rem;
+  --leading-body: 1.6;
+  --leading-tight: 1.3;
 
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
@@ -37,13 +56,17 @@
   --spacing-lg: 1.5rem;
   --spacing-xl: 2rem;
 
-  --radius-sm: 8px;
+  --control-height: 2.75rem;
+  --content-max: 1120px;
+  --page-pad: var(--spacing-lg);
+
+  --radius-sm: 10px;
   --radius-md: 12px;
   --radius-lg: 16px;
 
-  --shadow-sm: 0 1px 2px rgba(23, 28, 40, 0.04);
-  --shadow-md: 0 8px 24px rgba(23, 28, 40, 0.06);
-  --transition: 150ms ease;
+  --shadow-sm: 0 1px 2px rgba(20, 33, 43, 0.05);
+  --shadow-md: 0 10px 28px rgba(20, 33, 43, 0.08);
+  --transition: 180ms ease;
   --z-sidebar: 40;
   --z-topbar: 30;
   --z-overlay: 50;
@@ -53,8 +76,56 @@
   --topbar-height: 64px;
 }
 
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-primary: #4eb6d4;
+  --color-primary-hover: #6bc4db;
+  --color-primary-soft: #1a3644;
+  --color-on-primary: #0b1820;
+
+  --color-background: #0e1419;
+  --color-bg: var(--color-background);
+  --color-surface: #172028;
+  --color-surface-raised: #1d2832;
+  --color-text: #e8eef3;
+  --color-text-secondary: #a3b4c2;
+  --color-muted: var(--color-text-secondary);
+  --color-border: #2a3844;
+  --color-border-strong: #3d5060;
+  --color-chip: #22303b;
+
+  --color-success: #3dcf8e;
+  --color-success-soft: #143528;
+  --color-warning: #e0b03a;
+  --color-warning-soft: #3a3014;
+  --color-danger: #f07167;
+  --color-danger-soft: #3a1c1a;
+  --color-danger-hover: #f58b83;
+  --color-info: #6ab0e0;
+  --color-info-soft: #173246;
+
+  --color-sidebar: #0a1015;
+  --color-sidebar-text: #9db0bf;
+  --color-sidebar-active: #ffffff;
+  --color-sidebar-hover: rgba(255, 255, 255, 0.06);
+  --color-brand-panel: #0a1015;
+  --color-brand-panel-text: #c5d3de;
+  --color-scrim: rgba(0, 0, 0, 0.55);
+
+  --color-auth-glow: rgba(78, 182, 212, 0.12);
+  --color-welcome-start: #1a3644;
+  --color-welcome-end: #172028;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
 @media (max-width: 900px) {
-  :root {
+  :root,
+  [data-theme='light'],
+  [data-theme='dark'] {
     --sidebar-width: 0px;
+    --page-pad: var(--spacing-md);
   }
 }

@@ -9,6 +9,8 @@ const messages: Record<string, string> = {
   user_inactive: 'Tu cuenta está inactiva.',
   unauthorized: 'Necesitas iniciar sesión.',
   user_not_found: 'Usuario no encontrado.',
+  cannot_deactivate_self: 'No puedes desactivar tu propia cuenta.',
+  rating_not_found: 'Valoración no encontrada.',
   internal_error: 'Error interno del servidor.',
   invalid_correct: 'Marca exactamente una respuesta correcta.',
   invalid_options: 'Cada respuesta necesita texto o imagen (mínimo dos).',

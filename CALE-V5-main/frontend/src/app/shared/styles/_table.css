@@ -13,20 +13,36 @@ table.data {
 
 table.data th,
 table.data td {
-  padding: 0.85rem 1rem;
+  padding: 0.9rem 1rem;
   text-align: left;
   border-bottom: 1px solid var(--color-border);
   font-size: var(--text-sm);
+  line-height: var(--leading-body);
+  vertical-align: middle;
 }
 
 table.data th {
   color: var(--color-text-secondary);
   font-weight: 650;
-  background: #fafbfe;
+  background: var(--color-surface-raised);
+  white-space: nowrap;
+}
+
+table.data td {
+  color: var(--color-text);
 }
 
 table.data tr:last-child td { border-bottom: 0; }
 
+table.data tbody tr:hover td {
+  background: var(--color-chip);
+}
+
 @media (max-width: 700px) {
-  table.data { min-width: 0; }
+  table.data { min-width: 480px; }
+
+  table.data th,
+  table.data td {
+    padding: 0.75rem 0.85rem;
+  }
 }

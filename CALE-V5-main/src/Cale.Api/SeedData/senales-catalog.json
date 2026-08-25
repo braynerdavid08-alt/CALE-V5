@@ -1,0 +1,1166 @@
+[
+  {
+    "code": "SR-01",
+    "family": "Señales reglamentarias",
+    "name": "PARE",
+    "imageUrl": "/signals/SR-01.svg"
+  },
+  {
+    "code": "SR-02",
+    "family": "Señales reglamentarias",
+    "name": "CEDA EL PASO",
+    "imageUrl": "/signals/SR-02.svg"
+  },
+  {
+    "code": "SR-03",
+    "family": "Señales reglamentarias",
+    "name": "DIRECCIÓN OBLIGADA O SIGA DE FRENTE",
+    "imageUrl": "/signals/SR-03.svg"
+  },
+  {
+    "code": "SR-04",
+    "family": "Señales reglamentarias",
+    "name": "NO PASE",
+    "imageUrl": "/signals/SR-04.svg"
+  },
+  {
+    "code": "SR-05",
+    "family": "Señales reglamentarias",
+    "name": "GIRO A LA IZQUIERDA SOLAMENTE",
+    "imageUrl": "/signals/SR-05.svg"
+  },
+  {
+    "code": "SR-06",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDO GIRAR A LA IZQUIERDA",
+    "imageUrl": "/signals/SR-06.svg"
+  },
+  {
+    "code": "SR-07",
+    "family": "Señales reglamentarias",
+    "name": "GIRO A LA DERECHA SOLAMENTE",
+    "imageUrl": "/signals/SR-07.svg"
+  },
+  {
+    "code": "SR-08",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDO GIRAR A LA DERECHA",
+    "imageUrl": "/signals/SR-08.svg"
+  },
+  {
+    "code": "SR-09",
+    "family": "Señales reglamentarias",
+    "name": "GIRO EN “U” SOLAMENTE",
+    "imageUrl": "/signals/SR-09.svg"
+  },
+  {
+    "code": "SR-10",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDO GIRAR EN “U”",
+    "imageUrl": "/signals/SR-10.svg"
+  },
+  {
+    "code": "SR-11",
+    "family": "Señales reglamentarias",
+    "name": "CIRCULACIÓN EN AMBOS SENTIDOS",
+    "imageUrl": "/signals/SR-11.svg"
+  },
+  {
+    "code": "SR-12",
+    "family": "Señales reglamentarias",
+    "name": "TRES CARRILES (UNO EN CONTRAFLUJO)",
+    "imageUrl": "/signals/SR-12.svg"
+  },
+  {
+    "code": "SR-13",
+    "family": "Señales reglamentarias",
+    "name": "TRES CARRILES (DOS EN CONTRAFLUJO)",
+    "imageUrl": "/signals/SR-13.svg"
+  },
+  {
+    "code": "SR-14",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDO CAMBIO DE CALZADA DE IZQUIERDA A DERECHA",
+    "imageUrl": "/signals/SR-14.svg"
+  },
+  {
+    "code": "SR-14A",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDO CAMBIO DE CALZADA DE DERECHA A IZQUIERDA",
+    "imageUrl": "/signals/SR-14A.svg"
+  },
+  {
+    "code": "SR-16",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDA CIRCULACIÓN DE VEHÍCULOS AUTOMOTORES",
+    "imageUrl": "/signals/SR-16.svg"
+  },
+  {
+    "code": "SR-17",
+    "family": "Señales reglamentarias",
+    "name": "VEHÍCULOS PESADOS A LA DERECHA",
+    "imageUrl": "/signals/SR-17.svg"
+  },
+  {
+    "code": "SR-18",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDA CIRCULACIÓN DE VEHÍCULOS DE CARGA",
+    "imageUrl": "/signals/SR-18.svg"
+  },
+  {
+    "code": "SR-18A",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDA CIRCULACIÓN DE VEHÍCULOS CON EJE ADICIONAL",
+    "imageUrl": "/signals/SR-18A.svg"
+  },
+  {
+    "code": "SR-18B",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDA CIRCULACIÓN DE VEHÍCULOS DESTINADOS AL TRANSPORTE DE MERCANCÍAS PELIGROSAS",
+    "imageUrl": "/signals/SR-18B.svg"
+  },
+  {
+    "code": "SR-19",
+    "family": "Señales reglamentarias",
+    "name": "PEATONES A LA IZQUIERDA",
+    "imageUrl": "/signals/SR-19.svg"
+  },
+  {
+    "code": "SR-20",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDA CIRCULACIÓN DE PEATONES",
+    "imageUrl": "/signals/SR-20.svg"
+  },
+  {
+    "code": "SR-21",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDA CIRCULACIÓN DE CABALGADURAS",
+    "imageUrl": "/signals/SR-21.svg"
+  },
+  {
+    "code": "SR-22",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDA CIRCULACIÓN DE BICICLETAS Y MOTOCICLOS",
+    "imageUrl": "/signals/SR-22.svg"
+  },
+  {
+    "code": "SR-23",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDA CIRCULACIÓN DE MOTOCICLETAS",
+    "imageUrl": "/signals/SR-23.svg"
+  },
+  {
+    "code": "SR-24",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDA CIRCULACIÓN DE MAQUINARIA AGRÍCOLA",
+    "imageUrl": "/signals/SR-24.svg"
+  },
+  {
+    "code": "SR-25",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDA CIRCULACIÓN DE VEHÍCULOS DE TRACCIÓN ANIMAL",
+    "imageUrl": "/signals/SR-25.svg"
+  },
+  {
+    "code": "SR-26",
+    "family": "Señales reglamentarias",
+    "name": "NO ADELANTAR",
+    "imageUrl": "/signals/SR-26.svg"
+  },
+  {
+    "code": "SR-28",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDO PARQUEAR",
+    "imageUrl": "/signals/SR-28.svg"
+  },
+  {
+    "code": "SR-28A",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDO PARQUEAR O DETENERSE",
+    "imageUrl": "/signals/SR-28A.svg"
+  },
+  {
+    "code": "SR-29",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDO PITAR",
+    "imageUrl": "/signals/SR-29.svg"
+  },
+  {
+    "code": "SR-30",
+    "family": "Señales reglamentarias",
+    "name": "VELOCIDAD MÁXIMA PERMITIDA",
+    "imageUrl": "/signals/SR-30.svg"
+  },
+  {
+    "code": "SR-30A",
+    "family": "Señales reglamentarias",
+    "name": "VELOCIDAD MÍNIMA PERMITIDA",
+    "imageUrl": "/signals/SR-30A.svg"
+  },
+  {
+    "code": "SR-30B",
+    "family": "Señales reglamentarias",
+    "name": "VELOCIDAD MÁXIMA PERMITIDA EN SALIDA",
+    "imageUrl": "/signals/SR-30B.svg"
+  },
+  {
+    "code": "SR-31",
+    "family": "Señales reglamentarias",
+    "name": "PESO MÁXIMO BRUTO PERMITIDO",
+    "imageUrl": "/signals/SR-31.svg"
+  },
+  {
+    "code": "SR-32",
+    "family": "Señales reglamentarias",
+    "name": "ALTURA MÁXIMA PERMITIDA",
+    "imageUrl": "/signals/SR-32.svg"
+  },
+  {
+    "code": "SR-33",
+    "family": "Señales reglamentarias",
+    "name": "ANCHO MÁXIMO PERMITIDO",
+    "imageUrl": "/signals/SR-33.svg"
+  },
+  {
+    "code": "SR-34",
+    "family": "Señales reglamentarias",
+    "name": "ZONA DE ESTACIONAMIENTO DE TAXI",
+    "imageUrl": "/signals/SR-34.svg"
+  },
+  {
+    "code": "SR-35",
+    "family": "Señales reglamentarias",
+    "name": "CIRCULACIÓN CON LUCES BAJAS",
+    "imageUrl": "/signals/SR-35.svg"
+  },
+  {
+    "code": "SR-36",
+    "family": "Señales reglamentarias",
+    "name": "RETÉN",
+    "imageUrl": "/signals/SR-36.svg"
+  },
+  {
+    "code": "SR-38",
+    "family": "Señales reglamentarias",
+    "name": "SENTIDO ÚNICO DE CIRCULACIÓN",
+    "imageUrl": "/signals/SR-38.svg"
+  },
+  {
+    "code": "SR-39",
+    "family": "Señales reglamentarias",
+    "name": "CIRCULACIÓN EN AMBOS SENTIDOS",
+    "imageUrl": "/signals/SR-39.svg"
+  },
+  {
+    "code": "SR-41",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDO EL ASCENSO Y DESCENSO DE PASAJEROS",
+    "imageUrl": "/signals/SR-41.svg"
+  },
+  {
+    "code": "SR-42",
+    "family": "Señales reglamentarias",
+    "name": "ZONA DE CARGUE Y DESCARGUE",
+    "imageUrl": "/signals/SR-42.svg"
+  },
+  {
+    "code": "SR-43",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDO EL CARGUE Y DESCARGUE",
+    "imageUrl": "/signals/SR-43.svg"
+  },
+  {
+    "code": "SR-44",
+    "family": "Señales reglamentarias",
+    "name": "CONSERVAR ESPACIAMIENTO",
+    "imageUrl": "/signals/SR-44.svg"
+  },
+  {
+    "code": "SR-45",
+    "family": "Señales reglamentarias",
+    "name": "INDICACIÓN DE SEPARADOR DE TRÁNSITO A LA IZQUIERDA",
+    "imageUrl": "/signals/SR-45.svg"
+  },
+  {
+    "code": "SR-46",
+    "family": "Señales reglamentarias",
+    "name": "INDICACIÓN DE SEPARADOR DE TRÁNSITO A LA DERECHA",
+    "imageUrl": "/signals/SR-46.svg"
+  },
+  {
+    "code": "SR-47",
+    "family": "Señales reglamentarias",
+    "name": "NO BLOQUEAR INTERSECCIÓN",
+    "imageUrl": "/signals/SR-47.svg"
+  },
+  {
+    "code": "SR-48",
+    "family": "Señales reglamentarias",
+    "name": "FIN DE LA PROHIBICIÓN DE ADELANTAR",
+    "imageUrl": "/signals/SR-48.svg"
+  },
+  {
+    "code": "SR-49",
+    "family": "Señales reglamentarias",
+    "name": "PRIORIDAD AL SENTIDO CONTRARIO",
+    "imageUrl": "/signals/SR-49.svg"
+  },
+  {
+    "code": "SR-50",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDO GIRAR A LA DERECHA CON LUZ ROJA",
+    "imageUrl": "/signals/SR-50.svg"
+  },
+  {
+    "code": "SR-51",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDA CIRCULACIÓN DE CARROS DE MANO",
+    "imageUrl": "/signals/SR-51.svg"
+  },
+  {
+    "code": "SR-52",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDA CIRCULACIÓN DE BUSES",
+    "imageUrl": "/signals/SR-52.svg"
+  },
+  {
+    "code": "SR-53",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDA CIRCULACIÓN DE MOTOCARROS",
+    "imageUrl": "/signals/SR-53.svg"
+  },
+  {
+    "code": "SR-54",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDA CIRCULACIÓN DE CUATRIMOTOS",
+    "imageUrl": "/signals/SR-54.svg"
+  },
+  {
+    "code": "SR-56",
+    "family": "Señales reglamentarias",
+    "name": "PROHIBIDO CIRCULACIÓN VEHICULAR EN LOS DOS SENTIDOS - PRIORIDAD PEATONAL",
+    "imageUrl": "/signals/SR-56.svg"
+  },
+  {
+    "code": "SP-01",
+    "family": "Señales preventivas",
+    "name": "CURVA CERRADA A LA IZQUIERDA",
+    "imageUrl": "/signals/SP-01.svg"
+  },
+  {
+    "code": "SP-02",
+    "family": "Señales preventivas",
+    "name": "CURVA CERRADA A LA DERECHA",
+    "imageUrl": "/signals/SP-02.svg"
+  },
+  {
+    "code": "SP-03",
+    "family": "Señales preventivas",
+    "name": "CURVA PRONUNCIADA A LA IZQUIERDA",
+    "imageUrl": "/signals/SP-03.svg"
+  },
+  {
+    "code": "SP-04",
+    "family": "Señales preventivas",
+    "name": "CURVA PRONUNCIADA A LA DERECHA",
+    "imageUrl": "/signals/SP-04.svg"
+  },
+  {
+    "code": "SP-05",
+    "family": "Señales preventivas",
+    "name": "CURVA Y CONTRACURVA CERRADA, PRIMERA A LA IZQUIERDA",
+    "imageUrl": "/signals/SP-05.svg"
+  },
+  {
+    "code": "SP-06",
+    "family": "Señales preventivas",
+    "name": "CURVA Y CONTRACURVA CERRADA, PRIMERA A LA DERECHA",
+    "imageUrl": "/signals/SP-06.svg"
+  },
+  {
+    "code": "SP-07",
+    "family": "Señales preventivas",
+    "name": "ZONA DE CURVAS SUCESIVAS, PRIMERA A LA IZQUIERDA",
+    "imageUrl": "/signals/SP-07.svg"
+  },
+  {
+    "code": "SP-08",
+    "family": "Señales preventivas",
+    "name": "ZONA DE CURVAS SUCESIVAS, PRIMERA A LA DERECHA",
+    "imageUrl": "/signals/SP-08.svg"
+  },
+  {
+    "code": "SP-09",
+    "family": "Señales preventivas",
+    "name": "CURVA Y CONTRACURVA PRONUNCIADA, PRIMERA A LA IZQUIERDA",
+    "imageUrl": "/signals/SP-09.svg"
+  },
+  {
+    "code": "SP-10",
+    "family": "Señales preventivas",
+    "name": "CURVA Y CONTRACURVA PRONUNCIADA, PRIMERA A LA DERECHA",
+    "imageUrl": "/signals/SP-10.svg"
+  },
+  {
+    "code": "SP-11",
+    "family": "Señales preventivas",
+    "name": "INTERSECCIÓN DE VÍAS",
+    "imageUrl": "/signals/SP-11.svg"
+  },
+  {
+    "code": "SP-12",
+    "family": "Señales preventivas",
+    "name": "VÍA LATERAL IZQUIERDA",
+    "imageUrl": "/signals/SP-12.svg"
+  },
+  {
+    "code": "SP-13",
+    "family": "Señales preventivas",
+    "name": "VÍA LATERAL DERECHA",
+    "imageUrl": "/signals/SP-13.svg"
+  },
+  {
+    "code": "SP-14",
+    "family": "Señales preventivas",
+    "name": "INTERSECCIÓN EN “T”",
+    "imageUrl": "/signals/SP-14.svg"
+  },
+  {
+    "code": "SP-15",
+    "family": "Señales preventivas",
+    "name": "BIFURCACIÓN EN “Y”",
+    "imageUrl": "/signals/SP-15.svg"
+  },
+  {
+    "code": "SP-16",
+    "family": "Señales preventivas",
+    "name": "BIFURCACIÓN A LA IZQUIERDA",
+    "imageUrl": "/signals/SP-16.svg"
+  },
+  {
+    "code": "SP-17",
+    "family": "Señales preventivas",
+    "name": "BIFURCACIÓN A LA DERECHA",
+    "imageUrl": "/signals/SP-17.svg"
+  },
+  {
+    "code": "SP-18",
+    "family": "Señales preventivas",
+    "name": "INTERSECCIÓN ESCALONADA, PRIMERA A LA IZQUIERDA",
+    "imageUrl": "/signals/SP-18.svg"
+  },
+  {
+    "code": "SP-19",
+    "family": "Señales preventivas",
+    "name": "INTERSECCIÓN ESCALONADA, PRIMERA A LA DERECHA",
+    "imageUrl": "/signals/SP-19.svg"
+  },
+  {
+    "code": "SP-20",
+    "family": "Señales preventivas",
+    "name": "GLORIETA",
+    "imageUrl": "/signals/SP-20.svg"
+  },
+  {
+    "code": "SP-21",
+    "family": "Señales preventivas",
+    "name": "INCORPORACIÓN DE TRÁNSITO DESDE LA IZQUIERDA",
+    "imageUrl": "/signals/SP-21.svg"
+  },
+  {
+    "code": "SP-22",
+    "family": "Señales preventivas",
+    "name": "INCORPORACIÓN DE TRÁNSITO DESDE LA DERECHA",
+    "imageUrl": "/signals/SP-22.svg"
+  },
+  {
+    "code": "SP-23",
+    "family": "Señales preventivas",
+    "name": "SEMÁFORO",
+    "imageUrl": "/signals/SP-23.svg"
+  },
+  {
+    "code": "SP-24",
+    "family": "Señales preventivas",
+    "name": "SUPERFICIE RIZADA",
+    "imageUrl": "/signals/SP-24.svg"
+  },
+  {
+    "code": "SP-25",
+    "family": "Señales preventivas",
+    "name": "PROXIMIDAD DE RESALTO",
+    "imageUrl": "/signals/SP-25.svg"
+  },
+  {
+    "code": "SP-25A",
+    "family": "Señales preventivas",
+    "name": "UBICACIÓN DE RESALTO",
+    "imageUrl": "/signals/SP-25A.svg"
+  },
+  {
+    "code": "SP-25B",
+    "family": "Señales preventivas",
+    "name": "PROXIMIDAD A REDUCTOR TRAPEZOIDAL / POMPEYANO",
+    "imageUrl": "/signals/SP-25B.svg"
+  },
+  {
+    "code": "SP-25C",
+    "family": "Señales preventivas",
+    "name": "UBICACIÓN DE REDUCTOR TRAPEZOIDAL / POMPEYANO",
+    "imageUrl": "/signals/SP-25C.svg"
+  },
+  {
+    "code": "SP-26",
+    "family": "Señales preventivas",
+    "name": "DEPRESIÓN",
+    "imageUrl": "/signals/SP-26.svg"
+  },
+  {
+    "code": "SP-27",
+    "family": "Señales preventivas",
+    "name": "PENDIENTE FUERTE DE DESCENSO",
+    "imageUrl": "/signals/SP-27.svg"
+  },
+  {
+    "code": "SP-27A",
+    "family": "Señales preventivas",
+    "name": "PENDIENTE FUERTE DE ASCENSO",
+    "imageUrl": "/signals/SP-27A.svg"
+  },
+  {
+    "code": "SP-28",
+    "family": "Señales preventivas",
+    "name": "REDUCCIÓN DE CALZADA A AMBOS LADOS",
+    "imageUrl": "/signals/SP-28.svg"
+  },
+  {
+    "code": "SP-29",
+    "family": "Señales preventivas",
+    "name": "PROXIMIDAD A SEÑAL DE PARE",
+    "imageUrl": "/signals/SP-29.svg"
+  },
+  {
+    "code": "SP-30",
+    "family": "Señales preventivas",
+    "name": "REDUCCIÓN DE CALZADA A LA IZQUIERDA",
+    "imageUrl": "/signals/SP-30.svg"
+  },
+  {
+    "code": "SP-31",
+    "family": "Señales preventivas",
+    "name": "REDUCCIÓN DE CALZADA A LA DERECHA",
+    "imageUrl": "/signals/SP-31.svg"
+  },
+  {
+    "code": "SP-32",
+    "family": "Señales preventivas",
+    "name": "ENSANCHAMIENTO SIMÉTRICO DE LA CALZADA",
+    "imageUrl": "/signals/SP-32.svg"
+  },
+  {
+    "code": "SP-33",
+    "family": "Señales preventivas",
+    "name": "PROXIMIDAD A SEÑAL CEDA EL PASO",
+    "imageUrl": "/signals/SP-33.svg"
+  },
+  {
+    "code": "SP-34",
+    "family": "Señales preventivas",
+    "name": "ENSANCHAMIENTO DE LA CALZADA A LA IZQUIERDA",
+    "imageUrl": "/signals/SP-34.svg"
+  },
+  {
+    "code": "SP-35",
+    "family": "Señales preventivas",
+    "name": "ENSANCHAMIENTO DE LA CALZADA A LA DERECHA",
+    "imageUrl": "/signals/SP-35.svg"
+  },
+  {
+    "code": "SP-36",
+    "family": "Señales preventivas",
+    "name": "PUENTE ANGOSTO",
+    "imageUrl": "/signals/SP-36.svg"
+  },
+  {
+    "code": "SP-37",
+    "family": "Señales preventivas",
+    "name": "TÚNEL",
+    "imageUrl": "/signals/SP-37.svg"
+  },
+  {
+    "code": "SP-38",
+    "family": "Señales preventivas",
+    "name": "PESO MÁXIMO BRUTO VEHICULAR PERMITIDO",
+    "imageUrl": "/signals/SP-38.svg"
+  },
+  {
+    "code": "SP-39",
+    "family": "Señales preventivas",
+    "name": "DOS SENTIDOS DE TRÁNSITO",
+    "imageUrl": "/signals/SP-39.svg"
+  },
+  {
+    "code": "SP-41",
+    "family": "Señales preventivas",
+    "name": "TRES CARRILES DE TRÁNSITO (UNO EN CONTRAFLUJO)",
+    "imageUrl": "/signals/SP-41.svg"
+  },
+  {
+    "code": "SP-42",
+    "family": "Señales preventivas",
+    "name": "ZONA DE DERRUMBES",
+    "imageUrl": "/signals/SP-42.svg"
+  },
+  {
+    "code": "SP-43",
+    "family": "Señales preventivas",
+    "name": "TRES CARRILES DE TRÁNSITO (DOS EN CONTRAFLUJO)",
+    "imageUrl": "/signals/SP-43.svg"
+  },
+  {
+    "code": "SP-44",
+    "family": "Señales preventivas",
+    "name": "SUPERFICIE DESLIZANTE",
+    "imageUrl": "/signals/SP-44.svg"
+  },
+  {
+    "code": "SP-45",
+    "family": "Señales preventivas",
+    "name": "MAQUINARIA AGRÍCOLA EN LA VÍA",
+    "imageUrl": "/signals/SP-45.svg"
+  },
+  {
+    "code": "SP-46",
+    "family": "Señales preventivas",
+    "name": "ZONA DE PEATONES",
+    "imageUrl": "/signals/SP-46.svg"
+  },
+  {
+    "code": "SP-46A",
+    "family": "Señales preventivas",
+    "name": "PROXIMIDAD DE CRUCE PEATONAL",
+    "imageUrl": "/signals/SP-46A.svg"
+  },
+  {
+    "code": "SP-46B",
+    "family": "Señales preventivas",
+    "name": "UBICACIÓN DE CRUCE PEATONAL",
+    "imageUrl": "/signals/SP-46B.svg"
+  },
+  {
+    "code": "SP-46C",
+    "family": "Señales preventivas",
+    "name": "ZONA CON PRIORIDAD PEATONAL",
+    "imageUrl": "/signals/SP-46C.svg"
+  },
+  {
+    "code": "SP-47",
+    "family": "Señales preventivas",
+    "name": "ZONA ESCOLAR",
+    "imageUrl": "/signals/SP-47.svg"
+  },
+  {
+    "code": "SP-47A",
+    "family": "Señales preventivas",
+    "name": "PROXIMIDAD A CRUCE ESCOLAR",
+    "imageUrl": "/signals/SP-47A.svg"
+  },
+  {
+    "code": "SP-47B",
+    "family": "Señales preventivas",
+    "name": "UBICACIÓN DE CRUCE ESCOLAR",
+    "imageUrl": "/signals/SP-47B.svg"
+  },
+  {
+    "code": "SP-48",
+    "family": "Señales preventivas",
+    "name": "NIÑOS JUGANDO",
+    "imageUrl": "/signals/SP-48.svg"
+  },
+  {
+    "code": "SP-49",
+    "family": "Señales preventivas",
+    "name": "ANIMALES EN LA VÍA",
+    "imageUrl": "/signals/SP-49.svg"
+  },
+  {
+    "code": "SP-49A",
+    "family": "Señales preventivas",
+    "name": "CRUCE DE ANIMALES",
+    "imageUrl": "/signals/SP-49A.svg"
+  },
+  {
+    "code": "SP-50",
+    "family": "Señales preventivas",
+    "name": "ALTURA LIBRE",
+    "imageUrl": "/signals/SP-50.svg"
+  },
+  {
+    "code": "SP-51",
+    "family": "Señales preventivas",
+    "name": "ANCHO LIBRE",
+    "imageUrl": "/signals/SP-51.svg"
+  },
+  {
+    "code": "SP-52",
+    "family": "Señales preventivas",
+    "name": "CRUCE FERROVIARIO A NIVEL SIN BARRERA",
+    "imageUrl": "/signals/SP-52.svg"
+  },
+  {
+    "code": "SP-52A",
+    "family": "Señales preventivas",
+    "name": "CRUCE FERROVIARIO A NIVEL CON BARRERA",
+    "imageUrl": "/signals/SP-52A.svg"
+  },
+  {
+    "code": "SP-53",
+    "family": "Señales preventivas",
+    "name": "BARRERA",
+    "imageUrl": "/signals/SP-53.svg"
+  },
+  {
+    "code": "SP-54",
+    "family": "Señales preventivas",
+    "name": "CRUZ DE SAN ANDRÉS",
+    "imageUrl": "/signals/SP-54.svg"
+  },
+  {
+    "code": "SP-55",
+    "family": "Señales preventivas",
+    "name": "INICIACIÓN DE SEPARADOR (DOS SENTIDOS)",
+    "imageUrl": "/signals/SP-55.svg"
+  },
+  {
+    "code": "SP-55A",
+    "family": "Señales preventivas",
+    "name": "INICIACIÓN DE SEPARADOR (UN SENTIDO)",
+    "imageUrl": "/signals/SP-55A.svg"
+  },
+  {
+    "code": "SP-56",
+    "family": "Señales preventivas",
+    "name": "TERMINACIÓN DE VÍA CON SEPARADOR (DOS SENTIDOS)",
+    "imageUrl": "/signals/SP-56.svg"
+  },
+  {
+    "code": "SP-56A",
+    "family": "Señales preventivas",
+    "name": "TERMINACIÓN DE VÍA CON SEPARADOR (UN SENTIDO)",
+    "imageUrl": "/signals/SP-56A.svg"
+  },
+  {
+    "code": "SP-57",
+    "family": "Señales preventivas",
+    "name": "FINAL DEL PAVIMENTO",
+    "imageUrl": "/signals/SP-57.svg"
+  },
+  {
+    "code": "SP-57A",
+    "family": "Señales preventivas",
+    "name": "CAMBIO DE TEXTURA EN SUPERFICIE DE RODADURA",
+    "imageUrl": "/signals/SP-57A.svg"
+  },
+  {
+    "code": "SP-59",
+    "family": "Señales preventivas",
+    "name": "CICLISTAS EN LA VÍA",
+    "imageUrl": "/signals/SP-59.svg"
+  },
+  {
+    "code": "SP-59A",
+    "family": "Señales preventivas",
+    "name": "PROXIMIDAD A CRUCE DE CICLISTAS",
+    "imageUrl": "/signals/SP-59A.svg"
+  },
+  {
+    "code": "SP-59B",
+    "family": "Señales preventivas",
+    "name": "UBICACIÓN DE CRUCE DE CICLISTAS",
+    "imageUrl": "/signals/SP-59B.svg"
+  },
+  {
+    "code": "SP-67",
+    "family": "Señales preventivas",
+    "name": "RIESGO DE ACCIDENTE",
+    "imageUrl": "/signals/SP-67.svg"
+  },
+  {
+    "code": "SP-68",
+    "family": "Señales preventivas",
+    "name": "CONSERVAR ESPACIAMIENTO",
+    "imageUrl": "/signals/SP-68.svg"
+  },
+  {
+    "code": "SP-69",
+    "family": "Señales preventivas",
+    "name": "CURVA MUY CERRADA A LA IZQUIERDA",
+    "imageUrl": "/signals/SP-69.svg"
+  },
+  {
+    "code": "SP-70",
+    "family": "Señales preventivas",
+    "name": "CURVA MUY CERRADA A LA DERECHA",
+    "imageUrl": "/signals/SP-70.svg"
+  },
+  {
+    "code": "SP-71",
+    "family": "Señales preventivas",
+    "name": "PROYECCIÓN DE GRAVILLA",
+    "imageUrl": "/signals/SP-71.svg"
+  },
+  {
+    "code": "SP-72",
+    "family": "Señales preventivas",
+    "name": "SALIDA DE VEHÍCULOS DE BOMBEROS",
+    "imageUrl": "/signals/SP-72.svg"
+  },
+  {
+    "code": "SP-73",
+    "family": "Señales preventivas",
+    "name": "RÁFAGAS DE VIENTO LATERAL",
+    "imageUrl": "/signals/SP-73.svg"
+  },
+  {
+    "code": "SP-74",
+    "family": "Señales preventivas",
+    "name": "DESNIVEL SEVERO",
+    "imageUrl": "/signals/SP-74.svg"
+  },
+  {
+    "code": "SP-75",
+    "family": "Señales preventivas",
+    "name": "DELINEADOR DE CURVA HORIZONTAL",
+    "imageUrl": "/signals/SP-75.svg"
+  },
+  {
+    "code": "SP-76",
+    "family": "Señales preventivas",
+    "name": "LONGITUD MÁXIMA PERMITIDA",
+    "imageUrl": "/signals/SP-76.svg"
+  },
+  {
+    "code": "SP-77",
+    "family": "Señales preventivas",
+    "name": "ZONA DE NIEBLA",
+    "imageUrl": "/signals/SP-77.svg"
+  },
+  {
+    "code": "SP-78",
+    "family": "Señales preventivas",
+    "name": "PUENTE LEVADIZO",
+    "imageUrl": "/signals/SP-78.svg"
+  },
+  {
+    "code": "SP-79",
+    "family": "Señales preventivas",
+    "name": "VEHÍCULOS DE CARGA O EXTRA-DIMENSIONADOS",
+    "imageUrl": "/signals/SP-79.svg"
+  },
+  {
+    "code": "SP-80",
+    "family": "Señales preventivas",
+    "name": "TRICIMÓVILES EN LA VÍA",
+    "imageUrl": "/signals/SP-80.svg"
+  },
+  {
+    "code": "SP-81",
+    "family": "Señales preventivas",
+    "name": "CRUCE FERROVIARIO CON DESNIVEL DE RASANTE",
+    "imageUrl": "/signals/SP-81.svg"
+  },
+  {
+    "code": "SI-01",
+    "family": "Señales informativas",
+    "name": "RUTA NACIONAL",
+    "imageUrl": "/signals/SI-01.svg"
+  },
+  {
+    "code": "SI-01A",
+    "family": "Señales informativas",
+    "name": "RUTA DEPARTAMENTAL",
+    "imageUrl": "/signals/SI-01A.svg"
+  },
+  {
+    "code": "SI-02",
+    "family": "Señales informativas",
+    "name": "RUTA PANAMERICANA",
+    "imageUrl": "/signals/SI-02.svg"
+  },
+  {
+    "code": "SI-03",
+    "family": "Señales informativas",
+    "name": "RUTA MARGINAL DE LA SELVA",
+    "imageUrl": "/signals/SI-03.svg"
+  },
+  {
+    "code": "SI-04",
+    "family": "Señales informativas",
+    "name": "POSTE DE REFERENCIA",
+    "imageUrl": "/signals/SI-04.svg"
+  },
+  {
+    "code": "SI-05",
+    "family": "Señales informativas",
+    "name": "SEÑAL DE DIRECCIÓN",
+    "imageUrl": "/signals/SI-05.svg"
+  },
+  {
+    "code": "SI-05A",
+    "family": "Señales informativas",
+    "name": "SEÑAL DE DIRECCIÓN / SALIDA INMEDIATA",
+    "imageUrl": "/signals/SI-05A.svg"
+  },
+  {
+    "code": "SI-05B",
+    "family": "Señales informativas",
+    "name": "FLECHAS DE DESTINO / SEÑAL DE GLORIETA",
+    "imageUrl": "/signals/SI-05B.svg"
+  },
+  {
+    "code": "SI-05C",
+    "family": "Señales informativas",
+    "name": "SEÑAL DE RUTA ALTERNATIVA",
+    "imageUrl": "/signals/SI-05C.svg"
+  },
+  {
+    "code": "SI-05D",
+    "family": "Señales informativas",
+    "name": "SEÑAL DE PRESEÑALIZACIÓN",
+    "imageUrl": "/signals/SI-05D.svg"
+  },
+  {
+    "code": "SI-06",
+    "family": "Señales informativas",
+    "name": "SEÑAL DE CONFIRMACIÓN",
+    "imageUrl": "/signals/SI-06.svg"
+  },
+  {
+    "code": "SI-07",
+    "family": "Señales informativas",
+    "name": "SITIO DE PARQUEO",
+    "imageUrl": "/signals/SI-07.svg"
+  },
+  {
+    "code": "SI-07A",
+    "family": "Señales informativas",
+    "name": "ZONAS ESPECIALES DE PARQUEO",
+    "imageUrl": "/signals/SI-07A.svg"
+  },
+  {
+    "code": "SI-07B",
+    "family": "Señales informativas",
+    "name": "ZONA ESPECIAL DE PARQUEO DE BICICLETAS",
+    "imageUrl": "/signals/SI-07B.svg"
+  },
+  {
+    "code": "SI-07C",
+    "family": "Señales informativas",
+    "name": "ZONA ESPECIAL DE PARQUEO DE VEHÍCULOS ELÉCTRICOS",
+    "imageUrl": "/signals/SI-07C.svg"
+  },
+  {
+    "code": "SI-08",
+    "family": "Señales informativas",
+    "name": "PARADERO DE BUSES",
+    "imageUrl": "/signals/SI-08.svg"
+  },
+  {
+    "code": "SI-09",
+    "family": "Señales informativas",
+    "name": "ESTACIONAMIENTO DE TAXIS",
+    "imageUrl": "/signals/SI-09.svg"
+  },
+  {
+    "code": "SI-09A",
+    "family": "Señales informativas",
+    "name": "ESTACIONAMIENTO DE TRICIMÓVILES",
+    "imageUrl": "/signals/SI-09A.svg"
+  },
+  {
+    "code": "SI-10",
+    "family": "Señales informativas",
+    "name": "SERVICIO DE TRANSBORDADOR",
+    "imageUrl": "/signals/SI-10.svg"
+  },
+  {
+    "code": "SI-11",
+    "family": "Señales informativas",
+    "name": "VÍA PARA CICLISTAS",
+    "imageUrl": "/signals/SI-11.svg"
+  },
+  {
+    "code": "SI-11A",
+    "family": "Señales informativas",
+    "name": "PRIORIDAD VÍA PARA CICLISTAS",
+    "imageUrl": "/signals/SI-11A.svg"
+  },
+  {
+    "code": "SI-13",
+    "family": "Señales informativas",
+    "name": "ZONA MILITAR",
+    "imageUrl": "/signals/SI-13.svg"
+  },
+  {
+    "code": "SI-14",
+    "family": "Señales informativas",
+    "name": "AEROPUERTO",
+    "imageUrl": "/signals/SI-14.svg"
+  },
+  {
+    "code": "SI-15",
+    "family": "Señales informativas",
+    "name": "HOSPEDAJE",
+    "imageUrl": "/signals/SI-15.svg"
+  },
+  {
+    "code": "SI-16",
+    "family": "Señales informativas",
+    "name": "PRIMEROS AUXILIOS",
+    "imageUrl": "/signals/SI-16.svg"
+  },
+  {
+    "code": "SI-16A",
+    "family": "Señales informativas",
+    "name": "HOSPITAL",
+    "imageUrl": "/signals/SI-16A.svg"
+  },
+  {
+    "code": "SI-17",
+    "family": "Señales informativas",
+    "name": "SERVICIOS SANITARIOS",
+    "imageUrl": "/signals/SI-17.svg"
+  },
+  {
+    "code": "SI-18",
+    "family": "Señales informativas",
+    "name": "RESTAURANTE",
+    "imageUrl": "/signals/SI-18.svg"
+  },
+  {
+    "code": "SI-19",
+    "family": "Señales informativas",
+    "name": "TELÉFONO",
+    "imageUrl": "/signals/SI-19.svg"
+  },
+  {
+    "code": "SI-20",
+    "family": "Señales informativas",
+    "name": "IGLESIA",
+    "imageUrl": "/signals/SI-20.svg"
+  },
+  {
+    "code": "SI-21",
+    "family": "Señales informativas",
+    "name": "TALLER",
+    "imageUrl": "/signals/SI-21.svg"
+  },
+  {
+    "code": "SI-22",
+    "family": "Señales informativas",
+    "name": "ESTACIÓN DE SERVICIO",
+    "imageUrl": "/signals/SI-22.svg"
+  },
+  {
+    "code": "SI-22A",
+    "family": "Señales informativas",
+    "name": "ESTACIÓN DE CARGA DE VEHÍCULOS ELÉCTRICOS",
+    "imageUrl": "/signals/SI-22A.svg"
+  },
+  {
+    "code": "SI-23",
+    "family": "Señales informativas",
+    "name": "MONTALLANTAS",
+    "imageUrl": "/signals/SI-23.svg"
+  },
+  {
+    "code": "SI-25",
+    "family": "Señales informativas",
+    "name": "PASO O INSTALACIÓN ACCESIBLE",
+    "imageUrl": "/signals/SI-25.svg"
+  },
+  {
+    "code": "SI-25A",
+    "family": "Señales informativas",
+    "name": "CRUCE DE PERSONAS CON DISCAPACIDAD VISUAL",
+    "imageUrl": "/signals/SI-25A.svg"
+  },
+  {
+    "code": "SI-26",
+    "family": "Señales informativas",
+    "name": "NOMBRE DE CALLES Y NOMENCLATURA URBANA",
+    "imageUrl": "/signals/SI-26.svg"
+  },
+  {
+    "code": "SI-27",
+    "family": "Señales informativas",
+    "name": "SEGURIDAD VIAL",
+    "imageUrl": "/signals/SI-27.svg"
+  },
+  {
+    "code": "SI-27A",
+    "family": "Señales informativas",
+    "name": "SEGURIDAD VIAL EN INTERSECCIONES SEMAFORIZADAS",
+    "imageUrl": "/signals/SI-27A.svg"
+  },
+  {
+    "code": "SI-27B",
+    "family": "Señales informativas",
+    "name": "RADAR PEDAGÓGICO",
+    "imageUrl": "/signals/SI-27B.svg"
+  },
+  {
+    "code": "SI-29",
+    "family": "Señales informativas",
+    "name": "TRANSPORTE FERROVIARIO",
+    "imageUrl": "/signals/SI-29.svg"
+  },
+  {
+    "code": "SI-30",
+    "family": "Señales informativas",
+    "name": "TRANSPORTE MASIVO",
+    "imageUrl": "/signals/SI-30.svg"
+  },
+  {
+    "code": "SI-30A",
+    "family": "Señales informativas",
+    "name": "TRANSPORTE POR CABLE",
+    "imageUrl": "/signals/SI-30A.svg"
+  },
+  {
+    "code": "SI-31",
+    "family": "Señales informativas",
+    "name": "ZONA RECREATIVA",
+    "imageUrl": "/signals/SI-31.svg"
+  },
+  {
+    "code": "SI-32",
+    "family": "Señales informativas",
+    "name": "TSUNAMI RUTA DE EVACUACIÓN",
+    "imageUrl": "/signals/SI-32.svg"
+  },
+  {
+    "code": "SI-33",
+    "family": "Señales informativas",
+    "name": "ZONA DE RIESGO POR TSUNAMI",
+    "imageUrl": "/signals/SI-33.svg"
+  },
+  {
+    "code": "SI-34",
+    "family": "Señales informativas",
+    "name": "PUNTO DE ENCUENTRO POR TSUNAMI",
+    "imageUrl": "/signals/SI-34.svg"
+  },
+  {
+    "code": "SI-35",
+    "family": "Señales informativas",
+    "name": "SISTEMA PARA DETECCIÓN ELECTRÓNICA",
+    "imageUrl": "/signals/SI-35.svg"
+  },
+  {
+    "code": "SI-35A",
+    "family": "Señales informativas",
+    "name": "ZONA DE CONTROL CON SISTEMA TECNOLÓGICO DE DETECCIÓN",
+    "imageUrl": "/signals/SI-35A.svg"
+  }
+]

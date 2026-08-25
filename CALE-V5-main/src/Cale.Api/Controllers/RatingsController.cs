@@ -13,11 +13,16 @@ namespace Cale.Api.Controllers;
 public sealed class RatingsController : ControllerBase
 {
     private readonly SaveRatingHandler _save;
+    private readonly ManageRatingHandler _manage;
     private readonly ListRatingsHandler _list;
 
-    public RatingsController(SaveRatingHandler save, ListRatingsHandler list)
+    public RatingsController(
+        SaveRatingHandler save,
+        ManageRatingHandler manage,
+        ListRatingsHandler list)
     {
         _save = save;
+        _manage = manage;
         _list = list;
     }
 
@@ -34,4 +39,15 @@ public sealed class RatingsController : ControllerBase
     [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> List(CancellationToken ct) =>
         Ok(await _list.HandleAsync(ct));
+
+    [HttpPatch("{id:int}")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> Manage(
+        int id,
+        ManageRatingRequest request,
+        CancellationToken ct)
+    {
+        await _manage.HandleAsync(id, request, ct);
+        return NoContent();
+    }
 }

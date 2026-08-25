@@ -4,11 +4,24 @@ import { env } from '../../../core/config/env';
 import { ExamDto } from '../../student/api/exam.api';
 import { ActivityDto, AnnouncementDto, GroupDto } from '../../student/api/student.api';
 
+export interface TeacherSchoolDto {
+  schoolId: number;
+  legalName: string;
+  planLabel: string;
+  city: string;
+  department: string;
+  subscriptionStatus: string;
+  daysRemaining: number;
+  isMembershipActive: boolean;
+}
+
 export interface TeacherDashboardDto {
+  teacherName: string;
   groups: GroupDto[];
   pendingGrades: Array<{
     id: number;
     activityId: number;
+    groupId: number;
     userId: number;
     userName: string;
     status: string;
@@ -21,6 +34,10 @@ export interface TeacherDashboardDto {
     percent: number;
     passed: boolean;
   }>;
+  school?: TeacherSchoolDto | null;
+  activeStudents: number;
+  publishedExams: number;
+  totalExams: number;
 }
 
 export interface QuestionListDto {
@@ -79,6 +96,7 @@ export interface MaterialDto {
 export interface SubmissionDto {
   id: number;
   activityId: number;
+  groupId: number;
   userId: number;
   userName: string;
   text?: string | null;
@@ -232,11 +250,13 @@ export class TeacherApi {
     groupId: number,
     title: string,
     description: string,
-    type: string
+    type: string,
+    dueAt?: string | null,
+    maxScore?: number | null
   ) {
     return this.http.post<void>(
       `${this.base}/api/classroom/${groupId}/activities`,
-      { title, description, type }
+      { title, description, type, dueAt, maxScore }
     );
   }
 
@@ -252,6 +272,8 @@ export class TeacherApi {
     timeMinutes: number;
     allowedAttempts: number;
     randomize: boolean;
+    startsAt?: string | null;
+    endsAt?: string | null;
   }) {
     return this.http.post<ExamDto>(`${this.base}/api/exams`, body);
   }
@@ -263,10 +285,41 @@ export class TeacherApi {
     );
   }
 
-  assignExam(examId: number, groupId: number) {
+  assignExam(
+    examId: number,
+    groupId: number,
+    startsAt?: string | null,
+    endsAt?: string | null
+  ) {
     return this.http.post<void>(`${this.base}/api/exams/${examId}/assign`, {
-      groupId
+      groupId,
+      startsAt,
+      endsAt
     });
+  }
+
+  updateGroup(
+    id: number,
+    body: {
+      name: string;
+      description?: string | null;
+      startsOn?: string | null;
+      isActive: boolean;
+    }
+  ) {
+    return this.http.put<GroupDto>(`${this.base}/api/groups/${id}`, body);
+  }
+
+  results() {
+    return this.http.get<
+      Array<{
+        attemptId: number;
+        userName: string;
+        percent: number;
+        passed: boolean;
+        mode: string;
+      }>
+    >(`${this.base}/api/teacher/results`);
   }
 
   banks(activeOnly = false) {

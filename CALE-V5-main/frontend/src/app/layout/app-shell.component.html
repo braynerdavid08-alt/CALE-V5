@@ -27,15 +27,12 @@
         <ui-icon name="menu" />
         <span class="sr">Menú</span>
       </ui-button>
-      <div class="spacer"></div>
+      <ui-motivation class="top-motivation" variant="compact" [role]="role" />
+      <ui-theme-toggle />
       @if (unread() > 0) {
         <ui-badge tone="primary">{{ unread() }} avisos</ui-badge>
       }
-      <div class="who">
-        <strong>{{ session.user()?.name }}</strong>
-        <ui-badge tone="primary">{{ roleLabel(role) }}</ui-badge>
-      </div>
-      <a routerLink="/profile">Perfil</a>
+      <a class="profile-link" routerLink="/profile">Perfil</a>
       <ui-button type="button" variant="ghost" (click)="logout()">Salir</ui-button>
     </header>
     <main class="content">

@@ -1,7 +1,10 @@
 using Cale.Api.Extensions;
+using Cale.BuildingBlocks.Domain.Auth;
+using Cale.BuildingBlocks.Domain.Time;
 using Cale.Modules.Catalog.Application.Commands;
 using Cale.Modules.Catalog.Application.DTOs;
 using Cale.Modules.Catalog.Application.Queries;
+using Cale.Modules.Classroom.Application.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,15 +18,21 @@ public sealed class ExamsController : ControllerBase
     private readonly ListExamsHandler _list;
     private readonly SaveExamHandler _save;
     private readonly AssignExamToGroupHandler _assign;
+    private readonly IClassroomStore _classroom;
+    private readonly IClock _clock;
 
     public ExamsController(
         ListExamsHandler list,
         SaveExamHandler save,
-        AssignExamToGroupHandler assign)
+        AssignExamToGroupHandler assign,
+        IClassroomStore classroom,
+        IClock clock)
     {
         _list = list;
         _save = save;
         _assign = assign;
+        _classroom = classroom;
+        _clock = clock;
     }
 
     [HttpGet]
@@ -35,8 +44,23 @@ public sealed class ExamsController : ControllerBase
     }
 
     [HttpGet("published")]
-    public async Task<IActionResult> Published(CancellationToken ct) =>
-        Ok(await _list.PublishedAsync(ct));
+    public async Task<IActionResult> Published(CancellationToken ct)
+    {
+        var role = CurrentUser.GetRole(User);
+        if (role is Roles.Admin or Roles.Teacher)
+        {
+            return Ok(await _list.PublishedAsync(ct));
+        }
+
+        var memberships = await _classroom.ListMembershipsAsync(
+            CurrentUser.GetId(User),
+            ct);
+        var groupIds = memberships.Select(x => x.GroupId).ToList();
+        return Ok(await _list.PublishedForStudentAsync(
+            groupIds,
+            _clock.UtcNow,
+            ct));
+    }
 
     [HttpPost]
     [Authorize(Policy = "TeacherOrAdmin")]

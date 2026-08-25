@@ -1,4 +1,4 @@
-import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { SessionStore } from '../../../core/auth/session.store';
@@ -24,6 +24,48 @@ import {
   TakeQuestionDto
 } from '../api/exam.api';
 
+/** Regla fija de CALE (ScoringRules.PassPercent). */
+export const CALE_PASS_PERCENT = 80;
+
+export interface PracticePreset {
+  id: string;
+  label: string;
+  hint: string;
+  questionCount: number;
+  timeMinutes: number;
+}
+
+const PRESETS: PracticePreset[] = [
+  {
+    id: 'rapida',
+    label: 'Rápida',
+    hint: 'Calentamiento corto',
+    questionCount: 10,
+    timeMinutes: 15
+  },
+  {
+    id: 'estandar',
+    label: 'Estándar CALE',
+    hint: 'Formato recomendado',
+    questionCount: 25,
+    timeMinutes: 30
+  },
+  {
+    id: 'completa',
+    label: 'Completa',
+    hint: 'Sesión exigente',
+    questionCount: 40,
+    timeMinutes: 45
+  },
+  {
+    id: 'visual',
+    label: 'Reconocimiento visual',
+    hint: 'Ideal para señales',
+    questionCount: 20,
+    timeMinutes: 25
+  }
+];
+
 @Component({
   selector: 'app-simulator-page',
   standalone: true,
@@ -48,6 +90,9 @@ export class SimulatorPage implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly sessionStore = inject(SessionStore);
 
+  readonly passPercent = CALE_PASS_PERCENT;
+  readonly presets = PRESETS;
+
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly banks = signal<BankDto[]>([]);
@@ -62,23 +107,53 @@ export class SimulatorPage implements OnInit, OnDestroy {
   readonly remaining = signal<string | null>(null);
   readonly confirmExit = signal(false);
   readonly ok = signal<string | null>(null);
+  readonly presetId = signal<string>('estandar');
+  readonly customMode = signal(false);
+  readonly answeredCount = signal(0);
+
   private timer: ReturnType<typeof setInterval> | null = null;
   private readonly answers: Record<number, number> = {};
 
-  bankId: number | null = null;
-  examId: number | null = null;
-  questionCount = 10;
-  timeMinutes = 20;
+  readonly bankId = signal<number | null>(null);
+  questionCount = 25;
+  timeMinutes = 30;
   stars = 5;
   comment = '';
+
+  readonly selectedBank = computed(() => {
+    const id = this.bankId();
+    return this.banks().find((b) => b.id === id) ?? null;
+  });
+
+  readonly neededCorrect = computed(() =>
+    Math.ceil((this.questionCount * this.passPercent) / 100)
+  );
+
+  readonly secondsPerQuestion = computed(() => {
+    if (this.questionCount < 1) return 0;
+    return Math.round((this.timeMinutes * 60) / this.questionCount);
+  });
 
   ngOnDestroy(): void {
     this.clearTimer();
   }
 
   ngOnInit(): void {
+    this.applyPreset('estandar');
     this.api.banks().subscribe({
-      next: (banks) => this.banks.set(banks),
+      next: (banks) => {
+        this.banks.set(banks);
+        const preferred =
+          banks.find((b) => /normas/i.test(b.name))
+          ?? banks.find((b) => /señal|senal/i.test(b.name))
+          ?? banks[0];
+        if (preferred) {
+          this.bankId.set(preferred.id);
+          if (/señal|senal|visual/i.test(preferred.name)) {
+            this.applyPreset('visual');
+          }
+        }
+      },
       error: (err) => this.error.set(mapApiError(err))
     });
     this.api.published().subscribe({
@@ -97,13 +172,52 @@ export class SimulatorPage implements OnInit, OnDestroy {
     return this.session()?.questions[this.current()] ?? null;
   }
 
+  selectBank(id: number): void {
+    this.bankId.set(id);
+    const bank = this.banks().find((b) => b.id === id);
+    if (bank && /señal|senal|visual/i.test(bank.name) && !this.customMode()) {
+      this.applyPreset('visual');
+    }
+  }
+
+  applyPreset(id: string): void {
+    const preset = this.presets.find((p) => p.id === id);
+    if (!preset) return;
+    this.presetId.set(id);
+    this.customMode.set(false);
+    this.questionCount = preset.questionCount;
+    this.timeMinutes = preset.timeMinutes;
+  }
+
+  enableCustom(): void {
+    this.customMode.set(true);
+    this.presetId.set('custom');
+  }
+
+  bankKind(bank: BankDto): string {
+    if (/señal|senal|visual/i.test(bank.name)) return 'Reconocimiento visual';
+    if (/norma/i.test(bank.name)) return 'Normas de tránsito';
+    return 'Banco CALE';
+  }
+
   startPractice(): void {
-    if (!this.bankId) {
-      this.error.set('Elige un banco.');
+    if (!this.bankId()) {
+      this.error.set('Elige un banco oficial para practicar.');
+      return;
+    }
+    if (this.questionCount < 1 || this.timeMinutes < 1) {
+      this.error.set('Preguntas y minutos deben ser al menos 1.');
+      return;
+    }
+    const bank = this.selectedBank();
+    if (bank && this.questionCount > bank.questionCount) {
+      this.error.set(
+        `Este banco solo tiene ${bank.questionCount} preguntas activas.`
+      );
       return;
     }
     this.start({
-      bankId: this.bankId,
+      bankId: this.bankId(),
       examId: null,
       questionCount: this.questionCount,
       mode: 'practice',
@@ -121,6 +235,10 @@ export class SimulatorPage implements OnInit, OnDestroy {
     });
   }
 
+  examNeededCorrect(exam: ExamDto): number {
+    return Math.ceil((exam.questionCount * this.passPercent) / 100);
+  }
+
   answer(optionId: number): void {
     this.selected.set(optionId);
     const attemptId = this.session()?.attemptId;
@@ -129,6 +247,7 @@ export class SimulatorPage implements OnInit, OnDestroy {
       return;
     }
     this.answers[question.id] = optionId;
+    this.answeredCount.set(Object.keys(this.answers).length);
     this.api.answer(attemptId, question.id, optionId).subscribe({
       error: (err) => this.error.set(mapApiError(err))
     });
@@ -140,6 +259,12 @@ export class SimulatorPage implements OnInit, OnDestroy {
       return 0;
     }
     return ((this.current() + 1) / total) * 100;
+  }
+
+  answerProgress(): number {
+    const total = this.session()?.questions.length ?? 0;
+    if (!total) return 0;
+    return (this.answeredCount() / total) * 100;
   }
 
   prev(): void {
@@ -189,6 +314,15 @@ export class SimulatorPage implements OnInit, OnDestroy {
     void this.router.navigateByUrl(this.sessionStore.homeRoute());
   }
 
+  backToSetup(): void {
+    this.clearTimer();
+    this.step.set('setup');
+    this.session.set(null);
+    this.result.set(null);
+    this.review.set(null);
+    this.ok.set(null);
+  }
+
   openReview(): void {
     const attemptId = this.session()?.attemptId;
     if (!attemptId) {
@@ -231,6 +365,7 @@ export class SimulatorPage implements OnInit, OnDestroy {
         this.current.set(0);
         this.selected.set(null);
         Object.keys(this.answers).forEach((k) => delete this.answers[Number(k)]);
+        this.answeredCount.set(0);
         this.step.set('take');
         this.startTimer(session.expiresAt);
       },

@@ -1,5 +1,6 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { SessionStore } from '../../../core/auth/session.store';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
@@ -24,18 +25,24 @@ import { BankAdminDto, TeacherApi } from '../../teacher/api/teacher.api';
     UiSuccessComponent
   ],
   template: `
-    <ui-page-header title="Bancos" subtitle="Organiza las preguntas por banco." />
+    <ui-page-header
+      [title]="canManage() ? 'Bancos' : 'Bancos del catálogo'"
+      [subtitle]="canManage()
+        ? 'Organiza las preguntas por banco (solo administración).'
+        : 'Bancos heredados desde administración. Solo lectura.'" />
     <ui-error [message]="error()" />
     <ui-success [message]="ok()" />
-    <ui-card>
-      <form class="row" (ngSubmit)="create()">
-        <input class="input" [(ngModel)]="name" name="name" placeholder="Nombre del banco" />
-        <input class="input" [(ngModel)]="description" name="desc" placeholder="Descripción" />
-        <ui-button type="submit">Crear</ui-button>
-      </form>
-    </ui-card>
+    @if (canManage()) {
+      <ui-card>
+        <form class="row" (ngSubmit)="create()">
+          <input class="input" [(ngModel)]="name" name="name" placeholder="Nombre del banco" />
+          <input class="input" [(ngModel)]="description" name="desc" placeholder="Descripción" />
+          <ui-button type="submit">Crear</ui-button>
+        </form>
+      </ui-card>
+    }
     @if (!items().length) {
-      <ui-empty title="No hay bancos" message="Crea el primero para empezar." />
+      <ui-empty title="No hay bancos" message="Administración aún no ha publicado bancos." />
     } @else {
       <ui-card>
         <div class="table-wrap">
@@ -45,7 +52,9 @@ import { BankAdminDto, TeacherApi } from '../../teacher/api/teacher.api';
                 <th>Nombre</th>
                 <th>Preguntas</th>
                 <th>Estado</th>
-                <th></th>
+                @if (canManage()) {
+                  <th></th>
+                }
               </tr>
             </thead>
             <tbody>
@@ -58,11 +67,13 @@ import { BankAdminDto, TeacherApi } from '../../teacher/api/teacher.api';
                       {{ bank.isActive ? 'Activo' : 'Inactivo' }}
                     </ui-badge>
                   </td>
-                  <td>
-                    <ui-button type="button" variant="ghost" (click)="toggle(bank)">
-                      {{ bank.isActive ? 'Desactivar' : 'Activar' }}
-                    </ui-button>
-                  </td>
+                  @if (canManage()) {
+                    <td>
+                      <ui-button type="button" variant="ghost" (click)="toggle(bank)">
+                        {{ bank.isActive ? 'Desactivar' : 'Activar' }}
+                      </ui-button>
+                    </td>
+                  }
                 </tr>
               }
             </tbody>
@@ -77,9 +88,11 @@ import { BankAdminDto, TeacherApi } from '../../teacher/api/teacher.api';
 })
 export class AdminBanksPage implements OnInit {
   private readonly api = inject(TeacherApi);
+  private readonly session = inject(SessionStore);
   readonly items = signal<BankAdminDto[]>([]);
   readonly error = signal<string | null>(null);
   readonly ok = signal<string | null>(null);
+  readonly canManage = computed(() => this.session.user()?.role === 'Admin');
   name = '';
   description = '';
 
@@ -95,7 +108,7 @@ export class AdminBanksPage implements OnInit {
   }
 
   create(): void {
-    if (!this.name.trim()) {
+    if (!this.canManage() || !this.name.trim()) {
       return;
     }
     this.api.createBank(this.name.trim(), this.description.trim() || undefined)
@@ -111,6 +124,9 @@ export class AdminBanksPage implements OnInit {
   }
 
   toggle(bank: BankAdminDto): void {
+    if (!this.canManage()) {
+      return;
+    }
     this.api.updateBank(
       bank.id,
       bank.name,

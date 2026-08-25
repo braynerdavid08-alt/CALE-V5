@@ -1,6 +1,7 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { SessionStore } from '../../../core/auth/session.store';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
@@ -26,8 +27,14 @@ import { TeacherApi, QuestionListDto } from '../../teacher/api/teacher.api';
     UiPageHeaderComponent
   ],
   template: `
-    <ui-page-header title="Preguntas" subtitle="Crea y edita ítems del catálogo.">
-      <a routerLink="new"><ui-button type="button">Nueva pregunta</ui-button></a>
+    <ui-page-header
+      [title]="canManage() ? 'Preguntas' : 'Catálogo de preguntas'"
+      [subtitle]="canManage()
+        ? 'Solo administración crea y edita el catálogo. Escuelas y docentes lo heredan.'
+        : 'Preguntas heredadas desde la administración de CALE. Solo lectura.'">
+      @if (canManage()) {
+        <a routerLink="new"><ui-button type="button">Nueva pregunta</ui-button></a>
+      }
     </ui-page-header>
     <ui-error [message]="error()" />
     <div class="search">
@@ -40,7 +47,9 @@ import { TeacherApi, QuestionListDto } from '../../teacher/api/teacher.api';
     @if (loading()) {
       <ui-loading />
     } @else if (!visible().length) {
-      <ui-empty title="No hay preguntas" message="Crea una o ajusta la búsqueda." />
+      <ui-empty
+        title="No hay preguntas"
+        [message]="canManage() ? 'Crea una o ajusta la búsqueda.' : 'Aún no hay catálogo publicado por administración.'" />
     } @else {
       <ui-card>
         <div class="table-wrap">
@@ -56,7 +65,13 @@ import { TeacherApi, QuestionListDto } from '../../teacher/api/teacher.api';
             <tbody>
               @for (q of visible(); track q.id) {
                 <tr>
-                  <td><a [routerLink]="[q.id]">{{ q.text }}</a></td>
+                  <td>
+                    @if (canManage()) {
+                      <a [routerLink]="[q.id]">{{ q.text }}</a>
+                    } @else {
+                      {{ q.text }}
+                    }
+                  </td>
                   <td>{{ q.bankName }}</td>
                   <td>{{ q.type }}</td>
                   <td>
@@ -78,9 +93,11 @@ import { TeacherApi, QuestionListDto } from '../../teacher/api/teacher.api';
 })
 export class QuestionsPage implements OnInit {
   private readonly api = inject(TeacherApi);
+  private readonly session = inject(SessionStore);
   readonly items = signal<QuestionListDto[]>([]);
   readonly error = signal<string | null>(null);
   readonly loading = signal(true);
+  readonly canManage = computed(() => this.session.user()?.role === 'Admin');
   query = '';
 
   visible(): QuestionListDto[] {

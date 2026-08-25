@@ -6,6 +6,16 @@ import {
   MeResponse
 } from '../../../core/auth/session.models';
 
+export interface SchoolPlanDto {
+  code: string;
+  label: string;
+  priceCop: number;
+  monthlyEquivalentCop: number;
+  durationMonths: number;
+  maxTeachers: number;
+  maxStudents: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthApi {
   private readonly http = inject(HttpClient);
@@ -26,8 +36,28 @@ export class AuthApi {
     });
   }
 
+  registerTeacher(name: string, email: string, password: string) {
+    return this.http.post<AuthResponse>(`${this.base}/register-teacher`, {
+      name,
+      email,
+      password
+    });
+  }
+
+  registerSchool(body: Record<string, string>) {
+    return this.http.post<AuthResponse>(`${this.base}/register-school`, body);
+  }
+
+  schoolPlans() {
+    return this.http.get<SchoolPlanDto[]>(`${this.base}/school-plans`);
+  }
+
   me() {
     return this.http.get<MeResponse>(`${this.base}/me`);
+  }
+
+  updateMe(name: string) {
+    return this.http.put<MeResponse>(`${this.base}/me`, { name });
   }
 
   changePassword(currentPassword: string, newPassword: string) {

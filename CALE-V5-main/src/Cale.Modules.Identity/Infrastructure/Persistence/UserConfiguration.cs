@@ -22,8 +22,10 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .HasColumnName("Rol")
             .HasMaxLength(32)
             .IsRequired();
+        builder.Property(x => x.SchoolId);
         builder.Property(x => x.IsActive).HasColumnName("Activo");
         builder.Property(x => x.CreatedAt).HasColumnName("CreadoEn");
         builder.HasIndex(x => x.Email).IsUnique();
+        builder.HasIndex(x => x.SchoolId);
     }
 }

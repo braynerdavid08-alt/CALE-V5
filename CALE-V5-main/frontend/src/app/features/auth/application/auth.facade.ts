@@ -28,6 +28,20 @@ export class AuthFacade {
     }));
   }
 
+  registerTeacher(name: string, email: string, password: string): void {
+    this.run(() => this.api.registerTeacher(name, email, password).subscribe({
+      next: (res) => this.enter(res),
+      error: (err) => this.fail(err)
+    }));
+  }
+
+  registerSchool(body: Record<string, string>): void {
+    this.run(() => this.api.registerSchool(body).subscribe({
+      next: (res) => this.enter(res),
+      error: (err) => this.fail(err)
+    }));
+  }
+
   changePassword(currentPassword: string, newPassword: string): void {
     this.success.set(null);
     this.run(() => this.api.changePassword(currentPassword, newPassword)

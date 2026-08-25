@@ -1,3 +1,4 @@
+<ui-theme-toggle />
 <section class="auth">
   <div class="brand-side">
     <p class="logo">CALE</p>
@@ -5,7 +6,7 @@
     <p>El registro público solo crea perfil Student.</p>
   </div>
   <div class="auth-card">
-    <p class="eyebrow">Registro</p>
+    <p class="eyebrow">Estudiante</p>
     <h2>Crear cuenta</h2>
     <ui-error [message]="auth.error()" />
     <form [formGroup]="form" (ngSubmit)="submit()">
@@ -30,11 +31,16 @@
           <span class="field-error">Mínimo 8 caracteres.</span>
         }
       </label>
-      <ui-button type="submit" [loading]="auth.loading()">Registrarme</ui-button>
+      <ui-button type="submit" [loading]="auth.loading()">Crear estudiante</ui-button>
     </form>
     <p class="hint">
       ¿Ya tienes cuenta?
       <a routerLink="/login">Iniciar sesión</a>
     </p>
+    <p class="hint signup-label">Otros registros</p>
+    <div class="signup-options">
+      <a class="signup-option" routerLink="/register-teacher">Crear docente</a>
+      <a class="signup-option" routerLink="/register-school">Crear escuela</a>
+    </div>
   </div>
 </section>

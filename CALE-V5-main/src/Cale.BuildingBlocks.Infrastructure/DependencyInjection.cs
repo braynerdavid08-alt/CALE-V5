@@ -33,7 +33,20 @@ public static class DependencyInjection
 
         services.AddSingleton(mappings);
         services.AddDbContext<CaleDbContext>(options =>
-            options.UseSqlServer(connection));
+        {
+            if (IsSqlite(connection))
+            {
+                options.UseSqlite(connection);
+            }
+            else
+            {
+                options.UseSqlServer(connection);
+            }
+        });
         return services;
     }
+
+    private static bool IsSqlite(string connection) =>
+        connection.Contains("Data Source=", StringComparison.OrdinalIgnoreCase)
+        || connection.Contains("Filename=", StringComparison.OrdinalIgnoreCase);
 }

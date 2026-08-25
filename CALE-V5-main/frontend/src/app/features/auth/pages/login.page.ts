@@ -3,6 +3,8 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
+import { UiMotivationComponent } from '../../../shared/ui/ui-motivation.component';
+import { UiThemeToggleComponent } from '../../../shared/ui/ui-theme-toggle.component';
 import { AuthFacade } from '../application/auth.facade';
 
 @Component({
@@ -12,7 +14,9 @@ import { AuthFacade } from '../application/auth.facade';
     ReactiveFormsModule,
     RouterLink,
     UiButtonComponent,
-    UiErrorComponent
+    UiErrorComponent,
+    UiMotivationComponent,
+    UiThemeToggleComponent
   ],
   templateUrl: './login.page.html',
   styleUrl: './login.page.css'

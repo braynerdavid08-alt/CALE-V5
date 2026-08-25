@@ -1,25 +1,197 @@
-<ui-page-header title="Mi perfil" subtitle="Datos de la sesión actual y cambio de contraseña." />
-<ui-card>
-  <p class="row">
-    <strong>{{ session.user()?.name }}</strong>
-    <span class="muted">{{ session.user()?.email }}</span>
-    <ui-badge tone="primary">{{ roleLabel(session.user()?.role) }}</ui-badge>
-  </p>
-  <h2>Cambiar contraseña</h2>
-  <ui-error [message]="auth.error()" />
-  <ui-success [message]="auth.success()" />
-  <form class="stack" [formGroup]="form" (ngSubmit)="submit()">
-    <label class="field">
-      Contraseña actual
-      <input type="password" formControlName="currentPassword" />
-    </label>
-    <label class="field">
-      Nueva contraseña
-      <input type="password" formControlName="newPassword" />
-      @if (form.controls.newPassword.touched && form.controls.newPassword.invalid) {
-        <span class="field-error">Mínimo 8 caracteres.</span>
+<ui-page-header
+  title="Mi perfil"
+  subtitle="Cuenta, preferencias, seguridad y contexto de tu rol." />
+
+<ui-error [message]="error() || auth.error()" />
+<ui-success [message]="success() || auth.success()" />
+
+@if (loading()) {
+  <ui-loading />
+} @else {
+  <div class="tabs" role="tablist" aria-label="Secciones del perfil">
+    <button type="button" role="tab" [class.active]="tab() === 'account'" (click)="setTab('account')">
+      Cuenta
+    </button>
+    <button type="button" role="tab" [class.active]="tab() === 'preferences'" (click)="setTab('preferences')">
+      Preferencias
+    </button>
+    <button type="button" role="tab" [class.active]="tab() === 'security'" (click)="setTab('security')">
+      Seguridad
+    </button>
+    @if (role() === 'School' || role() === 'Teacher' || role() === 'Student') {
+      <button type="button" role="tab" [class.active]="tab() === 'context'" (click)="setTab('context')">
+        {{ contextTitle() }}
+      </button>
+    }
+  </div>
+
+  @if (tab() === 'account') {
+    <div class="grid-2">
+      <ui-card>
+        <h2>Datos de la cuenta</h2>
+        <dl class="facts">
+          <div>
+            <dt>Correo</dt>
+            <dd>{{ me()?.email }}</dd>
+          </div>
+          <div>
+            <dt>Rol</dt>
+            <dd><ui-badge tone="primary">{{ roleLabel(me()?.role) }}</ui-badge></dd>
+          </div>
+          <div>
+            <dt>Estado</dt>
+            <dd>
+              <ui-badge [tone]="me()?.isActive ? 'success' : 'danger'">
+                {{ me()?.isActive ? 'Activa' : 'Inactiva' }}
+              </ui-badge>
+            </dd>
+          </div>
+          <div>
+            <dt>Alta</dt>
+            <dd>{{ me()?.createdAt | date:'mediumDate' }}</dd>
+          </div>
+          <div>
+            <dt>ID</dt>
+            <dd>#{{ me()?.id }}</dd>
+          </div>
+        </dl>
+      </ui-card>
+
+      <ui-card>
+        <h2>Nombre visible</h2>
+        <p class="muted">Así te verán en paneles, grupos y resultados.</p>
+        <form class="stack" [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+          <label class="field">
+            Nombre
+            <input formControlName="name" autocomplete="name" />
+          </label>
+          <ui-button type="submit" [loading]="savingProfile()" [disabled]="profileForm.invalid">
+            Guardar nombre
+          </ui-button>
+        </form>
+      </ui-card>
+    </div>
+  }
+
+  @if (tab() === 'preferences') {
+    <div class="grid-2">
+      <ui-card>
+        <h2>Apariencia</h2>
+        <p class="muted">Tema de la interfaz en este navegador.</p>
+        <dl class="facts" style="margin-top: 0.75rem;">
+          <div>
+            <dt>Actual</dt>
+            <dd>{{ theme.mode() === 'dark' ? 'Noche' : 'Día' }}</dd>
+          </div>
+        </dl>
+        <div class="row actions">
+          <ui-button
+            type="button"
+            [variant]="theme.mode() === 'light' ? 'primary' : 'secondary'"
+            (click)="setTheme('light')">
+            Día
+          </ui-button>
+          <ui-button
+            type="button"
+            [variant]="theme.mode() === 'dark' ? 'primary' : 'secondary'"
+            (click)="setTheme('dark')">
+            Noche
+          </ui-button>
+        </div>
+      </ui-card>
+
+      <ui-card>
+        <h2>Accesos rápidos</h2>
+        <p class="muted">Atajos según tu rol en CALE.</p>
+        <div class="row actions">
+          <a [routerLink]="homeLink()"><ui-button type="button" variant="secondary">Ir al inicio</ui-button></a>
+          @if (role() === 'School') {
+            <a routerLink="/school/membership"><ui-button type="button" variant="ghost">Membresía</ui-button></a>
+            <a routerLink="/school/users"><ui-button type="button" variant="ghost">Usuarios</ui-button></a>
+          }
+          @if (role() === 'Teacher') {
+            <a routerLink="/teacher/groups"><ui-button type="button" variant="ghost">Grupos</ui-button></a>
+            <a routerLink="/teacher/exams"><ui-button type="button" variant="ghost">Exámenes</ui-button></a>
+          }
+          @if (role() === 'Student') {
+            <a routerLink="/student/simulator"><ui-button type="button" variant="ghost">Simulador</ui-button></a>
+          }
+          @if (role() === 'Admin') {
+            <a routerLink="/admin/settings"><ui-button type="button" variant="ghost">Configuración</ui-button></a>
+            <a routerLink="/admin/users"><ui-button type="button" variant="ghost">Usuarios</ui-button></a>
+          }
+        </div>
+      </ui-card>
+    </div>
+  }
+
+  @if (tab() === 'security') {
+    <div class="grid-2">
+      <ui-card>
+        <h2>Cambiar contraseña</h2>
+        <p class="muted">Usa una contraseña de al menos 8 caracteres.</p>
+        <form class="stack" [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+          <label class="field">
+            Contraseña actual
+            <input type="password" formControlName="currentPassword" autocomplete="current-password" />
+          </label>
+          <label class="field">
+            Nueva contraseña
+            <input type="password" formControlName="newPassword" autocomplete="new-password" />
+            @if (passwordForm.controls.newPassword.touched && passwordForm.controls.newPassword.invalid) {
+              <span class="field-error">Mínimo 8 caracteres.</span>
+            }
+          </label>
+          <ui-button type="submit" [loading]="auth.loading()">Actualizar contraseña</ui-button>
+        </form>
+      </ui-card>
+
+      <ui-card>
+        <h2>Sesión</h2>
+        <p class="muted">
+          Cierra la sesión en este dispositivo cuando termines. No afecta otras sesiones abiertas.
+        </p>
+        <div class="row actions">
+          <ui-button type="button" variant="danger" (click)="logout()">Cerrar sesión</ui-button>
+        </div>
+      </ui-card>
+    </div>
+  }
+
+  @if (tab() === 'context') {
+    <ui-card>
+      <h2>{{ contextTitle() }}</h2>
+      @if (me()?.school; as school) {
+        <p class="school-name">{{ school.legalName }}</p>
+        <p class="muted">
+          @if (school.city || school.department) {
+            {{ school.city }}@if (school.city && school.department) {, }{{ school.department }}
+          } @else {
+            Ubicación no registrada
+          }
+        </p>
+        <div class="meta">
+          <ui-badge [tone]="statusTone(school.subscriptionStatus)">
+            {{ statusLabel(school.subscriptionStatus) }}
+          </ui-badge>
+          <span class="pill">Plan {{ school.planLabel }}</span>
+          @if (school.isMembershipActive) {
+            <span class="pill soft">{{ school.daysRemaining }} día(s) restantes</span>
+          }
+        </div>
+        @if (role() === 'School') {
+          <div class="row actions">
+            <a routerLink="/school/membership"><ui-button type="button">Gestionar membresía</ui-button></a>
+            <a routerLink="/school"><ui-button type="button" variant="secondary">Panel escuela</ui-button></a>
+          </div>
+        }
+      } @else if (role() === 'Teacher' || role() === 'Student') {
+        <p class="muted">
+          Todavía no estás vinculado a una escuela. Cuando te agreguen, verás aquí su nombre y plan.
+        </p>
+      } @else {
+        <p class="muted">No hay contexto institucional para este rol.</p>
       }
-    </label>
-    <ui-button type="submit" [loading]="auth.loading()">Guardar</ui-button>
-  </form>
-</ui-card>
+    </ui-card>
+  }
+}

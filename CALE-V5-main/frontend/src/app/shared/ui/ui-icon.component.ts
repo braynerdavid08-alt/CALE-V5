@@ -77,12 +77,19 @@ import { Component, Input } from '@angular/core';
         @case ('bank') {
           <path d="M3 10h18M5 10v8M19 10v8M9 10v8M15 10v8M2 18h20M12 3l9 7H3z"/>
         }
+        @case ('sun') {
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
+        }
+        @case ('moon') {
+          <path d="M21 14.5A8.5 8.5 0 1 1 9.5 3 7 7 0 0 0 21 14.5z"/>
+        }
       }
     </svg>
   `,
   styles: [`
-    :host { display: inline-flex; }
-    svg { width: 1.15rem; height: 1.15rem; }
+    :host { display: inline-flex; line-height: 0; }
+    svg { width: 1.2rem; height: 1.2rem; }
   `]
 })
 export class UiIconComponent {

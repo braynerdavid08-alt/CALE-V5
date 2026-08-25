@@ -56,6 +56,9 @@ public sealed class AttemptStore : IAttemptStore
             x => x.AttemptId == attemptId,
             ct);
 
+    public Task<AttemptRating?> GetRatingByIdAsync(int id, CancellationToken ct) =>
+        _db.Set<AttemptRating>().FirstOrDefaultAsync(x => x.Id == id, ct);
+
     public async Task AddRatingAsync(AttemptRating rating, CancellationToken ct) =>
         await _db.Set<AttemptRating>().AddAsync(rating, ct);
 

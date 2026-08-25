@@ -13,11 +13,28 @@ public static class DependencyInjection
         this IServiceCollection services)
     {
         services.AddScoped<IUserStore, UserStore>();
+        services.AddScoped<ISchoolProfileStore, SchoolProfileStore>();
         services.AddScoped<IUserLookup, UserLookupService>();
+        services.AddScoped<ISchoolAffiliationLookup, SchoolAffiliationLookup>();
         services.AddScoped<LoginUserHandler>();
         services.AddScoped<RegisterUserHandler>();
+        services.AddScoped<RegisterTeacherHandler>();
+        services.AddScoped<RegisterSchoolHandler>();
         services.AddScoped<ChangePasswordHandler>();
+        services.AddScoped<CreateTeacherHandler>();
+        services.AddScoped<UpdateUserHandler>();
+        services.AddScoped<DeleteUserHandler>();
+        services.AddScoped<SetUserActiveHandler>();
         services.AddScoped<GetCurrentUserHandler>();
+        services.AddScoped<UpdateMyProfileHandler>();
+        services.AddScoped<ListUsersHandler>();
+        services.AddScoped<GetSchoolProfileHandler>();
+        services.AddScoped<ListSchoolPlansHandler>();
+        services.AddScoped<ManageSchoolPlanHandler>();
+        services.AddScoped<ListSchoolMembersHandler>();
+        services.AddScoped<CreateSchoolMemberHandler>();
+        services.AddScoped<AttachSchoolMemberHandler>();
+        services.AddScoped<UpdateSchoolMemberHandler>();
         return services;
     }
 }

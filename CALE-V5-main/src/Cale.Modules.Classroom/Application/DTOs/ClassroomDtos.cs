@@ -57,6 +57,7 @@ public sealed record SaveMaterialRequest(
 
 public sealed record ActivityDto(
     int Id,
+    int GroupId,
     string Type,
     string Title,
     string Description,
@@ -82,6 +83,7 @@ public sealed record GradeSubmissionRequest(decimal Score, string? Comment);
 public sealed record SubmissionDto(
     int Id,
     int ActivityId,
+    int GroupId,
     int UserId,
     string UserName,
     string? Text,
@@ -100,9 +102,24 @@ public sealed record StudentDashboardDto(
     decimal? BestPercent);
 
 public sealed record TeacherDashboardDto(
+    string TeacherName,
     IReadOnlyList<GroupDto> Groups,
     IReadOnlyList<SubmissionDto> PendingGrades,
-    IReadOnlyList<ResultHintDto> LowScores);
+    IReadOnlyList<ResultHintDto> LowScores,
+    TeacherSchoolDto? School,
+    int ActiveStudents,
+    int PublishedExams,
+    int TotalExams);
+
+public sealed record TeacherSchoolDto(
+    int SchoolId,
+    string LegalName,
+    string PlanLabel,
+    string City,
+    string Department,
+    string SubscriptionStatus,
+    int DaysRemaining,
+    bool IsMembershipActive);
 
 public sealed record ResultHintDto(
     int UserId,

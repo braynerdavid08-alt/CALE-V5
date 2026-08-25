@@ -14,6 +14,7 @@ h2 {
   color: var(--color-text-secondary);
   font-size: var(--text-sm);
   font-weight: 500;
+  line-height: var(--leading-body);
 }
 
 .answer {
@@ -25,7 +26,7 @@ h2 {
   margin-bottom: 0.75rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: #fafbfe;
+  background: var(--color-surface-raised);
 }
 
 .answer.correct {
@@ -34,11 +35,12 @@ h2 {
 }
 
 .letter {
-  width: 2.4rem;
-  height: 2.4rem;
-  border-radius: 999px;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-sm);
   border: 2px solid var(--color-border);
   background: var(--color-surface);
+  color: var(--color-text);
   font-weight: 800;
   cursor: pointer;
 }
@@ -49,7 +51,11 @@ h2 {
   color: #fff;
 }
 
-.answer-body { display: grid; gap: 0.6rem; min-width: 0; }
+.answer-body {
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+}
 
 .sticky-actions {
   position: sticky;
@@ -65,5 +71,6 @@ h2 {
   .answer {
     grid-template-columns: auto 1fr;
   }
+
   .answer ui-button { grid-column: 1 / -1; }
 }

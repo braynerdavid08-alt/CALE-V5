@@ -1,4 +1,4 @@
-import { Component, HostListener, inject, OnInit, signal } from '@angular/core';
+import { Component, HostListener, OnInit, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { SessionStore } from '../core/auth/session.store';
@@ -7,7 +7,8 @@ import { StudentApi } from '../features/student/api/student.api';
 import { UiBadgeComponent } from '../shared/ui/ui-badge.component';
 import { UiButtonComponent } from '../shared/ui/ui-button.component';
 import { UiIconComponent } from '../shared/ui/ui-icon.component';
-import { roleLabel } from '../shared/utils/role-label';
+import { UiMotivationComponent } from '../shared/ui/ui-motivation.component';
+import { UiThemeToggleComponent } from '../shared/ui/ui-theme-toggle.component';
 import { navForRole } from './nav.config';
 
 @Component({
@@ -19,7 +20,9 @@ import { navForRole } from './nav.config';
     RouterLinkActive,
     UiBadgeComponent,
     UiButtonComponent,
-    UiIconComponent
+    UiIconComponent,
+    UiMotivationComponent,
+    UiThemeToggleComponent
   ],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.css'
@@ -32,7 +35,6 @@ export class AppShellComponent implements OnInit {
 
   readonly menuOpen = signal(false);
   readonly unread = signal(0);
-  readonly roleLabel = roleLabel;
 
   get role(): string | undefined {
     return this.session.user()?.role;

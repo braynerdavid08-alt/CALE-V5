@@ -18,6 +18,9 @@ export class SessionStore {
     if (role === 'Admin') {
       return '/admin';
     }
+    if (role === 'School') {
+      return '/school';
+    }
     if (role === 'Teacher') {
       return '/teacher';
     }
@@ -37,6 +40,19 @@ export class SessionStore {
       STORAGE_KEY,
       JSON.stringify({ token: response.token, user })
     );
+  }
+
+  patchUser(partial: Partial<SessionUser>): void {
+    const current = this.user();
+    if (!current) {
+      return;
+    }
+    const user = { ...current, ...partial };
+    this.user.set(user);
+    const token = this.token();
+    if (token) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ token, user }));
+    }
   }
 
   clear(): void {

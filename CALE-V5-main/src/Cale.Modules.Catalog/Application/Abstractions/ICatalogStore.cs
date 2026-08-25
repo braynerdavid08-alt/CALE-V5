@@ -13,6 +13,9 @@ public interface ICatalogStore
 
     Task<IReadOnlyList<Block>> ListBlocksAsync(CancellationToken ct);
     Task<Block?> GetBlockAsync(int id, CancellationToken ct);
+    Task<Block?> GetBlockByNameAsync(string name, CancellationToken ct);
+    Task AddBlockAsync(Block block, CancellationToken ct);
+    Task<Bank?> GetBankByNameAsync(string name, CancellationToken ct);
 
     Task<PagedResult<QuestionListDto>> ListQuestionsAsync(
         int page,
@@ -45,6 +48,8 @@ public interface ICatalogStore
     Task<IReadOnlyList<ExamGroupLink>> ListExamGroupsForGroupsAsync(
         IReadOnlyList<int> groupIds,
         CancellationToken ct);
+
+    Task<IReadOnlySet<int>> ListAllExamGroupExamIdsAsync(CancellationToken ct);
 
     Task<IReadOnlyList<Question>> ListActiveQuestionsInBankAsync(
         int bankId,

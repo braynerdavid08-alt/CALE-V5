@@ -13,6 +13,7 @@ public sealed class ClassroomQueryHandler
 {
     private readonly IClassroomStore _store;
     private readonly IUserLookup _users;
+    private readonly ISchoolAffiliationLookup _schools;
     private readonly IAttemptStats _attempts;
     private readonly ICatalogStore _catalog;
     private readonly INotificationQueries _notifications;
@@ -21,6 +22,7 @@ public sealed class ClassroomQueryHandler
     public ClassroomQueryHandler(
         IClassroomStore store,
         IUserLookup users,
+        ISchoolAffiliationLookup schools,
         IAttemptStats attempts,
         ICatalogStore catalog,
         INotificationQueries notifications,
@@ -28,6 +30,7 @@ public sealed class ClassroomQueryHandler
     {
         _store = store;
         _users = users;
+        _schools = schools;
         _attempts = attempts;
         _catalog = catalog;
         _notifications = notifications;
@@ -173,7 +176,7 @@ public sealed class ClassroomQueryHandler
         foreach (var item in items)
         {
             var name = await _users.GetNameAsync(item.UserId, ct) ?? "";
-            result.Add(MapSubmission(item, name));
+            result.Add(MapSubmission(item, name, activity.GroupId));
         }
 
         return result;
@@ -244,10 +247,21 @@ public sealed class ClassroomQueryHandler
 
         var ungraded = await _store.ListUngradedAsync(activityIds, ct);
         var pending = new List<SubmissionDto>();
+        var activityGroup = new Dictionary<int, int>();
+        foreach (var group in groups)
+        {
+            var activities = await _store.ListActivitiesAsync(group.Id, ct);
+            foreach (var activity in activities)
+            {
+                activityGroup[activity.Id] = group.Id;
+            }
+        }
+
         foreach (var item in ungraded)
         {
             var name = await _users.GetNameAsync(item.UserId, ct) ?? "";
-            pending.Add(MapSubmission(item, name));
+            activityGroup.TryGetValue(item.ActivityId, out var groupId);
+            pending.Add(MapSubmission(item, name, groupId));
         }
 
         var attempts = memberIds.Count == 0
@@ -265,7 +279,34 @@ public sealed class ClassroomQueryHandler
                 attempt.Passed));
         }
 
-        return new TeacherDashboardDto(groupDtos, pending, low);
+        var teacherName = await _users.GetNameAsync(userId, ct) ?? "";
+        var affiliation = await _schools.GetForMemberAsync(userId, ct);
+        TeacherSchoolDto? school = affiliation is null
+            ? null
+            : new TeacherSchoolDto(
+                affiliation.SchoolId,
+                affiliation.LegalName,
+                affiliation.PlanLabel,
+                affiliation.City,
+                affiliation.Department,
+                affiliation.SubscriptionStatus,
+                affiliation.DaysRemaining,
+                affiliation.IsMembershipActive);
+
+        var exams = await _catalog.ListExamsAsync(userId, ct);
+        var published = exams.Count(x => x.Published && x.IsActive);
+        var activeStudents = memberIds.Distinct().Count();
+
+        // Email comes from the client session; name is resolved here for consistency.
+        return new TeacherDashboardDto(
+            teacherName,
+            groupDtos,
+            pending,
+            low,
+            school,
+            activeStudents,
+            published,
+            exams.Count);
     }
 
     public async Task<AdminDashboardDto> AdminDashboardAsync(CancellationToken ct)
@@ -342,6 +383,7 @@ public sealed class ClassroomQueryHandler
     private ActivityDto MapActivity(GroupActivity item, ActivitySubmission? submission) =>
         new(
             item.Id,
+            item.GroupId,
             item.Type,
             item.Title,
             item.Description,
@@ -352,10 +394,14 @@ public sealed class ClassroomQueryHandler
             submission?.Score,
             submission?.TeacherComment);
 
-    private static SubmissionDto MapSubmission(ActivitySubmission item, string name) =>
+    private static SubmissionDto MapSubmission(
+        ActivitySubmission item,
+        string name,
+        int groupId) =>
         new(
             item.Id,
             item.ActivityId,
+            groupId,
             item.UserId,
             name,
             item.TextContent,

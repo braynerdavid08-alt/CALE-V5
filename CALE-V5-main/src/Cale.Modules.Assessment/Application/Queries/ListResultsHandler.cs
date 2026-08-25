@@ -22,8 +22,10 @@ public sealed class ListResultsHandler
     {
         var attempts = userId is not null
             ? await _attempts.ListByUserAsync(userId.Value, ct)
-            : userIds is { Count: > 0 }
-                ? await _attempts.ListByUsersAsync(userIds, ct)
+            : userIds is not null
+                ? userIds.Count == 0
+                    ? Array.Empty<Domain.Attempt>()
+                    : await _attempts.ListByUsersAsync(userIds, ct)
                 : await _attempts.ListFinishedAsync(ct);
 
         var rows = new List<ResultRowDto>();

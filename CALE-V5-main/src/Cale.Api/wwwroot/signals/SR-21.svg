@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="360" viewBox="0 0 320 360" role="img" aria-label="PROHIBIDA CIRCULACIÓN DE CABALGADURAS">
+  <rect width="320" height="360" fill="#f5f5f5"/>
+  <circle cx="160" cy="150" r="110" fill="#ffffff" stroke="#c62828" stroke-width="14"/>
+  <text x="160" y="118.0" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#c62828">PROHIBIDA</text><text x="160" y="140.0" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#c62828">CIRCULACIÓN DE</text><text x="160" y="162.0" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#c62828">CABALGADURAS</text>
+  <text x="160" y="340" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#616161">SR-21</text>
+</svg>

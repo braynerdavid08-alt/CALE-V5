@@ -1,15 +1,83 @@
 <ui-page-header
   eyebrow="Docente"
-  title="Hola, {{ session.user()?.name }}"
-  subtitle="Lo que requiere tu atención, con datos reales." />
+  title="Hola, {{ displayName() }}"
+  [subtitle]="schoolLine()" />
+
+<ui-motivation class="home-tip" variant="card" [role]="session.user()?.role" />
+
 <ui-error [message]="error()" />
 @if (loading()) {
   <ui-loading />
 } @else {
-  <div class="row" style="margin-bottom: 1rem;">
+  <div class="grid-stats">
+    <ui-stat label="Grupos" [value]="data()?.groups?.length ?? 0" tone="primary" />
+    <ui-stat label="Estudiantes activos" [value]="data()?.activeStudents ?? 0" />
+    <ui-stat
+      label="Exámenes publicados"
+      [value]="(data()?.publishedExams ?? 0) + ' / ' + (data()?.totalExams ?? 0)" />
+    <ui-stat
+      label="Por calificar"
+      [value]="data()?.pendingGrades?.length ?? 0"
+      [tone]="(data()?.pendingGrades?.length ?? 0) > 0 ? 'warning' : 'success'" />
+  </div>
+
+  <div class="grid-2 identity-row">
+    <ui-card>
+      <h2>Tu perfil</h2>
+      <dl class="facts">
+        <div>
+          <dt>Nombre</dt>
+          <dd>{{ displayName() }}</dd>
+        </div>
+        <div>
+          <dt>Correo</dt>
+          <dd>{{ session.user()?.email }}</dd>
+        </div>
+        <div>
+          <dt>Rol</dt>
+          <dd><ui-badge tone="warning">Docente</ui-badge></dd>
+        </div>
+      </dl>
+      <div class="row actions">
+        <a routerLink="/profile"><ui-button type="button" variant="secondary">Perfil</ui-button></a>
+        <a routerLink="/student/simulator"><ui-button type="button" variant="ghost">Simulador</ui-button></a>
+      </div>
+    </ui-card>
+
+    <ui-card [class.unlinked]="!data()?.school">
+      <h2>Escuela</h2>
+      @if (data()?.school; as school) {
+        <p class="school-name">{{ school.legalName }}</p>
+        <p class="muted">
+          @if (school.city || school.department) {
+            {{ school.city }}@if (school.city && school.department) {, }{{ school.department }}
+          } @else {
+            Ubicación no registrada
+          }
+        </p>
+        <div class="school-meta">
+          <ui-badge [tone]="statusTone(school.subscriptionStatus)">
+            {{ statusLabel(school.subscriptionStatus) }}
+          </ui-badge>
+          <span class="pill">Plan {{ school.planLabel }}</span>
+          @if (school.isMembershipActive) {
+            <span class="pill soft">{{ school.daysRemaining }} día(s) restantes</span>
+          }
+        </div>
+      } @else {
+        <ui-empty
+          title="Aún no perteneces a una escuela"
+          message="Cuando una escuela te vincule con tu correo, verás aquí su nombre y plan." />
+      }
+    </ui-card>
+  </div>
+
+  <div class="row shortcuts">
     <a routerLink="/teacher/groups"><ui-button type="button" variant="secondary">Grupos</ui-button></a>
     <a routerLink="/teacher/questions"><ui-button type="button" variant="secondary">Preguntas</ui-button></a>
     <a routerLink="/teacher/exams"><ui-button type="button" variant="secondary">Exámenes</ui-button></a>
+    <a routerLink="/teacher/results"><ui-button type="button" variant="secondary">Resultados</ui-button></a>
+    <a routerLink="/teacher/banks"><ui-button type="button" variant="ghost">Bancos</ui-button></a>
   </div>
 
   <div class="grid-2">
@@ -35,7 +103,11 @@
       } @else {
         <ul class="stack">
           @for (item of data()!.pendingGrades; track item.id) {
-            <li>{{ item.userName }} · actividad {{ item.activityId }}</li>
+            <li>
+              <a [routerLink]="['/teacher/groups', item.groupId]">
+                {{ item.userName }} · actividad {{ item.activityId }}
+              </a>
+            </li>
           }
         </ul>
       }

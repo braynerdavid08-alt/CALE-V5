@@ -12,6 +12,8 @@
   }
 </section>
 
+<ui-motivation class="home-tip" variant="card" [role]="session.user()?.role" />
+
 <ui-error [message]="error()" />
 @if (loading()) {
   <ui-loading />
@@ -49,8 +51,8 @@
       <ul class="stack">
         @for (item of data()!.pendingActivities; track item.id) {
           <li>
-            <strong>{{ item.title }}</strong>
-            <span class="muted"> · {{ item.status }}</span>
+            <a [routerLink]="['/student/group', item.groupId]">{{ item.title }}</a>
+            <span class="muted"> · {{ statusLabel(item.status) }}</span>
           </li>
         }
       </ul>

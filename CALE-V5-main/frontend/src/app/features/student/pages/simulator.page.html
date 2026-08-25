@@ -1,5 +1,7 @@
 @if (step() !== 'take') {
-  <ui-page-header title="Simulador" subtitle="Práctica o examen publicado. El tiempo lo controla el servidor." />
+  <ui-page-header
+    title="Simulador"
+    subtitle="Práctica con bancos oficiales o exámenes publicados. Apruebas desde 80%." />
 }
 <ui-error [message]="error()" />
 <ui-success [message]="ok()" />
@@ -7,44 +9,141 @@
 @if (loading()) {
   <ui-loading />
 } @else if (step() === 'setup') {
-  <div class="grid-2">
-    <ui-card>
-      <h2>Práctica</h2>
+  <section class="rules-banner" aria-label="Condiciones CALE">
+    <div>
+      <p class="eyebrow">Estándar CALE</p>
+      <h2>Condiciones de aprobación</h2>
+      <p class="muted">
+        Necesitas al menos <strong>{{ passPercent }}%</strong> de aciertos.
+        El tiempo lo controla el servidor y las preguntas se toman de bancos oficiales
+        (normas y señales).
+      </p>
+    </div>
+    <ul class="rule-chips">
+      <li><span>Aprobar</span><strong>≥ {{ passPercent }}%</strong></li>
+      <li><span>Tiempo</span><strong>Servidor</strong></li>
+      <li><span>Respuestas</span><strong>1 correcta</strong></li>
+      <li><span>Modo</span><strong>Práctica / Examen</strong></li>
+    </ul>
+  </section>
+
+  <div class="setup-layout">
+    <ui-card class="practice-card">
+      <div class="card-head">
+        <div>
+          <p class="eyebrow">Práctica libre</p>
+          <h2>Configura tu intento</h2>
+        </div>
+        <ui-badge tone="primary">Aprobar ≥ {{ passPercent }}%</ui-badge>
+      </div>
+
+      <h3 class="section-label">1. Banco de preguntas</h3>
       @if (!banks().length) {
-        <ui-empty title="No hay bancos activos" message="" />
+        <ui-empty title="No hay bancos activos" message="Pide a un administrador que active el catálogo." />
       } @else {
-        <label class="field">Banco
-          <select [(ngModel)]="bankId">
-            <option [ngValue]="null">Selecciona</option>
-            @for (bank of banks(); track bank.id) {
-              <option [ngValue]="bank.id">
-                {{ bank.name }} ({{ bank.questionCount }})
-              </option>
-            }
-          </select>
-        </label>
-        <div class="grid-2">
+        <div class="bank-grid">
+          @for (bank of banks(); track bank.id) {
+            <button
+              type="button"
+              class="bank-tile"
+              [class.selected]="bankId() === bank.id"
+              (click)="selectBank(bank.id)">
+              <span class="kind">{{ bankKind(bank) }}</span>
+              <strong>{{ bank.name }}</strong>
+              <span class="muted">{{ bank.questionCount }} preguntas activas</span>
+              @if (bank.description) {
+                <span class="desc">{{ bank.description }}</span>
+              }
+            </button>
+          }
+        </div>
+      }
+
+      <h3 class="section-label">2. Formato de práctica</h3>
+      <div class="preset-grid">
+        @for (preset of presets; track preset.id) {
+          <button
+            type="button"
+            class="preset"
+            [class.selected]="presetId() === preset.id && !customMode()"
+            (click)="applyPreset(preset.id)">
+            <strong>{{ preset.label }}</strong>
+            <span class="muted">{{ preset.hint }}</span>
+            <span class="preset-meta">
+              {{ preset.questionCount }} preg. · {{ preset.timeMinutes }} min
+            </span>
+          </button>
+        }
+        <button
+          type="button"
+          class="preset"
+          [class.selected]="customMode()"
+          (click)="enableCustom()">
+          <strong>Personalizado</strong>
+          <span class="muted">Tú defines cantidad y tiempo</span>
+        </button>
+      </div>
+
+      @if (customMode()) {
+        <div class="custom-row">
           <label class="field">Preguntas
-            <input type="number" [(ngModel)]="questionCount" min="1" />
+            <input type="number" [(ngModel)]="questionCount" min="1" max="200" />
           </label>
           <label class="field">Minutos
-            <input type="number" [(ngModel)]="timeMinutes" min="1" />
+            <input type="number" [(ngModel)]="timeMinutes" min="1" max="180" />
           </label>
         </div>
-        <ui-button type="button" (click)="startPractice()">Empezar</ui-button>
       }
+
+      <div class="summary">
+        <div>
+          <span class="muted">Para aprobar necesitas</span>
+          <strong>{{ neededCorrect() }} de {{ questionCount }} correctas</strong>
+        </div>
+        <div>
+          <span class="muted">Ritmo aproximado</span>
+          <strong>~{{ secondsPerQuestion() }} s por pregunta</strong>
+        </div>
+        <div>
+          <span class="muted">Banco</span>
+          <strong>{{ selectedBank()?.name || 'Sin seleccionar' }}</strong>
+        </div>
+      </div>
+
+      <div class="row actions">
+        <ui-button type="button" [disabled]="!bankId()" (click)="startPractice()">
+          Empezar práctica
+        </ui-button>
+      </div>
     </ui-card>
-    <ui-card>
-      <h2>Exámenes publicados</h2>
+
+    <ui-card class="exams-card">
+      <div class="card-head">
+        <div>
+          <p class="eyebrow">Evaluación formal</p>
+          <h2>Exámenes publicados</h2>
+        </div>
+      </div>
+      <p class="muted intro">
+        Configurados por tu docente. Misma regla: apruebas con ≥ {{ passPercent }}%.
+      </p>
       @if (!exams().length) {
-        <ui-empty title="No hay exámenes publicados" message="" />
+        <ui-empty
+          title="No hay exámenes publicados"
+          message="Cuando tu docente publique uno, aparecerá aquí." />
       } @else {
         <ul class="exam-list">
           @for (exam of exams(); track exam.id) {
             <li>
-              <div>
+              <div class="exam-info">
                 <strong>{{ exam.name }}</strong>
-                <p class="muted">{{ exam.questionCount }} preguntas · {{ exam.timeMinutes }} min</p>
+                @if (exam.description) {
+                  <p class="muted">{{ exam.description }}</p>
+                }
+                <p class="exam-meta">
+                  {{ exam.questionCount }} preguntas · {{ exam.timeMinutes }} min ·
+                  aprobar con {{ examNeededCorrect(exam) }} correctas
+                </p>
               </div>
               <ui-button type="button" (click)="startExam(exam)">Presentar</ui-button>
             </li>
@@ -59,23 +158,33 @@
   @if (question(); as q) {
     <section class="exam-focus">
       <header class="exam-bar">
-        <div>
-          <p class="muted">Pregunta {{ current() + 1 }} de {{ session()?.questions?.length }}</p>
+        <div class="bar-main">
+          <p class="muted">
+            Pregunta {{ current() + 1 }} de {{ session()?.questions?.length }}
+            · Respondidas {{ answeredCount() }}
+          </p>
           <div class="progress" aria-hidden="true">
             <span [style.width.%]="progress()"></span>
           </div>
+          <div class="progress thin" aria-hidden="true" title="Avance de respuestas">
+            <span class="answered" [style.width.%]="answerProgress()"></span>
+          </div>
         </div>
-        @if (remaining()) {
-          <ui-badge tone="primary">{{ remaining() }}</ui-badge>
-        }
+        <div class="bar-side">
+          <ui-badge tone="neutral">Meta {{ passPercent }}%</ui-badge>
+          @if (remaining()) {
+            <ui-badge tone="primary">{{ remaining() }}</ui-badge>
+          }
+        </div>
       </header>
       <ui-card>
+        <p class="q-type">{{ q.type }}</p>
         <h1 class="q-text">{{ q.text }}</h1>
         @if (q.imageUrl) {
           <img class="q-img" [src]="media(q.imageUrl)" alt="Imagen de la pregunta" />
         }
         <ul class="options">
-          @for (opt of q.options; track opt.id) {
+          @for (opt of q.options; track opt.id; let i = $index) {
             <li>
               <label [class.picked]="selected() === opt.id">
                 <input
@@ -83,7 +192,8 @@
                   name="option"
                   [checked]="selected() === opt.id"
                   (change)="answer(opt.id)" />
-                <span>
+                <span class="opt-letter">{{ 'ABCD'[i] || (i + 1) }}</span>
+                <span class="opt-body">
                   @if (opt.imageUrl) {
                     <img class="opt-img" [src]="media(opt.imageUrl)" alt="" />
                   }
@@ -101,7 +211,7 @@
           Anterior
         </ui-button>
         <ui-button type="button" (click)="next()">
-          {{ current() + 1 === session()?.questions?.length ? 'Finalizar' : 'Siguiente' }}
+          {{ current() + 1 === session()?.questions?.length ? 'Finalizar intento' : 'Siguiente' }}
         </ui-button>
         <ui-button variant="ghost" type="button" (click)="askAbort()">Salir</ui-button>
       </div>
@@ -111,14 +221,74 @@
 
 @if (step() === 'result') {
   @if (result(); as res) {
+    <div class="result-shell" [class.passed]="res.passed" [class.failed]="!res.passed">
     <ui-card>
-      <p class="eyebrow">Resultado</p>
+      <p class="eyebrow">Resultado · umbral {{ passPercent }}%</p>
       <h1>{{ res.passed ? 'Aprobado' : 'No aprobado' }}</h1>
+      <p class="muted">
+        @if (res.passed) {
+          Superaste el estándar CALE (≥ {{ passPercent }}%).
+        } @else {
+          Te faltaron aciertos para llegar al {{ passPercent }}% requerido.
+        }
+      </p>
       <div class="grid-stats">
         <ui-stat label="Porcentaje" [value]="res.percent + '%'" [tone]="res.passed ? 'success' : 'warning'" />
         <ui-stat label="Correctas" [value]="res.correctCount + '/' + res.totalQuestions" />
         <ui-stat label="Tiempo" [value]="formatTime(res.timeSeconds)" hint="Duración del intento" />
+        @if (res.bestPercent != null) {
+          <ui-stat label="Mejor marca" [value]="res.bestPercent + '%'" tone="success" hint="Entre intentos finalizados" />
+        }
       </div>
+
+      @if (res.byTopic.length) {
+        <h2>Por tema</h2>
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Tema</th>
+                <th>Correctas</th>
+                <th>%</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of res.byTopic; track row.label) {
+                <tr>
+                  <td>{{ row.label }}</td>
+                  <td>{{ row.correctCount }}/{{ row.totalQuestions }}</td>
+                  <td>{{ row.percent }}%</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      @if (res.byBlock.length) {
+        <h2>Por bloque</h2>
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Bloque</th>
+                <th>Correctas</th>
+                <th>%</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of res.byBlock; track row.label) {
+                <tr>
+                  <td>{{ row.label }}</td>
+                  <td>{{ row.correctCount }}/{{ row.totalQuestions }}</td>
+                  <td>{{ row.percent }}%</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
       <h2>Valoración</h2>
       <label class="field">Estrellas (1-5)
         <input type="number" min="1" max="5" [(ngModel)]="stars" />
@@ -128,15 +298,21 @@
       </label>
       <div class="row">
         <ui-button type="button" (click)="rate()">Enviar valoración</ui-button>
-        <ui-button type="button" variant="secondary" (click)="openReview()">Revisar</ui-button>
+        <ui-button type="button" variant="secondary" (click)="openReview()">Revisar respuestas</ui-button>
+        <ui-button type="button" variant="ghost" (click)="backToSetup()">Nueva práctica</ui-button>
         <ui-button variant="ghost" type="button" (click)="goHome()">Volver al panel</ui-button>
       </div>
     </ui-card>
+    </div>
   }
 }
 
 @if (step() === 'review') {
   @if (review(); as rev) {
+    <div class="review-head">
+      <ui-button type="button" variant="secondary" (click)="step.set('result')">Volver al resultado</ui-button>
+      <ui-button type="button" variant="ghost" (click)="backToSetup()">Nueva práctica</ui-button>
+    </div>
     @for (q of rev.questions; track q.id) {
       <ui-card>
         <h3>{{ q.order }}. {{ q.text }}</h3>

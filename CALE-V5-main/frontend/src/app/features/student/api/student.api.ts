@@ -14,6 +14,7 @@ export interface GroupDto {
 
 export interface ActivityDto {
   id: number;
+  groupId: number;
   type: string;
   title: string;
   description: string;

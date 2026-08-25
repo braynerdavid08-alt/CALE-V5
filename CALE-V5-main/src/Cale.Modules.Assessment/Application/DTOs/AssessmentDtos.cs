@@ -32,7 +32,16 @@ public sealed record FinishResponse(
     int CorrectCount,
     decimal Percent,
     bool Passed,
-    int TimeSeconds);
+    int TimeSeconds,
+    IReadOnlyList<ScoreBreakdownDto> ByTopic,
+    IReadOnlyList<ScoreBreakdownDto> ByBlock,
+    decimal? BestPercent);
+
+public sealed record ScoreBreakdownDto(
+    string Label,
+    int CorrectCount,
+    int TotalQuestions,
+    decimal Percent);
 
 public sealed record ReviewOptionDto(
     int Id,
@@ -56,6 +65,11 @@ public sealed record ReviewResponse(
     IReadOnlyList<ReviewQuestionDto> Questions);
 
 public sealed record SaveRatingRequest(int AttemptId, int Stars, string? Comment);
+
+public sealed record ManageRatingRequest(
+    bool? Reviewed,
+    bool? Hidden,
+    string? Critique);
 
 public sealed record RatingDto(
     int Id,

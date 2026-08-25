@@ -2,10 +2,18 @@
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: 1.5rem;
+  padding: var(--page-pad);
+  position: relative;
   background:
-    radial-gradient(circle at top left, #eeebff 0%, transparent 40%),
+    radial-gradient(circle at top left, var(--color-auth-glow) 0%, transparent 42%),
     var(--color-background);
+}
+
+ui-theme-toggle {
+  position: absolute;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  z-index: 2;
 }
 
 .auth {
@@ -20,26 +28,40 @@
 }
 
 .brand-side {
-  padding: 2.2rem;
-  background: #171c28;
-  color: #e8ecf7;
+  padding: var(--spacing-xl);
+  background: var(--color-brand-panel);
+  color: var(--color-brand-panel-text);
+  display: grid;
+  align-content: center;
+  gap: var(--spacing-sm);
 }
 
 .logo {
-  margin: 0 0 1rem;
+  margin: 0 0 var(--spacing-md);
   font-weight: 800;
   letter-spacing: 0.08em;
   color: #fff;
+  font-size: var(--text-lg);
 }
 
 .brand-side h1 {
   color: #fff;
   font-size: var(--text-2xl);
+  margin: 0;
+  max-width: 16ch;
 }
 
-.brand-side p:last-child { color: #b8c0d4; }
+.brand-side p:last-child {
+  margin: 0;
+  color: var(--color-brand-panel-text);
+  line-height: var(--leading-body);
+}
 
-.auth-card { padding: 2rem; }
+.auth-card {
+  padding: var(--spacing-xl);
+  display: grid;
+  align-content: center;
+}
 
 .eyebrow {
   margin: 0 0 0.35rem;
@@ -52,13 +74,95 @@
 
 h2 { margin: 0 0 0.35rem; }
 
+.lead {
+  margin-bottom: var(--spacing-md);
+  color: var(--color-text-secondary);
+}
+
+.auth-tip {
+  display: block;
+  margin-bottom: var(--spacing-md);
+}
+
 form {
   display: grid;
   gap: 0.9rem;
   margin: 1.1rem 0;
 }
 
+form ui-button,
+form ui-button button {
+  width: 100%;
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.signup-label {
+  margin: 0.25rem 0 0.65rem;
+}
+
+.signup-options {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.signup-option {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  background: var(--color-surface);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.signup-option:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.demo-users {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-body);
+}
+
+.demo-title {
+  margin: 0 0 0.4rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.demo-users ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.demo-users strong {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
 @media (max-width: 800px) {
   .auth { grid-template-columns: 1fr; }
   .brand-side { display: none; }
+  .auth-card { padding: var(--spacing-lg); }
+}
+
+@media (max-width: 480px) {
+  :host { padding: var(--spacing-md); }
+  .auth-card { padding: var(--spacing-md); }
 }
