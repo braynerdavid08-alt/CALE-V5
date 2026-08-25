@@ -1,0 +1,176 @@
+@if (step() !== 'take') {
+  <ui-page-header title="Simulador" subtitle="Práctica o examen publicado. El tiempo lo controla el servidor." />
+}
+<ui-error [message]="error()" />
+<ui-success [message]="ok()" />
+
+@if (loading()) {
+  <ui-loading />
+} @else if (step() === 'setup') {
+  <div class="grid-2">
+    <ui-card>
+      <h2>Práctica</h2>
+      @if (!banks().length) {
+        <ui-empty title="No hay bancos activos" message="" />
+      } @else {
+        <label class="field">Banco
+          <select [(ngModel)]="bankId">
+            <option [ngValue]="null">Selecciona</option>
+            @for (bank of banks(); track bank.id) {
+              <option [ngValue]="bank.id">
+                {{ bank.name }} ({{ bank.questionCount }})
+              </option>
+            }
+          </select>
+        </label>
+        <div class="grid-2">
+          <label class="field">Preguntas
+            <input type="number" [(ngModel)]="questionCount" min="1" />
+          </label>
+          <label class="field">Minutos
+            <input type="number" [(ngModel)]="timeMinutes" min="1" />
+          </label>
+        </div>
+        <ui-button type="button" (click)="startPractice()">Empezar</ui-button>
+      }
+    </ui-card>
+    <ui-card>
+      <h2>Exámenes publicados</h2>
+      @if (!exams().length) {
+        <ui-empty title="No hay exámenes publicados" message="" />
+      } @else {
+        <ul class="exam-list">
+          @for (exam of exams(); track exam.id) {
+            <li>
+              <div>
+                <strong>{{ exam.name }}</strong>
+                <p class="muted">{{ exam.questionCount }} preguntas · {{ exam.timeMinutes }} min</p>
+              </div>
+              <ui-button type="button" (click)="startExam(exam)">Presentar</ui-button>
+            </li>
+          }
+        </ul>
+      }
+    </ui-card>
+  </div>
+}
+
+@if (step() === 'take') {
+  @if (question(); as q) {
+    <section class="exam-focus">
+      <header class="exam-bar">
+        <div>
+          <p class="muted">Pregunta {{ current() + 1 }} de {{ session()?.questions?.length }}</p>
+          <div class="progress" aria-hidden="true">
+            <span [style.width.%]="progress()"></span>
+          </div>
+        </div>
+        @if (remaining()) {
+          <ui-badge tone="primary">{{ remaining() }}</ui-badge>
+        }
+      </header>
+      <ui-card>
+        <h1 class="q-text">{{ q.text }}</h1>
+        @if (q.imageUrl) {
+          <img class="q-img" [src]="media(q.imageUrl)" alt="Imagen de la pregunta" />
+        }
+        <ul class="options">
+          @for (opt of q.options; track opt.id) {
+            <li>
+              <label [class.picked]="selected() === opt.id">
+                <input
+                  type="radio"
+                  name="option"
+                  [checked]="selected() === opt.id"
+                  (change)="answer(opt.id)" />
+                <span>
+                  @if (opt.imageUrl) {
+                    <img class="opt-img" [src]="media(opt.imageUrl)" alt="" />
+                  }
+                  @if (opt.text) {
+                    <span>{{ opt.text }}</span>
+                  }
+                </span>
+              </label>
+            </li>
+          }
+        </ul>
+      </ui-card>
+      <div class="row exam-actions">
+        <ui-button type="button" variant="secondary" [disabled]="current() === 0" (click)="prev()">
+          Anterior
+        </ui-button>
+        <ui-button type="button" (click)="next()">
+          {{ current() + 1 === session()?.questions?.length ? 'Finalizar' : 'Siguiente' }}
+        </ui-button>
+        <ui-button variant="ghost" type="button" (click)="askAbort()">Salir</ui-button>
+      </div>
+    </section>
+  }
+}
+
+@if (step() === 'result') {
+  @if (result(); as res) {
+    <ui-card>
+      <p class="eyebrow">Resultado</p>
+      <h1>{{ res.passed ? 'Aprobado' : 'No aprobado' }}</h1>
+      <div class="grid-stats">
+        <ui-stat label="Porcentaje" [value]="res.percent + '%'" [tone]="res.passed ? 'success' : 'warning'" />
+        <ui-stat label="Correctas" [value]="res.correctCount + '/' + res.totalQuestions" />
+        <ui-stat label="Tiempo" [value]="formatTime(res.timeSeconds)" hint="Duración del intento" />
+      </div>
+      <h2>Valoración</h2>
+      <label class="field">Estrellas (1-5)
+        <input type="number" min="1" max="5" [(ngModel)]="stars" />
+      </label>
+      <label class="field">Comentario
+        <textarea [(ngModel)]="comment" placeholder="Opcional"></textarea>
+      </label>
+      <div class="row">
+        <ui-button type="button" (click)="rate()">Enviar valoración</ui-button>
+        <ui-button type="button" variant="secondary" (click)="openReview()">Revisar</ui-button>
+        <ui-button variant="ghost" type="button" (click)="goHome()">Volver al panel</ui-button>
+      </div>
+    </ui-card>
+  }
+}
+
+@if (step() === 'review') {
+  @if (review(); as rev) {
+    @for (q of rev.questions; track q.id) {
+      <ui-card>
+        <h3>{{ q.order }}. {{ q.text }}</h3>
+        @if (q.imageUrl) {
+          <img class="q-img" [src]="media(q.imageUrl)" alt="" />
+        }
+        <ui-badge [tone]="q.isCorrect ? 'success' : 'danger'">
+          {{ q.isCorrect ? 'Correcta' : 'Incorrecta' }}
+        </ui-badge>
+        <ul class="review-opts">
+          @for (opt of q.options; track opt.id) {
+            <li [class.ok]="opt.isCorrect" [class.pick]="opt.selected">
+              @if (opt.imageUrl) {
+                <img class="opt-img" [src]="media(opt.imageUrl)" alt="" />
+              }
+              {{ opt.selected ? '→ ' : '' }}{{ opt.text }}
+              {{ opt.isCorrect ? ' (correcta)' : '' }}
+            </li>
+          }
+        </ul>
+        @if (q.explanation) {
+          <p class="muted">{{ q.explanation }}</p>
+        }
+      </ui-card>
+    }
+    <ui-button type="button" (click)="goHome()">Volver al panel</ui-button>
+  }
+}
+
+<ui-dialog
+  [open]="confirmExit()"
+  title="Salir del examen"
+  message="¿Seguro que quieres salir sin terminar? El intento puede quedar incompleto."
+  confirmLabel="Salir"
+  [danger]="true"
+  (confirm)="confirmAbort()"
+  (cancel)="confirmExit.set(false)" />

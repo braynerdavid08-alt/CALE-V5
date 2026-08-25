@@ -1,0 +1,120 @@
+<ui-page-header
+  [title]="id ? 'Editar pregunta' : 'Nueva pregunta'"
+  subtitle="Completa el enunciado, marca la respuesta correcta y, si hace falta, agrega imágenes." />
+<ui-error [message]="error()" />
+<ui-success [message]="ok()" />
+
+<form class="editor" (ngSubmit)="save()">
+  <ui-card>
+    <h2>1. Dónde va</h2>
+    <div class="grid-2">
+      <label class="field">Banco
+        <select [(ngModel)]="bankId" name="bankId">
+          <option [ngValue]="0">Selecciona un banco</option>
+          @for (bank of banks(); track bank.id) {
+            <option [ngValue]="bank.id">{{ bank.name }}</option>
+          }
+        </select>
+      </label>
+      <label class="field">Bloque / tema de contenido
+        <select [(ngModel)]="blockId" name="blockId">
+          @for (block of blocks(); track block.id) {
+            <option [ngValue]="block.id">{{ block.name }}</option>
+          }
+        </select>
+      </label>
+      <label class="field">Tipo
+        <select [(ngModel)]="type" name="type" (ngModelChange)="onTypeChange()">
+          <option value="Seleccion multiple">Selección múltiple</option>
+          <option value="Verdadero/Falso">Verdadero / Falso</option>
+        </select>
+      </label>
+      <label class="field">Tema (opcional)
+        <input [(ngModel)]="topic" name="topic" placeholder="Ej. señales de tránsito" />
+      </label>
+    </div>
+    <label class="row">
+      <input type="checkbox" [(ngModel)]="isActive" name="isActive" />
+      Pregunta activa (visible en el simulador)
+    </label>
+  </ui-card>
+
+  <ui-card>
+    <h2>2. Enunciado</h2>
+    <label class="field">¿Qué debe responder el estudiante?
+      <textarea
+        [(ngModel)]="text"
+        name="text"
+        required
+        placeholder="Escribe la pregunta con claridad."></textarea>
+    </label>
+    <p class="hint">Imagen del enunciado (opcional): señal, foto o esquema.</p>
+    <ui-image-picker
+      [src]="imageUrl || null"
+      [busy]="uploading() === 'question'"
+      alt="Imagen de la pregunta"
+      (selected)="uploadQuestionImage($event)"
+      (cleared)="clearQuestionImage()" />
+  </ui-card>
+
+  <ui-card>
+    <h2>3. Respuestas</h2>
+    <p class="hint">Haz clic en la letra (A, B, C…) para marcar la correcta. Cada respuesta puede llevar texto, imagen o ambos.</p>
+    @for (opt of options; track $index) {
+      <article class="answer" [class.correct]="opt.isCorrect">
+        <button
+          type="button"
+          class="letter"
+          [class.on]="opt.isCorrect"
+          (click)="markCorrect($index)"
+          [attr.aria-label]="'Marcar ' + letter($index) + ' como correcta'">
+          {{ letter($index) }}
+        </button>
+        <div class="answer-body">
+          <label class="field">
+            {{ opt.isCorrect ? '✓ Respuesta correcta' : 'Opción ' + letter($index) }}
+            <input
+              [(ngModel)]="opt.text"
+              [name]="'opt' + $index"
+              [placeholder]="isTrueFalse ? letter($index) : 'Texto de la respuesta'" />
+          </label>
+          <ui-image-picker
+            [src]="opt.imageUrl || null"
+            [busy]="uploading() === ('opt-' + $index)"
+            [alt]="'Imagen de la opción ' + letter($index)"
+            (selected)="uploadOptionImage($index, $event)"
+            (cleared)="clearOptionImage($index)" />
+        </div>
+        @if (!isTrueFalse) {
+          <ui-button
+            type="button"
+            variant="ghost"
+            [disabled]="options.length <= 2"
+            (click)="removeOption($index)">
+            Quitar
+          </ui-button>
+        }
+      </article>
+    }
+    @if (!isTrueFalse) {
+      <ui-button type="button" variant="secondary" (click)="addOption()">
+        Añadir otra respuesta
+      </ui-button>
+    }
+  </ui-card>
+
+  <ui-card>
+    <h2>4. Explicación (opcional)</h2>
+    <label class="field">Se muestra al revisar el intento
+      <textarea
+        [(ngModel)]="explanation"
+        name="explanation"
+        placeholder="Por qué esa opción es la correcta."></textarea>
+    </label>
+  </ui-card>
+
+  <div class="row sticky-actions">
+    <ui-button type="submit" [loading]="saving()">Guardar pregunta</ui-button>
+    <ui-button type="button" variant="ghost" (click)="cancel()">Cancelar</ui-button>
+  </div>
+</form>

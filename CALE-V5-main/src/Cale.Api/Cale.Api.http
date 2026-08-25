@@ -1,0 +1,13 @@
+@host = http://localhost:5000
+
+GET {{host}}/api/health
+
+###
+
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@cale.local",
+  "password": "Admin123!"
+}

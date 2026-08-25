@@ -1,0 +1,64 @@
+:host {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background:
+    radial-gradient(circle at top left, #eeebff 0%, transparent 40%),
+    var(--color-background);
+}
+
+.auth {
+  width: min(920px, 100%);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.brand-side {
+  padding: 2.2rem;
+  background: #171c28;
+  color: #e8ecf7;
+}
+
+.logo {
+  margin: 0 0 1rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #fff;
+}
+
+.brand-side h1 {
+  color: #fff;
+  font-size: var(--text-2xl);
+}
+
+.brand-side p:last-child { color: #b8c0d4; }
+
+.auth-card { padding: 2rem; }
+
+.eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--color-primary);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: var(--text-xs);
+}
+
+h2 { margin: 0 0 0.35rem; }
+
+form {
+  display: grid;
+  gap: 0.9rem;
+  margin: 1.1rem 0;
+}
+
+@media (max-width: 800px) {
+  .auth { grid-template-columns: 1fr; }
+  .brand-side { display: none; }
+}

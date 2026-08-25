@@ -1,0 +1,11 @@
+<button
+  [type]="type"
+  [disabled]="disabled || loading"
+  [class.secondary]="variant === 'secondary'"
+  [class.ghost]="variant === 'ghost'"
+  [class.danger]="variant === 'danger'">
+  @if (loading) {
+    <span class="spin" aria-hidden="true"></span>
+  }
+  <ng-content />
+</button>

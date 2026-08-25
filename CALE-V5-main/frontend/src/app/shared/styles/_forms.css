@@ -1,0 +1,48 @@
+.field {
+  display: grid;
+  gap: 0.35rem;
+  font-size: var(--text-sm);
+  font-weight: 650;
+}
+
+.field input,
+.field select,
+.field textarea,
+.input,
+.select,
+.textarea {
+  width: 100%;
+  min-height: 2.6rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  transition: border-color var(--transition);
+}
+
+.field textarea,
+.textarea { min-height: 96px; resize: vertical; }
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus,
+.input:focus,
+.select:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+.field-error { color: var(--color-danger); font-weight: 600; font-size: var(--text-xs); }
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  max-width: 360px;
+}
+
+.search input { flex: 1; }

@@ -1,0 +1,17 @@
+.empty {
+  padding: var(--spacing-xl) var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  text-align: center;
+}
+
+h3 {
+  margin: 0 0 0.35rem;
+  font-size: var(--text-md);
+}
+
+p {
+  margin: 0;
+  color: var(--color-text-secondary);
+}

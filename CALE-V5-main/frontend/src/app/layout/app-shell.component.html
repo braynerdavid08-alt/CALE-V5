@@ -1,0 +1,45 @@
+<div class="shell" [class.open]="menuOpen()">
+  @if (menuOpen()) {
+    <button class="scrim" type="button" aria-label="Cerrar menú" (click)="closeMenu()"></button>
+  }
+
+  <aside class="sidebar" aria-label="Navegación principal">
+    <a class="brand" [routerLink]="session.homeRoute()">
+      <span class="logo">C</span>
+      <span>CALE</span>
+    </a>
+    <nav>
+      @for (item of items; track item.path) {
+        <a
+          [routerLink]="item.path"
+          routerLinkActive="on"
+          [routerLinkActiveOptions]="{ exact: !!item.exact }">
+          <ui-icon [name]="item.icon" />
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    </nav>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <ui-button type="button" variant="ghost" class="menu-btn" (click)="toggleMenu()">
+        <ui-icon name="menu" />
+        <span class="sr">Menú</span>
+      </ui-button>
+      <div class="spacer"></div>
+      @if (unread() > 0) {
+        <ui-badge tone="primary">{{ unread() }} avisos</ui-badge>
+      }
+      <div class="who">
+        <strong>{{ session.user()?.name }}</strong>
+        <ui-badge tone="primary">{{ roleLabel(role) }}</ui-badge>
+      </div>
+      <a routerLink="/profile">Perfil</a>
+      <ui-button type="button" variant="ghost" (click)="logout()">Salir</ui-button>
+    </header>
+    <main class="content">
+      <router-outlet />
+    </main>
+  </div>
+</div>

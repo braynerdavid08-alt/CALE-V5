@@ -1,0 +1,16 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+.idea/
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+*.log
+.env
+.env.*
+TestResults/
+*.trx
+src/Cale.Api/wwwroot/uploads/*
+!src/Cale.Api/wwwroot/uploads/.gitkeep

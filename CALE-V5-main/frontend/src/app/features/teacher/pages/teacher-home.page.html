@@ -1,0 +1,57 @@
+<ui-page-header
+  eyebrow="Docente"
+  title="Hola, {{ session.user()?.name }}"
+  subtitle="Lo que requiere tu atención, con datos reales." />
+<ui-error [message]="error()" />
+@if (loading()) {
+  <ui-loading />
+} @else {
+  <div class="row" style="margin-bottom: 1rem;">
+    <a routerLink="/teacher/groups"><ui-button type="button" variant="secondary">Grupos</ui-button></a>
+    <a routerLink="/teacher/questions"><ui-button type="button" variant="secondary">Preguntas</ui-button></a>
+    <a routerLink="/teacher/exams"><ui-button type="button" variant="secondary">Exámenes</ui-button></a>
+  </div>
+
+  <div class="grid-2">
+    <ui-card>
+      <h2>Grupos</h2>
+      @if (!data()?.groups?.length) {
+        <ui-empty title="No tienes grupos" message="Crea uno desde Grupos." />
+      } @else {
+        <ul class="stack">
+          @for (group of data()!.groups; track group.id) {
+            <li>
+              <a [routerLink]="['/teacher/groups', group.id]">{{ group.name }}</a>
+              <span class="muted"> · {{ group.memberCount }} integrantes · {{ group.code }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </ui-card>
+    <ui-card>
+      <h2>Entregas por calificar</h2>
+      @if (!data()?.pendingGrades?.length) {
+        <ui-empty title="Nada pendiente" message="" />
+      } @else {
+        <ul class="stack">
+          @for (item of data()!.pendingGrades; track item.id) {
+            <li>{{ item.userName }} · actividad {{ item.activityId }}</li>
+          }
+        </ul>
+      }
+    </ui-card>
+  </div>
+
+  <ui-card>
+    <h2>Bajo rendimiento</h2>
+    @if (!data()?.lowScores?.length) {
+      <ui-empty title="No hay intentos reprobados recientes" message="" />
+    } @else {
+      <ul class="stack">
+        @for (item of data()!.lowScores; track item.userId) {
+          <li>{{ item.userName }} · {{ item.percent }}%</li>
+        }
+      </ul>
+    }
+  </ui-card>
+}

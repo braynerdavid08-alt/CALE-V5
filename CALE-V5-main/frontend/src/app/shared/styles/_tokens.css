@@ -1,0 +1,60 @@
+:root {
+  --color-primary: #6c5ce7;
+  --color-primary-hover: #5b4bd6;
+  --color-primary-soft: #eeebff;
+  --color-background: #f4f6fb;
+  --color-bg: var(--color-background);
+  --color-surface: #ffffff;
+  --color-text: #1c2434;
+  --color-text-secondary: #667085;
+  --color-muted: var(--color-text-secondary);
+  --color-border: #e6eaf2;
+  --color-chip: #eef1f8;
+  --color-success: #12b76a;
+  --color-success-soft: #e7f8ef;
+  --color-warning: #f79009;
+  --color-warning-soft: #fef4e6;
+  --color-danger: #f04438;
+  --color-danger-soft: #fdecea;
+  --color-info: #2e90fa;
+  --color-info-soft: #e8f3ff;
+  --color-sidebar: #171c28;
+  --color-sidebar-text: #b8c0d4;
+  --color-sidebar-active: #ffffff;
+  --color-sidebar-hover: rgba(255, 255, 255, 0.06);
+
+  --font: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  --shadow-sm: 0 1px 2px rgba(23, 28, 40, 0.04);
+  --shadow-md: 0 8px 24px rgba(23, 28, 40, 0.06);
+  --transition: 150ms ease;
+  --z-sidebar: 40;
+  --z-topbar: 30;
+  --z-overlay: 50;
+  --z-modal: 60;
+
+  --sidebar-width: 248px;
+  --topbar-height: 64px;
+}
+
+@media (max-width: 900px) {
+  :root {
+    --sidebar-width: 0px;
+  }
+}

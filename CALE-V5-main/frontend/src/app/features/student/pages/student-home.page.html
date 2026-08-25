@@ -1,0 +1,97 @@
+<section class="welcome">
+  <div>
+    <p class="eyebrow">Aprendizaje</p>
+    <h1>Hola, {{ session.user()?.name }}</h1>
+    <p class="lead">Continúa tu práctica o entra a tu aula. Todo lo que ves es real.</p>
+    <a routerLink="/student/simulator">
+      <ui-button type="button">Continuar en el simulador</ui-button>
+    </a>
+  </div>
+  @if (data()?.bestPercent != null) {
+    <ui-stat label="Mejor marca" [value]="data()!.bestPercent + '%'" tone="success" hint="En intentos finalizados" />
+  }
+</section>
+
+<ui-error [message]="error()" />
+@if (loading()) {
+  <ui-loading />
+} @else {
+  <div class="grid-2">
+    <ui-card>
+      <h2>Unirme a un grupo</h2>
+      <form class="row" (ngSubmit)="join()">
+        <input class="input" [(ngModel)]="code" name="code" placeholder="CALE-XXXXXXXX" />
+        <ui-button type="submit">Unirme</ui-button>
+      </form>
+    </ui-card>
+    <ui-card>
+      <h2>Mis grupos</h2>
+      @if (!data()?.groups?.length) {
+        <ui-empty title="Aún no estás en un grupo" message="Pide el código a tu docente." />
+      } @else {
+        <ul class="stack">
+          @for (group of data()!.groups; track group.id) {
+            <li>
+              <a [routerLink]="['/student/group', group.id]">{{ group.name }}</a>
+              <span class="muted"> · {{ group.teacherName || 'Sin docente' }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </ui-card>
+  </div>
+
+  <ui-card>
+    <h2>Pendientes</h2>
+    @if (!data()?.pendingActivities?.length) {
+      <ui-empty title="No hay actividades pendientes" message="" />
+    } @else {
+      <ul class="stack">
+        @for (item of data()!.pendingActivities; track item.id) {
+          <li>
+            <strong>{{ item.title }}</strong>
+            <span class="muted"> · {{ item.status }}</span>
+          </li>
+        }
+      </ul>
+    }
+  </ui-card>
+
+  <div class="grid-2">
+    <ui-card>
+      <h2>Notificaciones</h2>
+      @if (!notifications().length) {
+        <ui-empty title="Sin notificaciones" message="" />
+      } @else {
+        <ul class="stack">
+          @for (item of notifications(); track item.id) {
+            <li>
+              <strong>{{ item.title }}</strong>
+              <p class="muted">{{ item.message }}</p>
+              @if (!item.isRead) {
+                <ui-button type="button" variant="ghost" (click)="markRead(item.id)">
+                  Marcar leída
+                </ui-button>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </ui-card>
+    <ui-card>
+      <h2>Avisos</h2>
+      @if (!data()?.announcements?.length) {
+        <ui-empty title="No hay avisos todavía" message="" />
+      } @else {
+        <ul class="stack">
+          @for (item of data()!.announcements; track item.id) {
+            <li>
+              <strong>{{ item.title }}</strong>
+              <span class="muted"> · {{ item.authorName }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </ui-card>
+  </div>
+}

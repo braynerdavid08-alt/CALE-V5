@@ -1,0 +1,25 @@
+<ui-page-header title="Mi perfil" subtitle="Datos de la sesión actual y cambio de contraseña." />
+<ui-card>
+  <p class="row">
+    <strong>{{ session.user()?.name }}</strong>
+    <span class="muted">{{ session.user()?.email }}</span>
+    <ui-badge tone="primary">{{ roleLabel(session.user()?.role) }}</ui-badge>
+  </p>
+  <h2>Cambiar contraseña</h2>
+  <ui-error [message]="auth.error()" />
+  <ui-success [message]="auth.success()" />
+  <form class="stack" [formGroup]="form" (ngSubmit)="submit()">
+    <label class="field">
+      Contraseña actual
+      <input type="password" formControlName="currentPassword" />
+    </label>
+    <label class="field">
+      Nueva contraseña
+      <input type="password" formControlName="newPassword" />
+      @if (form.controls.newPassword.touched && form.controls.newPassword.invalid) {
+        <span class="field-error">Mínimo 8 caracteres.</span>
+      }
+    </label>
+    <ui-button type="submit" [loading]="auth.loading()">Guardar</ui-button>
+  </form>
+</ui-card>
