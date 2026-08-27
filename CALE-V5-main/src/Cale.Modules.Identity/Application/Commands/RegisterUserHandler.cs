@@ -74,6 +74,7 @@ public sealed class RegisterUserHandler
         }
 
         return BuildPendingResponse(user.Email, issue);
+    }
 
     private static PendingEmailConfirmationResponse BuildPendingResponse(
         string email,

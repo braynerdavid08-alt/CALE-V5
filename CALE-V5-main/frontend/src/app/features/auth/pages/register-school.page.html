@@ -62,7 +62,7 @@
           Correo de facturación
           <input type="email" formControlName="billingEmail" autocomplete="email" />
           @if (form.controls.billingEmail.touched && form.controls.billingEmail.invalid) {
-            <span class="field-error">Debe ser un correo válido (ej. escuela@gmail.com)</span>
+            <span class="field-error">Debe ser un correo válido (ej. escuela&#64;dominio.com)</span>
           }
         </label>
         <label class="field">
