@@ -123,9 +123,14 @@ public sealed class GetSchoolProfileHandler
 
 public sealed class ListSchoolPlansHandler
 {
-    public IReadOnlyList<SchoolPlanDto> Handle(bool includeTrial = false) =>
-        SchoolPlans.All
-            .Where(x => includeTrial || x.Code != SchoolPlans.Trial)
+    /// <param name="includeSignupPlans">
+    /// When true (public register), includes Deferred + Trial.
+    /// When false (school membership portal), only paid plans.
+    /// </param>
+    public IReadOnlyList<SchoolPlanDto> Handle(bool includeSignupPlans = false)
+    {
+        var source = includeSignupPlans ? SchoolPlans.All : SchoolPlans.PaidOnly;
+        return source
             .Select(x => new SchoolPlanDto(
                 x.Code,
                 x.LabelEs,
@@ -135,6 +140,7 @@ public sealed class ListSchoolPlansHandler
                 x.MaxTeachers,
                 x.MaxStudents))
             .ToList();
+    }
 }
 
 public sealed class ListSchoolMembersHandler

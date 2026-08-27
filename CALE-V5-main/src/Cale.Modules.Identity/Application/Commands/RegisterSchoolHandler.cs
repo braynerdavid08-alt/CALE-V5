@@ -162,7 +162,9 @@ public sealed class RegisterSchoolHandler
             var token = _tokens.Create(user.Id, user.Email, user.Name, Roles.School);
             var message = claimFreeTrial
                 ? "Cuenta creada con 1 mes gratis. Ya puedes usar Mi CALE."
-                : "Cuenta creada. Contrata un plan y sube el comprobante para activar todas las funciones.";
+                : plan.Code == SchoolPlans.Deferred
+                    ? "Cuenta creada. Puedes entrar; las funciones se desbloquean al contratar un plan o reclamar el mes gratis."
+                    : "Cuenta creada. Sube el comprobante en Membresía para que un administrador active las funciones.";
             return new PendingEmailConfirmationResponse(
                 user.Email,
                 message,
@@ -177,7 +179,9 @@ public sealed class RegisterSchoolHandler
 
         var pendingMessage = claimFreeTrial
             ? "Te enviamos un código a tu correo. Al confirmarlo activarás tu mes gratis."
-            : "Te enviamos un código a tu correo. Confírmalo y luego contrata tu plan en Membresía.";
+            : plan.Code == SchoolPlans.Deferred
+                ? "Confirma tu correo para entrar. Las funciones se desbloquean al contratar un plan."
+                : "Confirma tu correo y luego sube el comprobante en Membresía.";
 
         return new PendingEmailConfirmationResponse(
             user.Email,

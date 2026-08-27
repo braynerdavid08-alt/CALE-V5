@@ -5,13 +5,16 @@
     <p class="brand-name">{{ brand.name }}</p>
     <p class="brand-slogan">{{ brand.slogan }}</p>
     <h1>Registro de escuela</h1>
-    <p>Crea tu cuenta ahora. Sin pago puedes registrarte; las funciones se activan con el mes gratis o cuando contrates un plan y subas el comprobante.</p>
+    <p>
+      Crea tu cuenta gratis ahora e inicia sesión. Sin plan activo no podrás usar el catálogo ni las demás funciones;
+      puedes reclamar 1 mes gratis o contratar un plan después.
+    </p>
   </div>
   <div class="auth-card">
     <p class="eyebrow">Escuela</p>
     <h2>Crear cuenta</h2>
-    <p class="lead">Los datos fiscales son obligatorios para emitir factura a nombre de la escuela.</p>
-    <ui-error [message]="auth.error() || plansError()" />
+    <p class="lead">Los datos fiscales se guardan para facturación. No se pide tarjeta ni comprobante para crear la cuenta.</p>
+    <ui-error [message]="auth.error() || plansError() || formHint()" />
 
     <form [formGroup]="form" (ngSubmit)="submit()">
       <fieldset>
@@ -19,14 +22,23 @@
         <label class="field">
           Nombre del responsable
           <input formControlName="contactName" autocomplete="name" />
+          @if (form.controls.contactName.touched && form.controls.contactName.invalid) {
+            <span class="field-error">Obligatorio</span>
+          }
         </label>
         <label class="field">
           Correo de acceso
           <input type="email" formControlName="email" autocomplete="email" />
+          @if (form.controls.email.touched && form.controls.email.invalid) {
+            <span class="field-error">Correo válido obligatorio</span>
+          }
         </label>
         <label class="field">
           Contraseña
           <input type="password" formControlName="password" autocomplete="new-password" />
+          @if (form.controls.password.touched && form.controls.password.invalid) {
+            <span class="field-error">Mínimo 8 caracteres</span>
+          }
         </label>
       </fieldset>
 
@@ -35,73 +47,106 @@
         <label class="field">
           Razón social
           <input formControlName="legalName" autocomplete="organization" />
+          @if (form.controls.legalName.touched && form.controls.legalName.invalid) {
+            <span class="field-error">Obligatorio</span>
+          }
         </label>
         <label class="field">
           NIT
           <input formControlName="taxId" />
+          @if (form.controls.taxId.touched && form.controls.taxId.invalid) {
+            <span class="field-error">Obligatorio</span>
+          }
         </label>
         <label class="field">
           Correo de facturación
           <input type="email" formControlName="billingEmail" autocomplete="email" />
+          @if (form.controls.billingEmail.touched && form.controls.billingEmail.invalid) {
+            <span class="field-error">Debe ser un correo válido (ej. escuela@gmail.com)</span>
+          }
         </label>
         <label class="field">
           Teléfono
           <input formControlName="phone" autocomplete="tel" />
+          @if (form.controls.phone.touched && form.controls.phone.invalid) {
+            <span class="field-error">Obligatorio</span>
+          }
         </label>
         <label class="field">
           Dirección
           <input formControlName="address" autocomplete="street-address" />
+          @if (form.controls.address.touched && form.controls.address.invalid) {
+            <span class="field-error">Obligatorio</span>
+          }
         </label>
         <div class="grid-2-fields">
           <label class="field">
             Ciudad
             <input formControlName="city" autocomplete="address-level2" />
+            @if (form.controls.city.touched && form.controls.city.invalid) {
+              <span class="field-error">Obligatorio</span>
+            }
           </label>
           <label class="field">
             Departamento
             <input formControlName="department" autocomplete="address-level1" />
+            @if (form.controls.department.touched && form.controls.department.invalid) {
+              <span class="field-error">Obligatorio</span>
+            }
           </label>
         </div>
       </fieldset>
 
       <fieldset>
-        <legend>Plan</legend>
+        <legend>Acceso a funciones</legend>
+        <p class="plan-intro">Elige cómo quieres empezar. La cuenta se crea en todos los casos.</p>
         <div class="plans">
           @for (plan of plans(); track plan.code) {
             <button
               type="button"
               class="plan"
               [class.trial]="plan.code === 'Trial'"
+              [class.deferred]="plan.code === 'Deferred'"
               [class.selected]="form.controls.planCode.value === plan.code"
               (click)="selectPlan(plan.code)">
               <span class="plan-label">{{ plan.label }}</span>
-              @if (plan.code === 'Trial') {
+              @if (plan.code === 'Deferred') {
+                <strong>Gratis</strong>
+                <span class="plan-eq">Creas la cuenta e inicias sesión · sin funciones hasta activar plan</span>
+              } @else if (plan.code === 'Trial') {
                 <strong>Gratis</strong>
                 <span class="plan-eq">1 mes · sin tarjeta ni comprobante</span>
+                <span class="plan-eq">
+                  Hasta {{ plan.maxTeachers }} instructores · {{ plan.maxStudents }} estudiantes
+                </span>
               } @else {
                 <strong>{{ plan.priceCop | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
                 <span class="plan-eq">
                   ≈ {{ plan.monthlyEquivalentCop | currency:'COP':'symbol-narrow':'1.0-0' }}/mes
                 </span>
+                <span class="plan-eq">
+                  Hasta {{ plan.maxTeachers }} instructores · {{ plan.maxStudents }} estudiantes
+                </span>
               }
-              <span class="plan-eq">
-                Hasta {{ plan.maxTeachers }} instructores · {{ plan.maxStudents }} estudiantes
-              </span>
             </button>
           }
         </div>
-        @if (!isTrialSelected()) {
+        @if (isDeferredSelected()) {
           <p class="plan-note">
-            Con un plan de pago crearás la cuenta hoy; podrás usar Mi CALE cuando subas el comprobante y el administrador lo active.
+            Recomendado para empezar: creas la cuenta ya. Luego en Membresía eliges plan o mes gratis.
           </p>
-        } @else {
+        } @else if (isTrialSelected()) {
           <p class="plan-note trial-note">
             Un mes gratis por escuela (NIT/correo únicos). Si ya te registraste antes, no aplica de nuevo.
+          </p>
+        } @else {
+          <p class="plan-note">
+            La cuenta se crea hoy. Podrás usar Mi CALE cuando subas el comprobante y el administrador lo active.
           </p>
         }
       </fieldset>
 
-      <ui-button type="submit" [loading]="auth.loading()">Registrar escuela</ui-button>
+      <ui-button type="submit" [loading]="auth.loading()">Crear cuenta de escuela</ui-button>
     </form>
 
     <p class="hint">
