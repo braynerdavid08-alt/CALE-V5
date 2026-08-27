@@ -15,8 +15,7 @@ public sealed record RegisterSchoolRequest(
     string Address,
     string City,
     string Department,
-    string PlanCode,
-    bool ClaimFreeTrial = false);
+    string PlanCode);
 
 public sealed record SchoolPlanDto(
     string Code,
@@ -291,7 +290,6 @@ public sealed record PendingEmailConfirmationResponse(
     string Message,
     bool RequiresEmailConfirmation = true,
     bool EmailSent = false,
-    string? DevConfirmationCode = null,
     string? Token = null,
     int? UserId = null,
     string? Name = null,

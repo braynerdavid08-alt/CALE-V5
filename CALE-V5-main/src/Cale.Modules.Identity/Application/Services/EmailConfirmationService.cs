@@ -6,16 +6,11 @@ using Cale.BuildingBlocks.Domain.Time;
 using Cale.BuildingBlocks.Infrastructure.Email;
 using Cale.Modules.Identity.Application.Abstractions;
 using Cale.Modules.Identity.Domain;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Cale.Modules.Identity.Application.Services;
 
-public sealed record EmailIssueResult(
-    bool EmailSent,
-    bool AutoConfirmed,
-    string? DevConfirmationCode = null);
+public sealed record EmailIssueResult(bool EmailSent, bool AutoConfirmed);
 
 public sealed class EmailConfirmationService
 {
@@ -23,43 +18,29 @@ public sealed class EmailConfirmationService
     private readonly IEmailSender _email;
     private readonly IClock _clock;
     private readonly EmailOptions _options;
-    private readonly IHostEnvironment _environment;
-    private readonly ILogger<EmailConfirmationService> _logger;
 
     public EmailConfirmationService(
         IUserStore users,
         IEmailSender email,
         IClock clock,
-        IOptions<EmailOptions> options,
-        IHostEnvironment environment,
-        ILogger<EmailConfirmationService> logger)
+        IOptions<EmailOptions> options)
     {
         _users = users;
         _email = email;
         _clock = clock;
         _options = options.Value;
-        _environment = environment;
-        _logger = logger;
     }
 
     public bool IsEmailDeliveryConfigured => _email.IsConfigured;
 
     public async Task<EmailIssueResult> IssueAndSendAsync(User user, CancellationToken ct)
     {
+        // Without SMTP, do not block sign-up: activate the account and skip the code email.
         if (!_email.IsConfigured)
         {
-            if (_options.AutoConfirmWhenUnavailable)
-            {
-                user.MarkEmailConfirmed();
-                await _users.SaveChangesAsync(ct);
-                _logger.LogWarning(
-                    "Email SMTP not configured; auto-confirmed userId={UserId} email={Email}",
-                    user.Id,
-                    user.Email);
-                return new EmailIssueResult(EmailSent: false, AutoConfirmed: true);
-            }
-
-            return await IssuePendingWithoutDeliveryAsync(user, ct);
+            user.MarkEmailConfirmed();
+            await _users.SaveChangesAsync(ct);
+            return new EmailIssueResult(EmailSent: false, AutoConfirmed: true);
         }
 
         var code = GenerateCode(_options.CodeLength < 4 ? 6 : _options.CodeLength);
@@ -75,26 +56,11 @@ public sealed class EmailConfirmationService
             $"Caduca en {minutes} minutos.\n" +
             "Si no creaste esta cuenta, ignora este mensaje.\n";
 
-        try
-        {
-            await _email.SendAsync(
-                user.Email,
-                "Código de verificación — Mi CALE",
-                body,
-                ct);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(
-                ex,
-                "SMTP send failed for userId={UserId} email={Email}",
-                user.Id,
-                user.Email);
-            throw new DomainException(
-                "No pudimos enviar el correo de verificación. Revisa la configuración SMTP del servidor o intenta más tarde.",
-                503,
-                "email_delivery_failed");
-        }
+        await _email.SendAsync(
+            user.Email,
+            "Código de verificación — Mi CALE",
+            body,
+            ct);
 
         return new EmailIssueResult(EmailSent: true, AutoConfirmed: false);
     }
@@ -133,30 +99,6 @@ public sealed class EmailConfirmationService
     {
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(code.Trim()));
         return Convert.ToHexString(bytes);
-    }
-
-    private async Task<EmailIssueResult> IssuePendingWithoutDeliveryAsync(
-        User user,
-        CancellationToken ct)
-    {
-        var code = GenerateCode(_options.CodeLength < 4 ? 6 : _options.CodeLength);
-        var minutes = _options.CodeExpiresMinutes <= 0 ? 15 : _options.CodeExpiresMinutes;
-        var expires = _clock.UtcNow.AddMinutes(minutes);
-
-        user.BeginEmailConfirmation(HashCode(code), expires);
-        await _users.SaveChangesAsync(ct);
-
-        _logger.LogWarning(
-            "EMAIL SMTP not configured — verification code for {Email}: {Code} (expires in {Minutes} min)",
-            user.Email,
-            code,
-            minutes);
-
-        var devCode = _environment.IsDevelopment() ? code : null;
-        return new EmailIssueResult(
-            EmailSent: false,
-            AutoConfirmed: false,
-            DevConfirmationCode: devCode);
     }
 
     private static string GenerateCode(int length)

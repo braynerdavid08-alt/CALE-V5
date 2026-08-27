@@ -21,7 +21,6 @@ export interface PendingEmailConfirmationResponse {
   message: string;
   requiresEmailConfirmation?: boolean;
   emailSent?: boolean;
-  devConfirmationCode?: string;
   token?: string;
   userId?: number;
   name?: string;
@@ -56,7 +55,7 @@ export class AuthApi {
     );
   }
 
-  registerSchool(body: Record<string, unknown>) {
+  registerSchool(body: Record<string, string>) {
     return this.http.post<PendingEmailConfirmationResponse>(
       `${this.base}/register-school`,
       body

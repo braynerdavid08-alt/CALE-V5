@@ -368,41 +368,6 @@ public static class FeatureSchema
             await TryPostgresAsync(db,
                 """ALTER TABLE "Usuarios" ADD COLUMN IF NOT EXISTS "DebeCambiarClave" boolean NOT NULL DEFAULT FALSE;""",
                 ct);
-            await TryPostgresAsync(db,
-                """
-                CREATE TABLE IF NOT EXISTS "SchoolRegistrationRegistry" (
-                    "Id" serial PRIMARY KEY,
-                    "TaxIdKey" varchar(64) NOT NULL,
-                    "BillingEmailKey" varchar(320) NOT NULL,
-                    "AccessEmailKey" varchar(320) NOT NULL,
-                    "PhoneKey" varchar(32) NOT NULL,
-                    "LegalNameKey" varchar(250) NOT NULL,
-                    "CityKey" varchar(120) NOT NULL,
-                    "FreeTrialUsed" boolean NOT NULL DEFAULT FALSE,
-                    "FirstRegisteredAt" timestamp with time zone NOT NULL,
-                    "LastRegisteredAt" timestamp with time zone NOT NULL,
-                    "LastUserId" integer NULL
-                );
-                """,
-                ct);
-            await TryPostgresAsync(db,
-                """
-                CREATE INDEX IF NOT EXISTS "IX_SchoolRegistrationRegistry_TaxIdKey"
-                    ON "SchoolRegistrationRegistry" ("TaxIdKey");
-                """,
-                ct);
-            await TryPostgresAsync(db,
-                """
-                CREATE INDEX IF NOT EXISTS "IX_SchoolRegistrationRegistry_BillingEmailKey"
-                    ON "SchoolRegistrationRegistry" ("BillingEmailKey");
-                """,
-                ct);
-            await TryPostgresAsync(db,
-                """
-                CREATE INDEX IF NOT EXISTS "IX_SchoolRegistrationRegistry_AccessEmailKey"
-                    ON "SchoolRegistrationRegistry" ("AccessEmailKey");
-                """,
-                ct);
             return;
         }
 

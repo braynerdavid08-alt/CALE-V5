@@ -16,7 +16,6 @@ export class AuthFacade {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly success = signal<string | null>(null);
-  readonly devConfirmationCode = signal<string | null>(null);
 
   login(email: string, password: string): void {
     this.run(() => this.api.login(email, password).subscribe({
@@ -39,7 +38,7 @@ export class AuthFacade {
     }));
   }
 
-  registerSchool(body: Record<string, unknown>): void {
+  registerSchool(body: Record<string, string>): void {
     this.run(() => this.api.registerSchool(body).subscribe({
       next: (res) => this.afterRegister(res),
       error: (err) => this.fail(err)
@@ -58,7 +57,6 @@ export class AuthFacade {
     this.run(() => this.api.resendConfirmation(email).subscribe({
       next: (res) => {
         this.loading.set(false);
-        this.devConfirmationCode.set(res.devConfirmationCode ?? null);
         this.success.set(res.message || 'Código reenviado. Revisa tu correo.');
       },
       error: (err) => this.fail(err)
@@ -88,8 +86,6 @@ export class AuthFacade {
     email: string;
     message: string;
     requiresEmailConfirmation?: boolean;
-    emailSent?: boolean;
-    devConfirmationCode?: string;
     token?: string;
     userId?: number;
     name?: string;
@@ -108,27 +104,13 @@ export class AuthFacade {
       });
       return;
     }
-    this.goVerify(res.email, res.devConfirmationCode ?? null, res.message, res.emailSent);
+    this.goVerify(res.email);
   }
 
-  private goVerify(
-    email: string,
-    devCode: string | null,
-    message?: string,
-    emailSent?: boolean
-  ): void {
+  private goVerify(email: string): void {
     this.loading.set(false);
-    this.devConfirmationCode.set(devCode);
-    if (message && emailSent === false && !devCode) {
-      this.error.set(message);
-    } else {
-      this.error.set(null);
-    }
     void this.router.navigate(['/verify-email'], {
-      queryParams: {
-        email,
-        ...(devCode ? { code: devCode } : {})
-      }
+      queryParams: { email }
     });
   }
 

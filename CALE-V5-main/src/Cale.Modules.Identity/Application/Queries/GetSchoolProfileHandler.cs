@@ -123,14 +123,8 @@ public sealed class GetSchoolProfileHandler
 
 public sealed class ListSchoolPlansHandler
 {
-    /// <param name="includeSignupPlans">
-    /// When true (public register), includes Deferred + Trial.
-    /// When false (school membership portal), only paid plans.
-    /// </param>
-    public IReadOnlyList<SchoolPlanDto> Handle(bool includeSignupPlans = false)
-    {
-        var source = includeSignupPlans ? SchoolPlans.All : SchoolPlans.PaidOnly;
-        return source
+    public IReadOnlyList<SchoolPlanDto> Handle() =>
+        SchoolPlans.All
             .Select(x => new SchoolPlanDto(
                 x.Code,
                 x.LabelEs,
@@ -140,7 +134,6 @@ public sealed class ListSchoolPlansHandler
                 x.MaxTeachers,
                 x.MaxStudents))
             .ToList();
-    }
 }
 
 public sealed class ListSchoolMembersHandler

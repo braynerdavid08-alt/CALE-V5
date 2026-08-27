@@ -117,17 +117,15 @@ En producción: crea el primer admin por registro controlado o seed **offline**,
 
 El código por email solo aplica al **registro** de cuentas nuevas, y **solo si SMTP está configurado**.
 
-**Estado actual (gratis):** sin SMTP en Render, `AutoConfirmWhenUnavailable=true`.
-La cuenta se activa al registrarse **sin correo ni código**. No hay costo mensual.
+Sin SMTP (como ahora en Render), la cuenta se activa al registrarse y puedes entrar directo.
 
-**Más adelante (también gratis con Gmail personal):** contraseña de aplicación + variables `Email__*` en Render.
-Gmail SMTP personal no cobra por mes; SMS a celular sí suele costar.
+Para enviar códigos de verdad (Gmail):
 
-Cuando actives correo:
+1. En Google: cuenta → Seguridad → Contraseñas de aplicaciones (con 2FA activo).
+2. En Render → Environment:
 
 ```env
 Email__Enabled=true
-Email__AutoConfirmWhenUnavailable=false
 Email__From=tu@gmail.com
 Email__FromName=Mi CALE
 Email__Smtp__Host=smtp.gmail.com
@@ -137,7 +135,9 @@ Email__Smtp__Password=xxxx-xxxx-xxxx-xxxx
 Email__Smtp__UseSsl=true
 ```
 
-Sin SMTP, el código solo aparece en logs (dev) o la cuenta se auto-confirma.
+3. Redeploy.
+
+Sin SMTP configurado, el código se escribe solo en los **logs del servidor** (no llega al buzón).
 
 ### Base de datos SQL (Render / producción)
 

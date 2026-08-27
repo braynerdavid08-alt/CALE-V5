@@ -73,20 +73,12 @@ public sealed class RegisterUserHandler
                 MustChangePassword: false);
         }
 
-        return BuildPendingResponse(user.Email, issue);
-    }
-
-    private static PendingEmailConfirmationResponse BuildPendingResponse(
-        string email,
-        EmailIssueResult issue) =>
-        new(
-            email,
-            issue.EmailSent
-                ? "Te enviamos un código a tu correo. Confírmalo para activar la cuenta."
-                : "El servidor no pudo enviar el correo. Configura SMTP en producción o usa el código de desarrollo si aplica.",
+        return new PendingEmailConfirmationResponse(
+            user.Email,
+            "Te enviamos un código a tu correo. Confírmalo para activar la cuenta.",
             RequiresEmailConfirmation: true,
-            EmailSent: issue.EmailSent,
-            DevConfirmationCode: issue.DevConfirmationCode);
+            EmailSent: issue.EmailSent);
+    }
 
     private static void Validate(RegisterRequest request)
     {

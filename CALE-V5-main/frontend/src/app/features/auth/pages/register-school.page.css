@@ -55,39 +55,6 @@ legend {
   box-shadow: inset 0 0 0 1px var(--color-primary);
 }
 
-.plan.trial.selected {
-  border-color: #2bb0ed;
-}
-
-.plan.deferred.selected {
-  border-color: #3dd68c;
-}
-
-.plan-intro {
-  margin: 0;
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  line-height: 1.4;
-}
-
-.plan-note {
-  margin: 0.5rem 0 0;
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  line-height: 1.45;
-}
-
-.trial-note {
-  color: var(--color-primary);
-}
-
-.field-error {
-  display: block;
-  margin-top: 0.25rem;
-  font-size: var(--text-xs);
-  color: #ff6b6b;
-}
-
 .plan-label {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);

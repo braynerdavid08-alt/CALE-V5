@@ -9,14 +9,8 @@ public sealed class EmailOptions
 
     public string FromName { get; set; } = "Mi CALE";
 
-    /// <summary>When false or SMTP host empty, SMTP is not used.</summary>
+    /// <summary>When false or SMTP host empty, codes are logged (Development).</summary>
     public bool Enabled { get; set; }
-
-    /// <summary>
-    /// When SMTP is unavailable, skip email verification and activate the account immediately.
-    /// Keep true only for local dev; production should configure SMTP and leave this false.
-    /// </summary>
-    public bool AutoConfirmWhenUnavailable { get; set; } = true;
 
     public SmtpOptions Smtp { get; set; } = new();
 

@@ -15,7 +15,6 @@ public static class DependencyInjection
     {
         services.AddScoped<IUserStore, UserStore>();
         services.AddScoped<ISchoolProfileStore, SchoolProfileStore>();
-        services.AddScoped<ISchoolRegistrationRegistryStore, SchoolRegistrationRegistryStore>();
         services.AddScoped<IMembershipEventStore, MembershipEventStore>();
         services.AddScoped<IUserLookup, UserLookupService>();
         services.AddScoped<ISchoolAffiliationLookup, SchoolAffiliationLookup>();

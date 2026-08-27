@@ -33,13 +33,8 @@ export class VerifyEmailPage implements OnInit {
 
   ngOnInit(): void {
     const email = this.route.snapshot.queryParamMap.get('email');
-    const code = this.route.snapshot.queryParamMap.get('code');
     if (email) {
       this.form.patchValue({ email });
-    }
-    if (code) {
-      this.form.patchValue({ code });
-      this.auth.devConfirmationCode.set(code);
     }
   }
 
