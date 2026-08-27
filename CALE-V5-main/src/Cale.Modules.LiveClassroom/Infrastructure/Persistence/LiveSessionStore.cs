@@ -66,6 +66,25 @@ public sealed class LiveSessionStore : ILiveSessionStore
             .ToListAsync(ct);
     }
 
+    public async Task<IReadOnlyList<int>> ListExpiredOpenSessionIdsAsync(
+        DateTime utcNow,
+        CancellationToken ct = default) =>
+        await _db.Set<LiveSession>()
+            .Where(s => s.Status == LiveSessionStatuses.Running
+                && s.CurrentQuestionIndex >= 0
+                && s.QuestionClosesAt != null
+                && s.QuestionClosesAt <= utcNow)
+            .Select(s => s.Id)
+            .Take(40)
+            .ToListAsync(ct);
+
+    public Task<LiveParticipant?> GetParticipantByConnectionIdAsync(
+        string connectionId,
+        CancellationToken ct = default) =>
+        _db.Set<LiveParticipant>().FirstOrDefaultAsync(
+            p => p.ConnectionId == connectionId && p.IsConnected,
+            ct);
+
     public async Task AddDoubtAsync(LiveDoubt doubt, CancellationToken ct = default) =>
         await _db.Set<LiveDoubt>().AddAsync(doubt, ct);
 

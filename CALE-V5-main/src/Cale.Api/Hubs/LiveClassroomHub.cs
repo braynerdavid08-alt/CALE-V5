@@ -1,5 +1,6 @@
 using Cale.Modules.LiveClassroom.Application.Commands;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 
 namespace Cale.Api.Hubs;
 
@@ -8,14 +9,23 @@ public sealed class LiveClassroomHub : Hub
     public const string GroupPrefix = "live-";
 
     private readonly LiveSessionHandler _handler;
+    private readonly ILogger<LiveClassroomHub> _logger;
 
-    public LiveClassroomHub(LiveSessionHandler handler) => _handler = handler;
+    public LiveClassroomHub(LiveSessionHandler handler, ILogger<LiveClassroomHub> logger)
+    {
+        _handler = handler;
+        _logger = logger;
+    }
 
     public static string GroupName(int sessionId) => $"{GroupPrefix}{sessionId}";
 
     public async Task JoinAsHost(int sessionId)
     {
         await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(sessionId));
+        _logger.LogInformation(
+            "Live host connected {ConnectionId} session {SessionId}",
+            Context.ConnectionId,
+            sessionId);
     }
 
     public async Task JoinAsParticipant(int sessionId, string participantToken)
@@ -31,10 +41,36 @@ public sealed class LiveClassroomHub : Hub
             connected: true,
             Context.ConnectionAborted);
         await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(sessionId));
+        _logger.LogInformation(
+            "Live participant connected {ConnectionId} session {SessionId}",
+            Context.ConnectionId,
+            sessionId);
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        try
+        {
+            await _handler.DisconnectByConnectionAsync(
+                Context.ConnectionId,
+                Context.ConnectionAborted);
+            if (exception is not null)
+            {
+                _logger.LogWarning(
+                    exception,
+                    "Live hub disconnected with error {ConnectionId}",
+                    Context.ConnectionId);
+            }
+            else
+            {
+                _logger.LogInformation("Live hub disconnected {ConnectionId}", Context.ConnectionId);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to clear live participant on disconnect");
+        }
+
         await base.OnDisconnectedAsync(exception);
     }
 }

@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
+import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiCardComponent } from '../../../shared/ui/ui-card.component';
 import { UiEmptyComponent } from '../../../shared/ui/ui-empty.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
@@ -21,6 +22,7 @@ interface ResultRow {
   standalone: true,
   imports: [
     UiBadgeComponent,
+    UiButtonComponent,
     UiCardComponent,
     UiEmptyComponent,
     UiErrorComponent,
@@ -37,6 +39,9 @@ interface ResultRow {
     } @else if (!items().length) {
       <ui-empty title="Sin resultados" message="Cuando tus estudiantes terminen exámenes aparecerán aquí." />
     } @else {
+      <div class="toolbar">
+        <ui-button type="button" variant="secondary" (click)="exportCsv()">Exportar CSV</ui-button>
+      </div>
       <ui-card>
         <div class="table-wrap">
           <table class="data">
@@ -66,7 +71,10 @@ interface ResultRow {
         </div>
       </ui-card>
     }
-  `
+  `,
+  styles: [`
+    .toolbar { margin: 0 0 0.85rem; display: flex; justify-content: flex-end; }
+  `]
 })
 export class TeacherResultsPage implements OnInit {
   private readonly api = inject(TeacherApi);
@@ -85,5 +93,29 @@ export class TeacherResultsPage implements OnInit {
         this.error.set(mapApiError(err));
       }
     });
+  }
+
+  exportCsv(): void {
+    const rows = this.items();
+    if (!rows.length) {
+      return;
+    }
+    const esc = (v: string | number | boolean) => {
+      const s = String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines = [
+      ['Estudiante', 'Modo', 'Porcentaje', 'Aprobado'].join(','),
+      ...rows.map((r) =>
+        [esc(r.userName), esc(r.mode), esc(r.percent), esc(r.passed ? 'Sí' : 'No')].join(',')
+      )
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'cale-resultados.csv';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 }

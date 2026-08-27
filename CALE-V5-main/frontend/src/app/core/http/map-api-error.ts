@@ -65,6 +65,7 @@ const messages: Record<string, string> = {
   doubt_resolved: 'Esa duda ya está resuelta.',
   no_surprise_left: 'No quedan preguntas sorpresa en el banco.',
   surprise_unavailable: 'La sorpresa solo está disponible con una pregunta activa.',
+  quick_unavailable: 'No se puede añadir una pregunta rápida ahora.',
   session_not_ended: 'La revancha solo se puede crear cuando la sesión terminó.',
   db_error: 'Error de base de datos. Inténtalo de nuevo.',
   timeout: 'La operación tardó demasiado. Inténtalo de nuevo.'

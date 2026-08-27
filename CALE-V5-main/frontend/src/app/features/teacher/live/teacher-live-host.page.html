@@ -100,8 +100,23 @@
                       <div class="bar"><i [style.width.%]="t.accuracyPercent"></i></div>
                       <strong>{{ t.accuracyPercent }}%</strong>
                     </li>
+                  } @empty {
+                    <li class="empty">Sin datos por tema aún</li>
                   }
                 </ul>
+                @if (a.questions.length) {
+                  <h4>Por pregunta</h4>
+                  <ul class="q-stats">
+                    @for (q of a.questions; track q.sessionQuestionId) {
+                      <li>
+                        <span class="qi">{{ q.index + 1 }}.</span>
+                        <span class="qt">{{ q.text }}</span>
+                        <strong>{{ q.accuracyPercent }}%</strong>
+                        <small>{{ q.correct }}/{{ q.answered }}</small>
+                      </li>
+                    }
+                  </ul>
+                }
                 @if (a.recommendations.length) {
                   <h4>Recomendaciones</h4>
                   <ul class="recs">
@@ -114,6 +129,7 @@
             }
             <div class="actions">
               <ui-button type="button" [loading]="loading()" (click)="rematch()">Revancha</ui-button>
+              <ui-button type="button" variant="secondary" (click)="exportCsv()">Descargar CSV</ui-button>
               <a routerLink="/teacher/live"><ui-button type="button" variant="ghost">Nueva sala</ui-button></a>
             </div>
           </div>
@@ -131,6 +147,18 @@
             </div>
           </div>
         } @else {
+          @if ((l.status === 'Running' || l.status === 'Paused') && analytics(); as liveA) {
+            @if (liveA.topics.length) {
+              <div class="topic-strip" aria-label="Comprensión por tema">
+                @for (t of liveA.topics; track t.topic) {
+                  <span class="topic-chip">
+                    <em>{{ t.topic }}</em>
+                    <strong>{{ t.accuracyPercent }}%</strong>
+                  </span>
+                }
+              </div>
+            }
+          }
           <div class="question-head">
             <p>
               Pregunta {{ l.currentQuestion.index + 1 }} / {{ l.currentQuestion.total }}
@@ -167,9 +195,69 @@
             <ui-button type="button" variant="ghost" (click)="control('close')">Cerrar pregunta</ui-button>
             <ui-button type="button" variant="ghost" (click)="control('reveal')">Mostrar respuesta</ui-button>
             <ui-button type="button" variant="ghost" (click)="control('surprise')">Pregunta sorpresa</ui-button>
+            <ui-button type="button" variant="ghost" (click)="toggleQuick()">Pregunta rápida</ui-button>
             <ui-button type="button" (click)="control('next')">Siguiente</ui-button>
             <ui-button type="button" variant="danger" (click)="control('end')">Finalizar</ui-button>
           </div>
+
+          @if (quickOpen()) {
+            <form class="quick-form" (ngSubmit)="submitQuick()">
+              <h3>Pregunta rápida</h3>
+              <label>
+                Enunciado
+                <textarea
+                  rows="2"
+                  [ngModel]="quickText()"
+                  (ngModelChange)="quickText.set($event)"
+                  name="quickText"
+                  required></textarea>
+              </label>
+              <label>
+                Tema (opcional)
+                <input
+                  [ngModel]="quickTopic()"
+                  (ngModelChange)="quickTopic.set($event)"
+                  name="quickTopic" />
+              </label>
+              <fieldset>
+                <legend>Opciones (marca la correcta)</legend>
+                @for (opt of quickOptions(); track $index; let i = $index) {
+                  <div class="quick-opt">
+                    <input
+                      type="radio"
+                      name="quickCorrect"
+                      [checked]="quickCorrectIndex() === i"
+                      (change)="quickCorrectIndex.set(i)" />
+                    <input
+                      type="text"
+                      [ngModel]="opt.text"
+                      (ngModelChange)="setQuickOptionText(i, $event)"
+                      [name]="'quickOpt' + i"
+                      placeholder="Opción {{ i + 1 }}"
+                      required />
+                    @if (quickOptions().length > 2) {
+                      <button type="button" class="linkish" (click)="removeQuickOption(i)">Quitar</button>
+                    }
+                  </div>
+                }
+              </fieldset>
+              @if (quickOptions().length < 4) {
+                <button type="button" class="linkish" (click)="addQuickOption()">+ Añadir opción</button>
+              }
+              <label>
+                Explicación (opcional)
+                <textarea
+                  rows="2"
+                  [ngModel]="quickExplanation()"
+                  (ngModelChange)="quickExplanation.set($event)"
+                  name="quickExplanation"></textarea>
+              </label>
+              <div class="actions">
+                <ui-button type="submit" [loading]="loading()">Enviar pregunta rápida</ui-button>
+                <ui-button type="button" variant="ghost" (click)="toggleQuick()">Cerrar</ui-button>
+              </div>
+            </form>
+          }
         }
       </main>
     </div>

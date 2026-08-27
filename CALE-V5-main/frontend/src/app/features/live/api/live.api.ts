@@ -138,6 +138,18 @@ export interface LiveAnalyticsDto {
   ranking: LiveRankingDto;
 }
 
+export interface LiveQuickOptionRequest {
+  text: string;
+  isCorrect: boolean;
+}
+
+export interface LiveQuickQuestionRequest {
+  text: string;
+  options: LiveQuickOptionRequest[];
+  explanation?: string | null;
+  topic?: string | null;
+}
+
 export interface LiveRematchResponse {
   newSessionId: number;
   joinCode: string;
@@ -177,9 +189,16 @@ export class LiveApi {
     });
   }
 
-  control(sessionId: number, action: string) {
+  control(sessionId: number, action: string, quickQuestion?: LiveQuickQuestionRequest) {
     return this.http.post<LiveLobbyDto>(`${this.base}/sessions/${sessionId}/control`, {
-      action
+      action,
+      ...(quickQuestion ? { quickQuestion } : {})
+    });
+  }
+
+  exportResults(sessionId: number) {
+    return this.http.get(`${this.base}/sessions/${sessionId}/export`, {
+      responseType: 'blob'
     });
   }
 

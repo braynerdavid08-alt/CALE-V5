@@ -11,8 +11,13 @@ import {
   LiveDoubtDto,
   LiveLobbyDto,
   LiveQuestionPayloadDto,
+  LiveQuickQuestionRequest,
   LiveRankingDto
 } from '../../live/api/live.api';
+
+interface QuickOptionDraft {
+  text: string;
+}
 
 @Component({
   selector: 'app-teacher-live-host-page',
@@ -27,6 +32,9 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   private readonly api = inject(LiveApi);
   private hub: HubConnection | null = null;
   private timerId: ReturnType<typeof setInterval> | null = null;
+  private autoCloseSent = false;
+  private lastAnalyticsAtAnswers = -1;
+  private exporting = false;
 
   readonly lobby = signal<LiveLobbyDto | null>(null);
   readonly ranking = signal<LiveRankingDto | null>(null);
@@ -37,6 +45,15 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   readonly loading = signal(false);
   readonly secondsLeft = signal<number | null>(null);
   readonly answersReceived = signal(0);
+  readonly quickOpen = signal(false);
+  readonly quickText = signal('');
+  readonly quickExplanation = signal('');
+  readonly quickTopic = signal('');
+  readonly quickCorrectIndex = signal(0);
+  readonly quickOptions = signal<QuickOptionDraft[]>([
+    { text: '' },
+    { text: '' }
+  ]);
 
   ngOnInit(): void {
     this.route.paramMap.subscribe((params) => {
@@ -48,6 +65,8 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
       this.hub = null;
       this.analytics.set(null);
       this.surpriseNotice.set(null);
+      this.autoCloseSent = false;
+      this.lastAnalyticsAtAnswers = -1;
       this.reload(id);
       this.connectHub(id);
       this.loadDoubts(id);
@@ -74,19 +93,23 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     return !!(l.config?.showRanking || l.mode === 'Competitive' || l.status === 'Ended');
   }
 
-  control(action: string): void {
+  control(action: string, quickQuestion?: LiveQuickQuestionRequest): void {
     const id = this.lobby()?.sessionId;
     if (!id) {
       return;
     }
     this.loading.set(true);
     this.error.set(null);
-    this.api.control(id, action).subscribe({
+    this.api.control(id, action, quickQuestion).subscribe({
       next: (lobby) => {
         this.loading.set(false);
         this.applyLobby(lobby);
         if (action === 'end' || lobby.status === 'Ended') {
           this.loadAnalytics(id);
+        }
+        if (action === 'quick') {
+          this.resetQuickForm();
+          this.quickOpen.set(false);
         }
       },
       error: (err) => {
@@ -94,6 +117,57 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
         this.error.set(mapApiError(err));
       }
     });
+  }
+
+  toggleQuick(): void {
+    this.quickOpen.update((v) => !v);
+  }
+
+  addQuickOption(): void {
+    if (this.quickOptions().length >= 4) {
+      return;
+    }
+    this.quickOptions.update((opts) => [...opts, { text: '' }]);
+  }
+
+  removeQuickOption(index: number): void {
+    if (this.quickOptions().length <= 2) {
+      return;
+    }
+    this.quickOptions.update((opts) => opts.filter((_, i) => i !== index));
+    if (this.quickCorrectIndex() >= this.quickOptions().length) {
+      this.quickCorrectIndex.set(0);
+    }
+  }
+
+  setQuickOptionText(index: number, value: string): void {
+    this.quickOptions.update((opts) =>
+      opts.map((o, i) => (i === index ? { text: value } : o))
+    );
+  }
+
+  submitQuick(): void {
+    const text = this.quickText().trim();
+    const options = this.quickOptions().map((o) => o.text.trim());
+    if (!text) {
+      this.error.set('Escribe el enunciado de la pregunta rápida.');
+      return;
+    }
+    if (options.some((o) => !o) || options.length < 2) {
+      this.error.set('Completa al menos 2 opciones.');
+      return;
+    }
+    const correct = this.quickCorrectIndex();
+    const payload: LiveQuickQuestionRequest = {
+      text,
+      options: options.map((optText, i) => ({
+        text: optText,
+        isCorrect: i === correct
+      })),
+      explanation: this.quickExplanation().trim() || null,
+      topic: this.quickTopic().trim() || null
+    };
+    this.control('quick', payload);
   }
 
   rematch(): void {
@@ -115,6 +189,30 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     });
   }
 
+  exportCsv(): void {
+    const id = this.lobby()?.sessionId;
+    if (!id || this.exporting) {
+      return;
+    }
+    this.exporting = true;
+    this.error.set(null);
+    this.api.exportResults(id).subscribe({
+      next: (blob) => {
+        this.exporting = false;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cale-live-${id}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: (err) => {
+        this.exporting = false;
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
   resolveDoubt(id: number): void {
     const sessionId = this.lobby()?.sessionId;
     if (!sessionId) {
@@ -126,12 +224,20 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     });
   }
 
+  private resetQuickForm(): void {
+    this.quickText.set('');
+    this.quickExplanation.set('');
+    this.quickTopic.set('');
+    this.quickCorrectIndex.set(0);
+    this.quickOptions.set([{ text: '' }, { text: '' }]);
+  }
+
   private reload(id: number): void {
     this.api.getHost(id).subscribe({
       next: (lobby) => {
         this.applyLobby(lobby);
-        if (lobby.status === 'Ended') {
-          this.loadAnalytics(id);
+        if (lobby.status === 'Ended' || lobby.status === 'Running' || lobby.status === 'Paused') {
+          this.loadAnalytics(id, lobby.status !== 'Ended');
         }
       },
       error: (err) => this.error.set(mapApiError(err))
@@ -145,11 +251,32 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     });
   }
 
-  private loadAnalytics(id: number): void {
+  private loadAnalytics(id: number, soft = false): void {
     this.api.analytics(id).subscribe({
-      next: (a) => this.analytics.set(a),
-      error: () => this.analytics.set(null)
+      next: (a) => {
+        this.analytics.set(a);
+        this.lastAnalyticsAtAnswers = this.answersReceived();
+      },
+      error: () => {
+        if (!soft) {
+          this.analytics.set(null);
+        }
+      }
     });
+  }
+
+  private maybeRefreshMidAnalytics(): void {
+    const l = this.lobby();
+    if (!l || (l.status !== 'Running' && l.status !== 'Paused')) {
+      return;
+    }
+    const n = this.answersReceived();
+    if (n > 0 && (n % 3 === 0 || this.lastAnalyticsAtAnswers < 0)) {
+      if (n === this.lastAnalyticsAtAnswers) {
+        return;
+      }
+      this.loadAnalytics(l.sessionId, true);
+    }
   }
 
   private applyLobby(lobby: LiveLobbyDto): void {
@@ -168,14 +295,28 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     }
     if (!q?.closesAt) {
       this.secondsLeft.set(null);
+      this.autoCloseSent = false;
       return;
     }
+    const closesMs = new Date(q.closesAt).getTime();
+    const alreadyClosed = closesMs <= Date.now();
+    if (!alreadyClosed) {
+      this.autoCloseSent = false;
+    }
     const tick = () => {
-      const left = Math.max(0, Math.ceil((new Date(q.closesAt!).getTime() - Date.now()) / 1000));
+      const left = Math.max(0, Math.ceil((closesMs - Date.now()) / 1000));
       this.secondsLeft.set(left);
+      if (left === 0 && !this.autoCloseSent) {
+        this.autoCloseSent = true;
+        if (this.lobby()?.status === 'Running') {
+          this.control('close');
+        }
+      }
     };
     tick();
-    this.timerId = setInterval(tick, 250);
+    if (!alreadyClosed) {
+      this.timerId = setInterval(tick, 250);
+    }
   }
 
   private connectHub(sessionId: number): void {
@@ -210,17 +351,21 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
         });
       }
       this.answersReceived.set(0);
+      this.autoCloseSent = false;
       this.surpriseNotice.set(payload.isSurprise ? '¡Pregunta sorpresa!' : null);
       this.syncTimer(payload);
     });
     this.hub.on('QuestionClosed', () => {
+      this.autoCloseSent = true;
       const current = this.lobby();
       if (current?.currentQuestion) {
         this.syncTimer({ ...current.currentQuestion, closesAt: new Date().toISOString() });
       }
+      this.secondsLeft.set(0);
     });
     this.hub.on('AnswerReceived', (payload: { answersReceived: number }) => {
       this.answersReceived.set(payload.answersReceived ?? 0);
+      this.maybeRefreshMidAnalytics();
     });
     this.hub.on('RevealUpdated', (payload: LiveQuestionPayloadDto) => {
       const current = this.lobby();

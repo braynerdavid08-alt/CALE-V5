@@ -197,13 +197,33 @@ public sealed class LiveSessionHandler
         await BroadcastLobbyAsync(session, ct);
     }
 
+    public async Task DisconnectByConnectionAsync(string connectionId, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(connectionId))
+        {
+            return;
+        }
+
+        var participant = await _store.GetParticipantByConnectionIdAsync(connectionId, ct);
+        if (participant is null)
+        {
+            return;
+        }
+
+        participant.Disconnect();
+        await _store.SaveChangesAsync(ct);
+        var session = await RequireSessionAsync(participant.SessionId, ct);
+        await BroadcastLobbyAsync(session, ct);
+    }
+
     public async Task<LiveLobbyDto> ControlAsync(
         int sessionId,
         string action,
         int hostUserId,
         bool isAdmin,
         string publicBaseUrl,
-        CancellationToken ct)
+        CancellationToken ct,
+        LiveQuickQuestionRequest? quickQuestion = null)
     {
         var session = await RequireSessionAsync(sessionId, ct);
         EnsureHost(session, hostUserId, isAdmin);
@@ -258,25 +278,7 @@ public sealed class LiveSessionHandler
                 break;
 
             case "close":
-                session.CloseCurrentQuestion(now);
-                var autoReveal = string.Equals(
-                        config.FeedbackTiming,
-                        "immediate",
-                        StringComparison.OrdinalIgnoreCase)
-                    || session.Mode == LiveSessionModes.Pedagogical;
-                if (autoReveal)
-                {
-                    session.SetReveal(true);
-                }
-
-                await _store.SaveChangesAsync(ct);
-                await BroadcastQuestionClosedAsync(session, ct);
-                if (autoReveal)
-                {
-                    await BroadcastRevealAsync(session, ct);
-                }
-
-                await BroadcastRankingAsync(session, ct);
+                await CloseQuestionInternalAsync(session, config, now, ct);
                 break;
 
             case "reveal":
@@ -297,11 +299,59 @@ public sealed class LiveSessionHandler
                 await QueueSurpriseQuestionAsync(session, config, ct);
                 break;
 
+            case "quick":
+                await QueueQuickQuestionAsync(session, config, quickQuestion, ct);
+                break;
+
             default:
                 throw new DomainException("Acción no válida.", 400, "invalid_action");
         }
 
         return await ToLobbyAsync(session, publicBaseUrl, includeCorrect: true, ct);
+    }
+
+    /// <summary>Called by the background timer when QuestionClosesAt has elapsed.</summary>
+    public async Task AutoCloseExpiredAsync(int sessionId, CancellationToken ct)
+    {
+        var session = await RequireSessionAsync(sessionId, ct);
+        var now = _clock.UtcNow;
+        if (session.Status != LiveSessionStatuses.Running
+            || session.CurrentQuestionIndex < 0
+            || session.QuestionClosesAt is null
+            || session.QuestionClosesAt > now)
+        {
+            return;
+        }
+
+        var config = ReadConfig(session);
+        await CloseQuestionInternalAsync(session, config, now, ct);
+    }
+
+    private async Task CloseQuestionInternalAsync(
+        LiveSession session,
+        LiveSessionConfig config,
+        DateTime now,
+        CancellationToken ct)
+    {
+        session.CloseCurrentQuestion(now);
+        var autoReveal = string.Equals(
+                config.FeedbackTiming,
+                "immediate",
+                StringComparison.OrdinalIgnoreCase)
+            || session.Mode == LiveSessionModes.Pedagogical;
+        if (autoReveal)
+        {
+            session.SetReveal(true);
+        }
+
+        await _store.SaveChangesAsync(ct);
+        await BroadcastQuestionClosedAsync(session, ct);
+        if (autoReveal)
+        {
+            await BroadcastRevealAsync(session, ct);
+        }
+
+        await BroadcastRankingAsync(session, ct);
     }
 
     public async Task<object> AnswerAsync(
@@ -646,6 +696,50 @@ public sealed class LiveSessionHandler
         return new LiveRematchResponse(rematch.Id, rematch.JoinCode, joinUrl, lobby);
     }
 
+    public async Task<(byte[] Bytes, string FileName)> ExportResultsCsvAsync(
+        int sessionId,
+        int hostUserId,
+        bool isAdmin,
+        CancellationToken ct)
+    {
+        var analytics = await GetAnalyticsAsync(sessionId, hostUserId, isAdmin, ct);
+        var session = await RequireSessionAsync(sessionId, ct);
+        var ranking = analytics.Ranking.Top;
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("tipo,rank,nombre,puntaje,correctas,respondidas,tema,precision,recomendacion");
+        foreach (var row in ranking)
+        {
+            sb.AppendLine(
+                $"ranking,{row.Rank},{Csv(row.DisplayName)},{row.Score},{row.CorrectCount},{row.AnswerCount},,,");
+        }
+
+        foreach (var t in analytics.Topics)
+        {
+            sb.AppendLine(
+                $"tema,,, ,,,{Csv(t.Topic)},{t.AccuracyPercent.ToString(System.Globalization.CultureInfo.InvariantCulture)},");
+        }
+
+        foreach (var r in analytics.Recommendations)
+        {
+            sb.AppendLine($"recomendacion,,,,,,,{Csv(r)}");
+        }
+
+        sb.AppendLine(
+            $"resumen,,,{analytics.OverallAccuracyPercent.ToString(System.Globalization.CultureInfo.InvariantCulture)},{analytics.CorrectAnswers},{analytics.TotalAnswers},,,");
+
+        var bytes = System.Text.Encoding.UTF8.GetPreamble()
+            .Concat(System.Text.Encoding.UTF8.GetBytes(sb.ToString()))
+            .ToArray();
+        var safe = string.Join("_", session.Title.Split(Path.GetInvalidFileNameChars()));
+        return (bytes, $"cale-live-{session.Id}-{safe}.csv");
+    }
+
+    private static string Csv(string? value)
+    {
+        var v = (value ?? "").Replace("\"", "\"\"");
+        return $"\"{v}\"";
+    }
+
     private async Task QueueSurpriseQuestionAsync(
         LiveSession session,
         LiveSessionConfig config,
@@ -705,6 +799,86 @@ public sealed class LiveSessionHandler
             {
                 questionCount = session.Questions.Count,
                 message = "Se añadió una pregunta sorpresa."
+            },
+            ct);
+        await BroadcastLobbyAsync(session, ct);
+    }
+
+    private async Task QueueQuickQuestionAsync(
+        LiveSession session,
+        LiveSessionConfig config,
+        LiveQuickQuestionRequest? request,
+        CancellationToken ct)
+    {
+        if (session.Status is not (LiveSessionStatuses.Running or LiveSessionStatuses.Lobby or LiveSessionStatuses.Paused))
+        {
+            throw new DomainException(
+                "No se puede añadir una pregunta rápida ahora.",
+                400,
+                "quick_unavailable");
+        }
+
+        var text = (request?.Text ?? "").Trim();
+        if (text.Length < 3)
+        {
+            throw new DomainException("Escribe el enunciado de la pregunta.", 400, "invalid_text");
+        }
+
+        var options = (request?.Options ?? [])
+            .Select((o, i) => new SnapshotOption(
+                -(i + 1),
+                (o.Text ?? "").Trim(),
+                null,
+                o.IsCorrect))
+            .Where(o => o.Text.Length > 0)
+            .ToList();
+
+        if (options.Count < 2)
+        {
+            throw new DomainException(
+                "Cada respuesta necesita texto o imagen (mínimo dos).",
+                400,
+                "invalid_options");
+        }
+
+        if (options.Count(o => o.IsCorrect) != 1)
+        {
+            throw new DomainException("Marca exactamente una respuesta correcta.", 400, "invalid_correct");
+        }
+
+        if (config.ShuffleOptions)
+        {
+            options = options.OrderBy(_ => Guid.NewGuid()).ToList();
+        }
+
+        var snap = new QuestionSnapshot(
+            0,
+            text,
+            null,
+            string.IsNullOrWhiteSpace(request?.Topic) ? "Rápida" : request!.Topic!.Trim(),
+            string.IsNullOrWhiteSpace(request?.Explanation) ? null : request!.Explanation!.Trim(),
+            options);
+
+        await EnsureQuestionsPreparedAsync(session, config, ct);
+
+        var quick = LiveSessionQuestion.Create(
+            session.Id,
+            0,
+            session.CurrentQuestionIndex + 1,
+            JsonSerializer.Serialize(snap, JsonOpts),
+            snap.Topic,
+            "quick",
+            isSurprise: true);
+
+        session.InsertQuestionAfterCurrent(quick);
+        await _store.SaveChangesAsync(ct);
+
+        await _broadcast.SurpriseQueuedAsync(
+            session.Id,
+            new
+            {
+                questionCount = session.Questions.Count,
+                message = "Pregunta rápida en cola."
             },
             ct);
         await BroadcastLobbyAsync(session, ct);
@@ -812,8 +986,14 @@ public sealed class LiveSessionHandler
 
     private async Task BroadcastRevealAsync(LiveSession session, CancellationToken ct)
     {
-        var payload = BuildCurrentQuestion(session, includeCorrect: true);
+        // Exam mode: never push correct answers to students over SignalR.
+        var includeCorrect = session.Mode is not LiveSessionModes.Exam;
+        var payload = BuildCurrentQuestion(session, includeCorrect);
         await _broadcast.RevealUpdatedAsync(session.Id, payload!, ct);
+        if (!includeCorrect)
+        {
+            await BroadcastLobbyAsync(session, ct);
+        }
     }
 
     private async Task BroadcastRankingAsync(LiveSession session, CancellationToken ct)

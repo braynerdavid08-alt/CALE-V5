@@ -80,7 +80,22 @@ public sealed class LiveController : ControllerBase
             CurrentUser.GetId(User),
             CurrentUser.IsAdmin(User),
             PublicBaseUrl(),
-            ct));
+            ct,
+            request.QuickQuestion));
+
+    [HttpGet("sessions/{id:int}/export")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> Export(
+        int id,
+        CancellationToken ct)
+    {
+        var (bytes, fileName) = await _handler.ExportResultsCsvAsync(
+            id,
+            CurrentUser.GetId(User),
+            CurrentUser.IsAdmin(User),
+            ct);
+        return File(bytes, "text/csv; charset=utf-8", fileName);
+    }
 
     [HttpPost("sessions/{id:int}/questions/{sessionQuestionId:int}/answer")]
     [AllowAnonymous]

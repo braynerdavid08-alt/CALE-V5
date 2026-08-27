@@ -136,6 +136,13 @@ interface MembershipEventDto {
         </ui-card>
       }
 
+      @if (profile()!.suspensionReason) {
+        <ui-card class="alert-card">
+          <h2>Membresía suspendida</h2>
+          <p>{{ profile()!.suspensionReason }}</p>
+        </ui-card>
+      }
+
       <div class="grid-2">
         <ui-card>
           <h2>Estado comercial</h2>
@@ -162,6 +169,11 @@ interface MembershipEventDto {
           </dl>
           <div class="row actions">
             <a routerLink="/school/users"><ui-button type="button" variant="ghost">Usuarios</ui-button></a>
+            @if (canCancelRequest()) {
+              <ui-button type="button" variant="danger" [disabled]="busy()" (click)="cancelRequest()">
+                Cancelar solicitud
+              </ui-button>
+            }
           </div>
         </ui-card>
 
@@ -170,11 +182,31 @@ interface MembershipEventDto {
           <dl class="facts">
             <div><dt>Banco</dt><dd>{{ profile()!.paymentInstructions.bankName }}</dd></div>
             <div><dt>Tipo</dt><dd>{{ profile()!.paymentInstructions.accountType }}</dd></div>
-            <div><dt>Cuenta</dt><dd>{{ profile()!.paymentInstructions.accountNumber }}</dd></div>
+            <div>
+              <dt>Cuenta</dt>
+              <dd class="copy-row">
+                <span>{{ profile()!.paymentInstructions.accountNumber }}</span>
+                <button type="button" class="copy-btn" (click)="copyText(profile()!.paymentInstructions.accountNumber, 'Número de cuenta')">
+                  Copiar
+                </button>
+              </dd>
+            </div>
             <div><dt>Titular</dt><dd>{{ profile()!.paymentInstructions.accountHolder }}</dd></div>
             <div><dt>NIT titular</dt><dd>{{ profile()!.paymentInstructions.holderTaxId }}</dd></div>
             <div><dt>Referencia</dt><dd>{{ profile()!.paymentInstructions.paymentReferenceHint }}</dd></div>
-            <div><dt>Soporte</dt><dd>{{ profile()!.paymentInstructions.supportEmail }} · {{ profile()!.paymentInstructions.whatsApp }}</dd></div>
+            <div>
+              <dt>Soporte</dt>
+              <dd>
+                {{ profile()!.paymentInstructions.supportEmail }}
+                ·
+                <a [href]="whatsAppLink()" target="_blank" rel="noopener">
+                  WhatsApp {{ profile()!.paymentInstructions.whatsApp }}
+                </a>
+                <button type="button" class="copy-btn" (click)="copyText(profile()!.paymentInstructions.whatsApp, 'WhatsApp')">
+                  Copiar
+                </button>
+              </dd>
+            </div>
           </dl>
           <p class="muted">{{ profile()!.paymentInstructions.notes }}</p>
           <p class="price">
@@ -213,16 +245,31 @@ interface MembershipEventDto {
               <p><a [href]="absoluteUrl(profile()!.paymentProofUrl!)" target="_blank" rel="noopener">Ver comprobante</a></p>
             }
           } @else if (profile()!.needsPaymentProof) {
-            <p class="muted">Sube la imagen o PDF del comprobante para pasar a revisión.</p>
+            <p class="muted">Sube la imagen o PDF del comprobante (máx. 5 MB) para pasar a revisión.</p>
             <label class="field">Archivo
-              <input type="file" accept="image/*,.pdf" (change)="onFile($event)" />
+              <input type="file" accept="image/*,.pdf,application/pdf" (change)="onFile($event)" />
             </label>
+            @if (proofFileName()) {
+              <p class="proof-file">
+                Archivo: <strong>{{ proofFileName() }}</strong>
+                @if (proofUrl()) {
+                  · <a [href]="absoluteUrl(proofUrl()!)" target="_blank" rel="noopener">Vista previa</a>
+                }
+              </p>
+            }
             <label class="field">Referencia / número de transacción (opcional)
               <input [formControl]="proofRef" />
             </label>
-            <ui-button type="button" [disabled]="busy() || !proofUrl()" (click)="submitProof()">
-              Enviar comprobante
-            </ui-button>
+            <div class="row actions">
+              <ui-button type="button" [disabled]="busy() || !proofUrl()" (click)="submitProof()">
+                Enviar comprobante
+              </ui-button>
+              @if (canCancelRequest()) {
+                <ui-button type="button" variant="ghost" [disabled]="busy()" (click)="cancelRequest()">
+                  Cancelar solicitud
+                </ui-button>
+              }
+            </div>
           }
         </ui-card>
       }
@@ -311,6 +358,19 @@ interface MembershipEventDto {
     .plan-title { font-weight: 800; }
     .plan-price { font-size: var(--text-lg); font-weight: 700; }
     .history { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.65rem; }
+    .copy-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+    .copy-btn {
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-background);
+      color: var(--color-primary);
+      font-weight: 700;
+      font-size: var(--text-xs);
+      padding: 0.25rem 0.5rem;
+      cursor: pointer;
+    }
+    .proof-file { margin: 0.5rem 0 0; font-size: var(--text-sm); }
+    .proof-file a { color: var(--color-primary); font-weight: 700; }
     @media (max-width: 720px) { .row-2 { grid-template-columns: 1fr; } }
   `]
 })
@@ -328,7 +388,10 @@ export class SchoolMembershipPage implements OnInit {
   readonly selectedPlan = signal<string | null>(null);
   readonly history = signal<MembershipEventDto[]>([]);
   readonly proofUrl = signal<string | null>(null);
+  readonly proofFileName = signal<string | null>(null);
   readonly proofRef = this.fb.nonNullable.control('');
+
+  private static readonly MAX_PROOF_BYTES = 5 * 1024 * 1024;
 
   readonly billingForm = this.fb.nonNullable.group({
     legalName: ['', [Validators.required, Validators.maxLength(250)]],
@@ -421,6 +484,20 @@ export class SchoolMembershipPage implements OnInit {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
+
+    const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+    const isImage = file.type.startsWith('image/');
+    if (!isPdf && !isImage) {
+      this.error.set('Solo se permiten imágenes o PDF.');
+      input.value = '';
+      return;
+    }
+    if (file.size > SchoolMembershipPage.MAX_PROOF_BYTES) {
+      this.error.set('El archivo no puede superar 5 MB.');
+      input.value = '';
+      return;
+    }
+
     const body = new FormData();
     body.append('file', file);
     this.busy.set(true);
@@ -428,6 +505,7 @@ export class SchoolMembershipPage implements OnInit {
     this.http.post<{ url: string }>(`${env.apiUrl}/api/school/plan/proof/upload`, body).subscribe({
       next: (res) => {
         this.proofUrl.set(res.url);
+        this.proofFileName.set(file.name);
         this.busy.set(false);
         this.success.set('Archivo cargado. Ahora envía el comprobante.');
       },
@@ -454,6 +532,7 @@ export class SchoolMembershipPage implements OnInit {
         this.applyProfile(dto);
         this.busy.set(false);
         this.proofUrl.set(null);
+        this.proofFileName.set(null);
         this.success.set('Comprobante enviado. Espera la verificación del administrador.');
         this.loadHistory();
       },
@@ -462,6 +541,48 @@ export class SchoolMembershipPage implements OnInit {
         this.error.set(mapApiError(err));
       }
     });
+  }
+
+  canCancelRequest(): boolean {
+    const p = this.profile();
+    if (!p) return false;
+    if (p.needsPaymentProof) return true;
+    return p.hasPendingRequest && !p.awaitingAdminReview;
+  }
+
+  cancelRequest(): void {
+    this.busy.set(true);
+    this.error.set(null);
+    this.success.set(null);
+    this.http.post<SchoolProfileDto>(`${env.apiUrl}/api/school/plan/cancel`, { note: null }).subscribe({
+      next: (dto) => {
+        this.applyProfile(dto);
+        this.busy.set(false);
+        this.proofUrl.set(null);
+        this.proofFileName.set(null);
+        this.success.set('Solicitud cancelada.');
+        this.loadHistory();
+      },
+      error: (err) => {
+        this.busy.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  whatsAppLink(): string {
+    const raw = this.profile()?.paymentInstructions.whatsApp ?? '';
+    const digits = raw.replace(/\D/g, '');
+    return digits ? `https://wa.me/${digits}` : 'https://wa.me/';
+  }
+
+  async copyText(value: string, label: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(value);
+      this.success.set(`${label} copiado.`);
+    } catch {
+      this.error.set(`No se pudo copiar ${label.toLowerCase()}.`);
+    }
   }
 
   saveBilling(): void {

@@ -15,6 +15,7 @@ import { UiDashKpiComponent } from '../../../shared/ui/ui-dash-kpi.component';
 import { UiDashNotifsComponent } from '../../../shared/ui/ui-dash-notifs.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
+import { UiOnboardingComponent } from '../../../shared/ui/ui-onboarding.component';
 import { itemStatusLabel } from '../../../shared/utils/item-status-label';
 import { StudentApi, StudentDashboardDto } from '../api/student.api';
 
@@ -37,7 +38,8 @@ interface ResultRow {
     UiDashKpiComponent,
     UiDashNotifsComponent,
     UiErrorComponent,
-    UiLoadingComponent
+    UiLoadingComponent,
+    UiOnboardingComponent
   ],
   templateUrl: './student-home.page.html',
   styleUrl: './student-home.page.css'

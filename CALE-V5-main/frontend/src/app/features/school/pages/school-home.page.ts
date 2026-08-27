@@ -18,6 +18,7 @@ import { UiDashKpiComponent } from '../../../shared/ui/ui-dash-kpi.component';
 import { UiDashNotifsComponent } from '../../../shared/ui/ui-dash-notifs.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
+import { UiOnboardingComponent } from '../../../shared/ui/ui-onboarding.component';
 
 interface SchoolProfileDto {
   contactName: string;
@@ -61,7 +62,8 @@ interface UserRow {
     UiDashKpiComponent,
     UiDashNotifsComponent,
     UiErrorComponent,
-    UiLoadingComponent
+    UiLoadingComponent,
+    UiOnboardingComponent
   ],
   templateUrl: './school-home.page.html',
   styleUrl: './school-home.page.css'

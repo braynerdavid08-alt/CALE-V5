@@ -15,6 +15,7 @@ import { UiDashKpiComponent } from '../../../shared/ui/ui-dash-kpi.component';
 import { UiDashNotifsComponent } from '../../../shared/ui/ui-dash-notifs.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
+import { UiOnboardingComponent } from '../../../shared/ui/ui-onboarding.component';
 import { TeacherApi, TeacherDashboardDto } from '../api/teacher.api';
 import { PresentationApi } from '../presentations/presentation.api';
 import { PresentationSummary } from '../presentations/presentation.models';
@@ -30,7 +31,8 @@ import { PresentationSummary } from '../presentations/presentation.models';
     UiDashKpiComponent,
     UiDashNotifsComponent,
     UiErrorComponent,
-    UiLoadingComponent
+    UiLoadingComponent,
+    UiOnboardingComponent
   ],
   templateUrl: './teacher-home.page.html',
   styleUrl: './teacher-home.page.css'

@@ -96,7 +96,19 @@ public sealed record JoinLiveSessionResponse(
     string Status,
     string JoinCode);
 
-public sealed record LiveHostControlRequest(string Action);
+public sealed record LiveHostControlRequest(
+    string Action,
+    LiveQuickQuestionRequest? QuickQuestion = null);
+
+public sealed record LiveQuickQuestionRequest(
+    string Text,
+    IReadOnlyList<LiveQuickOptionRequest> Options,
+    string? Explanation = null,
+    string? Topic = null);
+
+public sealed record LiveQuickOptionRequest(
+    string Text,
+    bool IsCorrect);
 
 public sealed record LiveDoubtRequest(Guid ParticipantToken, string Text);
 

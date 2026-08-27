@@ -13,6 +13,8 @@ public interface ILiveSessionStore
     Task AddAnswerAsync(LiveAnswer answer, CancellationToken ct = default);
     Task<int> CountAnswersAsync(int sessionQuestionId, CancellationToken ct = default);
     Task<IReadOnlyList<LiveAnswer>> ListAnswersForSessionAsync(int sessionId, CancellationToken ct = default);
+    Task<IReadOnlyList<int>> ListExpiredOpenSessionIdsAsync(DateTime utcNow, CancellationToken ct = default);
+    Task<LiveParticipant?> GetParticipantByConnectionIdAsync(string connectionId, CancellationToken ct = default);
     Task AddDoubtAsync(LiveDoubt doubt, CancellationToken ct = default);
     Task<LiveDoubt?> GetDoubtAsync(int doubtId, CancellationToken ct = default);
     Task<LiveDoubtVote?> FindDoubtVoteAsync(int doubtId, int participantId, CancellationToken ct = default);
