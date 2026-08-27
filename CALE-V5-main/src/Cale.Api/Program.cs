@@ -7,6 +7,14 @@ Environment.SetEnvironmentVariable(
     "false");
 
 var builder = WebApplication.CreateBuilder(args);
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.Configuration.AddJsonFile(
+        "appsettings.Development.local.json",
+        optional: true,
+        reloadOnChange: false);
+}
 builder.Logging.ClearProviders();
 builder.Logging.AddJsonConsole(options =>
 {

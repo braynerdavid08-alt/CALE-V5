@@ -14,7 +14,15 @@ public static class DatabaseConnection
 {
     public static string Resolve(IConfiguration config)
     {
-        var raw = config.GetConnectionString("Cale");
+        // On Render, DATABASE_URL from "Connect to service" is the reliable internal URL.
+        var onRender = !string.IsNullOrWhiteSpace(config["RENDER"]);
+        string? raw = onRender ? config["DATABASE_URL"] : null;
+
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            raw = config.GetConnectionString("Cale");
+        }
+
         if (string.IsNullOrWhiteSpace(raw))
         {
             raw = config["DATABASE_URL"];
@@ -24,8 +32,8 @@ public static class DatabaseConnection
         {
             throw new InvalidOperationException(
                 "Missing ConnectionStrings:Cale (or DATABASE_URL). " +
-                "In Render: Postgres → Connect → copy Internal Database URL into " +
-                "ConnectionStrings__Cale (full URL, not just the hostname).");
+                "In Render: Postgres → Connect → Connect to MICALE (sets DATABASE_URL), " +
+                "or paste the Internal Database URL into ConnectionStrings__Cale.");
         }
 
         return Normalize(raw, config["RENDER_REGION"]);
@@ -46,31 +54,76 @@ public static class DatabaseConnection
         if (raw.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase)
             || raw.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
         {
-            // Npgsql parses postgres:// URIs natively — do not manual-convert to Host=...
-            return ExpandRenderInternalHost(raw, renderRegion);
+            return ApplyPostgresSslMode(raw);
+        }
+
+        if (raw.Contains("Host=", StringComparison.OrdinalIgnoreCase)
+            && raw.Contains("Username=", StringComparison.OrdinalIgnoreCase))
+        {
+            return ApplyPostgresSslModeToKeyValue(raw);
         }
 
         return raw;
     }
 
     /// <summary>
-    /// Render internal URLs use host <c>dpg-xxxx-a</c> (no domain). That is valid on Render private network.
-    /// External tools need <c>dpg-xxxx-a.region-postgres.render.com</c>.
+    /// Render internal: <c>dpg-xxxx-a</c> (no SSL). External: <c>*.render.com</c> (SSL required).
     /// </summary>
-    private static string ExpandRenderInternalHost(string postgresUri, string? renderRegion)
+    private static string ApplyPostgresSslMode(string postgresUri)
     {
+        if (postgresUri.Contains("sslmode=", StringComparison.OrdinalIgnoreCase))
+        {
+            return postgresUri;
+        }
+
         if (!Uri.TryCreate(postgresUri, UriKind.Absolute, out var uri))
         {
             return postgresUri;
         }
 
-        if (uri.Host.Contains('.') || !uri.Host.StartsWith("dpg-", StringComparison.Ordinal))
+        var sslMode = ResolveSslMode(uri.Host);
+        var separator = postgresUri.Contains('?') ? '&' : '?';
+        return $"{postgresUri}{separator}sslmode={sslMode}";
+    }
+
+    private static string ApplyPostgresSslModeToKeyValue(string connection)
+    {
+        if (connection.Contains("SSL Mode=", StringComparison.OrdinalIgnoreCase)
+            || connection.Contains("Ssl Mode=", StringComparison.OrdinalIgnoreCase))
         {
-            return postgresUri;
+            return connection;
         }
 
-        // Short internal hostname — keep URI as-is for services running on Render.
-        return postgresUri;
+        try
+        {
+            var builder = new NpgsqlConnectionStringBuilder(connection);
+            builder.SslMode = ResolveSslMode(builder.Host) switch
+            {
+                "disable" => SslMode.Disable,
+                "require" => SslMode.Require,
+                _ => SslMode.Prefer
+            };
+            return builder.ConnectionString;
+        }
+        catch
+        {
+            return connection;
+        }
+    }
+
+    private static string ResolveSslMode(string host)
+    {
+        if (host.Contains("render.com", StringComparison.OrdinalIgnoreCase))
+        {
+            return "require";
+        }
+
+        if (host.StartsWith("dpg-", StringComparison.Ordinal) && !host.Contains('.'))
+        {
+            return "disable";
+        }
+
+        return "prefer";
     }
 
     public static DatabaseProviderKind Detect(string connection)

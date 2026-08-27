@@ -15,5 +15,6 @@ TestResults/
 *.db
 *.db-shm
 *.db-wal
+appsettings.Development.local.json
 src/Cale.Api/wwwroot/uploads/*
 !src/Cale.Api/wwwroot/uploads/.gitkeep

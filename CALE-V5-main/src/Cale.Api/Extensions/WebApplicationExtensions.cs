@@ -63,15 +63,11 @@ public static class WebApplicationExtensions
             "Database provider: {Provider}; {Description}",
             providerKind,
             DatabaseConnection.Describe(DatabaseConnection.Resolve(app.Configuration)));
-
+     
         try
         {
-            if (!await db.Database.CanConnectAsync())
-            {
-                throw new InvalidOperationException(
-                    "Cannot connect to the database. Check ConnectionStrings__Cale / DATABASE_URL " +
-                    "(use the Internal URL on Render) and that the Postgres service is running.");
-            }
+            await db.Database.OpenConnectionAsync();
+            await db.Database.CloseConnectionAsync();
 
             await db.Database.EnsureCreatedAsync();
             await FeatureSchema.EnsureAsync(db);
@@ -79,7 +75,20 @@ public static class WebApplicationExtensions
         catch (Exception ex)
         {
             bootLogger.LogError(ex, "Database initialization failed ({Provider})", providerKind);
-            throw;
+
+            if (ex is InvalidOperationException && ex.Message.Contains("Cannot connect", StringComparison.Ordinal))
+            {
+                throw;
+            }
+
+            var description = DatabaseConnection.Describe(
+                DatabaseConnection.Resolve(app.Configuration));
+            throw new InvalidOperationException(
+                $"Cannot connect to the database ({description}). " +
+                "On Render: Postgres → Connect → Connect to MICALE (DATABASE_URL), " +
+                "same region as the web service, Internal URL only. " +
+                $"Driver error: {ex.GetBaseException().Message}",
+                ex);
         }
 
         var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
