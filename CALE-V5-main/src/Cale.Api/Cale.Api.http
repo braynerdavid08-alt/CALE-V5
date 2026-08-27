@@ -8,6 +8,6 @@ POST {{host}}/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "admin@cale.local",
-  "password": "Admin123!"
+  "email": "TU_CORREO",
+  "password": "TU_CLAVE"
 }

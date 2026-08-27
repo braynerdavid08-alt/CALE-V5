@@ -13,9 +13,5 @@ echo.
 echo CALE v5 iniciado
 echo   API  http://localhost:5000
 echo   UI   http://localhost:4200
-echo.
-echo Usuarios de prueba:
-echo   Admin:      admin@cale.local / Admin123!
-echo   Profesor:   profesor@cale.local / Profesor123!
-echo   Estudiante: estudiante@cale.local / Estudiante123!
+echo   (Development: usuarios demo solo si Seed esta activo en el servidor)
 endlocal
