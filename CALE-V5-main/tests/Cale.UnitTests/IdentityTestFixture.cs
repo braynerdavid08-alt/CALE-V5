@@ -1,8 +1,10 @@
 using Cale.BuildingBlocks.Infrastructure.Persistence;
 using Cale.BuildingBlocks.Infrastructure.Security;
+using Cale.Modules.Identity.Application.Commands;
 using Cale.Modules.Identity.Infrastructure.Persistence;
 using Cale.UnitTests.Fakes;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace Cale.UnitTests;
@@ -33,13 +35,18 @@ public sealed class IdentityTestFixture : IDisposable
             }),
             Clock);
         Users = new UserStore(Db);
+        Profiles = new SchoolProfileStore(Db);
     }
 
     public CaleDbContext Db { get; }
     public UserStore Users { get; }
+    public SchoolProfileStore Profiles { get; }
     public PasswordHasher Hasher { get; }
     public FakeClock Clock { get; }
     public JwtTokenService Tokens { get; }
+
+    public LoginUserHandler CreateLogin() =>
+        new(Users, Hasher, Tokens, Clock, NullLogger<LoginUserHandler>.Instance);
 
     public void Dispose() => Db.Dispose();
 }

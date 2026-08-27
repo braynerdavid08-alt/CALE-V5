@@ -1,0 +1,168 @@
+<section class="library">
+  <ui-error [message]="error()" />
+  <ui-success [message]="ok()" />
+
+  <div class="library-toolbar">
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" [class.on]="tab() === 'recent'" (click)="setTab('recent')">
+        Reciente
+      </button>
+      <button type="button" role="tab" [class.on]="tab() === 'drafts'" (click)="setTab('drafts')">
+        Borradores
+      </button>
+      <button type="button" role="tab" [class.on]="tab() === 'published'" (click)="setTab('published')">
+        Publicados
+      </button>
+    </div>
+
+    <div class="toolbar-right">
+      <label class="local-search">
+        <ui-icon name="search" />
+        <input
+          type="search"
+          [ngModel]="query()"
+          (ngModelChange)="onLocalSearch($event)"
+          placeholder="Buscar exámenes"
+          aria-label="Buscar exámenes" />
+      </label>
+      <div class="view-toggle" role="group" aria-label="Vista">
+        <button type="button" [class.on]="view() === 'grid'" (click)="setView('grid')" title="Cuadrícula">
+          <ui-icon name="grid" />
+        </button>
+        <button type="button" [class.on]="view() === 'list'" (click)="setView('list')" title="Lista">
+          <ui-icon name="list" />
+        </button>
+      </div>
+      <ui-button type="button" (click)="openCreate()">
+        <ui-icon name="plus" />
+        Nuevo
+      </ui-button>
+    </div>
+  </div>
+
+  @if (!filtered().length) {
+    <ui-empty
+      title="Sin exámenes aquí"
+      message="Crea un examen o cambia de pestaña para ver borradores y publicados." />
+  } @else if (view() === 'grid') {
+    <div class="exam-grid">
+      @for (exam of filtered(); track exam.id) {
+        <article class="exam-card">
+          <div class="thumb" [class]="'thumb ' + thumbTone(exam)">
+            <span class="kind">Examen</span>
+            @if (!exam.published) {
+              <span class="status-badge">Borrador</span>
+            }
+            <span class="count">{{ exam.questionCount }} preguntas</span>
+          </div>
+          <div class="meta">
+            <div class="meta-top">
+              <h3>{{ exam.name }}</h3>
+              <div class="more-wrap">
+                <button
+                  type="button"
+                  class="more"
+                  aria-label="Más opciones"
+                  (click)="toggleMenu(exam.id, $event)">
+                  ⋮
+                </button>
+                @if (menuFor() === exam.id) {
+                  <div class="menu" role="menu">
+                    <button type="button" (click)="togglePublish(exam)">
+                      {{ exam.published ? 'Despublicar' : 'Publicar' }}
+                    </button>
+                    <div class="menu-assign">
+                      <select [(ngModel)]="assignTo[exam.id]" [name]="'g' + exam.id">
+                        <option [ngValue]="null">Asignar a grupo…</option>
+                        @for (group of groups(); track group.id) {
+                          <option [ngValue]="group.id">{{ group.name }}</option>
+                        }
+                      </select>
+                      <button type="button" (click)="assign(exam.id)">Asignar</button>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+            <p class="author">{{ authorLabel() }}</p>
+            <p class="muted tiny">
+              {{ exam.timeMinutes }} min
+              @if (exam.startsAt || exam.endsAt) {
+                · {{ exam.startsAt ? (exam.startsAt | date:'shortDate') : '—' }}
+                → {{ exam.endsAt ? (exam.endsAt | date:'shortDate') : '—' }}
+              }
+            </p>
+          </div>
+        </article>
+      }
+    </div>
+  } @else {
+    <div class="exam-list">
+      @for (exam of filtered(); track exam.id) {
+        <div class="exam-row">
+          <div class="row-thumb" [class]="'row-thumb ' + thumbTone(exam)"></div>
+          <div class="row-body">
+            <strong>{{ exam.name }}</strong>
+            <span class="muted">{{ exam.questionCount }} preg. · {{ exam.timeMinutes }} min · {{ authorLabel() }}</span>
+          </div>
+          <ui-badge [tone]="exam.published ? 'success' : 'warning'">
+            {{ exam.published ? 'Publicado' : 'Borrador' }}
+          </ui-badge>
+          <ui-button type="button" variant="ghost" (click)="togglePublish(exam)">
+            {{ exam.published ? 'Despublicar' : 'Publicar' }}
+          </ui-button>
+        </div>
+      }
+    </div>
+  }
+</section>
+
+@if (showCreate()) {
+  <div class="sheet-scrim" (click)="closeCreate()"></div>
+  <aside class="create-sheet" role="dialog" aria-label="Crear examen">
+    <header class="sheet-head">
+      <h2>Crear examen</h2>
+      <button type="button" class="icon-close" (click)="closeCreate()" aria-label="Cerrar">×</button>
+    </header>
+    <form class="stack" (ngSubmit)="create()">
+      <label class="field">Nombre
+        <input [(ngModel)]="name" name="name" required />
+      </label>
+      <label class="field">Banco (opcional)
+        <select [(ngModel)]="bankId" name="bankId">
+          <option [ngValue]="null">Sin banco fijo</option>
+          @for (bank of banks(); track bank.id) {
+            <option [ngValue]="bank.id">{{ bank.name }}</option>
+          }
+        </select>
+      </label>
+      <div class="grid-3">
+        <label class="field">Preguntas
+          <input type="number" [(ngModel)]="questionCount" name="qc" min="1" />
+        </label>
+        <label class="field">Minutos
+          <input type="number" [(ngModel)]="timeMinutes" name="tm" min="1" />
+        </label>
+        <label class="field">Intentos
+          <input type="number" [(ngModel)]="allowedAttempts" name="aa" min="1" />
+        </label>
+      </div>
+      <div class="grid-2">
+        <label class="field">Inicio
+          <input type="datetime-local" [(ngModel)]="startsAt" name="sa" />
+        </label>
+        <label class="field">Fin
+          <input type="datetime-local" [(ngModel)]="endsAt" name="ea" />
+        </label>
+      </div>
+      <label class="row check">
+        <input type="checkbox" [(ngModel)]="randomize" name="rnd" />
+        Orden aleatorio
+      </label>
+      <div class="sheet-actions">
+        <ui-button type="button" variant="ghost" (click)="closeCreate()">Cancelar</ui-button>
+        <ui-button type="submit">Crear</ui-button>
+      </div>
+    </form>
+  </aside>
+}

@@ -1,0 +1,280 @@
+@if (loading()) {
+  <div class="ed-boot">Cargando presentación…</div>
+} @else if (error() && !slides().length) {
+  <div class="ed-boot">
+    <p>{{ error() }}</p>
+    <a routerLink="/teacher/presentations">Volver</a>
+  </div>
+} @else {
+  <div
+    class="ed"
+    (pointermove)="onPointerMove($event)"
+    (pointerup)="endDrag()"
+    (pointercancel)="endDrag()">
+    <header class="ed-top">
+      <div class="ed-brand">
+        <a routerLink="/teacher/presentations" class="back">←</a>
+        <strong>{{ brand.name }}</strong>
+        <input
+          class="title-input"
+          [ngModel]="title()"
+          (ngModelChange)="title.set($event); markDirty()"
+          maxlength="200" />
+      </div>
+      <div class="ed-top-actions">
+        <span class="save-pill" [attr.data-state]="saveState()">{{ saveLabel() }}</span>
+        <button type="button" class="btn ghost" (click)="saveNow()">Guardar</button>
+        <button type="button" class="btn primary" (click)="present()">▶ Presentar</button>
+      </div>
+    </header>
+
+    <div class="ed-toolbar">
+      <div class="group">
+        <button type="button" (click)="addText('title')">Título</button>
+        <button type="button" (click)="addText('subtitle')">Subtítulo</button>
+        <button type="button" (click)="addText('body')">Texto</button>
+      </div>
+      <div class="group">
+        <button type="button" (click)="triggerImage()">Imagen</button>
+        <button type="button" (click)="addShape('rect')">Rectángulo</button>
+        <button type="button" (click)="addShape('ellipse')">Círculo</button>
+        <button type="button" (click)="addShape('triangle')">Triángulo</button>
+        <button type="button" (click)="addShape('octagon')">Señal</button>
+        <button type="button" (click)="addLine(false)">Línea</button>
+        <button type="button" (click)="addLine(true)">Flecha</button>
+        <button type="button" (click)="addLogo()">Logo CALE</button>
+      </div>
+      <div class="group">
+        <button type="button" (click)="align('left')">⟸</button>
+        <button type="button" (click)="align('center')">⇔</button>
+        <button type="button" (click)="align('right')">⟹</button>
+        <button type="button" (click)="duplicateElement()">Duplicar</button>
+        <button type="button" (click)="deleteSelected()">Eliminar</button>
+      </div>
+      <input #fileInput type="file" accept="image/*" hidden (change)="onImageSelected($event)" />
+    </div>
+
+    @if (error()) {
+      <div class="ed-error">{{ error() }}</div>
+    }
+
+    <div class="ed-body">
+      <aside class="ed-slides">
+        <div class="slides-head">
+          <span>Diapositivas</span>
+          <button type="button" (click)="addSlide()">+</button>
+        </div>
+        <ul>
+          @for (s of slides(); track s.clientId; let i = $index) {
+            <li
+              draggable="true"
+              [class.active]="i === activeIndex()"
+              (click)="selectSlide(i)"
+              (dragstart)="onSlideDragStart($event, i)"
+              (dragover)="$event.preventDefault()"
+              (drop)="onSlideDrop($event, i)">
+              <div class="mini" [ngStyle]="bgStyle(s)">
+                <span>{{ i + 1 }}</span>
+              </div>
+              <p>{{ s.title }}</p>
+            </li>
+          }
+        </ul>
+        <div class="slides-foot">
+          <button type="button" (click)="duplicateSlide()">Duplicar</button>
+          <button type="button" (click)="deleteSlide()" [disabled]="slides().length <= 1">Eliminar</button>
+        </div>
+      </aside>
+
+      <main class="ed-canvas-wrap" #canvasHost>
+        @if (activeSlide(); as slide) {
+          <div
+            class="slide-stage"
+            [style.transform]="'scale(' + zoom() + ')'"
+            (click)="clearSelection()"
+            (dragover)="$event.preventDefault()"
+            (drop)="onCanvasDrop($event)">
+            <div class="slide" [ngStyle]="bgStyle(slide)">
+              @for (el of slide.elements; track el.id) {
+                <div
+                  class="el"
+                  [class.selected]="selectedId() === el.id"
+                  [style.left.px]="el.x"
+                  [style.top.px]="el.y"
+                  [style.width.px]="el.w"
+                  [style.height.px]="el.h"
+                  [style.zIndex]="el.z"
+                  [style.transform]="'rotate(' + el.rotation + 'deg)'"
+                  (pointerdown)="startDrag($event, el.id, 'move')"
+                  (click)="selectElement(el.id, $event)"
+                  (dblclick)="el.type === 'text' ? startEditText(el.id, $event) : null">
+                  @if (el.type === 'text') {
+                    @if (editingText() && selectedId() === el.id) {
+                      <div
+                        class="el-text"
+                        contenteditable="true"
+                        [style.fontSize.px]="textProps(el).fontSize"
+                        [style.fontWeight]="textProps(el).fontWeight"
+                        [style.color]="textProps(el).color"
+                        [style.textAlign]="textProps(el).align"
+                        [style.fontFamily]="textProps(el).fontFamily"
+                        [style.fontStyle]="textProps(el).italic ? 'italic' : 'normal'"
+                        [style.textDecoration]="textProps(el).underline ? 'underline' : 'none'"
+                        (input)="onTextInput(el.id, $event)"
+                        (blur)="editingText.set(false); markDirty()"
+                        >{{ textProps(el).text }}</div>
+                    } @else {
+                      <div
+                        class="el-text"
+                        [style.fontSize.px]="textProps(el).fontSize"
+                        [style.fontWeight]="textProps(el).fontWeight"
+                        [style.color]="textProps(el).color"
+                        [style.textAlign]="textProps(el).align"
+                        [style.fontFamily]="textProps(el).fontFamily"
+                        [style.fontStyle]="textProps(el).italic ? 'italic' : 'normal'"
+                        [style.textDecoration]="textProps(el).underline ? 'underline' : 'none'"
+                        >{{ textProps(el).text }}</div>
+                    }
+                  }
+                  @if (el.type === 'image') {
+                    <img [src]="media(imageProps(el).src)" alt="" draggable="false" />
+                  }
+                  @if (el.type === 'shape') {
+                    <div
+                      class="el-shape"
+                      [style.background]="shapeProps(el).fill"
+                      [style.border]="shapeProps(el).strokeWidth + 'px solid ' + shapeProps(el).stroke"
+                      [style.opacity]="shapeProps(el).opacity"
+                      [style.borderRadius]="shapeProps(el).shape === 'ellipse' ? '50%' : '4px'"
+                      [style.clipPath]="shapeClip(shapeProps(el).shape)"></div>
+                  }
+                  @if (el.type === 'line' || el.type === 'arrow') {
+                    <div class="el-line">
+                      <div
+                        class="line-bar"
+                        [style.background]="lineProps(el).color"
+                        [style.height.px]="lineProps(el).strokeWidth"></div>
+                      @if (el.type === 'arrow' || lineProps(el).arrowEnd) {
+                        <div class="line-head" [style.borderLeftColor]="lineProps(el).color"></div>
+                      }
+                    </div>
+                  }
+                  @if (selectedId() === el.id && !editingText()) {
+                    <span
+                      class="handle"
+                      (pointerdown)="startDrag($event, el.id, 'resize')"></span>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </main>
+
+      <aside class="ed-props">
+        <h3>Propiedades</h3>
+        @if (activeSlide(); as slide) {
+          <label>
+            Nombre diapositiva
+            <input [ngModel]="slide.title" (ngModelChange)="updateSlideTitle($event)" />
+          </label>
+          <label>
+            Fondo
+            <input type="color" [ngModel]="slide.background.color" (ngModelChange)="updateBgColor($event)" />
+          </label>
+          <div class="row">
+            <button type="button" (click)="updateBgGradient('#0B1F33', '#2BB0ED')">Gradiente CALE</button>
+            <button type="button" (click)="updateBgColor('#F7F9FC')">Claro</button>
+          </div>
+          <label>
+            Notas del instructor
+            <textarea
+              rows="5"
+              [ngModel]="slide.notes"
+              (ngModelChange)="updateNotes($event)"
+              placeholder="No se muestran al proyectar"></textarea>
+          </label>
+        }
+
+        @if (selected(); as sel) {
+          <hr />
+          <p class="sel-type">{{ sel.type }}</p>
+          @if (sel.type === 'text') {
+            <label>
+              Tamaño
+              <input
+                type="number"
+                [ngModel]="textProps(sel).fontSize"
+                (ngModelChange)="updateTextProp('fontSize', +$event)" />
+            </label>
+            <label>
+              Color
+              <input
+                type="color"
+                [ngModel]="textProps(sel).color"
+                (ngModelChange)="updateTextProp('color', $event)" />
+            </label>
+            <div class="row">
+              <button type="button" (click)="updateTextProp('fontWeight', textProps(sel).fontWeight >= 700 ? 400 : 700)">
+                B
+              </button>
+              <button type="button" (click)="updateTextProp('align', 'left')">Izq</button>
+              <button type="button" (click)="updateTextProp('align', 'center')">Cen</button>
+              <button type="button" (click)="updateTextProp('align', 'right')">Der</button>
+            </div>
+          }
+          @if (sel.type === 'shape') {
+            <label>
+              Relleno
+              <input
+                type="color"
+                [ngModel]="shapeProps(sel).fill"
+                (ngModelChange)="updateShapeProp('fill', $event)" />
+            </label>
+            <label>
+              Borde
+              <input
+                type="color"
+                [ngModel]="shapeProps(sel).stroke"
+                (ngModelChange)="updateShapeProp('stroke', $event)" />
+            </label>
+          }
+          <p class="meta">x {{ sel.x }} · y {{ sel.y }} · {{ sel.w }}×{{ sel.h }}</p>
+        } @else {
+          <p class="meta">Selecciona un elemento o agrega uno desde la barra.</p>
+        }
+
+        <hr />
+        <label>
+          Categoría
+          <select [ngModel]="category()" (ngModelChange)="category.set($event); markDirty()">
+            @for (c of categories; track c) {
+              <option [value]="c">{{ c }}</option>
+            }
+          </select>
+        </label>
+      </aside>
+    </div>
+
+    <footer class="ed-bottom">
+      <div class="zoom">
+        <button type="button" (click)="setZoom(zoom() - 0.1)">−</button>
+        <span>{{ (zoom() * 100) | number: '1.0-0' }}%</span>
+        <button type="button" (click)="setZoom(zoom() + 0.1)">+</button>
+        <button type="button" (click)="fitZoom()">Ajustar</button>
+      </div>
+      <div class="nav">
+        <button type="button" [disabled]="activeIndex() === 0" (click)="selectSlide(activeIndex() - 1)">
+          ← Anterior
+        </button>
+        <span>{{ activeIndex() + 1 }} / {{ slides().length }}</span>
+        <button
+          type="button"
+          [disabled]="activeIndex() >= slides().length - 1"
+          (click)="selectSlide(activeIndex() + 1)">
+          Siguiente →
+        </button>
+      </div>
+    </footer>
+  </div>
+}

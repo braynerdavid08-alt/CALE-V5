@@ -25,7 +25,12 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.SchoolId);
         builder.Property(x => x.IsActive).HasColumnName("Activo");
         builder.Property(x => x.CreatedAt).HasColumnName("CreadoEn");
+        builder.Property(x => x.LastLoginAt).HasColumnName("UltimoAccesoEn");
+        builder.Property(x => x.MustChangePassword)
+            .HasColumnName("DebeCambiarClave")
+            .IsRequired();
         builder.HasIndex(x => x.Email).IsUnique();
         builder.HasIndex(x => x.SchoolId);
+        builder.HasIndex(x => x.LastLoginAt);
     }
 }

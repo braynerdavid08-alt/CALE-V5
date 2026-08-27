@@ -9,9 +9,14 @@ public sealed class AppNotification
     public string Type { get; private set; } = "";
     public bool IsRead { get; private set; }
     public DateTime CreatedAt { get; private set; }
+    public DateTime? ReadAt { get; private set; }
     public int? GroupId { get; private set; }
     public string? RelatedEntity { get; private set; }
     public int? RelatedId { get; private set; }
+    public string? Link { get; private set; }
+    public string Priority { get; private set; } = "normal";
+    public string? DedupeKey { get; private set; }
+    public bool IsArchived { get; private set; }
 
     private AppNotification()
     {
@@ -25,21 +30,39 @@ public sealed class AppNotification
         int? groupId,
         string? relatedEntity,
         int? relatedId,
-        DateTime utcNow)
+        DateTime utcNow,
+        string? link = null,
+        string? priority = null,
+        string? dedupeKey = null)
     {
         return new AppNotification
         {
             UserId = userId,
-            Title = title,
-            Message = message,
-            Type = type,
+            Title = title.Trim(),
+            Message = message.Trim(),
+            Type = type.Trim(),
             IsRead = false,
             CreatedAt = utcNow,
             GroupId = groupId,
             RelatedEntity = relatedEntity,
-            RelatedId = relatedId
+            RelatedId = relatedId,
+            Link = string.IsNullOrWhiteSpace(link) ? null : link.Trim(),
+            Priority = string.IsNullOrWhiteSpace(priority) ? "normal" : priority.Trim(),
+            DedupeKey = string.IsNullOrWhiteSpace(dedupeKey) ? null : dedupeKey.Trim(),
+            IsArchived = false
         };
     }
 
-    public void MarkRead() => IsRead = true;
+    public void MarkRead(DateTime utcNow)
+    {
+        if (IsRead)
+        {
+            return;
+        }
+
+        IsRead = true;
+        ReadAt = utcNow;
+    }
+
+    public void Archive() => IsArchived = true;
 }

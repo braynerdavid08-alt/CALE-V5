@@ -13,6 +13,7 @@ public sealed class RegisterSchoolHandler
 {
     private readonly IUserStore _users;
     private readonly ISchoolProfileStore _profiles;
+    private readonly IMembershipEventStore _events;
     private readonly IPasswordHasher _hasher;
     private readonly ITokenService _tokens;
     private readonly IClock _clock;
@@ -20,12 +21,14 @@ public sealed class RegisterSchoolHandler
     public RegisterSchoolHandler(
         IUserStore users,
         ISchoolProfileStore profiles,
+        IMembershipEventStore events,
         IPasswordHasher hasher,
         ITokenService tokens,
         IClock clock)
     {
         _users = users;
         _profiles = profiles;
+        _events = events;
         _hasher = hasher;
         _tokens = tokens;
         _clock = clock;
@@ -71,7 +74,20 @@ public sealed class RegisterSchoolHandler
             _clock.UtcNow);
 
         await _profiles.AddAsync(profile, ct);
+        await _events.AddAsync(
+            MembershipEvent.Create(
+                user.Id,
+                MembershipEventTypes.Requested,
+                plan.Code,
+                plan.PriceCop,
+                user.Id,
+                "Alta de escuela",
+                _clock.UtcNow),
+            ct);
         await _profiles.SaveChangesAsync(ct);
+
+        user.RecordLogin(_clock.UtcNow);
+        await _users.SaveChangesAsync(ct);
 
         var token = _tokens.Create(
             user.Id,
@@ -84,7 +100,8 @@ public sealed class RegisterSchoolHandler
             user.Id,
             user.Name,
             user.Email,
-            Roles.School);
+            Roles.School,
+            false);
     }
 
     private static void Validate(RegisterSchoolRequest request)

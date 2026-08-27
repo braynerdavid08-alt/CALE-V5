@@ -7,6 +7,7 @@ import { AuthApi, SchoolPlanDto } from '../api/auth.api';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiThemeToggleComponent } from '../../../shared/ui/ui-theme-toggle.component';
+import { BRAND } from '../../../core/brand';
 
 @Component({
   selector: 'app-register-school-page',
@@ -26,6 +27,7 @@ export class RegisterSchoolPage implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(AuthApi);
   readonly auth = inject(AuthFacade);
+  readonly brand = BRAND;
 
   readonly plans = signal<SchoolPlanDto[]>([]);
   readonly plansError = signal<string | null>(null);

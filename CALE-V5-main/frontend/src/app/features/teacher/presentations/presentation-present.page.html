@@ -1,0 +1,80 @@
+@if (loading()) {
+  <div class="present-boot">Cargando…</div>
+} @else if (error()) {
+  <div class="present-boot">
+    <p>{{ error() }}</p>
+    <a routerLink="/teacher/presentations">Volver</a>
+  </div>
+} @else {
+  <div
+    #stage
+    class="present"
+    (mousemove)="bumpChrome()"
+    (click)="onStageClick()">
+    @if (current(); as slide) {
+      <div class="viewport">
+        <div class="slide" [ngStyle]="bgStyle(slide)">
+          @for (el of slide.elements; track el.id) {
+            <div
+              class="el"
+              [style.left.px]="el.x"
+              [style.top.px]="el.y"
+              [style.width.px]="el.w"
+              [style.height.px]="el.h"
+              [style.zIndex]="el.z"
+              [style.transform]="'rotate(' + el.rotation + 'deg)'">
+              @if (el.type === 'text') {
+                <div
+                  class="el-text"
+                  [style.fontSize.px]="textProps(el).fontSize"
+                  [style.fontWeight]="textProps(el).fontWeight"
+                  [style.color]="textProps(el).color"
+                  [style.textAlign]="textProps(el).align"
+                  [style.fontFamily]="textProps(el).fontFamily"
+                  [style.fontStyle]="textProps(el).italic ? 'italic' : 'normal'"
+                  [style.textDecoration]="textProps(el).underline ? 'underline' : 'none'"
+                  >{{ textProps(el).text }}</div>
+              }
+              @if (el.type === 'image') {
+                <img [src]="media(imageProps(el).src)" alt="" />
+              }
+              @if (el.type === 'shape') {
+                <div
+                  class="el-shape"
+                  [style.background]="shapeProps(el).fill"
+                  [style.border]="shapeProps(el).strokeWidth + 'px solid ' + shapeProps(el).stroke"
+                  [style.opacity]="shapeProps(el).opacity"
+                  [style.borderRadius]="shapeProps(el).shape === 'ellipse' ? '50%' : '4px'"
+                  [style.clipPath]="shapeClip(shapeProps(el).shape)"></div>
+              }
+              @if (el.type === 'line' || el.type === 'arrow') {
+                <div class="el-line">
+                  <div
+                    class="line-bar"
+                    [style.background]="lineProps(el).color"
+                    [style.height.px]="lineProps(el).strokeWidth"></div>
+                  @if (el.type === 'arrow' || lineProps(el).arrowEnd) {
+                    <div class="line-head" [style.borderLeftColor]="lineProps(el).color"></div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <div class="chrome" [class.visible]="showChrome()">
+      <div class="left">
+        <strong>{{ title() }}</strong>
+        <span>{{ index() + 1 }} / {{ slides().length }}</span>
+      </div>
+      <div class="right">
+        <button type="button" (click)="prev(); $event.stopPropagation()">←</button>
+        <button type="button" (click)="next(); $event.stopPropagation()">→</button>
+        <button type="button" (click)="enterFullscreen(); $event.stopPropagation()">Pantalla completa</button>
+        <button type="button" (click)="exit(); $event.stopPropagation()">Salir</button>
+      </div>
+    </div>
+  </div>
+}

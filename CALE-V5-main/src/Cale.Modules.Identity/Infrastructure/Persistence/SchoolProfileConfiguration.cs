@@ -19,8 +19,17 @@ public sealed class SchoolProfileConfiguration : IEntityTypeConfiguration<School
         builder.Property(x => x.Department).HasMaxLength(120).IsRequired();
         builder.Property(x => x.PlanCode).HasMaxLength(32).IsRequired();
         builder.Property(x => x.PlanPriceCop).HasPrecision(18, 2);
+        builder.Property(x => x.RequestedPlanCode).HasMaxLength(32);
         builder.Property(x => x.SubscriptionStatus).HasMaxLength(32).IsRequired();
+        builder.Property(x => x.RenewalStatus).HasMaxLength(32).IsRequired();
+        builder.Property(x => x.PaymentProofUrl).HasMaxLength(500);
+        builder.Property(x => x.PaymentReference).HasMaxLength(120);
+        builder.Property(x => x.RejectionReason).HasMaxLength(500);
+        builder.Property(x => x.SuspensionReason).HasMaxLength(500);
+        builder.Property(x => x.TeachersMaxOverride);
+        builder.Property(x => x.StudentsMaxOverride);
         builder.HasIndex(x => x.UserId).IsUnique();
         builder.HasIndex(x => x.TaxId);
+        builder.HasIndex(x => x.SubscriptionStatus);
     }
 }

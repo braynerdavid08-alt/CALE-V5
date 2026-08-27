@@ -5,6 +5,10 @@
 <ui-error [message]="error() || auth.error()" />
 <ui-success [message]="success() || auth.success()" />
 
+@if (session.user()?.mustChangePassword) {
+  <ui-error message="Debes cambiar tu contraseña temporal antes de continuar. Ve a la pestaña Seguridad." />
+}
+
 @if (loading()) {
   <ui-loading />
 } @else {
@@ -111,7 +115,7 @@
           }
           @if (role() === 'Teacher') {
             <a routerLink="/teacher/groups"><ui-button type="button" variant="ghost">Grupos</ui-button></a>
-            <a routerLink="/teacher/exams"><ui-button type="button" variant="ghost">Exámenes</ui-button></a>
+            <a routerLink="/teacher/library"><ui-button type="button" variant="ghost">Biblioteca</ui-button></a>
           }
           @if (role() === 'Student') {
             <a routerLink="/student/simulator"><ui-button type="button" variant="ghost">Simulador</ui-button></a>

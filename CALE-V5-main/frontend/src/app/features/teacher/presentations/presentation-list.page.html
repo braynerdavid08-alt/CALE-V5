@@ -1,0 +1,86 @@
+<section class="plist">
+  <header class="plist-hero">
+    <div>
+      <p class="eyebrow">Material didáctico</p>
+      <h1>Mis presentaciones</h1>
+      <p class="lead">
+        Crea, guarda y proyecta tu clase directamente desde Mi CALE — sin PowerPoint.
+      </p>
+    </div>
+    <ui-button type="button" (click)="openCreate()">+ Nueva presentación</ui-button>
+  </header>
+
+  <ui-error [message]="error()" />
+
+  @if (showCreate()) {
+    <section class="create-panel">
+      <h2>{{ items().length ? 'Nueva presentación' : 'Comienza a crear tu material' }}</h2>
+      <p class="meta">Elige un punto de partida; todo es editable después.</p>
+      <div class="create-grid">
+        <label>
+          Nombre
+          <input [(ngModel)]="title" maxlength="200" placeholder="Ej. Señales reglamentarias" />
+        </label>
+        <label>
+          Categoría
+          <select [(ngModel)]="category">
+            @for (c of categories; track c) {
+              <option [value]="c">{{ c }}</option>
+            }
+          </select>
+        </label>
+        <label class="span2">
+          Descripción (opcional)
+          <input [(ngModel)]="description" maxlength="500" placeholder="Breve descripción para tu biblioteca" />
+        </label>
+        <label class="span2">
+          Plantilla inicial
+          <select [(ngModel)]="templateKey">
+            @for (t of templates; track t.key) {
+              <option [value]="t.key">{{ t.label }}</option>
+            }
+          </select>
+        </label>
+      </div>
+      <div class="create-actions">
+        <ui-button type="button" [disabled]="creating() || !title.trim()" (click)="create()">
+          {{ creating() ? 'Creando…' : 'Crear y abrir editor' }}
+        </ui-button>
+        @if (items().length) {
+          <ui-button type="button" variant="secondary" (click)="showCreate.set(false)">Cancelar</ui-button>
+        }
+      </div>
+    </section>
+  }
+
+  @if (loading()) {
+    <ui-loading />
+  } @else if (!items().length && !showCreate()) {
+    <ui-empty title="Sin presentaciones" message="Crea tu primer material didáctico." />
+  } @else if (items().length) {
+    <div class="cards">
+      @for (item of items(); track item.id) {
+        <article class="card">
+          <a class="thumb" [routerLink]="['/teacher/presentations', item.id, 'edit']">
+            <div class="thumb-inner">
+              <span>{{ item.slideCount }} diapositivas</span>
+              <strong>{{ item.category }}</strong>
+            </div>
+          </a>
+          <div class="body">
+            <h3>
+              <a [routerLink]="['/teacher/presentations', item.id, 'edit']">{{ item.title }}</a>
+            </h3>
+            <p class="meta">Modificada {{ relative(item.updatedAt) }}</p>
+            <div class="actions">
+              <a [routerLink]="['/teacher/presentations', item.id, 'edit']">Editar</a>
+              <a [routerLink]="['/teacher/presentations', item.id, 'present']">Presentar</a>
+              <button type="button" (click)="duplicate(item, $event)">Duplicar</button>
+              <button type="button" class="danger" (click)="remove(item, $event)">Eliminar</button>
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>

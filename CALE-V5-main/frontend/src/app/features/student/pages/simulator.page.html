@@ -125,12 +125,12 @@
         </div>
       </div>
       <p class="muted intro">
-        Configurados por tu docente. Misma regla: apruebas con ≥ {{ passPercent }}%.
+        Configurados por tu instructor. Misma regla: apruebas con ≥ {{ passPercent }}%.
       </p>
       @if (!exams().length) {
         <ui-empty
           title="No hay exámenes publicados"
-          message="Cuando tu docente publique uno, aparecerá aquí." />
+          message="Cuando tu instructor publique uno, aparecerá aquí." />
       } @else {
         <ul class="exam-list">
           @for (exam of exams(); track exam.id) {

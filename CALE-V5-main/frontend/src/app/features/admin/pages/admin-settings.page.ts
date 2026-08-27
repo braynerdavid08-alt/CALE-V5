@@ -168,9 +168,9 @@ import { roleLabel } from '../../../shared/utils/role-label';
       <ul class="list" style="margin-top: 0.75rem;">
         <li>Aprobación de exámenes y simulador: ≥ 80%.</li>
         <li>El tiempo de examen lo controla el servidor (inicio, vencimiento y cierre).</li>
-        <li>Registro público: estudiante, docente y escuela (rutas separadas).</li>
-        <li>Solo Admin crea o edita preguntas y bancos; Escuela y Docente los heredan en lectura.</li>
-        <li>Escuelas gestionan cupos, membresía y vinculan docentes/estudiantes existentes.</li>
+        <li>Registro público: estudiante, instructor y escuela (rutas separadas).</li>
+        <li>Solo Admin crea o edita preguntas y bancos; Escuela e Instructor los heredan en lectura.</li>
+        <li>Escuelas gestionan cupos, membresía y vinculan instructores/estudiantes existentes.</li>
         <li>Bancos oficiales sembrados: Normas de tránsito (500) y Reconocimiento visual de señales (194).</li>
       </ul>
     </ui-card>

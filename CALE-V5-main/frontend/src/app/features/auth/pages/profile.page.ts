@@ -87,8 +87,12 @@ export class ProfilePage implements OnInit {
           id: dto.id,
           name: dto.name,
           email: dto.email,
-          role: dto.role
+          role: dto.role,
+          mustChangePassword: !!dto.mustChangePassword
         });
+        if (dto.mustChangePassword) {
+          this.tab.set('security');
+        }
         this.loading.set(false);
       },
       error: (err) => {
@@ -146,15 +150,24 @@ export class ProfilePage implements OnInit {
 
   statusLabel(status: string): string {
     if (status === 'Active') return 'Activo';
+    if (status === 'Expiring') return 'Por vencer';
+    if (status === 'None') return 'Sin membresía';
     if (status === 'PendingPayment') return 'Pago pendiente';
+    if (status === 'UnderReview' || status === 'PaymentSubmitted') return 'En revisión';
+    if (status === 'Rejected') return 'Rechazada';
+    if (status === 'Cancelled') return 'Cancelada';
+    if (status === 'Suspended') return 'Suspendida';
     if (status === 'Expired') return 'Vencido';
     return status;
   }
 
   statusTone(status: string): 'success' | 'warning' | 'danger' | 'neutral' {
     if (status === 'Active') return 'success';
-    if (status === 'PendingPayment') return 'warning';
-    if (status === 'Expired') return 'danger';
+    if (status === 'Expiring' || status === 'PendingPayment') return 'warning';
+    if (status === 'UnderReview' || status === 'PaymentSubmitted') return 'warning';
+    if (status === 'Rejected' || status === 'Expired' || status === 'Suspended' || status === 'Cancelled') {
+      return 'danger';
+    }
     return 'neutral';
   }
 

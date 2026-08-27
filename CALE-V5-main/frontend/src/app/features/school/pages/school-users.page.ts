@@ -1,6 +1,8 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { RouterLink } from '@angular/router';
 import { env } from '../../../core/config/env';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
@@ -21,6 +23,7 @@ interface UserRow {
   role: string;
   isActive: boolean;
   createdAt: string;
+  lastLoginAt?: string | null;
 }
 
 interface SchoolProfileDto {
@@ -35,7 +38,9 @@ interface SchoolProfileDto {
   selector: 'app-school-users-page',
   standalone: true,
   imports: [
+    DatePipe,
     ReactiveFormsModule,
+    RouterLink,
     UiBadgeComponent,
     UiButtonComponent,
     UiCardComponent,
@@ -67,8 +72,14 @@ interface SchoolProfileDto {
   template: `
     <ui-page-header
       eyebrow="Escuela"
-      title="Docentes y estudiantes"
-      subtitle="Crea cuentas nuevas o vincula perfiles que ya existen en CALE." />
+      title="Instructores y estudiantes"
+      subtitle="Puedes crear y editar nombre/correo. Activar, desactivar o eliminar solo lo hace el administrador." />
+
+    <div class="row-actions" style="justify-content: flex-start; margin-bottom: 1rem;">
+      <a routerLink="/school/import">
+        <ui-button type="button" variant="secondary">Importar CSV</ui-button>
+      </a>
+    </div>
 
     <ui-error [message]="error()" />
     <ui-success [message]="ok()" />
@@ -78,7 +89,7 @@ interface SchoolProfileDto {
     } @else {
       <div class="grid-stats">
         <ui-stat
-          label="Docentes"
+          label="Instructores"
           [value]="(profile()?.teachersUsed ?? 0) + ' / ' + (profile()?.teachersMax ?? 0)"
           tone="primary" />
         <ui-stat
@@ -96,7 +107,7 @@ interface SchoolProfileDto {
             <label class="field">
               Tipo
               <select formControlName="role">
-                <option value="Teacher">Docente</option>
+                <option value="Teacher">Instructor</option>
                 <option value="Student">Estudiante</option>
               </select>
             </label>
@@ -119,21 +130,21 @@ interface SchoolProfileDto {
         <ui-card>
           <h2>Vincular cuenta existente</h2>
           <p class="hint">
-            Si el docente o estudiante ya se registró solo, agrégalo con su correo.
-            Debe coincidir el tipo (docente/estudiante) y no pertenecer a otra escuela.
+            Si el instructor o estudiante ya se registró solo, agrégalo con su correo.
+            Debe coincidir el tipo (instructor/estudiante) y no pertenecer a otra escuela.
           </p>
           <form class="stack" [formGroup]="attachForm" (ngSubmit)="attach()">
             <label class="field">
               Tipo
               <select formControlName="role">
-                <option value="Teacher">Docente</option>
+                <option value="Teacher">Instructor</option>
                 <option value="Student">Estudiante</option>
               </select>
             </label>
             <label class="field">
               Correo de la cuenta
               <input type="email" formControlName="email" autocomplete="email"
-                placeholder="profesor@ejemplo.com" />
+                placeholder="instructor@ejemplo.com" />
             </label>
             <ui-button type="submit" [loading]="attaching()">Vincular a mi escuela</ui-button>
           </form>
@@ -147,7 +158,7 @@ interface SchoolProfileDto {
               class="input"
               [value]="query()"
               (input)="query.set($any($event.target).value)"
-              placeholder="Ej. docente, estudiante..." />
+              placeholder="Ej. instructor, estudiante..." />
           </label>
           <p class="muted">Mostrando {{ filtered().length }} de {{ items().length }}.</p>
         </ui-card>
@@ -180,7 +191,7 @@ interface SchoolProfileDto {
       @if (!filtered().length) {
         <ui-empty
           title="Sin miembros"
-          message="Crea una cuenta nueva o vincula un docente/estudiante existente." />
+          message="Crea una cuenta nueva o vincula un instructor/estudiante existente." />
       } @else {
         <ui-card>
           <div class="table-wrap">
@@ -190,6 +201,7 @@ interface SchoolProfileDto {
                   <th>Nombre</th>
                   <th>Correo</th>
                   <th>Rol</th>
+                  <th>Último acceso</th>
                   <th>Estado</th>
                   <th></th>
                 </tr>
@@ -205,6 +217,9 @@ interface SchoolProfileDto {
                       </ui-badge>
                     </td>
                     <td>
+                      {{ user.lastLoginAt ? (user.lastLoginAt | date:'short') : 'Sin acceso' }}
+                    </td>
+                    <td>
                       <ui-badge [tone]="user.isActive ? 'success' : 'danger'">
                         {{ user.isActive ? 'Activo' : 'Inactivo' }}
                       </ui-badge>
@@ -212,20 +227,6 @@ interface SchoolProfileDto {
                     <td>
                       <div class="row-actions">
                         <ui-button type="button" variant="ghost" (click)="startEdit(user)">Editar</ui-button>
-                        <ui-button
-                          type="button"
-                          variant="ghost"
-                          [disabled]="busyId() === user.id"
-                          (click)="toggleActive(user)">
-                          {{ user.isActive ? 'Desactivar' : 'Activar' }}
-                        </ui-button>
-                        <ui-button
-                          type="button"
-                          variant="ghost"
-                          [disabled]="busyId() === user.id"
-                          (click)="unlink(user)">
-                          Quitar
-                        </ui-button>
                       </div>
                     </td>
                   </tr>
@@ -247,7 +248,6 @@ export class SchoolUsersPage implements OnInit {
   readonly saving = signal(false);
   readonly attaching = signal(false);
   readonly savingEdit = signal(false);
-  readonly busyId = signal<number | null>(null);
   readonly error = signal<string | null>(null);
   readonly ok = signal<string | null>(null);
   readonly items = signal<UserRow[]>([]);
@@ -401,46 +401,6 @@ export class SchoolUsersPage implements OnInit {
       },
       error: (err) => {
         this.savingEdit.set(false);
-        this.error.set(mapApiError(err));
-      }
-    });
-  }
-
-  toggleActive(user: UserRow): void {
-    this.busyId.set(user.id);
-    this.http.patch<UserRow>(
-      `${env.apiUrl}/api/school/members/${user.id}/active`,
-      { isActive: !user.isActive }
-    ).subscribe({
-      next: (updated) => {
-        this.items.update((rows) =>
-          rows.map((row) => (row.id === updated.id ? updated : row))
-        );
-        this.busyId.set(null);
-        this.ok.set(updated.isActive ? `${updated.name} activado.` : `${updated.name} desactivado.`);
-      },
-      error: (err) => {
-        this.busyId.set(null);
-        this.error.set(mapApiError(err));
-      }
-    });
-  }
-
-  unlink(user: UserRow): void {
-    if (!confirm(`¿Quitar a ${user.name} de tu escuela? La cuenta seguirá existiendo en CALE.`)) {
-      return;
-    }
-    this.busyId.set(user.id);
-    this.http.delete(`${env.apiUrl}/api/school/members/${user.id}`).subscribe({
-      next: () => {
-        this.items.update((rows) => rows.filter((row) => row.id !== user.id));
-        if (this.editing()?.id === user.id) this.cancelEdit();
-        this.busyId.set(null);
-        this.ok.set(`${user.name} ya no pertenece a tu escuela.`);
-        this.refreshSeats();
-      },
-      error: (err) => {
-        this.busyId.set(null);
         this.error.set(mapApiError(err));
       }
     });

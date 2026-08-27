@@ -13,6 +13,8 @@ using Cale.Modules.Engagement.Infrastructure;
 using Cale.Modules.Engagement.Infrastructure.Persistence;
 using Cale.Modules.Identity.Infrastructure;
 using Cale.Modules.Identity.Infrastructure.Persistence;
+using Cale.Modules.Presentation.Infrastructure;
+using Cale.Modules.Presentation.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -55,12 +57,17 @@ public static class ServiceCollectionExtensions
                 typeof(BankConfiguration).Assembly,
                 typeof(AttemptConfiguration).Assembly,
                 typeof(GroupConfiguration).Assembly,
-                typeof(NotificationConfiguration).Assembly));
+                typeof(NotificationConfiguration).Assembly,
+                typeof(PresentationDeckConfiguration).Assembly));
         services.AddIdentityModule();
         services.AddCatalogModule();
         services.AddAssessmentModule();
         services.AddClassroomModule();
         services.AddEngagementModule();
+        services.AddPresentationModule();
+        services.AddMemoryCache();
+        services.AddScoped<Cale.Api.Services.PilotMetricsService>();
+        services.AddScoped<Cale.Api.Services.HomepageService>();
         services.AddCaleAuth(config);
         services.AddCaleCors(config);
         return builder;
@@ -111,14 +118,35 @@ public static class ServiceCollectionExtensions
         IConfiguration config)
     {
         var origins = config.GetSection("Cors:Origins").Get<string[]>()
-            ?? ["http://localhost:4200"];
+            ?? ["http://localhost:4200", "http://127.0.0.1:4200"];
+
+        // Allow comma-separated override: Cors__Origins=https://app.tld,https://www.app.tld
+        var fromEnv = Environment.GetEnvironmentVariable("Cors__Origins")
+            ?? Environment.GetEnvironmentVariable("CORS_ORIGINS");
+        if (!string.IsNullOrWhiteSpace(fromEnv))
+        {
+            origins = fromEnv
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        }
 
         services.AddCors(options =>
         {
             options.AddPolicy("Cale", policy =>
+            {
+                if (origins.Length == 1 && origins[0] == "*")
+                {
+                    policy.AllowAnyOrigin()
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .WithExposedHeaders("X-Request-Id");
+                    return;
+                }
+
                 policy.WithOrigins(origins)
                     .AllowAnyHeader()
-                    .AllowAnyMethod());
+                    .AllowAnyMethod()
+                    .WithExposedHeaders("X-Request-Id");
+            });
         });
     }
 

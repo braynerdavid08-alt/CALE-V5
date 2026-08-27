@@ -55,7 +55,7 @@ public class IdentityUseCaseTests : IDisposable
             new RegisterRequest("Ana", "ana@t.com", "Password1"),
             CancellationToken.None);
 
-        var login = new LoginUserHandler(_fx.Users, _fx.Hasher, _fx.Tokens);
+        var login = _fx.CreateLogin();
 
         await Assert.ThrowsAsync<UnauthorizedException>(() =>
             login.HandleAsync(
@@ -74,7 +74,7 @@ public class IdentityUseCaseTests : IDisposable
             new RegisterRequest("Ana", "ana@t.com", "Password1"),
             CancellationToken.None);
 
-        var login = new LoginUserHandler(_fx.Users, _fx.Hasher, _fx.Tokens);
+        var login = _fx.CreateLogin();
         var result = await login.HandleAsync(
             new LoginRequest("ana@t.com", "Password1"),
             CancellationToken.None);
@@ -94,7 +94,10 @@ public class IdentityUseCaseTests : IDisposable
             new RegisterRequest("Ana", "ana@t.com", "Password1"),
             CancellationToken.None);
 
-        var me = await new GetCurrentUserHandler(_fx.Users).HandleAsync(
+        var me = await new GetCurrentUserHandler(
+            _fx.Users,
+            _fx.Profiles,
+            _fx.Clock).HandleAsync(
             registered.UserId,
             CancellationToken.None);
 
@@ -115,7 +118,7 @@ public class IdentityUseCaseTests : IDisposable
         await _fx.Users.AddAsync(user, CancellationToken.None);
         await _fx.Users.SaveChangesAsync(CancellationToken.None);
 
-        var login = new LoginUserHandler(_fx.Users, _fx.Hasher, _fx.Tokens);
+        var login = _fx.CreateLogin();
         var result = await login.HandleAsync(
             new LoginRequest("admin@cale.local", "Admin123!"),
             CancellationToken.None);

@@ -1,3 +1,4 @@
+using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Security;
 using Cale.BuildingBlocks.Domain.Time;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
@@ -17,6 +18,14 @@ public static class IdentitySeed
     public const string SchoolEmail = "escuela@cale.local";
     public const string SchoolPassword = "Escuela123!";
 
+    private static readonly HashSet<string> DemoEmails = new(StringComparer.OrdinalIgnoreCase)
+    {
+        AdminEmail,
+        TeacherEmail,
+        StudentEmail,
+        SchoolEmail
+    };
+
     public static async Task EnsureAdminAsync(
         CaleDbContext db,
         IPasswordHasher hasher,
@@ -30,15 +39,24 @@ public static class IdentitySeed
         IClock clock,
         CancellationToken ct = default)
     {
+        // Keep only one account per role (the demo set).
+        await PurgeNonDemoUsersAsync(db, ct);
+
         await EnsureUserAsync(
             db,
             hasher,
             clock,
             AdminEmail,
             AdminPassword,
-            "Equipo CALE",
+            "Administrador CALE",
             (name, email, hash, now) => User.CreateAdmin(name, email, hash, now),
             ct);
+
+        await EnsureDemoSchoolAsync(db, hasher, clock, ct);
+
+        var school = await db.Set<User>()
+            .AsNoTracking()
+            .FirstAsync(x => x.Email == SchoolEmail, ct);
 
         await EnsureUserAsync(
             db,
@@ -46,9 +64,10 @@ public static class IdentitySeed
             clock,
             TeacherEmail,
             TeacherPassword,
-            "Profesor Demo",
-            (name, email, hash, now) => User.CreateTeacher(name, email, hash, now),
-            ct);
+            "Instructor Demo",
+            (name, email, hash, now) => User.CreateTeacher(name, email, hash, now, school.Id),
+            ct,
+            school.Id);
 
         await EnsureUserAsync(
             db,
@@ -57,10 +76,33 @@ public static class IdentitySeed
             StudentEmail,
             StudentPassword,
             "Estudiante Demo",
-            (name, email, hash, now) => User.RegisterStudent(name, email, hash, now),
-            ct);
+            (name, email, hash, now) => User.RegisterStudent(name, email, hash, now, school.Id),
+            ct,
+            school.Id);
+    }
 
-        await EnsureDemoSchoolAsync(db, hasher, clock, ct);
+    private static async Task PurgeNonDemoUsersAsync(CaleDbContext db, CancellationToken ct)
+    {
+        var all = await db.Set<User>().ToListAsync(ct);
+        var extras = all.Where(u => !DemoEmails.Contains(u.Email)).ToList();
+
+        if (extras.Count == 0)
+        {
+            return;
+        }
+
+        var extraIds = extras.Select(u => u.Id).ToHashSet();
+        var orphanProfiles = await db.Set<SchoolProfile>()
+            .Where(p => extraIds.Contains(p.UserId))
+            .ToListAsync(ct);
+
+        if (orphanProfiles.Count > 0)
+        {
+            db.Set<SchoolProfile>().RemoveRange(orphanProfiles);
+        }
+
+        db.Set<User>().RemoveRange(extras);
+        await db.SaveChangesAsync(ct);
     }
 
     private static async Task EnsureDemoSchoolAsync(
@@ -82,17 +124,26 @@ public static class IdentitySeed
             db.Set<User>().Add(user);
             await db.SaveChangesAsync(ct);
         }
-        else if (!hasher.Verify(SchoolPassword, user.PasswordHash))
+        else
         {
-            user.ChangePassword(hasher.Hash(SchoolPassword));
+            if (!hasher.Verify(SchoolPassword, user.PasswordHash))
+            {
+                user.ChangePassword(hasher.Hash(SchoolPassword));
+            }
+
+            if (!user.IsActive)
+            {
+                user.Activate();
+            }
+
             await db.SaveChangesAsync(ct);
         }
 
         var profile = await db.Set<SchoolProfile>()
             .FirstOrDefaultAsync(x => x.UserId == user.Id, ct);
+        var plan = SchoolPlans.Find(SchoolPlans.Monthly)!;
         if (profile is null)
         {
-            var plan = SchoolPlans.Find(SchoolPlans.Monthly)!;
             profile = SchoolProfile.Create(
                 user.Id,
                 "Escuela Demo CALE S.A.S.",
@@ -107,6 +158,13 @@ public static class IdentitySeed
             profile.ActivateOrRenew(plan, clock.UtcNow);
             db.Set<SchoolProfile>().Add(profile);
             await db.SaveChangesAsync(ct);
+            return;
+        }
+
+        if (!profile.IsCommerciallyActive(clock.UtcNow))
+        {
+            profile.ActivateOrRenew(plan, clock.UtcNow);
+            await db.SaveChangesAsync(ct);
         }
     }
 
@@ -118,7 +176,8 @@ public static class IdentitySeed
         string password,
         string name,
         Func<string, string, string, DateTime, User> factory,
-        CancellationToken ct)
+        CancellationToken ct,
+        int? schoolId = null)
     {
         var user = await db.Set<User>()
             .FirstOrDefaultAsync(x => x.Email == email, ct);
@@ -130,9 +189,29 @@ public static class IdentitySeed
             return;
         }
 
+        var changed = false;
         if (!hasher.Verify(password, user.PasswordHash))
         {
             user.ChangePassword(hasher.Hash(password));
+            changed = true;
+        }
+
+        if (!user.IsActive)
+        {
+            user.Activate();
+            changed = true;
+        }
+
+        if (schoolId is { } sid && user.SchoolId != sid
+            && (Roles.Normalize(user.Role) == Roles.Teacher
+                || Roles.Normalize(user.Role) == Roles.Student))
+        {
+            user.AssignSchool(sid);
+            changed = true;
+        }
+
+        if (changed)
+        {
             await db.SaveChangesAsync(ct);
         }
     }

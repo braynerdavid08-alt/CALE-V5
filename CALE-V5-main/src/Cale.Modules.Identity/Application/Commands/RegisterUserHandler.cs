@@ -49,6 +49,7 @@ public sealed class RegisterUserHandler
             _clock.UtcNow);
 
         await _users.AddAsync(user, ct);
+        user.RecordLogin(_clock.UtcNow);
         await _users.SaveChangesAsync(ct);
 
         var token = _tokens.Create(
@@ -62,7 +63,8 @@ public sealed class RegisterUserHandler
             user.Id,
             user.Name,
             user.Email,
-            Roles.Student);
+            Roles.Student,
+            false);
     }
 
     private static void Validate(RegisterRequest request)

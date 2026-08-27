@@ -11,6 +11,7 @@ public interface IUserStore
     Task AddAsync(User user, CancellationToken ct);
     void Remove(User user);
     Task<IReadOnlyList<User>> ListAsync(CancellationToken ct);
+    Task<IReadOnlyList<User>> ListByRoleAsync(string role, CancellationToken ct);
     Task<IReadOnlyList<User>> ListBySchoolAsync(int schoolId, CancellationToken ct);
     Task<int> CountBySchoolAndRoleAsync(int schoolId, string role, CancellationToken ct);
     Task<int> CountAsync(CancellationToken ct);

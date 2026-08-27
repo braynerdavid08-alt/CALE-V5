@@ -1,6 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { itemStatusLabel } from '../../../shared/utils/item-status-label';
@@ -23,6 +23,7 @@ import {
   standalone: true,
   imports: [
     FormsModule,
+    RouterLink,
     UiButtonComponent,
     UiEmptyComponent,
     UiErrorComponent,
@@ -74,6 +75,10 @@ import {
     }
 
     <h2>Material</h2>
+    <p class="meta">
+      <a routerLink="/teacher/presentations">Material didáctico · Presentaciones</a>
+      — crea diapositivas y proyecta en clase sin PowerPoint.
+    </p>
     <input [(ngModel)]="materialTitle" name="mt" placeholder="Título" />
     <input [(ngModel)]="materialUrl" name="mu" placeholder="URL (opcional)" />
     <textarea [(ngModel)]="materialText" name="mx" placeholder="Texto"></textarea>

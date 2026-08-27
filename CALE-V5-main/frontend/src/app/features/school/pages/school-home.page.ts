@@ -1,23 +1,31 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { SessionStore } from '../../../core/auth/session.store';
 import { env } from '../../../core/config/env';
 import { mapApiError } from '../../../core/http/map-api-error';
+import {
+  NotificationDto,
+  NotificationsApi
+} from '../../../core/notifications/notifications.api';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
-import { UiCardComponent } from '../../../shared/ui/ui-card.component';
+import { UiDashBarsComponent, DashBarItem } from '../../../shared/ui/ui-dash-bars.component';
+import { UiDashKpiComponent } from '../../../shared/ui/ui-dash-kpi.component';
+import { UiDashNotifsComponent } from '../../../shared/ui/ui-dash-notifs.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
-import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
-import { UiStatComponent } from '../../../shared/ui/ui-stat.component';
 
 interface SchoolProfileDto {
   contactName: string;
   legalName: string;
   planLabel: string;
   subscriptionStatus: string;
+  displayStatus?: string;
+  renewalStatus?: string;
   membershipEndsAt?: string | null;
   daysRemaining: number;
   isMembershipActive: boolean;
@@ -25,6 +33,20 @@ interface SchoolProfileDto {
   teachersMax: number;
   studentsUsed: number;
   studentsMax: number;
+}
+
+interface MembershipEventDto {
+  eventType: string;
+  note?: string | null;
+  createdAt: string;
+}
+
+interface UserRow {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  isActive: boolean;
 }
 
 @Component({
@@ -35,98 +57,74 @@ interface SchoolProfileDto {
     RouterLink,
     UiBadgeComponent,
     UiButtonComponent,
-    UiCardComponent,
+    UiDashBarsComponent,
+    UiDashKpiComponent,
+    UiDashNotifsComponent,
     UiErrorComponent,
-    UiLoadingComponent,
-    UiPageHeaderComponent,
-    UiStatComponent
+    UiLoadingComponent
   ],
-  styles: [`
-    .muted { color: var(--color-text-secondary); margin: 0.35rem 0 0; }
-    .actions { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.75rem; }
-    .hello { margin: 0; font-size: var(--text-lg); font-weight: 700; }
-  `],
-  template: `
-    <ui-page-header
-      eyebrow="Escuela"
-      title="Inicio"
-      subtitle="Resumen de tu institución y accesos rápidos." />
-
-    <ui-error [message]="error()" />
-
-    @if (loading()) {
-      <ui-loading />
-    } @else if (profile()) {
-      <div class="grid-stats">
-        <ui-stat
-          label="Días restantes"
-          [value]="profile()!.daysRemaining"
-          [tone]="profile()!.isMembershipActive ? 'success' : 'warning'" />
-        <ui-stat
-          label="Docentes"
-          [value]="profile()!.teachersUsed + ' / ' + profile()!.teachersMax"
-          tone="primary" />
-        <ui-stat
-          label="Estudiantes"
-          [value]="profile()!.studentsUsed + ' / ' + profile()!.studentsMax" />
-        <ui-stat label="Plan" [value]="profile()!.planLabel" />
-      </div>
-
-      <div class="grid-2">
-        <ui-card>
-          <h2>Bienvenida</h2>
-          <p class="hello">{{ profile()!.legalName || session.user()?.name }}</p>
-          <p class="muted">
-            Plan {{ profile()!.planLabel }} ·
-            <ui-badge [tone]="statusTone(profile()!.subscriptionStatus)">
-              {{ statusLabel(profile()!.subscriptionStatus) }}
-            </ui-badge>
-          </p>
-          @if (profile()!.membershipEndsAt) {
-            <p class="muted">
-              Vence el {{ profile()!.membershipEndsAt | date:'mediumDate' }}
-              ({{ profile()!.daysRemaining }} día(s)).
-            </p>
-          }
-          <div class="actions">
-            <a routerLink="/school/membership">
-              <ui-button type="button">Gestionar membresía</ui-button>
-            </a>
-            <a routerLink="/school/users">
-              <ui-button type="button" variant="secondary">Usuarios</ui-button>
-            </a>
-          </div>
-        </ui-card>
-
-        <ui-card>
-          <h2>Catálogo</h2>
-          <p class="muted">
-            Consulta las preguntas y bancos oficiales heredados de la plataforma (solo lectura).
-          </p>
-          <div class="actions">
-            <a routerLink="/school/questions">
-              <ui-button type="button" variant="secondary">Preguntas</ui-button>
-            </a>
-            <a routerLink="/school/banks">
-              <ui-button type="button" variant="secondary">Bancos</ui-button>
-            </a>
-          </div>
-        </ui-card>
-      </div>
-    }
-  `
+  templateUrl: './school-home.page.html',
+  styleUrl: './school-home.page.css'
 })
 export class SchoolHomePage implements OnInit {
   private readonly http = inject(HttpClient);
+  private readonly notificationsApi = inject(NotificationsApi);
+  private readonly router = inject(Router);
   readonly session = inject(SessionStore);
+
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly profile = signal<SchoolProfileDto | null>(null);
+  readonly events = signal<MembershipEventDto[]>([]);
+  readonly members = signal<UserRow[]>([]);
+  readonly notifs = signal<NotificationDto[]>([]);
+
+  readonly seatBars = computed<DashBarItem[]>(() => {
+    const p = this.profile();
+    if (!p) {
+      return [];
+    }
+    return [
+      {
+        label: 'Cupos instructores',
+        value: p.teachersUsed,
+        max: Math.max(p.teachersMax, 1),
+        tone: 'info'
+      },
+      {
+        label: 'Cupos estudiantes',
+        value: p.studentsUsed,
+        max: Math.max(p.studentsMax, 1),
+        tone: 'primary'
+      }
+    ];
+  });
+
+  readonly activeTeachers = computed(
+    () => this.members().filter((m) => m.role === 'Teacher' && m.isActive).length
+  );
+  readonly activeStudents = computed(
+    () => this.members().filter((m) => m.role === 'Student' && m.isActive).length
+  );
 
   ngOnInit(): void {
-    this.http.get<SchoolProfileDto>(`${env.apiUrl}/api/school/profile`).subscribe({
-      next: (dto) => {
-        this.profile.set(dto);
+    forkJoin({
+      profile: this.http.get<SchoolProfileDto>(`${env.apiUrl}/api/school/profile`),
+      events: this.http
+        .get<MembershipEventDto[]>(`${env.apiUrl}/api/school/plan/history`)
+        .pipe(catchError(() => of([] as MembershipEventDto[]))),
+      members: this.http
+        .get<UserRow[]>(`${env.apiUrl}/api/school/members`)
+        .pipe(catchError(() => of([] as UserRow[]))),
+      notifs: this.notificationsApi.list({ take: 5 }).pipe(
+        catchError(() => of({ items: [] as NotificationDto[], unreadCount: 0 }))
+      )
+    }).subscribe({
+      next: (res) => {
+        this.profile.set(res.profile);
+        this.events.set(res.events.slice(0, 6));
+        this.members.set(res.members);
+        this.notifs.set(res.notifs.items);
         this.loading.set(false);
       },
       error: (err) => {
@@ -138,15 +136,58 @@ export class SchoolHomePage implements OnInit {
 
   statusLabel(status: string): string {
     if (status === 'Active') return 'Activo';
-    if (status === 'PendingPayment') return 'Pago pendiente';
+    if (status === 'Expiring') return 'Por vencer';
+    if (status === 'None') return 'Sin membresía';
+    if (status === 'PendingPayment') return 'Pendiente de pago';
+    if (status === 'UnderReview' || status === 'PaymentSubmitted') return 'En revisión';
+    if (status === 'Rejected') return 'Solicitud rechazada';
+    if (status === 'Cancelled') return 'Cancelada';
+    if (status === 'Suspended') return 'Suspendida';
     if (status === 'Expired') return 'Vencido';
     return status;
   }
 
-  statusTone(status: string): 'success' | 'warning' | 'danger' | 'neutral' {
+  statusTone(status: string): 'success' | 'warning' | 'danger' | 'neutral' | 'primary' {
     if (status === 'Active') return 'success';
-    if (status === 'PendingPayment') return 'warning';
-    if (status === 'Expired') return 'danger';
+    if (status === 'Expiring' || status === 'PendingPayment') return 'warning';
+    if (status === 'UnderReview' || status === 'PaymentSubmitted') return 'primary';
+    if (status === 'Rejected' || status === 'Expired' || status === 'Suspended' || status === 'Cancelled') {
+      return 'danger';
+    }
     return 'neutral';
+  }
+
+  eventLabel(type: string): string {
+    const map: Record<string, string> = {
+      Requested: 'Solicitud creada',
+      ProofSubmitted: 'Comprobante enviado',
+      Activated: 'Membresía activada',
+      Renewed: 'Renovación',
+      Rejected: 'Rechazada',
+      Cancelled: 'Cancelada',
+      Suspended: 'Suspendida',
+      Unsuspended: 'Reactivada',
+      SeatsAdjusted: 'Cupos ajustados',
+      MembershipOverridden: 'Ajuste admin',
+      RequestReopened: 'Solicitud reabierta'
+    };
+    return map[type] || type;
+  }
+
+  openNotif(n: NotificationDto): void {
+    const go = () => void this.router.navigateByUrl(n.link || '/notifications');
+    if (n.isRead) {
+      go();
+      return;
+    }
+    this.notificationsApi.markRead(n.id).subscribe({
+      next: () => {
+        this.notifs.update((list) =>
+          list.map((x) => (x.id === n.id ? { ...x, isRead: true } : x))
+        );
+        go();
+      },
+      error: () => go()
+    });
   }
 }

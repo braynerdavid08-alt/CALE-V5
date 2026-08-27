@@ -43,19 +43,211 @@ public sealed record SchoolProfileDto(
     decimal MonthlyEquivalentCop,
     int PlanDurationMonths,
     string SubscriptionStatus,
+    string DisplayStatus,
+    string RenewalStatus,
     DateTime CreatedAt,
     DateTime? MembershipStartsAt,
     DateTime? MembershipEndsAt,
     int DaysRemaining,
     bool IsMembershipActive,
+    string? RequestedPlanCode,
+    string? RequestedPlanLabel,
+    bool HasPendingRequest,
+    bool NeedsPaymentProof,
+    bool AwaitingAdminReview,
+    string? PaymentProofUrl,
+    string? PaymentReference,
+    string? RejectionReason,
+    string? SuspensionReason,
+    DateTime? RequestedAt,
+    DateTime? ProofSubmittedAt,
+    DateTime? LastDecisionAt,
+    SchoolPaymentInstructionsDto PaymentInstructions,
     int TeachersUsed,
     int TeachersMax,
     int StudentsUsed,
     int StudentsMax);
 
+public sealed record SchoolPaymentInstructionsDto(
+    string BankName,
+    string AccountType,
+    string AccountNumber,
+    string AccountHolder,
+    string HolderTaxId,
+    string WhatsApp,
+    string SupportEmail,
+    string Notes,
+    string PaymentReferenceHint);
+
 public sealed record ChangeSchoolPlanRequest(string PlanCode);
 
-public sealed record ActivateSchoolPlanRequest(string? PlanCode);
+public sealed record RequestSchoolMembershipRequest(string? PlanCode);
+
+public sealed record SubmitPaymentProofRequest(
+    string PaymentProofUrl,
+    string? PaymentReference);
+
+public sealed record ActivateSchoolPlanRequest(
+    string? PlanCode,
+    bool ForceWithoutProof = false);
+
+public sealed record RejectSchoolMembershipRequest(string? Note);
+
+public sealed record CancelSchoolMembershipRequest(string? Note);
+
+public sealed record SuspendSchoolMembershipRequest(string? Note);
+
+public sealed record AdminSetSchoolSeatsRequest(
+    int? TeachersMax,
+    int? StudentsMax,
+    string? Note);
+
+public sealed record AdminOverrideSchoolMembershipRequest(
+    string? PlanCode,
+    string? SubscriptionStatus,
+    DateTime? MembershipEndsAt,
+    bool ClearRejection = true,
+    string? Note = null);
+
+public sealed record AdminReopenSchoolRequest(
+    string? PlanCode,
+    string? Note);
+
+public sealed record SchoolMembershipRequestDto(
+    int UserId,
+    string ContactName,
+    string Email,
+    string LegalName,
+    string TaxId,
+    string BillingEmail,
+    string Phone,
+    string City,
+    string Department,
+    string PlanCode,
+    string PlanLabel,
+    decimal PlanPriceCop,
+    int PlanDurationMonths,
+    string SubscriptionStatus,
+    string DisplayStatus,
+    string RenewalStatus,
+    string? RequestedPlanCode,
+    bool IsRenewalRequest,
+    bool HasPaymentProof,
+    string? PaymentProofUrl,
+    string? PaymentReference,
+    DateTime? RequestedAt,
+    DateTime? ProofSubmittedAt,
+    DateTime CreatedAt,
+    DateTime? MembershipStartsAt,
+    DateTime? MembershipEndsAt,
+    int TeachersUsed = 0,
+    int TeachersMax = 0,
+    int StudentsUsed = 0,
+    int StudentsMax = 0,
+    int? TeachersMaxOverride = null,
+    int? StudentsMaxOverride = null,
+    string? RejectionReason = null,
+    string? SuspensionReason = null);
+
+public sealed record AdminSchoolSummaryDto(
+    int UserId,
+    string ContactName,
+    string Email,
+    string LegalName,
+    string TaxId,
+    string PlanCode,
+    string PlanLabel,
+    string SubscriptionStatus,
+    string DisplayStatus,
+    string RenewalStatus,
+    bool IsMembershipActive,
+    int DaysRemaining,
+    DateTime? MembershipEndsAt,
+    int TeachersUsed,
+    int TeachersMax,
+    int StudentsUsed,
+    int StudentsMax,
+    bool HasSeatOverrides,
+    bool HasOpenRequest,
+    DateTime CreatedAt);
+
+public sealed record AdminSchoolDetailDto(
+    int UserId,
+    string ContactName,
+    string Email,
+    string LegalName,
+    string TaxId,
+    string BillingEmail,
+    string Phone,
+    string Address,
+    string City,
+    string Department,
+    string PlanCode,
+    string PlanLabel,
+    decimal PlanPriceCop,
+    string SubscriptionStatus,
+    string DisplayStatus,
+    string RenewalStatus,
+    bool IsMembershipActive,
+    int DaysRemaining,
+    DateTime? MembershipStartsAt,
+    DateTime? MembershipEndsAt,
+    int TeachersUsed,
+    int TeachersMax,
+    int StudentsUsed,
+    int StudentsMax,
+    bool HasSeatOverrides,
+    bool HasOpenRequest,
+    DateTime CreatedAt,
+    IReadOnlyList<UserListItemDto> Members,
+    IReadOnlyList<MembershipEventDto> History);
+
+public sealed record MembershipEventDto(
+    int Id,
+    string EventType,
+    string? PlanCode,
+    decimal? PlanPriceCop,
+    string? Note,
+    DateTime CreatedAt);
+
+public sealed record MonthlyRegistrationPointDto(
+    string Label,
+    int Year,
+    int Month,
+    int Students,
+    int Teachers,
+    int Schools);
+
+public sealed record PilotMetricsDto(
+    int DailyActiveUsers,
+    int WeeklyActiveUsers,
+    int MonthlyActiveUsers,
+    int ActiveSchools,
+    int PendingMembershipRequests,
+    int MembershipRequests30d,
+    int MembershipActivations30d,
+    decimal MembershipConversionRate30d,
+    int StudentsTotal,
+    int StudentsActive7d,
+    int StudentsInactive14d,
+    int TeachersTotal,
+    int TeachersActive7d,
+    int ActiveGroups,
+    int AttemptsStarted30d,
+    int AttemptsFinished30d,
+    decimal ExamCompletionRate30d,
+    decimal ExamPassRate30d,
+    decimal AvgAttemptsPerStudent30d,
+    int QuestionsAnsweredTotal,
+    decimal AvgExamTimeSeconds30d,
+    int AbandonedAttempts30d,
+    decimal SimulatorUsageShare30d,
+    int ClassroomSubmissions30d,
+    decimal UsersGrowth30d,
+    decimal SchoolsGrowth30d,
+    decimal TeachersGrowth30d,
+    decimal StudentsGrowth30d,
+    IReadOnlyList<MonthlyRegistrationPointDto> RegistrationsLast6Months);
 
 public sealed record UpdateSchoolBillingRequest(
     string LegalName,
@@ -90,7 +282,8 @@ public sealed record AuthResponse(
     int UserId,
     string Name,
     string Email,
-    string Role);
+    string Role,
+    bool MustChangePassword);
 
 public sealed record MeResponse(
     int Id,
@@ -99,6 +292,7 @@ public sealed record MeResponse(
     string Role,
     bool IsActive,
     DateTime CreatedAt,
+    bool MustChangePassword,
     MeSchoolContextDto? School);
 
 public sealed record MeSchoolContextDto(
@@ -119,12 +313,26 @@ public sealed record UserListItemDto(
     string Email,
     string Role,
     bool IsActive,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    DateTime? LastLoginAt);
 
 public sealed record CreateTeacherRequest(
     string Name,
     string Email,
     string Password);
+
+public sealed record CreateSchoolRequest(
+    string LegalName,
+    string Email,
+    string Password,
+    string? ContactName = null,
+    string? TaxId = null,
+    string? BillingEmail = null,
+    string? Phone = null,
+    string? Address = null,
+    string? City = null,
+    string? Department = null,
+    string? PlanCode = null);
 
 public sealed record UpdateUserRequest(
     string Name,

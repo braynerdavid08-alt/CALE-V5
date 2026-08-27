@@ -77,6 +77,43 @@ import { Component, Input } from '@angular/core';
         @case ('bank') {
           <path d="M3 10h18M5 10v8M19 10v8M9 10v8M15 10v8M2 18h20M12 3l9 7H3z"/>
         }
+        @case ('card') {
+          <rect x="2" y="5" width="20" height="14" rx="2"/>
+          <path d="M2 10h20M6 15h4"/>
+        }
+        @case ('building') {
+          <path d="M3 21h18"/>
+          <path d="M5 21V7l7-4 7 4v14"/>
+          <path d="M9 21v-6h6v6"/>
+          <path d="M9 10h.01M15 10h.01M9 14h.01M15 14h.01"/>
+        }
+        @case ('instructor') {
+          <circle cx="9" cy="7" r="3.5"/>
+          <path d="M3 21v-1.5A4.5 4.5 0 0 1 7.5 15H10"/>
+          <path d="M15 8h6M18 5v6"/>
+          <path d="M14 21v-2a3 3 0 0 1 3-3h2"/>
+        }
+        @case ('graduate') {
+          <path d="M22 10 12 4 2 10l10 6 10-6z"/>
+          <path d="M6 12v5c1.5 1.5 4 2.5 6 2.5s4.5-1 6-2.5v-5"/>
+          <path d="M22 10v6"/>
+        }
+        @case ('chevron') {
+          <path d="m9 6 6 6-6 6"/>
+        }
+        @case ('panel') {
+          <rect x="3" y="4" width="18" height="16" rx="2"/>
+          <path d="M9 4v16"/>
+        }
+        @case ('grid') {
+          <rect x="3" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/>
+          <rect x="14" y="14" width="7" height="7" rx="1"/>
+        }
+        @case ('list') {
+          <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+        }
         @case ('sun') {
           <circle cx="12" cy="12" r="4"/>
           <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>

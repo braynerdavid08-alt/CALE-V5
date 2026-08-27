@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { mapApiError } from '../../../core/http/map-api-error';
+import { MotivationService } from '../../../core/motivation/motivation.service';
 import { SessionStore } from '../../../core/auth/session.store';
 import { AuthApi } from '../api/auth.api';
 
@@ -8,6 +9,7 @@ import { AuthApi } from '../api/auth.api';
 export class AuthFacade {
   private readonly api = inject(AuthApi);
   private readonly session = inject(SessionStore);
+  private readonly motivation = inject(MotivationService);
   private readonly router = inject(Router);
 
   readonly loading = signal(false);
@@ -48,6 +50,7 @@ export class AuthFacade {
       .subscribe({
         next: () => {
           this.loading.set(false);
+          this.session.patchUser({ mustChangePassword: false });
           this.success.set('Contraseña actualizada.');
         },
         error: (err) => this.fail(err)
@@ -55,13 +58,20 @@ export class AuthFacade {
   }
 
   logout(): void {
+    this.motivation.clearSession();
     this.session.clear();
     void this.router.navigateByUrl('/login');
   }
 
   private enter(res: Parameters<SessionStore['set']>[0]): void {
+    this.motivation.clearSession();
     this.session.set(res);
+    this.motivation.ensureSessionTip(res.role);
     this.loading.set(false);
+    if (res.mustChangePassword) {
+      void this.router.navigateByUrl('/profile');
+      return;
+    }
     void this.router.navigateByUrl(this.session.homeRoute());
   }
 

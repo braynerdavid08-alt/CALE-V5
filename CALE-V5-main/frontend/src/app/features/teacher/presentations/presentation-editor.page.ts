@@ -1,0 +1,883 @@
+import {
+  Component,
+  ElementRef,
+  HostListener,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+  computed,
+  inject,
+  signal
+} from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { DecimalPipe, NgStyle } from '@angular/common';
+import { resolveMediaUrl } from '../../../core/media/resolve-media-url';
+import { mapApiError } from '../../../core/http/map-api-error';
+import { BRAND } from '../../../core/brand';
+import { PresentationApi } from './presentation.api';
+import {
+  EditorSlide,
+  ImageProps,
+  LineProps,
+  PRESENTATION_CATEGORIES,
+  SLIDE_H,
+  SLIDE_W,
+  ShapeKind,
+  ShapeProps,
+  SlideElement,
+  TEMPLATE_OPTIONS,
+  TextProps,
+  backgroundCss,
+  dtoToEditorSlides,
+  newClientId
+} from './presentation.models';
+
+type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'offline' | 'error';
+
+@Component({
+  selector: 'app-presentation-editor-page',
+  standalone: true,
+  imports: [FormsModule, RouterLink, NgStyle, DecimalPipe],
+  templateUrl: './presentation-editor.page.html',
+  styleUrl: './presentation-editor.page.css'
+})
+export class PresentationEditorPage implements OnInit, OnDestroy {
+  @ViewChild('canvasHost') canvasHost?: ElementRef<HTMLElement>;
+  @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
+
+  private readonly api = inject(PresentationApi);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+
+  readonly brand = BRAND;
+  readonly slideW = SLIDE_W;
+  readonly slideH = SLIDE_H;
+  readonly categories = PRESENTATION_CATEGORIES;
+  readonly templates = TEMPLATE_OPTIONS;
+  readonly media = resolveMediaUrl;
+
+  readonly loading = signal(true);
+  readonly error = signal<string | null>(null);
+  readonly presentationId = signal(0);
+  readonly title = signal('');
+  readonly description = signal('');
+  readonly category = signal<string>(PRESENTATION_CATEGORIES[0]);
+  readonly groupId = signal<number | null>(null);
+  readonly slides = signal<EditorSlide[]>([]);
+  readonly activeIndex = signal(0);
+  readonly selectedId = signal<string | null>(null);
+  readonly zoom = signal(1);
+  readonly saveState = signal<SaveState>('idle');
+  readonly lastSavedAt = signal<number | null>(null);
+  readonly editingText = signal(false);
+
+  readonly activeSlide = computed(() => this.slides()[this.activeIndex()] ?? null);
+  readonly selected = computed(() => {
+    const slide = this.activeSlide();
+    const id = this.selectedId();
+    if (!slide || !id) {
+      return null;
+    }
+    return slide.elements.find((e) => e.id === id) ?? null;
+  });
+
+  readonly saveLabel = computed(() => {
+    const s = this.saveState();
+    if (s === 'saving') {
+      return 'Guardando…';
+    }
+    if (s === 'offline') {
+      return 'Sin conexión — borrador local';
+    }
+    if (s === 'error') {
+      return 'Error al guardar';
+    }
+    if (s === 'dirty') {
+      return 'Cambios sin guardar';
+    }
+    const t = this.lastSavedAt();
+    if (s === 'saved' && t) {
+      const sec = Math.max(0, Math.floor((Date.now() - t) / 1000));
+      if (sec < 5) {
+        return 'Guardado';
+      }
+      return `Guardado hace ${sec} s`;
+    }
+    return 'Guardado';
+  });
+
+  private autosaveTimer?: ReturnType<typeof setTimeout>;
+  private labelTimer?: ReturnType<typeof setInterval>;
+  private drag:
+    | {
+        id: string;
+        mode: 'move' | 'resize';
+        startX: number;
+        startY: number;
+        origX: number;
+        origY: number;
+        origW: number;
+        origH: number;
+      }
+    | null = null;
+  private clipboard: SlideElement | null = null;
+  private skipUnload = false;
+
+  ngOnInit(): void {
+    const id = Number(this.route.snapshot.paramMap.get('id'));
+    if (!id) {
+      void this.router.navigate(['/teacher/presentations']);
+      return;
+    }
+    this.presentationId.set(id);
+    this.api.get(id).subscribe({
+      next: (detail) => {
+        this.title.set(detail.title);
+        this.description.set(detail.description || '');
+        this.category.set(detail.category || PRESENTATION_CATEGORIES[0]);
+        this.groupId.set(detail.groupId ?? null);
+        this.slides.set(dtoToEditorSlides(detail));
+        this.loading.set(false);
+        this.saveState.set('saved');
+        this.lastSavedAt.set(Date.now());
+        this.tryRestoreLocalDraft(id);
+      },
+      error: (err) => {
+        this.error.set(mapApiError(err));
+        this.loading.set(false);
+      }
+    });
+    this.labelTimer = setInterval(() => {
+      if (this.saveState() === 'saved') {
+        this.lastSavedAt.update((v) => v);
+      }
+    }, 1000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.autosaveTimer) {
+      clearTimeout(this.autosaveTimer);
+    }
+    if (this.labelTimer) {
+      clearInterval(this.labelTimer);
+    }
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  onBeforeUnload(ev: BeforeUnloadEvent): void {
+    if (this.skipUnload || this.saveState() !== 'dirty') {
+      return;
+    }
+    this.persistLocalDraft();
+    ev.preventDefault();
+    ev.returnValue = '';
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  onKey(ev: KeyboardEvent): void {
+    if (this.editingText()) {
+      if (ev.key === 'Escape') {
+        this.editingText.set(false);
+      }
+      return;
+    }
+    const meta = ev.ctrlKey || ev.metaKey;
+    if (meta && ev.key.toLowerCase() === 's') {
+      ev.preventDefault();
+      this.saveNow();
+      return;
+    }
+    if (meta && ev.key.toLowerCase() === 'd') {
+      ev.preventDefault();
+      this.duplicateElement();
+      return;
+    }
+    if (meta && ev.key.toLowerCase() === 'c') {
+      this.copyElement();
+      return;
+    }
+    if (meta && ev.key.toLowerCase() === 'v') {
+      ev.preventDefault();
+      this.pasteElement();
+      return;
+    }
+    if (ev.key === 'Delete' || ev.key === 'Backspace') {
+      if (this.selectedId()) {
+        ev.preventDefault();
+        this.deleteSelected();
+      }
+      return;
+    }
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(ev.key) && this.selectedId()) {
+      ev.preventDefault();
+      const dx = ev.key === 'ArrowLeft' ? -4 : ev.key === 'ArrowRight' ? 4 : 0;
+      const dy = ev.key === 'ArrowUp' ? -4 : ev.key === 'ArrowDown' ? 4 : 0;
+      this.nudgeSelected(dx, dy);
+    }
+  }
+
+  fitZoom(): void {
+    const host = this.canvasHost?.nativeElement;
+    if (!host) {
+      this.zoom.set(0.85);
+      return;
+    }
+    const pad = 48;
+    const zx = (host.clientWidth - pad) / SLIDE_W;
+    const zy = (host.clientHeight - pad) / SLIDE_H;
+    this.zoom.set(Math.max(0.35, Math.min(1.25, Math.min(zx, zy))));
+  }
+
+  setZoom(v: number): void {
+    this.zoom.set(Math.max(0.35, Math.min(1.5, v)));
+  }
+
+  markDirty(): void {
+    this.saveState.set('dirty');
+    this.persistLocalDraft();
+    if (this.autosaveTimer) {
+      clearTimeout(this.autosaveTimer);
+    }
+    this.autosaveTimer = setTimeout(() => this.saveNow(true), 1400);
+  }
+
+  saveNow(auto = false): void {
+    const id = this.presentationId();
+    if (!id || this.saveState() === 'saving') {
+      return;
+    }
+    this.saveState.set('saving');
+    const payload = {
+      title: this.title().trim() || 'Sin título',
+      description: this.description().trim() || null,
+      category: this.category(),
+      groupId: this.groupId(),
+      thumbnailUrl: null as string | null,
+      slides: this.slides().map((s) => ({
+        id: s.id ?? null,
+        title: s.title,
+        notes: s.notes || null,
+        backgroundJson: JSON.stringify(s.background),
+        elementsJson: JSON.stringify(s.elements)
+      }))
+    };
+    this.api.saveDocument(id, payload).subscribe({
+      next: (detail) => {
+        this.slides.set(dtoToEditorSlides(detail));
+        this.saveState.set('saved');
+        this.lastSavedAt.set(Date.now());
+        this.clearLocalDraft(id);
+        if (!auto) {
+          this.error.set(null);
+        }
+      },
+      error: (err) => {
+        this.persistLocalDraft();
+        if (!navigator.onLine) {
+          this.saveState.set('offline');
+        } else {
+          this.saveState.set('error');
+          this.error.set(mapApiError(err));
+        }
+      }
+    });
+  }
+
+  selectSlide(i: number): void {
+    this.activeIndex.set(i);
+    this.selectedId.set(null);
+    this.editingText.set(false);
+  }
+
+  addSlide(templateKey = 'blank'): void {
+    const slides = [...this.slides()];
+    const blank: EditorSlide = {
+      clientId: newClientId('slide'),
+      title: `Diapositiva ${slides.length + 1}`,
+      notes: '',
+      background: { type: 'solid', color: '#F7F9FC' },
+      elements: [
+        {
+          id: newClientId('el'),
+          type: 'text',
+          x: 80,
+          y: 200,
+          w: 800,
+          h: 80,
+          rotation: 0,
+          z: 1,
+          props: {
+            text: 'Nueva diapositiva',
+            fontSize: 32,
+            fontWeight: 600,
+            color: '#0B1F33',
+            align: 'center',
+            fontFamily: 'Segoe UI, sans-serif'
+          }
+        }
+      ]
+    };
+    if (templateKey !== 'blank') {
+      // Keep simple blank for add; templates applied at create time.
+    }
+    slides.splice(this.activeIndex() + 1, 0, blank);
+    this.slides.set(slides);
+    this.activeIndex.set(this.activeIndex() + 1);
+    this.markDirty();
+  }
+
+  duplicateSlide(): void {
+    const cur = this.activeSlide();
+    if (!cur) {
+      return;
+    }
+    const copy: EditorSlide = {
+      clientId: newClientId('slide'),
+      title: `${cur.title} (copia)`,
+      notes: cur.notes,
+      background: { ...cur.background },
+      elements: cur.elements.map((e) => ({
+        ...e,
+        id: newClientId('el'),
+        props: { ...e.props } as SlideElement['props']
+      }))
+    };
+    const slides = [...this.slides()];
+    slides.splice(this.activeIndex() + 1, 0, copy);
+    this.slides.set(slides);
+    this.activeIndex.set(this.activeIndex() + 1);
+    this.markDirty();
+  }
+
+  deleteSlide(): void {
+    if (this.slides().length <= 1) {
+      return;
+    }
+    const slides = [...this.slides()];
+    slides.splice(this.activeIndex(), 1);
+    this.slides.set(slides);
+    this.activeIndex.set(Math.max(0, this.activeIndex() - 1));
+    this.selectedId.set(null);
+    this.markDirty();
+  }
+
+  moveSlide(from: number, to: number): void {
+    if (to < 0 || to >= this.slides().length || from === to) {
+      return;
+    }
+    const slides = [...this.slides()];
+    const [item] = slides.splice(from, 1);
+    slides.splice(to, 0, item);
+    this.slides.set(slides);
+    this.activeIndex.set(to);
+    this.markDirty();
+  }
+
+  onSlideDragStart(ev: DragEvent, index: number): void {
+    ev.dataTransfer?.setData('text/plain', String(index));
+  }
+
+  onSlideDrop(ev: DragEvent, index: number): void {
+    ev.preventDefault();
+    const from = Number(ev.dataTransfer?.getData('text/plain'));
+    if (!Number.isNaN(from)) {
+      this.moveSlide(from, index);
+    }
+  }
+
+  selectElement(id: string, ev?: Event): void {
+    ev?.stopPropagation();
+    this.selectedId.set(id);
+    this.editingText.set(false);
+  }
+
+  clearSelection(): void {
+    this.selectedId.set(null);
+    this.editingText.set(false);
+  }
+
+  startEditText(id: string, ev: Event): void {
+    ev.stopPropagation();
+    this.selectedId.set(id);
+    this.editingText.set(true);
+  }
+
+  onTextInput(id: string, ev: Event): void {
+    const text = (ev.target as HTMLElement).innerText;
+    this.patchElement(id, (el) => {
+      if (el.type !== 'text') {
+        return el;
+      }
+      return { ...el, props: { ...(el.props as TextProps), text } };
+    });
+  }
+
+  addText(kind: 'title' | 'subtitle' | 'body' = 'body'): void {
+    const sizes = { title: 40, subtitle: 28, body: 20 };
+    const el: SlideElement = {
+      id: newClientId('el'),
+      type: 'text',
+      x: 120,
+      y: 160,
+      w: 700,
+      h: kind === 'body' ? 120 : 70,
+      rotation: 0,
+      z: this.nextZ(),
+      props: {
+        text: kind === 'title' ? 'Título' : kind === 'subtitle' ? 'Subtítulo' : 'Texto',
+        fontSize: sizes[kind],
+        fontWeight: kind === 'body' ? 400 : 700,
+        color: '#0B1F33',
+        align: 'left',
+        fontFamily: 'Segoe UI, sans-serif'
+      }
+    };
+    this.pushElement(el);
+  }
+
+  addShape(shape: ShapeKind): void {
+    const el: SlideElement = {
+      id: newClientId('el'),
+      type: 'shape',
+      x: 200,
+      y: 160,
+      w: shape === 'ellipse' ? 180 : 200,
+      h: shape === 'ellipse' ? 180 : 140,
+      rotation: 0,
+      z: this.nextZ(),
+      props: {
+        shape,
+        fill: shape === 'octagon' ? '#D32F2F' : '#2BB0ED',
+        stroke: '#0B1F33',
+        strokeWidth: 2,
+        opacity: 1
+      }
+    };
+    this.pushElement(el);
+  }
+
+  addLine(arrow = false): void {
+    const el: SlideElement = {
+      id: newClientId('el'),
+      type: arrow ? 'arrow' : 'line',
+      x: 180,
+      y: 260,
+      w: 320,
+      h: 40,
+      rotation: 0,
+      z: this.nextZ(),
+      props: { color: '#0B1F33', strokeWidth: 4, arrowEnd: arrow }
+    };
+    this.pushElement(el);
+  }
+
+  addLogo(): void {
+    const el: SlideElement = {
+      id: newClientId('el'),
+      type: 'text',
+      x: 40,
+      y: 20,
+      w: 280,
+      h: 36,
+      rotation: 0,
+      z: this.nextZ(),
+      props: {
+        text: 'Mi CALE',
+        fontSize: 18,
+        fontWeight: 700,
+        color: '#2BB0ED',
+        align: 'left',
+        fontFamily: 'Segoe UI, sans-serif'
+      }
+    };
+    this.pushElement(el);
+  }
+
+  triggerImage(): void {
+    this.fileInput?.nativeElement.click();
+  }
+
+  onImageSelected(ev: Event): void {
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) {
+      return;
+    }
+    this.api.upload(file).subscribe({
+      next: (res) => {
+        const el: SlideElement = {
+          id: newClientId('el'),
+          type: 'image',
+          x: 280,
+          y: 120,
+          w: 400,
+          h: 280,
+          rotation: 0,
+          z: this.nextZ(),
+          props: { src: res.url, opacity: 1 }
+        };
+        this.pushElement(el);
+      },
+      error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  onCanvasDrop(ev: DragEvent): void {
+    ev.preventDefault();
+    const file = ev.dataTransfer?.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      this.api.upload(file).subscribe({
+        next: (res) => {
+          const el: SlideElement = {
+            id: newClientId('el'),
+            type: 'image',
+            x: 280,
+            y: 120,
+            w: 400,
+            h: 280,
+            rotation: 0,
+            z: this.nextZ(),
+            props: { src: res.url, opacity: 1 }
+          };
+          this.pushElement(el);
+        },
+        error: (err) => this.error.set(mapApiError(err))
+      });
+    }
+  }
+
+  startDrag(ev: PointerEvent, id: string, mode: 'move' | 'resize'): void {
+    if (this.editingText()) {
+      return;
+    }
+    ev.preventDefault();
+    ev.stopPropagation();
+    const el = this.activeSlide()?.elements.find((e) => e.id === id);
+    if (!el) {
+      return;
+    }
+    this.selectedId.set(id);
+    this.drag = {
+      id,
+      mode,
+      startX: ev.clientX,
+      startY: ev.clientY,
+      origX: el.x,
+      origY: el.y,
+      origW: el.w,
+      origH: el.h
+    };
+    (ev.target as HTMLElement).setPointerCapture?.(ev.pointerId);
+  }
+
+  onPointerMove(ev: PointerEvent): void {
+    if (!this.drag) {
+      return;
+    }
+    const z = this.zoom() || 1;
+    const dx = (ev.clientX - this.drag.startX) / z;
+    const dy = (ev.clientY - this.drag.startY) / z;
+    if (this.drag.mode === 'move') {
+      this.patchElement(this.drag.id, (el) => ({
+        ...el,
+        x: Math.round(this.drag!.origX + dx),
+        y: Math.round(this.drag!.origY + dy)
+      }));
+    } else {
+      this.patchElement(this.drag.id, (el) => ({
+        ...el,
+        w: Math.max(40, Math.round(this.drag!.origW + dx)),
+        h: Math.max(24, Math.round(this.drag!.origH + dy))
+      }));
+    }
+  }
+
+  endDrag(): void {
+    if (this.drag) {
+      this.drag = null;
+      this.markDirty();
+    }
+  }
+
+  deleteSelected(): void {
+    const id = this.selectedId();
+    if (!id) {
+      return;
+    }
+    this.updateActive((slide) => ({
+      ...slide,
+      elements: slide.elements.filter((e) => e.id !== id)
+    }));
+    this.selectedId.set(null);
+    this.markDirty();
+  }
+
+  duplicateElement(): void {
+    const sel = this.selected();
+    if (!sel) {
+      return;
+    }
+    const copy: SlideElement = {
+      ...sel,
+      id: newClientId('el'),
+      x: sel.x + 24,
+      y: sel.y + 24,
+      z: this.nextZ(),
+      props: { ...sel.props } as SlideElement['props']
+    };
+    this.pushElement(copy);
+  }
+
+  copyElement(): void {
+    const sel = this.selected();
+    if (sel) {
+      this.clipboard = structuredClone(sel);
+    }
+  }
+
+  pasteElement(): void {
+    if (!this.clipboard) {
+      return;
+    }
+    const copy: SlideElement = {
+      ...structuredClone(this.clipboard),
+      id: newClientId('el'),
+      x: this.clipboard.x + 28,
+      y: this.clipboard.y + 28,
+      z: this.nextZ()
+    };
+    this.pushElement(copy);
+  }
+
+  nudgeSelected(dx: number, dy: number): void {
+    const id = this.selectedId();
+    if (!id) {
+      return;
+    }
+    this.patchElement(id, (el) => ({ ...el, x: el.x + dx, y: el.y + dy }));
+    this.markDirty();
+  }
+
+  align(kind: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom'): void {
+    const id = this.selectedId();
+    if (!id) {
+      return;
+    }
+    this.patchElement(id, (el) => {
+      let x = el.x;
+      let y = el.y;
+      if (kind === 'left') {
+        x = 40;
+      }
+      if (kind === 'center') {
+        x = Math.round((SLIDE_W - el.w) / 2);
+      }
+      if (kind === 'right') {
+        x = SLIDE_W - el.w - 40;
+      }
+      if (kind === 'top') {
+        y = 40;
+      }
+      if (kind === 'middle') {
+        y = Math.round((SLIDE_H - el.h) / 2);
+      }
+      if (kind === 'bottom') {
+        y = SLIDE_H - el.h - 40;
+      }
+      return { ...el, x, y };
+    });
+    this.markDirty();
+  }
+
+  updateTextProp<K extends keyof TextProps>(key: K, value: TextProps[K]): void {
+    const id = this.selectedId();
+    if (!id) {
+      return;
+    }
+    this.patchElement(id, (el) => {
+      if (el.type !== 'text') {
+        return el;
+      }
+      return { ...el, props: { ...(el.props as TextProps), [key]: value } };
+    });
+    this.markDirty();
+  }
+
+  updateShapeProp<K extends keyof ShapeProps>(key: K, value: ShapeProps[K]): void {
+    const id = this.selectedId();
+    if (!id) {
+      return;
+    }
+    this.patchElement(id, (el) => {
+      if (el.type !== 'shape') {
+        return el;
+      }
+      return { ...el, props: { ...(el.props as ShapeProps), [key]: value } };
+    });
+    this.markDirty();
+  }
+
+  updateBgColor(color: string): void {
+    this.updateActive((s) => ({
+      ...s,
+      background: { ...s.background, type: 'solid', color }
+    }));
+    this.markDirty();
+  }
+
+  updateBgGradient(c1: string, c2: string): void {
+    this.updateActive((s) => ({
+      ...s,
+      background: { type: 'gradient', color: c1, color2: c2 }
+    }));
+    this.markDirty();
+  }
+
+  updateNotes(notes: string): void {
+    this.updateActive((s) => ({ ...s, notes }));
+    this.markDirty();
+  }
+
+  updateSlideTitle(title: string): void {
+    this.updateActive((s) => ({ ...s, title }));
+    this.markDirty();
+  }
+
+  present(): void {
+    this.saveNow();
+    this.skipUnload = true;
+    void this.router.navigate(['/teacher/presentations', this.presentationId(), 'present']);
+  }
+
+  bgStyle(slide: EditorSlide): Record<string, string> {
+    const css = backgroundCss(slide.background);
+    if (css['backgroundImage'] && slide.background.imageUrl) {
+      return {
+        ...css,
+        backgroundImage: `url(${resolveMediaUrl(slide.background.imageUrl)})`
+      };
+    }
+    return css;
+  }
+
+  textProps(el: SlideElement): TextProps {
+    return el.props as TextProps;
+  }
+
+  imageProps(el: SlideElement): ImageProps {
+    return el.props as ImageProps;
+  }
+
+  shapeProps(el: SlideElement): ShapeProps {
+    return el.props as ShapeProps;
+  }
+
+  lineProps(el: SlideElement): LineProps {
+    return el.props as LineProps;
+  }
+
+  shapeClip(shape: ShapeKind): string | null {
+    if (shape === 'triangle') {
+      return 'polygon(50% 0%, 0% 100%, 100% 100%)';
+    }
+    if (shape === 'octagon') {
+      return 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)';
+    }
+    return null;
+  }
+
+  private pushElement(el: SlideElement): void {
+    this.updateActive((slide) => ({
+      ...slide,
+      elements: [...slide.elements, el]
+    }));
+    this.selectedId.set(el.id);
+    this.markDirty();
+  }
+
+  private nextZ(): number {
+    const els = this.activeSlide()?.elements ?? [];
+    return els.reduce((m, e) => Math.max(m, e.z), 0) + 1;
+  }
+
+  private patchElement(id: string, fn: (el: SlideElement) => SlideElement): void {
+    this.updateActive((slide) => ({
+      ...slide,
+      elements: slide.elements.map((e) => (e.id === id ? fn(e) : e))
+    }));
+  }
+
+  private updateActive(fn: (s: EditorSlide) => EditorSlide): void {
+    const slides = [...this.slides()];
+    const i = this.activeIndex();
+    if (!slides[i]) {
+      return;
+    }
+    slides[i] = fn(slides[i]);
+    this.slides.set(slides);
+  }
+
+  private draftKey(id: number): string {
+    return `cale.presentation.draft.${id}`;
+  }
+
+  private persistLocalDraft(): void {
+    const id = this.presentationId();
+    if (!id) {
+      return;
+    }
+    try {
+      localStorage.setItem(
+        this.draftKey(id),
+        JSON.stringify({
+          title: this.title(),
+          description: this.description(),
+          category: this.category(),
+          groupId: this.groupId(),
+          slides: this.slides(),
+          at: Date.now()
+        })
+      );
+    } catch {
+      /* quota */
+    }
+  }
+
+  private clearLocalDraft(id: number): void {
+    localStorage.removeItem(this.draftKey(id));
+  }
+
+  private tryRestoreLocalDraft(id: number): void {
+    try {
+      const raw = localStorage.getItem(this.draftKey(id));
+      if (!raw) {
+        return;
+      }
+      const draft = JSON.parse(raw) as {
+        title: string;
+        description: string;
+        category: string;
+        groupId: number | null;
+        slides: EditorSlide[];
+        at: number;
+      };
+      if (!draft.slides?.length) {
+        return;
+      }
+      if (confirm('Hay un borrador local más reciente. ¿Restaurar cambios no sincronizados?')) {
+        this.title.set(draft.title);
+        this.description.set(draft.description);
+        this.category.set(draft.category);
+        this.groupId.set(draft.groupId);
+        this.slides.set(draft.slides);
+        this.markDirty();
+      } else {
+        this.clearLocalDraft(id);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+}

@@ -3,6 +3,7 @@ export interface SessionUser {
   name: string;
   email: string;
   role: string;
+  mustChangePassword?: boolean;
 }
 
 export interface AuthResponse {
@@ -11,6 +12,7 @@ export interface AuthResponse {
   name: string;
   email: string;
   role: string;
+  mustChangePassword?: boolean;
 }
 
 export interface MeSchoolContext {
@@ -31,5 +33,6 @@ export interface MeResponse {
   role: string;
   isActive: boolean;
   createdAt: string;
+  mustChangePassword?: boolean;
   school?: MeSchoolContext | null;
 }

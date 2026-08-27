@@ -1,99 +1,148 @@
-<section class="welcome">
-  <div>
-    <p class="eyebrow">Aprendizaje</p>
-    <h1>Hola, {{ session.user()?.name }}</h1>
-    <p class="lead">Continúa tu práctica o entra a tu aula. Todo lo que ves es real.</p>
-    <a routerLink="/student/simulator">
-      <ui-button type="button">Continuar en el simulador</ui-button>
-    </a>
-  </div>
-  @if (data()?.bestPercent != null) {
-    <ui-stat label="Mejor marca" [value]="data()!.bestPercent + '%'" tone="success" hint="En intentos finalizados" />
+<section class="dash">
+  <header class="dash-hero">
+    <div class="dash-hero-copy">
+      <h1>Hola, {{ session.user()?.name }}</h1>
+      <p class="dash-sub">Tu panel de estudiante</p>
+    </div>
+    <div class="dash-hero-actions">
+      <a routerLink="/student/simulator">
+        <ui-button type="button">Ir al simulador</ui-button>
+      </a>
+    </div>
+  </header>
+
+  <ui-error [message]="error()" />
+
+  @if (loading()) {
+    <ui-loading />
+  }
+
+  @if (data(); as d) {
+    <div class="dash-kpis">
+      <ui-dash-kpi
+        label="Progreso general"
+        [value]="(d.bestPercent ?? 0) + '%'"
+        icon="chart"
+        tone="success"
+        hint="Mejor marca en simulador" />
+      <ui-dash-kpi
+        label="Evaluaciones aprobadas"
+        [value]="passedLabel()"
+        icon="exam"
+        tone="primary"
+        hint="Intentos finalizados" />
+      <ui-dash-kpi
+        label="Actividades pendientes"
+        [value]="d.pendingActivities.length"
+        icon="clock"
+        [tone]="d.pendingActivities.length ? 'warning' : 'success'" />
+      <ui-dash-kpi
+        label="Mensajes sin leer"
+        [value]="d.unreadNotifications"
+        icon="bell"
+        tone="info" />
+    </div>
+
+    <div class="dash-main">
+      <div class="dash-side">
+        <section class="dash-panel">
+          <div class="dash-panel-head">
+            <h2>Próximas actividades</h2>
+            <a routerLink="/student/classes">Ver todas mis clases</a>
+          </div>
+          @if (!d.pendingActivities.length) {
+            <p class="dash-empty">No hay actividades pendientes.</p>
+          } @else {
+            <ul class="dash-feed">
+              @for (item of d.pendingActivities.slice(0, 5); track item.id) {
+                <li>
+                  <a class="block" [routerLink]="['/student/group', item.groupId]">
+                    <strong>{{ item.title }}</strong>
+                    <p class="meta">{{ statusLabel(item.status) }}</p>
+                  </a>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+
+        <section class="dash-panel">
+          <div class="dash-panel-head">
+            <h2>Mi progreso</h2>
+            <a routerLink="/student/progress">Ver detalle del progreso</a>
+          </div>
+          <ui-dash-bars [items]="progressBars()" />
+        </section>
+
+        <section class="dash-panel">
+          <div class="dash-panel-head">
+            <h2>Evaluaciones recientes</h2>
+            <a routerLink="/student/evaluations">Ver todas</a>
+          </div>
+          @if (!recentResults().length) {
+            <p class="dash-empty">Aún no hay intentos finalizados.</p>
+          } @else {
+            <ul class="dash-feed">
+              @for (r of recentResults(); track r.attemptId) {
+                <li>
+                  <strong>{{ r.percent }}% · {{ r.passed ? 'Aprobado' : 'No aprobado' }}</strong>
+                  <p class="meta">{{ r.mode }}</p>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      </div>
+
+      <div class="dash-side">
+        <ui-dash-notifs [items]="notifs()" (open)="openNotif($event)" />
+
+        <section class="dash-panel">
+          <div class="dash-panel-head">
+            <h2>Mis clases</h2>
+            <a routerLink="/student/classes">Ver todas</a>
+          </div>
+          @if (!d.groups.length) {
+            <p class="dash-empty">Aún no estás en un grupo.</p>
+          } @else {
+            <ul class="dash-feed">
+              @for (group of d.groups; track group.id) {
+                <li>
+                  <a class="block" [routerLink]="['/student/group', group.id]">
+                    <strong>{{ group.name }}</strong>
+                    <p class="meta">{{ group.teacherName || 'Sin instructor' }}</p>
+                  </a>
+                </li>
+              }
+            </ul>
+          }
+          <form class="join" (ngSubmit)="join()">
+            <label>
+              Unirme con código
+              <input class="input" [(ngModel)]="code" name="code" placeholder="CALE-XXXXXXXX" />
+            </label>
+            <ui-button type="submit">Unirme</ui-button>
+          </form>
+        </section>
+
+        <section class="dash-panel">
+          <div class="dash-panel-head">
+            <h2>Avisos del aula</h2>
+          </div>
+          @if (!d.announcements.length) {
+            <p class="dash-empty">No hay avisos todavía.</p>
+          } @else {
+            <ul class="dash-feed">
+              @for (item of d.announcements; track item.id) {
+                <li>
+                  <strong>{{ item.title }}</strong>
+                  <p class="meta">{{ item.authorName }}</p>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      </div>
+    </div>
   }
 </section>
-
-<ui-motivation class="home-tip" variant="card" [role]="session.user()?.role" />
-
-<ui-error [message]="error()" />
-@if (loading()) {
-  <ui-loading />
-} @else {
-  <div class="grid-2">
-    <ui-card>
-      <h2>Unirme a un grupo</h2>
-      <form class="row" (ngSubmit)="join()">
-        <input class="input" [(ngModel)]="code" name="code" placeholder="CALE-XXXXXXXX" />
-        <ui-button type="submit">Unirme</ui-button>
-      </form>
-    </ui-card>
-    <ui-card>
-      <h2>Mis grupos</h2>
-      @if (!data()?.groups?.length) {
-        <ui-empty title="Aún no estás en un grupo" message="Pide el código a tu docente." />
-      } @else {
-        <ul class="stack">
-          @for (group of data()!.groups; track group.id) {
-            <li>
-              <a [routerLink]="['/student/group', group.id]">{{ group.name }}</a>
-              <span class="muted"> · {{ group.teacherName || 'Sin docente' }}</span>
-            </li>
-          }
-        </ul>
-      }
-    </ui-card>
-  </div>
-
-  <ui-card>
-    <h2>Pendientes</h2>
-    @if (!data()?.pendingActivities?.length) {
-      <ui-empty title="No hay actividades pendientes" message="" />
-    } @else {
-      <ul class="stack">
-        @for (item of data()!.pendingActivities; track item.id) {
-          <li>
-            <a [routerLink]="['/student/group', item.groupId]">{{ item.title }}</a>
-            <span class="muted"> · {{ statusLabel(item.status) }}</span>
-          </li>
-        }
-      </ul>
-    }
-  </ui-card>
-
-  <div class="grid-2">
-    <ui-card>
-      <h2>Notificaciones</h2>
-      @if (!notifications().length) {
-        <ui-empty title="Sin notificaciones" message="" />
-      } @else {
-        <ul class="stack">
-          @for (item of notifications(); track item.id) {
-            <li>
-              <strong>{{ item.title }}</strong>
-              <p class="muted">{{ item.message }}</p>
-              @if (!item.isRead) {
-                <ui-button type="button" variant="ghost" (click)="markRead(item.id)">
-                  Marcar leída
-                </ui-button>
-              }
-            </li>
-          }
-        </ul>
-      }
-    </ui-card>
-    <ui-card>
-      <h2>Avisos</h2>
-      @if (!data()?.announcements?.length) {
-        <ui-empty title="No hay avisos todavía" message="" />
-      } @else {
-        <ul class="stack">
-          @for (item of data()!.announcements; track item.id) {
-            <li>
-              <strong>{{ item.title }}</strong>
-              <span class="muted"> · {{ item.authorName }}</span>
-            </li>
-          }
-        </ul>
-      }
-    </ui-card>
-  </div>
-}

@@ -26,6 +26,8 @@ public interface IAttemptStore
         int attemptId,
         CancellationToken ct);
 
+    Task<int> CountAnswersAsync(CancellationToken ct);
+
     Task<AttemptRating?> FindRatingAsync(int attemptId, CancellationToken ct);
     Task<AttemptRating?> GetRatingByIdAsync(int id, CancellationToken ct);
     Task AddRatingAsync(AttemptRating rating, CancellationToken ct);
@@ -36,6 +38,10 @@ public interface IAttemptStore
         IReadOnlyList<int> userIds,
         CancellationToken ct);
     Task<IReadOnlyList<Attempt>> ListFinishedAsync(CancellationToken ct);
+    Task<IReadOnlyList<Attempt>> ListAllAsync(CancellationToken ct);
+    Task<IReadOnlyList<Attempt>> ListStartedSinceAsync(
+        DateTime utcFrom,
+        CancellationToken ct);
 
     Task<int> CountAllAsync(CancellationToken ct);
     Task<int> CountFinishedByUserAndExamAsync(
@@ -43,5 +49,24 @@ public interface IAttemptStore
         int examId,
         CancellationToken ct);
 
+    Task<Attempt?> FindOpenByUserAndExamAsync(
+        int userId,
+        int examId,
+        CancellationToken ct);
+
+    /// <summary>
+    /// Atomically marks an attempt finished. Returns false if already finished.
+    /// </summary>
+    Task<bool> TryMarkFinishedAsync(
+        int attemptId,
+        int correctCount,
+        decimal percent,
+        bool passed,
+        int timeSeconds,
+        DateTime finishedAt,
+        CancellationToken ct);
+
     Task SaveChangesAsync(CancellationToken ct);
+
+    void ClearTrackedChanges();
 }

@@ -23,5 +23,9 @@ public sealed class AttemptAnswerConfiguration
             .HasColumnName("OpcionCorrectaSnapshot");
         builder.Property(x => x.QuestionTypeSnapshot)
             .HasColumnName("TipoPreguntaSnapshot");
+
+        builder.HasIndex(x => new { x.AttemptId, x.QuestionId })
+            .IsUnique()
+            .HasDatabaseName("IX_RespuestasIntento_Attempt_Question");
     }
 }

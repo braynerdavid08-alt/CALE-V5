@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
+import { map } from 'rxjs/operators';
 import { env } from '../../../core/config/env';
 
 export interface GroupDto {
@@ -48,9 +49,12 @@ export interface NotificationDto {
   title: string;
   message: string;
   type: string;
+  category?: string;
   isRead: boolean;
   createdAt: string;
   groupId?: number | null;
+  link?: string | null;
+  priority?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -65,9 +69,11 @@ export class StudentApi {
   }
 
   notifications() {
-    return this.http.get<NotificationDto[]>(
-      `${this.base}/api/notifications`
-    );
+    return this.http
+      .get<{ items: NotificationDto[]; unreadCount: number }>(
+        `${this.base}/api/notifications`
+      )
+      .pipe(map((r) => r.items));
   }
 
   markRead(id: number) {
@@ -114,5 +120,15 @@ export class StudentApi {
       `${this.base}/api/classroom/activities/${activityId}/submit`,
       { text }
     );
+  }
+
+  results() {
+    return this.http.get<Array<{
+      attemptId: number;
+      percent: number;
+      passed: boolean;
+      mode: string;
+      finishedAt?: string | null;
+    }>>(`${this.base}/api/student/results`);
   }
 }

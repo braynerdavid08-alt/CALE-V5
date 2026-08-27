@@ -54,7 +54,7 @@ interface UserRow {
     <ui-page-header
       eyebrow="Administración"
       title="Usuarios"
-      subtitle="Crea docentes, edita datos, activa/desactiva o elimina cuentas." />
+      subtitle="Crea instructores y escuelas, edita datos, activa/desactiva o elimina cuentas." />
 
     <ui-error [message]="error()" />
     <ui-success [message]="ok()" />
@@ -65,7 +65,7 @@ interface UserRow {
       <div class="grid-stats">
         <ui-stat label="Total" [value]="items().length" tone="primary" />
         <ui-stat label="Estudiantes" [value]="countBy('Student')" />
-        <ui-stat label="Docentes" [value]="countBy('Teacher')" />
+        <ui-stat label="Instructores" [value]="countBy('Teacher')" />
         <ui-stat label="Escuelas" [value]="countBy('School')" />
         <ui-stat label="Admins" [value]="countBy('Admin')" />
         <ui-stat label="Activos" [value]="activeCount()" tone="success" />
@@ -73,8 +73,8 @@ interface UserRow {
 
       <div class="grid-2">
         <ui-card>
-          <h2>Crear docente</h2>
-          <p class="hint">Alta rápida de profesores. Estudiantes y escuelas se registran solos.</p>
+          <h2>Crear instructor</h2>
+          <p class="hint">Alta rápida de instructores. Los estudiantes se registran solos.</p>
           <form class="stack" [formGroup]="form" (ngSubmit)="createTeacher()">
             <label class="field">
               Nombre
@@ -88,23 +88,51 @@ interface UserRow {
               Contraseña temporal
               <input type="password" formControlName="password" autocomplete="new-password" />
             </label>
-            <ui-button type="submit" [loading]="saving()">Crear docente</ui-button>
+            <ui-button type="submit" [loading]="saving()">Crear instructor</ui-button>
           </form>
         </ui-card>
 
         <ui-card>
-          <h2>Buscar</h2>
-          <label class="field">
-            Nombre, correo o rol
-            <input
-              class="input"
-              [value]="query()"
-              (input)="query.set($any($event.target).value)"
-              placeholder="Ej. profesor, estudiante..." />
-          </label>
-          <p class="muted">Mostrando {{ filtered().length }} de {{ items().length }} usuarios.</p>
+          <h2>Crear escuela</h2>
+          <p class="hint">Alta administrativa con membresía activa desde el primer día.</p>
+          <form class="stack" [formGroup]="schoolForm" (ngSubmit)="createSchool()">
+            <label class="field">
+              Nombre de la escuela
+              <input formControlName="legalName" autocomplete="organization" />
+            </label>
+            <label class="field">
+              Correo de acceso
+              <input type="email" formControlName="email" autocomplete="email" />
+            </label>
+            <label class="field">
+              Contraseña temporal
+              <input type="password" formControlName="password" autocomplete="new-password" />
+            </label>
+            <label class="field">
+              Plan
+              <select formControlName="planCode">
+                <option value="Monthly">Mensual</option>
+                <option value="Semestral">Semestral</option>
+                <option value="Annual">Anual</option>
+              </select>
+            </label>
+            <ui-button type="submit" [loading]="savingSchool()">Crear escuela</ui-button>
+          </form>
         </ui-card>
       </div>
+
+      <ui-card>
+        <h2>Buscar</h2>
+        <label class="field">
+          Nombre, correo o rol
+          <input
+            class="input"
+            [value]="query()"
+            (input)="query.set($any($event.target).value)"
+            placeholder="Ej. instructor, estudiante, escuela..." />
+        </label>
+        <p class="muted">Mostrando {{ filtered().length }} de {{ items().length }} usuarios.</p>
+      </ui-card>
 
       @if (editing()) {
         <ui-card class="edit-panel">
@@ -122,7 +150,7 @@ interface UserRow {
               Rol
               <select formControlName="role">
                 <option value="Student">Estudiante</option>
-                <option value="Teacher">Docente</option>
+                <option value="Teacher">Instructor</option>
                 <option value="School">Escuela</option>
                 <option value="Admin">Administrador</option>
               </select>
@@ -214,6 +242,7 @@ export class AdminUsersPage implements OnInit {
   readonly roleLabel = roleLabel;
   readonly loading = signal(true);
   readonly saving = signal(false);
+  readonly savingSchool = signal(false);
   readonly savingEdit = signal(false);
   readonly busyId = signal<number | null>(null);
   readonly error = signal<string | null>(null);
@@ -244,6 +273,13 @@ export class AdminUsersPage implements OnInit {
     name: ['', [Validators.required, Validators.maxLength(200)]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]]
+  });
+
+  readonly schoolForm = this.fb.nonNullable.group({
+    legalName: ['', [Validators.required, Validators.maxLength(200)]],
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required, Validators.minLength(8)]],
+    planCode: ['Monthly', Validators.required]
   });
 
   readonly editForm = this.fb.nonNullable.group({
@@ -310,10 +346,41 @@ export class AdminUsersPage implements OnInit {
           this.items.update((rows) => [created, ...rows]);
           this.form.reset({ name: '', email: '', password: '' });
           this.saving.set(false);
-          this.ok.set(`Docente ${created.name} creado.`);
+          this.ok.set(`Instructor ${created.name} creado.`);
         },
         error: (err) => {
           this.saving.set(false);
+          this.error.set(mapApiError(err));
+        }
+      });
+  }
+
+  createSchool(): void {
+    if (this.schoolForm.invalid) {
+      this.schoolForm.markAllAsTouched();
+      return;
+    }
+
+    this.savingSchool.set(true);
+    this.error.set(null);
+    this.ok.set(null);
+    const body = this.schoolForm.getRawValue();
+
+    this.http.post<UserRow>(`${env.apiUrl}/api/admin/users/schools`, body)
+      .subscribe({
+        next: (created) => {
+          this.items.update((rows) => [created, ...rows]);
+          this.schoolForm.reset({
+            legalName: '',
+            email: '',
+            password: '',
+            planCode: 'Monthly'
+          });
+          this.savingSchool.set(false);
+          this.ok.set(`Escuela ${created.name} creada y activada.`);
+        },
+        error: (err) => {
+          this.savingSchool.set(false);
           this.error.set(mapApiError(err));
         }
       });

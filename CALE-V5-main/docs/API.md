@@ -22,8 +22,7 @@ UI: español · API/DTOs: inglés
 |--------|------|--------|
 | GET | `/api/school/profile` | School (cupos + días de membresía) |
 | GET | `/api/school/plans` | School |
-| PUT | `/api/school/plan` | School (cambiar plan) |
-| POST | `/api/school/plan/activate` | School (adquirir / renovar) |
+| POST | `/api/school/plan/request` | School (solicitar plan; **no activa**) |
 | PUT | `/api/school/billing` | School |
 | GET | `/api/school/members` | School |
 | POST | `/api/school/members` | School (crear Teacher/Student) |
@@ -31,6 +30,12 @@ UI: español · API/DTOs: inglés
 | PUT | `/api/school/members/{id}` | School |
 | PATCH | `/api/school/members/{id}/active` | School |
 | DELETE | `/api/school/members/{id}` | School (quita de la escuela; no borra la cuenta) |
+
+La escuela **no puede** autoactivar (`PUT /plan` y `POST /plan/activate` → 403).
+
+Flujo E2E: request → pago → `POST /api/school/plan/proof` → admin activate/reject.
+
+Estados: `PendingPayment` → `PaymentSubmitted` → `Active` → `Expired` (o `Rejected`).
 
 Planes (COP) y cupos:
 
@@ -40,7 +45,7 @@ Planes (COP) y cupos:
 | Semestral | $800.000 | 12 | 150 |
 | Anual | $1.500.000 | 25 | 400 |
 
-Alta queda en `PendingPayment` hasta confirmar pago.
+Alta / solicitud queda en `PendingPayment` hasta que un **Admin** verifique el pago y active.
 
 ## Admin / usuarios
 
@@ -54,7 +59,17 @@ Roles: `Admin`, `School`, `Teacher`, `Student`.
 | PUT | `/api/admin/users/{id}` | Admin (nombre, correo, rol, contraseña opcional) |
 | PATCH | `/api/admin/users/{id}/active` | Admin |
 | DELETE | `/api/admin/users/{id}` | Admin (no puede borrarse a sí mismo) |
+| GET | `/api/admin/memberships/pending` | Admin (solicitudes de escuela) |
+| POST | `/api/admin/memberships/{schoolUserId}/activate` | Admin (verificar pago y activar) |
+| POST | `/api/admin/memberships/{schoolUserId}/reject` | Admin (rechazar solicitud) |
+| GET | `/api/admin/metrics` | Admin (métricas piloto P0) |
 | GET | `/api/admin/results` | Admin |
+
+Notas de membresía:
+- Escuela solicita (`POST /api/school/plan/request`); si ya está Active, **sigue activa** y queda `RequestedPlanCode` pendiente.
+- Cada request/activate/renew/reject escribe `MembershipEvents`.
+- Login guarda `UltimoAccesoEn` (DAU/WAU/MAU).
+- Intentos con `ExamId` se fuerzan a `Mode = exam`.
 
 ## Teacher / student dashboards
 

@@ -21,7 +21,8 @@ public sealed class ListUsersHandler
                 user.Email,
                 Roles.Normalize(user.Role),
                 user.IsActive,
-                user.CreatedAt))
+                user.CreatedAt,
+                user.LastLoginAt))
             .ToList();
     }
 }

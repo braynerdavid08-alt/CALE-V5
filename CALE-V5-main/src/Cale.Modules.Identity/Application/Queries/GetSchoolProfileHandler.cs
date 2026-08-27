@@ -59,13 +59,14 @@ public sealed class GetSchoolProfileHandler
         CancellationToken ct)
     {
         var plan = SchoolPlans.Find(profile.PlanCode);
+        var requestedPlan = SchoolPlans.Find(profile.EffectiveRequestedPlanCode);
         var teachersUsed = await _users.CountBySchoolAndRoleAsync(
             user.Id, Roles.Teacher, ct);
         var studentsUsed = await _users.CountBySchoolAndRoleAsync(
             user.Id, Roles.Student, ct);
         var days = profile.DaysRemaining(_clock.UtcNow);
-        var active = profile.SubscriptionStatus == SchoolSubscriptionStatus.Active
-            && days > 0;
+        var now = _clock.UtcNow;
+        var active = profile.IsCommerciallyActive(now);
 
         return new SchoolProfileDto(
             user.Id,
@@ -84,15 +85,39 @@ public sealed class GetSchoolProfileHandler
             plan?.MonthlyEquivalentCop ?? 0,
             plan?.DurationMonths ?? 0,
             profile.SubscriptionStatus,
+            profile.DisplayStatus(now),
+            profile.RenewalStatus,
             profile.CreatedAt,
             profile.MembershipStartsAt,
             profile.MembershipEndsAt,
             days,
             active,
+            profile.RequestedPlanCode,
+            requestedPlan?.LabelEs ?? profile.RequestedPlanCode,
+            profile.HasOpenCommercialRequest(now),
+            profile.NeedsPaymentProof(now),
+            profile.AwaitingAdminReview(now),
+            profile.PaymentProofUrl,
+            profile.PaymentReference,
+            profile.RejectionReason,
+            profile.SuspensionReason,
+            profile.RequestedAt,
+            profile.ProofSubmittedAt,
+            profile.LastDecisionAt,
+            new SchoolPaymentInstructionsDto(
+                SchoolPaymentInstructions.BankName,
+                SchoolPaymentInstructions.AccountType,
+                SchoolPaymentInstructions.AccountNumber,
+                SchoolPaymentInstructions.AccountHolder,
+                SchoolPaymentInstructions.HolderTaxId,
+                SchoolPaymentInstructions.WhatsApp,
+                SchoolPaymentInstructions.SupportEmail,
+                SchoolPaymentInstructions.Notes,
+                $"Ref: {profile.TaxId} / {user.Email}"),
             teachersUsed,
-            plan?.MaxTeachers ?? 0,
+            profile.EffectiveMaxTeachers(plan),
             studentsUsed,
-            plan?.MaxStudents ?? 0);
+            profile.EffectiveMaxStudents(plan));
     }
 }
 
@@ -131,7 +156,8 @@ public sealed class ListSchoolMembersHandler
                 user.Email,
                 Roles.Normalize(user.Role),
                 user.IsActive,
-                user.CreatedAt))
+                user.CreatedAt,
+                user.LastLoginAt))
             .ToList();
     }
 }

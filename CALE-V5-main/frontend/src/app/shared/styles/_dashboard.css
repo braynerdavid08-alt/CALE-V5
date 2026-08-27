@@ -1,0 +1,249 @@
+/* Shared dashboard composition — all roles */
+
+.dash {
+  display: grid;
+  gap: 1.15rem;
+  width: 100%;
+  max-width: 1180px;
+}
+
+.dash-hero {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem 1.25rem;
+}
+
+.dash-hero-copy {
+  min-width: min(100%, 16rem);
+  flex: 1 1 18rem;
+}
+
+.dash-hero-actions,
+.dash-hero .row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.dash-kicker {
+  margin: 0 0 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.dash-hero h1 {
+  margin: 0;
+  font-size: clamp(1.35rem, 2.4vw, 1.75rem);
+  letter-spacing: -0.03em;
+  line-height: var(--leading-tight);
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.dash-sub,
+.dash-hero .meta {
+  margin: 0.35rem 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  max-width: 40rem;
+}
+
+.dash-hero .eyebrow,
+.dash-hero .lead {
+  display: none;
+}
+
+.dash-kpis {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.dash-charts {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.dash-main {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.95fr);
+  align-items: start;
+}
+
+.dash-side {
+  display: grid;
+  gap: 0.85rem;
+  align-content: start;
+}
+
+.dash-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 1rem 1.1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.dash-panel h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.dash-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dash-panel-head a {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-primary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.dash-panel-head a:hover {
+  text-decoration: underline;
+}
+
+.dash-feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.dash-feed li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.15rem 0;
+  background: transparent;
+  border: 0;
+}
+
+.dash-feed li.unread .feed-body strong {
+  color: var(--color-text);
+}
+
+.dash-feed .feed-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.dash-feed .feed-icon[data-tone='success'] {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.dash-feed .feed-icon[data-tone='warning'] {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.dash-feed .feed-body {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.dash-feed strong {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.dash-feed .meta {
+  font-size: var(--text-xs);
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.dash-feed a.block {
+  color: inherit;
+  text-decoration: none;
+  display: contents;
+}
+
+.dash-feed a.block:hover strong {
+  color: var(--color-primary);
+}
+
+.dash-empty {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+@media (max-width: 1100px) {
+  .dash-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dash-charts,
+  .dash-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .dash {
+    gap: 0.95rem;
+  }
+
+  .dash-hero {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dash-hero-actions,
+  .dash-hero .row {
+    width: 100%;
+  }
+
+  .dash-hero-actions > a,
+  .dash-hero .row > a {
+    flex: 1 1 auto;
+  }
+
+  .dash-hero-actions ui-button,
+  .dash-hero .row ui-button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .dash-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-panel {
+    padding: 0.9rem 0.95rem;
+  }
+}

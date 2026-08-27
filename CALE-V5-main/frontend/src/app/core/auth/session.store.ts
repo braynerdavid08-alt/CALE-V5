@@ -32,7 +32,8 @@ export class SessionStore {
       id: response.userId,
       name: response.name,
       email: response.email,
-      role: response.role
+      role: response.role,
+      mustChangePassword: !!response.mustChangePassword
     };
     this.token.set(response.token);
     this.user.set(user);

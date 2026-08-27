@@ -34,7 +34,7 @@ interface MaterialRow {
   template: `
     <ui-page-header
       [title]="group()?.name || 'Mi grupo'"
-      [subtitle]="group() ? ((group()!.teacherName || 'Sin docente') + ' · ' + group()!.code) : ''" />
+      [subtitle]="group() ? ((group()!.teacherName || 'Sin instructor') + ' · ' + group()!.code) : ''" />
     <ui-error [message]="error()" />
 
     <h2>Avisos</h2>

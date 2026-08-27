@@ -1,0 +1,105 @@
+<section class="page">
+  <header class="head">
+    <div>
+      <h1>Enviar notificación</h1>
+      <p class="muted">Aviso real a usuarios de CALE (se guarda en base de datos).</p>
+    </div>
+    <a routerLink="/notifications">Ver bandeja</a>
+  </header>
+
+  @if (error()) {
+    <ui-error [message]="error()!" />
+  }
+
+  @if (step === 'form') {
+    <ui-card class="form">
+      <label>
+        Título
+        <input [(ngModel)]="title" name="title" maxlength="200" required />
+      </label>
+      <label>
+        Mensaje
+        <textarea [(ngModel)]="message" name="message" rows="4" maxlength="2000" required></textarea>
+      </label>
+      <div class="grid2">
+        <label>
+          Tipo
+          <select [(ngModel)]="type" name="type">
+            <option value="admin">Administrativo</option>
+            <option value="system">Sistema</option>
+            <option value="announcement">Aviso</option>
+          </select>
+        </label>
+        <label>
+          Prioridad
+          <select [(ngModel)]="priority" name="priority">
+            <option value="low">Baja</option>
+            <option value="normal">Normal</option>
+            <option value="high">Alta</option>
+          </select>
+        </label>
+      </div>
+      <label>
+        Destinatarios
+        <select [(ngModel)]="audience" name="audience">
+          <option value="all_students">Todos los estudiantes</option>
+          <option value="all_teachers">Todos los instructores</option>
+          <option value="group">Un grupo (por ID)</option>
+          <option value="users">Usuarios específicos (IDs)</option>
+        </select>
+      </label>
+      @if (audience === 'group') {
+        <label>
+          ID de grupo
+          <input type="number" [(ngModel)]="groupId" name="groupId" min="1" />
+        </label>
+      }
+      @if (audience === 'users') {
+        <label>
+          IDs de usuario (separados por coma)
+          <input [(ngModel)]="userIdsText" name="userIds" placeholder="12, 34, 56" />
+        </label>
+      }
+      <label>
+        Enlace opcional (ruta interna, ej. /student)
+        <input [(ngModel)]="link" name="link" placeholder="/student" />
+      </label>
+      <ui-button type="button" [disabled]="!canPreview" (click)="goPreview()">
+        Vista previa
+      </ui-button>
+    </ui-card>
+  }
+
+  @if (step === 'preview') {
+    <ui-card class="preview">
+      <h2>Vista previa</h2>
+      <p><strong>{{ draft.title }}</strong></p>
+      <p>{{ draft.message }}</p>
+      <ul class="meta">
+        <li>Tipo: {{ draft.type }}</li>
+        <li>Prioridad: {{ draft.priority }}</li>
+        <li>Audiencia: {{ draft.audience }}</li>
+        @if (draft.link) {
+          <li>Enlace: {{ draft.link }}</li>
+        }
+      </ul>
+      <div class="row">
+        <ui-button type="button" variant="ghost" (click)="back()">Volver</ui-button>
+        <ui-button type="button" [disabled]="sending()" (click)="send()">
+          {{ sending() ? 'Enviando…' : 'Confirmar envío' }}
+        </ui-button>
+      </div>
+    </ui-card>
+  }
+
+  @if (step === 'done') {
+    <ui-card>
+      <h2>Enviado</h2>
+      <p role="status">Se crearon {{ sent() }} notificaciones en la base de datos.</p>
+      <div class="row">
+        <ui-button type="button" (click)="reset()">Enviar otra</ui-button>
+        <a routerLink="/notifications">Ir a notificaciones</a>
+      </div>
+    </ui-card>
+  }
+</section>

@@ -40,6 +40,15 @@ public sealed class UserStore : IUserStore
             .ThenBy(x => x.Id)
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<User>> ListByRoleAsync(
+        string role,
+        CancellationToken ct) =>
+        await _db.Set<User>()
+            .AsNoTracking()
+            .Where(x => x.Role == role && x.IsActive)
+            .OrderBy(x => x.Id)
+            .ToListAsync(ct);
+
     public async Task<IReadOnlyList<User>> ListBySchoolAsync(
         int schoolId,
         CancellationToken ct) =>

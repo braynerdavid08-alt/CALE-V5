@@ -47,7 +47,7 @@ public sealed class SchoolAffiliationLookup : ISchoolAffiliationLookup
                 "Sin plan",
                 "",
                 "",
-                SchoolSubscriptionStatus.PendingPayment,
+                SchoolSubscriptionStatus.None,
                 0,
                 false);
         }
@@ -55,8 +55,7 @@ public sealed class SchoolAffiliationLookup : ISchoolAffiliationLookup
         profile.RefreshStatus(_clock.UtcNow);
         var plan = SchoolPlans.Find(profile.PlanCode);
         var days = profile.DaysRemaining(_clock.UtcNow);
-        var active = profile.SubscriptionStatus == SchoolSubscriptionStatus.Active
-            && days > 0;
+        var active = profile.IsCommerciallyActive(_clock.UtcNow);
 
         return new SchoolAffiliationSnapshot(
             schoolId,
@@ -64,7 +63,7 @@ public sealed class SchoolAffiliationLookup : ISchoolAffiliationLookup
             plan?.LabelEs ?? profile.PlanCode,
             profile.City,
             profile.Department,
-            profile.SubscriptionStatus,
+            profile.DisplayStatus(_clock.UtcNow),
             days,
             active);
     }

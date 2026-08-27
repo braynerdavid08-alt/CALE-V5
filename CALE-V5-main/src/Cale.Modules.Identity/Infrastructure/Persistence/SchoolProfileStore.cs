@@ -23,6 +23,21 @@ public sealed class SchoolProfileStore : ISchoolProfileStore
         _db.Set<SchoolProfile>()
             .FirstOrDefaultAsync(x => x.UserId == userId, ct);
 
+    public async Task<IReadOnlyList<SchoolProfile>> ListByStatusAsync(
+        string subscriptionStatus,
+        CancellationToken ct) =>
+        await _db.Set<SchoolProfile>()
+            .AsNoTracking()
+            .Where(x => x.SubscriptionStatus == subscriptionStatus)
+            .OrderByDescending(x => x.CreatedAt)
+            .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<SchoolProfile>> ListAllAsync(CancellationToken ct) =>
+        await _db.Set<SchoolProfile>()
+            .AsNoTracking()
+            .OrderByDescending(x => x.CreatedAt)
+            .ToListAsync(ct);
+
     public void Remove(SchoolProfile profile) =>
         _db.Set<SchoolProfile>().Remove(profile);
 

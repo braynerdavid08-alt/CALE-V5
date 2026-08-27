@@ -56,6 +56,10 @@ public sealed class Attempt
     public bool IsOpen(DateTime utcNow) =>
         FinishedAt is null && (ExpiresAt is null || utcNow <= ExpiresAt);
 
+    public bool IsWithinFinishGrace(DateTime utcNow, int graceSeconds = 5) =>
+        FinishedAt is null
+        && (ExpiresAt is null || utcNow <= ExpiresAt.Value.AddSeconds(graceSeconds));
+
     public void EnsureOwned(int userId)
     {
         if (UserId != userId)
@@ -64,7 +68,7 @@ public sealed class Attempt
         }
     }
 
-    public void Finish(int correctCount, DateTime utcNow)
+    public void Finish(int correctCount, DateTime utcNow, int graceSeconds = 5)
     {
         if (FinishedAt is not null)
         {
@@ -73,9 +77,46 @@ public sealed class Attempt
                 "attempt_finished");
         }
 
-        if (ExpiresAt is { } expires && utcNow > expires.AddSeconds(5))
+        if (ExpiresAt is { } expires && utcNow > expires.AddSeconds(graceSeconds))
         {
-            utcNow = expires;
+            throw new ForbiddenException(
+                "Attempt time expired.",
+                "attempt_expired");
+        }
+
+        ApplyScore(correctCount, utcNow);
+    }
+
+    /// <summary>
+    /// Closes an attempt that already passed the finish grace window
+    /// (e.g. reclaim open slot on a new Start). Scores as of ExpiresAt.
+    /// </summary>
+    public void CloseExpired(int correctCount, DateTime utcNow)
+    {
+        if (FinishedAt is not null)
+        {
+            throw new ConflictException(
+                "Attempt already finished.",
+                "attempt_finished");
+        }
+
+        if (IsWithinFinishGrace(utcNow))
+        {
+            throw new DomainException(
+                "Attempt is still within the finish window.",
+                400,
+                "attempt_still_open");
+        }
+
+        var end = ExpiresAt ?? utcNow;
+        ApplyScore(correctCount, end);
+    }
+
+    private void ApplyScore(int correctCount, DateTime finishedAt)
+    {
+        if (ExpiresAt is { } cap && finishedAt > cap)
+        {
+            finishedAt = cap;
         }
 
         CorrectCount = correctCount;
@@ -83,7 +124,7 @@ public sealed class Attempt
             ? 0
             : Math.Round(100m * correctCount / TotalQuestions, 2);
         Passed = ScoringRules.IsPassed(Percent);
-        TimeSeconds = (int)Math.Max(0, (utcNow - StartedAt).TotalSeconds);
-        FinishedAt = utcNow;
+        TimeSeconds = (int)Math.Max(0, (finishedAt - StartedAt).TotalSeconds);
+        FinishedAt = finishedAt;
     }
 }

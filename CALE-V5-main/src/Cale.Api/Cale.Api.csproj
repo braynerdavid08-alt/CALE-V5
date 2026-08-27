@@ -8,6 +8,7 @@
     <ProjectReference Include="..\Cale.Modules.Assessment\Cale.Modules.Assessment.csproj" />
     <ProjectReference Include="..\Cale.Modules.Classroom\Cale.Modules.Classroom.csproj" />
     <ProjectReference Include="..\Cale.Modules.Engagement\Cale.Modules.Engagement.csproj" />
+    <ProjectReference Include="..\Cale.Modules.Presentation\Cale.Modules.Presentation.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -70,7 +70,8 @@ public sealed class UpdateUserHandler
             user.Email,
             Roles.Normalize(user.Role),
             user.IsActive,
-            user.CreatedAt);
+            user.CreatedAt,
+            user.LastLoginAt);
     }
 
     private static string ParseRole(string role) => role switch

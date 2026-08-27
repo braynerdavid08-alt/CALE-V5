@@ -36,11 +36,10 @@ internal static class SchoolSeatGuard
         }
 
         profile.RefreshStatus(clock.UtcNow);
-        if (profile.SubscriptionStatus != SchoolSubscriptionStatus.Active
-            || profile.DaysRemaining(clock.UtcNow) <= 0)
+        if (!profile.IsCommerciallyActive(clock.UtcNow))
         {
             throw new DomainException(
-                "Tu membresía no está activa. Activa o renueva un plan para gestionar usuarios.",
+                "Tu membresía no está activa. Solicita un plan, sube el comprobante y espera la verificación del administrador.",
                 400,
                 "membership_inactive");
         }
@@ -49,12 +48,14 @@ internal static class SchoolSeatGuard
             ?? throw new DomainException("Plan de escuela inválido.", 400, "invalid_plan");
 
         var used = await users.CountBySchoolAndRoleAsync(schoolId, role, ct);
-        var max = role == Roles.Teacher ? plan.MaxTeachers : plan.MaxStudents;
+        var max = role == Roles.Teacher
+            ? profile.EffectiveMaxTeachers(plan)
+            : profile.EffectiveMaxStudents(plan);
         if (used >= max)
         {
             throw new DomainException(
                 role == Roles.Teacher
-                    ? $"Límite de docentes alcanzado ({max})."
+                    ? $"Límite de instructores alcanzado ({max})."
                     : $"Límite de estudiantes alcanzado ({max}).",
                 400,
                 "seat_limit_reached");
@@ -63,30 +64,36 @@ internal static class SchoolSeatGuard
 
     public static string ParseMemberRole(string role) => role switch
     {
-        "Teacher" or "Profesor" => Roles.Teacher,
+        "Teacher" or "Profesor" or "Instructor" => Roles.Teacher,
         "Student" or "Estudiante" or "Alumno" => Roles.Student,
         _ => throw new DomainException(
-            "Solo puedes agregar docentes o estudiantes.",
+            "Solo puedes agregar instructores o estudiantes.",
             400,
             "invalid_role")
     };
+
+    public static string RoleLabelEs(string role) =>
+        role == Roles.Teacher ? "Instructor" : "Estudiante";
 }
 
 public sealed class CreateSchoolMemberHandler
 {
     private readonly IUserStore _users;
     private readonly ISchoolProfileStore _profiles;
+    private readonly IMembershipEventStore _events;
     private readonly IPasswordHasher _hasher;
     private readonly IClock _clock;
 
     public CreateSchoolMemberHandler(
         IUserStore users,
         ISchoolProfileStore profiles,
+        IMembershipEventStore events,
         IPasswordHasher hasher,
         IClock clock)
     {
         _users = users;
         _profiles = profiles;
+        _events = events;
         _hasher = hasher;
         _clock = clock;
     }
@@ -126,6 +133,18 @@ public sealed class CreateSchoolMemberHandler
         await _users.AddAsync(user, ct);
         await _users.SaveChangesAsync(ct);
 
+        await _events.AddAsync(
+            MembershipEvent.Create(
+                schoolId,
+                MembershipEventTypes.MemberCreated,
+                null,
+                null,
+                schoolId,
+                $"Alta {SchoolSeatGuard.RoleLabelEs(role)}: {user.Name} <{user.Email}> (#{user.Id})",
+                _clock.UtcNow),
+            ct);
+        await _profiles.SaveChangesAsync(ct);
+
         return Map(user, role);
     }
 
@@ -147,22 +166,25 @@ public sealed class CreateSchoolMemberHandler
     }
 
     private static UserListItemDto Map(User user, string role) =>
-        new(user.Id, user.Name, user.Email, role, user.IsActive, user.CreatedAt);
+        new(user.Id, user.Name, user.Email, role, user.IsActive, user.CreatedAt, user.LastLoginAt);
 }
 
 public sealed class AttachSchoolMemberHandler
 {
     private readonly IUserStore _users;
     private readonly ISchoolProfileStore _profiles;
+    private readonly IMembershipEventStore _events;
     private readonly IClock _clock;
 
     public AttachSchoolMemberHandler(
         IUserStore users,
         ISchoolProfileStore profiles,
+        IMembershipEventStore events,
         IClock clock)
     {
         _users = users;
         _profiles = profiles;
+        _events = events;
         _clock = clock;
     }
 
@@ -187,7 +209,7 @@ public sealed class AttachSchoolMemberHandler
         if (role is not (Roles.Teacher or Roles.Student))
         {
             throw new DomainException(
-                "Solo se pueden vincular cuentas de docente o estudiante.",
+                "Solo se pueden vincular cuentas de instructor o estudiante.",
                 400,
                 "invalid_role");
         }
@@ -196,7 +218,7 @@ public sealed class AttachSchoolMemberHandler
         {
             throw new DomainException(
                 role == Roles.Teacher
-                    ? "Esa cuenta es de docente. Selecciona el tipo Docente."
+                    ? "Esa cuenta es de instructor. Selecciona el tipo Instructor."
                     : "Esa cuenta es de estudiante. Selecciona el tipo Estudiante.",
                 400,
                 "role_mismatch");
@@ -230,25 +252,49 @@ public sealed class AttachSchoolMemberHandler
         user.AssignSchool(schoolId);
         await _users.SaveChangesAsync(ct);
 
+        await _events.AddAsync(
+            MembershipEvent.Create(
+                schoolId,
+                MembershipEventTypes.MemberAttached,
+                null,
+                null,
+                schoolId,
+                $"Vinculación {SchoolSeatGuard.RoleLabelEs(role)}: {user.Name} <{user.Email}> (#{user.Id})",
+                _clock.UtcNow),
+            ct);
+        await _profiles.SaveChangesAsync(ct);
+
         return new UserListItemDto(
             user.Id,
             user.Name,
             user.Email,
             role,
             user.IsActive,
-            user.CreatedAt);
+            user.CreatedAt,
+            user.LastLoginAt);
     }
 }
 
 public sealed class UpdateSchoolMemberHandler
 {
     private readonly IUserStore _users;
+    private readonly ISchoolProfileStore _profiles;
+    private readonly IMembershipEventStore _events;
     private readonly IPasswordHasher _hasher;
+    private readonly IClock _clock;
 
-    public UpdateSchoolMemberHandler(IUserStore users, IPasswordHasher hasher)
+    public UpdateSchoolMemberHandler(
+        IUserStore users,
+        ISchoolProfileStore profiles,
+        IMembershipEventStore events,
+        IPasswordHasher hasher,
+        IClock clock)
     {
         _users = users;
+        _profiles = profiles;
+        _events = events;
         _hasher = hasher;
+        _clock = clock;
     }
 
     public async Task<UserListItemDto> HandleAsync(
@@ -271,7 +317,9 @@ public sealed class UpdateSchoolMemberHandler
                 "email_taken");
         }
 
+        var previous = $"{user.Name} <{user.Email}>";
         user.UpdateProfile(request.Name, email);
+        var passwordChanged = false;
         if (!string.IsNullOrWhiteSpace(request.NewPassword))
         {
             if (request.NewPassword.Length < 8)
@@ -283,41 +331,46 @@ public sealed class UpdateSchoolMemberHandler
             }
 
             user.ChangePassword(_hasher.Hash(request.NewPassword));
+            passwordChanged = true;
         }
 
         await _users.SaveChangesAsync(ct);
+
+        var note = passwordChanged
+            ? $"Edición {SchoolSeatGuard.RoleLabelEs(Roles.Normalize(user.Role))}: {previous} → {user.Name} <{user.Email}> (#{user.Id}); contraseña restablecida"
+            : $"Edición {SchoolSeatGuard.RoleLabelEs(Roles.Normalize(user.Role))}: {previous} → {user.Name} <{user.Email}> (#{user.Id})";
+
+        await _events.AddAsync(
+            MembershipEvent.Create(
+                schoolId,
+                MembershipEventTypes.MemberUpdated,
+                null,
+                null,
+                schoolId,
+                note,
+                _clock.UtcNow),
+            ct);
+        await _profiles.SaveChangesAsync(ct);
+
         return Map(user);
     }
 
-    public async Task<UserListItemDto> SetActiveAsync(
+    public Task<UserListItemDto> SetActiveAsync(
         int schoolId,
         int memberId,
         bool isActive,
-        CancellationToken ct)
-    {
-        var user = await OwnedMemberAsync(schoolId, memberId, ct);
-        if (isActive)
-        {
-            user.Activate();
-        }
-        else
-        {
-            user.Deactivate();
-        }
+        CancellationToken ct) =>
+        throw new ForbiddenException(
+            "Solo el administrador puede activar o desactivar cuentas.",
+            "admin_only_activation");
 
-        await _users.SaveChangesAsync(ct);
-        return Map(user);
-    }
-
-    public async Task UnlinkAsync(
+    public Task UnlinkAsync(
         int schoolId,
         int memberId,
-        CancellationToken ct)
-    {
-        var user = await OwnedMemberAsync(schoolId, memberId, ct);
-        user.LeaveSchool();
-        await _users.SaveChangesAsync(ct);
-    }
+        CancellationToken ct) =>
+        throw new ForbiddenException(
+            "Solo el administrador puede quitar o eliminar miembros. La escuela puede crear y editar nombre/correo.",
+            "admin_only_unlink");
 
     private async Task<User> OwnedMemberAsync(
         int schoolId,
@@ -345,5 +398,6 @@ public sealed class UpdateSchoolMemberHandler
             user.Email,
             Roles.Normalize(user.Role),
             user.IsActive,
-            user.CreatedAt);
+            user.CreatedAt,
+            user.LastLoginAt);
 }

@@ -30,7 +30,7 @@ import { TeacherApi, QuestionListDto } from '../../teacher/api/teacher.api';
     <ui-page-header
       [title]="canManage() ? 'Preguntas' : 'Catálogo de preguntas'"
       [subtitle]="canManage()
-        ? 'Solo administración crea y edita el catálogo. Escuelas y docentes lo heredan.'
+        ? 'Solo administración crea y edita el catálogo. Escuelas e instructores lo heredan.'
         : 'Preguntas heredadas desde la administración de CALE. Solo lectura.'">
       @if (canManage()) {
         <a routerLink="new"><ui-button type="button">Nueva pregunta</ui-button></a>

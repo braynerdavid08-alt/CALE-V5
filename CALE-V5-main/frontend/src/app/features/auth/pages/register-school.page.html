@@ -1,9 +1,11 @@
 <ui-theme-toggle />
 <section class="auth school-auth">
   <div class="brand-side">
-    <p class="logo">CALE</p>
+    <img class="brand-logo" [src]="brand.icon192" [alt]="brand.name" width="120" height="120" />
+    <p class="brand-name">{{ brand.name }}</p>
+    <p class="brand-slogan">{{ brand.slogan }}</p>
     <h1>Registro de escuela</h1>
-    <p>Completa los datos de facturación y elige un plan para activar tu cuenta institucional.</p>
+    <p>Completa facturación, elige un plan y luego paga + sube el comprobante para que un administrador active tu membresía.</p>
   </div>
   <div class="auth-card">
     <p class="eyebrow">Escuela</p>
@@ -77,7 +79,7 @@
                 ≈ {{ plan.monthlyEquivalentCop | currency:'COP':'symbol-narrow':'1.0-0' }}/mes
               </span>
               <span class="plan-eq">
-                Hasta {{ plan.maxTeachers }} docentes · {{ plan.maxStudents }} estudiantes
+                Hasta {{ plan.maxTeachers }} instructores · {{ plan.maxStudents }} estudiantes
               </span>
             </button>
           }
@@ -94,7 +96,7 @@
     <p class="hint signup-label">Otros registros</p>
     <div class="signup-options">
       <a class="signup-option" routerLink="/register">Crear estudiante</a>
-      <a class="signup-option" routerLink="/register-teacher">Crear docente</a>
+      <a class="signup-option" routerLink="/register-teacher">Crear instructor</a>
     </div>
   </div>
 </section>

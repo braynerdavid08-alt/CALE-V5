@@ -1,0 +1,22 @@
+services:
+  cale:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Cale: "Data Source=/data/cale.db"
+      Jwt__Key: "${CALE_JWT_KEY:-CALE-DOCKER-DEV-ONLY-CHANGE-ME-32CHARS-MIN}"
+      Cors__Origins: "${CALE_CORS_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}"
+      ForwardedHeaders__Enabled: "true"
+      Seed__DemoUsers: "${CALE_SEED_DEMO:-true}"
+    volumes:
+      - cale-data:/data
+      - cale-uploads:/app/wwwroot/uploads
+    restart: unless-stopped
+
+volumes:
+  cale-data:
+  cale-uploads:

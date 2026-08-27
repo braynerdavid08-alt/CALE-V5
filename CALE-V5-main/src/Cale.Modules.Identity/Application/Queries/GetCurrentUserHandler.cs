@@ -47,6 +47,7 @@ public sealed class GetCurrentUserHandler
             role,
             user.IsActive,
             user.CreatedAt,
+            user.MustChangePassword,
             school);
     }
 
@@ -69,7 +70,7 @@ public sealed class GetCurrentUserHandler
                 "Sin plan",
                 "",
                 "",
-                SchoolSubscriptionStatus.PendingPayment,
+                SchoolSubscriptionStatus.None,
                 0,
                 false);
         }
@@ -78,8 +79,7 @@ public sealed class GetCurrentUserHandler
         await _profiles.SaveChangesAsync(ct);
         var plan = SchoolPlans.Find(profile.PlanCode);
         var days = profile.DaysRemaining(_clock.UtcNow);
-        var active = profile.SubscriptionStatus == SchoolSubscriptionStatus.Active
-            && days > 0;
+        var active = profile.IsCommerciallyActive(_clock.UtcNow);
 
         return new MeSchoolContextDto(
             schoolUserId,
@@ -87,7 +87,7 @@ public sealed class GetCurrentUserHandler
             plan?.LabelEs ?? profile.PlanCode,
             profile.City,
             profile.Department,
-            profile.SubscriptionStatus,
+            profile.DisplayStatus(_clock.UtcNow),
             days,
             active);
     }

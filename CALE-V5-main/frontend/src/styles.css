@@ -1,6 +1,7 @@
 @import "./app/shared/styles/_tokens.css";
 @import "./app/shared/styles/_base.css";
 @import "./app/shared/styles/_layout.css";
+@import "./app/shared/styles/_dashboard.css";
 @import "./app/shared/styles/_forms.css";
 @import "./app/shared/styles/_table.css";
 

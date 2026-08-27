@@ -1,7 +1,9 @@
 <ui-theme-toggle />
 <section class="auth">
   <div class="brand-side">
-    <p class="logo">CALE</p>
+    <img class="brand-logo" [src]="brand.icon192" [alt]="brand.name" width="120" height="120" />
+    <p class="brand-name">{{ brand.name }}</p>
+    <p class="brand-slogan">{{ brand.slogan }}</p>
     <h1>Formación vial clara y profesional</h1>
     <p>Simulador, aula virtual y seguimiento en un mismo lugar.</p>
   </div>
@@ -9,7 +11,6 @@
     <p class="eyebrow">Bienvenido</p>
     <h2>Iniciar sesión</h2>
     <p class="lead">Entra para continuar tu formación.</p>
-    <ui-motivation class="auth-tip" variant="card" />
     <ui-error [message]="auth.error()" />
     <form [formGroup]="form" (ngSubmit)="submit()">
       <label class="field">
@@ -31,14 +32,14 @@
     <p class="hint signup-label">¿Aún no tienes cuenta? Elige tu tipo:</p>
     <div class="signup-options">
       <a class="signup-option" routerLink="/register">Crear estudiante</a>
-      <a class="signup-option" routerLink="/register-teacher">Crear docente</a>
+      <a class="signup-option" routerLink="/register-teacher">Crear instructor</a>
       <a class="signup-option" routerLink="/register-school">Crear escuela</a>
     </div>
     <div class="demo-users">
       <p class="demo-title">Usuarios de prueba</p>
       <ul>
         <li><strong>Admin:</strong> admin&#64;cale.local / Admin123!</li>
-        <li><strong>Profesor:</strong> profesor&#64;cale.local / Profesor123!</li>
+        <li><strong>Instructor:</strong> profesor&#64;cale.local / Profesor123!</li>
         <li><strong>Estudiante:</strong> estudiante&#64;cale.local / Estudiante123!</li>
       </ul>
     </div>

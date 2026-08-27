@@ -54,7 +54,8 @@ public sealed class CreateTeacherHandler
             user.Email,
             Roles.Teacher,
             user.IsActive,
-            user.CreatedAt);
+            user.CreatedAt,
+            user.LastLoginAt);
     }
 
     private static void Validate(CreateTeacherRequest request)

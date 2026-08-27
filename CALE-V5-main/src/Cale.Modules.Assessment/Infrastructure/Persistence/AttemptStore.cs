@@ -51,6 +51,9 @@ public sealed class AttemptStore : IAttemptStore
             .Where(x => x.AttemptId == attemptId)
             .ToListAsync(ct);
 
+    public Task<int> CountAnswersAsync(CancellationToken ct) =>
+        _db.Set<AttemptAnswer>().CountAsync(ct);
+
     public Task<AttemptRating?> FindRatingAsync(int attemptId, CancellationToken ct) =>
         _db.Set<AttemptRating>().FirstOrDefaultAsync(
             x => x.AttemptId == attemptId,
@@ -91,6 +94,21 @@ public sealed class AttemptStore : IAttemptStore
             .OrderByDescending(x => x.FinishedAt)
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<Attempt>> ListAllAsync(CancellationToken ct) =>
+        await _db.Set<Attempt>()
+            .AsNoTracking()
+            .OrderByDescending(x => x.StartedAt)
+            .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<Attempt>> ListStartedSinceAsync(
+        DateTime utcFrom,
+        CancellationToken ct) =>
+        await _db.Set<Attempt>()
+            .AsNoTracking()
+            .Where(x => x.StartedAt >= utcFrom)
+            .OrderByDescending(x => x.StartedAt)
+            .ToListAsync(ct);
+
     public Task<int> CountAllAsync(CancellationToken ct) =>
         _db.Set<Attempt>().CountAsync(ct);
 
@@ -102,6 +120,41 @@ public sealed class AttemptStore : IAttemptStore
             x => x.UserId == userId && x.ExamId == examId && x.FinishedAt != null,
             ct);
 
+    public Task<Attempt?> FindOpenByUserAndExamAsync(
+        int userId,
+        int examId,
+        CancellationToken ct) =>
+        _db.Set<Attempt>().FirstOrDefaultAsync(
+            x => x.UserId == userId
+                && x.ExamId == examId
+                && x.FinishedAt == null,
+            ct);
+
+    public async Task<bool> TryMarkFinishedAsync(
+        int attemptId,
+        int correctCount,
+        decimal percent,
+        bool passed,
+        int timeSeconds,
+        DateTime finishedAt,
+        CancellationToken ct)
+    {
+        var rows = await _db.Set<Attempt>()
+            .Where(x => x.Id == attemptId && x.FinishedAt == null)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(x => x.CorrectCount, correctCount)
+                    .SetProperty(x => x.Percent, percent)
+                    .SetProperty(x => x.Passed, passed)
+                    .SetProperty(x => x.TimeSeconds, timeSeconds)
+                    .SetProperty(x => x.FinishedAt, finishedAt),
+                ct);
+        return rows == 1;
+    }
+
     public Task SaveChangesAsync(CancellationToken ct) =>
         _db.SaveChangesAsync(ct);
+
+    public void ClearTrackedChanges() =>
+        _db.ChangeTracker.Clear();
 }

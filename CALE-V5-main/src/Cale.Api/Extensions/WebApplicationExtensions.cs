@@ -5,6 +5,7 @@ using Cale.BuildingBlocks.Infrastructure.Persistence;
 using Cale.Modules.Catalog.Infrastructure;
 using Cale.Modules.Identity.Domain;
 using Cale.Modules.Identity.Infrastructure;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 
 namespace Cale.Api.Extensions;
@@ -13,6 +14,25 @@ public static class WebApplicationExtensions
 {
     public static async Task UseCalePipelineAsync(this WebApplication app)
     {
+        if (app.Configuration.GetValue("ForwardedHeaders:Enabled", false))
+        {
+            var opts = new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+            };
+            // Behind Traefik / nginx / cloud load balancer.
+            opts.KnownNetworks.Clear();
+            opts.KnownProxies.Clear();
+            app.UseForwardedHeaders(opts);
+        }
+
+        if (app.Configuration.GetValue("Hosting:UseHttpsRedirection", false))
+        {
+            app.UseHsts();
+            app.UseHttpsRedirection();
+        }
+
+        app.UseMiddleware<RequestTelemetryMiddleware>();
         app.UseMiddleware<ExceptionHandlingMiddleware>();
 
         if (app.Environment.IsDevelopment())
@@ -22,10 +42,14 @@ public static class WebApplicationExtensions
         }
 
         app.UseCors("Cale");
+        app.UseDefaultFiles();
         app.UseStaticFiles();
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
+
+        // Angular SPA deep links (keep /api/* on controllers).
+        app.MapFallbackToFile("index.html");
 
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<CaleDbContext>();
@@ -34,7 +58,12 @@ public static class WebApplicationExtensions
 
         var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
         var clock = scope.ServiceProvider.GetRequiredService<IClock>();
-        await IdentitySeed.EnsureDemoUsersAsync(db, hasher, clock);
+
+        if (app.Environment.IsDevelopment()
+            || app.Configuration.GetValue("Seed:DemoUsers", false))
+        {
+            await IdentitySeed.EnsureDemoUsersAsync(db, hasher, clock);
+        }
 
         var adminId = await db.Set<User>()
             .Where(x => x.Email == IdentitySeed.AdminEmail)

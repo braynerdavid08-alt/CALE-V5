@@ -144,7 +144,7 @@ export const MOTIVATION_CATALOG: readonly MotivationTip[] = [
   {
     id: 'teach-model',
     headline: 'Tu ejemplo forma conductores: enseña calma, no solo contenido.',
-    detail: 'Un docente que prioriza prevención transmite una cultura vial que el examen solo no logra.',
+    detail: 'Un instructor que prioriza prevención transmite una cultura vial que el examen solo no logra.',
     category: 'formacion',
     audience: 'Teacher',
     moment: 'any'

@@ -1,0 +1,103 @@
+<section class="dash">
+  <header class="dash-hero">
+    <div class="dash-hero-copy">
+      <h1>{{ profile()?.legalName || 'Tu escuela' }}</h1>
+    </div>
+    <div class="dash-hero-actions">
+      <a routerLink="/school/membership"><ui-button type="button">Membresía</ui-button></a>
+      <a routerLink="/school/users"><ui-button type="button" variant="secondary">Usuarios</ui-button></a>
+    </div>
+  </header>
+
+  <ui-error [message]="error()" />
+
+  @if (loading()) {
+    <ui-loading />
+  }
+
+  @if (profile(); as p) {
+    <div class="dash-kpis">
+      <ui-dash-kpi
+        label="Estudiantes activos"
+        [value]="activeStudents()"
+        icon="group"
+        tone="primary"
+        [hint]="p.studentsUsed + ' / ' + p.studentsMax + ' cupos'" />
+      <ui-dash-kpi
+        label="Instructores"
+        [value]="activeTeachers()"
+        icon="users"
+        tone="info"
+        [hint]="p.teachersUsed + ' / ' + p.teachersMax + ' cupos'" />
+      <ui-dash-kpi
+        label="Días restantes"
+        [value]="p.daysRemaining"
+        icon="clock"
+        [tone]="p.isMembershipActive ? 'success' : 'warning'" />
+      <ui-dash-kpi
+        label="Plan"
+        [value]="p.planLabel"
+        icon="bank"
+        tone="primary"
+        [hint]="statusLabel(p.displayStatus || p.subscriptionStatus)" />
+    </div>
+
+    <div class="dash-main">
+      <div class="dash-side">
+        <section class="dash-panel">
+          <div class="dash-panel-head">
+            <h2>Uso de cupos</h2>
+            <a routerLink="/school/users">Gestionar</a>
+          </div>
+          <ui-dash-bars [items]="seatBars()" />
+          <p class="dash-empty">
+            Estado:
+            <ui-badge [tone]="statusTone(p.displayStatus || p.subscriptionStatus)">
+              {{ statusLabel(p.displayStatus || p.subscriptionStatus) }}
+            </ui-badge>
+            @if (p.membershipEndsAt) {
+              · vence {{ p.membershipEndsAt | date:'mediumDate' }}
+            }
+          </p>
+        </section>
+
+        <section class="dash-panel">
+          <div class="dash-panel-head">
+            <h2>Actividad de membresía</h2>
+            <a routerLink="/school/membership">Ver detalle</a>
+          </div>
+          @if (!events().length) {
+            <p class="dash-empty">Aún no hay eventos de plan.</p>
+          } @else {
+            <ul class="dash-feed">
+              @for (e of events(); track e.createdAt + e.eventType) {
+                <li>
+                  <strong>{{ eventLabel(e.eventType) }}</strong>
+                  <p class="meta">
+                    {{ e.createdAt | date:'short' }}
+                    @if (e.note) { · {{ e.note }} }
+                  </p>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      </div>
+
+      <div class="dash-side">
+        <ui-dash-notifs [items]="notifs()" (open)="openNotif($event)" />
+
+        <section class="dash-panel">
+          <div class="dash-panel-head">
+            <h2>Accesos</h2>
+          </div>
+          <div class="row">
+            <a routerLink="/school/import"><ui-button type="button" variant="secondary">Importar</ui-button></a>
+            <a routerLink="/school/questions"><ui-button type="button" variant="ghost">Preguntas</ui-button></a>
+            <a routerLink="/school/banks"><ui-button type="button" variant="ghost">Bancos</ui-button></a>
+          </div>
+        </section>
+      </div>
+    </div>
+  }
+</section>

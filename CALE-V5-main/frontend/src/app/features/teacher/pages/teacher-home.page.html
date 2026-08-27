@@ -1,129 +1,174 @@
-<ui-page-header
-  eyebrow="Docente"
-  title="Hola, {{ displayName() }}"
-  [subtitle]="schoolLine()" />
+<section class="dash">
+  <header class="dash-hero">
+    <div class="dash-hero-copy">
+      <p class="dash-kicker">Panel del instructor</p>
+      <h1>Hola, {{ displayName() }}</h1>
+      <p class="dash-sub">{{ schoolLine() }}</p>
+    </div>
+    <div class="dash-hero-actions">
+      <a routerLink="/teacher/presentations">
+        <ui-button type="button">Crear presentación</ui-button>
+      </a>
+      <a routerLink="/teacher/groups">
+        <ui-button type="button" variant="secondary">Mis grupos</ui-button>
+      </a>
+    </div>
+  </header>
 
-<ui-motivation class="home-tip" variant="card" [role]="session.user()?.role" />
+  <ui-error [message]="error()" />
 
-<ui-error [message]="error()" />
-@if (loading()) {
-  <ui-loading />
-} @else {
-  <div class="grid-stats">
-    <ui-stat label="Grupos" [value]="data()?.groups?.length ?? 0" tone="primary" />
-    <ui-stat label="Estudiantes activos" [value]="data()?.activeStudents ?? 0" />
-    <ui-stat
-      label="Exámenes publicados"
-      [value]="(data()?.publishedExams ?? 0) + ' / ' + (data()?.totalExams ?? 0)" />
-    <ui-stat
-      label="Por calificar"
-      [value]="data()?.pendingGrades?.length ?? 0"
-      [tone]="(data()?.pendingGrades?.length ?? 0) > 0 ? 'warning' : 'success'" />
-  </div>
+  @if (loading()) {
+    <ui-loading />
+  }
 
-  <div class="grid-2 identity-row">
-    <ui-card>
-      <h2>Tu perfil</h2>
-      <dl class="facts">
-        <div>
-          <dt>Nombre</dt>
-          <dd>{{ displayName() }}</dd>
-        </div>
-        <div>
-          <dt>Correo</dt>
-          <dd>{{ session.user()?.email }}</dd>
-        </div>
-        <div>
-          <dt>Rol</dt>
-          <dd><ui-badge tone="warning">Docente</ui-badge></dd>
-        </div>
-      </dl>
-      <div class="row actions">
-        <a routerLink="/profile"><ui-button type="button" variant="secondary">Perfil</ui-button></a>
-        <a routerLink="/student/simulator"><ui-button type="button" variant="ghost">Simulador</ui-button></a>
-      </div>
-    </ui-card>
+  @if (data(); as d) {
+    <div class="dash-kpis">
+      <ui-dash-kpi
+        label="Grupos"
+        [value]="d.groups?.length ?? 0"
+        icon="users"
+        tone="primary" />
+      <ui-dash-kpi
+        label="Estudiantes a cargo"
+        [value]="d.activeStudents ?? 0"
+        icon="graduate"
+        tone="info" />
+      <ui-dash-kpi
+        label="Por calificar"
+        [value]="d.pendingGrades?.length ?? 0"
+        icon="exam"
+        [tone]="(d.pendingGrades?.length ?? 0) > 0 ? 'warning' : 'success'" />
+      <ui-dash-kpi
+        label="Exámenes publicados"
+        [value]="(d.publishedExams ?? 0) + ' / ' + (d.totalExams ?? 0)"
+        icon="book"
+        tone="primary" />
+    </div>
 
-    <ui-card [class.unlinked]="!data()?.school">
-      <h2>Escuela</h2>
-      @if (data()?.school; as school) {
-        <p class="school-name">{{ school.legalName }}</p>
-        <p class="muted">
-          @if (school.city || school.department) {
-            {{ school.city }}@if (school.city && school.department) {, }{{ school.department }}
-          } @else {
-            Ubicación no registrada
-          }
-        </p>
-        <div class="school-meta">
-          <ui-badge [tone]="statusTone(school.subscriptionStatus)">
-            {{ statusLabel(school.subscriptionStatus) }}
-          </ui-badge>
-          <span class="pill">Plan {{ school.planLabel }}</span>
-          @if (school.isMembershipActive) {
-            <span class="pill soft">{{ school.daysRemaining }} día(s) restantes</span>
-          }
-        </div>
-      } @else {
-        <ui-empty
-          title="Aún no perteneces a una escuela"
-          message="Cuando una escuela te vincule con tu correo, verás aquí su nombre y plan." />
-      }
-    </ui-card>
-  </div>
-
-  <div class="row shortcuts">
-    <a routerLink="/teacher/groups"><ui-button type="button" variant="secondary">Grupos</ui-button></a>
-    <a routerLink="/teacher/questions"><ui-button type="button" variant="secondary">Preguntas</ui-button></a>
-    <a routerLink="/teacher/exams"><ui-button type="button" variant="secondary">Exámenes</ui-button></a>
-    <a routerLink="/teacher/results"><ui-button type="button" variant="secondary">Resultados</ui-button></a>
-    <a routerLink="/teacher/banks"><ui-button type="button" variant="ghost">Bancos</ui-button></a>
-  </div>
-
-  <div class="grid-2">
-    <ui-card>
-      <h2>Grupos</h2>
-      @if (!data()?.groups?.length) {
-        <ui-empty title="No tienes grupos" message="Crea uno desde Grupos." />
-      } @else {
-        <ul class="stack">
-          @for (group of data()!.groups; track group.id) {
-            <li>
-              <a [routerLink]="['/teacher/groups', group.id]">{{ group.name }}</a>
-              <span class="muted"> · {{ group.memberCount }} integrantes · {{ group.code }}</span>
-            </li>
-          }
-        </ul>
-      }
-    </ui-card>
-    <ui-card>
-      <h2>Entregas por calificar</h2>
-      @if (!data()?.pendingGrades?.length) {
-        <ui-empty title="Nada pendiente" message="" />
-      } @else {
-        <ul class="stack">
-          @for (item of data()!.pendingGrades; track item.id) {
-            <li>
-              <a [routerLink]="['/teacher/groups', item.groupId]">
-                {{ item.userName }} · actividad {{ item.activityId }}
+    <div class="dash-main">
+      <div class="dash-side">
+        <section class="dash-panel feature-card">
+          <div class="dash-panel-head">
+            <h2>Mis presentaciones</h2>
+            <a routerLink="/teacher/presentations">Ver todas</a>
+          </div>
+          @if (presentationSummary(); as ps) {
+            <div class="feature-body">
+              <p class="feature-stat">
+                <strong>{{ ps.total }}</strong>
+                <span>presentación{{ ps.total === 1 ? '' : 'es' }}</span>
+              </p>
+              @if (ps.latest) {
+                <p class="dash-empty">
+                  Última: <strong>{{ ps.latest.title }}</strong>
+                  · {{ relativePres(ps.latest.updatedAt) }}
+                </p>
+              } @else {
+                <p class="dash-empty">Prepara y proyecta tu clase sin salir de Mi CALE.</p>
+              }
+            </div>
+            <div class="feature-actions">
+              <a routerLink="/teacher/presentations">
+                <ui-button type="button">Abrir presentaciones</ui-button>
               </a>
-            </li>
+              @if (ps.latest) {
+                <a [routerLink]="['/teacher/presentations', ps.latest.id, 'present']">
+                  <ui-button type="button" variant="secondary">Presentar última</ui-button>
+                </a>
+              }
+            </div>
           }
-        </ul>
-      }
-    </ui-card>
-  </div>
+        </section>
 
-  <ui-card>
-    <h2>Bajo rendimiento</h2>
-    @if (!data()?.lowScores?.length) {
-      <ui-empty title="No hay intentos reprobados recientes" message="" />
-    } @else {
-      <ul class="stack">
-        @for (item of data()!.lowScores; track item.userId) {
-          <li>{{ item.userName }} · {{ item.percent }}%</li>
-        }
-      </ul>
-    }
-  </ui-card>
-}
+        <section class="dash-panel">
+          <div class="dash-panel-head">
+            <h2>Carga de trabajo</h2>
+            <a routerLink="/teacher/results">Informes</a>
+          </div>
+          <ui-dash-bars [items]="workloadBars()" />
+        </section>
+
+        <section class="dash-panel">
+          <div class="dash-panel-head">
+            <h2>Entregas pendientes</h2>
+          </div>
+          @if (!d.pendingGrades?.length) {
+            <p class="dash-empty">Nada pendiente por calificar.</p>
+          } @else {
+            <ul class="dash-feed">
+              @for (item of d.pendingGrades; track item.id) {
+                <li>
+                  <a class="block" [routerLink]="['/teacher/groups', item.groupId]">
+                    <strong>{{ item.userName }}</strong>
+                    <p class="meta">Actividad {{ item.activityId }}</p>
+                  </a>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      </div>
+
+      <div class="dash-side">
+        <ui-dash-notifs [items]="notifs()" (open)="openNotif($event)" />
+
+        <section class="dash-panel">
+          <div class="dash-panel-head">
+            <h2>Mis grupos</h2>
+            <a routerLink="/teacher/groups">Ver todos</a>
+          </div>
+          @if (!d.groups?.length) {
+            <p class="dash-empty">Crea tu primer grupo para empezar.</p>
+          } @else {
+            <ul class="dash-feed">
+              @for (group of d.groups; track group.id) {
+                <li>
+                  <a class="block" [routerLink]="['/teacher/groups', group.id]">
+                    <strong>{{ group.name }}</strong>
+                    <p class="meta">{{ group.memberCount }} integrantes · {{ group.code }}</p>
+                  </a>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+
+        <section class="dash-panel">
+          <div class="dash-panel-head">
+            <h2>Escuela</h2>
+            <a routerLink="/profile">Perfil</a>
+          </div>
+          @if (d.school; as school) {
+            <p class="school-name">{{ school.legalName }}</p>
+            <div class="dash-inline">
+              <ui-badge [tone]="statusTone(school.subscriptionStatus)">
+                {{ statusLabel(school.subscriptionStatus) }}
+              </ui-badge>
+              <span class="meta">Plan {{ school.planLabel }}</span>
+            </div>
+          } @else {
+            <p class="dash-empty">Aún no perteneces a una escuela.</p>
+          }
+        </section>
+
+        <section class="dash-panel">
+          <div class="dash-panel-head">
+            <h2>Bajo rendimiento</h2>
+          </div>
+          @if (!d.lowScores?.length) {
+            <p class="dash-empty">Sin intentos reprobados recientes.</p>
+          } @else {
+            <ul class="dash-feed">
+              @for (item of d.lowScores; track item.userId) {
+                <li>
+                  <strong>{{ item.userName }}</strong>
+                  <p class="meta">{{ item.percent }}%</p>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      </div>
+    </div>
+  }
+</section>

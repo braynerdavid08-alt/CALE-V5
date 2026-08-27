@@ -1,0 +1,11 @@
+# .dockerignore
+**/.git
+**/bin
+**/obj
+**/node_modules
+**/dist
+**/.angular
+**/cale-dev.db
+**/cale-dev.db-*
+**/*.md
+!docs/DEPLOY.md

@@ -3,6 +3,7 @@ using Cale.BuildingBlocks.Domain.Time;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
 using Cale.BuildingBlocks.Infrastructure.Security;
 using Cale.BuildingBlocks.Infrastructure.Time;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -36,7 +37,16 @@ public static class DependencyInjection
         {
             if (IsSqlite(connection))
             {
-                options.UseSqlite(connection);
+                var builder = new SqliteConnectionStringBuilder(connection)
+                {
+                    DefaultTimeout = 30,
+                    Cache = SqliteCacheMode.Shared
+                };
+
+                options.UseSqlite(builder.ToString(), sqlite =>
+                {
+                    sqlite.CommandTimeout(30);
+                });
             }
             else
             {

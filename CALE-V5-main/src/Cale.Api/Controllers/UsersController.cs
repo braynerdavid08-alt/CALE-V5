@@ -14,6 +14,7 @@ public sealed class UsersController : ControllerBase
 {
     private readonly ListUsersHandler _list;
     private readonly CreateTeacherHandler _createTeacher;
+    private readonly CreateSchoolHandler _createSchool;
     private readonly UpdateUserHandler _update;
     private readonly DeleteUserHandler _delete;
     private readonly SetUserActiveHandler _setActive;
@@ -21,12 +22,14 @@ public sealed class UsersController : ControllerBase
     public UsersController(
         ListUsersHandler list,
         CreateTeacherHandler createTeacher,
+        CreateSchoolHandler createSchool,
         UpdateUserHandler update,
         DeleteUserHandler delete,
         SetUserActiveHandler setActive)
     {
         _list = list;
         _createTeacher = createTeacher;
+        _createSchool = createSchool;
         _update = update;
         _delete = delete;
         _setActive = setActive;
@@ -42,6 +45,15 @@ public sealed class UsersController : ControllerBase
         CreateTeacherRequest request,
         CancellationToken ct) =>
         Ok(await _createTeacher.HandleAsync(request, ct));
+
+    [HttpPost("schools")]
+    public async Task<ActionResult<UserListItemDto>> CreateSchool(
+        CreateSchoolRequest request,
+        CancellationToken ct) =>
+        Ok(await _createSchool.HandleAsync(
+            request,
+            CurrentUser.GetId(User),
+            ct));
 
     [HttpPut("{id:int}")]
     public async Task<ActionResult<UserListItemDto>> Update(

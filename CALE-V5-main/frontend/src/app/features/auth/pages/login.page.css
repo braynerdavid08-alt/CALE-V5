@@ -36,12 +36,30 @@ ui-theme-toggle {
   gap: var(--spacing-sm);
 }
 
-.logo {
-  margin: 0 0 var(--spacing-md);
+.logo,
+.brand-name {
+  margin: 0 0 0.35rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.02em;
   color: #fff;
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
+}
+
+.brand-logo {
+  width: 7.5rem;
+  height: 7.5rem;
+  border-radius: 1rem;
+  object-fit: cover;
+  margin-bottom: 0.5rem;
+}
+
+.brand-slogan {
+  margin: 0 0 var(--spacing-md);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: color-mix(in srgb, var(--color-brand-panel-text) 92%, #fff);
+  line-height: 1.35;
+  max-width: 18ch;
 }
 
 .brand-side h1 {
@@ -77,11 +95,6 @@ h2 { margin: 0 0 0.35rem; }
 .lead {
   margin-bottom: var(--spacing-md);
   color: var(--color-text-secondary);
-}
-
-.auth-tip {
-  display: block;
-  margin-bottom: var(--spacing-md);
 }
 
 form {

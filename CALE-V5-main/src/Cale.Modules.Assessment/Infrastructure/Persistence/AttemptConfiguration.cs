@@ -22,5 +22,11 @@ public sealed class AttemptConfiguration : IEntityTypeConfiguration<Attempt>
         builder.Property(x => x.StartedAt).HasColumnName("InicioEn");
         builder.Property(x => x.FinishedAt).HasColumnName("FinEn");
         builder.Property(x => x.ExpiresAt).HasColumnName("ExpiresAt");
+
+        // At most one open attempt per user+exam (practice ExamId null excluded).
+        builder.HasIndex(x => new { x.UserId, x.ExamId })
+            .IsUnique()
+            .HasFilter("\"FinEn\" IS NULL AND \"ExamenId\" IS NOT NULL")
+            .HasDatabaseName("IX_Intentos_OpenExam");
     }
 }

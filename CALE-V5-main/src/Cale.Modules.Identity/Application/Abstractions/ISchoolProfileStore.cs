@@ -7,6 +7,10 @@ public interface ISchoolProfileStore
     Task AddAsync(SchoolProfile profile, CancellationToken ct);
     Task<SchoolProfile?> GetByUserIdAsync(int userId, CancellationToken ct);
     Task<SchoolProfile?> GetTrackedByUserIdAsync(int userId, CancellationToken ct);
+    Task<IReadOnlyList<SchoolProfile>> ListByStatusAsync(
+        string subscriptionStatus,
+        CancellationToken ct);
+    Task<IReadOnlyList<SchoolProfile>> ListAllAsync(CancellationToken ct);
     void Remove(SchoolProfile profile);
     Task SaveChangesAsync(CancellationToken ct);
 }

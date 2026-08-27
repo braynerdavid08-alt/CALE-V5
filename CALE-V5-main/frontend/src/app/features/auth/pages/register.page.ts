@@ -5,6 +5,7 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiThemeToggleComponent } from '../../../shared/ui/ui-theme-toggle.component';
 import { AuthFacade } from '../application/auth.facade';
+import { BRAND } from '../../../core/brand';
 
 @Component({
   selector: 'app-register-page',
@@ -22,6 +23,7 @@ import { AuthFacade } from '../application/auth.facade';
 export class RegisterPage {
   private readonly fb = inject(FormBuilder);
   readonly auth = inject(AuthFacade);
+  readonly brand = BRAND;
 
   readonly form = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(200)]],

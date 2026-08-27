@@ -6,66 +6,63 @@ import {
   MotivationTip
 } from './motivation.model';
 
-const STORAGE_KEY = 'cale.motivation.v1';
-const ROTATE_MS = 12000;
+/** Fixed tip for the current browser tab / login session. */
+const SESSION_KEY = 'cale.motivation.session.v1';
 
 @Injectable({ providedIn: 'root' })
 export class MotivationService {
-  private readonly tipId = signal<string>(this.bootstrapId());
+  private readonly tipId = signal<string>(MOTIVATION_CATALOG[0].id);
   private readonly role = signal<string | null>(null);
-  private readonly paused = signal(false);
-  private timer: ReturnType<typeof setInterval> | null = null;
+  private locked = false;
 
   readonly current = computed(
     () => this.findById(this.tipId()) ?? MOTIVATION_CATALOG[0]
   );
 
-  setRole(role?: string | null): void {
+  /**
+   * Locks one tip for this login session (role-aware).
+   * Does not rotate or change until {@link clearSession}.
+   */
+  ensureSessionTip(role?: string | null): MotivationTip {
     this.role.set(role ?? null);
-    this.refreshContext();
-    this.ensureTimer();
-  }
 
-  setPaused(paused: boolean): void {
-    this.paused.set(paused);
-  }
-
-  pick(): MotivationTip {
-    const pool = this.pool();
-    const lastId = this.tipId();
-    const candidates = pool.filter((t) => t.id !== lastId);
-    const source = candidates.length ? candidates : pool;
-    const tip = source[Math.floor(Math.random() * source.length)];
-    this.commit(tip.id);
-    return tip;
-  }
-
-  next(): MotivationTip {
-    const pool = this.pool();
-    const index = pool.findIndex((t) => t.id === this.tipId());
-    const tip = pool[(Math.max(index, 0) + 1) % pool.length];
-    this.commit(tip.id);
-    return tip;
-  }
-
-  refreshContext(): MotivationTip {
-    const pool = this.pool();
-    const current = this.findById(this.tipId());
-    if (current && pool.some((t) => t.id === current.id)) {
-      return current;
-    }
-    return this.pick();
-  }
-
-  private ensureTimer(): void {
-    if (this.timer) {
-      return;
-    }
-    this.timer = setInterval(() => {
-      if (!this.paused()) {
-        this.pick();
+    if (this.locked) {
+      const current = this.findById(this.tipId());
+      if (current && this.pool().some((t) => t.id === current.id)) {
+        return current;
       }
-    }, ROTATE_MS);
+    }
+
+    const restored = this.readSession(role);
+    if (restored) {
+      this.tipId.set(restored);
+      this.locked = true;
+      return this.findById(restored) ?? MOTIVATION_CATALOG[0];
+    }
+
+    const tip = this.pickFresh();
+    this.tipId.set(tip.id);
+    this.locked = true;
+    this.writeSession(role, tip.id);
+    return tip;
+  }
+
+  setRole(role?: string | null): void {
+    this.ensureSessionTip(role);
+  }
+
+  clearSession(): void {
+    this.locked = false;
+    try {
+      sessionStorage.removeItem(SESSION_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private pickFresh(): MotivationTip {
+    const pool = this.pool();
+    return pool[Math.floor(Math.random() * pool.length)] ?? MOTIVATION_CATALOG[0];
   }
 
   private pool(): MotivationTip[] {
@@ -105,31 +102,34 @@ export class MotivationService {
     return 'night';
   }
 
-  private commit(id: string): void {
-    this.tipId.set(id);
+  private writeSession(role: string | null | undefined, id: string): void {
     try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ id, at: Date.now() })
+      sessionStorage.setItem(
+        SESSION_KEY,
+        JSON.stringify({ id, role: role ?? null })
       );
     } catch {
       /* ignore */
     }
   }
 
-  private bootstrapId(): string {
+  private readSession(role?: string | null): string | null {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as { id?: string };
-        if (parsed.id && this.findById(parsed.id)) {
-          return parsed.id;
-        }
+      const raw = sessionStorage.getItem(SESSION_KEY);
+      if (!raw) {
+        return null;
       }
+      const parsed = JSON.parse(raw) as { id?: string; role?: string | null };
+      if (!parsed.id || !this.findById(parsed.id)) {
+        return null;
+      }
+      if ((parsed.role ?? null) !== (role ?? null)) {
+        return null;
+      }
+      return parsed.id;
     } catch {
-      /* ignore */
+      return null;
     }
-    return MOTIVATION_CATALOG[0].id;
   }
 
   private findById(id: string): MotivationTip | undefined {

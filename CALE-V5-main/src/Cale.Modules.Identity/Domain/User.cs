@@ -12,6 +12,8 @@ public sealed class User
     public int? SchoolId { get; private set; }
     public bool IsActive { get; private set; } = true;
     public DateTime CreatedAt { get; private set; }
+    public DateTime? LastLoginAt { get; private set; }
+    public bool MustChangePassword { get; private set; }
 
     private User()
     {
@@ -55,7 +57,13 @@ public sealed class User
         return Create(name, email, passwordHash, Roles.School, utcNow);
     }
 
-    public void ChangePassword(string newHash) => PasswordHash = newHash;
+    public void ChangePassword(string newHash)
+    {
+        PasswordHash = newHash;
+        MustChangePassword = false;
+    }
+
+    public void RequirePasswordChange() => MustChangePassword = true;
 
     public void UpdateProfile(string name, string email)
     {
@@ -76,6 +84,8 @@ public sealed class User
     }
 
     public void LeaveSchool() => SchoolId = null;
+
+    public void RecordLogin(DateTime utcNow) => LastLoginAt = utcNow;
 
     public void Deactivate() => IsActive = false;
 

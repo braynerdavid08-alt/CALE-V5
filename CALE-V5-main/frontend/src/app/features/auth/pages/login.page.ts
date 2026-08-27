@@ -3,9 +3,9 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
-import { UiMotivationComponent } from '../../../shared/ui/ui-motivation.component';
 import { UiThemeToggleComponent } from '../../../shared/ui/ui-theme-toggle.component';
 import { AuthFacade } from '../application/auth.facade';
+import { BRAND } from '../../../core/brand';
 
 @Component({
   selector: 'app-login-page',
@@ -15,7 +15,6 @@ import { AuthFacade } from '../application/auth.facade';
     RouterLink,
     UiButtonComponent,
     UiErrorComponent,
-    UiMotivationComponent,
     UiThemeToggleComponent
   ],
   templateUrl: './login.page.html',
@@ -24,6 +23,7 @@ import { AuthFacade } from '../application/auth.facade';
 export class LoginPage {
   private readonly fb = inject(FormBuilder);
   readonly auth = inject(AuthFacade);
+  readonly brand = BRAND;
 
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],

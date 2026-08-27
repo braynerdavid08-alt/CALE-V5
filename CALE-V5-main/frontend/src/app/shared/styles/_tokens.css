@@ -72,7 +72,7 @@
   --z-overlay: 50;
   --z-modal: 60;
 
-  --sidebar-width: 248px;
+    --sidebar-width: 272px;
   --topbar-height: 64px;
 }
 
@@ -127,5 +127,17 @@
   [data-theme='dark'] {
     --sidebar-width: 0px;
     --page-pad: var(--spacing-md);
+  }
+}
+
+/* Notch / home indicator — PWA & mobile browsers */
+@supports (padding: env(safe-area-inset-top)) {
+  :root,
+  [data-theme='light'],
+  [data-theme='dark'] {
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
   }
 }

@@ -1,0 +1,109 @@
+<section class="page">
+  <header class="head">
+    <div>
+      <h1>Notificaciones</h1>
+      <p class="muted">
+        @if (unread() > 0) {
+          {{ unread() }} sin leer
+        } @else {
+          Estás al día
+        }
+      </p>
+    </div>
+    <div class="actions">
+      @if (isAdmin) {
+        <a routerLink="/admin/notifications">Enviar aviso</a>
+      }
+      <ui-button type="button" variant="ghost" (click)="markAll()">
+        Marcar todas leídas
+      </ui-button>
+    </div>
+  </header>
+
+  <div class="filters" role="tablist" aria-label="Filtrar notificaciones">
+    @for (f of filters; track f.key) {
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="filter() === f.key"
+        [class.on]="filter() === f.key"
+        (click)="setFilter(f.key)">
+        {{ f.label }}
+      </button>
+    }
+  </div>
+
+  @if (error()) {
+    <ui-error [message]="error()!" />
+  }
+
+  @if (loading()) {
+    <ui-loading />
+  } @else if (items().length === 0) {
+    <ui-empty title="Sin notificaciones" message="No tienes notificaciones nuevas." />
+  } @else {
+    <ul class="list" aria-live="polite">
+      @for (n of items(); track n.id) {
+        <li>
+          <ui-card
+            class="item"
+            [class.unread]="!n.isRead"
+            role="button"
+            tabindex="0"
+            (click)="open(n)"
+            (keydown.enter)="open(n)">
+            <div class="row">
+              <span class="type" [attr.data-priority]="n.priority">
+                {{ typeLabel(n.type) }}
+              </span>
+              <time [attr.datetime]="n.createdAt" [attr.title]="n.createdAt">
+                {{ relative(n.createdAt) }}
+              </time>
+            </div>
+            <h2>{{ n.title }}</h2>
+            <p>{{ n.message }}</p>
+            <div class="item-actions">
+              @if (!n.isRead) {
+                <ui-button type="button" variant="ghost" (click)="markRead(n.id, $event)">
+                  Marcar leída
+                </ui-button>
+              }
+              <ui-button type="button" variant="ghost" (click)="archive(n.id, $event)">
+                Archivar
+              </ui-button>
+            </div>
+          </ui-card>
+        </li>
+      }
+    </ul>
+  }
+
+  @if (prefs(); as p) {
+    <ui-card class="prefs">
+      <h2>Preferencias</h2>
+      <p class="muted">Controla qué categorías quieres recibir.</p>
+      <label>
+        <input type="checkbox" [(ngModel)]="p.academicEnabled" name="academic" />
+        Académicas
+      </label>
+      <label>
+        <input type="checkbox" [(ngModel)]="p.membershipEnabled" name="membership" />
+        Membresía / pagos
+      </label>
+      <label>
+        <input type="checkbox" [(ngModel)]="p.adminEnabled" name="admin" />
+        Avisos administrativos
+      </label>
+      <label>
+        <input type="checkbox" [(ngModel)]="p.systemEnabled" name="system" />
+        Sistema
+      </label>
+      <div class="prefs-foot">
+        <ui-button type="button" (click)="savePrefs()">Guardar preferencias</ui-button>
+        @if (prefsSaved()) {
+          <span class="ok" role="status">Guardado</span>
+        }
+      </div>
+    </ui-card>
+  }
+</section>

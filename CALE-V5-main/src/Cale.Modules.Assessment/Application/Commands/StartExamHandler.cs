@@ -7,6 +7,8 @@ using Cale.Modules.Assessment.Application.DTOs;
 using Cale.Modules.Assessment.Domain;
 using Cale.Modules.Catalog.Application.Abstractions;
 using Cale.Modules.Catalog.Domain;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Cale.Modules.Assessment.Application.Commands;
 
@@ -15,18 +17,24 @@ public sealed class StartExamHandler
     private readonly IAttemptStore _attempts;
     private readonly ICatalogStore _catalog;
     private readonly IGroupAccess _groups;
+    private readonly FinishExamHandler _finish;
     private readonly IClock _clock;
+    private readonly ILogger<StartExamHandler> _logger;
 
     public StartExamHandler(
         IAttemptStore attempts,
         ICatalogStore catalog,
         IGroupAccess groups,
-        IClock clock)
+        FinishExamHandler finish,
+        IClock clock,
+        ILogger<StartExamHandler> logger)
     {
         _attempts = attempts;
         _catalog = catalog;
         _groups = groups;
+        _finish = finish;
         _clock = clock;
+        _logger = logger;
     }
 
     public async Task<StartExamResponse> HandleAsync(
@@ -34,60 +42,179 @@ public sealed class StartExamHandler
         int userId,
         CancellationToken ct)
     {
-        var now = _clock.UtcNow;
-        var (bankId, exam, timeMinutes, count) =
-            await ResolveTarget(request, userId, now, ct);
-
-        var pool = await LoadPool(bankId, exam?.Id, ct);
-        if (pool.Count == 0)
+        try
         {
-            throw new DomainException(
-                "There are no active questions to take.",
-                400,
-                "empty_bank");
+            var now = _clock.UtcNow;
+            var (bankId, exam, timeMinutes, count) =
+                await ResolveTarget(request, userId, now, ct);
+
+            if (exam is not null)
+            {
+                var open = await _attempts.FindOpenByUserAndExamAsync(
+                    userId,
+                    exam.Id,
+                    ct);
+                if (open is not null)
+                {
+                    if (!open.IsWithinFinishGrace(now))
+                    {
+                        _logger.LogInformation(
+                            "Exam reclaim expired attemptId={AttemptId} userId={UserId} examId={ExamId}",
+                            open.Id,
+                            userId,
+                            exam.Id);
+                        await _finish.ReclaimExpiredAsync(open.Id, userId, ct);
+                    }
+                    else
+                    {
+                        _logger.LogInformation(
+                            "Exam resume attemptId={AttemptId} userId={UserId} examId={ExamId}",
+                            open.Id,
+                            userId,
+                            exam.Id);
+                        return await ResumeAsync(open, exam.TimeMinutes, ct);
+                    }
+                }
+            }
+
+            var pool = await LoadPool(bankId, exam?.Id, ct);
+            if (pool.Count == 0)
+            {
+                throw new DomainException(
+                    "There are no active questions to take.",
+                    400,
+                    "empty_bank");
+            }
+
+            var take = Math.Min(count, pool.Count);
+            var selected = exam is { Randomize: false }
+                ? pool.Take(take).ToList()
+                : pool.OrderBy(_ => Guid.NewGuid()).Take(take).ToList();
+
+            var attempt = Attempt.Start(
+                userId,
+                bankId,
+                exam?.Id,
+                exam is not null
+                    ? AttemptModes.Exam
+                    : (string.IsNullOrWhiteSpace(request.Mode)
+                        ? AttemptModes.Practice
+                        : request.Mode),
+                selected.Count,
+                timeMinutes,
+                now);
+
+            try
+            {
+                await _attempts.AddAsync(attempt, ct);
+                await _attempts.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException) when (exam is not null)
+            {
+                // Concurrent start hit unique open-exam index — resume winner.
+                var raced = await _attempts.FindOpenByUserAndExamAsync(
+                    userId,
+                    exam.Id,
+                    ct);
+                if (raced is not null)
+                {
+                    if (!raced.IsWithinFinishGrace(now))
+                    {
+                        await _finish.ReclaimExpiredAsync(raced.Id, userId, ct);
+                        throw new ConflictException(
+                            "Expired attempt was closed; retry start.",
+                            "attempt_reclaimed_retry");
+                    }
+
+                    return await ResumeAsync(raced, exam.TimeMinutes, ct);
+                }
+
+                throw;
+            }
+
+            var snapshot = selected
+                .Select((q, i) => AttemptQuestion.Create(attempt.Id, q.Id, i + 1))
+                .ToList();
+            await _attempts.AddQuestionsAsync(attempt.Id, snapshot, ct);
+            await _attempts.SaveChangesAsync(ct);
+
+            var questions = selected.Select((q, i) => new TakeQuestionDto(
+                q.Id,
+                i + 1,
+                q.Text,
+                q.Type,
+                q.ImageUrl,
+                MapShuffledOptions(q))).ToList();
+
+            _logger.LogInformation(
+                "Exam started attemptId={AttemptId} userId={UserId} bankId={BankId} examId={ExamId} mode={Mode} questions={QuestionCount}",
+                attempt.Id,
+                userId,
+                bankId,
+                exam?.Id,
+                attempt.Mode,
+                selected.Count);
+
+            return new StartExamResponse(
+                attempt.Id,
+                attempt.StartedAt,
+                attempt.ExpiresAt,
+                timeMinutes,
+                questions);
+        }
+        catch (DomainException ex)
+        {
+            _logger.LogWarning(
+                "Exam start failed userId={UserId} examId={ExamId} bankId={BankId} code={ErrorCode}",
+                userId,
+                request.ExamId,
+                request.BankId,
+                ex.ErrorCode);
+            throw;
+        }
+    }
+
+    private async Task<StartExamResponse> ResumeAsync(
+        Attempt open,
+        int timeMinutes,
+        CancellationToken ct)
+    {
+        var snapshot = await _attempts.ListQuestionsAsync(open.Id, ct);
+        var questions = new List<TakeQuestionDto>();
+        foreach (var item in snapshot.OrderBy(x => x.Order))
+        {
+            var q = await _catalog.GetQuestionAsync(item.QuestionId, ct);
+            if (q is null)
+            {
+                continue;
+            }
+
+            questions.Add(new TakeQuestionDto(
+                q.Id,
+                item.Order,
+                q.Text,
+                q.Type,
+                q.ImageUrl,
+                MapShuffledOptions(q)));
         }
 
-        var take = Math.Min(count, pool.Count);
-        var selected = exam is { Randomize: false }
-            ? pool.Take(take).ToList()
-            : pool.OrderBy(_ => Guid.NewGuid()).Take(take).ToList();
-
-        var attempt = Attempt.Start(
-            userId,
-            bankId,
-            exam?.Id,
-            string.IsNullOrWhiteSpace(request.Mode)
-                ? AttemptModes.Practice
-                : request.Mode,
-            selected.Count,
-            timeMinutes,
-            now);
-
-        await _attempts.AddAsync(attempt, ct);
-        await _attempts.SaveChangesAsync(ct);
-
-        var snapshot = selected
-            .Select((q, i) => AttemptQuestion.Create(attempt.Id, q.Id, i + 1))
-            .ToList();
-        await _attempts.AddQuestionsAsync(attempt.Id, snapshot, ct);
-        await _attempts.SaveChangesAsync(ct);
-
-        var questions = selected.Select((q, i) => new TakeQuestionDto(
-            q.Id,
-            i + 1,
-            q.Text,
-            q.Type,
-            q.ImageUrl,
-            q.Options.Select(o => new TakeOptionDto(o.Id, o.Text, o.ImageUrl))
-                .ToList())).ToList();
-
         return new StartExamResponse(
-            attempt.Id,
-            attempt.StartedAt,
-            attempt.ExpiresAt,
+            open.Id,
+            open.StartedAt,
+            open.ExpiresAt,
             timeMinutes,
             questions);
     }
+
+    /// <summary>
+    /// Options are always shuffled for take payloads. Scoring uses option Id,
+    /// never A/B/C/D position.
+    /// </summary>
+    internal static IReadOnlyList<TakeOptionDto> MapShuffledOptions(Question q) =>
+        q.Options
+            .OrderBy(_ => Guid.NewGuid())
+            .Select(o => new TakeOptionDto(o.Id, o.Text, o.ImageUrl))
+            .ToList();
 
     private async Task<(int BankId, Exam? Exam, int TimeMinutes, int Count)>
         ResolveTarget(

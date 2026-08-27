@@ -1,0 +1,143 @@
+.page {
+  display: grid;
+  gap: var(--spacing-md);
+  max-width: 44rem;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.head h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.muted {
+  color: var(--color-text-muted);
+  margin: 0.25rem 0 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.actions a {
+  font-weight: 600;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.filters button {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.filters button.on {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border-color: transparent;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.item {
+  cursor: pointer;
+  border-left: 3px solid transparent;
+}
+
+.item.unread {
+  border-left-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
+}
+
+.item h2 {
+  margin: 0.35rem 0 0.2rem;
+  font-size: 1.05rem;
+}
+
+.item p {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: baseline;
+}
+
+.type {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.type[data-priority='high'] {
+  color: var(--color-danger, #b42318);
+}
+
+.item-actions {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.prefs {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.prefs label {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  font-weight: 600;
+}
+
+.prefs-foot {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.35rem;
+}
+
+.ok {
+  color: var(--color-success, #027a48);
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .head {
+    flex-direction: column;
+  }
+
+  .item-actions {
+    flex-wrap: wrap;
+  }
+}

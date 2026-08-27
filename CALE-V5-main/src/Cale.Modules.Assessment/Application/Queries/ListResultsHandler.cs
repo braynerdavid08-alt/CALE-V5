@@ -28,22 +28,25 @@ public sealed class ListResultsHandler
                     : await _attempts.ListByUsersAsync(userIds, ct)
                 : await _attempts.ListFinishedAsync(ct);
 
-        var rows = new List<ResultRowDto>();
-        foreach (var attempt in attempts.Where(x => x.FinishedAt is not null)
-                     .OrderByDescending(x => x.FinishedAt))
+        var finished = attempts
+            .Where(x => x.FinishedAt is not null)
+            .OrderByDescending(x => x.FinishedAt)
+            .ToList();
+
+        var nameCache = new Dictionary<int, string>();
+        foreach (var id in finished.Select(x => x.UserId).Distinct())
         {
-            var name = await _users.GetNameAsync(attempt.UserId, ct) ?? "";
-            rows.Add(new ResultRowDto(
-                attempt.Id,
-                attempt.UserId,
-                name,
-                attempt.Mode,
-                attempt.Percent,
-                attempt.Passed,
-                attempt.StartedAt,
-                attempt.FinishedAt));
+            nameCache[id] = await _users.GetNameAsync(id, ct) ?? "";
         }
 
-        return rows;
+        return finished.Select(attempt => new ResultRowDto(
+            attempt.Id,
+            attempt.UserId,
+            nameCache.GetValueOrDefault(attempt.UserId, ""),
+            attempt.Mode,
+            attempt.Percent,
+            attempt.Passed,
+            attempt.StartedAt,
+            attempt.FinishedAt)).ToList();
     }
 }

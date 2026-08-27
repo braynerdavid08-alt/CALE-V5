@@ -1,25 +1,91 @@
-<div class="shell" [class.open]="menuOpen()">
+<div
+  class="shell"
+  [class.open]="menuOpen()"
+  [class.teacher-studio]="isTeacherStudio"
+  [class.with-library]="showSidePanel"
+  [class.sidebar-collapsed]="sidebarCollapsed()">
   @if (menuOpen()) {
     <button class="scrim" type="button" aria-label="Cerrar menú" (click)="closeMenu()"></button>
   }
 
   <aside class="sidebar" aria-label="Navegación principal">
-    <a class="brand" [routerLink]="session.homeRoute()">
-      <span class="logo">C</span>
-      <span>CALE</span>
-    </a>
+    <div class="brand-row">
+      <a class="brand" [routerLink]="session.homeRoute()" [attr.title]="brand.name">
+        <img class="logo-img" [src]="brand.icon192" [alt]="brand.name" width="40" height="40" />
+        <span class="brand-text">
+          <span class="brand-name">{{ brand.name }}</span>
+          <span class="brand-tag">{{ brand.sloganShort }}</span>
+        </span>
+      </a>
+      <button
+        type="button"
+        class="collapse-btn"
+        [attr.aria-expanded]="!sidebarCollapsed()"
+        [attr.aria-label]="sidebarCollapsed() ? 'Expandir menú' : 'Plegar menú'"
+        [attr.title]="sidebarCollapsed() ? 'Expandir' : 'Plegar'"
+        (click)="toggleSidebarCollapse($event)">
+        <ui-icon name="panel" />
+      </button>
+    </div>
+
     <nav>
-      @for (item of items; track item.path) {
-        <a
-          [routerLink]="item.path"
-          routerLinkActive="on"
-          [routerLinkActiveOptions]="{ exact: !!item.exact }">
-          <ui-icon [name]="item.icon" />
-          <span>{{ item.label }}</span>
-        </a>
+      @for (item of items; track item.label + (item.path || '')) {
+        @if (item.children?.length) {
+          <div class="nav-group" [class.open]="isGroupOpen(item)" [class.on]="isNavOn(item)">
+            <button
+              type="button"
+              class="nav-link nav-group-btn"
+              [class.on]="isNavOn(item)"
+              [attr.title]="item.label"
+              (click)="toggleGroup(item, $event)">
+              <ui-icon [name]="item.icon" />
+              <span class="nav-label">{{ item.label }}</span>
+              <ui-icon name="chevron" class="nav-chevron" />
+            </button>
+            <div class="nav-sub">
+              @for (child of item.children; track child.path + child.label) {
+                <a
+                  class="nav-sub-link"
+                  [routerLink]="child.path"
+                  [queryParams]="child.queryParams || {}"
+                  [class.on]="isChildOn(child)"
+                  [attr.title]="child.label">
+                  <span class="nav-label">{{ child.label }}</span>
+                </a>
+              }
+            </div>
+          </div>
+        } @else if (item.path) {
+          <a
+            class="nav-link"
+            [routerLink]="item.path"
+            [queryParams]="item.queryParams || {}"
+            [class.on]="isNavOn(item)"
+            [attr.title]="item.label">
+            <ui-icon [name]="item.icon" />
+            <span class="nav-label">{{ item.label }}</span>
+          </a>
+        }
       }
     </nav>
   </aside>
+
+  @if (showSidePanel) {
+    <aside class="library-panel" [attr.aria-label]="sidePanelTitle">
+      <h2 class="library-title">{{ sidePanelTitle }}</h2>
+      <nav class="library-nav">
+        @for (item of libraryItems; track item.path) {
+          <a
+            [routerLink]="item.path"
+            routerLinkActive="on"
+            [routerLinkActiveOptions]="{ exact: !!item.exact }">
+            {{ item.label }}
+          </a>
+        }
+      </nav>
+      <div class="library-foot muted">{{ sidePanelFoot }}</div>
+    </aside>
+  }
 
   <div class="main">
     <header class="topbar">
@@ -27,15 +93,95 @@
         <ui-icon name="menu" />
         <span class="sr">Menú</span>
       </ui-button>
-      <ui-motivation class="top-motivation" variant="compact" [role]="role" />
-      <ui-theme-toggle />
-      @if (unread() > 0) {
-        <ui-badge tone="primary">{{ unread() }} avisos</ui-badge>
+
+      @if (isTeacherStudio) {
+        <form class="top-search" (ngSubmit)="onHeaderSearch()">
+          <ui-icon name="search" />
+          <input
+            type="search"
+            name="headerSearch"
+            [(ngModel)]="headerSearch"
+            placeholder="Buscar en tu biblioteca"
+            aria-label="Buscar en tu biblioteca" />
+        </form>
+        <ui-button type="button" (click)="goCreate()">
+          <ui-icon name="plus" />
+          Crear
+        </ui-button>
+      } @else {
+        <span class="spacer" aria-hidden="true"></span>
+        <ui-motivation class="top-motivation" [role]="role" />
       }
-      <a class="profile-link" routerLink="/profile">Perfil</a>
+
+      <span class="spacer" aria-hidden="true"></span>
+      <ui-theme-toggle />
+      <div class="notif">
+        <ui-button
+          type="button"
+          variant="ghost"
+          class="notif-btn"
+          [attr.aria-expanded]="panelOpen()"
+          aria-haspopup="true"
+          aria-controls="notif-panel"
+          [attr.aria-label]="
+            unread() > 0
+              ? 'Notificaciones, ' + unread() + ' sin leer'
+              : 'Notificaciones'
+          "
+          (click)="togglePanel($event)">
+          <ui-icon name="bell" />
+          @if (unread() > 0) {
+            <ui-badge tone="primary">{{ unread() }}</ui-badge>
+          }
+        </ui-button>
+        @if (panelOpen()) {
+          <div
+            id="notif-panel"
+            class="notif-panel"
+            role="dialog"
+            aria-label="Notificaciones recientes">
+            <div class="notif-head">
+              <strong>Notificaciones</strong>
+              <div class="notif-head-actions">
+                @if (unread() > 0) {
+                  <button type="button" class="linkish" (click)="markAllFromPanel()">
+                    Marcar todas
+                  </button>
+                }
+                <a routerLink="/notifications" (click)="panelOpen.set(false)">Ver todas</a>
+              </div>
+            </div>
+            @if (panelLoading()) {
+              <p class="notif-empty">Cargando…</p>
+            } @else if (recent().length === 0) {
+              <p class="notif-empty">No tienes notificaciones nuevas.</p>
+            } @else {
+              <ul class="notif-list">
+                @for (n of recent(); track n.id) {
+                  <li>
+                    <button
+                      type="button"
+                      class="notif-item"
+                      [class.unread]="!n.isRead"
+                      (click)="openNotification(n)">
+                      <span class="notif-type">{{ typeLabel(n.type) }}</span>
+                      <span class="notif-title">{{ n.title }}</span>
+                      <span class="notif-msg">{{ n.message }}</span>
+                      <time [attr.datetime]="n.createdAt">{{ relative(n.createdAt) }}</time>
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      </div>
+      <a class="avatar" routerLink="/profile" [attr.title]="session.user()?.name">
+        {{ initials }}
+      </a>
       <ui-button type="button" variant="ghost" (click)="logout()">Salir</ui-button>
     </header>
-    <main class="content">
+    <main class="content" [class.content-wide]="isTeacherStudio">
       <router-outlet />
     </main>
   </div>

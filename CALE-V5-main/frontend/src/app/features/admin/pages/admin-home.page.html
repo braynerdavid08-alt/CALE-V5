@@ -1,0 +1,108 @@
+<section class="dash">
+  <header class="dash-hero">
+    <div class="dash-hero-copy">
+      <h1>Dashboard Administrador</h1>
+    </div>
+    <div class="dash-hero-actions">
+      <a routerLink="/admin/metrics"><ui-button type="button" variant="secondary">Actividad</ui-button></a>
+      <a routerLink="/admin/schools/queue"><ui-button type="button">Escuelas</ui-button></a>
+    </div>
+  </header>
+
+  <ui-error [message]="error()" />
+
+  @if (loading()) {
+    <ui-loading />
+  }
+
+  @if (dash(); as d) {
+    <div class="dash-kpis">
+      <ui-dash-kpi
+        label="Usuarios Totales"
+        [value]="d.users"
+        icon="users"
+        tone="primary"
+        [delta]="formatDelta(metrics()?.usersGrowth30d)" />
+      <ui-dash-kpi
+        label="Escuelas de Manejo"
+        [value]="metrics()?.activeSchools ?? 0"
+        icon="bank"
+        tone="success"
+        [delta]="formatDelta(metrics()?.schoolsGrowth30d)" />
+      <ui-dash-kpi
+        label="Instructores"
+        [value]="metrics()?.teachersTotal ?? 0"
+        icon="users"
+        tone="info"
+        [delta]="formatDelta(metrics()?.teachersGrowth30d)" />
+      <ui-dash-kpi
+        label="Estudiantes"
+        [value]="metrics()?.studentsTotal ?? 0"
+        icon="group"
+        tone="orange"
+        [delta]="formatDelta(metrics()?.studentsGrowth30d)" />
+    </div>
+
+    <div class="dash-charts">
+      <section class="dash-panel">
+        <div class="dash-panel-head">
+          <h2>Registros últimos 6 meses</h2>
+        </div>
+        @if (chartSeries().length) {
+          <ui-dash-line
+            title="Registros últimos 6 meses"
+            [labels]="chartLabels()"
+            [series]="chartSeries()" />
+        } @else {
+          <p class="dash-empty">Sin registros mensuales todavía.</p>
+        }
+      </section>
+
+      <section class="dash-panel">
+        <div class="dash-panel-head">
+          <h2>Distribución de usuarios</h2>
+        </div>
+        @if (distribution().length) {
+          <ui-dash-donut [slices]="distribution()" centerLabel="Roles" />
+        } @else {
+          <p class="dash-empty">Sin datos de distribución.</p>
+        }
+      </section>
+    </div>
+
+    <div class="dash-main">
+      <section class="dash-panel">
+        <div class="dash-panel-head">
+          <h2>Actividad reciente</h2>
+          <a routerLink="/admin/schools/queue">Ver solicitudes</a>
+        </div>
+        @if (!pending().length) {
+          <p class="dash-empty">Sin solicitudes abiertas.</p>
+        } @else {
+          <ul class="dash-feed">
+            @for (item of pending(); track item.userId) {
+              <li>
+                <a class="block" routerLink="/admin/schools/queue">
+                  <span class="feed-icon" aria-hidden="true"><ui-icon name="bank" /></span>
+                  <span class="feed-body">
+                    <strong>Solicitud: {{ item.legalName || item.contactName }}</strong>
+                    <p class="meta">
+                      {{ item.planLabel }}
+                      @if (item.hasPaymentProof) { · con comprobante }
+                    </p>
+                  </span>
+                </a>
+              </li>
+            }
+          </ul>
+        }
+        <p class="dash-empty">
+          Catálogo: {{ d.questions }} preguntas · {{ d.attempts }} intentos ·
+          {{ d.groups }} grupos
+        </p>
+      </section>
+
+      <ui-dash-notifs [items]="notifs()" (open)="openNotif($event)" />
+    </div>
+  }
+</section>
