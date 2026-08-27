@@ -38,7 +38,7 @@ export class AuthFacade {
     }));
   }
 
-  registerSchool(body: Record<string, string>): void {
+  registerSchool(body: Record<string, unknown>): void {
     this.run(() => this.api.registerSchool(body).subscribe({
       next: (res) => this.afterRegister(res),
       error: (err) => this.fail(err)

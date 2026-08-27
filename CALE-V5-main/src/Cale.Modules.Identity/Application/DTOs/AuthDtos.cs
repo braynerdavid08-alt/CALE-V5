@@ -15,7 +15,8 @@ public sealed record RegisterSchoolRequest(
     string Address,
     string City,
     string Department,
-    string PlanCode);
+    string PlanCode,
+    bool ClaimFreeTrial = false);
 
 public sealed record SchoolPlanDto(
     string Code,

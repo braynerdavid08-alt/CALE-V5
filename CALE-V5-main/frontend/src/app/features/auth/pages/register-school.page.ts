@@ -32,7 +32,7 @@ export class RegisterSchoolPage implements OnInit {
   readonly plans = signal<SchoolPlanDto[]>([]);
   readonly plansError = signal<string | null>(null);
 
-  readonly form = this.fb.nonNullable.group({
+    readonly form = this.fb.nonNullable.group({
     contactName: ['', [Validators.required, Validators.maxLength(200)]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
@@ -43,8 +43,13 @@ export class RegisterSchoolPage implements OnInit {
     address: ['', [Validators.required, Validators.maxLength(300)]],
     city: ['', [Validators.required, Validators.maxLength(120)]],
     department: ['', [Validators.required, Validators.maxLength(120)]],
-    planCode: ['Monthly', Validators.required]
+    planCode: ['Monthly', Validators.required],
+    claimFreeTrial: [false]
   });
+
+  readonly isTrialSelected = () =>
+    this.form.controls.claimFreeTrial.value
+    || this.form.controls.planCode.value === 'Trial';
 
   ngOnInit(): void {
     this.api.schoolPlans().subscribe({
@@ -54,6 +59,12 @@ export class RegisterSchoolPage implements OnInit {
   }
 
   selectPlan(code: string): void {
+    if (code === 'Trial') {
+      this.form.controls.planCode.setValue('Trial');
+      this.form.controls.claimFreeTrial.setValue(true);
+      return;
+    }
+    this.form.controls.claimFreeTrial.setValue(false);
     this.form.controls.planCode.setValue(code);
   }
 
@@ -62,6 +73,10 @@ export class RegisterSchoolPage implements OnInit {
       this.form.markAllAsTouched();
       return;
     }
-    this.auth.registerSchool(this.form.getRawValue());
+    const raw = this.form.getRawValue();
+    this.auth.registerSchool({
+      ...raw,
+      claimFreeTrial: raw.claimFreeTrial
+    });
   }
 }

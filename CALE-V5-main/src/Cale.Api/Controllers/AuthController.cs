@@ -91,7 +91,7 @@ public sealed class AuthController : ControllerBase
     [HttpGet("school-plans")]
     [AllowAnonymous]
     public ActionResult<IReadOnlyList<SchoolPlanDto>> SchoolPlans() =>
-        Ok(_plans.Handle());
+        Ok(_plans.Handle(includeTrial: true));
 
     [HttpGet("me")]
     [Authorize]

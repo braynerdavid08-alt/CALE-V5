@@ -18,6 +18,7 @@ const messages: Record<string, string> = {
   cannot_deactivate_self: 'No puedes desactivar tu propia cuenta.',
   membership_admin_only: 'Solo el administrador puede activar la membresía tras verificar el pago.',
   membership_inactive: 'Tu membresía no está activa. Solicita un plan, sube el comprobante y espera la verificación del administrador.',
+  free_trial_not_available: 'Esta escuela ya se registró antes o ya usó el mes gratis. Elige un plan de pago.',
   catalog_access_denied: 'No tienes acceso al catálogo de preguntas. Tu escuela necesita un plan activo.',
   simulacro_access_denied: 'No puedes usar simulacros sin una escuela con plan activo.',
   school_not_linked: 'No estás vinculado a una escuela. Pide a tu escuela que te registre.',

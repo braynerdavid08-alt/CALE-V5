@@ -5,9 +5,14 @@ public static class SchoolPlans
     public const string Monthly = "Monthly";
     public const string Semestral = "Semestral";
     public const string Annual = "Annual";
+    public const string Trial = "Trial";
+
+    public static readonly SchoolPlanInfo TrialPlan =
+        new(Trial, "Prueba gratis 1 mes", 0m, 0m, 1, MaxTeachers: 5, MaxStudents: 50);
 
     public static readonly IReadOnlyList<SchoolPlanInfo> All =
     [
+        TrialPlan,
         new(Monthly, "Mensual", 150_000m, 150_000m, 1, MaxTeachers: 5, MaxStudents: 50),
         new(Semestral, "Semestral", 800_000m, 133_333.33m, 6, MaxTeachers: 12, MaxStudents: 150),
         new(Annual, "Anual", 1_500_000m, 125_000m, 12, MaxTeachers: 25, MaxStudents: 400)
@@ -24,6 +29,7 @@ public static class SchoolPlans
         "Mensual" or "monthly" or Monthly => Monthly,
         "Semestral" or "semestral" or "Semester" => Semestral,
         "Anual" or "annual" or "Yearly" or Annual => Annual,
+        "Trial" or "trial" or "FreeTrial" or Trial => Trial,
         _ => ""
     };
 

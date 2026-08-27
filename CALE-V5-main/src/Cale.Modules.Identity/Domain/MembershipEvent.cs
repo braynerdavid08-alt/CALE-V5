@@ -42,6 +42,7 @@ public static class MembershipEventTypes
     public const string Requested = "Requested";
     public const string ProofSubmitted = "ProofSubmitted";
     public const string Activated = "Activated";
+    public const string FreeTrialActivated = "FreeTrialActivated";
     public const string Renewed = "Renewed";
     public const string Rejected = "Rejected";
     public const string Expired = "Expired";

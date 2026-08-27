@@ -55,7 +55,7 @@ export class AuthApi {
     );
   }
 
-  registerSchool(body: Record<string, string>) {
+  registerSchool(body: Record<string, unknown>) {
     return this.http.post<PendingEmailConfirmationResponse>(
       `${this.base}/register-school`,
       body

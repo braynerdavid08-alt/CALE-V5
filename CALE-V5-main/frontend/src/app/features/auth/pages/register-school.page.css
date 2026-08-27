@@ -55,6 +55,21 @@ legend {
   box-shadow: inset 0 0 0 1px var(--color-primary);
 }
 
+.plan.trial.selected {
+  border-color: #2bb0ed;
+}
+
+.plan-note {
+  margin: 0.5rem 0 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  line-height: 1.45;
+}
+
+.trial-note {
+  color: var(--color-primary);
+}
+
 .plan-label {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);

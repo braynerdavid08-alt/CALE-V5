@@ -15,6 +15,7 @@ public sealed class RegisterSchoolHandler
     private readonly IUserStore _users;
     private readonly ISchoolProfileStore _profiles;
     private readonly IMembershipEventStore _events;
+    private readonly ISchoolRegistrationRegistryStore _registry;
     private readonly IPasswordHasher _hasher;
     private readonly ITokenService _tokens;
     private readonly IClock _clock;
@@ -24,6 +25,7 @@ public sealed class RegisterSchoolHandler
         IUserStore users,
         ISchoolProfileStore profiles,
         IMembershipEventStore events,
+        ISchoolRegistrationRegistryStore registry,
         IPasswordHasher hasher,
         ITokenService tokens,
         IClock clock,
@@ -32,6 +34,7 @@ public sealed class RegisterSchoolHandler
         _users = users;
         _profiles = profiles;
         _events = events;
+        _registry = registry;
         _hasher = hasher;
         _tokens = tokens;
         _clock = clock;
@@ -43,8 +46,19 @@ public sealed class RegisterSchoolHandler
         CancellationToken ct)
     {
         Validate(request);
-        var plan = SchoolPlans.Find(request.PlanCode)
-            ?? throw new DomainException("Invalid plan.", 400, "invalid_plan");
+
+        var claimFreeTrial = request.ClaimFreeTrial
+            || SchoolPlans.Normalize(request.PlanCode) == SchoolPlans.Trial;
+
+        var plan = claimFreeTrial
+            ? SchoolPlans.TrialPlan
+            : SchoolPlans.Find(request.PlanCode)
+                ?? throw new DomainException("Invalid plan.", 400, "invalid_plan");
+
+        if (claimFreeTrial && plan.Code != SchoolPlans.Trial)
+        {
+            throw new DomainException("Invalid trial plan.", 400, "invalid_plan");
+        }
 
         var email = EmailAddress.NormalizeForRegistration(request.Email);
         var billingEmail = EmailAddress.NormalizeForRegistration(request.BillingEmail);
@@ -54,6 +68,24 @@ public sealed class RegisterSchoolHandler
             throw new ConflictException(
                 "Email already registered.",
                 "email_taken");
+        }
+
+        var keys = BuildKeys(request, email, billingEmail);
+
+        if (claimFreeTrial
+            && await _registry.HasSimilarRegistrationAsync(
+                keys.TaxIdKey,
+                keys.BillingEmailKey,
+                keys.AccessEmailKey,
+                keys.PhoneKey,
+                keys.LegalNameKey,
+                keys.CityKey,
+                ct))
+        {
+            throw new DomainException(
+                "Esta escuela ya utilizó la prueba gratis o se registró antes con datos similares.",
+                403,
+                "free_trial_not_available");
         }
 
         var user = User.RegisterSchool(
@@ -78,17 +110,48 @@ public sealed class RegisterSchoolHandler
             _clock.UtcNow);
 
         await _profiles.AddAsync(profile, ct);
-        await _events.AddAsync(
-            MembershipEvent.Create(
-                user.Id,
-                MembershipEventTypes.Requested,
-                plan.Code,
-                plan.PriceCop,
-                user.Id,
-                "Alta de escuela",
-                _clock.UtcNow),
-            ct);
+
+        if (claimFreeTrial)
+        {
+            profile.ActivateOrRenew(plan, _clock.UtcNow);
+            await _events.AddAsync(
+                MembershipEvent.Create(
+                    user.Id,
+                    MembershipEventTypes.FreeTrialActivated,
+                    plan.Code,
+                    plan.PriceCop,
+                    user.Id,
+                    "Prueba gratis 1 mes al registrarse",
+                    _clock.UtcNow),
+                ct);
+        }
+        else
+        {
+            await _events.AddAsync(
+                MembershipEvent.Create(
+                    user.Id,
+                    MembershipEventTypes.Requested,
+                    plan.Code,
+                    plan.PriceCop,
+                    user.Id,
+                    "Alta de escuela — pendiente de pago",
+                    _clock.UtcNow),
+                ct);
+        }
+
         await _profiles.SaveChangesAsync(ct);
+
+        await _registry.TouchExistingAsync(
+            keys.TaxIdKey,
+            keys.BillingEmailKey,
+            keys.AccessEmailKey,
+            keys.PhoneKey,
+            keys.LegalNameKey,
+            keys.CityKey,
+            claimFreeTrial,
+            user.Id,
+            _clock.UtcNow,
+            ct);
 
         var issue = await _emailConfirmation.IssueAndSendAsync(user, ct);
 
@@ -97,9 +160,12 @@ public sealed class RegisterSchoolHandler
             user.RecordLogin(_clock.UtcNow);
             await _users.SaveChangesAsync(ct);
             var token = _tokens.Create(user.Id, user.Email, user.Name, Roles.School);
+            var message = claimFreeTrial
+                ? "Cuenta creada con 1 mes gratis. Ya puedes usar Mi CALE."
+                : "Cuenta creada. Contrata un plan y sube el comprobante para activar todas las funciones.";
             return new PendingEmailConfirmationResponse(
                 user.Email,
-                "Cuenta creada. El envío de correo no está configurado en el servidor; entraste sin código.",
+                message,
                 RequiresEmailConfirmation: false,
                 EmailSent: false,
                 Token: token,
@@ -109,12 +175,36 @@ public sealed class RegisterSchoolHandler
                 MustChangePassword: false);
         }
 
+        var pendingMessage = claimFreeTrial
+            ? "Te enviamos un código a tu correo. Al confirmarlo activarás tu mes gratis."
+            : "Te enviamos un código a tu correo. Confírmalo y luego contrata tu plan en Membresía.";
+
         return new PendingEmailConfirmationResponse(
             user.Email,
-            "Te enviamos un código a tu correo. Confírmalo para activar la cuenta.",
+            pendingMessage,
             RequiresEmailConfirmation: true,
             EmailSent: issue.EmailSent);
     }
+
+    private static RegistrationKeys BuildKeys(
+        RegisterSchoolRequest request,
+        string accessEmail,
+        string billingEmail) =>
+        new(
+            SchoolRegistrationKeys.NormalizeTaxId(request.TaxId),
+            SchoolRegistrationKeys.NormalizeEmail(billingEmail),
+            SchoolRegistrationKeys.NormalizeEmail(accessEmail),
+            SchoolRegistrationKeys.NormalizePhone(request.Phone),
+            SchoolRegistrationKeys.NormalizeLegalName(request.LegalName),
+            SchoolRegistrationKeys.NormalizeCity(request.City));
+
+    private sealed record RegistrationKeys(
+        string TaxIdKey,
+        string BillingEmailKey,
+        string AccessEmailKey,
+        string PhoneKey,
+        string LegalNameKey,
+        string CityKey);
 
     private static void Validate(RegisterSchoolRequest request)
     {

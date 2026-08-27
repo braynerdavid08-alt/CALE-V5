@@ -5,7 +5,7 @@
     <p class="brand-name">{{ brand.name }}</p>
     <p class="brand-slogan">{{ brand.slogan }}</p>
     <h1>Registro de escuela</h1>
-    <p>Completa facturación, elige un plan y luego paga + sube el comprobante para que un administrador active tu membresía.</p>
+    <p>Crea tu cuenta ahora. Sin pago puedes registrarte; las funciones se activan con el mes gratis o cuando contrates un plan y subas el comprobante.</p>
   </div>
   <div class="auth-card">
     <p class="eyebrow">Escuela</p>
@@ -71,19 +71,34 @@
             <button
               type="button"
               class="plan"
+              [class.trial]="plan.code === 'Trial'"
               [class.selected]="form.controls.planCode.value === plan.code"
               (click)="selectPlan(plan.code)">
               <span class="plan-label">{{ plan.label }}</span>
-              <strong>{{ plan.priceCop | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
-              <span class="plan-eq">
-                ≈ {{ plan.monthlyEquivalentCop | currency:'COP':'symbol-narrow':'1.0-0' }}/mes
-              </span>
+              @if (plan.code === 'Trial') {
+                <strong>Gratis</strong>
+                <span class="plan-eq">1 mes · sin tarjeta ni comprobante</span>
+              } @else {
+                <strong>{{ plan.priceCop | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
+                <span class="plan-eq">
+                  ≈ {{ plan.monthlyEquivalentCop | currency:'COP':'symbol-narrow':'1.0-0' }}/mes
+                </span>
+              }
               <span class="plan-eq">
                 Hasta {{ plan.maxTeachers }} instructores · {{ plan.maxStudents }} estudiantes
               </span>
             </button>
           }
         </div>
+        @if (!isTrialSelected()) {
+          <p class="plan-note">
+            Con un plan de pago crearás la cuenta hoy; podrás usar Mi CALE cuando subas el comprobante y el administrador lo active.
+          </p>
+        } @else {
+          <p class="plan-note trial-note">
+            Un mes gratis por escuela (NIT/correo únicos). Si ya te registraste antes, no aplica de nuevo.
+          </p>
+        }
       </fieldset>
 
       <ui-button type="submit" [loading]="auth.loading()">Registrar escuela</ui-button>
