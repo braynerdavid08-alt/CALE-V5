@@ -61,8 +61,23 @@ public static class WebApplicationExtensions
             .CreateLogger("Cale.Startup");
         bootLogger.LogInformation("Database provider: {Provider}", providerKind);
 
-        await db.Database.EnsureCreatedAsync();
-        await FeatureSchema.EnsureAsync(db);
+        try
+        {
+            if (!await db.Database.CanConnectAsync())
+            {
+                throw new InvalidOperationException(
+                    "Cannot connect to the database. Check ConnectionStrings__Cale / DATABASE_URL " +
+                    "(use the Internal URL on Render) and that the Postgres service is running.");
+            }
+
+            await db.Database.EnsureCreatedAsync();
+            await FeatureSchema.EnsureAsync(db);
+        }
+        catch (Exception ex)
+        {
+            bootLogger.LogError(ex, "Database initialization failed ({Provider})", providerKind);
+            throw;
+        }
 
         var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
         var clock = scope.ServiceProvider.GetRequiredService<IClock>();

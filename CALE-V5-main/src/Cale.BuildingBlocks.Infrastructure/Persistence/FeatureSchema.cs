@@ -348,15 +348,25 @@ public static class FeatureSchema
 
         if (db.Database.IsNpgsql())
         {
-            await db.Database.ExecuteSqlRawAsync(
-                """
-                ALTER TABLE "Usuarios" ADD COLUMN IF NOT EXISTS "EmailConfirmado" boolean NOT NULL DEFAULT TRUE;
-                ALTER TABLE "Usuarios" ADD COLUMN IF NOT EXISTS "EmailCodigoHash" varchar(128) NULL;
-                ALTER TABLE "Usuarios" ADD COLUMN IF NOT EXISTS "EmailCodigoExpiraEn" timestamp with time zone NULL;
-                ALTER TABLE "Usuarios" ADD COLUMN IF NOT EXISTS "SchoolId" integer NULL;
-                ALTER TABLE "Usuarios" ADD COLUMN IF NOT EXISTS "UltimoAccesoEn" timestamp with time zone NULL;
-                ALTER TABLE "Usuarios" ADD COLUMN IF NOT EXISTS "DebeCambiarClave" boolean NOT NULL DEFAULT FALSE;
-                """,
+            // EnsureCreated already built the model; these ALTERs are for older DBs only.
+            // Run one statement at a time (safer with Npgsql).
+            await TryPostgresAsync(db,
+                """ALTER TABLE "Usuarios" ADD COLUMN IF NOT EXISTS "EmailConfirmado" boolean NOT NULL DEFAULT TRUE;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "Usuarios" ADD COLUMN IF NOT EXISTS "EmailCodigoHash" varchar(128) NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "Usuarios" ADD COLUMN IF NOT EXISTS "EmailCodigoExpiraEn" timestamp with time zone NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "Usuarios" ADD COLUMN IF NOT EXISTS "SchoolId" integer NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "Usuarios" ADD COLUMN IF NOT EXISTS "UltimoAccesoEn" timestamp with time zone NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "Usuarios" ADD COLUMN IF NOT EXISTS "DebeCambiarClave" boolean NOT NULL DEFAULT FALSE;""",
                 ct);
             return;
         }
@@ -670,6 +680,21 @@ public static class FeatureSchema
         string sql,
         CancellationToken ct) =>
         await TrySqliteAsync(db, sql, ct);
+
+    private static async Task TryPostgresAsync(
+        CaleDbContext db,
+        string sql,
+        CancellationToken ct)
+    {
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(sql, ct);
+        }
+        catch
+        {
+            // Table not ready yet or column already exists.
+        }
+    }
 
     private static async Task TrySqliteAsync(
         CaleDbContext db,

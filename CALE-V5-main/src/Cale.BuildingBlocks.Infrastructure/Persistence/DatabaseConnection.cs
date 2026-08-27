@@ -22,7 +22,8 @@ public static class DatabaseConnection
         if (string.IsNullOrWhiteSpace(raw))
         {
             throw new InvalidOperationException(
-                "Missing ConnectionStrings:Cale (or DATABASE_URL for Postgres).");
+                "Missing ConnectionStrings:Cale (or DATABASE_URL for Postgres). " +
+                "In Render set ConnectionStrings__Cale to the Internal Database URL.");
         }
 
         return Normalize(raw);
@@ -30,7 +31,7 @@ public static class DatabaseConnection
 
     public static string Normalize(string raw)
     {
-        raw = raw.Trim();
+        raw = raw.Trim().Trim('"');
         if (raw.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase)
             || raw.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
         {
@@ -41,9 +42,11 @@ public static class DatabaseConnection
                 ? Uri.UnescapeDataString(userInfo[1])
                 : "";
             var database = uri.AbsolutePath.Trim('/');
-            var port = uri.Port > 0 ? uri.Port : 5432;
+            var port = uri.IsDefaultPort || uri.Port <= 0 ? 5432 : uri.Port;
+
+            // Prefer works with Render internal + external; Require often breaks internal links.
             return
-                $"Host={uri.Host};Port={port};Database={database};Username={user};Password={pass};SSL Mode=Require;Trust Server Certificate=true";
+                $"Host={uri.Host};Port={port};Database={database};Username={user};Password={pass};SSL Mode=Prefer;Trust Server Certificate=true;Timeout=30";
         }
 
         return raw;
