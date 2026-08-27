@@ -69,6 +69,21 @@ public static class WebApplicationExtensions
         var purgeOthers = app.Configuration.GetValue("Seed:Admin:PurgeOthers", false);
 
         if (!string.IsNullOrWhiteSpace(adminEmail)
+            && string.IsNullOrWhiteSpace(adminPassword))
+        {
+            seedLogger.LogError(
+                "Seed:Admin:Email is set ({Email}) but Seed:Admin:Password is empty. " +
+                "Set env var Seed__Admin__Password on the host, then redeploy. Login will fail until then.",
+                adminEmail);
+
+            if (!app.Environment.IsDevelopment())
+            {
+                throw new InvalidOperationException(
+                    "Missing Seed__Admin__Password. Add it in the host environment variables and redeploy.");
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(adminEmail)
             && !string.IsNullOrWhiteSpace(adminPassword))
         {
             await IdentitySeed.EnsureSoleAdminAsync(
