@@ -23,7 +23,8 @@ COPY --from=frontend /src/frontend/dist/frontend/browser/ /app/publish/wwwroot/
 # --- Runtime ---
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
-ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_HTTP_PORTS=8080
+ENV ASPNETCORE_URLS=
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE=false
 ENV ASPNETCORE_hostBuilder__reloadConfigOnChange=false

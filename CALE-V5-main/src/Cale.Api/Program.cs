@@ -1,4 +1,5 @@
 using Cale.Api.Extensions;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
 
 // Render/Free Linux containers hit inotify limits if config files are watched.
@@ -7,6 +8,14 @@ Environment.SetEnvironmentVariable(
     "false");
 
 var builder = WebApplication.CreateBuilder(args);
+
+if (!builder.Environment.IsDevelopment())
+{
+    // Register before any MVC/antiforgery defaults; JWT auth does not need persisted keys.
+    builder.Services.AddDataProtection()
+        .SetApplicationName("Cale.Api")
+        .UseEphemeralDataProtectionProvider();
+}
 
 if (builder.Environment.IsDevelopment())
 {
