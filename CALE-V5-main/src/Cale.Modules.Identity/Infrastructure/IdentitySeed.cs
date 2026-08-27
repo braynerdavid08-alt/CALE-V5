@@ -46,9 +46,6 @@ public static class IdentitySeed
         const string bootstrapPassword = "CambiarYa123!";
         const string bootstrapName = "Administrador";
 
-        // Drop legacy/personal bootstrap accounts that must not remain in production.
-        await RemoveRetiredAccountsAsync(db, ct);
-
         var hasAdmin = await db.Set<User>().AnyAsync(
             u => u.Role == Roles.Admin || u.Role == "Administrador",
             ct);
@@ -73,49 +70,6 @@ public static class IdentitySeed
         logger?.LogWarning(
             "Bootstrap admin created ({Email}). Sign in and change email + password immediately.",
             bootstrapEmail);
-    }
-
-    private static async Task RemoveRetiredAccountsAsync(CaleDbContext db, CancellationToken ct)
-    {
-        // Personal credentials previously shared in chat + old demo logins.
-        var retired = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            "braynerdavid08@gmail.com",
-            AdminEmail,
-            TeacherEmail,
-            StudentEmail,
-            SchoolEmail
-        };
-
-        var users = await db.Set<User>()
-            .Where(u => retired.Contains(u.Email))
-            .ToListAsync(ct);
-
-        if (users.Count == 0)
-        {
-            return;
-        }
-
-        var ids = users.Select(u => u.Id).ToHashSet();
-        var profiles = await db.Set<SchoolProfile>()
-            .Where(p => ids.Contains(p.UserId))
-            .ToListAsync(ct);
-        if (profiles.Count > 0)
-        {
-            db.Set<SchoolProfile>().RemoveRange(profiles);
-        }
-
-        var events = await db.Set<MembershipEvent>()
-            .Where(e => ids.Contains(e.SchoolUserId)
-                || (e.ActorUserId != null && ids.Contains(e.ActorUserId.Value)))
-            .ToListAsync(ct);
-        if (events.Count > 0)
-        {
-            db.Set<MembershipEvent>().RemoveRange(events);
-        }
-
-        db.Set<User>().RemoveRange(users);
-        await db.SaveChangesAsync(ct);
     }
 
     /// <summary>

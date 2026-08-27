@@ -130,6 +130,16 @@ Email__Smtp__UseSsl=true
 
 Sin SMTP configurado, el código se escribe en los **logs del servidor** (útil en local).
 
+### Persistencia en Render Free
+
+El plan Free **borra el disco del contenedor** cuando la instancia se duerme. La SQLite en `/data` se pierde y vuelve el admin temporal.
+
+Para que correo/clave se mantengan:
+1. Sube a un plan de pago y monta un **Persistent Disk** en `/data`, o
+2. Usa una base externa (PostgreSQL/SQL Server) y ponla en `ConnectionStrings__Cale`.
+
+Sin eso, cada “cold start” recrea `admin@micale.app`.
+
 ### Admin temporal (primer arranque)
 
 Si no hay ningún administrador, la API crea uno temporal:

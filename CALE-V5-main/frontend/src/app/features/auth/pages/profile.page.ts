@@ -124,9 +124,10 @@ export class ProfilePage implements OnInit {
     this.api.updateMe(name, email).subscribe({
       next: (dto) => {
         this.me.set(dto);
+        this.profileForm.patchValue({ name: dto.name, email: dto.email });
         this.session.patchUser({ name: dto.name, email: dto.email });
         this.savingProfile.set(false);
-        this.success.set('Datos de perfil actualizados.');
+        this.success.set('Perfil guardado. Si cambiaste el correo, úsalo al volver a entrar.');
       },
       error: (err) => {
         this.savingProfile.set(false);
@@ -141,8 +142,24 @@ export class ProfilePage implements OnInit {
       return;
     }
     const { currentPassword, newPassword } = this.passwordForm.getRawValue();
-    this.auth.changePassword(currentPassword, newPassword);
-    this.passwordForm.reset();
+    this.error.set(null);
+    this.success.set(null);
+    this.auth.loading.set(true);
+    this.auth.error.set(null);
+    this.auth.success.set(null);
+    this.api.changePassword(currentPassword, newPassword).subscribe({
+      next: () => {
+        this.session.patchUser({ mustChangePassword: false });
+        this.passwordForm.reset();
+        this.auth.loading.set(false);
+        this.success.set('Contraseña actualizada. Usa la nueva clave en el próximo inicio de sesión.');
+        this.reload();
+      },
+      error: (err) => {
+        this.auth.loading.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
   }
 
   setTheme(mode: 'light' | 'dark'): void {
