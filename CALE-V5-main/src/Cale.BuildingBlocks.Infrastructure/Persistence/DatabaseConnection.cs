@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Npgsql;
+using System.Text.RegularExpressions;
 
 namespace Cale.BuildingBlocks.Infrastructure.Persistence;
 
@@ -12,6 +13,10 @@ public enum DatabaseProviderKind
 
 public static class DatabaseConnection
 {
+    private static readonly Regex PostgresUriRegex = new(
+        @"^postgres(?:ql)?://(?:(?<user>[^:@/]+)(?::(?<password>[^@]*))?@)?(?<host>[^:/?#]+)(?::(?<port>\d+))?/(?<database>[^?#]+)",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
     public static string Resolve(IConfiguration config)
     {
         // On Render, DATABASE_URL from "Connect to service" is the reliable internal URL.
@@ -36,10 +41,10 @@ public static class DatabaseConnection
                 "or paste the Internal Database URL into ConnectionStrings__Cale.");
         }
 
-        return Normalize(raw, config["RENDER_REGION"]);
+        return Normalize(raw);
     }
 
-    public static string Normalize(string raw, string? renderRegion = null)
+    public static string Normalize(string raw)
     {
         raw = raw.Trim().Trim('"').Trim('\'');
 
@@ -51,14 +56,18 @@ public static class DatabaseConnection
             raw = raw[(idx + 1)..].Trim();
         }
 
+        // Render/env parsers sometimes truncate at '=' and leave a broken "?sslmode" suffix.
+        raw = StripBrokenSslModeQuery(raw);
+
         if (raw.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase)
             || raw.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
         {
-            return ApplyPostgresSslMode(raw);
+            return PostgresUriToNpgsql(raw);
         }
 
         if (raw.Contains("Host=", StringComparison.OrdinalIgnoreCase)
-            && raw.Contains("Username=", StringComparison.OrdinalIgnoreCase))
+            && (raw.Contains("Username=", StringComparison.OrdinalIgnoreCase)
+                || raw.Contains("User ID=", StringComparison.OrdinalIgnoreCase)))
         {
             return ApplyPostgresSslModeToKeyValue(raw);
         }
@@ -66,24 +75,59 @@ public static class DatabaseConnection
         return raw;
     }
 
-    /// <summary>
-    /// Render internal: <c>dpg-xxxx-a</c> (no SSL). External: <c>*.render.com</c> (SSL required).
-    /// </summary>
-    private static string ApplyPostgresSslMode(string postgresUri)
+    private static string StripBrokenSslModeQuery(string raw)
     {
-        if (postgresUri.Contains("sslmode=", StringComparison.OrdinalIgnoreCase))
+        var qIdx = raw.IndexOf('?', StringComparison.Ordinal);
+        if (qIdx < 0)
         {
-            return postgresUri;
+            return raw;
         }
 
-        if (!Uri.TryCreate(postgresUri, UriKind.Absolute, out var uri))
+        var query = raw[(qIdx + 1)..];
+        if (string.IsNullOrWhiteSpace(query)
+            || query.Equals("sslmode", StringComparison.OrdinalIgnoreCase)
+            || query.StartsWith("sslmode&", StringComparison.OrdinalIgnoreCase))
         {
-            return postgresUri;
+            return raw[..qIdx];
         }
 
-        var sslMode = ResolveSslMode(uri.Host);
-        var separator = postgresUri.Contains('?') ? '&' : '?';
-        return $"{postgresUri}{separator}sslmode={sslMode}";
+        return raw;
+    }
+
+    /// <summary>
+    /// Convert postgres:// URI to Npgsql key=value format.
+    /// Avoids ?sslmode= in URLs — Render env vars truncate at '='.
+    /// </summary>
+    private static string PostgresUriToNpgsql(string postgresUri)
+    {
+        var match = PostgresUriRegex.Match(StripBrokenSslModeQuery(postgresUri));
+        if (!match.Success)
+        {
+            throw new InvalidOperationException(
+                "Invalid PostgreSQL URL. Use: postgresql://USER:PASSWORD@HOST/DATABASE");
+        }
+
+        var host = match.Groups["host"].Value;
+        var builder = new NpgsqlConnectionStringBuilder
+        {
+            Host = host,
+            Port = match.Groups["port"].Success
+                ? int.Parse(match.Groups["port"].Value)
+                : 5432,
+            Database = Uri.UnescapeDataString(match.Groups["database"].Value),
+            Username = Uri.UnescapeDataString(match.Groups["user"].Value),
+            Password = match.Groups["password"].Success
+                ? Uri.UnescapeDataString(match.Groups["password"].Value)
+                : string.Empty,
+            SslMode = ResolveSslMode(host) switch
+            {
+                "disable" => SslMode.Disable,
+                "require" => SslMode.Require,
+                _ => SslMode.Prefer
+            }
+        };
+
+        return builder.ConnectionString;
     }
 
     private static string ApplyPostgresSslModeToKeyValue(string connection)
@@ -154,12 +198,13 @@ public static class DatabaseConnection
         {
             if (connection.StartsWith("postgres", StringComparison.OrdinalIgnoreCase))
             {
-                var uri = new Uri(connection);
-                return $"PostgreSQL host={uri.Host} db={uri.AbsolutePath.Trim('/')}";
+                var converted = PostgresUriToNpgsql(connection);
+                var b = new NpgsqlConnectionStringBuilder(converted);
+                return $"PostgreSQL host={b.Host} db={b.Database}";
             }
 
-            var b = new NpgsqlConnectionStringBuilder(connection);
-            return $"PostgreSQL host={b.Host} db={b.Database}";
+            var builder = new NpgsqlConnectionStringBuilder(connection);
+            return $"PostgreSQL host={builder.Host} db={builder.Database}";
         }
         catch
         {

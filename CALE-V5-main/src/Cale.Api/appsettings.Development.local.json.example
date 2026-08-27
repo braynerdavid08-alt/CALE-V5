@@ -1,5 +1,5 @@
 {
   "ConnectionStrings": {
-    "Cale": "postgresql://USER:PASSWORD@dpg-XXXXX-a.oregon-postgres.render.com/micale?sslmode=require"
+    "Cale": "postgresql://USER:PASSWORD@dpg-XXXXX-a.oregon-postgres.render.com/micale"
   }
 }
