@@ -6,7 +6,7 @@ services:
     runtime: docker
     plan: free
     region: ohio
-    branch: main
+    branch: cursor/cale-v5-initial-import
     rootDir: CALE-V5-main
     dockerfilePath: Dockerfile
     healthCheckPath: /api/health/live
