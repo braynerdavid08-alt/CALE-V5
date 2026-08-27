@@ -32,9 +32,95 @@ public static class IdentitySeed
     };
 
     /// <summary>
-    /// Ensures a single admin exists. Prefer <paramref name="password"/> from env,
-    /// or <paramref name="passwordHash"/> (Identity hash, never plaintext in git).
-    /// When <paramref name="purgeOthers"/> is true, deletes every other user account.
+    /// Creates one temporary admin only when the database has no Admin yet.
+    /// Does not reset an existing admin (so they can change email/password safely).
+    /// </summary>
+    public static async Task EnsureBootstrapAdminIfNoneAsync(
+        CaleDbContext db,
+        IPasswordHasher hasher,
+        IClock clock,
+        ILogger? logger = null,
+        CancellationToken ct = default)
+    {
+        const string bootstrapEmail = "admin@micale.app";
+        const string bootstrapPassword = "CambiarYa123!";
+        const string bootstrapName = "Administrador";
+
+        // Drop legacy/personal bootstrap accounts that must not remain in production.
+        await RemoveRetiredAccountsAsync(db, ct);
+
+        var hasAdmin = await db.Set<User>().AnyAsync(
+            u => u.Role == Roles.Admin || u.Role == "Administrador",
+            ct);
+
+        if (hasAdmin)
+        {
+            logger?.LogInformation("Bootstrap admin skipped: an admin account already exists.");
+            return;
+        }
+
+        await PurgeAllUsersAsync(db, ct);
+
+        var user = User.CreateAdmin(
+            bootstrapName,
+            bootstrapEmail,
+            hasher.Hash(bootstrapPassword),
+            clock.UtcNow);
+        user.RequirePasswordChange();
+        db.Set<User>().Add(user);
+        await db.SaveChangesAsync(ct);
+
+        logger?.LogWarning(
+            "Bootstrap admin created ({Email}). Sign in and change email + password immediately.",
+            bootstrapEmail);
+    }
+
+    private static async Task RemoveRetiredAccountsAsync(CaleDbContext db, CancellationToken ct)
+    {
+        // Personal credentials previously shared in chat + old demo logins.
+        var retired = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "braynerdavid08@gmail.com",
+            AdminEmail,
+            TeacherEmail,
+            StudentEmail,
+            SchoolEmail
+        };
+
+        var users = await db.Set<User>()
+            .Where(u => retired.Contains(u.Email))
+            .ToListAsync(ct);
+
+        if (users.Count == 0)
+        {
+            return;
+        }
+
+        var ids = users.Select(u => u.Id).ToHashSet();
+        var profiles = await db.Set<SchoolProfile>()
+            .Where(p => ids.Contains(p.UserId))
+            .ToListAsync(ct);
+        if (profiles.Count > 0)
+        {
+            db.Set<SchoolProfile>().RemoveRange(profiles);
+        }
+
+        var events = await db.Set<MembershipEvent>()
+            .Where(e => ids.Contains(e.SchoolUserId)
+                || (e.ActorUserId != null && ids.Contains(e.ActorUserId.Value)))
+            .ToListAsync(ct);
+        if (events.Count > 0)
+        {
+            db.Set<MembershipEvent>().RemoveRange(events);
+        }
+
+        db.Set<User>().RemoveRange(users);
+        await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// Ensures a single admin exists from env/config. Prefer <paramref name="password"/> from env,
+    /// or <paramref name="passwordHash"/>. When <paramref name="purgeOthers"/> is true, deletes every other user.
     /// </summary>
     public static async Task EnsureSoleAdminAsync(
         CaleDbContext db,
@@ -207,6 +293,34 @@ public static class IdentitySeed
             (name, email, hash, now) => User.RegisterStudent(name, email, hash, now, school.Id),
             ct,
             school.Id);
+    }
+
+    private static async Task PurgeAllUsersAsync(CaleDbContext db, CancellationToken ct)
+    {
+        var users = await db.Set<User>().ToListAsync(ct);
+        if (users.Count == 0)
+        {
+            return;
+        }
+
+        var ids = users.Select(u => u.Id).ToHashSet();
+        var profiles = await db.Set<SchoolProfile>().ToListAsync(ct);
+        if (profiles.Count > 0)
+        {
+            db.Set<SchoolProfile>().RemoveRange(profiles);
+        }
+
+        var events = await db.Set<MembershipEvent>()
+            .Where(e => ids.Contains(e.SchoolUserId)
+                || (e.ActorUserId != null && ids.Contains(e.ActorUserId.Value)))
+            .ToListAsync(ct);
+        if (events.Count > 0)
+        {
+            db.Set<MembershipEvent>().RemoveRange(events);
+        }
+
+        db.Set<User>().RemoveRange(users);
+        await db.SaveChangesAsync(ct);
     }
 
     private static async Task<int> PurgeAllUsersExceptAsync(

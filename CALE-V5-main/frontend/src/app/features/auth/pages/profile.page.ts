@@ -53,7 +53,8 @@ export class ProfilePage implements OnInit {
   readonly tab = signal<ProfileTab>('account');
 
   readonly profileForm = this.fb.nonNullable.group({
-    name: ['', [Validators.required, Validators.maxLength(200)]]
+    name: ['', [Validators.required, Validators.maxLength(200)]],
+    email: ['', [Validators.required, Validators.email]]
   });
 
   readonly passwordForm = this.fb.nonNullable.group({
@@ -82,7 +83,7 @@ export class ProfilePage implements OnInit {
     this.api.me().subscribe({
       next: (dto) => {
         this.me.set(dto);
-        this.profileForm.patchValue({ name: dto.name });
+        this.profileForm.patchValue({ name: dto.name, email: dto.email });
         this.session.patchUser({
           id: dto.id,
           name: dto.name,
@@ -119,10 +120,11 @@ export class ProfilePage implements OnInit {
     this.error.set(null);
     this.success.set(null);
     const name = this.profileForm.controls.name.value.trim();
-    this.api.updateMe(name).subscribe({
+    const email = this.profileForm.controls.email.value.trim();
+    this.api.updateMe(name, email).subscribe({
       next: (dto) => {
         this.me.set(dto);
-        this.session.patchUser({ name: dto.name });
+        this.session.patchUser({ name: dto.name, email: dto.email });
         this.savingProfile.set(false);
         this.success.set('Datos de perfil actualizados.');
       },

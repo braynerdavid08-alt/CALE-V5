@@ -62,15 +62,19 @@
       </ui-card>
 
       <ui-card>
-        <h2>Nombre visible</h2>
-        <p class="muted">Así te verán en paneles, grupos y resultados.</p>
+        <h2>Datos editables</h2>
+        <p class="muted">Puedes cambiar tu nombre y correo. La clave se cambia en Seguridad.</p>
         <form class="stack" [formGroup]="profileForm" (ngSubmit)="saveProfile()">
           <label class="field">
             Nombre
             <input formControlName="name" autocomplete="name" />
           </label>
+          <label class="field">
+            Correo
+            <input type="email" formControlName="email" autocomplete="email" />
+          </label>
           <ui-button type="submit" [loading]="savingProfile()" [disabled]="profileForm.invalid">
-            Guardar nombre
+            Guardar cambios
           </ui-button>
         </form>
       </ui-card>

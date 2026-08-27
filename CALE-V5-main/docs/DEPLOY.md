@@ -130,6 +130,15 @@ Email__Smtp__UseSsl=true
 
 Sin SMTP configurado, el código se escribe en los **logs del servidor** (útil en local).
 
+### Admin temporal (primer arranque)
+
+Si no hay ningún administrador, la API crea uno temporal:
+
+- Correo: `admin@micale.app`
+- Clave: `CambiarYa123!`
+
+Al entrar te pedirá cambiar la contraseña. En **Mi perfil** también puedes cambiar el **correo**. Después de eso, el bootstrap no vuelve a recrear el admin.
+
 ### Admin único (producción)
 
 **Nunca** pongas la contraseña en el código ni en GitHub. En el panel del hosting define:

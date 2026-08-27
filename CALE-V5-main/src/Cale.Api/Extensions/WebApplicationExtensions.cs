@@ -68,22 +68,10 @@ public static class WebApplicationExtensions
         var adminPasswordHash = app.Configuration["Seed:Admin:PasswordHash"];
         var adminName = app.Configuration["Seed:Admin:Name"] ?? "Administrador";
         var purgeOthers = app.Configuration.GetValue("Seed:Admin:PurgeOthers", false);
+        var bootstrapAdmin = app.Configuration.GetValue("Seed:BootstrapAdmin", true);
 
         var hasSecret = !string.IsNullOrWhiteSpace(adminPassword)
             || !string.IsNullOrWhiteSpace(adminPasswordHash);
-
-        if (!string.IsNullOrWhiteSpace(adminEmail) && !hasSecret)
-        {
-            seedLogger.LogError(
-                "Seed:Admin:Email is set ({Email}) but no Password/PasswordHash. Login will fail.",
-                adminEmail);
-
-            if (!app.Environment.IsDevelopment())
-            {
-                throw new InvalidOperationException(
-                    "Missing Seed:Admin:Password or Seed:Admin:PasswordHash.");
-            }
-        }
 
         if (!string.IsNullOrWhiteSpace(adminEmail) && hasSecret)
         {
@@ -98,9 +86,17 @@ public static class WebApplicationExtensions
                 passwordHash: adminPasswordHash,
                 logger: seedLogger);
         }
+        else if (bootstrapAdmin)
+        {
+            // Temporary admin once; after you change email/password it is never recreated.
+            await IdentitySeed.EnsureBootstrapAdminIfNoneAsync(
+                db,
+                hasher,
+                clock,
+                seedLogger);
+        }
         else if (app.Configuration.GetValue("Seed:DemoUsers", false))
         {
-            // Optional local demos — never enable on public internet.
             await IdentitySeed.EnsureDemoUsersAsync(db, hasher, clock);
         }
 

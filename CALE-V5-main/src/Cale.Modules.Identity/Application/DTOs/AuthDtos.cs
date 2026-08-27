@@ -313,7 +313,7 @@ public sealed record MeSchoolContextDto(
     int DaysRemaining,
     bool IsMembershipActive);
 
-public sealed record UpdateMyProfileRequest(string Name);
+public sealed record UpdateMyProfileRequest(string Name, string? Email = null);
 
 public sealed record UserListItemDto(
     int Id,

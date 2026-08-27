@@ -77,8 +77,11 @@ export class AuthApi {
     return this.http.get<MeResponse>(`${this.base}/me`);
   }
 
-  updateMe(name: string) {
-    return this.http.put<MeResponse>(`${this.base}/me`, { name });
+  updateMe(name: string, email?: string) {
+    return this.http.put<MeResponse>(`${this.base}/me`, {
+      name,
+      ...(email ? { email } : {})
+    });
   }
 
   changePassword(currentPassword: string, newPassword: string) {
