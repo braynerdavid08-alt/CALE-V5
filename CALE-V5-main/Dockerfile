@@ -25,6 +25,8 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
+ENV DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE=false
+ENV ASPNETCORE_hostBuilder__reloadConfigOnChange=false
 EXPOSE 8080
 RUN mkdir -p /data /app/wwwroot/uploads
 COPY --from=build /app/publish .
