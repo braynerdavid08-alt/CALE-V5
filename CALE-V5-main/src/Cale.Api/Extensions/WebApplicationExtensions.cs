@@ -59,7 +59,10 @@ public static class WebApplicationExtensions
         var bootLogger = scope.ServiceProvider
             .GetRequiredService<ILoggerFactory>()
             .CreateLogger("Cale.Startup");
-        bootLogger.LogInformation("Database provider: {Provider}", providerKind);
+        bootLogger.LogInformation(
+            "Database provider: {Provider}; {Description}",
+            providerKind,
+            DatabaseConnection.Describe(DatabaseConnection.Resolve(app.Configuration)));
 
         try
         {
