@@ -13,8 +13,12 @@ using Cale.Modules.Engagement.Infrastructure;
 using Cale.Modules.Engagement.Infrastructure.Persistence;
 using Cale.Modules.Identity.Infrastructure;
 using Cale.Modules.Identity.Infrastructure.Persistence;
+using Cale.Modules.LiveClassroom.Application.Abstractions;
+using Cale.Modules.LiveClassroom.Infrastructure;
+using Cale.Modules.LiveClassroom.Infrastructure.Persistence;
 using Cale.Modules.Presentation.Infrastructure;
 using Cale.Modules.Presentation.Infrastructure.Persistence;
+using Cale.Api.Hubs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -30,6 +34,7 @@ public static class ServiceCollectionExtensions
         var config = builder.Configuration;
 
         services.AddControllers();
+        services.AddSignalR();
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
         {
@@ -58,13 +63,16 @@ public static class ServiceCollectionExtensions
                 typeof(AttemptConfiguration).Assembly,
                 typeof(GroupConfiguration).Assembly,
                 typeof(NotificationConfiguration).Assembly,
-                typeof(PresentationDeckConfiguration).Assembly));
+                typeof(PresentationDeckConfiguration).Assembly,
+                typeof(LiveSessionConfiguration).Assembly));
         services.AddIdentityModule();
         services.AddCatalogModule();
         services.AddAssessmentModule();
         services.AddClassroomModule();
+        services.AddLiveClassroomModule();
         services.AddEngagementModule();
         services.AddPresentationModule();
+        services.AddScoped<ILiveSessionBroadcaster, LiveSessionBroadcaster>();
         services.AddMemoryCache();
         services.AddScoped<Cale.Api.Services.PilotMetricsService>();
         services.AddScoped<Cale.Api.Services.HomepageService>();
@@ -92,6 +100,21 @@ public static class ServiceCollectionExtensions
                     ValidAudience = jwt.Audience,
                     IssuerSigningKey = new SymmetricSecurityKey(
                         Encoding.UTF8.GetBytes(jwt.Key))
+                };
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+                        var path = context.HttpContext.Request.Path;
+                        if (!string.IsNullOrEmpty(accessToken)
+                            && path.StartsWithSegments("/hubs"))
+                        {
+                            context.Token = accessToken;
+                        }
+
+                        return Task.CompletedTask;
+                    }
                 };
             });
 
@@ -145,6 +168,7 @@ public static class ServiceCollectionExtensions
                 policy.WithOrigins(origins)
                     .AllowAnyHeader()
                     .AllowAnyMethod()
+                    .AllowCredentials()
                     .WithExposedHeaders("X-Request-Id");
             });
         });

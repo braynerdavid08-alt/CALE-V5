@@ -1,0 +1,40 @@
+:host {
+  display: block;
+  min-height: calc(100vh - 4rem);
+  padding: max(1rem, var(--safe-top)) max(1rem, var(--safe-right)) max(1rem, var(--safe-bottom)) max(1rem, var(--safe-left));
+  background: var(--color-background);
+}
+
+.host { max-width: 1200px; margin: 0 auto; }
+.eyebrow { color: var(--color-primary); font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; font-size: var(--text-xs); margin: 0; }
+.top { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; margin-bottom: 1rem; }
+.back { color: var(--color-primary); font-weight: 700; }
+.layout { display: grid; grid-template-columns: 300px 1fr; gap: 1.25rem; }
+.lobby-panel, .stage {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  padding: 1rem;
+}
+.code { font-size: clamp(2rem, 6vw, 3.2rem); font-weight: 900; letter-spacing: 0.12em; margin: 0.35rem 0; }
+.qr { display: block; margin: 0.75rem auto; border-radius: 12px; background: #fff; padding: 0.5rem; }
+.join-url { font-size: var(--text-xs); color: var(--color-text-secondary); word-break: break-all; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin: 1rem 0; }
+.stats div { text-align: center; padding: 0.5rem; border-radius: var(--radius-md); background: var(--color-background); }
+.stats span { display: block; font-size: 1.4rem; font-weight: 800; }
+.people { list-style: none; padding: 0; margin: 0; max-height: 220px; overflow: auto; }
+.people li { padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--color-border); font-size: var(--text-sm); }
+.people li.on::before { content: "● "; color: #3dd68c; }
+.waiting { text-align: center; padding: 2rem 1rem; }
+.question-head { display: flex; justify-content: space-between; align-items: center; }
+.timer { font-size: 2rem; font-weight: 900; color: var(--color-primary); margin: 0; }
+.q-text { font-size: clamp(1.35rem, 3vw, 2rem); line-height: 1.3; }
+.q-img { max-width: min(420px, 100%); border-radius: var(--radius-md); margin: 0.75rem 0; }
+.options { display: grid; gap: 0.55rem; padding-left: 1.2rem; font-size: 1.1rem; }
+.options .correct { color: #3dd68c; font-weight: 800; }
+.actions { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; margin-top: 1.25rem; }
+.explain { margin-top: 1rem; padding: 0.85rem; border-radius: var(--radius-md); background: var(--color-primary-soft, rgba(43,176,237,0.12)); }
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+}

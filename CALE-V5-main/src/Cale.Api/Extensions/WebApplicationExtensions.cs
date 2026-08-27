@@ -48,6 +48,7 @@ public static class WebApplicationExtensions
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
+        app.MapHub<Cale.Api.Hubs.LiveClassroomHub>("/hubs/live");
 
         // Angular SPA deep links (keep /api/* on controllers).
         app.MapFallbackToFile("index.html");

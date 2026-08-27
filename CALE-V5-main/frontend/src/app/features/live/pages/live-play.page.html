@@ -1,0 +1,61 @@
+<section class="play">
+  <ui-error [message]="error()" />
+  @if (lobby(); as l) {
+    <header>
+      <p class="eyebrow">CALE LIVE</p>
+      <h1>{{ l.title }}</h1>
+      <p class="meta">{{ displayName() }} · código {{ l.joinCode }}</p>
+    </header>
+
+    @if (l.status === 'Ended') {
+      <div class="panel">
+        <h2>Actividad finalizada</h2>
+        <p>Gracias por participar.</p>
+        <a routerLink="/live/join">Volver</a>
+      </div>
+    } @else if (!l.currentQuestion || l.status === 'Lobby') {
+      <div class="panel wait">
+        <div class="pulse"></div>
+        <h2>Esperando al instructor…</h2>
+        <p>Mantén esta pantalla abierta. La pregunta aparecerá automáticamente.</p>
+        <p class="count">{{ l.participantCount }} en la sala</p>
+      </div>
+    } @else {
+      <div class="panel question">
+        <div class="row">
+          <span>Pregunta {{ l.currentQuestion.index + 1 }}/{{ l.currentQuestion.total }}</span>
+          @if (secondsLeft() !== null) {
+            <strong class="timer">{{ secondsLeft() }}s</strong>
+          }
+        </div>
+        <h2>{{ l.currentQuestion.text }}</h2>
+        @if (l.currentQuestion.imageUrl) {
+          <img [src]="l.currentQuestion.imageUrl" alt="" />
+        }
+        <div class="opts">
+          @for (opt of l.currentQuestion.options; track opt.id) {
+            <button
+              type="button"
+              class="opt"
+              [class.selected]="selectedOptionId() === opt.id"
+              [class.correct]="l.revealCorrect && opt.isCorrect === true"
+              [disabled]="submitted()"
+              (click)="select(opt.id)">
+              {{ opt.text }}
+            </button>
+          }
+        </div>
+        @if (!submitted()) {
+          <ui-button type="button" [loading]="loading()" [disabled]="selectedOptionId() == null" (click)="confirm()">
+            Confirmar respuesta
+          </ui-button>
+        } @else {
+          <p class="sent">Respuesta enviada. Espera la siguiente pregunta.</p>
+        }
+        @if (l.currentQuestion.explanation && l.revealCorrect) {
+          <p class="explain">{{ l.currentQuestion.explanation }}</p>
+        }
+      </div>
+    }
+  }
+</section>

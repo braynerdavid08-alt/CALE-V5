@@ -343,6 +343,61 @@ public static class FeatureSchema
                 """,
                 ct);
 
+            await TrySqliteAsync(
+                db,
+                """
+                CREATE TABLE IF NOT EXISTS "LiveSessions" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_LiveSessions" PRIMARY KEY AUTOINCREMENT,
+                    "HostUserId" INTEGER NOT NULL,
+                    "Title" TEXT NOT NULL,
+                    "JoinCode" TEXT NOT NULL,
+                    "Status" TEXT NOT NULL,
+                    "Mode" TEXT NOT NULL,
+                    "BankId" INTEGER NOT NULL,
+                    "ConfigJson" TEXT NOT NULL,
+                    "CurrentQuestionIndex" INTEGER NOT NULL DEFAULT -1,
+                    "RevealCorrect" INTEGER NOT NULL DEFAULT 0,
+                    "QuestionOpenedAt" TEXT NULL,
+                    "QuestionClosesAt" TEXT NULL,
+                    "CreatedAt" TEXT NOT NULL,
+                    "StartedAt" TEXT NULL,
+                    "EndedAt" TEXT NULL
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_LiveSessions_JoinCode" ON "LiveSessions" ("JoinCode");
+                CREATE TABLE IF NOT EXISTS "LiveParticipants" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_LiveParticipants" PRIMARY KEY AUTOINCREMENT,
+                    "SessionId" INTEGER NOT NULL,
+                    "UserId" INTEGER NULL,
+                    "DisplayName" TEXT NOT NULL,
+                    "ParticipantToken" TEXT NOT NULL,
+                    "ConnectionId" TEXT NULL,
+                    "IsConnected" INTEGER NOT NULL DEFAULT 0,
+                    "JoinedAt" TEXT NOT NULL
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_LiveParticipants_ParticipantToken" ON "LiveParticipants" ("ParticipantToken");
+                CREATE TABLE IF NOT EXISTS "LiveSessionQuestions" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_LiveSessionQuestions" PRIMARY KEY AUTOINCREMENT,
+                    "SessionId" INTEGER NOT NULL,
+                    "QuestionId" INTEGER NOT NULL,
+                    "SortOrder" INTEGER NOT NULL,
+                    "SnapshotJson" TEXT NOT NULL,
+                    "Topic" TEXT NULL,
+                    "Difficulty" TEXT NULL
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_LiveSessionQuestions_SessionId_SortOrder" ON "LiveSessionQuestions" ("SessionId", "SortOrder");
+                CREATE TABLE IF NOT EXISTS "LiveAnswers" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_LiveAnswers" PRIMARY KEY AUTOINCREMENT,
+                    "SessionQuestionId" INTEGER NOT NULL,
+                    "ParticipantId" INTEGER NOT NULL,
+                    "OptionId" INTEGER NOT NULL,
+                    "IsCorrect" INTEGER NOT NULL,
+                    "AnsweredAtMs" INTEGER NOT NULL,
+                    "CreatedAt" TEXT NOT NULL
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_LiveAnswers_SessionQuestionId_ParticipantId" ON "LiveAnswers" ("SessionQuestionId", "ParticipantId");
+                """,
+                ct);
+
             return;
         }
 
@@ -367,6 +422,80 @@ public static class FeatureSchema
                 ct);
             await TryPostgresAsync(db,
                 """ALTER TABLE "Usuarios" ADD COLUMN IF NOT EXISTS "DebeCambiarClave" boolean NOT NULL DEFAULT FALSE;""",
+                ct);
+
+            await TryPostgresAsync(db,
+                """
+                CREATE TABLE IF NOT EXISTS "LiveSessions" (
+                    "Id" serial PRIMARY KEY,
+                    "HostUserId" integer NOT NULL,
+                    "Title" varchar(200) NOT NULL,
+                    "JoinCode" varchar(12) NOT NULL,
+                    "Status" varchar(32) NOT NULL,
+                    "Mode" varchar(32) NOT NULL,
+                    "BankId" integer NOT NULL,
+                    "ConfigJson" varchar(4000) NOT NULL,
+                    "CurrentQuestionIndex" integer NOT NULL DEFAULT -1,
+                    "RevealCorrect" boolean NOT NULL DEFAULT FALSE,
+                    "QuestionOpenedAt" timestamp with time zone NULL,
+                    "QuestionClosesAt" timestamp with time zone NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL,
+                    "StartedAt" timestamp with time zone NULL,
+                    "EndedAt" timestamp with time zone NULL
+                );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE UNIQUE INDEX IF NOT EXISTS "IX_LiveSessions_JoinCode" ON "LiveSessions" ("JoinCode");""",
+                ct);
+            await TryPostgresAsync(db,
+                """
+                CREATE TABLE IF NOT EXISTS "LiveParticipants" (
+                    "Id" serial PRIMARY KEY,
+                    "SessionId" integer NOT NULL,
+                    "UserId" integer NULL,
+                    "DisplayName" varchar(80) NOT NULL,
+                    "ParticipantToken" uuid NOT NULL,
+                    "ConnectionId" varchar(128) NULL,
+                    "IsConnected" boolean NOT NULL DEFAULT FALSE,
+                    "JoinedAt" timestamp with time zone NOT NULL
+                );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE UNIQUE INDEX IF NOT EXISTS "IX_LiveParticipants_ParticipantToken" ON "LiveParticipants" ("ParticipantToken");""",
+                ct);
+            await TryPostgresAsync(db,
+                """
+                CREATE TABLE IF NOT EXISTS "LiveSessionQuestions" (
+                    "Id" serial PRIMARY KEY,
+                    "SessionId" integer NOT NULL,
+                    "QuestionId" integer NOT NULL,
+                    "SortOrder" integer NOT NULL,
+                    "SnapshotJson" text NOT NULL,
+                    "Topic" varchar(200) NULL,
+                    "Difficulty" varchar(64) NULL
+                );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE UNIQUE INDEX IF NOT EXISTS "IX_LiveSessionQuestions_SessionId_SortOrder" ON "LiveSessionQuestions" ("SessionId", "SortOrder");""",
+                ct);
+            await TryPostgresAsync(db,
+                """
+                CREATE TABLE IF NOT EXISTS "LiveAnswers" (
+                    "Id" serial PRIMARY KEY,
+                    "SessionQuestionId" integer NOT NULL,
+                    "ParticipantId" integer NOT NULL,
+                    "OptionId" integer NOT NULL,
+                    "IsCorrect" boolean NOT NULL,
+                    "AnsweredAtMs" integer NOT NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL
+                );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE UNIQUE INDEX IF NOT EXISTS "IX_LiveAnswers_SessionQuestionId_ParticipantId" ON "LiveAnswers" ("SessionQuestionId", "ParticipantId");""",
                 ct);
             return;
         }
@@ -670,6 +799,73 @@ public static class FeatureSchema
                 );
                 CREATE INDEX IX_PresentacionDiapositivas_PresentationId_Position
                     ON dbo.PresentacionDiapositivas(PresentationId, Position);
+            END
+
+            IF OBJECT_ID(N'dbo.LiveSessions', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.LiveSessions (
+                    Id int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                    HostUserId int NOT NULL,
+                    Title nvarchar(200) NOT NULL,
+                    JoinCode nvarchar(12) NOT NULL,
+                    Status nvarchar(32) NOT NULL,
+                    Mode nvarchar(32) NOT NULL,
+                    BankId int NOT NULL,
+                    ConfigJson nvarchar(4000) NOT NULL,
+                    CurrentQuestionIndex int NOT NULL CONSTRAINT DF_LiveSessions_CQI DEFAULT(-1),
+                    RevealCorrect bit NOT NULL CONSTRAINT DF_LiveSessions_Reveal DEFAULT(0),
+                    QuestionOpenedAt datetime2 NULL,
+                    QuestionClosesAt datetime2 NULL,
+                    CreatedAt datetime2 NOT NULL,
+                    StartedAt datetime2 NULL,
+                    EndedAt datetime2 NULL
+                );
+                CREATE UNIQUE INDEX IX_LiveSessions_JoinCode ON dbo.LiveSessions(JoinCode);
+            END
+
+            IF OBJECT_ID(N'dbo.LiveParticipants', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.LiveParticipants (
+                    Id int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                    SessionId int NOT NULL,
+                    UserId int NULL,
+                    DisplayName nvarchar(80) NOT NULL,
+                    ParticipantToken uniqueidentifier NOT NULL,
+                    ConnectionId nvarchar(128) NULL,
+                    IsConnected bit NOT NULL CONSTRAINT DF_LiveParticipants_Conn DEFAULT(0),
+                    JoinedAt datetime2 NOT NULL
+                );
+                CREATE UNIQUE INDEX IX_LiveParticipants_ParticipantToken ON dbo.LiveParticipants(ParticipantToken);
+            END
+
+            IF OBJECT_ID(N'dbo.LiveSessionQuestions', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.LiveSessionQuestions (
+                    Id int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                    SessionId int NOT NULL,
+                    QuestionId int NOT NULL,
+                    SortOrder int NOT NULL,
+                    SnapshotJson nvarchar(max) NOT NULL,
+                    Topic nvarchar(200) NULL,
+                    Difficulty nvarchar(64) NULL
+                );
+                CREATE UNIQUE INDEX IX_LiveSessionQuestions_SessionId_SortOrder
+                    ON dbo.LiveSessionQuestions(SessionId, SortOrder);
+            END
+
+            IF OBJECT_ID(N'dbo.LiveAnswers', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.LiveAnswers (
+                    Id int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                    SessionQuestionId int NOT NULL,
+                    ParticipantId int NOT NULL,
+                    OptionId int NOT NULL,
+                    IsCorrect bit NOT NULL,
+                    AnsweredAtMs int NOT NULL,
+                    CreatedAt datetime2 NOT NULL
+                );
+                CREATE UNIQUE INDEX IX_LiveAnswers_SessionQuestionId_ParticipantId
+                    ON dbo.LiveAnswers(SessionQuestionId, ParticipantId);
             END
             """,
             ct);

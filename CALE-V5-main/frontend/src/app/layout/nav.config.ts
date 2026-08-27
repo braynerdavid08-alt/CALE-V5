@@ -26,6 +26,7 @@ export interface LibraryNavItem {
 /** Primary rail for instructors (CALE — no Descubre / Kahootopia). */
 export const TEACHER_PRIMARY_NAV: NavItem[] = [
   { label: 'Dashboard', path: '/teacher', icon: 'home', exact: true },
+  { label: 'Aula en Vivo', path: '/teacher/live', icon: 'exam', exact: true },
   { label: 'Biblioteca', path: '/teacher/library', icon: 'book', hub: 'library' },
   { label: 'Presentaciones', path: '/teacher/presentations', icon: 'book', exact: true },
   { label: 'Informes', path: '/teacher/results', icon: 'chart', exact: true },

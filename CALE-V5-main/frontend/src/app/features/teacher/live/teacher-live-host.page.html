@@ -1,0 +1,85 @@
+<section class="host">
+  <ui-error [message]="error()" />
+  @if (lobby(); as l) {
+    <header class="top">
+      <div>
+        <p class="eyebrow">CALE LIVE</p>
+        <h1>{{ l.title }}</h1>
+        <p class="status">Estado: <strong>{{ l.status }}</strong> · Modo {{ l.mode }}</p>
+      </div>
+      <a routerLink="/teacher/live" class="back">Volver</a>
+    </header>
+
+    <div class="layout" [class.playing]="!!l.currentQuestion && l.status !== 'Lobby'">
+      <aside class="lobby-panel">
+        <div class="code-block">
+          <p class="label">Código de sala</p>
+          <p class="code">{{ l.joinCode }}</p>
+          <img class="qr" [src]="qrUrl()" [alt]="'QR ' + l.joinCode" width="220" height="220" />
+          <p class="join-url">{{ l.joinUrl }}</p>
+        </div>
+        <div class="stats">
+          <div><span>{{ l.participantCount }}</span><small>en sala</small></div>
+          <div><span>{{ l.connectedCount }}</span><small>conectados</small></div>
+          <div><span>{{ answersReceived() }}</span><small>respuestas</small></div>
+          <div><span>{{ participationPercent() }}%</span><small>participación</small></div>
+        </div>
+        <ul class="people">
+          @for (p of l.participants; track p.id) {
+            <li [class.on]="p.isConnected">{{ p.displayName }}</li>
+          } @empty {
+            <li class="empty">Esperando estudiantes…</li>
+          }
+        </ul>
+      </aside>
+
+      <main class="stage">
+        @if (!l.currentQuestion || l.status === 'Lobby') {
+          <div class="waiting">
+            <h2>Sala lista</h2>
+            <p>Proyecta el QR. Cuando todos estén listos, inicia el simulacro.</p>
+            <div class="actions">
+              <ui-button type="button" [loading]="loading()" (click)="control('start')">
+                Iniciar actividad
+              </ui-button>
+              <ui-button type="button" variant="ghost" [loading]="loading()" (click)="control('end')">
+                Cerrar sala
+              </ui-button>
+            </div>
+          </div>
+        } @else {
+          <div class="question-head">
+            <p>Pregunta {{ l.currentQuestion.index + 1 }} / {{ l.currentQuestion.total }}</p>
+            @if (secondsLeft() !== null) {
+              <p class="timer">{{ secondsLeft() }}s</p>
+            }
+          </div>
+          <h2 class="q-text">{{ l.currentQuestion.text }}</h2>
+          @if (l.currentQuestion.imageUrl) {
+            <img class="q-img" [src]="l.currentQuestion.imageUrl" alt="" />
+          }
+          <ol class="options">
+            @for (opt of l.currentQuestion.options; track opt.id) {
+              <li [class.correct]="opt.isCorrect === true">{{ opt.text }}</li>
+            }
+          </ol>
+          @if (l.currentQuestion.explanation && l.revealCorrect) {
+            <p class="explain">{{ l.currentQuestion.explanation }}</p>
+          }
+          <div class="actions wrap">
+            @if (l.status === 'Running') {
+              <ui-button type="button" variant="ghost" (click)="control('pause')">Pausar</ui-button>
+            }
+            @if (l.status === 'Paused') {
+              <ui-button type="button" (click)="control('resume')">Reanudar</ui-button>
+            }
+            <ui-button type="button" variant="ghost" (click)="control('close')">Cerrar pregunta</ui-button>
+            <ui-button type="button" variant="ghost" (click)="control('reveal')">Mostrar respuesta</ui-button>
+            <ui-button type="button" (click)="control('next')">Siguiente</ui-button>
+            <ui-button type="button" variant="danger" (click)="control('end')">Finalizar</ui-button>
+          </div>
+        }
+      </main>
+    </div>
+  }
+</section>

@@ -44,6 +44,14 @@ const messages: Record<string, string> = {
   rating_exists: 'Ya valoraste este intento.',
   group_not_found: 'Grupo o código no encontrado.',
   submission_exists: 'Ya entregaste esta actividad.',
+  already_answered: 'Ya respondiste esta pregunta.',
+  question_closed: 'La pregunta está cerrada.',
+  session_ended: 'La sesión ya terminó.',
+  session_not_found: 'Sala no encontrada.',
+  invalid_join_code: 'Código de sala inválido.',
+  no_questions: 'No hay preguntas en el banco con esos filtros.',
+  not_host: 'Solo el instructor de la sala puede controlar la actividad.',
+  bank_required: 'No hay bancos de preguntas disponibles.',
   db_error: 'Error de base de datos. Inténtalo de nuevo.',
   timeout: 'La operación tardó demasiado. Inténtalo de nuevo.'
 };

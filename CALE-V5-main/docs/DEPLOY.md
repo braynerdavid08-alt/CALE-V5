@@ -111,7 +111,15 @@ Same-origin evita dolores de CORS y mixed-content en el celular.
 
 En producción: crea el primer admin por registro controlado o seed **offline**, cambia `Jwt__Key`, y usa disco/DB persistente para no perder cuentas.
 
+### CALE Aula en Vivo (SignalR)
+
+- Hub: `/hubs/live` (WebSocket; host JWT vía query `access_token`)
+- Instructor: `/teacher/live` → crear sala → `/teacher/live/{id}/host` (QR + código)
+- Estudiantes: `/live/join` o `/live/join/{CODE}` → `/live/play/{id}`
+- Una sola instancia Render Free: SignalR in-memory OK (multi-instancia requeriría Redis)
+
 ### Correo (verificación de cuenta)
+
 
 **Cambiar la clave en Mi perfil no envía correo.** Solo se guarda en el servidor.
 

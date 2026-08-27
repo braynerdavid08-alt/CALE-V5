@@ -93,6 +93,25 @@ export const routes: Routes = [
         .then((m) => m.VerifyEmailPage)
   },
   {
+    path: 'live/join',
+    pathMatch: 'full',
+    loadComponent: () =>
+      import('./features/live/pages/live-join.page')
+        .then((m) => m.LiveJoinPage)
+  },
+  {
+    path: 'live/join/:code',
+    loadComponent: () =>
+      import('./features/live/pages/live-join.page')
+        .then((m) => m.LiveJoinPage)
+  },
+  {
+    path: 'live/play/:sessionId',
+    loadComponent: () =>
+      import('./features/live/pages/live-play.page')
+        .then((m) => m.LivePlayPage)
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () =>
@@ -313,6 +332,23 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/teacher/pages/teacher-home.page')
             .then((m) => m.TeacherHomePage)
+      },
+      {
+        path: 'teacher/live',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: staffRoles },
+        loadComponent: () =>
+          import('./features/teacher/live/teacher-live-hub.page')
+            .then((m) => m.TeacherLiveHubPage)
+      },
+      {
+        path: 'teacher/live/:sessionId/host',
+        canActivate: [roleGuard],
+        data: { roles: staffRoles },
+        loadComponent: () =>
+          import('./features/teacher/live/teacher-live-host.page')
+            .then((m) => m.TeacherLiveHostPage)
       },
       {
         path: 'admin/questions/:id',

@@ -126,6 +126,21 @@ Al arrancar, la API siembra (si faltan) dos bancos oficiales desde `SeedData/`:
 | GET/POST | `/api/notifications`… | Auth |
 | POST | `/api/media/upload` | Admin |
 
+## CALE Aula en Vivo (SignalR)
+
+Hub WebSocket: `/hubs/live` (JWT host via `?access_token=`).
+
+| Método | Ruta | Acceso |
+|--------|------|--------|
+| POST | `/api/live/sessions` | Teacher/Admin (crea sala + código) |
+| GET | `/api/live/sessions/{id}` | Host |
+| POST | `/api/live/sessions/join` | Anónimo o auth |
+| GET | `/api/live/sessions/{id}/play?token=` | Participante |
+| POST | `/api/live/sessions/{id}/control` | Host (`start`/`pause`/`next`/`close`/`reveal`/`end`) |
+| POST | `/api/live/sessions/{id}/questions/{qid}/answer` | Participante |
+
+UI: `/teacher/live`, `/teacher/live/:id/host`, `/live/join`, `/live/play/:id`.
+
 ## Reglas fijas
 
 - Aprobar ≥ 80%
