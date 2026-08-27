@@ -50,6 +50,18 @@ public static class FeatureSchema
                 ct);
             await TryAddSqliteColumnAsync(
                 db,
+                """ALTER TABLE "Usuarios" ADD COLUMN "EmailConfirmado" INTEGER NOT NULL DEFAULT 1;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "Usuarios" ADD COLUMN "EmailCodigoHash" TEXT NULL;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "Usuarios" ADD COLUMN "EmailCodigoExpiraEn" TEXT NULL;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
                 """ALTER TABLE "SchoolProfiles" ADD COLUMN "MembershipStartsAt" TEXT NULL;""",
                 ct);
             await TryAddSqliteColumnAsync(
@@ -384,6 +396,15 @@ public static class FeatureSchema
 
             IF COL_LENGTH(N'dbo.Usuarios', N'DebeCambiarClave') IS NULL
                 ALTER TABLE dbo.Usuarios ADD DebeCambiarClave bit NOT NULL CONSTRAINT DF_Usuarios_DebeCambiarClave DEFAULT(0);
+
+            IF COL_LENGTH(N'dbo.Usuarios', N'EmailConfirmado') IS NULL
+                ALTER TABLE dbo.Usuarios ADD EmailConfirmado bit NOT NULL CONSTRAINT DF_Usuarios_EmailConfirmado DEFAULT(1);
+
+            IF COL_LENGTH(N'dbo.Usuarios', N'EmailCodigoHash') IS NULL
+                ALTER TABLE dbo.Usuarios ADD EmailCodigoHash nvarchar(128) NULL;
+
+            IF COL_LENGTH(N'dbo.Usuarios', N'EmailCodigoExpiraEn') IS NULL
+                ALTER TABLE dbo.Usuarios ADD EmailCodigoExpiraEn datetime2 NULL;
 
             IF OBJECT_ID(N'dbo.SchoolProfiles', N'U') IS NOT NULL
                AND COL_LENGTH(N'dbo.SchoolProfiles', N'RequestedPlanCode') IS NULL

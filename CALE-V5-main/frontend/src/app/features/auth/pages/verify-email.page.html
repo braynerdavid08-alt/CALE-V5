@@ -1,0 +1,49 @@
+<ui-theme-toggle />
+<section class="auth">
+  <div class="brand-side">
+    <img class="brand-logo" [src]="brand.icon192" [alt]="brand.name" width="120" height="120" />
+    <p class="brand-name">{{ brand.name }}</p>
+    <p class="brand-slogan">{{ brand.slogan }}</p>
+    <h1>Confirma tu correo</h1>
+    <p>Te enviamos un código de 6 dígitos. Úsalo para activar tu cuenta.</p>
+  </div>
+  <div class="auth-card">
+    <p class="eyebrow">Verificación</p>
+    <h2>Código de confirmación</h2>
+    <p class="lead">Revisa tu bandeja de entrada (y spam).</p>
+    <ui-error [message]="auth.error()" />
+    @if (auth.success(); as ok) {
+      <p class="hint" style="color: var(--color-primary); font-weight: 600;">{{ ok }}</p>
+    }
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <label class="field">
+        Correo
+        <input type="email" formControlName="email" autocomplete="email" />
+        @if (form.controls.email.touched && form.controls.email.invalid) {
+          <span class="field-error">Ingresa el correo con el que te registraste.</span>
+        }
+      </label>
+      <label class="field">
+        Código
+        <input
+          type="text"
+          inputmode="numeric"
+          formControlName="code"
+          autocomplete="one-time-code"
+          maxlength="8"
+          placeholder="000000" />
+        @if (form.controls.code.touched && form.controls.code.invalid) {
+          <span class="field-error">Ingresa el código que recibiste.</span>
+        }
+      </label>
+      <ui-button type="submit" [loading]="auth.loading()">Confirmar y entrar</ui-button>
+    </form>
+    <p class="hint signup-label">¿No llegó el correo?</p>
+    <div class="signup-options">
+      <button type="button" class="signup-option" (click)="resend()" [disabled]="auth.loading()">
+        Reenviar código
+      </button>
+      <a class="signup-option" routerLink="/login">Volver al inicio de sesión</a>
+    </div>
+  </div>
+</section>

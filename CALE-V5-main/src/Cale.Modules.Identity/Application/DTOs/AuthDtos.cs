@@ -285,6 +285,14 @@ public sealed record AuthResponse(
     string Role,
     bool MustChangePassword);
 
+public sealed record PendingEmailConfirmationResponse(
+    string Email,
+    string Message);
+
+public sealed record ConfirmEmailRequest(string Email, string Code);
+
+public sealed record ResendConfirmationRequest(string Email);
+
 public sealed record MeResponse(
     int Id,
     string Name,

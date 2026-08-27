@@ -1,4 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { MotivationService } from '../../../core/motivation/motivation.service';
@@ -19,27 +20,45 @@ export class AuthFacade {
   login(email: string, password: string): void {
     this.run(() => this.api.login(email, password).subscribe({
       next: (res) => this.enter(res),
-      error: (err) => this.fail(err)
+      error: (err) => this.failLogin(err, email)
     }));
   }
 
   register(name: string, email: string, password: string): void {
     this.run(() => this.api.register(name, email, password).subscribe({
-      next: (res) => this.enter(res),
+      next: (res) => this.goVerify(res.email),
       error: (err) => this.fail(err)
     }));
   }
 
   registerTeacher(name: string, email: string, password: string): void {
     this.run(() => this.api.registerTeacher(name, email, password).subscribe({
-      next: (res) => this.enter(res),
+      next: (res) => this.goVerify(res.email),
       error: (err) => this.fail(err)
     }));
   }
 
   registerSchool(body: Record<string, string>): void {
     this.run(() => this.api.registerSchool(body).subscribe({
+      next: (res) => this.goVerify(res.email),
+      error: (err) => this.fail(err)
+    }));
+  }
+
+  confirmEmail(email: string, code: string): void {
+    this.run(() => this.api.confirmEmail(email, code).subscribe({
       next: (res) => this.enter(res),
+      error: (err) => this.fail(err)
+    }));
+  }
+
+  resendConfirmation(email: string): void {
+    this.success.set(null);
+    this.run(() => this.api.resendConfirmation(email).subscribe({
+      next: (res) => {
+        this.loading.set(false);
+        this.success.set(res.message || 'Código reenviado. Revisa tu correo.');
+      },
       error: (err) => this.fail(err)
     }));
   }
@@ -63,6 +82,13 @@ export class AuthFacade {
     void this.router.navigateByUrl('/login');
   }
 
+  private goVerify(email: string): void {
+    this.loading.set(false);
+    void this.router.navigate(['/verify-email'], {
+      queryParams: { email }
+    });
+  }
+
   private enter(res: Parameters<SessionStore['set']>[0]): void {
     this.motivation.clearSession();
     this.session.set(res);
@@ -83,6 +109,20 @@ export class AuthFacade {
 
   private fail(err: unknown): void {
     this.loading.set(false);
+    this.error.set(mapApiError(err));
+  }
+
+  private failLogin(err: unknown, email: string): void {
+    this.loading.set(false);
+    const detail = err instanceof HttpErrorResponse
+      ? err.error?.detail
+      : null;
+    if (detail === 'email_not_confirmed') {
+      void this.router.navigate(['/verify-email'], {
+        queryParams: { email }
+      });
+      return;
+    }
     this.error.set(mapApiError(err));
   }
 }

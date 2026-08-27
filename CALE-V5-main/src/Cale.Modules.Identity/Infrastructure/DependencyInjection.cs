@@ -2,6 +2,7 @@ using Cale.BuildingBlocks.Domain.Abstractions;
 using Cale.Modules.Identity.Application.Abstractions;
 using Cale.Modules.Identity.Application.Commands;
 using Cale.Modules.Identity.Application.Queries;
+using Cale.Modules.Identity.Application.Services;
 using Cale.Modules.Identity.Infrastructure.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -18,6 +19,9 @@ public static class DependencyInjection
         services.AddScoped<IUserLookup, UserLookupService>();
         services.AddScoped<ISchoolAffiliationLookup, SchoolAffiliationLookup>();
         services.AddScoped<LoginUserHandler>();
+        services.AddScoped<ConfirmEmailHandler>();
+        services.AddScoped<ResendConfirmationHandler>();
+        services.AddScoped<EmailConfirmationService>();
         services.AddScoped<RegisterUserHandler>();
         services.AddScoped<RegisterTeacherHandler>();
         services.AddScoped<RegisterSchoolHandler>();

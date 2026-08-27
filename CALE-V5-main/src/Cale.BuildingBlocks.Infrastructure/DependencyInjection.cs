@@ -1,5 +1,7 @@
+using Cale.BuildingBlocks.Domain.Email;
 using Cale.BuildingBlocks.Domain.Security;
 using Cale.BuildingBlocks.Domain.Time;
+using Cale.BuildingBlocks.Infrastructure.Email;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
 using Cale.BuildingBlocks.Infrastructure.Security;
 using Cale.BuildingBlocks.Infrastructure.Time;
@@ -17,9 +19,13 @@ public static class DependencyInjection
         IConfiguration config)
     {
         services.Configure<JwtOptions>(config.GetSection(JwtOptions.SectionName));
+        services.Configure<EmailOptions>(config.GetSection(EmailOptions.SectionName));
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddSingleton<ITokenService, JwtTokenService>();
+        services.AddSingleton<LoggingEmailSender>();
+        services.AddSingleton<SmtpEmailSender>();
+        services.AddSingleton<IEmailSender, ConfigurableEmailSender>();
         return services;
     }
 

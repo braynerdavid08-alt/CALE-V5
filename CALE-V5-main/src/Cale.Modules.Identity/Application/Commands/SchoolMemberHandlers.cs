@@ -122,13 +122,18 @@ public sealed class CreateSchoolMemberHandler
                 email,
                 _hasher.Hash(request.Password),
                 _clock.UtcNow,
-                schoolId)
+                schoolId,
+                emailConfirmed: true)
             : User.RegisterStudent(
                 request.Name,
                 email,
                 _hasher.Hash(request.Password),
                 _clock.UtcNow,
                 schoolId);
+        if (!user.EmailConfirmed)
+        {
+            user.MarkEmailConfirmed();
+        }
 
         await _users.AddAsync(user, ct);
         await _users.SaveChangesAsync(ct);

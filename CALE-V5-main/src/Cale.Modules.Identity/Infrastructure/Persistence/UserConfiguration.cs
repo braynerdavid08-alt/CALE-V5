@@ -29,6 +29,14 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.MustChangePassword)
             .HasColumnName("DebeCambiarClave")
             .IsRequired();
+        builder.Property(x => x.EmailConfirmed)
+            .HasColumnName("EmailConfirmado")
+            .IsRequired();
+        builder.Property(x => x.EmailConfirmationCodeHash)
+            .HasColumnName("EmailCodigoHash")
+            .HasMaxLength(128);
+        builder.Property(x => x.EmailConfirmationExpiresAt)
+            .HasColumnName("EmailCodigoExpiraEn");
         builder.HasIndex(x => x.Email).IsUnique();
         builder.HasIndex(x => x.SchoolId);
         builder.HasIndex(x => x.LastLoginAt);

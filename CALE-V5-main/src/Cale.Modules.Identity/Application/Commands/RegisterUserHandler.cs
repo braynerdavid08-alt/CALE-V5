@@ -1,10 +1,10 @@
-using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Security;
 using Cale.BuildingBlocks.Domain.Time;
 using Cale.BuildingBlocks.Domain.Validation;
 using Cale.Modules.Identity.Application.Abstractions;
 using Cale.Modules.Identity.Application.DTOs;
+using Cale.Modules.Identity.Application.Services;
 using Cale.Modules.Identity.Domain;
 
 namespace Cale.Modules.Identity.Application.Commands;
@@ -13,27 +13,27 @@ public sealed class RegisterUserHandler
 {
     private readonly IUserStore _users;
     private readonly IPasswordHasher _hasher;
-    private readonly ITokenService _tokens;
     private readonly IClock _clock;
+    private readonly EmailConfirmationService _emailConfirmation;
 
     public RegisterUserHandler(
         IUserStore users,
         IPasswordHasher hasher,
-        ITokenService tokens,
-        IClock clock)
+        IClock clock,
+        EmailConfirmationService emailConfirmation)
     {
         _users = users;
         _hasher = hasher;
-        _tokens = tokens;
         _clock = clock;
+        _emailConfirmation = emailConfirmation;
     }
 
-    public async Task<AuthResponse> HandleAsync(
+    public async Task<PendingEmailConfirmationResponse> HandleAsync(
         RegisterRequest request,
         CancellationToken ct)
     {
         Validate(request);
-        var email = EmailAddress.Normalize(request.Email);
+        var email = EmailAddress.NormalizeForRegistration(request.Email);
 
         if (await _users.ExistsByEmailAsync(email, ct))
         {
@@ -49,22 +49,12 @@ public sealed class RegisterUserHandler
             _clock.UtcNow);
 
         await _users.AddAsync(user, ct);
-        user.RecordLogin(_clock.UtcNow);
         await _users.SaveChangesAsync(ct);
+        await _emailConfirmation.IssueAndSendAsync(user, ct);
 
-        var token = _tokens.Create(
-            user.Id,
+        return new PendingEmailConfirmationResponse(
             user.Email,
-            user.Name,
-            Roles.Student);
-
-        return new AuthResponse(
-            token,
-            user.Id,
-            user.Name,
-            user.Email,
-            Roles.Student,
-            false);
+            "Te enviamos un código a tu correo. Confírmalo para activar la cuenta.");
     }
 
     private static void Validate(RegisterRequest request)

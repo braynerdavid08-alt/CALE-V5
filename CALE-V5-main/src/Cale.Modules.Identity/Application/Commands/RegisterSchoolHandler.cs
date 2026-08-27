@@ -1,10 +1,10 @@
-using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Security;
 using Cale.BuildingBlocks.Domain.Time;
 using Cale.BuildingBlocks.Domain.Validation;
 using Cale.Modules.Identity.Application.Abstractions;
 using Cale.Modules.Identity.Application.DTOs;
+using Cale.Modules.Identity.Application.Services;
 using Cale.Modules.Identity.Domain;
 
 namespace Cale.Modules.Identity.Application.Commands;
@@ -15,26 +15,26 @@ public sealed class RegisterSchoolHandler
     private readonly ISchoolProfileStore _profiles;
     private readonly IMembershipEventStore _events;
     private readonly IPasswordHasher _hasher;
-    private readonly ITokenService _tokens;
     private readonly IClock _clock;
+    private readonly EmailConfirmationService _emailConfirmation;
 
     public RegisterSchoolHandler(
         IUserStore users,
         ISchoolProfileStore profiles,
         IMembershipEventStore events,
         IPasswordHasher hasher,
-        ITokenService tokens,
-        IClock clock)
+        IClock clock,
+        EmailConfirmationService emailConfirmation)
     {
         _users = users;
         _profiles = profiles;
         _events = events;
         _hasher = hasher;
-        _tokens = tokens;
         _clock = clock;
+        _emailConfirmation = emailConfirmation;
     }
 
-    public async Task<AuthResponse> HandleAsync(
+    public async Task<PendingEmailConfirmationResponse> HandleAsync(
         RegisterSchoolRequest request,
         CancellationToken ct)
     {
@@ -42,8 +42,8 @@ public sealed class RegisterSchoolHandler
         var plan = SchoolPlans.Find(request.PlanCode)
             ?? throw new DomainException("Invalid plan.", 400, "invalid_plan");
 
-        var email = EmailAddress.Normalize(request.Email);
-        var billingEmail = EmailAddress.Normalize(request.BillingEmail);
+        var email = EmailAddress.NormalizeForRegistration(request.Email);
+        var billingEmail = EmailAddress.NormalizeForRegistration(request.BillingEmail);
 
         if (await _users.ExistsByEmailAsync(email, ct))
         {
@@ -86,22 +86,11 @@ public sealed class RegisterSchoolHandler
             ct);
         await _profiles.SaveChangesAsync(ct);
 
-        user.RecordLogin(_clock.UtcNow);
-        await _users.SaveChangesAsync(ct);
+        await _emailConfirmation.IssueAndSendAsync(user, ct);
 
-        var token = _tokens.Create(
-            user.Id,
+        return new PendingEmailConfirmationResponse(
             user.Email,
-            user.Name,
-            Roles.School);
-
-        return new AuthResponse(
-            token,
-            user.Id,
-            user.Name,
-            user.Email,
-            Roles.School,
-            false);
+            "Te enviamos un código a tu correo. Confírmalo para activar la cuenta.");
     }
 
     private static void Validate(RegisterSchoolRequest request)

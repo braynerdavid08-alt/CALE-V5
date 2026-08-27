@@ -23,7 +23,7 @@
         Correo
         <input type="email" formControlName="email" autocomplete="email" />
         @if (form.controls.email.touched && form.controls.email.invalid) {
-          <span class="field-error">Ingresa un correo válido.</span>
+          <span class="field-error">Ingresa un correo real y válido.</span>
         }
       </label>
       <label class="field">
@@ -35,6 +35,7 @@
       </label>
       <ui-button type="submit" [loading]="auth.loading()">Crear estudiante</ui-button>
     </form>
+    <p class="hint">Te enviaremos un código a tu correo para activar la cuenta.</p>
     <p class="hint">
       ¿Ya tienes cuenta?
       <a routerLink="/login">Iniciar sesión</a>

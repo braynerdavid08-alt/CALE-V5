@@ -1,4 +1,5 @@
 using Cale.BuildingBlocks.Domain.Auth;
+using Cale.BuildingBlocks.Domain.Exceptions;
 
 namespace Cale.Modules.Identity.Domain;
 
@@ -14,6 +15,9 @@ public sealed class User
     public DateTime CreatedAt { get; private set; }
     public DateTime? LastLoginAt { get; private set; }
     public bool MustChangePassword { get; private set; }
+    public bool EmailConfirmed { get; private set; }
+    public string? EmailConfirmationCodeHash { get; private set; }
+    public DateTime? EmailConfirmationExpiresAt { get; private set; }
 
     private User()
     {
@@ -35,7 +39,9 @@ public sealed class User
         string passwordHash,
         DateTime utcNow)
     {
-        return Create(name, email, passwordHash, Roles.Admin, utcNow);
+        var user = Create(name, email, passwordHash, Roles.Admin, utcNow);
+        user.MarkEmailConfirmed();
+        return user;
     }
 
     public static User CreateTeacher(
@@ -43,9 +49,16 @@ public sealed class User
         string email,
         string passwordHash,
         DateTime utcNow,
-        int? schoolId = null)
+        int? schoolId = null,
+        bool emailConfirmed = false)
     {
-        return Create(name, email, passwordHash, Roles.Teacher, utcNow, schoolId);
+        var user = Create(name, email, passwordHash, Roles.Teacher, utcNow, schoolId);
+        if (emailConfirmed)
+        {
+            user.MarkEmailConfirmed();
+        }
+
+        return user;
     }
 
     public static User RegisterSchool(
@@ -91,6 +104,69 @@ public sealed class User
 
     public void Activate() => IsActive = true;
 
+    public void BeginEmailConfirmation(string codeHash, DateTime expiresAtUtc)
+    {
+        if (string.IsNullOrWhiteSpace(codeHash))
+        {
+            throw new ArgumentException("Code hash is required.", nameof(codeHash));
+        }
+
+        EmailConfirmed = false;
+        EmailConfirmationCodeHash = codeHash;
+        EmailConfirmationExpiresAt = expiresAtUtc;
+    }
+
+    public void MarkEmailConfirmed()
+    {
+        EmailConfirmed = true;
+        EmailConfirmationCodeHash = null;
+        EmailConfirmationExpiresAt = null;
+    }
+
+    public void ConfirmEmailWithCode(string codeHash, DateTime utcNow)
+    {
+        if (EmailConfirmed)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(EmailConfirmationCodeHash)
+            || EmailConfirmationExpiresAt is null
+            || utcNow > EmailConfirmationExpiresAt.Value)
+        {
+            throw new DomainException(
+                "Confirmation code expired or missing.",
+                400,
+                "confirmation_expired");
+        }
+
+        if (!FixedEquals(EmailConfirmationCodeHash, codeHash))
+        {
+            throw new DomainException(
+                "Invalid confirmation code.",
+                400,
+                "invalid_confirmation_code");
+        }
+
+        MarkEmailConfirmed();
+    }
+
+    private static bool FixedEquals(string a, string b)
+    {
+        if (a.Length != b.Length)
+        {
+            return false;
+        }
+
+        var diff = 0;
+        for (var i = 0; i < a.Length; i++)
+        {
+            diff |= a[i] ^ b[i];
+        }
+
+        return diff == 0;
+    }
+
     private static User Create(
         string name,
         string email,
@@ -107,6 +183,7 @@ public sealed class User
             Role = role,
             SchoolId = schoolId,
             IsActive = true,
+            EmailConfirmed = false,
             CreatedAt = utcNow
         };
     }

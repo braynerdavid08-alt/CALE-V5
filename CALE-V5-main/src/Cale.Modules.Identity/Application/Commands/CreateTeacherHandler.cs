@@ -43,7 +43,8 @@ public sealed class CreateTeacherHandler
             request.Name,
             email,
             _hasher.Hash(request.Password),
-            _clock.UtcNow);
+            _clock.UtcNow,
+            emailConfirmed: true);
 
         await _users.AddAsync(user, ct);
         await _users.SaveChangesAsync(ct);

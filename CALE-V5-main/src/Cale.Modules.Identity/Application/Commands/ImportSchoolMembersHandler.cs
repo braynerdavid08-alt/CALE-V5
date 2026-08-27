@@ -262,13 +262,18 @@ public sealed class ImportSchoolMembersHandler
                             row.Email,
                             _hasher.Hash(temp),
                             _clock.UtcNow,
-                            schoolUserId)
+                            schoolUserId,
+                            emailConfirmed: true)
                         : User.RegisterStudent(
                             row.Name,
                             row.Email,
                             _hasher.Hash(temp),
                             _clock.UtcNow,
                             schoolUserId);
+                    if (!user.EmailConfirmed)
+                    {
+                        user.MarkEmailConfirmed();
+                    }
                     user.RequirePasswordChange();
                     await _users.AddAsync(user, ct);
                     credentials.Add(new ImportCredentialDto(row.Name, row.Email, row.Role, temp));

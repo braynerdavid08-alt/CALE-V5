@@ -16,6 +16,11 @@ export interface SchoolPlanDto {
   maxStudents: number;
 }
 
+export interface PendingEmailConfirmationResponse {
+  email: string;
+  message: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthApi {
   private readonly http = inject(HttpClient);
@@ -29,7 +34,7 @@ export class AuthApi {
   }
 
   register(name: string, email: string, password: string) {
-    return this.http.post<AuthResponse>(`${this.base}/register`, {
+    return this.http.post<PendingEmailConfirmationResponse>(`${this.base}/register`, {
       name,
       email,
       password
@@ -37,15 +42,31 @@ export class AuthApi {
   }
 
   registerTeacher(name: string, email: string, password: string) {
-    return this.http.post<AuthResponse>(`${this.base}/register-teacher`, {
-      name,
-      email,
-      password
-    });
+    return this.http.post<PendingEmailConfirmationResponse>(
+      `${this.base}/register-teacher`,
+      { name, email, password }
+    );
   }
 
   registerSchool(body: Record<string, string>) {
-    return this.http.post<AuthResponse>(`${this.base}/register-school`, body);
+    return this.http.post<PendingEmailConfirmationResponse>(
+      `${this.base}/register-school`,
+      body
+    );
+  }
+
+  confirmEmail(email: string, code: string) {
+    return this.http.post<AuthResponse>(`${this.base}/confirm-email`, {
+      email,
+      code
+    });
+  }
+
+  resendConfirmation(email: string) {
+    return this.http.post<PendingEmailConfirmationResponse>(
+      `${this.base}/resend-confirmation`,
+      { email }
+    );
   }
 
   schoolPlans() {

@@ -1,6 +1,9 @@
+using Cale.BuildingBlocks.Domain.Email;
+using Cale.BuildingBlocks.Infrastructure.Email;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
 using Cale.BuildingBlocks.Infrastructure.Security;
 using Cale.Modules.Identity.Application.Commands;
+using Cale.Modules.Identity.Application.Services;
 using Cale.Modules.Identity.Infrastructure.Persistence;
 using Cale.UnitTests.Fakes;
 using Microsoft.EntityFrameworkCore;
@@ -36,6 +39,17 @@ public sealed class IdentityTestFixture : IDisposable
             Clock);
         Users = new UserStore(Db);
         Profiles = new SchoolProfileStore(Db);
+        EmailOptions = Options.Create(new EmailOptions
+        {
+            Enabled = false,
+            CodeLength = 6,
+            CodeExpiresMinutes = 15
+        });
+        EmailConfirmation = new EmailConfirmationService(
+            Users,
+            new LoggingEmailSender(NullLogger<LoggingEmailSender>.Instance),
+            Clock,
+            EmailOptions);
     }
 
     public CaleDbContext Db { get; }
@@ -44,6 +58,14 @@ public sealed class IdentityTestFixture : IDisposable
     public PasswordHasher Hasher { get; }
     public FakeClock Clock { get; }
     public JwtTokenService Tokens { get; }
+    public IOptions<EmailOptions> EmailOptions { get; }
+    public EmailConfirmationService EmailConfirmation { get; }
+
+    public RegisterUserHandler CreateRegister() =>
+        new(Users, Hasher, Clock, EmailConfirmation);
+
+    public ConfirmEmailHandler CreateConfirmEmail() =>
+        new(Users, Tokens, Clock, EmailConfirmation);
 
     public LoginUserHandler CreateLogin() =>
         new(Users, Hasher, Tokens, Clock, NullLogger<LoginUserHandler>.Instance);

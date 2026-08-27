@@ -85,6 +85,13 @@ export const routes: Routes = [
         .then((m) => m.RegisterSchoolPage)
   },
   {
+    path: 'verify-email',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('./features/auth/pages/verify-email.page')
+        .then((m) => m.VerifyEmailPage)
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () =>

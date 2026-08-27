@@ -3,6 +3,7 @@ using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.Modules.Identity.Application.Commands;
 using Cale.Modules.Identity.Application.DTOs;
 using Cale.Modules.Identity.Application.Queries;
+using Cale.Modules.Identity.Application.Services;
 using Cale.Modules.Identity.Domain;
 
 namespace Cale.UnitTests;
@@ -12,32 +13,24 @@ public class IdentityUseCaseTests : IDisposable
     private readonly IdentityTestFixture _fx = new();
 
     [Fact]
-    public async Task Register_AlwaysCreatesStudent()
+    public async Task Register_CreatesPendingStudentWithoutToken()
     {
-        var handler = new RegisterUserHandler(
-            _fx.Users,
-            _fx.Hasher,
-            _fx.Tokens,
-            _fx.Clock);
-
-        var result = await handler.HandleAsync(
-            new RegisterRequest("Ana", "ana@t.com", "Password1"),
+        var result = await _fx.CreateRegister().HandleAsync(
+            new RegisterRequest("Ana", "ana@test.com", "Password1"),
             CancellationToken.None);
 
-        Assert.Equal(Roles.Student, result.Role);
-        Assert.Equal("ana@t.com", result.Email);
-        Assert.False(string.IsNullOrWhiteSpace(result.Token));
+        Assert.Equal("ana@test.com", result.Email);
+        var user = await _fx.Users.FindByEmailAsync("ana@test.com", CancellationToken.None);
+        Assert.NotNull(user);
+        Assert.Equal(Roles.Student, user!.Role);
+        Assert.False(user.EmailConfirmed);
     }
 
     [Fact]
     public async Task Register_DuplicateEmail_ThrowsConflict()
     {
-        var handler = new RegisterUserHandler(
-            _fx.Users,
-            _fx.Hasher,
-            _fx.Tokens,
-            _fx.Clock);
-        var request = new RegisterRequest("Ana", "ana@t.com", "Password1");
+        var handler = _fx.CreateRegister();
+        var request = new RegisterRequest("Ana", "ana@test.com", "Password1");
         await handler.HandleAsync(request, CancellationToken.None);
 
         await Assert.ThrowsAsync<ConflictException>(() =>
@@ -45,60 +38,83 @@ public class IdentityUseCaseTests : IDisposable
     }
 
     [Fact]
-    public async Task Login_WrongPassword_ThrowsUnauthorized()
+    public async Task Login_Unconfirmed_ThrowsForbidden()
     {
-        await new RegisterUserHandler(
-            _fx.Users,
-            _fx.Hasher,
-            _fx.Tokens,
-            _fx.Clock).HandleAsync(
-            new RegisterRequest("Ana", "ana@t.com", "Password1"),
+        await _fx.CreateRegister().HandleAsync(
+            new RegisterRequest("Ana", "ana@test.com", "Password1"),
             CancellationToken.None);
 
-        var login = _fx.CreateLogin();
-
-        await Assert.ThrowsAsync<UnauthorizedException>(() =>
-            login.HandleAsync(
-                new LoginRequest("ana@t.com", "WrongPass1"),
+        await Assert.ThrowsAsync<ForbiddenException>(() =>
+            _fx.CreateLogin().HandleAsync(
+                new LoginRequest("ana@test.com", "Password1"),
                 CancellationToken.None));
     }
 
     [Fact]
-    public async Task Login_Success_ReturnsNormalizedRole()
+    public async Task ConfirmEmail_ThenLogin_Succeeds()
     {
-        await new RegisterUserHandler(
-            _fx.Users,
-            _fx.Hasher,
-            _fx.Tokens,
-            _fx.Clock).HandleAsync(
-            new RegisterRequest("Ana", "ana@t.com", "Password1"),
+        await _fx.CreateRegister().HandleAsync(
+            new RegisterRequest("Ana", "ana@test.com", "Password1"),
             CancellationToken.None);
 
-        var login = _fx.CreateLogin();
-        var result = await login.HandleAsync(
-            new LoginRequest("ana@t.com", "Password1"),
+        var user = await _fx.Users.FindByEmailAsync("ana@test.com", CancellationToken.None);
+        Assert.NotNull(user);
+        // Force a known code for the test.
+        const string code = "123456";
+        user!.BeginEmailConfirmation(
+            EmailConfirmationService.HashCode(code),
+            _fx.Clock.UtcNow.AddMinutes(15));
+        await _fx.Users.SaveChangesAsync(CancellationToken.None);
+
+        var confirmed = await _fx.CreateConfirmEmail().HandleAsync(
+            new ConfirmEmailRequest("ana@test.com", code),
             CancellationToken.None);
 
-        Assert.Equal(Roles.Student, result.Role);
-        Assert.Equal("Ana", result.Name);
+        Assert.Equal(Roles.Student, confirmed.Role);
+        Assert.False(string.IsNullOrWhiteSpace(confirmed.Token));
+
+        var login = await _fx.CreateLogin().HandleAsync(
+            new LoginRequest("ana@test.com", "Password1"),
+            CancellationToken.None);
+        Assert.Equal("Ana", login.Name);
     }
 
     [Fact]
-    public async Task Me_ReturnsCurrentUser()
+    public async Task Login_WrongPassword_ThrowsUnauthorized()
     {
-        var registered = await new RegisterUserHandler(
-            _fx.Users,
-            _fx.Hasher,
-            _fx.Tokens,
-            _fx.Clock).HandleAsync(
-            new RegisterRequest("Ana", "ana@t.com", "Password1"),
+        await _fx.CreateRegister().HandleAsync(
+            new RegisterRequest("Ana", "ana@test.com", "Password1"),
+            CancellationToken.None);
+
+        await Assert.ThrowsAsync<UnauthorizedException>(() =>
+            _fx.CreateLogin().HandleAsync(
+                new LoginRequest("ana@test.com", "WrongPass1"),
+                CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Me_ReturnsCurrentUser_AfterConfirm()
+    {
+        await _fx.CreateRegister().HandleAsync(
+            new RegisterRequest("Ana", "ana@test.com", "Password1"),
+            CancellationToken.None);
+
+        var user = await _fx.Users.FindByEmailAsync("ana@test.com", CancellationToken.None);
+        const string code = "654321";
+        user!.BeginEmailConfirmation(
+            EmailConfirmationService.HashCode(code),
+            _fx.Clock.UtcNow.AddMinutes(15));
+        await _fx.Users.SaveChangesAsync(CancellationToken.None);
+
+        var confirmed = await _fx.CreateConfirmEmail().HandleAsync(
+            new ConfirmEmailRequest("ana@test.com", code),
             CancellationToken.None);
 
         var me = await new GetCurrentUserHandler(
             _fx.Users,
             _fx.Profiles,
             _fx.Clock).HandleAsync(
-            registered.UserId,
+            confirmed.UserId,
             CancellationToken.None);
 
         Assert.Equal("Ana", me.Name);

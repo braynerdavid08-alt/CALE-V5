@@ -110,3 +110,22 @@ Same-origin evita dolores de CORS y mixed-content en el celular.
 | Usuarios demo | Solo Development / `Seed:DemoUsers=true` | Desactivado en Production |
 
 En producción: crea el primer admin por registro controlado o seed **offline**, cambia `Jwt__Key`, y usa disco/DB persistente para no perder cuentas.
+
+### Correo (verificación de cuenta)
+
+El registro público exige un correo real y envía un **código de 6 dígitos**. Sin confirmar no se puede iniciar sesión.
+
+Variables de entorno SMTP (producción):
+
+```env
+Email__Enabled=true
+Email__From=noreply@tudominio.com
+Email__FromName=Mi CALE
+Email__Smtp__Host=smtp.tudominio.com
+Email__Smtp__Port=587
+Email__Smtp__User=...
+Email__Smtp__Password=...
+Email__Smtp__UseSsl=true
+```
+
+Sin SMTP configurado, el código se escribe en los **logs del servidor** (útil en local).

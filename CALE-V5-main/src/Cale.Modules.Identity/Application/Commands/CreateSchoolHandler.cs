@@ -62,6 +62,7 @@ public sealed class CreateSchoolHandler
             email,
             _hasher.Hash(request.Password),
             _clock.UtcNow);
+        user.MarkEmailConfirmed();
 
         await _users.AddAsync(user, ct);
         await _users.SaveChangesAsync(ct);

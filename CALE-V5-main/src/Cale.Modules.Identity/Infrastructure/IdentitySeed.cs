@@ -121,11 +121,17 @@ public static class IdentitySeed
                 SchoolEmail,
                 hasher.Hash(SchoolPassword),
                 clock.UtcNow);
+            user.MarkEmailConfirmed();
             db.Set<User>().Add(user);
             await db.SaveChangesAsync(ct);
         }
         else
         {
+            if (!user.EmailConfirmed)
+            {
+                user.MarkEmailConfirmed();
+            }
+
             if (!hasher.Verify(SchoolPassword, user.PasswordHash))
             {
                 user.ChangePassword(hasher.Hash(SchoolPassword));
@@ -184,12 +190,19 @@ public static class IdentitySeed
 
         if (user is null)
         {
-            db.Set<User>().Add(factory(name, email, hasher.Hash(password), clock.UtcNow));
+            var created = factory(name, email, hasher.Hash(password), clock.UtcNow);
+            created.MarkEmailConfirmed();
+            db.Set<User>().Add(created);
             await db.SaveChangesAsync(ct);
             return;
         }
 
         var changed = false;
+        if (!user.EmailConfirmed)
+        {
+            user.MarkEmailConfirmed();
+            changed = true;
+        }
         if (!hasher.Verify(password, user.PasswordHash))
         {
             user.ChangePassword(hasher.Hash(password));
