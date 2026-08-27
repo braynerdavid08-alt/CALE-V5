@@ -37,10 +37,7 @@ export class SessionStore {
     };
     this.token.set(response.token);
     this.user.set(user);
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ token: response.token, user })
-    );
+    this.persist({ token: response.token, user });
   }
 
   patchUser(partial: Partial<SessionUser>): void {
@@ -52,18 +49,28 @@ export class SessionStore {
     this.user.set(user);
     const token = this.token();
     if (token) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ token, user }));
+      this.persist({ token, user });
     }
   }
 
   clear(): void {
     this.token.set(null);
     this.user.set(null);
+    sessionStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEY);
+  }
+
+  private persist(payload: { token: string; user: SessionUser }): void {
+    // sessionStorage: no persiste al cerrar el navegador (menos exposición que localStorage).
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     localStorage.removeItem(STORAGE_KEY);
   }
 
   private restore(): void {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    // Migra/limpia restos antiguos en localStorage.
+    localStorage.removeItem(STORAGE_KEY);
+
+    const raw = sessionStorage.getItem(STORAGE_KEY);
     if (!raw) {
       return;
     }
@@ -77,7 +84,7 @@ export class SessionStore {
         this.user.set(parsed.user);
       }
     } catch {
-      localStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem(STORAGE_KEY);
     }
   }
 }

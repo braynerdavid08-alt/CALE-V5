@@ -61,7 +61,7 @@ layout/      shell: header + router-outlet (sin negocio)
 1. `scripts\INICIAR_CALE.bat` (libera `:5000` y `:4200` antes de compilar)
 2. UI: http://localhost:4200
 3. API: http://localhost:5000/swagger
-4. Admin: `admin@cale.local` / `Admin123!`
+4. Usuarios: créalos por registro o seed local (Development). No hay credenciales en el frontend.
 
 ## Tests de arquitectura
 

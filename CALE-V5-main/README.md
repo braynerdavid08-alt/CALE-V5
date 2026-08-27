@@ -19,14 +19,7 @@ scripts\INICIAR_CALE.bat
 - API: http://localhost:5000
 - Swagger: http://localhost:5000/swagger
 
-Credenciales demo:
-
-| Rol | Email | Password |
-|-----|-------|----------|
-| Admin | `admin@cale.local` | `Admin123!` |
-| Instructor | `profesor@cale.local` | `Profesor123!` |
-| Estudiante | `estudiante@cale.local` | `Estudiante123!` |
-| Escuela | `escuela@cale.local` | `Escuela123!` |
+En **Development**, la API puede crear usuarios demo solo en el servidor (`Seed:DemoUsers`). Las contraseñas **nunca** se publican en el frontend ni en esta guía.
 
 Detener: `scripts\DETENER_CALE.bat`
 

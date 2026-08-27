@@ -40,7 +40,7 @@ El admin: **¿cómo está la plataforma?**
 - Frontend: Angular 18 standalone, TypeScript, RxJS, Reactive Forms, lazy routes, guards, interceptors
 - API: `http://localhost:5000` · UI: `http://localhost:4200`
 - DB: `CaleSimuladorDb_Limpia` (Trusted Connection)
-- Admin seed: `admin@cale.local` / `Admin123!`
+- Admin seed: solo en Development (no publicar credenciales en docs/UI)
 - JWT: Issuer `Cale.Api`, Audience `Cale.Frontend`
 - Scripts: `INICIAR_CALE.bat` debe matar `:5000`, `:4200` y `Cale.Api.exe` **antes** de compilar (evitar MSB3027)
 

@@ -28,7 +28,7 @@ Objetivo: que cualquier persona abra **Mi CALE desde el navegador del celular** 
 2. La API sirve el build de Angular desde `wwwroot` + `MapFallbackToFile`.
 3. Docker multi-stage: build Angular + publish .NET → un contenedor en el puerto **8080**.
 4. SQLite en volumen `/data` (o SQL Server vía connection string).
-5. Variables: `Jwt__Key`, `Cors__Origins`, `ConnectionStrings__Cale`, `Seed__DemoUsers`.
+5. Variables: `Jwt__Key`, `Cors__Origins`, `ConnectionStrings__Cale`. **Nunca** actives `Seed:DemoUsers` en internet.
 
 ### Cómo probar en local (como en internet)
 
@@ -97,3 +97,16 @@ En el celular (misma Wi‑Fi): http://IP-DE-TU-PC:8080
 ```
 
 Same-origin evita dolores de CORS y mixed-content en el celular.
+
+---
+
+## Datos de usuario y seguridad (resumen)
+
+| Dato | Dónde | Protección |
+|------|--------|------------|
+| Contraseña | Solo servidor (DB) | Hash ASP.NET Identity (PBKDF2); **nunca** se guarda en texto plano ni se envía al frontend |
+| Perfil (nombre, email, rol) | DB en servidor | Acceso solo con JWT autenticado |
+| Sesión (token) | `sessionStorage` en el navegador | Se borra al cerrar el navegador; no mostrar credenciales en la UI |
+| Usuarios demo | Solo Development / `Seed:DemoUsers=true` | Desactivado en Production |
+
+En producción: crea el primer admin por registro controlado o seed **offline**, cambia `Jwt__Key`, y usa disco/DB persistente para no perder cuentas.
