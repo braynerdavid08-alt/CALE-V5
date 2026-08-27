@@ -47,7 +47,21 @@ Abrir: http://127.0.0.1:8080
 
 En el celular (misma Wi‑Fi): http://IP-DE-TU-PC:8080
 
-### Cómo publicar en internet (resumen)
+### Cómo publicar en Render.com (recomendado)
+
+El repo incluye `render.yaml` en la raíz. **No crees el Web Service a mano** — usa Blueprint:
+
+1. [Render Dashboard](https://dashboard.render.com) → **Blueprints** → **New Blueprint Instance**.
+2. Conecta el repo `braynerdavid08-alt/CALE-V5`.
+3. Render detecta `render.yaml` y propone el servicio **micale** (Docker, plan Free, Ohio).
+4. Confirma el despliegue. Render genera `Jwt__Key` automáticamente.
+5. Al terminar, abre la URL `https://micale-xxxx.onrender.com`.
+
+Rama usada: `cursor/cale-v5-initial-import` (tiene Dockerfile y cambios recientes; `main` aún no los incluye).
+
+**Plan Free:** disco efímero — la SQLite se reinicia en redeploy. `Seed__DemoUsers=true` recrea usuarios demo.
+
+### Cómo publicar en internet (otros hosts)
 
 1. Comprar/usar un dominio y un VPS o PaaS (Railway, Fly.io, Azure, Contabo, etc.).
 2. Poner TLS delante (Caddy / nginx / Cloudflare).
