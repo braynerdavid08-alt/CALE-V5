@@ -9,9 +9,14 @@ Environment.SetEnvironmentVariable(
 
 var builder = WebApplication.CreateBuilder(args);
 
-if (!builder.Environment.IsDevelopment())
+var onRender = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("RENDER"));
+var useEphemeralDataProtection = onRender
+    || builder.Environment.IsProduction()
+    || builder.Environment.IsStaging();
+
+if (useEphemeralDataProtection)
 {
-    // Register before any MVC/antiforgery defaults; JWT auth does not need persisted keys.
+    // Register before MVC/antiforgery; JWT auth does not need persisted keys.
     builder.Services.AddDataProtection()
         .SetApplicationName("Cale.Api")
         .UseEphemeralDataProtectionProvider();
@@ -31,6 +36,12 @@ builder.Logging.AddJsonConsole(options =>
     options.TimestampFormat = "O";
     options.UseUtcTimestamp = true;
 });
+
+if (useEphemeralDataProtection)
+{
+    builder.Logging.AddFilter("Microsoft.AspNetCore.DataProtection", LogLevel.Error);
+}
+
 builder.AddCaleServices();
 
 var app = builder.Build();
