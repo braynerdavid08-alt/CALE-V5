@@ -48,6 +48,54 @@ public sealed class LiveSessionStore : ILiveSessionStore
     public Task<int> CountAnswersAsync(int sessionQuestionId, CancellationToken ct = default) =>
         _db.Set<LiveAnswer>().CountAsync(x => x.SessionQuestionId == sessionQuestionId, ct);
 
+    public async Task<IReadOnlyList<LiveAnswer>> ListAnswersForSessionAsync(
+        int sessionId,
+        CancellationToken ct = default)
+    {
+        var questionIds = await _db.Set<LiveSessionQuestion>()
+            .Where(q => q.SessionId == sessionId)
+            .Select(q => q.Id)
+            .ToListAsync(ct);
+        if (questionIds.Count == 0)
+        {
+            return [];
+        }
+
+        return await _db.Set<LiveAnswer>()
+            .Where(a => questionIds.Contains(a.SessionQuestionId))
+            .ToListAsync(ct);
+    }
+
+    public async Task AddDoubtAsync(LiveDoubt doubt, CancellationToken ct = default) =>
+        await _db.Set<LiveDoubt>().AddAsync(doubt, ct);
+
+    public Task<LiveDoubt?> GetDoubtAsync(int doubtId, CancellationToken ct = default) =>
+        _db.Set<LiveDoubt>()
+            .Include(d => d.Votes)
+            .FirstOrDefaultAsync(d => d.Id == doubtId, ct);
+
+    public Task<LiveDoubtVote?> FindDoubtVoteAsync(
+        int doubtId,
+        int participantId,
+        CancellationToken ct = default) =>
+        _db.Set<LiveDoubtVote>().FirstOrDefaultAsync(
+            v => v.DoubtId == doubtId && v.ParticipantId == participantId,
+            ct);
+
+    public async Task AddDoubtVoteAsync(LiveDoubtVote vote, CancellationToken ct = default) =>
+        await _db.Set<LiveDoubtVote>().AddAsync(vote, ct);
+
+    public async Task<IReadOnlyList<LiveDoubt>> ListDoubtsAsync(
+        int sessionId,
+        CancellationToken ct = default) =>
+        await _db.Set<LiveDoubt>()
+            .Include(d => d.Votes)
+            .Where(d => d.SessionId == sessionId)
+            .OrderByDescending(d => d.VoteCount)
+            .ThenByDescending(d => d.CreatedAt)
+            .Take(50)
+            .ToListAsync(ct);
+
     public Task SaveChangesAsync(CancellationToken ct = default) =>
         _db.SaveChangesAsync(ct);
 }

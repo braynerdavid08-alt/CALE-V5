@@ -93,14 +93,7 @@ export class LiveJoinPage implements OnInit {
     this.api.join(code.trim().toUpperCase(), displayName.trim()).subscribe({
       next: (res) => {
         this.loading.set(false);
-        sessionStorage.setItem(
-          TOKEN_KEY,
-          JSON.stringify({
-            sessionId: res.sessionId,
-            participantToken: res.participantToken,
-            displayName: res.displayName
-          })
-        );
+        saveLiveParticipant(res);
         void this.router.navigate(['/live/play', res.sessionId]);
       },
       error: (err) => {
@@ -109,6 +102,21 @@ export class LiveJoinPage implements OnInit {
       }
     });
   }
+}
+
+export function saveLiveParticipant(res: {
+  sessionId: number;
+  participantToken: string;
+  displayName: string;
+}): void {
+  sessionStorage.setItem(
+    TOKEN_KEY,
+    JSON.stringify({
+      sessionId: res.sessionId,
+      participantToken: res.participantToken,
+      displayName: res.displayName
+    })
+  );
 }
 
 export function readLiveParticipant(sessionId: number): {

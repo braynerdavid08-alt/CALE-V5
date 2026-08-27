@@ -71,6 +71,22 @@ public sealed class LiveSession
         Questions.AddRange(questions);
     }
 
+    public void InsertQuestionAfterCurrent(LiveSessionQuestion question)
+    {
+        var ordered = Questions.OrderBy(q => q.SortOrder).ToList();
+        var insertAt = Math.Clamp(CurrentQuestionIndex + 1, 0, ordered.Count);
+        ordered.Insert(insertAt, question);
+        if (!Questions.Contains(question))
+        {
+            Questions.Add(question);
+        }
+
+        for (var i = 0; i < ordered.Count; i++)
+        {
+            ordered[i].SetSortOrder(i);
+        }
+    }
+
     public void MarkRunning(DateTime utcNow)
     {
         Status = LiveSessionStatuses.Running;

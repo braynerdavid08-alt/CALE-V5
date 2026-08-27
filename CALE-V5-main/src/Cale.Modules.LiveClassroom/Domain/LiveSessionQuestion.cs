@@ -9,6 +9,7 @@ public sealed class LiveSessionQuestion
     public string SnapshotJson { get; private set; } = "{}";
     public string? Topic { get; private set; }
     public string? Difficulty { get; private set; }
+    public bool IsSurprise { get; private set; }
     public List<LiveAnswer> Answers { get; private set; } = [];
 
     private LiveSessionQuestion()
@@ -21,7 +22,8 @@ public sealed class LiveSessionQuestion
         int order,
         string snapshotJson,
         string? topic,
-        string? difficulty)
+        string? difficulty,
+        bool isSurprise = false)
     {
         return new LiveSessionQuestion
         {
@@ -30,7 +32,10 @@ public sealed class LiveSessionQuestion
             SortOrder = order,
             SnapshotJson = snapshotJson,
             Topic = topic,
-            Difficulty = difficulty
+            Difficulty = difficulty,
+            IsSurprise = isSurprise
         };
     }
+
+    public void SetSortOrder(int order) => SortOrder = order;
 }

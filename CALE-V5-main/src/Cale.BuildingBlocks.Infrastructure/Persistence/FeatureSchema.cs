@@ -382,7 +382,8 @@ public static class FeatureSchema
                     "SortOrder" INTEGER NOT NULL,
                     "SnapshotJson" TEXT NOT NULL,
                     "Topic" TEXT NULL,
-                    "Difficulty" TEXT NULL
+                    "Difficulty" TEXT NULL,
+                    "IsSurprise" INTEGER NOT NULL DEFAULT 0
                 );
                 CREATE UNIQUE INDEX IF NOT EXISTS "IX_LiveSessionQuestions_SessionId_SortOrder" ON "LiveSessionQuestions" ("SessionId", "SortOrder");
                 CREATE TABLE IF NOT EXISTS "LiveAnswers" (
@@ -392,10 +393,52 @@ public static class FeatureSchema
                     "OptionId" INTEGER NOT NULL,
                     "IsCorrect" INTEGER NOT NULL,
                     "AnsweredAtMs" INTEGER NOT NULL,
+                    "Points" INTEGER NOT NULL DEFAULT 0,
                     "CreatedAt" TEXT NOT NULL
                 );
                 CREATE UNIQUE INDEX IF NOT EXISTS "IX_LiveAnswers_SessionQuestionId_ParticipantId" ON "LiveAnswers" ("SessionQuestionId", "ParticipantId");
+                CREATE TABLE IF NOT EXISTS "LiveDoubts" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_LiveDoubts" PRIMARY KEY AUTOINCREMENT,
+                    "SessionId" INTEGER NOT NULL,
+                    "ParticipantId" INTEGER NOT NULL,
+                    "Text" TEXT NOT NULL,
+                    "VoteCount" INTEGER NOT NULL DEFAULT 0,
+                    "IsResolved" INTEGER NOT NULL DEFAULT 0,
+                    "CreatedAt" TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS "IX_LiveDoubts_SessionId" ON "LiveDoubts" ("SessionId");
+                CREATE TABLE IF NOT EXISTS "LiveDoubtVotes" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_LiveDoubtVotes" PRIMARY KEY AUTOINCREMENT,
+                    "DoubtId" INTEGER NOT NULL,
+                    "ParticipantId" INTEGER NOT NULL,
+                    "CreatedAt" TEXT NOT NULL
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_LiveDoubtVotes_DoubtId_ParticipantId" ON "LiveDoubtVotes" ("DoubtId", "ParticipantId");
+                CREATE TABLE IF NOT EXISTS "SchoolJoinRequests" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_SchoolJoinRequests" PRIMARY KEY AUTOINCREMENT,
+                    "TeacherUserId" INTEGER NOT NULL,
+                    "SchoolUserId" INTEGER NOT NULL,
+                    "Status" TEXT NOT NULL,
+                    "Message" TEXT NULL,
+                    "RejectionReason" TEXT NULL,
+                    "CreatedAt" TEXT NOT NULL,
+                    "DecidedAt" TEXT NULL,
+                    "DecidedByUserId" INTEGER NULL
+                );
+                CREATE INDEX IF NOT EXISTS "IX_SchoolJoinRequests_SchoolUserId_Status"
+                    ON "SchoolJoinRequests" ("SchoolUserId", "Status");
+                CREATE INDEX IF NOT EXISTS "IX_SchoolJoinRequests_TeacherUserId_Status"
+                    ON "SchoolJoinRequests" ("TeacherUserId", "Status");
                 """,
+                ct);
+
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "LiveAnswers" ADD COLUMN "Points" INTEGER NOT NULL DEFAULT 0;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "LiveSessionQuestions" ADD COLUMN "IsSurprise" INTEGER NOT NULL DEFAULT 0;""",
                 ct);
 
             return;
@@ -474,7 +517,8 @@ public static class FeatureSchema
                     "SortOrder" integer NOT NULL,
                     "SnapshotJson" text NOT NULL,
                     "Topic" varchar(200) NULL,
-                    "Difficulty" varchar(64) NULL
+                    "Difficulty" varchar(64) NULL,
+                    "IsSurprise" boolean NOT NULL DEFAULT FALSE
                 );
                 """,
                 ct);
@@ -490,12 +534,69 @@ public static class FeatureSchema
                     "OptionId" integer NOT NULL,
                     "IsCorrect" boolean NOT NULL,
                     "AnsweredAtMs" integer NOT NULL,
+                    "Points" integer NOT NULL DEFAULT 0,
                     "CreatedAt" timestamp with time zone NOT NULL
                 );
                 """,
                 ct);
             await TryPostgresAsync(db,
                 """CREATE UNIQUE INDEX IF NOT EXISTS "IX_LiveAnswers_SessionQuestionId_ParticipantId" ON "LiveAnswers" ("SessionQuestionId", "ParticipantId");""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "LiveAnswers" ADD COLUMN IF NOT EXISTS "Points" integer NOT NULL DEFAULT 0;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "LiveSessionQuestions" ADD COLUMN IF NOT EXISTS "IsSurprise" boolean NOT NULL DEFAULT FALSE;""",
+                ct);
+            await TryPostgresAsync(db,
+                """
+                CREATE TABLE IF NOT EXISTS "LiveDoubts" (
+                    "Id" serial PRIMARY KEY,
+                    "SessionId" integer NOT NULL,
+                    "ParticipantId" integer NOT NULL,
+                    "Text" varchar(280) NOT NULL,
+                    "VoteCount" integer NOT NULL DEFAULT 0,
+                    "IsResolved" boolean NOT NULL DEFAULT FALSE,
+                    "CreatedAt" timestamp with time zone NOT NULL
+                );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_LiveDoubts_SessionId" ON "LiveDoubts" ("SessionId");""",
+                ct);
+            await TryPostgresAsync(db,
+                """
+                CREATE TABLE IF NOT EXISTS "LiveDoubtVotes" (
+                    "Id" serial PRIMARY KEY,
+                    "DoubtId" integer NOT NULL,
+                    "ParticipantId" integer NOT NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL
+                );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE UNIQUE INDEX IF NOT EXISTS "IX_LiveDoubtVotes_DoubtId_ParticipantId" ON "LiveDoubtVotes" ("DoubtId", "ParticipantId");""",
+                ct);
+            await TryPostgresAsync(db,
+                """
+                CREATE TABLE IF NOT EXISTS "SchoolJoinRequests" (
+                    "Id" serial PRIMARY KEY,
+                    "TeacherUserId" integer NOT NULL,
+                    "SchoolUserId" integer NOT NULL,
+                    "Status" varchar(32) NOT NULL,
+                    "Message" varchar(500) NULL,
+                    "RejectionReason" varchar(500) NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL,
+                    "DecidedAt" timestamp with time zone NULL,
+                    "DecidedByUserId" integer NULL
+                );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_SchoolJoinRequests_SchoolUserId_Status" ON "SchoolJoinRequests" ("SchoolUserId", "Status");""",
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_SchoolJoinRequests_TeacherUserId_Status" ON "SchoolJoinRequests" ("TeacherUserId", "Status");""",
                 ct);
             return;
         }
@@ -847,7 +948,8 @@ public static class FeatureSchema
                     SortOrder int NOT NULL,
                     SnapshotJson nvarchar(max) NOT NULL,
                     Topic nvarchar(200) NULL,
-                    Difficulty nvarchar(64) NULL
+                    Difficulty nvarchar(64) NULL,
+                    IsSurprise bit NOT NULL CONSTRAINT DF_LiveSessionQuestions_Surprise DEFAULT(0)
                 );
                 CREATE UNIQUE INDEX IX_LiveSessionQuestions_SessionId_SortOrder
                     ON dbo.LiveSessionQuestions(SessionId, SortOrder);
@@ -862,10 +964,61 @@ public static class FeatureSchema
                     OptionId int NOT NULL,
                     IsCorrect bit NOT NULL,
                     AnsweredAtMs int NOT NULL,
+                    Points int NOT NULL CONSTRAINT DF_LiveAnswers_Points DEFAULT(0),
                     CreatedAt datetime2 NOT NULL
                 );
                 CREATE UNIQUE INDEX IX_LiveAnswers_SessionQuestionId_ParticipantId
                     ON dbo.LiveAnswers(SessionQuestionId, ParticipantId);
+            END
+
+            IF COL_LENGTH('dbo.LiveAnswers', 'Points') IS NULL
+                ALTER TABLE dbo.LiveAnswers ADD Points int NOT NULL CONSTRAINT DF_LiveAnswers_Points2 DEFAULT(0);
+            IF COL_LENGTH('dbo.LiveSessionQuestions', 'IsSurprise') IS NULL
+                ALTER TABLE dbo.LiveSessionQuestions ADD IsSurprise bit NOT NULL CONSTRAINT DF_LiveSessionQuestions_Surprise2 DEFAULT(0);
+
+            IF OBJECT_ID(N'dbo.LiveDoubts', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.LiveDoubts (
+                    Id int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                    SessionId int NOT NULL,
+                    ParticipantId int NOT NULL,
+                    Text nvarchar(280) NOT NULL,
+                    VoteCount int NOT NULL CONSTRAINT DF_LiveDoubts_Votes DEFAULT(0),
+                    IsResolved bit NOT NULL CONSTRAINT DF_LiveDoubts_Resolved DEFAULT(0),
+                    CreatedAt datetime2 NOT NULL
+                );
+                CREATE INDEX IX_LiveDoubts_SessionId ON dbo.LiveDoubts(SessionId);
+            END
+
+            IF OBJECT_ID(N'dbo.LiveDoubtVotes', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.LiveDoubtVotes (
+                    Id int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                    DoubtId int NOT NULL,
+                    ParticipantId int NOT NULL,
+                    CreatedAt datetime2 NOT NULL
+                );
+                CREATE UNIQUE INDEX IX_LiveDoubtVotes_DoubtId_ParticipantId
+                    ON dbo.LiveDoubtVotes(DoubtId, ParticipantId);
+            END
+
+            IF OBJECT_ID(N'dbo.SchoolJoinRequests', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.SchoolJoinRequests (
+                    Id int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                    TeacherUserId int NOT NULL,
+                    SchoolUserId int NOT NULL,
+                    Status nvarchar(32) NOT NULL,
+                    Message nvarchar(500) NULL,
+                    RejectionReason nvarchar(500) NULL,
+                    CreatedAt datetime2 NOT NULL,
+                    DecidedAt datetime2 NULL,
+                    DecidedByUserId int NULL
+                );
+                CREATE INDEX IX_SchoolJoinRequests_SchoolUserId_Status
+                    ON dbo.SchoolJoinRequests(SchoolUserId, Status);
+                CREATE INDEX IX_SchoolJoinRequests_TeacherUserId_Status
+                    ON dbo.SchoolJoinRequests(TeacherUserId, Status);
             END
             """,
             ct);

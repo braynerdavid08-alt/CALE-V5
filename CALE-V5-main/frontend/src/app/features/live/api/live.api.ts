@@ -38,6 +38,7 @@ export interface LiveQuestionPayloadDto {
   closesAt?: string | null;
   secondsPerQuestion: number;
   revealCorrect: boolean;
+  isSurprise?: boolean;
 }
 
 export interface LiveParticipantDto {
@@ -45,6 +46,22 @@ export interface LiveParticipantDto {
   displayName: string;
   isConnected: boolean;
   userId?: number | null;
+}
+
+export interface LiveRankEntryDto {
+  rank: number;
+  participantId: number;
+  displayName: string;
+  score: number;
+  correctCount: number;
+  answerCount: number;
+}
+
+export interface LiveRankingDto {
+  top: LiveRankEntryDto[];
+  myParticipantId?: number | null;
+  myRank?: number | null;
+  myScore?: number | null;
 }
 
 export interface LiveLobbyDto {
@@ -64,6 +81,7 @@ export interface LiveLobbyDto {
   currentQuestion?: LiveQuestionPayloadDto | null;
   answersReceived: number;
   joinUrl: string;
+  ranking?: LiveRankingDto | null;
 }
 
 export interface JoinLiveSessionResponse {
@@ -74,6 +92,57 @@ export interface JoinLiveSessionResponse {
   title: string;
   status: string;
   joinCode: string;
+}
+
+export interface LiveDoubtDto {
+  id: number;
+  participantId: number;
+  authorName: string;
+  text: string;
+  voteCount: number;
+  isResolved: boolean;
+  votedByMe: boolean;
+  createdAt: string;
+}
+
+export interface LiveTopicStatDto {
+  topic: string;
+  answered: number;
+  correct: number;
+  accuracyPercent: number;
+}
+
+export interface LiveQuestionStatDto {
+  index: number;
+  sessionQuestionId: number;
+  text: string;
+  topic?: string | null;
+  answered: number;
+  correct: number;
+  accuracyPercent: number;
+  isSurprise: boolean;
+}
+
+export interface LiveAnalyticsDto {
+  sessionId: number;
+  title: string;
+  mode: string;
+  participantCount: number;
+  questionCount: number;
+  totalAnswers: number;
+  correctAnswers: number;
+  overallAccuracyPercent: number;
+  questions: LiveQuestionStatDto[];
+  topics: LiveTopicStatDto[];
+  recommendations: string[];
+  ranking: LiveRankingDto;
+}
+
+export interface LiveRematchResponse {
+  newSessionId: number;
+  joinCode: string;
+  joinUrl: string;
+  lobby: LiveLobbyDto;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -115,10 +184,45 @@ export class LiveApi {
   }
 
   answer(sessionId: number, sessionQuestionId: number, participantToken: string, optionId: number) {
-    return this.http.post(`${this.base}/sessions/${sessionId}/questions/${sessionQuestionId}/answer`, {
-      participantToken,
-      optionId
+    return this.http.post<{ ok: boolean; points?: number | null }>(
+      `${this.base}/sessions/${sessionId}/questions/${sessionQuestionId}/answer`,
+      { participantToken, optionId }
+    );
+  }
+
+  listDoubts(sessionId: number, token?: string) {
+    return this.http.get<LiveDoubtDto[]>(`${this.base}/sessions/${sessionId}/doubts`, {
+      params: token ? { token } : {}
     });
+  }
+
+  postDoubt(sessionId: number, participantToken: string, text: string) {
+    return this.http.post<LiveDoubtDto>(`${this.base}/sessions/${sessionId}/doubts`, {
+      participantToken,
+      text
+    });
+  }
+
+  voteDoubt(sessionId: number, doubtId: number, participantToken: string) {
+    return this.http.post<LiveDoubtDto>(
+      `${this.base}/sessions/${sessionId}/doubts/${doubtId}/vote`,
+      { participantToken }
+    );
+  }
+
+  resolveDoubt(sessionId: number, doubtId: number) {
+    return this.http.post<LiveDoubtDto>(
+      `${this.base}/sessions/${sessionId}/doubts/${doubtId}/resolve`,
+      {}
+    );
+  }
+
+  analytics(sessionId: number) {
+    return this.http.get<LiveAnalyticsDto>(`${this.base}/sessions/${sessionId}/analytics`);
+  }
+
+  rematch(sessionId: number) {
+    return this.http.post<LiveRematchResponse>(`${this.base}/sessions/${sessionId}/rematch`, {});
   }
 
   hubUrl(): string {
@@ -128,7 +232,7 @@ export class LiveApi {
 
   buildHub(asHost: boolean): HubConnection {
     const token = this.session.token();
-    let builder = new HubConnectionBuilder()
+    const builder = new HubConnectionBuilder()
       .withUrl(this.hubUrl(), asHost && token
         ? { accessTokenFactory: () => token }
         : {})

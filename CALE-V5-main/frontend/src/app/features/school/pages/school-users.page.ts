@@ -34,6 +34,21 @@ interface SchoolProfileDto {
   planLabel: string;
 }
 
+interface SchoolJoinRequestDto {
+  id: number;
+  teacherUserId: number;
+  teacherName: string;
+  teacherEmail: string;
+  schoolUserId: number;
+  schoolLegalName: string;
+  schoolTaxId: string;
+  status: string;
+  message?: string | null;
+  rejectionReason?: string | null;
+  createdAt: string;
+  decidedAt?: string | null;
+}
+
 @Component({
   selector: 'app-school-users-page',
   standalone: true,
@@ -99,6 +114,55 @@ interface SchoolProfileDto {
         <ui-stat label="Plan" [value]="profile()?.planLabel || '—'" />
       </div>
 
+      @if (joinRequests().length) {
+        <ui-card>
+          <h2>Solicitudes de instructores</h2>
+          <p class="hint">
+            Instructores que pidieron unirse con tu NIT o correo. Acepta o rechaza cada solicitud.
+          </p>
+          <div class="table-wrap">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th>Instructor</th>
+                  <th>Correo</th>
+                  <th>Mensaje</th>
+                  <th>Fecha</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (req of joinRequests(); track req.id) {
+                  <tr>
+                    <td>{{ req.teacherName }}</td>
+                    <td>{{ req.teacherEmail }}</td>
+                    <td>{{ req.message || '—' }}</td>
+                    <td>{{ req.createdAt | date:'short' }}</td>
+                    <td>
+                      <div class="row-actions">
+                        <ui-button
+                          type="button"
+                          [loading]="decidingId() === req.id"
+                          (click)="acceptJoin(req.id)">
+                          Aceptar
+                        </ui-button>
+                        <ui-button
+                          type="button"
+                          variant="secondary"
+                          [disabled]="decidingId() === req.id"
+                          (click)="rejectJoin(req.id)">
+                          Rechazar
+                        </ui-button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </ui-card>
+      }
+
       <div class="grid-3">
         <ui-card>
           <h2>Crear cuenta nueva</h2>
@@ -144,7 +208,7 @@ interface SchoolProfileDto {
             <label class="field">
               Correo de la cuenta
               <input type="email" formControlName="email" autocomplete="email"
-                placeholder="instructor@ejemplo.com" />
+                placeholder="instructor&#64;ejemplo.com" />
             </label>
             <ui-button type="submit" [loading]="attaching()">Vincular a mi escuela</ui-button>
           </form>
@@ -248,9 +312,11 @@ export class SchoolUsersPage implements OnInit {
   readonly saving = signal(false);
   readonly attaching = signal(false);
   readonly savingEdit = signal(false);
+  readonly decidingId = signal<number | null>(null);
   readonly error = signal<string | null>(null);
   readonly ok = signal<string | null>(null);
   readonly items = signal<UserRow[]>([]);
+  readonly joinRequests = signal<SchoolJoinRequestDto[]>([]);
   readonly profile = signal<SchoolProfileDto | null>(null);
   readonly query = signal('');
   readonly editing = signal<UserRow | null>(null);
@@ -295,6 +361,10 @@ export class SchoolUsersPage implements OnInit {
       next: (profile) => this.profile.set(profile),
       error: (err) => this.error.set(mapApiError(err))
     });
+    this.http.get<SchoolJoinRequestDto[]>(`${env.apiUrl}/api/school/join-requests`).subscribe({
+      next: (rows) => this.joinRequests.set(rows),
+      error: () => this.joinRequests.set([])
+    });
     this.http.get<UserRow[]>(`${env.apiUrl}/api/school/members`).subscribe({
       next: (rows) => {
         this.items.set(rows);
@@ -302,6 +372,51 @@ export class SchoolUsersPage implements OnInit {
       },
       error: (err) => {
         this.loading.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  acceptJoin(id: number): void {
+    this.decidingId.set(id);
+    this.error.set(null);
+    this.ok.set(null);
+    this.http.post<SchoolJoinRequestDto>(
+      `${env.apiUrl}/api/school/join-requests/${id}/accept`,
+      {}
+    ).subscribe({
+      next: (req) => {
+        this.joinRequests.update((rows) => rows.filter((r) => r.id !== id));
+        this.decidingId.set(null);
+        this.ok.set(`${req.teacherName} aceptado como instructor.`);
+        this.reload();
+      },
+      error: (err) => {
+        this.decidingId.set(null);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  rejectJoin(id: number): void {
+    const reason = window.prompt('Motivo del rechazo (opcional):') ?? undefined;
+    if (reason === undefined) {
+      return;
+    }
+    this.decidingId.set(id);
+    this.error.set(null);
+    this.ok.set(null);
+    this.http.post<SchoolJoinRequestDto>(
+      `${env.apiUrl}/api/school/join-requests/${id}/reject`,
+      { reason: reason.trim() || null }
+    ).subscribe({
+      next: (req) => {
+        this.joinRequests.update((rows) => rows.filter((r) => r.id !== id));
+        this.decidingId.set(null);
+        this.ok.set(`Solicitud de ${req.teacherName} rechazada.`);
+      },
+      error: (err) => {
+        this.decidingId.set(null);
         this.error.set(mapApiError(err));
       }
     });

@@ -195,8 +195,47 @@
         }
       } @else if (role() === 'Teacher' || role() === 'Student') {
         <p class="muted">
-          Todavía no estás vinculado a una escuela. Cuando te agreguen, verás aquí su nombre y plan.
+          Todavía no estás vinculado a una escuela.
         </p>
+        @if (role() === 'Teacher') {
+          <form class="stack" style="margin-top: 1rem;" [formGroup]="joinForm" (ngSubmit)="requestJoin()">
+            <h3 style="margin: 0;">Solicitar unirme a una escuela</h3>
+            <p class="muted">Usa el NIT o el correo de la escuela. Ellos recibirán una notificación y decidirán.</p>
+            <label class="field">
+              NIT o correo de la escuela
+              <input formControlName="schoolQuery" placeholder="900123456 o escuela&#64;correo.com" />
+            </label>
+            <label class="field">
+              Mensaje (opcional)
+              <input formControlName="message" maxlength="500" placeholder="Soy instructor de..." />
+            </label>
+            <ui-button type="submit" [loading]="joining()" [disabled]="joinForm.invalid">
+              Enviar solicitud
+            </ui-button>
+          </form>
+          @if (joinRequests().length) {
+            <div style="margin-top: 1.25rem;">
+              <h3>Mis solicitudes</h3>
+              <ul class="facts" style="list-style: none; padding: 0;">
+                @for (req of joinRequests(); track req.id) {
+                  <li style="padding: 0.65rem 0; border-bottom: 1px solid var(--color-border);">
+                    <strong>{{ req.schoolLegalName }}</strong>
+                    <ui-badge [tone]="joinStatusTone(req.status)">{{ joinStatusLabel(req.status) }}</ui-badge>
+                    <div class="muted">NIT {{ req.schoolTaxId }} · {{ req.createdAt | date:'short' }}</div>
+                    @if (req.status === 'Pending') {
+                      <ui-button type="button" variant="ghost" (click)="cancelJoin(req.id)">Cancelar</ui-button>
+                    }
+                    @if (req.rejectionReason) {
+                      <div class="muted">Motivo: {{ req.rejectionReason }}</div>
+                    }
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        } @else {
+          <p class="muted">Cuando tu escuela te agregue, verás aquí su nombre y plan.</p>
+        }
       } @else {
         <p class="muted">No hay contexto institucional para este rol.</p>
       }

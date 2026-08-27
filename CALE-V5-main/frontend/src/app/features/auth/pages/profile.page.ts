@@ -1,10 +1,12 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { MeResponse } from '../../../core/auth/session.models';
 import { SessionStore } from '../../../core/auth/session.store';
 import { ThemeService } from '../../../core/theme/theme.service';
+import { env } from '../../../core/config/env';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
@@ -18,6 +20,21 @@ import { AuthApi } from '../api/auth.api';
 import { AuthFacade } from '../application/auth.facade';
 
 type ProfileTab = 'account' | 'preferences' | 'security' | 'context';
+
+interface SchoolJoinRequestDto {
+  id: number;
+  teacherUserId: number;
+  teacherName: string;
+  teacherEmail: string;
+  schoolUserId: number;
+  schoolLegalName: string;
+  schoolTaxId: string;
+  status: string;
+  message?: string | null;
+  rejectionReason?: string | null;
+  createdAt: string;
+  decidedAt?: string | null;
+}
 
 @Component({
   selector: 'app-profile-page',
@@ -40,6 +57,7 @@ type ProfileTab = 'account' | 'preferences' | 'security' | 'context';
 export class ProfilePage implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(AuthApi);
+  private readonly http = inject(HttpClient);
   readonly session = inject(SessionStore);
   readonly auth = inject(AuthFacade);
   readonly theme = inject(ThemeService);
@@ -47,10 +65,12 @@ export class ProfilePage implements OnInit {
 
   readonly loading = signal(true);
   readonly savingProfile = signal(false);
+  readonly joining = signal(false);
   readonly error = signal<string | null>(null);
   readonly success = signal<string | null>(null);
   readonly me = signal<MeResponse | null>(null);
   readonly tab = signal<ProfileTab>('account');
+  readonly joinRequests = signal<SchoolJoinRequestDto[]>([]);
 
   readonly profileForm = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(200)]],
@@ -60,6 +80,11 @@ export class ProfilePage implements OnInit {
   readonly passwordForm = this.fb.nonNullable.group({
     currentPassword: ['', [Validators.required]],
     newPassword: ['', [Validators.required, Validators.minLength(8)]]
+  });
+
+  readonly joinForm = this.fb.nonNullable.group({
+    schoolQuery: ['', [Validators.required, Validators.minLength(3)]],
+    message: ['']
   });
 
   readonly role = computed(() => this.me()?.role || this.session.user()?.role || '');
@@ -91,16 +116,83 @@ export class ProfilePage implements OnInit {
           role: dto.role,
           mustChangePassword: !!dto.mustChangePassword
         });
+        this.session.applySchoolContext(dto.school ?? null);
         if (dto.mustChangePassword) {
           this.tab.set('security');
         }
         this.loading.set(false);
+        if (dto.role === 'Teacher' && !dto.school) {
+          this.loadJoinRequests();
+        }
       },
       error: (err) => {
         this.loading.set(false);
         this.error.set(mapApiError(err));
       }
     });
+  }
+
+  loadJoinRequests(): void {
+    this.http.get<SchoolJoinRequestDto[]>(`${env.apiUrl}/api/teacher/school-join-requests`)
+      .subscribe({
+        next: (rows) => this.joinRequests.set(rows),
+        error: () => this.joinRequests.set([])
+      });
+  }
+
+  requestJoin(): void {
+    if (this.joinForm.invalid) {
+      this.joinForm.markAllAsTouched();
+      return;
+    }
+    this.joining.set(true);
+    this.error.set(null);
+    this.success.set(null);
+    const raw = this.joinForm.getRawValue();
+    this.http.post<SchoolJoinRequestDto>(`${env.apiUrl}/api/teacher/school-join-requests`, {
+      schoolQuery: raw.schoolQuery.trim(),
+      message: raw.message.trim() || null
+    }).subscribe({
+      next: (created) => {
+        this.joining.set(false);
+        this.joinForm.reset({ schoolQuery: '', message: '' });
+        this.joinRequests.update((rows) => [created, ...rows]);
+        this.success.set(
+          `Solicitud enviada a ${created.schoolLegalName}. La escuela recibirá una notificación.`
+        );
+      },
+      error: (err) => {
+        this.joining.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  cancelJoin(id: number): void {
+    this.http.post(`${env.apiUrl}/api/teacher/school-join-requests/${id}/cancel`, {}).subscribe({
+      next: () => {
+        this.joinRequests.update((rows) =>
+          rows.map((r) => (r.id === id ? { ...r, status: 'Cancelled' } : r))
+        );
+        this.success.set('Solicitud cancelada.');
+      },
+      error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  joinStatusLabel(status: string): string {
+    if (status === 'Pending') return 'Pendiente';
+    if (status === 'Accepted') return 'Aceptada';
+    if (status === 'Rejected') return 'Rechazada';
+    if (status === 'Cancelled') return 'Cancelada';
+    return status;
+  }
+
+  joinStatusTone(status: string): 'success' | 'warning' | 'danger' | 'neutral' {
+    if (status === 'Accepted') return 'success';
+    if (status === 'Pending') return 'warning';
+    if (status === 'Rejected' || status === 'Cancelled') return 'danger';
+    return 'neutral';
   }
 
   setTab(tab: ProfileTab): void {

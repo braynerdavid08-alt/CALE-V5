@@ -5,12 +5,36 @@
       <p class="eyebrow">CALE LIVE</p>
       <h1>{{ l.title }}</h1>
       <p class="meta">{{ displayName() }} · código {{ l.joinCode }}</p>
+      @if (showRanking() && ranking(); as rank) {
+        <p class="my-score">
+          @if (rank.myRank != null) {
+            Tu puesto: #{{ rank.myRank }} · {{ rank.myScore ?? 0 }} pts
+          } @else {
+            Esperando ranking…
+          }
+        </p>
+      }
     </header>
 
     @if (l.status === 'Ended') {
       <div class="panel">
         <h2>Actividad finalizada</h2>
-        <p>Gracias por participar.</p>
+        @if (showRanking() && ranking(); as rank) {
+          <ol class="rank">
+            @for (row of rank.top; track row.participantId) {
+              <li [class.me]="row.participantId === rank.myParticipantId">
+                <span>{{ row.rank }}.</span>
+                <span>{{ row.displayName }}</span>
+                <strong>{{ row.score }}</strong>
+              </li>
+            }
+          </ol>
+        }
+        @if (rematchCode()) {
+          <ui-button type="button" [loading]="loading()" (click)="joinRematch()">
+            Unirme a la revancha ({{ rematchCode() }})
+          </ui-button>
+        }
         <a routerLink="/live/join">Volver</a>
       </div>
     } @else if (!l.currentQuestion || l.status === 'Lobby') {
@@ -23,7 +47,12 @@
     } @else {
       <div class="panel question">
         <div class="row">
-          <span>Pregunta {{ l.currentQuestion.index + 1 }}/{{ l.currentQuestion.total }}</span>
+          <span>
+            Pregunta {{ l.currentQuestion.index + 1 }}/{{ l.currentQuestion.total }}
+            @if (l.currentQuestion.isSurprise) {
+              <em class="surprise">Sorpresa</em>
+            }
+          </span>
           @if (secondsLeft() !== null) {
             <strong class="timer">{{ secondsLeft() }}s</strong>
           }
@@ -50,11 +79,46 @@
             Confirmar respuesta
           </ui-button>
         } @else {
-          <p class="sent">Respuesta enviada. Espera la siguiente pregunta.</p>
+          <p class="sent">
+            Respuesta enviada.
+            @if (lastPoints() !== null) {
+              +{{ lastPoints() }} pts
+            }
+            Espera la siguiente pregunta.
+          </p>
         }
         @if (l.currentQuestion.explanation && l.revealCorrect) {
           <p class="explain">{{ l.currentQuestion.explanation }}</p>
         }
+      </div>
+    }
+
+    @if (l.status !== 'Ended') {
+      <div class="panel doubts">
+        <h3>Dudas del aula</h3>
+        <div class="doubt-form">
+          <input
+            [ngModel]="doubtText()"
+            (ngModelChange)="doubtText.set($event)"
+            maxlength="280"
+            placeholder="¿Tienes una duda?" />
+          <ui-button type="button" variant="secondary" (click)="sendDoubt()">Enviar</ui-button>
+        </div>
+        <ul>
+          @for (d of doubts(); track d.id) {
+            <li [class.done]="d.isResolved">
+              <p>{{ d.text }}</p>
+              <div class="meta">
+                <span>{{ d.authorName }} · {{ d.voteCount }} votos</span>
+                @if (!d.isResolved && !d.votedByMe) {
+                  <button type="button" class="vote" (click)="vote(d.id)">+1</button>
+                }
+              </div>
+            </li>
+          } @empty {
+            <li class="empty">Aún no hay dudas</li>
+          }
+        </ul>
       </div>
     }
   }

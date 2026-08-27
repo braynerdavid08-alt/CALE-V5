@@ -46,6 +46,8 @@ public static class DependencyInjection
         services.AddScoped<CreateSchoolMemberHandler>();
         services.AddScoped<AttachSchoolMemberHandler>();
         services.AddScoped<UpdateSchoolMemberHandler>();
+        services.AddScoped<ISchoolJoinRequestStore, SchoolJoinRequestStore>();
+        services.AddScoped<SchoolJoinRequestHandler>();
         return services;
     }
 }

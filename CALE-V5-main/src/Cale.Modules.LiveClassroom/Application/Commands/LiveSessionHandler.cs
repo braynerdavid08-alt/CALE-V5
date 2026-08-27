@@ -103,7 +103,12 @@ public sealed class LiveSessionHandler
 
         var includeCorrect = session.RevealCorrect
             && session.Mode is not LiveSessionModes.Exam;
-        return await ToLobbyAsync(session, publicBaseUrl, includeCorrect, ct);
+        return await ToLobbyAsync(
+            session,
+            publicBaseUrl,
+            includeCorrect,
+            ct,
+            participant.Id);
     }
 
     public async Task<JoinLiveSessionResponse> JoinAsync(
@@ -220,6 +225,7 @@ public sealed class LiveSessionHandler
                 OpenAt(session, 0, config, now);
                 await _store.SaveChangesAsync(ct);
                 await BroadcastQuestionAsync(session, includeCorrect: false, ct);
+                await BroadcastRankingAsync(session, ct);
                 break;
 
             case "pause":
@@ -242,29 +248,53 @@ public sealed class LiveSessionHandler
                     session.End(now);
                     await _store.SaveChangesAsync(ct);
                     await _broadcast.SessionEndedAsync(session.Id, new { sessionId = session.Id }, ct);
+                    await BroadcastRankingAsync(session, ct);
                     break;
                 }
                 OpenAt(session, next, config, now);
                 await _store.SaveChangesAsync(ct);
                 await BroadcastQuestionAsync(session, includeCorrect: false, ct);
+                await BroadcastRankingAsync(session, ct);
                 break;
 
             case "close":
                 session.CloseCurrentQuestion(now);
+                var autoReveal = string.Equals(
+                        config.FeedbackTiming,
+                        "immediate",
+                        StringComparison.OrdinalIgnoreCase)
+                    || session.Mode == LiveSessionModes.Pedagogical;
+                if (autoReveal)
+                {
+                    session.SetReveal(true);
+                }
+
                 await _store.SaveChangesAsync(ct);
                 await BroadcastQuestionClosedAsync(session, ct);
+                if (autoReveal)
+                {
+                    await BroadcastRevealAsync(session, ct);
+                }
+
+                await BroadcastRankingAsync(session, ct);
                 break;
 
             case "reveal":
                 session.SetReveal(true);
                 await _store.SaveChangesAsync(ct);
                 await BroadcastRevealAsync(session, ct);
+                await BroadcastRankingAsync(session, ct);
                 break;
 
             case "end":
                 session.End(now);
                 await _store.SaveChangesAsync(ct);
                 await _broadcast.SessionEndedAsync(session.Id, new { sessionId = session.Id }, ct);
+                await BroadcastRankingAsync(session, ct);
+                break;
+
+            case "surprise":
+                await QueueSurpriseQuestionAsync(session, config, ct);
                 break;
 
             default:
@@ -274,7 +304,7 @@ public sealed class LiveSessionHandler
         return await ToLobbyAsync(session, publicBaseUrl, includeCorrect: true, ct);
     }
 
-    public async Task AnswerAsync(
+    public async Task<object> AnswerAsync(
         int sessionId,
         int sessionQuestionId,
         LiveAnswerRequest request,
@@ -320,9 +350,15 @@ public sealed class LiveSessionHandler
         var option = snap.Options.FirstOrDefault(o => o.Id == request.OptionId)
             ?? throw new DomainException("Opción inválida.", 400, "invalid_option");
 
+        var config = ReadConfig(session);
         var elapsedMs = session.QuestionOpenedAt is { } opened
             ? (int)Math.Min(int.MaxValue, (now - opened).TotalMilliseconds)
             : 0;
+
+        var points = LiveAnswer.ComputePoints(
+            option.IsCorrect,
+            elapsedMs,
+            config.SecondsPerQuestion);
 
         var answer = LiveAnswer.Create(
             sessionQuestionId,
@@ -330,6 +366,7 @@ public sealed class LiveSessionHandler
             option.Id,
             option.IsCorrect,
             elapsedMs,
+            points,
             now);
         await _store.AddAnswerAsync(answer, ct);
         await _store.SaveChangesAsync(ct);
@@ -349,6 +386,328 @@ public sealed class LiveSessionHandler
                     : (int)Math.Round(100.0 * count / session.Participants.Count)
             },
             ct);
+
+        await BroadcastRankingAsync(session, ct);
+
+        var revealPoints = session.Mode is not LiveSessionModes.Exam;
+        return new
+        {
+            ok = true,
+            points = revealPoints ? points : (int?)null
+        };
+    }
+
+    public async Task<LiveDoubtDto> PostDoubtAsync(
+        int sessionId,
+        LiveDoubtRequest request,
+        CancellationToken ct)
+    {
+        var session = await RequireSessionAsync(sessionId, ct);
+        var participant = await RequireParticipantInSessionAsync(
+            request.ParticipantToken,
+            sessionId,
+            ct);
+
+        LiveDoubt doubt;
+        try
+        {
+            doubt = LiveDoubt.Create(sessionId, participant.Id, request.Text, _clock.UtcNow);
+        }
+        catch (ArgumentException)
+        {
+            throw new DomainException("Texto de duda inválido.", 400, "invalid_doubt_text");
+        }
+
+        await _store.AddDoubtAsync(doubt, ct);
+        await _store.SaveChangesAsync(ct);
+
+        await BroadcastDoubtsAsync(session, ct);
+        var list = await MapDoubtsAsync(session, participant.Id, ct);
+        return list.First(d => d.Id == doubt.Id);
+    }
+
+    public async Task<LiveDoubtDto> VoteDoubtAsync(
+        int sessionId,
+        int doubtId,
+        LiveDoubtVoteRequest request,
+        CancellationToken ct)
+    {
+        var session = await RequireSessionAsync(sessionId, ct);
+        var participant = await RequireParticipantInSessionAsync(
+            request.ParticipantToken,
+            sessionId,
+            ct);
+
+        var doubt = await _store.GetDoubtAsync(doubtId, ct)
+            ?? throw new NotFoundException("Doubt not found.", "doubt_not_found");
+        if (doubt.SessionId != sessionId)
+        {
+            throw new NotFoundException("Doubt not found.", "doubt_not_found");
+        }
+
+        if (doubt.IsResolved)
+        {
+            throw new DomainException("La duda ya está resuelta.", 400, "doubt_resolved");
+        }
+
+        var existingVote = await _store.FindDoubtVoteAsync(doubtId, participant.Id, ct);
+        if (existingVote is not null)
+        {
+            throw new ConflictException("Ya votaste esta duda.", "already_voted");
+        }
+
+        doubt.AddVote();
+        await _store.AddDoubtVoteAsync(
+            LiveDoubtVote.Create(doubtId, participant.Id, _clock.UtcNow),
+            ct);
+        await _store.SaveChangesAsync(ct);
+
+        await BroadcastDoubtsAsync(session, ct);
+        var list = await MapDoubtsAsync(session, participant.Id, ct);
+        return list.First(d => d.Id == doubtId);
+    }
+
+    public async Task<LiveDoubtDto> ResolveDoubtAsync(
+        int sessionId,
+        int doubtId,
+        int hostUserId,
+        bool isAdmin,
+        CancellationToken ct)
+    {
+        var session = await RequireSessionAsync(sessionId, ct);
+        EnsureHost(session, hostUserId, isAdmin);
+
+        var doubt = await _store.GetDoubtAsync(doubtId, ct)
+            ?? throw new NotFoundException("Doubt not found.", "doubt_not_found");
+        if (doubt.SessionId != sessionId)
+        {
+            throw new NotFoundException("Doubt not found.", "doubt_not_found");
+        }
+
+        doubt.Resolve();
+        await _store.SaveChangesAsync(ct);
+
+        await BroadcastDoubtsAsync(session, ct);
+        var list = await MapDoubtsAsync(session, viewerParticipantId: null, ct);
+        return list.First(d => d.Id == doubtId);
+    }
+
+    public async Task<IReadOnlyList<LiveDoubtDto>> ListDoubtsAsync(
+        int sessionId,
+        Guid? viewerToken,
+        CancellationToken ct)
+    {
+        var session = await RequireSessionAsync(sessionId, ct);
+        int? viewerId = null;
+        if (viewerToken is Guid token)
+        {
+            var participant = await _store.GetParticipantByTokenAsync(token, ct);
+            if (participant is not null && participant.SessionId == sessionId)
+            {
+                viewerId = participant.Id;
+            }
+        }
+
+        return await MapDoubtsAsync(session, viewerId, ct);
+    }
+
+    public async Task<LiveAnalyticsDto> GetAnalyticsAsync(
+        int sessionId,
+        int hostUserId,
+        bool isAdmin,
+        CancellationToken ct)
+    {
+        var session = await RequireSessionAsync(sessionId, ct);
+        EnsureHost(session, hostUserId, isAdmin);
+
+        var answers = await _store.ListAnswersForSessionAsync(sessionId, ct);
+        var orderedQuestions = session.Questions.OrderBy(q => q.SortOrder).ToList();
+        var answersByQuestion = answers
+            .GroupBy(a => a.SessionQuestionId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var questionStats = new List<LiveQuestionStatDto>();
+        var topicBuckets = new Dictionary<string, (int Answered, int Correct)>(
+            StringComparer.OrdinalIgnoreCase);
+
+        for (var i = 0; i < orderedQuestions.Count; i++)
+        {
+            var q = orderedQuestions[i];
+            var snap = DeserializeSnapshot(q.SnapshotJson);
+            var qAnswers = answersByQuestion.TryGetValue(q.Id, out var list) ? list : [];
+            var answered = qAnswers.Count;
+            var correct = qAnswers.Count(a => a.IsCorrect);
+            var accuracy = answered == 0 ? 0 : Math.Round(100.0 * correct / answered, 1);
+            var topic = string.IsNullOrWhiteSpace(q.Topic) ? "General" : q.Topic!;
+
+            questionStats.Add(new LiveQuestionStatDto(
+                i,
+                q.Id,
+                snap.Text,
+                topic,
+                answered,
+                correct,
+                accuracy,
+                q.IsSurprise));
+
+            if (!topicBuckets.TryGetValue(topic, out var bucket))
+            {
+                bucket = (0, 0);
+            }
+
+            topicBuckets[topic] = (bucket.Answered + answered, bucket.Correct + correct);
+        }
+
+        var topics = topicBuckets
+            .Select(kv =>
+            {
+                var answered = kv.Value.Answered;
+                var correct = kv.Value.Correct;
+                var accuracy = answered == 0 ? 0 : Math.Round(100.0 * correct / answered, 1);
+                return new LiveTopicStatDto(kv.Key, answered, correct, accuracy);
+            })
+            .OrderBy(t => t.Topic, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var recommendations = topics
+            .Where(t => t.Answered > 0 && t.AccuracyPercent < 60)
+            .OrderBy(t => t.AccuracyPercent)
+            .ThenBy(t => t.Topic, StringComparer.OrdinalIgnoreCase)
+            .Take(5)
+            .Select(t => t.Topic)
+            .ToList();
+
+        var totalAnswers = answers.Count;
+        var correctAnswers = answers.Count(a => a.IsCorrect);
+        var overall = totalAnswers == 0
+            ? 0
+            : Math.Round(100.0 * correctAnswers / totalAnswers, 1);
+
+        var ranking = await BuildRankingAsync(session, myParticipantId: null, ct);
+
+        return new LiveAnalyticsDto(
+            session.Id,
+            session.Title,
+            session.Mode,
+            session.Participants.Count,
+            orderedQuestions.Count,
+            totalAnswers,
+            correctAnswers,
+            overall,
+            questionStats,
+            topics,
+            recommendations,
+            ranking);
+    }
+
+    public async Task<LiveRematchResponse> RematchAsync(
+        int sessionId,
+        int hostUserId,
+        bool isAdmin,
+        string publicBaseUrl,
+        CancellationToken ct)
+    {
+        var session = await RequireSessionAsync(sessionId, ct);
+        EnsureHost(session, hostUserId, isAdmin);
+
+        if (session.Status != LiveSessionStatuses.Ended)
+        {
+            throw new DomainException(
+                "Solo se puede crear rematch de una sesión terminada.",
+                400,
+                "session_not_ended");
+        }
+
+        var code = await GenerateUniqueCodeAsync(ct);
+        var rematch = LiveSession.Create(
+            session.HostUserId,
+            $"{session.Title} (revancha)",
+            code,
+            session.Mode,
+            session.BankId,
+            session.ConfigJson,
+            _clock.UtcNow);
+
+        await _store.AddAsync(rematch, ct);
+        await _store.SaveChangesAsync(ct);
+
+        var joinUrl = BuildJoinUrl(publicBaseUrl, rematch.JoinCode);
+        await _broadcast.RematchReadyAsync(
+            session.Id,
+            new
+            {
+                newSessionId = rematch.Id,
+                joinCode = rematch.JoinCode,
+                joinUrl
+            },
+            ct);
+
+        var lobby = await ToLobbyAsync(rematch, publicBaseUrl, includeCorrect: true, ct);
+        return new LiveRematchResponse(rematch.Id, rematch.JoinCode, joinUrl, lobby);
+    }
+
+    private async Task QueueSurpriseQuestionAsync(
+        LiveSession session,
+        LiveSessionConfig config,
+        CancellationToken ct)
+    {
+        if (session.Status != LiveSessionStatuses.Running || session.CurrentQuestionIndex < 0)
+        {
+            throw new DomainException(
+                "La sorpresa solo está disponible con una pregunta activa.",
+                400,
+                "surprise_unavailable");
+        }
+
+        var usedIds = session.Questions.Select(q => q.QuestionId).ToHashSet();
+        var pool = await _catalog.ListActiveQuestionsInBankAsync(session.BankId, ct);
+        var unused = pool.Where(q => !usedIds.Contains(q.Id)).ToList();
+        if (unused.Count == 0)
+        {
+            throw new DomainException(
+                "No quedan preguntas sorpresa disponibles.",
+                400,
+                "no_surprise_left");
+        }
+
+        var pick = unused[Random.Shared.Next(unused.Count)];
+        var options = pick.Options
+            .Select(o => new SnapshotOption(o.Id, o.Text, o.ImageUrl, o.IsCorrect))
+            .ToList();
+        if (config.ShuffleOptions)
+        {
+            options = options.OrderBy(_ => Guid.NewGuid()).ToList();
+        }
+
+        var snap = new QuestionSnapshot(
+            pick.Id,
+            pick.Text,
+            pick.ImageUrl,
+            pick.Topic,
+            pick.Explanation,
+            options);
+
+        var surprise = LiveSessionQuestion.Create(
+            session.Id,
+            pick.Id,
+            session.CurrentQuestionIndex + 1,
+            JsonSerializer.Serialize(snap, JsonOpts),
+            pick.Topic,
+            pick.Difficulty,
+            isSurprise: true);
+
+        session.InsertQuestionAfterCurrent(surprise);
+        await _store.SaveChangesAsync(ct);
+
+        await _broadcast.SurpriseQueuedAsync(
+            session.Id,
+            new
+            {
+                questionCount = session.Questions.Count,
+                message = "Se añadió una pregunta sorpresa."
+            },
+            ct);
+        await BroadcastLobbyAsync(session, ct);
     }
 
     private async Task EnsureQuestionsPreparedAsync(
@@ -457,11 +816,29 @@ public sealed class LiveSessionHandler
         await _broadcast.RevealUpdatedAsync(session.Id, payload!, ct);
     }
 
+    private async Task BroadcastRankingAsync(LiveSession session, CancellationToken ct)
+    {
+        if (!ShouldIncludeRanking(session, ReadConfig(session)))
+        {
+            return;
+        }
+
+        var ranking = await BuildRankingAsync(session, myParticipantId: null, ct);
+        await _broadcast.RankingUpdatedAsync(session.Id, ranking, ct);
+    }
+
+    private async Task BroadcastDoubtsAsync(LiveSession session, CancellationToken ct)
+    {
+        var list = await MapDoubtsAsync(session, viewerParticipantId: null, ct);
+        await _broadcast.DoubtsUpdatedAsync(session.Id, list, ct);
+    }
+
     private async Task<LiveLobbyDto> ToLobbyAsync(
         LiveSession session,
         string publicBaseUrl,
         bool includeCorrect,
-        CancellationToken ct)
+        CancellationToken ct,
+        int? myParticipantId = null)
     {
         var config = ReadConfig(session);
         var participants = session.Participants
@@ -480,9 +857,12 @@ public sealed class LiveSessionHandler
             answers = await _store.CountAnswersAsync(current.SessionQuestionId, ct);
         }
 
-        var joinUrl = string.IsNullOrWhiteSpace(publicBaseUrl)
-            ? $"/live/join/{session.JoinCode}"
-            : $"{publicBaseUrl.TrimEnd('/')}/live/join/{session.JoinCode}";
+        var joinUrl = BuildJoinUrl(publicBaseUrl, session.JoinCode);
+        LiveRankingDto? ranking = null;
+        if (ShouldIncludeRanking(session, config))
+        {
+            ranking = await BuildRankingAsync(session, myParticipantId, ct);
+        }
 
         return new LiveLobbyDto(
             session.Id,
@@ -500,7 +880,98 @@ public sealed class LiveSessionHandler
             session.RevealCorrect,
             current,
             answers,
-            joinUrl);
+            joinUrl,
+            ranking);
+    }
+
+    private async Task<LiveRankingDto> BuildRankingAsync(
+        LiveSession session,
+        int? myParticipantId,
+        CancellationToken ct)
+    {
+        var config = ReadConfig(session);
+        var answers = await _store.ListAnswersForSessionAsync(session.Id, ct);
+        var byParticipant = answers
+            .GroupBy(a => a.ParticipantId)
+            .ToDictionary(
+                g => g.Key,
+                g => (
+                    Score: g.Sum(a => a.Points),
+                    CorrectCount: g.Count(a => a.IsCorrect),
+                    AnswerCount: g.Count()));
+
+        var ranked = session.Participants
+            .Select(p =>
+            {
+                byParticipant.TryGetValue(p.Id, out var stats);
+                return new
+                {
+                    Participant = p,
+                    stats.Score,
+                    stats.CorrectCount,
+                    stats.AnswerCount
+                };
+            })
+            .OrderByDescending(x => x.Score)
+            .ThenByDescending(x => x.CorrectCount)
+            .ThenBy(x => x.Participant.JoinedAt)
+            .Select((x, index) => new LiveRankEntryDto(
+                index + 1,
+                x.Participant.Id,
+                config.AnonymousNames
+                    ? $"Jugador {x.Participant.Id}"
+                    : x.Participant.DisplayName,
+                x.Score,
+                x.CorrectCount,
+                x.AnswerCount))
+            .ToList();
+
+        int? myRank = null;
+        int? myScore = null;
+        if (myParticipantId is int mine)
+        {
+            var mineEntry = ranked.FirstOrDefault(e => e.ParticipantId == mine);
+            if (mineEntry is not null)
+            {
+                myRank = mineEntry.Rank;
+                myScore = mineEntry.Score;
+            }
+        }
+
+        return new LiveRankingDto(
+            ranked.Take(5).ToList(),
+            myParticipantId,
+            myRank,
+            myScore);
+    }
+
+    private async Task<IReadOnlyList<LiveDoubtDto>> MapDoubtsAsync(
+        LiveSession session,
+        int? viewerParticipantId,
+        CancellationToken ct)
+    {
+        var config = ReadConfig(session);
+        var doubts = await _store.ListDoubtsAsync(session.Id, ct);
+        var names = session.Participants.ToDictionary(p => p.Id, p => p.DisplayName);
+
+        return doubts.Select(d =>
+        {
+            var author = names.TryGetValue(d.ParticipantId, out var name)
+                ? (config.AnonymousNames ? $"Jugador {d.ParticipantId}" : name)
+                : "Participante";
+            var votedByMe = viewerParticipantId is int viewer
+                && d.Votes.Any(v => v.ParticipantId == viewer);
+
+            return new LiveDoubtDto(
+                d.Id,
+                d.ParticipantId,
+                author,
+                d.Text,
+                d.VoteCount,
+                d.IsResolved,
+                votedByMe,
+                d.CreatedAt);
+        }).ToList();
     }
 
     private LiveQuestionPayloadDto? BuildCurrentQuestion(LiveSession session, bool includeCorrect)
@@ -540,8 +1011,34 @@ public sealed class LiveSessionHandler
             session.QuestionOpenedAt,
             session.QuestionClosesAt,
             config.SecondsPerQuestion,
-            session.RevealCorrect && includeCorrect);
+            session.RevealCorrect && includeCorrect,
+            q.IsSurprise);
     }
+
+    private async Task<LiveParticipant> RequireParticipantInSessionAsync(
+        Guid participantToken,
+        int sessionId,
+        CancellationToken ct)
+    {
+        var participant = await _store.GetParticipantByTokenAsync(participantToken, ct)
+            ?? throw new ForbiddenException("Invalid participant.", "invalid_participant");
+        if (participant.SessionId != sessionId)
+        {
+            throw new ForbiddenException("Participant not in session.", "invalid_participant");
+        }
+
+        return participant;
+    }
+
+    private static bool ShouldIncludeRanking(LiveSession session, LiveSessionConfig config) =>
+        config.ShowRanking
+        || session.Mode == LiveSessionModes.Competitive
+        || session.Status == LiveSessionStatuses.Ended;
+
+    private static string BuildJoinUrl(string publicBaseUrl, string joinCode) =>
+        string.IsNullOrWhiteSpace(publicBaseUrl)
+            ? $"/live/join/{joinCode}"
+            : $"{publicBaseUrl.TrimEnd('/')}/live/join/{joinCode}";
 
     private async Task<int?> ResolveDefaultBankIdAsync(CancellationToken ct)
     {

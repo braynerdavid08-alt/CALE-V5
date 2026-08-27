@@ -20,6 +20,7 @@ public sealed class SchoolController : ControllerBase
     private readonly AttachSchoolMemberHandler _attachMember;
     private readonly UpdateSchoolMemberHandler _updateMember;
     private readonly ImportSchoolMembersHandler _importMembers;
+    private readonly SchoolJoinRequestHandler _joinRequests;
 
     public SchoolController(
         GetSchoolProfileHandler profile,
@@ -29,7 +30,8 @@ public sealed class SchoolController : ControllerBase
         CreateSchoolMemberHandler createMember,
         AttachSchoolMemberHandler attachMember,
         UpdateSchoolMemberHandler updateMember,
-        ImportSchoolMembersHandler importMembers)
+        ImportSchoolMembersHandler importMembers,
+        SchoolJoinRequestHandler joinRequests)
     {
         _profile = profile;
         _plans = plans;
@@ -39,6 +41,7 @@ public sealed class SchoolController : ControllerBase
         _attachMember = attachMember;
         _updateMember = updateMember;
         _importMembers = importMembers;
+        _joinRequests = joinRequests;
     }
 
     [HttpGet("profile")]
@@ -169,6 +172,28 @@ public sealed class SchoolController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<UserListItemDto>>> Members(
         CancellationToken ct) =>
         Ok(await _listMembers.HandleAsync(CurrentUser.GetId(User), ct));
+
+    [HttpGet("join-requests")]
+    public async Task<ActionResult<IReadOnlyList<SchoolJoinRequestDto>>> JoinRequests(
+        CancellationToken ct) =>
+        Ok(await _joinRequests.ListPendingForSchoolAsync(CurrentUser.GetId(User), ct));
+
+    [HttpPost("join-requests/{id:int}/accept")]
+    public async Task<ActionResult<SchoolJoinRequestDto>> AcceptJoin(
+        int id,
+        CancellationToken ct) =>
+        Ok(await _joinRequests.AcceptAsync(CurrentUser.GetId(User), id, ct));
+
+    [HttpPost("join-requests/{id:int}/reject")]
+    public async Task<ActionResult<SchoolJoinRequestDto>> RejectJoin(
+        int id,
+        [FromBody] RejectSchoolJoinRequest? body,
+        CancellationToken ct) =>
+        Ok(await _joinRequests.RejectAsync(
+            CurrentUser.GetId(User),
+            id,
+            body,
+            ct));
 
     [HttpGet("imports/template")]
     public IActionResult ImportTemplate()

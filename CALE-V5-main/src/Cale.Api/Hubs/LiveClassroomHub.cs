@@ -68,4 +68,20 @@ public sealed class LiveSessionBroadcaster : Cale.Modules.LiveClassroom.Applicat
     public Task RevealUpdatedAsync(int sessionId, object payload, CancellationToken ct = default) =>
         _hub.Clients.Group(LiveClassroomHub.GroupName(sessionId))
             .SendAsync("RevealUpdated", payload, ct);
+
+    public Task RankingUpdatedAsync(int sessionId, object payload, CancellationToken ct = default) =>
+        _hub.Clients.Group(LiveClassroomHub.GroupName(sessionId))
+            .SendAsync("RankingUpdated", payload, ct);
+
+    public Task DoubtsUpdatedAsync(int sessionId, object payload, CancellationToken ct = default) =>
+        _hub.Clients.Group(LiveClassroomHub.GroupName(sessionId))
+            .SendAsync("DoubtsUpdated", payload, ct);
+
+    public Task RematchReadyAsync(int sessionId, object payload, CancellationToken ct = default) =>
+        _hub.Clients.Group(LiveClassroomHub.GroupName(sessionId))
+            .SendAsync("RematchReady", payload, ct);
+
+    public Task SurpriseQueuedAsync(int sessionId, object payload, CancellationToken ct = default) =>
+        _hub.Clients.Group(LiveClassroomHub.GroupName(sessionId))
+            .SendAsync("SurpriseQueued", payload, ct);
 }

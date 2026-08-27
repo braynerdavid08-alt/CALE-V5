@@ -27,6 +27,8 @@ public static class NotificationLinkResolver
             NotificationTypes.ExamResult => "/student",
             NotificationTypes.Membership when relatedEntity == "admin_review" =>
                 "/admin/memberships",
+            NotificationTypes.Membership when relatedEntity == "school_join_request" =>
+                "/school/users",
             NotificationTypes.Membership => "/school/membership",
             NotificationTypes.Admin or NotificationTypes.System => null,
             _ when groupId is > 0 => $"/student/group/{groupId.Value}",

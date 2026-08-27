@@ -268,6 +268,26 @@ public sealed record AttachSchoolMemberRequest(
     string Email,
     string Role);
 
+public sealed record RequestSchoolJoinRequest(
+    string SchoolQuery,
+    string? Message = null);
+
+public sealed record RejectSchoolJoinRequest(string? Reason = null);
+
+public sealed record SchoolJoinRequestDto(
+    int Id,
+    int TeacherUserId,
+    string TeacherName,
+    string TeacherEmail,
+    int SchoolUserId,
+    string SchoolLegalName,
+    string SchoolTaxId,
+    string Status,
+    string? Message,
+    string? RejectionReason,
+    DateTime CreatedAt,
+    DateTime? DecidedAt);
+
 public sealed record UpdateSchoolMemberRequest(
     string Name,
     string Email,

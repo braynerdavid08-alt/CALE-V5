@@ -45,13 +45,28 @@ public sealed record LiveQuestionPayloadDto(
     DateTime? OpensAt,
     DateTime? ClosesAt,
     int SecondsPerQuestion,
-    bool RevealCorrect);
+    bool RevealCorrect,
+    bool IsSurprise = false);
 
 public sealed record LiveParticipantDto(
     int Id,
     string DisplayName,
     bool IsConnected,
     int? UserId);
+
+public sealed record LiveRankEntryDto(
+    int Rank,
+    int ParticipantId,
+    string DisplayName,
+    int Score,
+    int CorrectCount,
+    int AnswerCount);
+
+public sealed record LiveRankingDto(
+    IReadOnlyList<LiveRankEntryDto> Top,
+    int? MyParticipantId,
+    int? MyRank,
+    int? MyScore);
 
 public sealed record LiveLobbyDto(
     int SessionId,
@@ -69,7 +84,8 @@ public sealed record LiveLobbyDto(
     bool RevealCorrect,
     LiveQuestionPayloadDto? CurrentQuestion,
     int AnswersReceived,
-    string JoinUrl);
+    string JoinUrl,
+    LiveRankingDto? Ranking = null);
 
 public sealed record JoinLiveSessionResponse(
     int SessionId,
@@ -81,3 +97,53 @@ public sealed record JoinLiveSessionResponse(
     string JoinCode);
 
 public sealed record LiveHostControlRequest(string Action);
+
+public sealed record LiveDoubtRequest(Guid ParticipantToken, string Text);
+
+public sealed record LiveDoubtVoteRequest(Guid ParticipantToken);
+
+public sealed record LiveDoubtDto(
+    int Id,
+    int ParticipantId,
+    string AuthorName,
+    string Text,
+    int VoteCount,
+    bool IsResolved,
+    bool VotedByMe,
+    DateTime CreatedAt);
+
+public sealed record LiveTopicStatDto(
+    string Topic,
+    int Answered,
+    int Correct,
+    double AccuracyPercent);
+
+public sealed record LiveQuestionStatDto(
+    int Index,
+    int SessionQuestionId,
+    string Text,
+    string? Topic,
+    int Answered,
+    int Correct,
+    double AccuracyPercent,
+    bool IsSurprise);
+
+public sealed record LiveAnalyticsDto(
+    int SessionId,
+    string Title,
+    string Mode,
+    int ParticipantCount,
+    int QuestionCount,
+    int TotalAnswers,
+    int CorrectAnswers,
+    double OverallAccuracyPercent,
+    IReadOnlyList<LiveQuestionStatDto> Questions,
+    IReadOnlyList<LiveTopicStatDto> Topics,
+    IReadOnlyList<string> Recommendations,
+    LiveRankingDto Ranking);
+
+public sealed record LiveRematchResponse(
+    int NewSessionId,
+    string JoinCode,
+    string JoinUrl,
+    LiveLobbyDto Lobby);

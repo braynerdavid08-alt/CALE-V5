@@ -31,10 +31,93 @@
             <li class="empty">Esperando estudiantes…</li>
           }
         </ul>
+
+        @if (showRanking() && ranking(); as rank) {
+          <div class="rank-box">
+            <h3>Top 5</h3>
+            <ol>
+              @for (row of rank.top; track row.participantId) {
+                <li>
+                  <span class="r">{{ row.rank }}.</span>
+                  <span class="n">{{ row.displayName }}</span>
+                  <strong>{{ row.score }}</strong>
+                </li>
+              } @empty {
+                <li class="empty">Sin puntuación aún</li>
+              }
+            </ol>
+          </div>
+        }
+
+        <div class="rank-box">
+          <h3>Dudas ({{ doubts().length }})</h3>
+          <ul class="doubts">
+            @for (d of doubts(); track d.id) {
+              <li [class.done]="d.isResolved">
+                <p>{{ d.text }}</p>
+                <div class="doubt-meta">
+                  <span>{{ d.authorName }} · {{ d.voteCount }} votos</span>
+                  @if (!d.isResolved) {
+                    <ui-button type="button" variant="ghost" (click)="resolveDoubt(d.id)">Resuelta</ui-button>
+                  }
+                </div>
+              </li>
+            } @empty {
+              <li class="empty">Sin dudas todavía</li>
+            }
+          </ul>
+        </div>
       </aside>
 
       <main class="stage">
-        @if (!l.currentQuestion || l.status === 'Lobby') {
+        @if (l.status === 'Ended') {
+          <div class="waiting end">
+            <h2>Sesión finalizada</h2>
+            @if (ranking(); as rank) {
+              <div class="rank-box wide">
+                <h3>Resultados · Top 5</h3>
+                <ol>
+                  @for (row of rank.top; track row.participantId) {
+                    <li>
+                      <span class="r">{{ row.rank }}.</span>
+                      <span class="n">{{ row.displayName }}</span>
+                      <strong>{{ row.score }} pts</strong>
+                      <small>{{ row.correctCount }}/{{ row.answerCount }} correctas</small>
+                    </li>
+                  }
+                </ol>
+              </div>
+            }
+            @if (analytics(); as a) {
+              <div class="analytics">
+                <h3>Analítica</h3>
+                <p class="acc">Precisión global: <strong>{{ a.overallAccuracyPercent }}%</strong></p>
+                <h4>Mapa de comprensión</h4>
+                <ul class="topics">
+                  @for (t of a.topics; track t.topic) {
+                    <li>
+                      <span>{{ t.topic }}</span>
+                      <div class="bar"><i [style.width.%]="t.accuracyPercent"></i></div>
+                      <strong>{{ t.accuracyPercent }}%</strong>
+                    </li>
+                  }
+                </ul>
+                @if (a.recommendations.length) {
+                  <h4>Recomendaciones</h4>
+                  <ul class="recs">
+                    @for (r of a.recommendations; track r) {
+                      <li>Repasar: {{ r }}</li>
+                    }
+                  </ul>
+                }
+              </div>
+            }
+            <div class="actions">
+              <ui-button type="button" [loading]="loading()" (click)="rematch()">Revancha</ui-button>
+              <a routerLink="/teacher/live"><ui-button type="button" variant="ghost">Nueva sala</ui-button></a>
+            </div>
+          </div>
+        } @else if (!l.currentQuestion || l.status === 'Lobby') {
           <div class="waiting">
             <h2>Sala lista</h2>
             <p>Proyecta el QR. Cuando todos estén listos, inicia el simulacro.</p>
@@ -49,11 +132,19 @@
           </div>
         } @else {
           <div class="question-head">
-            <p>Pregunta {{ l.currentQuestion.index + 1 }} / {{ l.currentQuestion.total }}</p>
+            <p>
+              Pregunta {{ l.currentQuestion.index + 1 }} / {{ l.currentQuestion.total }}
+              @if (l.currentQuestion.isSurprise) {
+                <span class="surprise-tag">Sorpresa</span>
+              }
+            </p>
             @if (secondsLeft() !== null) {
               <p class="timer">{{ secondsLeft() }}s</p>
             }
           </div>
+          @if (surpriseNotice()) {
+            <p class="surprise-banner">{{ surpriseNotice() }}</p>
+          }
           <h2 class="q-text">{{ l.currentQuestion.text }}</h2>
           @if (l.currentQuestion.imageUrl) {
             <img class="q-img" [src]="l.currentQuestion.imageUrl" alt="" />
@@ -75,6 +166,7 @@
             }
             <ui-button type="button" variant="ghost" (click)="control('close')">Cerrar pregunta</ui-button>
             <ui-button type="button" variant="ghost" (click)="control('reveal')">Mostrar respuesta</ui-button>
+            <ui-button type="button" variant="ghost" (click)="control('surprise')">Pregunta sorpresa</ui-button>
             <ui-button type="button" (click)="control('next')">Siguiente</ui-button>
             <ui-button type="button" variant="danger" (click)="control('end')">Finalizar</ui-button>
           </div>

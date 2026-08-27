@@ -35,8 +35,8 @@ import { LiveApi } from '../../live/api/live.api';
               Modo
               <select formControlName="mode">
                 <option value="Exam">Examen (sin revelar durante)</option>
-                <option value="Competitive">Competitivo</option>
-                <option value="Pedagogical">Pedagógico</option>
+                <option value="Competitive">Competitivo (Top 5 + puntos)</option>
+                <option value="Pedagogical">Pedagógico (dudas + feedback)</option>
               </select>
             </label>
             <label class="check">
@@ -59,17 +59,13 @@ import { LiveApi } from '../../live/api/live.api';
           </form>
         </article>
 
-        <article class="card muted">
-          <h2>Quiz en vivo</h2>
-          <p>Próximamente (Fase B3+).</p>
-        </article>
-        <article class="card muted">
-          <h2>Pregunta rápida</h2>
-          <p>Próximamente.</p>
-        </article>
-        <article class="card muted">
-          <h2>Revancha / Resultados</h2>
-          <p>Próximamente (Fases B4–B5).</p>
+        <article class="card tip">
+          <h2>En el proyector</h2>
+          <ul>
+            <li><strong>Competitivo:</strong> Top 5 y puntos por velocidad.</li>
+            <li><strong>Pedagógico:</strong> dudas con votos y revelación al cerrar.</li>
+            <li><strong>Sorpresa / Revancha / Analítica:</strong> controles al proyectar y al finalizar.</li>
+          </ul>
         </article>
       </div>
 
@@ -86,6 +82,8 @@ import { LiveApi } from '../../live/api/live.api';
     .modes { display: grid; gap: 1rem; margin-top: 1.25rem; }
     .card { border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.1rem; background: var(--color-surface); }
     .card.muted { opacity: 0.65; }
+    .card.tip ul { margin: 0.5rem 0 0; padding-left: 1.1rem; color: var(--color-text-secondary); font-size: var(--text-sm); }
+    .card.tip li { margin: 0.35rem 0; }
     .field { display: grid; gap: 0.35rem; margin: 0.75rem 0; font-size: var(--text-sm); }
     .field input, .field select { padding: 0.65rem 0.8rem; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: var(--color-background); color: var(--color-text); }
     .check { display: flex; gap: 0.5rem; align-items: flex-start; font-size: var(--text-sm); margin: 0.75rem 0; }

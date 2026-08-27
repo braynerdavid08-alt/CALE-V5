@@ -88,11 +88,69 @@ public sealed class LiveController : ControllerBase
         int id,
         int sessionQuestionId,
         [FromBody] LiveAnswerRequest request,
-        CancellationToken ct)
-    {
-        await _handler.AnswerAsync(id, sessionQuestionId, request, ct);
-        return Ok(new { ok = true });
-    }
+        CancellationToken ct) =>
+        Ok(await _handler.AnswerAsync(id, sessionQuestionId, request, ct));
+
+    [HttpGet("sessions/{id:int}/doubts")]
+    [AllowAnonymous]
+    public async Task<ActionResult<IReadOnlyList<LiveDoubtDto>>> ListDoubts(
+        int id,
+        [FromQuery] Guid? token,
+        CancellationToken ct) =>
+        Ok(await _handler.ListDoubtsAsync(id, token, ct));
+
+    [HttpPost("sessions/{id:int}/doubts")]
+    [AllowAnonymous]
+    public async Task<ActionResult<LiveDoubtDto>> PostDoubt(
+        int id,
+        [FromBody] LiveDoubtRequest request,
+        CancellationToken ct) =>
+        Ok(await _handler.PostDoubtAsync(id, request, ct));
+
+    [HttpPost("sessions/{id:int}/doubts/{doubtId:int}/vote")]
+    [AllowAnonymous]
+    public async Task<ActionResult<LiveDoubtDto>> VoteDoubt(
+        int id,
+        int doubtId,
+        [FromBody] LiveDoubtVoteRequest request,
+        CancellationToken ct) =>
+        Ok(await _handler.VoteDoubtAsync(id, doubtId, request, ct));
+
+    [HttpPost("sessions/{id:int}/doubts/{doubtId:int}/resolve")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<ActionResult<LiveDoubtDto>> ResolveDoubt(
+        int id,
+        int doubtId,
+        CancellationToken ct) =>
+        Ok(await _handler.ResolveDoubtAsync(
+            id,
+            doubtId,
+            CurrentUser.GetId(User),
+            CurrentUser.IsAdmin(User),
+            ct));
+
+    [HttpGet("sessions/{id:int}/analytics")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<ActionResult<LiveAnalyticsDto>> Analytics(
+        int id,
+        CancellationToken ct) =>
+        Ok(await _handler.GetAnalyticsAsync(
+            id,
+            CurrentUser.GetId(User),
+            CurrentUser.IsAdmin(User),
+            ct));
+
+    [HttpPost("sessions/{id:int}/rematch")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<ActionResult<LiveRematchResponse>> Rematch(
+        int id,
+        CancellationToken ct) =>
+        Ok(await _handler.RematchAsync(
+            id,
+            CurrentUser.GetId(User),
+            CurrentUser.IsAdmin(User),
+            PublicBaseUrl(),
+            ct));
 
     private string PublicBaseUrl()
     {
