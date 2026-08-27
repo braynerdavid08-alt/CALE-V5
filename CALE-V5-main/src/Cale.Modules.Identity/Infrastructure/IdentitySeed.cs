@@ -32,7 +32,8 @@ public static class IdentitySeed
     };
 
     /// <summary>
-    /// Ensures a single admin exists. Password is provided at runtime (env), never from source.
+    /// Ensures a single admin exists. Prefer <paramref name="password"/> from env,
+    /// or <paramref name="passwordHash"/> (Identity hash, never plaintext in git).
     /// When <paramref name="purgeOthers"/> is true, deletes every other user account.
     /// </summary>
     public static async Task EnsureSoleAdminAsync(
@@ -40,32 +41,47 @@ public static class IdentitySeed
         IPasswordHasher hasher,
         IClock clock,
         string email,
-        string password,
         string name,
         bool purgeOthers,
+        string? password = null,
+        string? passwordHash = null,
         ILogger? logger = null,
         CancellationToken ct = default)
     {
         email = EmailAddress.Normalize(email);
         name = string.IsNullOrWhiteSpace(name) ? "Administrador" : name.Trim();
 
-        if (string.IsNullOrWhiteSpace(password) || password.Length < 8)
+        string hash;
+        if (!string.IsNullOrWhiteSpace(password))
+        {
+            if (password.Length < 8)
+            {
+                throw new InvalidOperationException(
+                    "Seed:Admin:Password must be at least 8 characters.");
+            }
+
+            hash = hasher.Hash(password);
+        }
+        else if (!string.IsNullOrWhiteSpace(passwordHash))
+        {
+            hash = passwordHash.Trim();
+        }
+        else
         {
             throw new InvalidOperationException(
-                "Seed:Admin:Password must be at least 8 characters (set via environment, not source).");
+                "Set Seed:Admin:Password (env) or Seed:Admin:PasswordHash.");
         }
 
-        await EnsureUserAsync(
+        await EnsureUserWithPasswordHashAsync(
             db,
-            hasher,
             clock,
             email,
-            password,
+            hash,
             name,
-            (n, e, hash, now) => User.CreateAdmin(n, e, hash, now),
+            (n, e, h, now) => User.CreateAdmin(n, e, h, now),
+            replaceHash: true,
             ct);
 
-        // Force Admin role if an existing account had another role.
         var admin = await db.Set<User>().FirstAsync(x => x.Email == email, ct);
         if (Roles.Normalize(admin.Role) != Roles.Admin)
         {
@@ -90,6 +106,59 @@ public static class IdentitySeed
         else
         {
             logger?.LogInformation("Sole-admin seed: ensured admin {Email}.", email);
+        }
+    }
+
+    private static async Task EnsureUserWithPasswordHashAsync(
+        CaleDbContext db,
+        IClock clock,
+        string email,
+        string passwordHash,
+        string name,
+        Func<string, string, string, DateTime, User> factory,
+        bool replaceHash,
+        CancellationToken ct)
+    {
+        var user = await db.Set<User>()
+            .FirstOrDefaultAsync(x => x.Email == email, ct);
+
+        if (user is null)
+        {
+            var created = factory(name, email, passwordHash, clock.UtcNow);
+            created.MarkEmailConfirmed();
+            db.Set<User>().Add(created);
+            await db.SaveChangesAsync(ct);
+            return;
+        }
+
+        var changed = false;
+        if (!user.EmailConfirmed)
+        {
+            user.MarkEmailConfirmed();
+            changed = true;
+        }
+
+        if (replaceHash)
+        {
+            user.ChangePassword(passwordHash);
+            changed = true;
+        }
+
+        if (!string.Equals(user.Name, name, StringComparison.Ordinal))
+        {
+            user.UpdateProfile(name, user.Email);
+            changed = true;
+        }
+
+        if (!user.IsActive)
+        {
+            user.Activate();
+            changed = true;
+        }
+
+        if (changed)
+        {
+            await db.SaveChangesAsync(ct);
         }
     }
 

@@ -65,36 +65,38 @@ public static class WebApplicationExtensions
 
         var adminEmail = app.Configuration["Seed:Admin:Email"];
         var adminPassword = app.Configuration["Seed:Admin:Password"];
+        var adminPasswordHash = app.Configuration["Seed:Admin:PasswordHash"];
         var adminName = app.Configuration["Seed:Admin:Name"] ?? "Administrador";
         var purgeOthers = app.Configuration.GetValue("Seed:Admin:PurgeOthers", false);
 
-        if (!string.IsNullOrWhiteSpace(adminEmail)
-            && string.IsNullOrWhiteSpace(adminPassword))
+        var hasSecret = !string.IsNullOrWhiteSpace(adminPassword)
+            || !string.IsNullOrWhiteSpace(adminPasswordHash);
+
+        if (!string.IsNullOrWhiteSpace(adminEmail) && !hasSecret)
         {
             seedLogger.LogError(
-                "Seed:Admin:Email is set ({Email}) but Seed:Admin:Password is empty. " +
-                "Set env var Seed__Admin__Password on the host, then redeploy. Login will fail until then.",
+                "Seed:Admin:Email is set ({Email}) but no Password/PasswordHash. Login will fail.",
                 adminEmail);
 
             if (!app.Environment.IsDevelopment())
             {
                 throw new InvalidOperationException(
-                    "Missing Seed__Admin__Password. Add it in the host environment variables and redeploy.");
+                    "Missing Seed:Admin:Password or Seed:Admin:PasswordHash.");
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(adminEmail)
-            && !string.IsNullOrWhiteSpace(adminPassword))
+        if (!string.IsNullOrWhiteSpace(adminEmail) && hasSecret)
         {
             await IdentitySeed.EnsureSoleAdminAsync(
                 db,
                 hasher,
                 clock,
                 adminEmail,
-                adminPassword,
                 adminName,
                 purgeOthers,
-                seedLogger);
+                password: adminPassword,
+                passwordHash: adminPasswordHash,
+                logger: seedLogger);
         }
         else if (app.Configuration.GetValue("Seed:DemoUsers", false))
         {
