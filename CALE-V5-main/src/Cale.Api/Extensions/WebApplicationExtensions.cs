@@ -54,6 +54,13 @@ public static class WebApplicationExtensions
 
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<CaleDbContext>();
+        var providerKind = DatabaseConnection.Detect(
+            DatabaseConnection.Resolve(app.Configuration));
+        var bootLogger = scope.ServiceProvider
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("Cale.Startup");
+        bootLogger.LogInformation("Database provider: {Provider}", providerKind);
+
         await db.Database.EnsureCreatedAsync();
         await FeatureSchema.EnsureAsync(db);
 

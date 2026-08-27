@@ -34,35 +34,41 @@ public static class DependencyInjection
         IConfiguration config,
         MappingAssemblies mappings)
     {
-        var connection = config.GetConnectionString("Cale")
-            ?? throw new InvalidOperationException(
-                "Missing ConnectionStrings:Cale");
+        var connection = DatabaseConnection.Resolve(config);
+        var provider = DatabaseConnection.Detect(connection);
 
         services.AddSingleton(mappings);
         services.AddDbContext<CaleDbContext>(options =>
         {
-            if (IsSqlite(connection))
+            switch (provider)
             {
-                var builder = new SqliteConnectionStringBuilder(connection)
+                case DatabaseProviderKind.Sqlite:
                 {
-                    DefaultTimeout = 30,
-                    Cache = SqliteCacheMode.Shared
-                };
-
-                options.UseSqlite(builder.ToString(), sqlite =>
-                {
-                    sqlite.CommandTimeout(30);
-                });
-            }
-            else
-            {
-                options.UseSqlServer(connection);
+                    var builder = new SqliteConnectionStringBuilder(connection)
+                    {
+                        DefaultTimeout = 30,
+                        Cache = SqliteCacheMode.Shared
+                    };
+                    options.UseSqlite(builder.ToString(), sqlite =>
+                    {
+                        sqlite.CommandTimeout(30);
+                    });
+                    break;
+                }
+                case DatabaseProviderKind.PostgreSql:
+                    options.UseNpgsql(connection, npgsql =>
+                    {
+                        npgsql.CommandTimeout(30);
+                    });
+                    break;
+                default:
+                    options.UseSqlServer(connection, sql =>
+                    {
+                        sql.CommandTimeout(30);
+                    });
+                    break;
             }
         });
         return services;
     }
-
-    private static bool IsSqlite(string connection) =>
-        connection.Contains("Data Source=", StringComparison.OrdinalIgnoreCase)
-        || connection.Contains("Filename=", StringComparison.OrdinalIgnoreCase);
 }

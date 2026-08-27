@@ -346,6 +346,21 @@ public static class FeatureSchema
             return;
         }
 
+        if (db.Database.IsNpgsql())
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                """
+                ALTER TABLE "Usuarios" ADD COLUMN IF NOT EXISTS "EmailConfirmado" boolean NOT NULL DEFAULT TRUE;
+                ALTER TABLE "Usuarios" ADD COLUMN IF NOT EXISTS "EmailCodigoHash" varchar(128) NULL;
+                ALTER TABLE "Usuarios" ADD COLUMN IF NOT EXISTS "EmailCodigoExpiraEn" timestamp with time zone NULL;
+                ALTER TABLE "Usuarios" ADD COLUMN IF NOT EXISTS "SchoolId" integer NULL;
+                ALTER TABLE "Usuarios" ADD COLUMN IF NOT EXISTS "UltimoAccesoEn" timestamp with time zone NULL;
+                ALTER TABLE "Usuarios" ADD COLUMN IF NOT EXISTS "DebeCambiarClave" boolean NOT NULL DEFAULT FALSE;
+                """,
+                ct);
+            return;
+        }
+
         if (!db.Database.IsSqlServer())
         {
             return;

@@ -7,7 +7,7 @@ Plataforma educativa: simulador de conducción + aula virtual.
 
 - ASP.NET Core 8 + EF Core + JWT
 - Angular 18 standalone (PWA)
-- DB: SQLite (dev/Docker) o SQL Server
+- DB: PostgreSQL (prod/Render), SQL Server, o SQLite (solo local)
 
 ## Arranque local (desarrollo)
 

@@ -27,8 +27,8 @@ Objetivo: que cualquier persona abra **Mi CALE desde el navegador del celular** 
 1. Frontend llama a `/api` en el **mismo origen** (`apiUrl: ""` + `config.js`).
 2. La API sirve el build de Angular desde `wwwroot` + `MapFallbackToFile`.
 3. Docker multi-stage: build Angular + publish .NET → un contenedor en el puerto **8080**.
-4. SQLite en volumen `/data` (o SQL Server vía connection string).
-5. Variables: `Jwt__Key`, `Cors__Origins`, `ConnectionStrings__Cale`. **Nunca** actives `Seed:DemoUsers` en internet.
+4. **PostgreSQL / SQL Server** vía `ConnectionStrings__Cale` (SQLite solo para dev local opcional).
+5. Variables: `Jwt__Key`, `Cors__Origins`, `ConnectionStrings__Cale` o `DATABASE_URL`. **Nunca** actives `Seed:DemoUsers` en internet.
 
 ### Cómo probar en local (como en internet)
 
@@ -139,17 +139,29 @@ Email__Smtp__UseSsl=true
 
 Sin SMTP configurado, el código se escribe solo en los **logs del servidor** (no llega al buzón).
 
+### Base de datos SQL (Render / producción)
+
+**Ya no uses SQLite en internet** (se borra al dormirse el Free). Usa PostgreSQL:
+
+1. En Render: **New → PostgreSQL** (mismo región que MICALE).
+2. Copia la **Internal Database URL** (o External).
+3. En el Web Service MICALE → Environment:
+
+```env
+ConnectionStrings__Cale=postgresql://USER:PASSWORD@HOST:5432/DBNAME
+```
+
+También funciona si pegas la URL en `DATABASE_URL` (Render a veces la inyecta solo al linkear la DB).
+
+4. Redeploy. La API crea las tablas sola (`EnsureCreated`) y el admin temporal.
+
+SQL Server (Azure/local) sigue soportado con connection string tipo `Server=...;Database=...;...`.
+
 ### Persistencia en Render Free
 
-El plan Free **borra el disco del contenedor** cuando la instancia se duerme. La SQLite en `/data` se pierde y vuelve el admin temporal.
+El plan Free **borra el disco del contenedor** cuando la instancia se duerme. Por eso SQLite en `/data` no sirve en producción.
 
-Para que correo/clave se mantengan:
-1. Sube a un plan de pago y monta un **Persistent Disk** en `/data`, o
-2. Usa una base externa (PostgreSQL/SQL Server) y ponla en `ConnectionStrings__Cale`.
-
-Sin eso, cada “cold start” recrea `admin@micale.app`.
-
-### Admin temporal (primer arranque)
+Con **PostgreSQL** los usuarios y datos **sí se mantienen**.
 
 Si no hay ningún administrador, la API crea uno temporal:
 

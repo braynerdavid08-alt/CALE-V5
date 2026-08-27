@@ -1,17 +1,32 @@
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: cale
+      POSTGRES_PASSWORD: cale
+      POSTGRES_DB: cale
+    ports:
+      - "5432:5432"
+    volumes:
+      - cale-pg:/var/lib/postgresql/data
+    restart: unless-stopped
+
   cale:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
+    depends_on:
+      - db
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__Cale: "Data Source=/data/cale.db"
+      ConnectionStrings__Cale: "Host=db;Port=5432;Database=cale;Username=cale;Password=cale;SSL Mode=Disable"
       Jwt__Key: "${CALE_JWT_KEY:-CALE-DOCKER-DEV-ONLY-CHANGE-ME-32CHARS-MIN}"
       Cors__Origins: "${CALE_CORS_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}"
       ForwardedHeaders__Enabled: "true"
       Seed__DemoUsers: "${CALE_SEED_DEMO:-false}"
+      Seed__BootstrapAdmin: "true"
       Seed__Admin__Email: "${CALE_ADMIN_EMAIL:-}"
       Seed__Admin__Name: "${CALE_ADMIN_NAME:-}"
       Seed__Admin__Password: "${CALE_ADMIN_PASSWORD:-}"
@@ -24,10 +39,9 @@ services:
       Email__Smtp__UseSsl: "${CALE_SMTP_SSL:-true}"
       Email__From: "${CALE_EMAIL_FROM:-noreply@micale.app}"
     volumes:
-      - cale-data:/data
       - cale-uploads:/app/wwwroot/uploads
     restart: unless-stopped
 
 volumes:
-  cale-data:
+  cale-pg:
   cale-uploads:
