@@ -291,6 +291,7 @@ public sealed record PendingEmailConfirmationResponse(
     string Message,
     bool RequiresEmailConfirmation = true,
     bool EmailSent = false,
+    string? DevConfirmationCode = null,
     string? Token = null,
     int? UserId = null,
     string? Name = null,

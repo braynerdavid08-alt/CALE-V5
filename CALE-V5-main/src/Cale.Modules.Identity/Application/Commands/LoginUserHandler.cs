@@ -181,8 +181,11 @@ public sealed class ResendConfirmationHandler
 
         return new PendingEmailConfirmationResponse(
             email,
-            "Reenviamos el código a tu correo. Revisa bandeja de entrada y spam.",
+            issue.EmailSent
+                ? "Reenviamos el código a tu correo. Revisa bandeja de entrada y spam."
+                : "No se pudo enviar el correo (SMTP no configurado). En desarrollo el código aparece en pantalla.",
             RequiresEmailConfirmation: true,
-            EmailSent: issue.EmailSent);
+            EmailSent: issue.EmailSent,
+            DevConfirmationCode: issue.DevConfirmationCode);
     }
 }

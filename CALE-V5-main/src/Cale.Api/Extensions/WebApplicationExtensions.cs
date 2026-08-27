@@ -1,13 +1,16 @@
 using Cale.Api.Middleware;
 using Cale.BuildingBlocks.Domain.Auth;
+using Cale.BuildingBlocks.Domain.Email;
 using Cale.BuildingBlocks.Domain.Security;
 using Cale.BuildingBlocks.Domain.Time;
+using Cale.BuildingBlocks.Infrastructure.Email;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
 using Cale.Modules.Catalog.Infrastructure;
 using Cale.Modules.Identity.Domain;
 using Cale.Modules.Identity.Infrastructure;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace Cale.Api.Extensions;
 
@@ -63,6 +66,25 @@ public static class WebApplicationExtensions
             "Database provider: {Provider}; {Description}",
             providerKind,
             DatabaseConnection.Describe(DatabaseConnection.Resolve(app.Configuration)));
+
+        var emailOpts = scope.ServiceProvider
+            .GetRequiredService<IOptions<EmailOptions>>()
+            .Value;
+        var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
+        if (emailSender.IsConfigured)
+        {
+            bootLogger.LogInformation(
+                "Email SMTP ready: host={Host} port={Port} from={From}",
+                emailOpts.Smtp.Host,
+                emailOpts.Smtp.Port,
+                emailOpts.From);
+        }
+        else
+        {
+            bootLogger.LogWarning(
+                "Email SMTP NOT configured. Users will NOT receive verification codes by email. " +
+                "Set Email__Enabled=true, Email__From, Email__Smtp__Host/User/Password on Render (Gmail app password).");
+        }
      
         try
         {

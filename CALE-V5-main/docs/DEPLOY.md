@@ -117,15 +117,17 @@ En producción: crea el primer admin por registro controlado o seed **offline**,
 
 El código por email solo aplica al **registro** de cuentas nuevas, y **solo si SMTP está configurado**.
 
-Sin SMTP (como ahora en Render), la cuenta se activa al registrarse y puedes entrar directo.
+Sin SMTP (desarrollo local), la cuenta puede auto-activarse si `Email:AutoConfirmWhenUnavailable=true`.
 
-Para enviar códigos de verdad (Gmail):
+**En producción (Render) debes configurar Gmail/SMTP** o los usuarios no recibirán el código:
 
-1. En Google: cuenta → Seguridad → Contraseñas de aplicaciones (con 2FA activo).
-2. En Render → Environment:
+1. En Google: cuenta → Seguridad → Verificación en 2 pasos → **Contraseñas de aplicaciones**.
+2. Crea una contraseña de app para "Correo" / "Mi CALE".
+3. En Render → Web Service MICALE → **Environment** → agrega:
 
 ```env
 Email__Enabled=true
+Email__AutoConfirmWhenUnavailable=false
 Email__From=tu@gmail.com
 Email__FromName=Mi CALE
 Email__Smtp__Host=smtp.gmail.com
@@ -135,7 +137,9 @@ Email__Smtp__Password=xxxx-xxxx-xxxx-xxxx
 Email__Smtp__UseSsl=true
 ```
 
-3. Redeploy.
+4. **Manual Deploy** y revisa los logs de arranque: debe decir `Email SMTP ready`.
+
+Si falla el envío, el registro mostrará error `email_delivery_failed`. Revisa que la contraseña sea de **aplicación**, no la clave normal de Gmail.
 
 Sin SMTP configurado, el código se escribe solo en los **logs del servidor** (no llega al buzón).
 

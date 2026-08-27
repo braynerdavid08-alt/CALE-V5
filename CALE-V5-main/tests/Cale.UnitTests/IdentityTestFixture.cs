@@ -42,14 +42,18 @@ public sealed class IdentityTestFixture : IDisposable
         EmailOptions = Options.Create(new EmailOptions
         {
             Enabled = false,
+            AutoConfirmWhenUnavailable = true,
             CodeLength = 6,
             CodeExpiresMinutes = 15
         });
+        var hostEnvironment = new FakeHostEnvironment();
         EmailConfirmation = new EmailConfirmationService(
             Users,
             new LoggingEmailSender(NullLogger<LoggingEmailSender>.Instance),
             Clock,
-            EmailOptions);
+            EmailOptions,
+            hostEnvironment,
+            NullLogger<EmailConfirmationService>.Instance);
     }
 
     public CaleDbContext Db { get; }

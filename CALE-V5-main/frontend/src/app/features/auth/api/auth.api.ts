@@ -21,6 +21,7 @@ export interface PendingEmailConfirmationResponse {
   message: string;
   requiresEmailConfirmation?: boolean;
   emailSent?: boolean;
+  devConfirmationCode?: string;
   token?: string;
   userId?: number;
   name?: string;

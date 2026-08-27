@@ -16,6 +16,7 @@ export class AuthFacade {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly success = signal<string | null>(null);
+  readonly devConfirmationCode = signal<string | null>(null);
 
   login(email: string, password: string): void {
     this.run(() => this.api.login(email, password).subscribe({
@@ -57,6 +58,7 @@ export class AuthFacade {
     this.run(() => this.api.resendConfirmation(email).subscribe({
       next: (res) => {
         this.loading.set(false);
+        this.devConfirmationCode.set(res.devConfirmationCode ?? null);
         this.success.set(res.message || 'Código reenviado. Revisa tu correo.');
       },
       error: (err) => this.fail(err)
@@ -86,6 +88,8 @@ export class AuthFacade {
     email: string;
     message: string;
     requiresEmailConfirmation?: boolean;
+    emailSent?: boolean;
+    devConfirmationCode?: string;
     token?: string;
     userId?: number;
     name?: string;
@@ -104,13 +108,27 @@ export class AuthFacade {
       });
       return;
     }
-    this.goVerify(res.email);
+    this.goVerify(res.email, res.devConfirmationCode ?? null, res.message, res.emailSent);
   }
 
-  private goVerify(email: string): void {
+  private goVerify(
+    email: string,
+    devCode: string | null,
+    message?: string,
+    emailSent?: boolean
+  ): void {
     this.loading.set(false);
+    this.devConfirmationCode.set(devCode);
+    if (message && emailSent === false && !devCode) {
+      this.error.set(message);
+    } else {
+      this.error.set(null);
+    }
     void this.router.navigate(['/verify-email'], {
-      queryParams: { email }
+      queryParams: {
+        email,
+        ...(devCode ? { code: devCode } : {})
+      }
     });
   }
 

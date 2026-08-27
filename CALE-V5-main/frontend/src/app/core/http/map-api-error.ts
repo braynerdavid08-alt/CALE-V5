@@ -7,6 +7,7 @@ const messages: Record<string, string> = {
   invalid_email: 'El correo no es válido.',
   email_not_public: 'Usa un correo real (Gmail, Outlook, institucional, etc.).',
   email_not_confirmed: 'Debes confirmar tu correo con el código que te enviamos.',
+  email_delivery_failed: 'No pudimos enviar el correo de verificación. Intenta más tarde o contacta al administrador.',
   email_already_confirmed: 'Ese correo ya está confirmado. Puedes iniciar sesión.',
   invalid_confirmation_code: 'El código de verificación no es correcto.',
   confirmation_expired: 'El código expiró. Solicita uno nuevo.',

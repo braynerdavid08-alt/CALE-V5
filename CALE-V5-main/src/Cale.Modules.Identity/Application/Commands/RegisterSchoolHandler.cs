@@ -181,9 +181,12 @@ public sealed class RegisterSchoolHandler
 
         return new PendingEmailConfirmationResponse(
             user.Email,
-            pendingMessage,
+            issue.EmailSent
+                ? pendingMessage
+                : "Cuenta creada, pero el servidor no pudo enviar el correo. Configura SMTP o contacta al administrador.",
             RequiresEmailConfirmation: true,
-            EmailSent: issue.EmailSent);
+            EmailSent: issue.EmailSent,
+            DevConfirmationCode: issue.DevConfirmationCode);
     }
 
     private static RegistrationKeys BuildKeys(

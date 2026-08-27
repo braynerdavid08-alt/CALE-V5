@@ -15,6 +15,11 @@
     @if (auth.success(); as ok) {
       <p class="hint" style="color: var(--color-primary); font-weight: 600;">{{ ok }}</p>
     }
+    @if (auth.devConfirmationCode(); as devCode) {
+      <p class="hint dev-code">
+        Modo desarrollo — código de verificación: <strong>{{ devCode }}</strong>
+      </p>
+    }
     <form [formGroup]="form" (ngSubmit)="submit()">
       <label class="field">
         Correo
