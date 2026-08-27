@@ -137,7 +137,11 @@
                     }
                   }
                   @if (el.type === 'image') {
-                    <img [src]="media(imageProps(el).src)" alt="" draggable="false" />
+                    <img
+                      [src]="media(imageProps(el).src)"
+                      [style.opacity]="imageProps(el).opacity ?? 1"
+                      alt=""
+                      draggable="false" />
                   }
                   @if (el.type === 'shape') {
                     <div
@@ -239,6 +243,48 @@
                 (ngModelChange)="updateShapeProp('stroke', $event)" />
             </label>
           }
+          @if (sel.type === 'image') {
+            <label>
+              URL de imagen
+              <input
+                [ngModel]="imageProps(sel).src"
+                (ngModelChange)="updateImageProp('src', $event)"
+                placeholder="https://... o /uploads/..." />
+            </label>
+            <label>
+              Opacidad
+              <input
+                type="range"
+                min="0.1"
+                max="1"
+                step="0.05"
+                [ngModel]="imageProps(sel).opacity ?? 1"
+                (ngModelChange)="updateImageProp('opacity', +$event)" />
+            </label>
+            <div class="row geom">
+              <label>
+                X
+                <input type="number" [ngModel]="sel.x" (ngModelChange)="updateImageGeometry('x', +$event)" />
+              </label>
+              <label>
+                Y
+                <input type="number" [ngModel]="sel.y" (ngModelChange)="updateImageGeometry('y', +$event)" />
+              </label>
+              <label>
+                Ancho
+                <input type="number" [ngModel]="sel.w" (ngModelChange)="updateImageGeometry('w', +$event)" />
+              </label>
+              <label>
+                Alto
+                <input type="number" [ngModel]="sel.h" (ngModelChange)="updateImageGeometry('h', +$event)" />
+              </label>
+            </div>
+            <div class="row">
+              <button type="button" (click)="fitImageToSlide()">Centrar</button>
+              <button type="button" (click)="openReplaceImageModal()">Cambiar imagen</button>
+            </div>
+            <p class="meta hint">Arrastra para mover · esquina inferior para redimensionar · flechas ±4 px</p>
+          }
           <p class="meta">x {{ sel.x }} · y {{ sel.y }} · {{ sel.w }}×{{ sel.h }}</p>
         } @else {
           <p class="meta">Selecciona un elemento o agrega uno desde la barra.</p>
@@ -276,5 +322,37 @@
         </button>
       </div>
     </footer>
+
+    @if (showImageModal()) {
+      <div class="img-modal-overlay" (click)="closeImageModal()">
+        <div class="img-modal" (click)="$event.stopPropagation()">
+          <h3>{{ imageModalReplace() ? 'Cambiar imagen' : 'Agregar imagen' }}</h3>
+          <label>
+            Subir archivo
+            <button type="button" class="btn ghost" (click)="fileInput.click()" [disabled]="imageUploading()">
+              {{ imageUploading() ? 'Subiendo…' : 'Elegir archivo…' }}
+            </button>
+          </label>
+          <label>
+            O pegar enlace (URL)
+            <input
+              [ngModel]="imageUrlInput()"
+              (ngModelChange)="imageUrlInput.set($event)"
+              placeholder="https://ejemplo.com/foto.jpg" />
+          </label>
+          <div class="img-modal-actions">
+            <button type="button" class="btn ghost" (click)="closeImageModal()">Cancelar</button>
+            <button
+              type="button"
+              class="btn primary"
+              (click)="addImageFromUrl()"
+              [disabled]="!imageUrlInput().trim() || imageUploading()">
+              Usar enlace
+            </button>
+          </div>
+          <p class="meta hint">También puedes arrastrar una imagen directo al lienzo.</p>
+        </div>
+      </div>
+    }
   </div>
 }

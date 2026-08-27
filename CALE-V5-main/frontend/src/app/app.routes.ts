@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { catalogAccessGuard, simulacroAccessGuard } from './core/guards/catalog-access.guard';
 import { guestGuard } from './core/guards/guest.guard';
 import { roleGuard } from './core/guards/role.guard';
 import { LoginPage } from './features/auth/pages/login.page';
@@ -137,7 +138,7 @@ export const routes: Routes = [
       {
         path: 'school/questions',
         pathMatch: 'full',
-        canActivate: [roleGuard],
+        canActivate: [roleGuard, catalogAccessGuard],
         data: { roles: ['School'] },
         loadComponent: () =>
           import('./features/catalog/pages/questions.page')
@@ -146,7 +147,7 @@ export const routes: Routes = [
       {
         path: 'school/banks',
         pathMatch: 'full',
-        canActivate: [roleGuard],
+        canActivate: [roleGuard, catalogAccessGuard],
         data: { roles: ['School'] },
         loadComponent: () =>
           import('./features/admin/pages/admin-banks.page')
@@ -154,7 +155,7 @@ export const routes: Routes = [
       },
       {
         path: 'student/simulator',
-        canActivate: [roleGuard],
+        canActivate: [roleGuard, simulacroAccessGuard],
         data: { roles: ['Student', 'Teacher', 'Admin'] },
         loadComponent: () =>
           import('./features/student/pages/simulator.page')
@@ -266,7 +267,7 @@ export const routes: Routes = [
       {
         path: 'teacher/questions',
         pathMatch: 'full',
-        canActivate: [roleGuard],
+        canActivate: [roleGuard, catalogAccessGuard],
         data: { roles: ['Teacher', 'Admin'] },
         loadComponent: () =>
           import('./features/catalog/pages/questions.page')

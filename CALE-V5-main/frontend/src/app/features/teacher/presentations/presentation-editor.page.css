@@ -377,6 +377,52 @@
   margin: 0 0 0.5rem;
 }
 
+.ed-props .meta.hint {
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.ed-props .row.geom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+}
+
+.ed-props .row.geom label {
+  margin-bottom: 0;
+}
+
+.img-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.55);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.img-modal {
+  width: min(420px, 100%);
+  background: #121c28;
+  border: 1px solid #2c4258;
+  border-radius: 10px;
+  padding: 1rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+
+.img-modal h3 {
+  margin: 0 0 0.85rem;
+  font-size: 1rem;
+}
+
+.img-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
 .ed-bottom {
   display: flex;
   justify-content: space-between;

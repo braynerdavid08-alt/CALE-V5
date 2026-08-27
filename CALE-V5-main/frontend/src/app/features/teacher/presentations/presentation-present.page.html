@@ -36,7 +36,10 @@
                   >{{ textProps(el).text }}</div>
               }
               @if (el.type === 'image') {
-                <img [src]="media(imageProps(el).src)" alt="" />
+                <img
+                  [src]="media(imageProps(el).src)"
+                  [style.opacity]="imageProps(el).opacity ?? 1"
+                  alt="" />
               }
               @if (el.type === 'shape') {
                 <div

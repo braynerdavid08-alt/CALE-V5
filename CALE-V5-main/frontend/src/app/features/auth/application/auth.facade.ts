@@ -117,6 +117,10 @@ export class AuthFacade {
   private enter(res: Parameters<SessionStore['set']>[0]): void {
     this.motivation.clearSession();
     this.session.set(res);
+    this.api.me().subscribe({
+      next: (me) => this.session.applySchoolContext(me.school ?? null),
+      error: () => { /* membership gates fall back to API errors */ }
+    });
     this.motivation.ensureSessionTip(res.role);
     this.loading.set(false);
     if (res.mustChangePassword) {

@@ -71,6 +71,10 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   readonly saveState = signal<SaveState>('idle');
   readonly lastSavedAt = signal<number | null>(null);
   readonly editingText = signal(false);
+  readonly showImageModal = signal(false);
+  readonly imageUrlInput = signal('');
+  readonly imageUploading = signal(false);
+  readonly imageModalReplace = signal(false);
 
   readonly activeSlide = computed(() => this.slides()[this.activeIndex()] ?? null);
   readonly selected = computed(() => {
@@ -176,10 +180,17 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
 
   @HostListener('window:keydown', ['$event'])
   onKey(ev: KeyboardEvent): void {
-    if (this.editingText()) {
-      if (ev.key === 'Escape') {
+    if (ev.key === 'Escape') {
+      if (this.showImageModal()) {
+        this.closeImageModal();
+        return;
+      }
+      if (this.editingText()) {
         this.editingText.set(false);
       }
+      return;
+    }
+    if (this.editingText()) {
       return;
     }
     const meta = ev.ctrlKey || ev.metaKey;
@@ -495,7 +506,26 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   }
 
   triggerImage(): void {
-    this.fileInput?.nativeElement.click();
+    this.imageModalReplace.set(false);
+    this.imageUrlInput.set('');
+    this.showImageModal.set(true);
+  }
+
+  openReplaceImageModal(): void {
+    const sel = this.selected();
+    if (!sel || sel.type !== 'image') {
+      return;
+    }
+    this.imageModalReplace.set(true);
+    this.imageUrlInput.set(this.imageProps(sel).src);
+    this.showImageModal.set(true);
+  }
+
+  closeImageModal(): void {
+    this.showImageModal.set(false);
+    this.imageUrlInput.set('');
+    this.imageUploading.set(false);
+    this.imageModalReplace.set(false);
   }
 
   onImageSelected(ev: Event): void {
@@ -505,47 +535,205 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (!file) {
       return;
     }
-    this.api.upload(file).subscribe({
-      next: (res) => {
-        const el: SlideElement = {
-          id: newClientId('el'),
-          type: 'image',
-          x: 280,
-          y: 120,
-          w: 400,
-          h: 280,
-          rotation: 0,
-          z: this.nextZ(),
-          props: { src: res.url, opacity: 1 }
-        };
-        this.pushElement(el);
-      },
-      error: (err) => this.error.set(mapApiError(err))
-    });
+    if (this.imageModalReplace()) {
+      this.uploadAndApplyToSelected(file);
+    } else {
+      this.uploadAndInsertImage(file);
+    }
+  }
+
+  addImageFromUrl(): void {
+    const src = this.normalizeImageSrc(this.imageUrlInput());
+    if (!src) {
+      this.error.set('URL inválida. Usa https://... o /uploads/...');
+      return;
+    }
+    if (this.imageModalReplace()) {
+      void this.applyImageSrcToSelected(src);
+      this.closeImageModal();
+      return;
+    }
+    void this.insertImageFromSrc(src).then(() => this.closeImageModal());
   }
 
   onCanvasDrop(ev: DragEvent): void {
     ev.preventDefault();
     const file = ev.dataTransfer?.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      this.api.upload(file).subscribe({
-        next: (res) => {
-          const el: SlideElement = {
-            id: newClientId('el'),
-            type: 'image',
-            x: 280,
-            y: 120,
-            w: 400,
-            h: 280,
-            rotation: 0,
-            z: this.nextZ(),
-            props: { src: res.url, opacity: 1 }
-          };
-          this.pushElement(el);
-        },
-        error: (err) => this.error.set(mapApiError(err))
-      });
+    if (!file?.type.startsWith('image/')) {
+      return;
     }
+    const pos = this.dropPosition(ev);
+    this.uploadAndInsertImage(file, pos.x, pos.y);
+  }
+
+  updateImageProp<K extends keyof ImageProps>(key: K, value: ImageProps[K]): void {
+    const id = this.selectedId();
+    if (!id) {
+      return;
+    }
+    this.patchElement(id, (el) => {
+      if (el.type !== 'image') {
+        return el;
+      }
+      return { ...el, props: { ...(el.props as ImageProps), [key]: value } };
+    });
+    this.markDirty();
+  }
+
+  updateImageGeometry(key: 'x' | 'y' | 'w' | 'h', raw: number): void {
+    const id = this.selectedId();
+    if (!id || !Number.isFinite(raw)) {
+      return;
+    }
+    this.patchElement(id, (el) => {
+      if (el.type !== 'image') {
+        return el;
+      }
+      if (key === 'w') {
+        return { ...el, w: Math.max(24, Math.round(raw)) };
+      }
+      if (key === 'h') {
+        return { ...el, h: Math.max(24, Math.round(raw)) };
+      }
+      if (key === 'x') {
+        return { ...el, x: Math.round(raw) };
+      }
+      return { ...el, y: Math.round(raw) };
+    });
+    this.markDirty();
+  }
+
+  fitImageToSlide(): void {
+    const id = this.selectedId();
+    const sel = this.selected();
+    if (!id || !sel || sel.type !== 'image') {
+      return;
+    }
+    this.patchElement(id, (el) => ({
+      ...el,
+      x: Math.round((SLIDE_W - el.w) / 2),
+      y: Math.round((SLIDE_H - el.h) / 2)
+    }));
+    this.markDirty();
+  }
+
+  private uploadAndInsertImage(file: File, x?: number, y?: number): void {
+    this.imageUploading.set(true);
+    this.api.upload(file).subscribe({
+      next: (res) => {
+        this.imageUploading.set(false);
+        void this.insertImageFromSrc(res.url, x, y).then(() => this.closeImageModal());
+      },
+      error: (err) => {
+        this.imageUploading.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  private uploadAndApplyToSelected(file: File): void {
+    this.imageUploading.set(true);
+    this.api.upload(file).subscribe({
+      next: (res) => {
+        this.imageUploading.set(false);
+        void this.applyImageSrcToSelected(res.url);
+        this.closeImageModal();
+      },
+      error: (err) => {
+        this.imageUploading.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  private async insertImageFromSrc(src: string, x?: number, y?: number): Promise<void> {
+    const size = await this.probeImageSize(src);
+    const el: SlideElement = {
+      id: newClientId('el'),
+      type: 'image',
+      x: x ?? Math.round((SLIDE_W - size.w) / 2),
+      y: y ?? Math.round((SLIDE_H - size.h) / 2),
+      w: size.w,
+      h: size.h,
+      rotation: 0,
+      z: this.nextZ(),
+      props: { src, opacity: 1 }
+    };
+    this.pushElement(el);
+  }
+
+  private async applyImageSrcToSelected(src: string): Promise<void> {
+    const id = this.selectedId();
+    if (!id) {
+      return;
+    }
+    const size = await this.probeImageSize(src);
+    this.patchElement(id, (el) => {
+      if (el.type !== 'image') {
+        return el;
+      }
+      return {
+        ...el,
+        w: size.w,
+        h: size.h,
+        props: { ...(el.props as ImageProps), src }
+      };
+    });
+    this.markDirty();
+  }
+
+  private normalizeImageSrc(raw: string): string | null {
+    const value = raw.trim();
+    if (!value) {
+      return null;
+    }
+    if (value.startsWith('/')) {
+      return value;
+    }
+    try {
+      const url = new URL(value);
+      if (url.protocol === 'http:' || url.protocol === 'https:') {
+        return value;
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }
+
+  private probeImageSize(src: string): Promise<{ w: number; h: number }> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 520;
+        const maxH = 380;
+        let w = img.naturalWidth || 400;
+        let h = img.naturalHeight || 280;
+        const scale = Math.min(1, maxW / w, maxH / h);
+        resolve({
+          w: Math.max(80, Math.round(w * scale)),
+          h: Math.max(60, Math.round(h * scale))
+        });
+      };
+      img.onerror = () => resolve({ w: 400, h: 280 });
+      img.src = resolveMediaUrl(src);
+    });
+  }
+
+  private dropPosition(ev: DragEvent): { x: number; y: number } {
+    const target = ev.currentTarget as HTMLElement | null;
+    const slide = target?.querySelector('.slide') as HTMLElement | null;
+    if (!slide) {
+      return { x: 280, y: 120 };
+    }
+    const rect = slide.getBoundingClientRect();
+    const z = this.zoom() || 1;
+    const x = Math.round((ev.clientX - rect.left) / z - 80);
+    const y = Math.round((ev.clientY - rect.top) / z - 60);
+    return {
+      x: Math.max(0, Math.min(SLIDE_W - 80, x)),
+      y: Math.max(0, Math.min(SLIDE_H - 80, y))
+    };
   }
 
   startDrag(ev: PointerEvent, id: string, mode: 'move' | 'resize'): void {

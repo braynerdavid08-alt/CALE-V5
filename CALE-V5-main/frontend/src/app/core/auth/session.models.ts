@@ -4,6 +4,9 @@ export interface SessionUser {
   email: string;
   role: string;
   mustChangePassword?: boolean;
+  schoolId?: number | null;
+  isMembershipActive?: boolean;
+  planLabel?: string | null;
 }
 
 export interface AuthResponse {

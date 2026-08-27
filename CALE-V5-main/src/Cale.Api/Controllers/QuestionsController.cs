@@ -1,4 +1,6 @@
 using Cale.Api.Extensions;
+using Cale.BuildingBlocks.Domain.Abstractions;
+using Cale.BuildingBlocks.Domain.Auth;
 using Cale.Modules.Catalog.Application.Commands;
 using Cale.Modules.Catalog.Application.DTOs;
 using Cale.Modules.Catalog.Application.Queries;
@@ -8,11 +10,10 @@ using Microsoft.AspNetCore.Mvc;
 namespace Cale.Api.Controllers;
 
 /// <summary>
-/// Catálogo jerárquico: solo Admin crea/edita.
-/// Escuela y Docente heredan el catálogo en lectura.
+/// Catálogo global del administrador. Escuela/docente con plan activo: lectura.
 /// </summary>
 [ApiController]
-[Authorize(Policy = "CatalogReader")]
+[Authorize]
 [Route("api/questions")]
 public sealed class QuestionsController : ControllerBase
 {
@@ -20,17 +21,20 @@ public sealed class QuestionsController : ControllerBase
     private readonly GetQuestionHandler _get;
     private readonly SaveQuestionHandler _save;
     private readonly ListBlocksHandler _blocks;
+    private readonly ICatalogAccessGuard _access;
 
     public QuestionsController(
         ListQuestionsHandler list,
         GetQuestionHandler get,
         SaveQuestionHandler save,
-        ListBlocksHandler blocks)
+        ListBlocksHandler blocks,
+        ICatalogAccessGuard access)
     {
         _list = list;
         _get = get;
         _save = save;
         _blocks = blocks;
+        _access = access;
     }
 
     [HttpGet]
@@ -40,18 +44,35 @@ public sealed class QuestionsController : ControllerBase
         [FromQuery] int? bankId = null,
         [FromQuery] string? search = null,
         [FromQuery] bool? active = null,
-        CancellationToken ct = default) =>
-        // Herencia: escuela/docente ven todo el catálogo del Admin (sin filtro por dueño).
-        Ok(await _list.HandleAsync(
+        CancellationToken ct = default)
+    {
+        await _access.EnsureCatalogReadAsync(
+            CurrentUser.GetId(User),
+            CurrentUser.GetRole(User),
+            ct);
+        return Ok(await _list.HandleAsync(
             page, pageSize, bankId, search, active, ownerId: null, ct));
+    }
 
     [HttpGet("blocks")]
-    public async Task<IActionResult> Blocks(CancellationToken ct) =>
-        Ok(await _blocks.HandleAsync(ct));
+    public async Task<IActionResult> Blocks(CancellationToken ct)
+    {
+        await _access.EnsureCatalogReadAsync(
+            CurrentUser.GetId(User),
+            CurrentUser.GetRole(User),
+            ct);
+        return Ok(await _blocks.HandleAsync(ct));
+    }
 
     [HttpGet("{id:int}")]
-    public async Task<IActionResult> Get(int id, CancellationToken ct) =>
-        Ok(await _get.HandleAsync(id, ct));
+    public async Task<IActionResult> Get(int id, CancellationToken ct)
+    {
+        await _access.EnsureCatalogReadAsync(
+            CurrentUser.GetId(User),
+            CurrentUser.GetRole(User),
+            ct);
+        return Ok(await _get.HandleAsync(id, ct));
+    }
 
     [HttpPost]
     [Authorize(Policy = "AdminOnly")]

@@ -1,4 +1,5 @@
 using Cale.Api.Extensions;
+using Cale.BuildingBlocks.Domain.Abstractions;
 using Cale.Modules.Assessment.Application.Commands;
 using Cale.Modules.Assessment.Application.DTOs;
 using Cale.Modules.Assessment.Application.Queries;
@@ -16,24 +17,33 @@ public sealed class ExamAttemptsController : ControllerBase
     private readonly AnswerQuestionHandler _answer;
     private readonly FinishExamHandler _finish;
     private readonly ReviewAttemptHandler _review;
+    private readonly ICatalogAccessGuard _access;
 
     public ExamAttemptsController(
         StartExamHandler start,
         AnswerQuestionHandler answer,
         FinishExamHandler finish,
-        ReviewAttemptHandler review)
+        ReviewAttemptHandler review,
+        ICatalogAccessGuard access)
     {
         _start = start;
         _answer = answer;
         _finish = finish;
         _review = review;
+        _access = access;
     }
 
     [HttpPost("start")]
     public async Task<IActionResult> Start(
         StartExamRequest request,
-        CancellationToken ct) =>
-        Ok(await _start.HandleAsync(request, CurrentUser.GetId(User), ct));
+        CancellationToken ct)
+    {
+        await _access.EnsureSimulacroAsync(
+            CurrentUser.GetId(User),
+            CurrentUser.GetRole(User),
+            ct);
+        return Ok(await _start.HandleAsync(request, CurrentUser.GetId(User), ct));
+    }
 
     [HttpPost("{attemptId:int}/answer")]
     public async Task<IActionResult> Answer(
