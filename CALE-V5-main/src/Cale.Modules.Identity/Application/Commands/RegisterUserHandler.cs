@@ -1,3 +1,4 @@
+using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Security;
 using Cale.BuildingBlocks.Domain.Time;
@@ -13,17 +14,20 @@ public sealed class RegisterUserHandler
 {
     private readonly IUserStore _users;
     private readonly IPasswordHasher _hasher;
+    private readonly ITokenService _tokens;
     private readonly IClock _clock;
     private readonly EmailConfirmationService _emailConfirmation;
 
     public RegisterUserHandler(
         IUserStore users,
         IPasswordHasher hasher,
+        ITokenService tokens,
         IClock clock,
         EmailConfirmationService emailConfirmation)
     {
         _users = users;
         _hasher = hasher;
+        _tokens = tokens;
         _clock = clock;
         _emailConfirmation = emailConfirmation;
     }
@@ -50,11 +54,30 @@ public sealed class RegisterUserHandler
 
         await _users.AddAsync(user, ct);
         await _users.SaveChangesAsync(ct);
-        await _emailConfirmation.IssueAndSendAsync(user, ct);
+        var issue = await _emailConfirmation.IssueAndSendAsync(user, ct);
+
+        if (issue.AutoConfirmed)
+        {
+            user.RecordLogin(_clock.UtcNow);
+            await _users.SaveChangesAsync(ct);
+            var token = _tokens.Create(user.Id, user.Email, user.Name, Roles.Student);
+            return new PendingEmailConfirmationResponse(
+                user.Email,
+                "Cuenta creada. El envío de correo no está configurado en el servidor; entraste sin código.",
+                RequiresEmailConfirmation: false,
+                EmailSent: false,
+                Token: token,
+                UserId: user.Id,
+                Name: user.Name,
+                Role: Roles.Student,
+                MustChangePassword: false);
+        }
 
         return new PendingEmailConfirmationResponse(
             user.Email,
-            "Te enviamos un código a tu correo. Confírmalo para activar la cuenta.");
+            "Te enviamos un código a tu correo. Confírmalo para activar la cuenta.",
+            RequiresEmailConfirmation: true,
+            EmailSent: issue.EmailSent);
     }
 
     private static void Validate(RegisterRequest request)

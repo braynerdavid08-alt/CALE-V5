@@ -62,7 +62,7 @@ public sealed class IdentityTestFixture : IDisposable
     public EmailConfirmationService EmailConfirmation { get; }
 
     public RegisterUserHandler CreateRegister() =>
-        new(Users, Hasher, Clock, EmailConfirmation);
+        new(Users, Hasher, Tokens, Clock, EmailConfirmation);
 
     public ConfirmEmailHandler CreateConfirmEmail() =>
         new(Users, Tokens, Clock, EmailConfirmation);

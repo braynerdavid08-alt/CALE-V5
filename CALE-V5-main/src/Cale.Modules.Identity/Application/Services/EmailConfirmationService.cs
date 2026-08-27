@@ -10,6 +10,8 @@ using Microsoft.Extensions.Options;
 
 namespace Cale.Modules.Identity.Application.Services;
 
+public sealed record EmailIssueResult(bool EmailSent, bool AutoConfirmed);
+
 public sealed class EmailConfirmationService
 {
     private readonly IUserStore _users;
@@ -29,8 +31,18 @@ public sealed class EmailConfirmationService
         _options = options.Value;
     }
 
-    public async Task IssueAndSendAsync(User user, CancellationToken ct)
+    public bool IsEmailDeliveryConfigured => _email.IsConfigured;
+
+    public async Task<EmailIssueResult> IssueAndSendAsync(User user, CancellationToken ct)
     {
+        // Without SMTP, do not block sign-up: activate the account and skip the code email.
+        if (!_email.IsConfigured)
+        {
+            user.MarkEmailConfirmed();
+            await _users.SaveChangesAsync(ct);
+            return new EmailIssueResult(EmailSent: false, AutoConfirmed: true);
+        }
+
         var code = GenerateCode(_options.CodeLength < 4 ? 6 : _options.CodeLength);
         var minutes = _options.CodeExpiresMinutes <= 0 ? 15 : _options.CodeExpiresMinutes;
         var expires = _clock.UtcNow.AddMinutes(minutes);
@@ -49,6 +61,8 @@ public sealed class EmailConfirmationService
             "Código de verificación — Mi CALE",
             body,
             ct);
+
+        return new EmailIssueResult(EmailSent: true, AutoConfirmed: false);
     }
 
     public async Task ConfirmAsync(string email, string code, CancellationToken ct)
@@ -65,7 +79,7 @@ public sealed class EmailConfirmationService
         await _users.SaveChangesAsync(ct);
     }
 
-    public async Task ResendAsync(string email, CancellationToken ct)
+    public async Task<EmailIssueResult> ResendAsync(string email, CancellationToken ct)
     {
         var user = await _users.FindByEmailAsync(email, ct)
             ?? throw new DomainException("User not found.", 404, "user_not_found");
@@ -78,7 +92,7 @@ public sealed class EmailConfirmationService
                 "email_already_confirmed");
         }
 
-        await IssueAndSendAsync(user, ct);
+        return await IssueAndSendAsync(user, ct);
     }
 
     public static string HashCode(string code)

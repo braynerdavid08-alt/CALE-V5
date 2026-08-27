@@ -1,3 +1,4 @@
+using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Security;
 using Cale.BuildingBlocks.Domain.Time;
@@ -15,6 +16,7 @@ public sealed class RegisterSchoolHandler
     private readonly ISchoolProfileStore _profiles;
     private readonly IMembershipEventStore _events;
     private readonly IPasswordHasher _hasher;
+    private readonly ITokenService _tokens;
     private readonly IClock _clock;
     private readonly EmailConfirmationService _emailConfirmation;
 
@@ -23,6 +25,7 @@ public sealed class RegisterSchoolHandler
         ISchoolProfileStore profiles,
         IMembershipEventStore events,
         IPasswordHasher hasher,
+        ITokenService tokens,
         IClock clock,
         EmailConfirmationService emailConfirmation)
     {
@@ -30,6 +33,7 @@ public sealed class RegisterSchoolHandler
         _profiles = profiles;
         _events = events;
         _hasher = hasher;
+        _tokens = tokens;
         _clock = clock;
         _emailConfirmation = emailConfirmation;
     }
@@ -86,11 +90,30 @@ public sealed class RegisterSchoolHandler
             ct);
         await _profiles.SaveChangesAsync(ct);
 
-        await _emailConfirmation.IssueAndSendAsync(user, ct);
+        var issue = await _emailConfirmation.IssueAndSendAsync(user, ct);
+
+        if (issue.AutoConfirmed)
+        {
+            user.RecordLogin(_clock.UtcNow);
+            await _users.SaveChangesAsync(ct);
+            var token = _tokens.Create(user.Id, user.Email, user.Name, Roles.School);
+            return new PendingEmailConfirmationResponse(
+                user.Email,
+                "Cuenta creada. El envío de correo no está configurado en el servidor; entraste sin código.",
+                RequiresEmailConfirmation: false,
+                EmailSent: false,
+                Token: token,
+                UserId: user.Id,
+                Name: user.Name,
+                Role: Roles.School,
+                MustChangePassword: false);
+        }
 
         return new PendingEmailConfirmationResponse(
             user.Email,
-            "Te enviamos un código a tu correo. Confírmalo para activar la cuenta.");
+            "Te enviamos un código a tu correo. Confírmalo para activar la cuenta.",
+            RequiresEmailConfirmation: true,
+            EmailSent: issue.EmailSent);
     }
 
     private static void Validate(RegisterSchoolRequest request)

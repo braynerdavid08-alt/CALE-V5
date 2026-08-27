@@ -19,6 +19,8 @@ public sealed class ConfigurableEmailSender : IEmailSender
         _inner = smtpReady ? smtp : logging;
     }
 
+    public bool IsConfigured => _inner.IsConfigured;
+
     public Task SendAsync(
         string toEmail,
         string subject,

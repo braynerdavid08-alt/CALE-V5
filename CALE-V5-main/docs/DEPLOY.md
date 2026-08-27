@@ -113,22 +113,31 @@ En producción: crea el primer admin por registro controlado o seed **offline**,
 
 ### Correo (verificación de cuenta)
 
-El registro público exige un correo real y envía un **código de 6 dígitos**. Sin confirmar no se puede iniciar sesión.
+**Cambiar la clave en Mi perfil no envía correo.** Solo se guarda en el servidor.
 
-Variables de entorno SMTP (producción):
+El código por email solo aplica al **registro** de cuentas nuevas, y **solo si SMTP está configurado**.
+
+Sin SMTP (como ahora en Render), la cuenta se activa al registrarse y puedes entrar directo.
+
+Para enviar códigos de verdad (Gmail):
+
+1. En Google: cuenta → Seguridad → Contraseñas de aplicaciones (con 2FA activo).
+2. En Render → Environment:
 
 ```env
 Email__Enabled=true
-Email__From=noreply@tudominio.com
+Email__From=tu@gmail.com
 Email__FromName=Mi CALE
-Email__Smtp__Host=smtp.tudominio.com
+Email__Smtp__Host=smtp.gmail.com
 Email__Smtp__Port=587
-Email__Smtp__User=...
-Email__Smtp__Password=...
+Email__Smtp__User=tu@gmail.com
+Email__Smtp__Password=xxxx-xxxx-xxxx-xxxx
 Email__Smtp__UseSsl=true
 ```
 
-Sin SMTP configurado, el código se escribe en los **logs del servidor** (útil en local).
+3. Redeploy.
+
+Sin SMTP configurado, el código se escribe solo en los **logs del servidor** (no llega al buzón).
 
 ### Persistencia en Render Free
 

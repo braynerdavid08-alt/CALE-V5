@@ -13,17 +13,17 @@ public class IdentityUseCaseTests : IDisposable
     private readonly IdentityTestFixture _fx = new();
 
     [Fact]
-    public async Task Register_CreatesPendingStudentWithoutToken()
+    public async Task Register_WithoutSmtp_AutoConfirmsAndReturnsToken()
     {
         var result = await _fx.CreateRegister().HandleAsync(
             new RegisterRequest("Ana", "ana@test.com", "Password1"),
             CancellationToken.None);
 
-        Assert.Equal("ana@test.com", result.Email);
+        Assert.False(result.RequiresEmailConfirmation);
+        Assert.False(string.IsNullOrWhiteSpace(result.Token));
         var user = await _fx.Users.FindByEmailAsync("ana@test.com", CancellationToken.None);
         Assert.NotNull(user);
-        Assert.Equal(Roles.Student, user!.Role);
-        Assert.False(user.EmailConfirmed);
+        Assert.True(user!.EmailConfirmed);
     }
 
     [Fact]
@@ -38,28 +38,28 @@ public class IdentityUseCaseTests : IDisposable
     }
 
     [Fact]
-    public async Task Login_Unconfirmed_ThrowsForbidden()
+    public async Task Login_Success_AfterAutoConfirmRegister()
     {
         await _fx.CreateRegister().HandleAsync(
             new RegisterRequest("Ana", "ana@test.com", "Password1"),
             CancellationToken.None);
 
-        await Assert.ThrowsAsync<ForbiddenException>(() =>
-            _fx.CreateLogin().HandleAsync(
-                new LoginRequest("ana@test.com", "Password1"),
-                CancellationToken.None));
+        var login = await _fx.CreateLogin().HandleAsync(
+            new LoginRequest("ana@test.com", "Password1"),
+            CancellationToken.None);
+        Assert.Equal("Ana", login.Name);
     }
 
     [Fact]
-    public async Task ConfirmEmail_ThenLogin_Succeeds()
+    public async Task ConfirmEmail_ThenLogin_Succeeds_WhenForcedPending()
     {
+        // Force pending confirmation path (SMTP unavailable auto-confirms; simulate pending).
         await _fx.CreateRegister().HandleAsync(
             new RegisterRequest("Ana", "ana@test.com", "Password1"),
             CancellationToken.None);
 
         var user = await _fx.Users.FindByEmailAsync("ana@test.com", CancellationToken.None);
         Assert.NotNull(user);
-        // Force a known code for the test.
         const string code = "123456";
         user!.BeginEmailConfirmation(
             EmailConfirmationService.HashCode(code),
@@ -72,11 +72,6 @@ public class IdentityUseCaseTests : IDisposable
 
         Assert.Equal(Roles.Student, confirmed.Role);
         Assert.False(string.IsNullOrWhiteSpace(confirmed.Token));
-
-        var login = await _fx.CreateLogin().HandleAsync(
-            new LoginRequest("ana@test.com", "Password1"),
-            CancellationToken.None);
-        Assert.Equal("Ana", login.Name);
     }
 
     [Fact]
@@ -93,28 +88,17 @@ public class IdentityUseCaseTests : IDisposable
     }
 
     [Fact]
-    public async Task Me_ReturnsCurrentUser_AfterConfirm()
+    public async Task Me_ReturnsCurrentUser_AfterRegister()
     {
-        await _fx.CreateRegister().HandleAsync(
+        var registered = await _fx.CreateRegister().HandleAsync(
             new RegisterRequest("Ana", "ana@test.com", "Password1"),
-            CancellationToken.None);
-
-        var user = await _fx.Users.FindByEmailAsync("ana@test.com", CancellationToken.None);
-        const string code = "654321";
-        user!.BeginEmailConfirmation(
-            EmailConfirmationService.HashCode(code),
-            _fx.Clock.UtcNow.AddMinutes(15));
-        await _fx.Users.SaveChangesAsync(CancellationToken.None);
-
-        var confirmed = await _fx.CreateConfirmEmail().HandleAsync(
-            new ConfirmEmailRequest("ana@test.com", code),
             CancellationToken.None);
 
         var me = await new GetCurrentUserHandler(
             _fx.Users,
             _fx.Profiles,
             _fx.Clock).HandleAsync(
-            confirmed.UserId,
+            registered.UserId!.Value,
             CancellationToken.None);
 
         Assert.Equal("Ana", me.Name);

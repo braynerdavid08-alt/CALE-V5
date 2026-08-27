@@ -19,6 +19,9 @@ public sealed class SmtpEmailSender : IEmailSender
         _logger = logger;
     }
 
+    public bool IsConfigured =>
+        _options.Enabled && !string.IsNullOrWhiteSpace(_options.Smtp.Host);
+
     public async Task SendAsync(
         string toEmail,
         string subject,

@@ -168,9 +168,21 @@ public sealed class ResendConfirmationHandler
         CancellationToken ct)
     {
         var email = EmailAddress.Normalize(request.Email);
-        await _emailConfirmation.ResendAsync(email, ct);
+        var issue = await _emailConfirmation.ResendAsync(email, ct);
+
+        if (issue.AutoConfirmed)
+        {
+            return new PendingEmailConfirmationResponse(
+                email,
+                "Tu cuenta ya quedó activa (el servidor no tiene SMTP). Puedes iniciar sesión.",
+                RequiresEmailConfirmation: false,
+                EmailSent: false);
+        }
+
         return new PendingEmailConfirmationResponse(
             email,
-            "Si la cuenta existe y aún no está confirmada, enviamos un nuevo código.");
+            "Reenviamos el código a tu correo. Revisa bandeja de entrada y spam.",
+            RequiresEmailConfirmation: true,
+            EmailSent: issue.EmailSent);
     }
 }

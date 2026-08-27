@@ -26,21 +26,21 @@ export class AuthFacade {
 
   register(name: string, email: string, password: string): void {
     this.run(() => this.api.register(name, email, password).subscribe({
-      next: (res) => this.goVerify(res.email),
+      next: (res) => this.afterRegister(res),
       error: (err) => this.fail(err)
     }));
   }
 
   registerTeacher(name: string, email: string, password: string): void {
     this.run(() => this.api.registerTeacher(name, email, password).subscribe({
-      next: (res) => this.goVerify(res.email),
+      next: (res) => this.afterRegister(res),
       error: (err) => this.fail(err)
     }));
   }
 
   registerSchool(body: Record<string, string>): void {
     this.run(() => this.api.registerSchool(body).subscribe({
-      next: (res) => this.goVerify(res.email),
+      next: (res) => this.afterRegister(res),
       error: (err) => this.fail(err)
     }));
   }
@@ -80,6 +80,31 @@ export class AuthFacade {
     this.motivation.clearSession();
     this.session.clear();
     void this.router.navigateByUrl('/login');
+  }
+
+  private afterRegister(res: {
+    email: string;
+    message: string;
+    requiresEmailConfirmation?: boolean;
+    token?: string;
+    userId?: number;
+    name?: string;
+    role?: string;
+    mustChangePassword?: boolean;
+  }): void {
+    if (res.requiresEmailConfirmation === false && res.token && res.userId != null
+        && res.name && res.role) {
+      this.enter({
+        token: res.token,
+        userId: res.userId,
+        name: res.name,
+        email: res.email,
+        role: res.role,
+        mustChangePassword: !!res.mustChangePassword
+      });
+      return;
+    }
+    this.goVerify(res.email);
   }
 
   private goVerify(email: string): void {

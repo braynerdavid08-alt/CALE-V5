@@ -13,6 +13,8 @@ public sealed class LoggingEmailSender : IEmailSender
     public LoggingEmailSender(ILogger<LoggingEmailSender> logger) =>
         _logger = logger;
 
+    public bool IsConfigured => false;
+
     public Task SendAsync(
         string toEmail,
         string subject,

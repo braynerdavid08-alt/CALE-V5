@@ -287,7 +287,14 @@ public sealed record AuthResponse(
 
 public sealed record PendingEmailConfirmationResponse(
     string Email,
-    string Message);
+    string Message,
+    bool RequiresEmailConfirmation = true,
+    bool EmailSent = false,
+    string? Token = null,
+    int? UserId = null,
+    string? Name = null,
+    string? Role = null,
+    bool MustChangePassword = false);
 
 public sealed record ConfirmEmailRequest(string Email, string Code);
 

@@ -19,6 +19,13 @@ export interface SchoolPlanDto {
 export interface PendingEmailConfirmationResponse {
   email: string;
   message: string;
+  requiresEmailConfirmation?: boolean;
+  emailSent?: boolean;
+  token?: string;
+  userId?: number;
+  name?: string;
+  role?: string;
+  mustChangePassword?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
