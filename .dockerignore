@@ -1,0 +1,10 @@
+**/.git
+**/bin
+**/obj
+**/node_modules
+**/dist
+**/.angular
+**/cale-dev.db
+**/cale-dev.db-*
+**/*.md
+!CALE-V5-main/docs/DEPLOY.md
