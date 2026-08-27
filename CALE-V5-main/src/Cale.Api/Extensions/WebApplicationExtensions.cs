@@ -1,4 +1,5 @@
 using Cale.Api.Middleware;
+using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Security;
 using Cale.BuildingBlocks.Domain.Time;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
@@ -58,17 +59,47 @@ public static class WebApplicationExtensions
 
         var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
         var clock = scope.ServiceProvider.GetRequiredService<IClock>();
+        var seedLogger = scope.ServiceProvider
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("IdentitySeed");
 
-        if (app.Environment.IsDevelopment()
-            || app.Configuration.GetValue("Seed:DemoUsers", false))
+        var adminEmail = app.Configuration["Seed:Admin:Email"];
+        var adminPassword = app.Configuration["Seed:Admin:Password"];
+        var adminName = app.Configuration["Seed:Admin:Name"] ?? "Administrador";
+        var purgeOthers = app.Configuration.GetValue("Seed:Admin:PurgeOthers", false);
+
+        if (!string.IsNullOrWhiteSpace(adminEmail)
+            && !string.IsNullOrWhiteSpace(adminPassword))
         {
+            await IdentitySeed.EnsureSoleAdminAsync(
+                db,
+                hasher,
+                clock,
+                adminEmail,
+                adminPassword,
+                adminName,
+                purgeOthers,
+                seedLogger);
+        }
+        else if (app.Configuration.GetValue("Seed:DemoUsers", false))
+        {
+            // Optional local demos — never enable on public internet.
             await IdentitySeed.EnsureDemoUsersAsync(db, hasher, clock);
         }
 
         var adminId = await db.Set<User>()
-            .Where(x => x.Email == IdentitySeed.AdminEmail)
+            .Where(x => x.Role == Roles.Admin)
+            .OrderBy(x => x.Id)
             .Select(x => (int?)x.Id)
             .FirstOrDefaultAsync();
+
+        if (adminId is null && !string.IsNullOrWhiteSpace(adminEmail))
+        {
+            adminId = await db.Set<User>()
+                .Where(x => x.Email == adminEmail.Trim().ToLowerInvariant())
+                .Select(x => (int?)x.Id)
+                .FirstOrDefaultAsync();
+        }
 
         var seedDir = Path.Combine(app.Environment.ContentRootPath, "SeedData");
         if (!Directory.Exists(seedDir))
@@ -76,7 +107,7 @@ public static class WebApplicationExtensions
             seedDir = Path.Combine(AppContext.BaseDirectory, "SeedData");
         }
 
-        var logger = scope.ServiceProvider
+        var catalogLogger = scope.ServiceProvider
             .GetRequiredService<ILoggerFactory>()
             .CreateLogger("CatalogSeed");
         await CatalogSeed.EnsureOfficialBanksAsync(
@@ -84,6 +115,6 @@ public static class WebApplicationExtensions
             seedDir,
             clock,
             adminId,
-            logger);
+            catalogLogger);
     }
 }

@@ -1,22 +1,27 @@
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Security;
 using Cale.BuildingBlocks.Domain.Time;
+using Cale.BuildingBlocks.Domain.Validation;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
 using Cale.Modules.Identity.Domain;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Cale.Modules.Identity.Infrastructure;
 
 public static class IdentitySeed
 {
+    /// <summary>Legacy demo emails (tests / optional local Seed:DemoUsers only).</summary>
     public const string AdminEmail = "admin@cale.local";
-    public const string AdminPassword = "Admin123!";
     public const string TeacherEmail = "profesor@cale.local";
-    public const string TeacherPassword = "Profesor123!";
     public const string StudentEmail = "estudiante@cale.local";
-    public const string StudentPassword = "Estudiante123!";
     public const string SchoolEmail = "escuela@cale.local";
-    public const string SchoolPassword = "Escuela123!";
+
+    // Passwords only for optional local demo seed — never used in production bootstrap.
+    private const string DemoAdminPassword = "Admin123!";
+    private const string DemoTeacherPassword = "Profesor123!";
+    private const string DemoStudentPassword = "Estudiante123!";
+    private const string DemoSchoolPassword = "Escuela123!";
 
     private static readonly HashSet<string> DemoEmails = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -26,12 +31,67 @@ public static class IdentitySeed
         SchoolEmail
     };
 
-    public static async Task EnsureAdminAsync(
+    /// <summary>
+    /// Ensures a single admin exists. Password is provided at runtime (env), never from source.
+    /// When <paramref name="purgeOthers"/> is true, deletes every other user account.
+    /// </summary>
+    public static async Task EnsureSoleAdminAsync(
         CaleDbContext db,
         IPasswordHasher hasher,
         IClock clock,
-        CancellationToken ct = default) =>
-        await EnsureDemoUsersAsync(db, hasher, clock, ct);
+        string email,
+        string password,
+        string name,
+        bool purgeOthers,
+        ILogger? logger = null,
+        CancellationToken ct = default)
+    {
+        email = EmailAddress.Normalize(email);
+        name = string.IsNullOrWhiteSpace(name) ? "Administrador" : name.Trim();
+
+        if (string.IsNullOrWhiteSpace(password) || password.Length < 8)
+        {
+            throw new InvalidOperationException(
+                "Seed:Admin:Password must be at least 8 characters (set via environment, not source).");
+        }
+
+        await EnsureUserAsync(
+            db,
+            hasher,
+            clock,
+            email,
+            password,
+            name,
+            (n, e, hash, now) => User.CreateAdmin(n, e, hash, now),
+            ct);
+
+        // Force Admin role if an existing account had another role.
+        var admin = await db.Set<User>().FirstAsync(x => x.Email == email, ct);
+        if (Roles.Normalize(admin.Role) != Roles.Admin)
+        {
+            admin.ChangeRole(Roles.Admin);
+            await db.SaveChangesAsync(ct);
+        }
+
+        if (!admin.EmailConfirmed)
+        {
+            admin.MarkEmailConfirmed();
+            await db.SaveChangesAsync(ct);
+        }
+
+        if (purgeOthers)
+        {
+            var removed = await PurgeAllUsersExceptAsync(db, email, ct);
+            logger?.LogInformation(
+                "Sole-admin seed: kept {Email}, removed {Count} other account(s).",
+                email,
+                removed);
+        }
+        else
+        {
+            logger?.LogInformation("Sole-admin seed: ensured admin {Email}.", email);
+        }
+    }
 
     public static async Task EnsureDemoUsersAsync(
         CaleDbContext db,
@@ -39,7 +99,6 @@ public static class IdentitySeed
         IClock clock,
         CancellationToken ct = default)
     {
-        // Keep only one account per role (the demo set).
         await PurgeNonDemoUsersAsync(db, ct);
 
         await EnsureUserAsync(
@@ -47,7 +106,7 @@ public static class IdentitySeed
             hasher,
             clock,
             AdminEmail,
-            AdminPassword,
+            DemoAdminPassword,
             "Administrador CALE",
             (name, email, hash, now) => User.CreateAdmin(name, email, hash, now),
             ct);
@@ -63,7 +122,7 @@ public static class IdentitySeed
             hasher,
             clock,
             TeacherEmail,
-            TeacherPassword,
+            DemoTeacherPassword,
             "Instructor Demo",
             (name, email, hash, now) => User.CreateTeacher(name, email, hash, now, school.Id),
             ct,
@@ -74,11 +133,48 @@ public static class IdentitySeed
             hasher,
             clock,
             StudentEmail,
-            StudentPassword,
+            DemoStudentPassword,
             "Estudiante Demo",
             (name, email, hash, now) => User.RegisterStudent(name, email, hash, now, school.Id),
             ct,
             school.Id);
+    }
+
+    private static async Task<int> PurgeAllUsersExceptAsync(
+        CaleDbContext db,
+        string keepEmail,
+        CancellationToken ct)
+    {
+        var others = await db.Set<User>()
+            .Where(u => u.Email != keepEmail)
+            .ToListAsync(ct);
+
+        if (others.Count == 0)
+        {
+            return 0;
+        }
+
+        var ids = others.Select(u => u.Id).ToHashSet();
+
+        var profiles = await db.Set<SchoolProfile>()
+            .Where(p => ids.Contains(p.UserId))
+            .ToListAsync(ct);
+        if (profiles.Count > 0)
+        {
+            db.Set<SchoolProfile>().RemoveRange(profiles);
+        }
+
+        var events = await db.Set<MembershipEvent>()
+            .Where(e => ids.Contains(e.SchoolUserId) || (e.ActorUserId != null && ids.Contains(e.ActorUserId.Value)))
+            .ToListAsync(ct);
+        if (events.Count > 0)
+        {
+            db.Set<MembershipEvent>().RemoveRange(events);
+        }
+
+        db.Set<User>().RemoveRange(others);
+        await db.SaveChangesAsync(ct);
+        return others.Count;
     }
 
     private static async Task PurgeNonDemoUsersAsync(CaleDbContext db, CancellationToken ct)
@@ -119,7 +215,7 @@ public static class IdentitySeed
             user = User.RegisterSchool(
                 "Escuela Demo",
                 SchoolEmail,
-                hasher.Hash(SchoolPassword),
+                hasher.Hash(DemoSchoolPassword),
                 clock.UtcNow);
             user.MarkEmailConfirmed();
             db.Set<User>().Add(user);
@@ -132,9 +228,9 @@ public static class IdentitySeed
                 user.MarkEmailConfirmed();
             }
 
-            if (!hasher.Verify(SchoolPassword, user.PasswordHash))
+            if (!hasher.Verify(DemoSchoolPassword, user.PasswordHash))
             {
-                user.ChangePassword(hasher.Hash(SchoolPassword));
+                user.ChangePassword(hasher.Hash(DemoSchoolPassword));
             }
 
             if (!user.IsActive)
@@ -203,9 +299,16 @@ public static class IdentitySeed
             user.MarkEmailConfirmed();
             changed = true;
         }
+
         if (!hasher.Verify(password, user.PasswordHash))
         {
             user.ChangePassword(hasher.Hash(password));
+            changed = true;
+        }
+
+        if (!string.Equals(user.Name, name, StringComparison.Ordinal))
+        {
+            user.UpdateProfile(name, user.Email);
             changed = true;
         }
 

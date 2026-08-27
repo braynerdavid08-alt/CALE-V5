@@ -129,3 +129,16 @@ Email__Smtp__UseSsl=true
 ```
 
 Sin SMTP configurado, el código se escribe en los **logs del servidor** (útil en local).
+
+### Admin único (producción)
+
+**Nunca** pongas la contraseña en el código ni en GitHub. En el panel del hosting define:
+
+```env
+Seed__Admin__Email=tu-correo@dominio.com
+Seed__Admin__Name=Tu Nombre
+Seed__Admin__Password=TU_CLAVE_FUERTE
+Seed__Admin__PurgeOthers=true
+```
+
+Al arrancar, la API crea/actualiza ese admin (clave en **hash** en la BD) y, si `PurgeOthers=true`, **borra el resto de cuentas**. Luego puedes poner `PurgeOthers=false` para no limpiar en cada redeploy.
