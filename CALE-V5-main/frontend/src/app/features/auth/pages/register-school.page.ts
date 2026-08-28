@@ -7,6 +7,7 @@ import { AuthApi, SchoolPlanDto } from '../api/auth.api';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiThemeToggleComponent } from '../../../shared/ui/ui-theme-toggle.component';
+import { AuthBackHomeComponent } from '../components/auth-back-home.component';
 import { BRAND } from '../../../core/brand';
 
 @Component({
@@ -18,7 +19,8 @@ import { BRAND } from '../../../core/brand';
     CurrencyPipe,
     UiButtonComponent,
     UiErrorComponent,
-    UiThemeToggleComponent
+    UiThemeToggleComponent,
+    AuthBackHomeComponent
   ],
   templateUrl: './register-school.page.html',
   styleUrl: './register-school.page.css'

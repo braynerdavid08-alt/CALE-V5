@@ -1,5 +1,11 @@
 @import './login.page.css';
 
+:host {
+  display: block;
+  position: relative;
+  min-height: 100vh;
+}
+
 .school-auth {
   width: min(980px, 100%);
   align-items: stretch;

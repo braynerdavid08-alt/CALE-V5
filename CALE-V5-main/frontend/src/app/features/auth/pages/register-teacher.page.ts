@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiThemeToggleComponent } from '../../../shared/ui/ui-theme-toggle.component';
+import { AuthBackHomeComponent } from '../components/auth-back-home.component';
 import { AuthFacade } from '../application/auth.facade';
 import { BRAND } from '../../../core/brand';
 
@@ -15,7 +16,8 @@ import { BRAND } from '../../../core/brand';
     RouterLink,
     UiButtonComponent,
     UiErrorComponent,
-    UiThemeToggleComponent
+    UiThemeToggleComponent,
+    AuthBackHomeComponent
   ],
   templateUrl: './register-teacher.page.html',
   styleUrl: './login.page.css'

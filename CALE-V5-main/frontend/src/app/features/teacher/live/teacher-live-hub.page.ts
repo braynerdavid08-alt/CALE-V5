@@ -1,9 +1,11 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { mapApiError } from '../../../core/http/map-api-error';
+import { SessionStore } from '../../../core/auth/session.store';
+import { AuthApi } from '../../auth/api/auth.api';
 import { LiveApi } from '../../live/api/live.api';
 
 @Component({
@@ -19,6 +21,15 @@ import { LiveApi } from '../../live/api/live.api';
           Proyecta simulacros del banco CALE. Los estudiantes entran con QR o código desde el celular.
         </p>
       </header>
+
+      @if (accessHint(); as hint) {
+        <div class="access-banner" [class.warn]="hint.kind === 'school'">
+          <p>{{ hint.message }}</p>
+          @if (hint.link) {
+            <a [routerLink]="hint.link">Ir a {{ hint.linkLabel }}</a>
+          }
+        </div>
+      }
 
       <ui-error [message]="error()" />
 
@@ -55,7 +66,9 @@ import { LiveApi } from '../../live/api/live.api';
                 </label>
               </div>
             }
-            <ui-button type="submit" [loading]="loading()">Crear sala y proyectar</ui-button>
+            <ui-button type="submit" [loading]="loading()" [disabled]="!!accessHint()">
+              Crear sala y proyectar
+            </ui-button>
           </form>
         </article>
 
@@ -79,6 +92,20 @@ import { LiveApi } from '../../live/api/live.api';
     .page { padding: var(--page-pad); max-width: 960px; margin: 0 auto; }
     .eyebrow { color: var(--color-primary); font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; font-size: var(--text-xs); }
     .lead { color: var(--color-text-secondary); }
+    .access-banner {
+      margin: 1rem 0;
+      padding: 0.85rem 1rem;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      font-size: var(--text-sm);
+    }
+    .access-banner.warn {
+      border-color: color-mix(in srgb, var(--color-warning, #f0b429) 55%, var(--color-border));
+      background: color-mix(in srgb, var(--color-warning, #f0b429) 12%, var(--color-surface));
+    }
+    .access-banner p { margin: 0 0 0.5rem; }
+    .access-banner a { color: var(--color-primary); font-weight: 700; }
     .modes { display: grid; gap: 1rem; margin-top: 1.25rem; }
     .card { border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.1rem; background: var(--color-surface); }
     .card.muted { opacity: 0.65; }
@@ -92,13 +119,56 @@ import { LiveApi } from '../../live/api/live.api';
     @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
   `
 })
-export class TeacherLiveHubPage {
+export class TeacherLiveHubPage implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(LiveApi);
+  private readonly authApi = inject(AuthApi);
+  private readonly session = inject(SessionStore);
   private readonly router = inject(Router);
 
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
+  readonly contextReady = signal(false);
+
+  readonly accessHint = computed(() => {
+    if (!this.contextReady()) {
+      return null;
+    }
+    const user = this.session.user();
+    if (!user || user.role === 'Admin') {
+      return null;
+    }
+    if (user.role === 'School') {
+      if (!user.isMembershipActive) {
+        return {
+          kind: 'membership' as const,
+          message: 'Tu escuela necesita un plan activo para usar Aula en Vivo.',
+          link: '/school/membership',
+          linkLabel: 'membresía'
+        };
+      }
+      return null;
+    }
+    if (user.role === 'Teacher') {
+      if (!user.schoolId) {
+        return {
+          kind: 'school' as const,
+          message: 'Aún no estás vinculado a una escuela. Solicita unirte con el NIT o correo de la escuela.',
+          link: '/profile',
+          linkLabel: 'tu perfil'
+        };
+      }
+      if (!user.isMembershipActive) {
+        return {
+          kind: 'membership' as const,
+          message: 'Tu escuela no tiene plan activo. Pide a la escuela que active la membresía.',
+          link: '/profile',
+          linkLabel: 'tu perfil'
+        };
+      }
+    }
+    return null;
+  });
 
   readonly form = this.fb.nonNullable.group({
     title: ['CALE Aula en Vivo'],
@@ -108,7 +178,27 @@ export class TeacherLiveHubPage {
     secondsPerQuestion: [30]
   });
 
+  ngOnInit(): void {
+    this.authApi.me().subscribe({
+      next: (dto) => {
+        this.session.patchUser({
+          id: dto.id,
+          name: dto.name,
+          email: dto.email,
+          role: dto.role,
+          mustChangePassword: !!dto.mustChangePassword
+        });
+        this.session.applySchoolContext(dto.school ?? null);
+        this.contextReady.set(true);
+      },
+      error: () => this.contextReady.set(true)
+    });
+  }
+
   create(): void {
+    if (this.accessHint()) {
+      return;
+    }
     this.error.set(null);
     this.loading.set(true);
     const v = this.form.getRawValue();

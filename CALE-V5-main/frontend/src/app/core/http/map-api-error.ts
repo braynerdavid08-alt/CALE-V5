@@ -20,7 +20,7 @@ const messages: Record<string, string> = {
   membership_inactive: 'Tu membresía no está activa. Solicita un plan, sube el comprobante y espera la verificación del administrador.',
   catalog_access_denied: 'No tienes acceso al catálogo de preguntas. Tu escuela necesita un plan activo.',
   simulacro_access_denied: 'No puedes usar simulacros sin una escuela con plan activo.',
-  school_not_linked: 'No estás vinculado a una escuela. Pide a tu escuela que te registre.',
+  school_not_linked: 'No estás vinculado a una escuela. Ve a Perfil → Tu escuela y solicita unirte con el NIT o correo de la escuela.',
   school_not_found: 'No encontramos una escuela con ese NIT o correo.',
   invalid_school_query: 'Indica el NIT o el correo de la escuela (mínimo 3 caracteres).',
   teacher_only: 'Solo los instructores pueden solicitar unirse a una escuela.',

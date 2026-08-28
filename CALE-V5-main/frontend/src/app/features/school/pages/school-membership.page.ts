@@ -578,10 +578,25 @@ export class SchoolMembershipPage implements OnInit {
 
   async copyText(value: string, label: string): Promise<void> {
     try {
-      await navigator.clipboard.writeText(value);
+      if (navigator.clipboard?.writeText && window.isSecureContext) {
+        await navigator.clipboard.writeText(value);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = value;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (!ok) {
+          throw new Error('copy_failed');
+        }
+      }
       this.success.set(`${label} copiado.`);
     } catch {
-      this.error.set(`No se pudo copiar ${label.toLowerCase()}.`);
+      this.error.set(`No se pudo copiar ${label.toLowerCase()}. Selecciona y copia manualmente.`);
     }
   }
 
