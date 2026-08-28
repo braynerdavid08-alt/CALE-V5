@@ -7,6 +7,7 @@ using Cale.BuildingBlocks.Infrastructure.Security;
 using Cale.BuildingBlocks.Infrastructure.Time;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -52,6 +53,7 @@ public static class DependencyInjection
                     options.UseSqlite(builder.ToString(), sqlite =>
                     {
                         sqlite.CommandTimeout(30);
+                        sqlite.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
                     });
                     break;
                 }
@@ -59,12 +61,14 @@ public static class DependencyInjection
                     options.UseNpgsql(connection, npgsql =>
                     {
                         npgsql.CommandTimeout(30);
+                        npgsql.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
                     });
                     break;
                 default:
                     options.UseSqlServer(connection, sql =>
                     {
                         sql.CommandTimeout(30);
+                        sql.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
                     });
                     break;
             }
