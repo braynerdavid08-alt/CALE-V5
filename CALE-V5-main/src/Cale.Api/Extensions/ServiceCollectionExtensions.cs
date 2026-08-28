@@ -16,6 +16,8 @@ using Cale.Modules.Identity.Infrastructure.Persistence;
 using Cale.Modules.LiveClassroom.Application.Abstractions;
 using Cale.Modules.LiveClassroom.Infrastructure;
 using Cale.Modules.LiveClassroom.Infrastructure.Persistence;
+using Cale.Modules.TheoreticalTraining.Infrastructure;
+using Cale.Modules.TheoreticalTraining.Infrastructure.Persistence;
 using Cale.Modules.Presentation.Infrastructure;
 using Cale.Modules.Presentation.Infrastructure.Persistence;
 using Cale.Api.Hubs;
@@ -64,12 +66,14 @@ public static class ServiceCollectionExtensions
                 typeof(GroupConfiguration).Assembly,
                 typeof(NotificationConfiguration).Assembly,
                 typeof(PresentationDeckConfiguration).Assembly,
-                typeof(LiveSessionConfiguration).Assembly));
+                typeof(LiveSessionConfiguration).Assembly,
+                typeof(TheoryTopicConfiguration).Assembly));
         services.AddIdentityModule();
         services.AddCatalogModule();
         services.AddAssessmentModule();
         services.AddClassroomModule();
         services.AddLiveClassroomModule();
+        services.AddTheoreticalTrainingModule();
         services.AddEngagementModule();
         services.AddPresentationModule();
         services.AddScoped<ILiveSessionBroadcaster, LiveSessionBroadcaster>();

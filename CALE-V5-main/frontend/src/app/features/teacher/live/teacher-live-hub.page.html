@@ -22,14 +22,6 @@
     <article class="card active">
       <h2>Configurar simulacro</h2>
 
-      <div class="scenarios">
-        <span>Escenarios rápidos:</span>
-        <button type="button" class="chip" (click)="applyScenario('normas')">Solo Normas</button>
-        <button type="button" class="chip" (click)="applyScenario('senales')">Solo Señales</button>
-        <button type="button" class="chip" (click)="applyScenario('mix')">Mix Normas + Señales</button>
-        <button type="button" class="chip" (click)="applyScenario('cale')">CALE completo (25)</button>
-      </div>
-
       <form [formGroup]="form" (ngSubmit)="create()">
         <label class="field">
           Título de la actividad

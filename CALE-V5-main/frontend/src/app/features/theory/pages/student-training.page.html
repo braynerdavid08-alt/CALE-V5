@@ -1,0 +1,119 @@
+<section class="page">
+  <header class="hero">
+    <p class="eyebrow">Mi formación</p>
+    <h1>Clases teóricas</h1>
+    <p class="lead">Consulta tu programación, reserva cupos y sigue tu progreso.</p>
+  </header>
+
+  <ui-error [message]="error()" />
+
+  @if (loading()) {
+    <ui-loading />
+  } @else {
+    @let dash = dashboard()!;
+    <div class="grid-top">
+      <article class="card highlight">
+        <h2>Próxima clase</h2>
+        @if (dash.nextClass; as next) {
+          <p class="topic" [style.borderColor]="next.topicColor">
+            <span class="dot" [style.background]="next.topicColor"></span>
+            {{ next.topicName }}
+          </p>
+          <p class="when">
+            {{ next.sessionDate | date:'EEEE d MMM':'':'es' }}
+            · {{ next.startTime }} – {{ next.endTime }}
+          </p>
+          <p class="meta">{{ next.classroomName }} · {{ next.bookingMessage }}</p>
+        } @else {
+          <p class="empty">No tienes clases reservadas próximamente.</p>
+        }
+      </article>
+
+      <article class="card">
+        <h2>Tu actividad de hoy</h2>
+        @if (!dash.checkedInToday) {
+          <ui-button type="button" (click)="checkIn()">Completar check-in</ui-button>
+        } @else {
+          <p class="ok">✅ Ingresaste hoy</p>
+        }
+        <ul class="tasks">
+          @for (t of dash.todayTasks; track t.label) {
+            <li [class.done]="t.done">{{ t.done ? '☑' : '☐' }} {{ t.label }}</li>
+          }
+        </ul>
+        <p class="streak">🔥 Racha: {{ dash.currentStreak }} días · Mejor: {{ dash.bestStreak }}</p>
+      </article>
+
+      <article class="card">
+        <h2>Mi progreso</h2>
+        <p class="progress-num">{{ dash.progressPercent }}%</p>
+        <p>{{ dash.hoursCompleted }} / {{ dash.hoursRequired }} horas</p>
+        <p class="meta">Inasistencias: {{ dash.absences }}</p>
+      </article>
+    </div>
+
+    @if (dash.nextAction) {
+      <div class="banner">{{ dash.nextAction }}
+        @if (dash.reservationCountdownLabel) {
+          <span class="countdown"> · {{ dash.reservationCountdownLabel }}</span>
+        }
+      </div>
+    }
+
+    <div class="toolbar">
+      <h2>Calendario semanal</h2>
+      <div class="tabs">
+        <button type="button" [class.on]="view() === 'week'" (click)="view.set('week')">Semana</button>
+        <button type="button" [class.on]="view() === 'list'" (click)="view.set('list')">Lista</button>
+      </div>
+    </div>
+
+    @if (schedule(); as sch) {
+      @if (view() === 'week') {
+        <div class="week-grid">
+          @for (label of dayLabels; track label; let i = $index) {
+            <div class="day-col">
+              <h3>{{ label }}</h3>
+              @for (session of sessionsByDay(i); track session.id) {
+                <div class="slot" [style.borderLeftColor]="session.topicColor">
+                  <p class="time">{{ session.startTime }} – {{ session.endTime }}</p>
+                  <p class="title">{{ session.topicName }}</p>
+                  <p class="meta">{{ session.classroomName }} · {{ session.reservedCount }}/{{ session.capacity }}</p>
+                  <button
+                    type="button"
+                    class="btn"
+                    [class.reserve]="canReserve(session)"
+                    [class.reserved]="session.bookingState === 'reserved'"
+                    [disabled]="actionLoading() || (!canReserve(session) && session.bookingState !== 'reserved')"
+                    (click)="canReserve(session) ? reserve(session) : (session.bookingState === 'reserved' ? cancel(session) : null)">
+                    {{ bookingLabel(session.bookingState, session.bookingMessage) }}
+                  </button>
+                </div>
+              } @empty {
+                <p class="empty-day">Sin clases</p>
+              }
+            </div>
+          }
+        </div>
+      } @else {
+        <ul class="list">
+          @for (session of sch.sessions; track session.id) {
+            <li class="slot list-item" [style.borderLeftColor]="session.topicColor">
+              <div>
+                <p class="title">{{ session.topicName }}</p>
+                <p class="meta">{{ session.sessionDate }} · {{ session.startTime }} – {{ session.endTime }} · {{ session.classroomName }}</p>
+              </div>
+              <button
+                type="button"
+                class="btn"
+                [disabled]="actionLoading() || (!canReserve(session) && session.bookingState !== 'reserved')"
+                (click)="canReserve(session) ? reserve(session) : (session.bookingState === 'reserved' ? cancel(session) : null)">
+                {{ bookingLabel(session.bookingState, session.bookingMessage) }}
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    }
+  }
+</section>

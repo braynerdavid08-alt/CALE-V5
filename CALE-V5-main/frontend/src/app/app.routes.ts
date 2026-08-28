@@ -173,6 +173,15 @@ export const routes: Routes = [
             .then((m) => m.AdminBanksPage)
       },
       {
+        path: 'school/training',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['School'] },
+        loadComponent: () =>
+          import('./features/theory/pages/school-theory.page')
+            .then((m) => m.SchoolTheoryPage)
+      },
+      {
         path: 'student/simulator',
         canActivate: [roleGuard, simulacroAccessGuard],
         data: { roles: ['Student', 'Teacher', 'Admin'] },
@@ -231,6 +240,15 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/student/pages/student-group.page')
             .then((m) => m.StudentGroupPage)
+      },
+      {
+        path: 'student/training',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['Student'] },
+        loadComponent: () =>
+          import('./features/theory/pages/student-training.page')
+            .then((m) => m.StudentTrainingPage)
       },
       {
         path: 'student',

@@ -1,0 +1,111 @@
+<section class="page">
+  <header class="hero">
+    <p class="eyebrow">Programación académica</p>
+    <h1>Clases teóricas</h1>
+    <p class="lead">Configura horarios, temas, aulas y cupos de tu escuela.</p>
+  </header>
+
+  <ui-error [message]="error()" />
+
+  @if (dashboard(); as dash) {
+    <div class="kpis">
+      <div><strong>{{ dash.classesToday }}</strong><span>Clases hoy</span></div>
+      <div><strong>{{ dash.studentsReserved }}</strong><span>Reservados</span></div>
+      <div><strong>{{ dash.availableSeats }}</strong><span>Cupos libres</span></div>
+      <div><strong>{{ dash.scheduledClasses }}</strong><span>Programadas</span></div>
+    </div>
+  }
+
+  <div class="tabs">
+    <button type="button" [class.on]="tab() === 'schedule'" (click)="tab.set('schedule')">Horario</button>
+    <button type="button" [class.on]="tab() === 'topics'" (click)="tab.set('topics')">Temas</button>
+    <button type="button" [class.on]="tab() === 'classrooms'" (click)="tab.set('classrooms')">Aulas</button>
+  </div>
+
+  @if (loading()) {
+    <ui-loading />
+  } @else if (tab() === 'schedule') {
+    <div class="layout">
+      <div class="grid-wrap">
+        <table class="grid">
+          <thead>
+            <tr>
+              <th></th>
+              @for (d of dayLabels; track d) { <th>{{ d }}</th> }
+            </tr>
+          </thead>
+          <tbody>
+            @for (slot of timeSlots; track slot) {
+              <tr>
+                <th class="slot-label">{{ slot }}</th>
+                @for (d of dayLabels; track d; let i = $index) {
+                  <td>
+                    <button type="button" class="cell" (click)="pickSlot(i, slot)">+</button>
+                    @for (s of sessionsAt(i, slot); track s.id) {
+                      <div class="session" [style.borderColor]="s.topicColor">
+                        <strong>{{ s.topicName }}</strong>
+                        <small>{{ s.classroomName }}</small>
+                        <small>{{ s.reservedCount }}/{{ s.capacity }}</small>
+                      </div>
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="form-card">
+        <h2>Crear clase teórica</h2>
+        <label>Fecha <input type="date" [(ngModel)]="createForm.sessionDate" /></label>
+        <label>Inicio <input type="time" [(ngModel)]="createForm.startTime" /></label>
+        <label>Fin <input type="time" [(ngModel)]="createForm.endTime" /></label>
+        <label>Tema
+          <select [(ngModel)]="createForm.topicId">
+            @for (t of topics(); track t.id) {
+              <option [ngValue]="t.id">{{ t.name }}</option>
+            }
+          </select>
+        </label>
+        <label>Aula
+          <select [(ngModel)]="createForm.classroomId">
+            @for (c of classrooms(); track c.id) {
+              <option [ngValue]="c.id">{{ c.name }} ({{ c.capacity }})</option>
+            }
+          </select>
+        </label>
+        <label>Cupo (opcional) <input type="number" min="0" [(ngModel)]="createForm.capacity" /></label>
+        <label>Observaciones <textarea rows="2" [(ngModel)]="createForm.notes"></textarea></label>
+        <ui-button type="button" (click)="createSession()">Publicar clase</ui-button>
+      </aside>
+    </div>
+  } @else if (tab() === 'topics') {
+    <div class="form-card">
+      <h2>Nuevo tema</h2>
+      <label>Nombre <input [(ngModel)]="newTopic.name" /></label>
+      <label>Descripción <input [(ngModel)]="newTopic.description" /></label>
+      <label>Color <input type="color" [(ngModel)]="newTopic.color" /></label>
+      <ui-button type="button" (click)="saveTopic()">Guardar tema</ui-button>
+    </div>
+    <ul class="items">
+      @for (t of topics(); track t.id) {
+        <li><span class="swatch" [style.background]="t.color"></span>{{ t.name }}</li>
+      }
+    </ul>
+  } @else {
+    <div class="form-card">
+      <h2>Nueva aula</h2>
+      <label>Nombre <input [(ngModel)]="newClassroom.name" /></label>
+      <label>Identificador <input [(ngModel)]="newClassroom.identifier" /></label>
+      <label>Capacidad <input type="number" min="1" [(ngModel)]="newClassroom.capacity" /></label>
+      <label>Ubicación <input [(ngModel)]="newClassroom.location" /></label>
+      <ui-button type="button" (click)="saveClassroom()">Guardar aula</ui-button>
+    </div>
+    <ul class="items">
+      @for (c of classrooms(); track c.id) {
+        <li>{{ c.name }} · {{ c.capacity }} cupos</li>
+      }
+    </ul>
+  }
+</section>

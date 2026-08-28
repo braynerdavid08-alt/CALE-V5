@@ -429,6 +429,103 @@ public static class FeatureSchema
                     ON "SchoolJoinRequests" ("SchoolUserId", "Status");
                 CREATE INDEX IF NOT EXISTS "IX_SchoolJoinRequests_TeacherUserId_Status"
                     ON "SchoolJoinRequests" ("TeacherUserId", "Status");
+                CREATE TABLE IF NOT EXISTS "TheoryTopics" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_TheoryTopics" PRIMARY KEY AUTOINCREMENT,
+                    "SchoolUserId" INTEGER NOT NULL,
+                    "Name" TEXT NOT NULL,
+                    "Description" TEXT NULL,
+                    "Color" TEXT NOT NULL,
+                    "IsActive" INTEGER NOT NULL DEFAULT 1,
+                    "CreatedAt" TEXT NOT NULL,
+                    "UpdatedAt" TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS "IX_TheoryTopics_SchoolUserId" ON "TheoryTopics" ("SchoolUserId");
+                CREATE TABLE IF NOT EXISTS "TheoryClassrooms" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_TheoryClassrooms" PRIMARY KEY AUTOINCREMENT,
+                    "SchoolUserId" INTEGER NOT NULL,
+                    "Name" TEXT NOT NULL,
+                    "Identifier" TEXT NULL,
+                    "Capacity" INTEGER NOT NULL,
+                    "Location" TEXT NULL,
+                    "IsActive" INTEGER NOT NULL DEFAULT 1,
+                    "CreatedAt" TEXT NOT NULL,
+                    "UpdatedAt" TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS "TheoryTrainingSettings" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_TheoryTrainingSettings" PRIMARY KEY AUTOINCREMENT,
+                    "SchoolUserId" INTEGER NOT NULL,
+                    "DefaultDurationMinutes" INTEGER NOT NULL DEFAULT 120,
+                    "MinCancelHours" INTEGER NOT NULL DEFAULT 2,
+                    "ReservationCloseMinutesBefore" INTEGER NOT NULL DEFAULT 0,
+                    "RequiredTheoryHours" INTEGER NOT NULL DEFAULT 20,
+                    "SaturdayEnabled" INTEGER NOT NULL DEFAULT 1,
+                    "UpdatedAt" TEXT NOT NULL
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_TheoryTrainingSettings_SchoolUserId" ON "TheoryTrainingSettings" ("SchoolUserId");
+                CREATE TABLE IF NOT EXISTS "TheoryClassSessions" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_TheoryClassSessions" PRIMARY KEY AUTOINCREMENT,
+                    "SchoolUserId" INTEGER NOT NULL,
+                    "TopicId" INTEGER NOT NULL,
+                    "ClassroomId" INTEGER NOT NULL,
+                    "InstructorUserId" INTEGER NULL,
+                    "SessionDate" TEXT NOT NULL,
+                    "StartTime" TEXT NOT NULL,
+                    "EndTime" TEXT NOT NULL,
+                    "Capacity" INTEGER NOT NULL,
+                    "Status" TEXT NOT NULL,
+                    "ReservationOpenAt" TEXT NOT NULL,
+                    "ReservationCloseAt" TEXT NOT NULL,
+                    "Notes" TEXT NULL,
+                    "CancellationReason" TEXT NULL,
+                    "CancelledByUserId" INTEGER NULL,
+                    "CancelledAt" TEXT NULL,
+                    "CreatedAt" TEXT NOT NULL,
+                    "UpdatedAt" TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS "IX_TheoryClassSessions_SchoolUserId_SessionDate" ON "TheoryClassSessions" ("SchoolUserId", "SessionDate");
+                CREATE TABLE IF NOT EXISTS "TheoryClassReservations" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_TheoryClassReservations" PRIMARY KEY AUTOINCREMENT,
+                    "ClassSessionId" INTEGER NOT NULL,
+                    "StudentUserId" INTEGER NOT NULL,
+                    "Status" TEXT NOT NULL,
+                    "ReservedAt" TEXT NOT NULL,
+                    "CancelledAt" TEXT NULL,
+                    "CancellationReason" TEXT NULL,
+                    "CreatedAt" TEXT NOT NULL,
+                    "UpdatedAt" TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS "IX_TheoryClassReservations_ClassSessionId" ON "TheoryClassReservations" ("ClassSessionId");
+                CREATE INDEX IF NOT EXISTS "IX_TheoryClassReservations_StudentUserId" ON "TheoryClassReservations" ("StudentUserId");
+                CREATE TABLE IF NOT EXISTS "TheoryAttendanceRecords" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_TheoryAttendanceRecords" PRIMARY KEY AUTOINCREMENT,
+                    "ClassSessionId" INTEGER NOT NULL,
+                    "StudentUserId" INTEGER NOT NULL,
+                    "Status" TEXT NOT NULL,
+                    "MarkedByUserId" INTEGER NULL,
+                    "MarkedAt" TEXT NULL,
+                    "Notes" TEXT NULL,
+                    "CreatedAt" TEXT NOT NULL,
+                    "UpdatedAt" TEXT NOT NULL
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_TheoryAttendanceRecords_ClassSessionId_StudentUserId" ON "TheoryAttendanceRecords" ("ClassSessionId", "StudentUserId");
+                CREATE TABLE IF NOT EXISTS "SchoolStudentEnrollments" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_SchoolStudentEnrollments" PRIMARY KEY AUTOINCREMENT,
+                    "SchoolUserId" INTEGER NOT NULL,
+                    "StudentUserId" INTEGER NOT NULL,
+                    "Status" TEXT NOT NULL,
+                    "CreatedAt" TEXT NOT NULL,
+                    "AcceptedAt" TEXT NULL,
+                    "SuspendedAt" TEXT NULL,
+                    "UpdatedAt" TEXT NOT NULL
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_SchoolStudentEnrollments_SchoolUserId_StudentUserId" ON "SchoolStudentEnrollments" ("SchoolUserId", "StudentUserId");
+                CREATE TABLE IF NOT EXISTS "StudentDailyCheckIns" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_StudentDailyCheckIns" PRIMARY KEY AUTOINCREMENT,
+                    "StudentUserId" INTEGER NOT NULL,
+                    "CheckInDate" TEXT NOT NULL,
+                    "CheckInAt" TEXT NOT NULL
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_StudentDailyCheckIns_StudentUserId_CheckInDate" ON "StudentDailyCheckIns" ("StudentUserId", "CheckInDate");
                 """,
                 ct);
 
@@ -597,6 +694,105 @@ public static class FeatureSchema
                 ct);
             await TryPostgresAsync(db,
                 """CREATE INDEX IF NOT EXISTS "IX_SchoolJoinRequests_TeacherUserId_Status" ON "SchoolJoinRequests" ("TeacherUserId", "Status");""",
+                ct);
+            await TryPostgresAsync(db,
+                """
+                CREATE TABLE IF NOT EXISTS "TheoryTopics" (
+                    "Id" serial PRIMARY KEY,
+                    "SchoolUserId" integer NOT NULL,
+                    "Name" varchar(120) NOT NULL,
+                    "Description" varchar(500) NULL,
+                    "Color" varchar(16) NOT NULL,
+                    "IsActive" boolean NOT NULL DEFAULT TRUE,
+                    "CreatedAt" timestamp with time zone NOT NULL,
+                    "UpdatedAt" timestamp with time zone NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS "TheoryClassrooms" (
+                    "Id" serial PRIMARY KEY,
+                    "SchoolUserId" integer NOT NULL,
+                    "Name" varchar(80) NOT NULL,
+                    "Identifier" varchar(40) NULL,
+                    "Capacity" integer NOT NULL,
+                    "Location" varchar(200) NULL,
+                    "IsActive" boolean NOT NULL DEFAULT TRUE,
+                    "CreatedAt" timestamp with time zone NOT NULL,
+                    "UpdatedAt" timestamp with time zone NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS "TheoryTrainingSettings" (
+                    "Id" serial PRIMARY KEY,
+                    "SchoolUserId" integer NOT NULL UNIQUE,
+                    "DefaultDurationMinutes" integer NOT NULL DEFAULT 120,
+                    "MinCancelHours" integer NOT NULL DEFAULT 2,
+                    "ReservationCloseMinutesBefore" integer NOT NULL DEFAULT 0,
+                    "RequiredTheoryHours" integer NOT NULL DEFAULT 20,
+                    "SaturdayEnabled" boolean NOT NULL DEFAULT TRUE,
+                    "UpdatedAt" timestamp with time zone NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS "TheoryClassSessions" (
+                    "Id" serial PRIMARY KEY,
+                    "SchoolUserId" integer NOT NULL,
+                    "TopicId" integer NOT NULL,
+                    "ClassroomId" integer NOT NULL,
+                    "InstructorUserId" integer NULL,
+                    "SessionDate" date NOT NULL,
+                    "StartTime" time NOT NULL,
+                    "EndTime" time NOT NULL,
+                    "Capacity" integer NOT NULL,
+                    "Status" varchar(32) NOT NULL,
+                    "ReservationOpenAt" timestamp with time zone NOT NULL,
+                    "ReservationCloseAt" timestamp with time zone NOT NULL,
+                    "Notes" varchar(500) NULL,
+                    "CancellationReason" varchar(500) NULL,
+                    "CancelledByUserId" integer NULL,
+                    "CancelledAt" timestamp with time zone NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL,
+                    "UpdatedAt" timestamp with time zone NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS "TheoryClassReservations" (
+                    "Id" serial PRIMARY KEY,
+                    "ClassSessionId" integer NOT NULL,
+                    "StudentUserId" integer NOT NULL,
+                    "Status" varchar(32) NOT NULL,
+                    "ReservedAt" timestamp with time zone NOT NULL,
+                    "CancelledAt" timestamp with time zone NULL,
+                    "CancellationReason" varchar(500) NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL,
+                    "UpdatedAt" timestamp with time zone NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS "TheoryAttendanceRecords" (
+                    "Id" serial PRIMARY KEY,
+                    "ClassSessionId" integer NOT NULL,
+                    "StudentUserId" integer NOT NULL,
+                    "Status" varchar(32) NOT NULL,
+                    "MarkedByUserId" integer NULL,
+                    "MarkedAt" timestamp with time zone NULL,
+                    "Notes" varchar(500) NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL,
+                    "UpdatedAt" timestamp with time zone NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS "SchoolStudentEnrollments" (
+                    "Id" serial PRIMARY KEY,
+                    "SchoolUserId" integer NOT NULL,
+                    "StudentUserId" integer NOT NULL,
+                    "Status" varchar(32) NOT NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL,
+                    "AcceptedAt" timestamp with time zone NULL,
+                    "SuspendedAt" timestamp with time zone NULL,
+                    "UpdatedAt" timestamp with time zone NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS "StudentDailyCheckIns" (
+                    "Id" serial PRIMARY KEY,
+                    "StudentUserId" integer NOT NULL,
+                    "CheckInDate" date NOT NULL,
+                    "CheckInAt" timestamp with time zone NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS "IX_TheoryClassSessions_SchoolUserId_SessionDate" ON "TheoryClassSessions" ("SchoolUserId", "SessionDate");
+                CREATE INDEX IF NOT EXISTS "IX_TheoryClassReservations_ClassSessionId" ON "TheoryClassReservations" ("ClassSessionId");
+                CREATE INDEX IF NOT EXISTS "IX_TheoryClassReservations_StudentUserId" ON "TheoryClassReservations" ("StudentUserId");
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_TheoryAttendanceRecords_ClassSessionId_StudentUserId" ON "TheoryAttendanceRecords" ("ClassSessionId", "StudentUserId");
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_SchoolStudentEnrollments_SchoolUserId_StudentUserId" ON "SchoolStudentEnrollments" ("SchoolUserId", "StudentUserId");
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_StudentDailyCheckIns_StudentUserId_CheckInDate" ON "StudentDailyCheckIns" ("StudentUserId", "CheckInDate");
+                """,
                 ct);
             return;
         }

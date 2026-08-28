@@ -296,35 +296,6 @@ export class TeacherLiveHubPage implements OnInit {
     this.selectedDifficulties.set([]);
   }
 
-  applyScenario(kind: 'normas' | 'senales' | 'mix' | 'cale'): void {
-    const all = this.banks();
-    const normas = all.find((b) => b.name.toLowerCase().includes('normas'));
-    const senales = all.find((b) =>
-      b.name.toLowerCase().includes('señal') || b.name.toLowerCase().includes('senal')
-    );
-    this.selectedThemesByBank.set({});
-    this.selectedDifficulties.set([]);
-    this.distributionMode.set('mix');
-
-    if (kind === 'normas' && normas) {
-      this.selectedBankIds.set([normas.id]);
-      this.form.patchValue({ questionCount: 10, secondsPerQuestion: 30 });
-    } else if (kind === 'senales' && senales) {
-      this.selectedBankIds.set([senales.id]);
-      this.form.patchValue({ questionCount: 10, secondsPerQuestion: 30 });
-    } else if (kind === 'mix') {
-      const ids = [normas?.id, senales?.id].filter((id): id is number => !!id);
-      this.selectedBankIds.set(ids.length ? ids : all.map((b) => b.id));
-      this.form.patchValue({ questionCount: 15, secondsPerQuestion: 45 });
-    } else {
-      const ids = all.map((b) => b.id);
-      this.selectedBankIds.set(ids);
-      this.form.patchValue({ questionCount: 25, secondsPerQuestion: 72 });
-    }
-    this.syncQuotasForSelection(this.selectedBankIds());
-    this.error.set(null);
-  }
-
   applyPreset(count: number, seconds: number): void {
     const max = this.maxQuestions();
     if (max < 1) {

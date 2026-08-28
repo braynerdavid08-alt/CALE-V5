@@ -1,0 +1,29 @@
+.page { padding: var(--page-pad); max-width: 1280px; margin: 0 auto; }
+.eyebrow { color: var(--color-primary); font-weight: 800; text-transform: uppercase; font-size: var(--text-xs); }
+.lead { color: var(--color-text-secondary); }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin: 1rem 0; }
+.kpis div { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 0.75rem; text-align: center; background: var(--color-surface); }
+.kpis strong { display: block; font-size: 1.5rem; }
+.kpis span { font-size: var(--text-xs); color: var(--color-text-secondary); }
+.tabs { display: flex; gap: 0.5rem; margin: 1rem 0; }
+.tabs button { border: 1px solid var(--color-border); background: var(--color-background); padding: 0.45rem 0.9rem; border-radius: 999px; cursor: pointer; }
+.tabs button.on { border-color: var(--color-primary); color: var(--color-primary); }
+.layout { display: grid; grid-template-columns: 1fr 300px; gap: 1rem; }
+.grid-wrap { overflow: auto; border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
+.grid { width: 100%; border-collapse: collapse; font-size: var(--text-xs); }
+.grid th, .grid td { border: 1px solid var(--color-border); padding: 0.25rem; vertical-align: top; min-width: 90px; }
+.slot-label { white-space: nowrap; background: var(--color-surface); }
+.cell { width: 100%; border: 0; background: transparent; color: var(--color-text-secondary); cursor: pointer; font-size: var(--text-xs); }
+.session { margin-top: 0.25rem; padding: 0.25rem; border-left: 3px solid; background: var(--color-background); border-radius: 4px; }
+.session strong { display: block; font-size: var(--text-xs); }
+.session small { display: block; color: var(--color-text-secondary); }
+.form-card { border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1rem; background: var(--color-surface); display: grid; gap: 0.5rem; }
+.form-card label { display: grid; gap: 0.25rem; font-size: var(--text-sm); }
+.form-card input, .form-card select, .form-card textarea {
+  padding: 0.5rem; border-radius: var(--radius-md); border: 1px solid var(--color-border);
+  background: var(--color-background); color: var(--color-text);
+}
+.items { list-style: none; padding: 0; margin: 1rem 0; display: grid; gap: 0.35rem; }
+.items li { padding: 0.5rem 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
+.swatch { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 0.5rem; }
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .kpis { grid-template-columns: 1fr 1fr; } }
