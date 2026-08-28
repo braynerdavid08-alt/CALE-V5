@@ -10,12 +10,16 @@ public sealed record LiveSessionConfigDto(
     string FeedbackTiming = "end",
     string? TopicFilter = null,
     string? DifficultyFilter = null,
-    bool CaleStandardPreset = false);
+    bool CaleStandardPreset = false,
+    IReadOnlyList<int>? BankIds = null,
+    IReadOnlyList<string>? TopicFilters = null,
+    Dictionary<int, List<string>>? BankTopicFilters = null);
 
 public sealed record CreateLiveSessionRequest(
     string? Title,
     string Mode,
     int? BankId,
+    IReadOnlyList<int>? BankIds,
     LiveSessionConfigDto? Config);
 
 public sealed record JoinLiveSessionRequest(

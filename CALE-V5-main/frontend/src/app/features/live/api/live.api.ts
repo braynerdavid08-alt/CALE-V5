@@ -15,6 +15,9 @@ export interface LiveSessionConfigDto {
   topicFilter?: string | null;
   difficultyFilter?: string | null;
   caleStandardPreset: boolean;
+  bankIds?: number[] | null;
+  topicFilters?: string[] | null;
+  bankTopicFilters?: Record<number, string[]> | null;
 }
 
 export interface LiveOptionDto {
@@ -167,6 +170,7 @@ export class LiveApi {
     title?: string;
     mode: string;
     bankId?: number | null;
+    bankIds?: number[] | null;
     config?: Partial<LiveSessionConfigDto>;
   }) {
     return this.http.post<LiveLobbyDto>(`${this.base}/sessions`, body);
@@ -263,4 +267,27 @@ export class LiveApi {
   qrImageUrl(joinUrl: string): string {
     return `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(joinUrl)}`;
   }
+}
+
+/** Strip correct answers until the host reveals them (defense in depth vs API/SignalR). */
+export function sanitizeLiveQuestion(q: LiveQuestionPayloadDto): LiveQuestionPayloadDto {
+  if (q.revealCorrect) {
+    return q;
+  }
+  return {
+    ...q,
+    explanation: null,
+    revealCorrect: false,
+    options: q.options.map((o) => ({ ...o, isCorrect: null }))
+  };
+}
+
+export function sanitizeLiveLobby(lobby: LiveLobbyDto): LiveLobbyDto {
+  if (!lobby.currentQuestion) {
+    return lobby;
+  }
+  return {
+    ...lobby,
+    currentQuestion: sanitizeLiveQuestion(lobby.currentQuestion)
+  };
 }

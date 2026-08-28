@@ -1,11 +1,15 @@
 namespace Cale.Modules.Catalog.Application.DTOs;
 
+public sealed record BankThemeDto(string Name, int QuestionCount);
+
 public sealed record BankDto(
     int Id,
     string Name,
     string? Description,
     bool IsActive,
-    int QuestionCount);
+    int QuestionCount,
+    string? ThemeLabel = null,
+    IReadOnlyList<BankThemeDto>? Themes = null);
 
 public sealed record BlockDto(int Id, string Name);
 

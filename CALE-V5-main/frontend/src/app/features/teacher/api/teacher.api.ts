@@ -107,12 +107,19 @@ export interface SubmissionDto {
   status: string;
 }
 
+export interface BankThemeDto {
+  name: string;
+  questionCount: number;
+}
+
 export interface BankAdminDto {
   id: number;
   name: string;
   description?: string | null;
   isActive: boolean;
   questionCount: number;
+  themeLabel?: string | null;
+  themes?: BankThemeDto[] | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -322,9 +329,9 @@ export class TeacherApi {
     >(`${this.base}/api/teacher/results`);
   }
 
-  banks(activeOnly = false) {
+  banks(activeOnly = false, includeThemes = false) {
     return this.http.get<BankAdminDto[]>(
-      `${this.base}/api/banks?activeOnly=${activeOnly}`
+      `${this.base}/api/banks?activeOnly=${activeOnly}&includeThemes=${includeThemes}`
     );
   }
 

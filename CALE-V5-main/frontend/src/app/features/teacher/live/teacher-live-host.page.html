@@ -177,11 +177,16 @@
           @if (l.currentQuestion.imageUrl) {
             <img class="q-img" [src]="l.currentQuestion.imageUrl" alt="" />
           }
-          <ol class="options">
-            @for (opt of l.currentQuestion.options; track opt.id) {
-              <li [class.correct]="opt.isCorrect === true">{{ opt.text }}</li>
+          <ul class="options">
+            @for (opt of l.currentQuestion.options; track opt.id; let i = $index) {
+              <li
+                class="option-card"
+                [class.revealed-correct]="l.revealCorrect && opt.isCorrect === true">
+                <span class="option-letter">{{ optionLetter(i) }}</span>
+                <span class="option-text">{{ opt.text }}</span>
+              </li>
             }
-          </ol>
+          </ul>
           @if (l.currentQuestion.explanation && l.revealCorrect) {
             <p class="explain">{{ l.currentQuestion.explanation }}</p>
           }

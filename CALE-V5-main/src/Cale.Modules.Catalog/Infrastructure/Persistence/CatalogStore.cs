@@ -35,6 +35,13 @@ public sealed class CatalogStore : ICatalogStore
     public Task<int> CountQuestionsInBankAsync(int bankId, CancellationToken ct) =>
         _db.Set<Question>().CountAsync(x => x.BankId == bankId && x.IsActive, ct);
 
+    public async Task<IReadOnlyList<QuestionThemeRow>> ListActiveThemeRowsAsync(
+        CancellationToken ct) =>
+        await _db.Set<Question>()
+            .Where(x => x.IsActive)
+            .Select(x => new QuestionThemeRow(x.BankId, x.Topic, x.Subject, x.Subtopic))
+            .ToListAsync(ct);
+
     public async Task<IReadOnlyList<Block>> ListBlocksAsync(CancellationToken ct) =>
         await _db.Set<Block>().OrderBy(x => x.Name).ToListAsync(ct);
 

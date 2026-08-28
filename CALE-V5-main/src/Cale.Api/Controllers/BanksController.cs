@@ -31,6 +31,7 @@ public sealed class BanksController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> List(
         [FromQuery] bool activeOnly = false,
+        [FromQuery] bool includeThemes = false,
         CancellationToken ct = default)
     {
         var userId = CurrentUser.GetId(User);
@@ -44,7 +45,7 @@ public sealed class BanksController : ControllerBase
             await _access.EnsureSimulacroAsync(userId, role, ct);
         }
 
-        return Ok(await _list.HandleAsync(activeOnly, ct));
+        return Ok(await _list.HandleAsync(activeOnly, ct, includeThemes));
     }
 
     [HttpPost]

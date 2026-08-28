@@ -11,21 +11,91 @@ public sealed class ListBanksHandler
 
     public async Task<IReadOnlyList<BankDto>> HandleAsync(
         bool activeOnly,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool includeThemes = false)
     {
         var banks = await _store.ListBanksAsync(activeOnly, ct);
+        var themesByBank = includeThemes
+            ? await LoadThemesByBankAsync(ct)
+            : new Dictionary<int, (string Label, IReadOnlyList<BankThemeDto> Themes)>();
+
         var result = new List<BankDto>(banks.Count);
         foreach (var bank in banks)
         {
             var count = await _store.CountQuestionsInBankAsync(bank.Id, ct);
+            themesByBank.TryGetValue(bank.Id, out var themePack);
             result.Add(new BankDto(
                 bank.Id,
                 bank.Name,
                 bank.Description,
                 bank.IsActive,
-                count));
+                count,
+                themePack.Label,
+                themePack.Themes));
         }
 
         return result;
     }
+
+    private async Task<Dictionary<int, (string Label, IReadOnlyList<BankThemeDto> Themes)>> LoadThemesByBankAsync(
+        CancellationToken ct)
+    {
+        var rows = await _store.ListActiveThemeRowsAsync(ct);
+        return rows
+            .GroupBy(r => r.BankId)
+            .ToDictionary(g => g.Key, g => PickThemes(g.ToList()));
+    }
+
+    private static (string Label, IReadOnlyList<BankThemeDto> Themes) PickThemes(
+        IReadOnlyList<QuestionThemeRow> rows)
+    {
+        var topics = Group(rows, r => r.Topic);
+        var subjects = Group(rows, r => r.Subject);
+        var subtopics = Group(rows, r => r.Subtopic);
+
+        if (IsUseful(topics))
+        {
+            return ("Temas", topics);
+        }
+
+        if (IsUseful(subjects))
+        {
+            return ("Categorías", subjects);
+        }
+
+        if (IsUseful(subtopics))
+        {
+            return ("Subtemas", subtopics);
+        }
+
+        if (topics.Count > 0)
+        {
+            return ("Temas", topics);
+        }
+
+        if (subjects.Count > 0)
+        {
+            return ("Categorías", subjects);
+        }
+
+        return ("Temas", []);
+    }
+
+    private static IReadOnlyList<BankThemeDto> Group(
+        IReadOnlyList<QuestionThemeRow> rows,
+        Func<QuestionThemeRow, string?> selector) =>
+        rows
+            .Select(selector)
+            .Select(Normalize)
+            .GroupBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .Select(g => new BankThemeDto(g.Key, g.Count()))
+            .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    private static bool IsUseful(IReadOnlyList<BankThemeDto> groups) =>
+        groups.Count is >= 2 and <= 60
+        && groups.Average(g => g.QuestionCount) >= 2;
+
+    private static string Normalize(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "General" : value.Trim();
 }

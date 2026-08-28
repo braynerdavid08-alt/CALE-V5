@@ -47,17 +47,9 @@ public sealed class LiveSessionHandler
         await _access.EnsureSimulacroAsync(hostUserId, role, ct);
 
         var config = MapConfig(request.Config);
-        if (config.CaleStandardPreset)
-        {
-            config = LiveSessionConfig.CaleStandard();
-        }
 
-        var bankId = request.BankId
-            ?? await ResolveDefaultBankIdAsync(ct)
-            ?? throw new DomainException("No hay bancos de preguntas disponibles.", 400, "bank_required");
-
-        var bank = await _catalog.GetBankAsync(bankId, ct)
-            ?? throw new NotFoundException("Bank not found.", "bank_not_found");
+        var bankIds = await ResolveBankIdsAsync(request, ct);
+        config.BankIds = bankIds.ToList();
 
         var code = await GenerateUniqueCodeAsync(ct);
         var session = LiveSession.Create(
@@ -65,14 +57,14 @@ public sealed class LiveSessionHandler
             request.Title ?? "CALE Aula en Vivo",
             code,
             request.Mode,
-            bank.Id,
+            bankIds[0],
             JsonSerializer.Serialize(config, JsonOpts),
             _clock.UtcNow);
 
         await _store.AddAsync(session, ct);
         await _store.SaveChangesAsync(ct);
 
-        return await ToLobbyAsync(session, publicBaseUrl, includeCorrect: true, ct);
+        return await ToLobbyAsync(session, publicBaseUrl, includeCorrect: session.RevealCorrect, ct);
     }
 
     public async Task<LiveLobbyDto> GetHostAsync(
@@ -84,7 +76,7 @@ public sealed class LiveSessionHandler
     {
         var session = await RequireSessionAsync(sessionId, ct);
         EnsureHost(session, hostUserId, isAdmin);
-        return await ToLobbyAsync(session, publicBaseUrl, includeCorrect: true, ct);
+        return await ToLobbyAsync(session, publicBaseUrl, includeCorrect: session.RevealCorrect, ct);
     }
 
     public async Task<LiveLobbyDto> GetParticipantViewAsync(
@@ -307,7 +299,7 @@ public sealed class LiveSessionHandler
                 throw new DomainException("Acción no válida.", 400, "invalid_action");
         }
 
-        return await ToLobbyAsync(session, publicBaseUrl, includeCorrect: true, ct);
+        return await ToLobbyAsync(session, publicBaseUrl, includeCorrect: session.RevealCorrect, ct);
     }
 
     /// <summary>Called by the background timer when QuestionClosesAt has elapsed.</summary>
@@ -692,7 +684,7 @@ public sealed class LiveSessionHandler
             },
             ct);
 
-        var lobby = await ToLobbyAsync(rematch, publicBaseUrl, includeCorrect: true, ct);
+        var lobby = await ToLobbyAsync(rematch, publicBaseUrl, includeCorrect: rematch.RevealCorrect, ct);
         return new LiveRematchResponse(rematch.Id, rematch.JoinCode, joinUrl, lobby);
     }
 
@@ -754,7 +746,7 @@ public sealed class LiveSessionHandler
         }
 
         var usedIds = session.Questions.Select(q => q.QuestionId).ToHashSet();
-        var pool = await _catalog.ListActiveQuestionsInBankAsync(session.BankId, ct);
+        var pool = await LoadQuestionPoolAsync(session, config, ct);
         var unused = pool.Where(q => !usedIds.Contains(q.Id)).ToList();
         if (unused.Count == 0)
         {
@@ -894,29 +886,29 @@ public sealed class LiveSessionHandler
             return;
         }
 
-        var pool = await _catalog.ListActiveQuestionsInBankAsync(session.BankId, ct);
-        IEnumerable<Question> filtered = pool;
-        if (!string.IsNullOrWhiteSpace(config.TopicFilter))
+        var list = await LoadQuestionPoolAsync(session, config, ct);
+        var take = Math.Clamp(config.QuestionCount, 1, 100);
+        if (list.Count == 0)
         {
-            var topic = config.TopicFilter.Trim();
-            filtered = filtered.Where(q =>
-                string.Equals(q.Topic, topic, StringComparison.OrdinalIgnoreCase));
+            throw new DomainException(
+                "No hay preguntas en los bancos o temas seleccionados.",
+                400,
+                "no_questions");
         }
 
-        if (!string.IsNullOrWhiteSpace(config.DifficultyFilter))
+        if (list.Count < take)
         {
-            var diff = config.DifficultyFilter.Trim();
-            filtered = filtered.Where(q =>
-                string.Equals(q.Difficulty, diff, StringComparison.OrdinalIgnoreCase));
+            throw new DomainException(
+                $"Hay {list.Count} preguntas con esos bancos/temas; necesitas al menos {take}.",
+                400,
+                "no_questions");
         }
 
-        var list = filtered.ToList();
         if (config.Randomize)
         {
             list = list.OrderBy(_ => Guid.NewGuid()).ToList();
         }
 
-        var take = Math.Clamp(config.QuestionCount, 1, 100);
         list = list.Take(take).ToList();
 
         var snapshots = new List<LiveSessionQuestion>();
@@ -1220,6 +1212,126 @@ public sealed class LiveSessionHandler
             ? $"/live/join/{joinCode}"
             : $"{publicBaseUrl.TrimEnd('/')}/live/join/{joinCode}";
 
+    private async Task<IReadOnlyList<int>> ResolveBankIdsAsync(
+        CreateLiveSessionRequest request,
+        CancellationToken ct)
+    {
+        var ids = new List<int>();
+        if (request.BankIds is { Count: > 0 })
+        {
+            ids.AddRange(request.BankIds.Where(id => id > 0).Distinct());
+        }
+        else if (request.BankId is int bankId && bankId > 0)
+        {
+            ids.Add(bankId);
+        }
+
+        if (ids.Count == 0)
+        {
+            var fallback = await ResolveDefaultBankIdAsync(ct);
+            if (fallback is null)
+            {
+                throw new DomainException(
+                    "No hay bancos de preguntas disponibles.",
+                    400,
+                    "bank_required");
+            }
+
+            ids.Add(fallback.Value);
+        }
+
+        foreach (var id in ids)
+        {
+            var bank = await _catalog.GetBankAsync(id, ct)
+                ?? throw new NotFoundException("Bank not found.", "bank_not_found");
+            if (!bank.IsActive)
+            {
+                throw new DomainException(
+                    $"El banco «{bank.Name}» no está activo.",
+                    400,
+                    "bank_inactive");
+            }
+        }
+
+        return ids;
+    }
+
+    private async Task<List<Question>> LoadQuestionPoolAsync(
+        LiveSession session,
+        LiveSessionConfig config,
+        CancellationToken ct)
+    {
+        var bankIds = config.BankIds is { Count: > 0 }
+            ? config.BankIds
+            : [session.BankId];
+
+        var pool = new List<Question>();
+        foreach (var bankId in bankIds.Distinct())
+        {
+            pool.AddRange(await _catalog.ListActiveQuestionsInBankAsync(bankId, ct));
+        }
+
+        IEnumerable<Question> filtered = pool
+            .GroupBy(q => q.Id)
+            .Select(g => g.First());
+
+        filtered = filtered.Where(q => MatchesSelectedThemes(q, config));
+
+        if (!string.IsNullOrWhiteSpace(config.DifficultyFilter))
+        {
+            var diff = config.DifficultyFilter.Trim();
+            filtered = filtered.Where(q =>
+                string.Equals(q.Difficulty, diff, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return filtered.ToList();
+    }
+
+    private static bool MatchesSelectedThemes(Question question, LiveSessionConfig config)
+    {
+        if (config.BankTopicFilters is { Count: > 0 }
+            && config.BankTopicFilters.TryGetValue(question.BankId, out var bankThemes)
+            && bankThemes is { Count: > 0 })
+        {
+            var names = new HashSet<string>(
+                bankThemes.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t.Trim()),
+                StringComparer.OrdinalIgnoreCase);
+            return names.Count == 0 || MatchesTheme(question, names);
+        }
+
+        var topics = ResolveTopicFilters(config);
+        return topics.Count == 0 || MatchesTheme(question, topics);
+    }
+
+    private static HashSet<string> ResolveTopicFilters(LiveSessionConfig config)
+    {
+        var topics = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (config.TopicFilters is { Count: > 0 })
+        {
+            foreach (var topic in config.TopicFilters)
+            {
+                if (!string.IsNullOrWhiteSpace(topic))
+                {
+                    topics.Add(topic.Trim());
+                }
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(config.TopicFilter))
+        {
+            topics.Add(config.TopicFilter.Trim());
+        }
+
+        return topics;
+    }
+
+    private static bool MatchesTheme(Question question, HashSet<string> themes) =>
+        themes.Contains(NormalizeTheme(question.Topic))
+        || themes.Contains(NormalizeTheme(question.Subject))
+        || themes.Contains(NormalizeTheme(question.Subtopic));
+
+    private static string NormalizeTheme(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "General" : value.Trim();
+
     private async Task<int?> ResolveDefaultBankIdAsync(CancellationToken ct)
     {
         var banks = await _catalog.ListBanksAsync(activeOnly: true, ct);
@@ -1268,12 +1380,7 @@ public sealed class LiveSessionHandler
             return new LiveSessionConfig();
         }
 
-        if (dto.CaleStandardPreset)
-        {
-            return LiveSessionConfig.CaleStandard();
-        }
-
-        return new LiveSessionConfig
+        LiveSessionConfig config = new()
         {
             QuestionCount = Math.Clamp(dto.QuestionCount, 1, 100),
             SecondsPerQuestion = Math.Clamp(dto.SecondsPerQuestion, 5, 600),
@@ -1284,8 +1391,53 @@ public sealed class LiveSessionHandler
             FeedbackTiming = string.IsNullOrWhiteSpace(dto.FeedbackTiming) ? "end" : dto.FeedbackTiming,
             TopicFilter = dto.TopicFilter,
             DifficultyFilter = dto.DifficultyFilter,
-            CaleStandardPreset = false
+            CaleStandardPreset = dto.CaleStandardPreset
         };
+
+        if (dto.CaleStandardPreset)
+        {
+            config.QuestionCount = 25;
+            config.SecondsPerQuestion = 72;
+            config.Randomize = true;
+            config.ShuffleOptions = true;
+            config.FeedbackTiming = "end";
+        }
+
+        if (dto.BankIds is { Count: > 0 })
+        {
+            config.BankIds = dto.BankIds.Where(id => id > 0).Distinct().ToList();
+        }
+
+        if (dto.TopicFilters is { Count: > 0 })
+        {
+            config.TopicFilters = dto.TopicFilters
+                .Where(t => !string.IsNullOrWhiteSpace(t))
+                .Select(t => t.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+        else if (!string.IsNullOrWhiteSpace(dto.TopicFilter))
+        {
+            config.TopicFilters = [dto.TopicFilter.Trim()];
+        }
+
+        if (config.TopicFilters.Count == 1)
+        {
+            config.TopicFilter = config.TopicFilters[0];
+        }
+
+        if (dto.BankTopicFilters is { Count: > 0 })
+        {
+            config.BankTopicFilters = dto.BankTopicFilters.ToDictionary(
+                kv => kv.Key,
+                kv => (kv.Value ?? [])
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
+                    .Select(t => t.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList());
+        }
+
+        return config;
     }
 
     private static LiveSessionConfig ReadConfig(LiveSession session)
@@ -1312,7 +1464,10 @@ public sealed class LiveSessionHandler
             c.FeedbackTiming,
             c.TopicFilter,
             c.DifficultyFilter,
-            c.CaleStandardPreset);
+            c.CaleStandardPreset,
+            c.BankIds.Count > 0 ? c.BankIds : null,
+            c.TopicFilters.Count > 0 ? c.TopicFilters : null,
+            c.BankTopicFilters.Count > 0 ? c.BankTopicFilters : null);
 
     private static QuestionSnapshot DeserializeSnapshot(string json) =>
         JsonSerializer.Deserialize<QuestionSnapshot>(json, JsonOpts)

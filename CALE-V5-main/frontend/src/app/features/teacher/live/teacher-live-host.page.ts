@@ -12,7 +12,8 @@ import {
   LiveLobbyDto,
   LiveQuestionPayloadDto,
   LiveQuickQuestionRequest,
-  LiveRankingDto
+  LiveRankingDto,
+  sanitizeLiveLobby
 } from '../../live/api/live.api';
 
 interface QuickOptionDraft {
@@ -280,7 +281,8 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   }
 
   private applyLobby(lobby: LiveLobbyDto): void {
-    this.lobby.set(lobby);
+    const safe = lobby.revealCorrect ? lobby : sanitizeLiveLobby(lobby);
+    this.lobby.set(safe);
     this.answersReceived.set(lobby.answersReceived);
     if (lobby.ranking) {
       this.ranking.set(lobby.ranking);
@@ -344,6 +346,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
         this.applyLobby({
           ...current,
           status: 'Running',
+          revealCorrect: false,
           currentQuestion: payload,
           currentQuestionIndex: payload.index,
           questionCount: payload.total,
@@ -398,5 +401,9 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
       return 0;
     }
     return Math.round((100 * this.answersReceived()) / l.participantCount);
+  }
+
+  optionLetter(index: number): string {
+    return String.fromCharCode(65 + index);
   }
 }

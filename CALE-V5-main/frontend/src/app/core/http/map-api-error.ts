@@ -59,6 +59,7 @@ const messages: Record<string, string> = {
   no_questions: 'No hay preguntas en el banco con esos filtros.',
   not_host: 'Solo el instructor de la sala puede controlar la actividad.',
   bank_required: 'No hay bancos de preguntas disponibles.',
+  bank_inactive: 'Uno de los bancos seleccionados no está activo.',
   invalid_doubt_text: 'Escribe una duda de 3 a 280 caracteres.',
   doubt_not_found: 'Duda no encontrada.',
   already_voted: 'Ya votaste esta duda.',

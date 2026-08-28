@@ -11,6 +11,8 @@ public interface ICatalogStore
     Task AddBankAsync(Bank bank, CancellationToken ct);
     Task<int> CountQuestionsInBankAsync(int bankId, CancellationToken ct);
 
+    Task<IReadOnlyList<QuestionThemeRow>> ListActiveThemeRowsAsync(CancellationToken ct);
+
     Task<IReadOnlyList<Block>> ListBlocksAsync(CancellationToken ct);
     Task<Block?> GetBlockAsync(int id, CancellationToken ct);
     Task<Block?> GetBlockByNameAsync(string name, CancellationToken ct);
@@ -61,3 +63,9 @@ public interface ICatalogStore
 
     Task SaveChangesAsync(CancellationToken ct);
 }
+
+public sealed record QuestionThemeRow(
+    int BankId,
+    string? Topic,
+    string? Subject,
+    string? Subtopic);

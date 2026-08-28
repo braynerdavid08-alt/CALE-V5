@@ -10,7 +10,8 @@ import {
   LiveDoubtDto,
   LiveLobbyDto,
   LiveQuestionPayloadDto,
-  LiveRankingDto
+  LiveRankingDto,
+  sanitizeLiveLobby
 } from '../api/live.api';
 import { readLiveParticipant, saveLiveParticipant } from './live-join.page';
 
@@ -168,7 +169,8 @@ export class LivePlayPage implements OnInit, OnDestroy {
 
   private applyLobby(lobby: LiveLobbyDto): void {
     const prevId = this.lobby()?.currentQuestion?.sessionQuestionId;
-    this.lobby.set(lobby);
+    const safe = lobby.revealCorrect ? lobby : sanitizeLiveLobby(lobby);
+    this.lobby.set(safe);
     if (lobby.ranking) {
       this.ranking.set(lobby.ranking);
     }
@@ -206,6 +208,7 @@ export class LivePlayPage implements OnInit, OnDestroy {
         this.applyLobby({
           ...current,
           status: 'Running',
+          revealCorrect: false,
           currentQuestion: payload,
           currentQuestionIndex: payload.index,
           questionCount: payload.total
