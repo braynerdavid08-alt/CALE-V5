@@ -27,6 +27,14 @@ public sealed class ExceptionHandlingMiddleware
         {
             await _next(context);
         }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            // Client navigated away or closed the connection while a query was in flight.
+            if (!context.Response.HasStarted)
+            {
+                context.Response.StatusCode = 499;
+            }
+        }
         catch (Exception ex)
         {
             await WriteProblemAsync(context, ex);
@@ -136,6 +144,11 @@ public sealed class ExceptionHandlingMiddleware
         if (ex is TimeoutException)
         {
             return (504, "Operation timed out.", "timeout");
+        }
+
+        if (ex is OperationCanceledException)
+        {
+            return (499, "Request canceled.", "request_canceled");
         }
 
         var title = _env.IsDevelopment()
