@@ -61,13 +61,11 @@ public static class ColombiaTime
         Enumerable.Range(0, 12)
             .Select(i =>
             {
-                var start = TimeOnly.FromTimeSpan(TimeSpan.FromHours(i * 2));
-                var end = TimeOnly.FromTimeSpan(TimeSpan.FromHours(i * 2 + 2)).AddMinutes(-1);
-                if (i == 11)
-                {
-                    end = new TimeOnly(23, 59);
-                }
-
+                var startHour = i * 2;
+                var start = new TimeOnly(startHour, 0);
+                var end = startHour >= 22
+                    ? new TimeOnly(23, 59)
+                    : new TimeOnly(startHour + 2, 0).AddMinutes(-1);
                 return new TimeSlotDef(start, end);
             })
             .ToList();
