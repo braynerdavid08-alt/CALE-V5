@@ -9,7 +9,8 @@ public sealed record BankDto(
     bool IsActive,
     int QuestionCount,
     string? ThemeLabel = null,
-    IReadOnlyList<BankThemeDto>? Themes = null);
+    IReadOnlyList<BankThemeDto>? Themes = null,
+    IReadOnlyList<BankThemeDto>? Difficulties = null);
 
 public sealed record BlockDto(int Id, string Name);
 

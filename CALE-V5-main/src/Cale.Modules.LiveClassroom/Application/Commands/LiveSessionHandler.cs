@@ -896,6 +896,7 @@ public sealed class LiveSessionHandler
                 "no_questions");
         }
 
+        list = PickQuestions(list, config, take);
         if (list.Count < take)
         {
             throw new DomainException(
@@ -903,13 +904,6 @@ public sealed class LiveSessionHandler
                 400,
                 "no_questions");
         }
-
-        if (config.Randomize)
-        {
-            list = list.OrderBy(_ => Guid.NewGuid()).ToList();
-        }
-
-        list = list.Take(take).ToList();
 
         var snapshots = new List<LiveSessionQuestion>();
         var order = 0;
@@ -1276,15 +1270,104 @@ public sealed class LiveSessionHandler
             .Select(g => g.First());
 
         filtered = filtered.Where(q => MatchesSelectedThemes(q, config));
-
-        if (!string.IsNullOrWhiteSpace(config.DifficultyFilter))
-        {
-            var diff = config.DifficultyFilter.Trim();
-            filtered = filtered.Where(q =>
-                string.Equals(q.Difficulty, diff, StringComparison.OrdinalIgnoreCase));
-        }
+        filtered = filtered.Where(q => MatchesSelectedDifficulties(q, config));
 
         return filtered.ToList();
+    }
+
+    private static List<Question> PickQuestions(
+        List<Question> pool,
+        LiveSessionConfig config,
+        int take)
+    {
+        if (config.BankQuestionQuotas is { Count: > 0 } quotas)
+        {
+            var picked = new List<Question>();
+            var usedIds = new HashSet<int>();
+            foreach (var (bankId, quota) in quotas.Where(kv => kv.Value > 0).OrderBy(kv => kv.Key))
+            {
+                var bankPool = pool.Where(q => q.BankId == bankId).ToList();
+                if (config.Randomize)
+                {
+                    bankPool = bankPool.OrderBy(_ => Guid.NewGuid()).ToList();
+                }
+
+                foreach (var question in bankPool.Take(quota))
+                {
+                    if (usedIds.Add(question.Id))
+                    {
+                        picked.Add(question);
+                    }
+                }
+            }
+
+            var remaining = take - picked.Count;
+            if (remaining > 0)
+            {
+                var rest = pool.Where(q => !usedIds.Contains(q.Id)).ToList();
+                if (config.Randomize)
+                {
+                    rest = rest.OrderBy(_ => Guid.NewGuid()).ToList();
+                }
+
+                foreach (var question in rest.Take(remaining))
+                {
+                    if (usedIds.Add(question.Id))
+                    {
+                        picked.Add(question);
+                    }
+                }
+            }
+
+            if (config.Randomize)
+            {
+                picked = picked.OrderBy(_ => Guid.NewGuid()).ToList();
+            }
+
+            return picked.Take(take).ToList();
+        }
+
+        if (config.Randomize)
+        {
+            pool = pool.OrderBy(_ => Guid.NewGuid()).ToList();
+        }
+
+        return pool.Take(take).ToList();
+    }
+
+    private static bool MatchesSelectedDifficulties(Question question, LiveSessionConfig config)
+    {
+        var filters = ResolveDifficultyFilters(config);
+        if (filters.Count == 0)
+        {
+            return true;
+        }
+
+        var difficulty = string.IsNullOrWhiteSpace(question.Difficulty)
+            ? "Sin nivel"
+            : question.Difficulty.Trim();
+        return filters.Contains(difficulty);
+    }
+
+    private static HashSet<string> ResolveDifficultyFilters(LiveSessionConfig config)
+    {
+        var filters = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (config.DifficultyFilters is { Count: > 0 })
+        {
+            foreach (var difficulty in config.DifficultyFilters)
+            {
+                if (!string.IsNullOrWhiteSpace(difficulty))
+                {
+                    filters.Add(difficulty.Trim());
+                }
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(config.DifficultyFilter))
+        {
+            filters.Add(config.DifficultyFilter.Trim());
+        }
+
+        return filters;
     }
 
     private static bool MatchesSelectedThemes(Question question, LiveSessionConfig config)
@@ -1437,6 +1520,26 @@ public sealed class LiveSessionHandler
                     .ToList());
         }
 
+        if (dto.BankQuestionQuotas is { Count: > 0 })
+        {
+            config.BankQuestionQuotas = dto.BankQuestionQuotas
+                .Where(kv => kv.Key > 0 && kv.Value > 0)
+                .ToDictionary(kv => kv.Key, kv => Math.Clamp(kv.Value, 1, 100));
+        }
+
+        if (dto.DifficultyFilters is { Count: > 0 })
+        {
+            config.DifficultyFilters = dto.DifficultyFilters
+                .Where(d => !string.IsNullOrWhiteSpace(d))
+                .Select(d => d.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (config.DifficultyFilters.Count == 1)
+            {
+                config.DifficultyFilter = config.DifficultyFilters[0];
+            }
+        }
+
         return config;
     }
 
@@ -1467,7 +1570,9 @@ public sealed class LiveSessionHandler
             c.CaleStandardPreset,
             c.BankIds.Count > 0 ? c.BankIds : null,
             c.TopicFilters.Count > 0 ? c.TopicFilters : null,
-            c.BankTopicFilters.Count > 0 ? c.BankTopicFilters : null);
+            c.BankTopicFilters.Count > 0 ? c.BankTopicFilters : null,
+            c.BankQuestionQuotas.Count > 0 ? c.BankQuestionQuotas : null,
+            c.DifficultyFilters.Count > 0 ? c.DifficultyFilters : null);
 
     private static QuestionSnapshot DeserializeSnapshot(string json) =>
         JsonSerializer.Deserialize<QuestionSnapshot>(json, JsonOpts)

@@ -42,6 +42,13 @@ public sealed class CatalogStore : ICatalogStore
             .Select(x => new QuestionThemeRow(x.BankId, x.Topic, x.Subject, x.Subtopic))
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<QuestionDifficultyRow>> ListActiveDifficultyRowsAsync(
+        CancellationToken ct) =>
+        await _db.Set<Question>()
+            .Where(x => x.IsActive)
+            .Select(x => new QuestionDifficultyRow(x.BankId, x.Difficulty))
+            .ToListAsync(ct);
+
     public async Task<IReadOnlyList<Block>> ListBlocksAsync(CancellationToken ct) =>
         await _db.Set<Block>().OrderBy(x => x.Name).ToListAsync(ct);
 

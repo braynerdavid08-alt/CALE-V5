@@ -15,6 +15,7 @@ import {
   LiveRankingDto,
   sanitizeLiveLobby
 } from '../../live/api/live.api';
+import { TeacherApi } from '../api/teacher.api';
 
 interface QuickOptionDraft {
   text: string;
@@ -31,6 +32,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly api = inject(LiveApi);
+  private readonly teacherApi = inject(TeacherApi);
   private hub: HubConnection | null = null;
   private timerId: ReturnType<typeof setInterval> | null = null;
   private autoCloseSent = false;
@@ -55,8 +57,18 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     { text: '' },
     { text: '' }
   ]);
+  private readonly bankNames = signal<Record<number, string>>({});
 
   ngOnInit(): void {
+    this.teacherApi.banks(true, false).subscribe({
+      next: (banks) => {
+        const map: Record<number, string> = {};
+        for (const b of banks) {
+          map[b.id] = b.name;
+        }
+        this.bankNames.set(map);
+      }
+    });
     this.route.paramMap.subscribe((params) => {
       const id = Number(params.get('sessionId'));
       if (!id || Number.isNaN(id)) {
@@ -92,6 +104,47 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
       return false;
     }
     return !!(l.config?.showRanking || l.mode === 'Competitive' || l.status === 'Ended');
+  }
+
+  configSummaryLines(): string[] {
+    const l = this.lobby();
+    if (!l?.config) {
+      return [];
+    }
+    const names = this.bankNames();
+    const bankIds = l.config.bankIds?.length
+      ? l.config.bankIds
+      : l.bankId
+        ? [l.bankId]
+        : [];
+    const lines: string[] = [];
+    if (bankIds.length) {
+      lines.push(
+        `Bancos: ${bankIds.map((id) => names[id] ?? `Banco ${id}`).join(', ')}`
+      );
+    }
+    lines.push(`${l.config.questionCount} preguntas · ${l.config.secondsPerQuestion}s c/u`);
+    const themed = Object.values(l.config.bankTopicFilters ?? {}).filter((t) => t?.length).length;
+    if (themed) {
+      lines.push(`Temas filtrados en ${themed} banco(s)`);
+    }
+    if (l.config.difficultyFilters?.length) {
+      lines.push(`Dificultad: ${l.config.difficultyFilters.join(', ')}`);
+    }
+    const quotas = l.config.bankQuestionQuotas ?? {};
+    const quotaEntries = Object.entries(quotas).filter(([, n]) => (n ?? 0) > 0);
+    if (quotaEntries.length) {
+      lines.push(
+        `Cupos: ${quotaEntries
+          .map(([id, n]) => `${names[Number(id)] ?? id}: ${n}`)
+          .join(' · ')}`
+      );
+    }
+    return lines;
+  }
+
+  duplicateConfig(): void {
+    void this.router.navigate(['/teacher/live']);
   }
 
   control(action: string, quickQuestion?: LiveQuickQuestionRequest): void {

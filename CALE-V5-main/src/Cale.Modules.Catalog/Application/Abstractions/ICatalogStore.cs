@@ -12,6 +12,7 @@ public interface ICatalogStore
     Task<int> CountQuestionsInBankAsync(int bankId, CancellationToken ct);
 
     Task<IReadOnlyList<QuestionThemeRow>> ListActiveThemeRowsAsync(CancellationToken ct);
+    Task<IReadOnlyList<QuestionDifficultyRow>> ListActiveDifficultyRowsAsync(CancellationToken ct);
 
     Task<IReadOnlyList<Block>> ListBlocksAsync(CancellationToken ct);
     Task<Block?> GetBlockAsync(int id, CancellationToken ct);
@@ -69,3 +70,5 @@ public sealed record QuestionThemeRow(
     string? Topic,
     string? Subject,
     string? Subtopic);
+
+public sealed record QuestionDifficultyRow(int BankId, string? Difficulty);

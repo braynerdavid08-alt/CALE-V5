@@ -120,6 +120,7 @@ export interface BankAdminDto {
   questionCount: number;
   themeLabel?: string | null;
   themes?: BankThemeDto[] | null;
+  difficulties?: BankThemeDto[] | null;
 }
 
 @Injectable({ providedIn: 'root' })

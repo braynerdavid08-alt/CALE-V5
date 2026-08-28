@@ -8,6 +8,14 @@
 .host { max-width: 1200px; margin: 0 auto; }
 .eyebrow { color: var(--color-primary); font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; font-size: var(--text-xs); margin: 0; }
 .top { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; margin-bottom: 1rem; }
+.config-summary {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+}
+.config-summary li { margin: 0.2rem 0; }
 .back { color: var(--color-primary); font-weight: 700; }
 .layout { display: grid; grid-template-columns: 300px 1fr; gap: 1.25rem; }
 .lobby-panel, .stage {

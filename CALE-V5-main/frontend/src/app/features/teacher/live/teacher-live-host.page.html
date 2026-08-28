@@ -6,6 +6,13 @@
         <p class="eyebrow">CALE LIVE</p>
         <h1>{{ l.title }}</h1>
         <p class="status">Estado: <strong>{{ l.status }}</strong> · Modo {{ l.mode }}</p>
+        @if (configSummaryLines().length) {
+          <ul class="config-summary">
+            @for (line of configSummaryLines(); track line) {
+              <li>{{ line }}</li>
+            }
+          </ul>
+        }
       </div>
       <a routerLink="/teacher/live" class="back">Volver</a>
     </header>

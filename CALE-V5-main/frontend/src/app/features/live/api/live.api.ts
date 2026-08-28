@@ -18,6 +18,8 @@ export interface LiveSessionConfigDto {
   bankIds?: number[] | null;
   topicFilters?: string[] | null;
   bankTopicFilters?: Record<number, string[]> | null;
+  bankQuestionQuotas?: Record<number, number> | null;
+  difficultyFilters?: string[] | null;
 }
 
 export interface LiveOptionDto {

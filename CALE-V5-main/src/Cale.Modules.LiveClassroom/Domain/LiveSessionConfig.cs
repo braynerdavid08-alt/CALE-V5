@@ -11,10 +11,12 @@ public sealed class LiveSessionConfig
     public string FeedbackTiming { get; set; } = "end"; // end | immediate
     public string? TopicFilter { get; set; }
     public string? DifficultyFilter { get; set; }
+    public List<string> DifficultyFilters { get; set; } = [];
     public bool CaleStandardPreset { get; set; }
     public List<int> BankIds { get; set; } = [];
     public List<string> TopicFilters { get; set; } = [];
     public Dictionary<int, List<string>> BankTopicFilters { get; set; } = [];
+    public Dictionary<int, int> BankQuestionQuotas { get; set; } = [];
 
     public static LiveSessionConfig CaleStandard() => new()
     {

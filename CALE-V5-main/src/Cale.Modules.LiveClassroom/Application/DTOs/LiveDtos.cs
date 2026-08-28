@@ -13,7 +13,9 @@ public sealed record LiveSessionConfigDto(
     bool CaleStandardPreset = false,
     IReadOnlyList<int>? BankIds = null,
     IReadOnlyList<string>? TopicFilters = null,
-    Dictionary<int, List<string>>? BankTopicFilters = null);
+    Dictionary<int, List<string>>? BankTopicFilters = null,
+    Dictionary<int, int>? BankQuestionQuotas = null,
+    IReadOnlyList<string>? DifficultyFilters = null);
 
 public sealed record CreateLiveSessionRequest(
     string? Title,

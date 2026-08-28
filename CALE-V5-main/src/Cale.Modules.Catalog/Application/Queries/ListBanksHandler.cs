@@ -18,12 +18,16 @@ public sealed class ListBanksHandler
         var themesByBank = includeThemes
             ? await LoadThemesByBankAsync(ct)
             : new Dictionary<int, (string Label, IReadOnlyList<BankThemeDto> Themes)>();
+        var difficultiesByBank = includeThemes
+            ? await LoadDifficultiesByBankAsync(ct)
+            : new Dictionary<int, IReadOnlyList<BankThemeDto>>();
 
         var result = new List<BankDto>(banks.Count);
         foreach (var bank in banks)
         {
             var count = await _store.CountQuestionsInBankAsync(bank.Id, ct);
             themesByBank.TryGetValue(bank.Id, out var themePack);
+            difficultiesByBank.TryGetValue(bank.Id, out var difficulties);
             result.Add(new BankDto(
                 bank.Id,
                 bank.Name,
@@ -31,7 +35,8 @@ public sealed class ListBanksHandler
                 bank.IsActive,
                 count,
                 themePack.Label,
-                themePack.Themes));
+                themePack.Themes,
+                difficulties));
         }
 
         return result;
@@ -98,4 +103,20 @@ public sealed class ListBanksHandler
 
     private static string Normalize(string? value) =>
         string.IsNullOrWhiteSpace(value) ? "General" : value.Trim();
+
+    private async Task<Dictionary<int, IReadOnlyList<BankThemeDto>>> LoadDifficultiesByBankAsync(
+        CancellationToken ct)
+    {
+        var rows = await _store.ListActiveDifficultyRowsAsync(ct);
+        return rows
+            .GroupBy(r => r.BankId)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<BankThemeDto>)g
+                    .Select(r => string.IsNullOrWhiteSpace(r.Difficulty) ? "Sin nivel" : r.Difficulty.Trim())
+                    .GroupBy(name => name, StringComparer.OrdinalIgnoreCase)
+                    .Select(grp => new BankThemeDto(grp.Key, grp.Count()))
+                    .OrderBy(d => d.Name, StringComparer.OrdinalIgnoreCase)
+                    .ToList());
+    }
 }
