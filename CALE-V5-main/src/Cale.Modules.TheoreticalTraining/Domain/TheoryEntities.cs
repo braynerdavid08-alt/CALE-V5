@@ -34,6 +34,9 @@ public sealed class TheoryTrainingSettings
     public int ReservationCloseMinutesBefore { get; set; }
     public int RequiredTheoryHours { get; set; } = 20;
     public bool SaturdayEnabled { get; set; } = true;
+    public bool NotifyReservationOpen { get; set; } = true;
+    public bool NotifyClassReminder24h { get; set; } = true;
+    public bool NotifyClassReminder1h { get; set; } = true;
     public DateTime UpdatedAt { get; set; }
 }
 

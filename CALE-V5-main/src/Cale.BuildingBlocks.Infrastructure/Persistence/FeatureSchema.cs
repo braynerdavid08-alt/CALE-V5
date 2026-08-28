@@ -459,6 +459,9 @@ public static class FeatureSchema
                     "ReservationCloseMinutesBefore" INTEGER NOT NULL DEFAULT 0,
                     "RequiredTheoryHours" INTEGER NOT NULL DEFAULT 20,
                     "SaturdayEnabled" INTEGER NOT NULL DEFAULT 1,
+                    "NotifyReservationOpen" INTEGER NOT NULL DEFAULT 1,
+                    "NotifyClassReminder24h" INTEGER NOT NULL DEFAULT 1,
+                    "NotifyClassReminder1h" INTEGER NOT NULL DEFAULT 1,
                     "UpdatedAt" TEXT NOT NULL
                 );
                 CREATE UNIQUE INDEX IF NOT EXISTS "IX_TheoryTrainingSettings_SchoolUserId" ON "TheoryTrainingSettings" ("SchoolUserId");
@@ -536,6 +539,18 @@ public static class FeatureSchema
             await TryAddSqliteColumnAsync(
                 db,
                 """ALTER TABLE "LiveSessionQuestions" ADD COLUMN "IsSurprise" INTEGER NOT NULL DEFAULT 0;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN "NotifyReservationOpen" INTEGER NOT NULL DEFAULT 1;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN "NotifyClassReminder24h" INTEGER NOT NULL DEFAULT 1;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN "NotifyClassReminder1h" INTEGER NOT NULL DEFAULT 1;""",
                 ct);
 
             return;
@@ -646,6 +661,15 @@ public static class FeatureSchema
                 """ALTER TABLE "LiveSessionQuestions" ADD COLUMN IF NOT EXISTS "IsSurprise" boolean NOT NULL DEFAULT FALSE;""",
                 ct);
             await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "NotifyReservationOpen" boolean NOT NULL DEFAULT TRUE;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "NotifyClassReminder24h" boolean NOT NULL DEFAULT TRUE;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "NotifyClassReminder1h" boolean NOT NULL DEFAULT TRUE;""",
+                ct);
+            await TryPostgresAsync(db,
                 """
                 CREATE TABLE IF NOT EXISTS "LiveDoubts" (
                     "Id" serial PRIMARY KEY,
@@ -726,6 +750,9 @@ public static class FeatureSchema
                     "ReservationCloseMinutesBefore" integer NOT NULL DEFAULT 0,
                     "RequiredTheoryHours" integer NOT NULL DEFAULT 20,
                     "SaturdayEnabled" boolean NOT NULL DEFAULT TRUE,
+                    "NotifyReservationOpen" boolean NOT NULL DEFAULT TRUE,
+                    "NotifyClassReminder24h" boolean NOT NULL DEFAULT TRUE,
+                    "NotifyClassReminder1h" boolean NOT NULL DEFAULT TRUE,
                     "UpdatedAt" timestamp with time zone NOT NULL
                 );
                 CREATE TABLE IF NOT EXISTS "TheoryClassSessions" (

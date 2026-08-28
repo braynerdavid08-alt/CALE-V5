@@ -91,6 +91,10 @@ public sealed class SchoolTheoryController : ControllerBase
         return NoContent();
     }
 
+    [HttpGet("sessions/attendance")]
+    public async Task<IActionResult> AttendanceSessions(CancellationToken ct) =>
+        Ok(await _service.ListAttendanceSessionsAsync(SchoolId, ct));
+
     [HttpGet("sessions/{id:int}/attendance")]
     public async Task<IActionResult> Attendance(int id, CancellationToken ct) =>
         Ok(await _service.ListAttendanceAsync(SchoolId, id, ct));
@@ -102,6 +106,16 @@ public sealed class SchoolTheoryController : ControllerBase
         CancellationToken ct)
     {
         await _service.MarkAttendanceAsync(SchoolId, id, SchoolId, request, ct);
+        return NoContent();
+    }
+
+    [HttpPost("sessions/{id:int}/attendance/batch")]
+    public async Task<IActionResult> MarkAttendanceBatch(
+        int id,
+        MarkAttendanceBatchRequest request,
+        CancellationToken ct)
+    {
+        await _service.MarkAttendanceBatchAsync(SchoolId, id, SchoolId, request, ct);
         return NoContent();
     }
 

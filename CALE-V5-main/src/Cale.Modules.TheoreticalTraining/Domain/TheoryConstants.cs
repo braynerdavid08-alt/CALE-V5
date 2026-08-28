@@ -11,6 +11,9 @@ public static class StudentEnrollmentStatuses
 
     public static readonly HashSet<string> CanReserve =
         new(StringComparer.OrdinalIgnoreCase) { Accepted, Active };
+
+    /// <summary>EF-translatable list (do not use HashSet in IQueryable).</summary>
+    public static readonly string[] CanReserveStatuses = [Accepted, Active];
 }
 
 public static class TheoryClassStatuses
@@ -36,10 +39,17 @@ public static class TheoryReservationStatuses
         Reserved, Confirmed, Attended, NoShow
     };
 
+    /// <summary>EF-translatable list (do not use HashSet in IQueryable).</summary>
+    public static readonly string[] OccupiesSeatStatuses =
+        [Reserved, Confirmed, Attended, NoShow];
+
     public static readonly HashSet<string> Active = new(StringComparer.OrdinalIgnoreCase)
     {
         Reserved, Confirmed
     };
+
+    /// <summary>EF-translatable list (do not use HashSet in IQueryable).</summary>
+    public static readonly string[] ActiveStatuses = [Reserved, Confirmed];
 }
 
 public static class TheoryAttendanceStatuses

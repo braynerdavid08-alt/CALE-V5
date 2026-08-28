@@ -166,6 +166,8 @@ export function notificationTypeLabel(type: string): string {
       return 'Administración';
     case 'system':
       return 'Sistema';
+    case 'theory_class':
+      return 'Clase teórica';
     default:
       return 'Aviso';
   }

@@ -1,4 +1,5 @@
 using Cale.BuildingBlocks.Domain.Abstractions;
+using Cale.BuildingBlocks.Domain.Engagement;
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Time;
@@ -163,6 +164,9 @@ public sealed class TheoryTrainingService
         settings.ReservationCloseMinutesBefore = Math.Clamp(request.ReservationCloseMinutesBefore, 0, 180);
         settings.RequiredTheoryHours = Math.Clamp(request.RequiredTheoryHours, 1, 200);
         settings.SaturdayEnabled = request.SaturdayEnabled;
+        settings.NotifyReservationOpen = request.NotifyReservationOpen;
+        settings.NotifyClassReminder24h = request.NotifyClassReminder24h;
+        settings.NotifyClassReminder1h = request.NotifyClassReminder1h;
         settings.UpdatedAt = _clock.UtcNow;
         await _db.SaveChangesAsync(ct);
         return MapSettings(settings);
@@ -285,7 +289,7 @@ public sealed class TheoryTrainingService
 
         var reservations = await _db.Set<TheoryClassReservation>()
             .Where(x => x.ClassSessionId == sessionId
-                && TheoryReservationStatuses.Active.Contains(x.Status))
+                && TheoryReservationStatuses.ActiveStatuses.Contains(x.Status))
             .ToListAsync(ct);
 
         var studentIds = new List<int>();
@@ -305,7 +309,7 @@ public sealed class TheoryTrainingService
                 studentIds,
                 "Clase teórica cancelada",
                 $"La escuela canceló la clase del {session.SessionDate:dd/MM/yyyy} a las {session.StartTime:HH:mm}.",
-                "announcement",
+                NotificationTypes.TheoryClass,
                 null,
                 "theory_class",
                 session.Id,
@@ -348,7 +352,7 @@ public sealed class TheoryTrainingService
             var existing = await _db.Set<TheoryClassReservation>()
                 .FirstOrDefaultAsync(x => x.ClassSessionId == sessionId
                     && x.StudentUserId == studentUserId
-                    && TheoryReservationStatuses.Active.Contains(x.Status), ct);
+                    && TheoryReservationStatuses.ActiveStatuses.Contains(x.Status), ct);
             if (existing is not null)
             {
                 throw new DomainException("Ya tienes esta clase reservada.", 400, "already_reserved");
@@ -372,7 +376,7 @@ public sealed class TheoryTrainingService
                 studentUserId,
                 "Cupo reservado",
                 $"Reservaste la clase del {session.SessionDate:dd/MM/yyyy} a las {session.StartTime:HH:mm}.",
-                "activity",
+                NotificationTypes.TheoryClass,
                 null,
                 "theory_reservation",
                 reservation.Id,
@@ -397,7 +401,7 @@ public sealed class TheoryTrainingService
             .FirstOrDefaultAsync(x => x.Id == reservationId && x.StudentUserId == studentUserId, ct)
             ?? throw new NotFoundException("Reserva no encontrada.", "reservation_not_found");
 
-        if (!TheoryReservationStatuses.Active.Contains(reservation.Status))
+        if (!TheoryReservationStatuses.ActiveStatuses.Contains(reservation.Status))
         {
             throw new DomainException("Esta reserva ya no está activa.", 400, "reservation_inactive");
         }
@@ -431,7 +435,7 @@ public sealed class TheoryTrainingService
         var session = await RequireSessionAsync(schoolUserId, sessionId, ct);
         var reservations = await _db.Set<TheoryClassReservation>()
             .Where(x => x.ClassSessionId == sessionId
-                && TheoryReservationStatuses.OccupiesSeat.Contains(x.Status))
+                && TheoryReservationStatuses.OccupiesSeatStatuses.Contains(x.Status))
             .ToListAsync(ct);
         var attendance = await _db.Set<TheoryAttendanceRecord>()
             .Where(x => x.ClassSessionId == sessionId)
@@ -483,7 +487,7 @@ public sealed class TheoryTrainingService
         var reservation = await _db.Set<TheoryClassReservation>()
             .FirstOrDefaultAsync(x => x.ClassSessionId == sessionId
                 && x.StudentUserId == request.StudentUserId
-                && TheoryReservationStatuses.OccupiesSeat.Contains(x.Status), ct);
+                && TheoryReservationStatuses.OccupiesSeatStatuses.Contains(x.Status), ct);
         if (reservation is not null)
         {
             reservation.Status = request.Status switch
@@ -496,6 +500,188 @@ public sealed class TheoryTrainingService
         }
 
         await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task MarkAttendanceBatchAsync(
+        int schoolUserId,
+        int sessionId,
+        int markerUserId,
+        MarkAttendanceBatchRequest request,
+        CancellationToken ct)
+    {
+        foreach (var row in request.Rows)
+        {
+            await MarkAttendanceAsync(schoolUserId, sessionId, markerUserId, row, ct);
+        }
+    }
+
+    public async Task<IReadOnlyList<TheoryClassSessionDto>> ListAttendanceSessionsAsync(
+        int schoolUserId,
+        CancellationToken ct)
+    {
+        var today = ColombiaTime.TodayInColombia();
+        var fromDate = today.AddDays(-3);
+        var toDate = today.AddDays(14);
+        var sessionIds = await (
+            from s in _db.Set<TheoryClassSession>()
+            join r in _db.Set<TheoryClassReservation>() on s.Id equals r.ClassSessionId
+            where s.SchoolUserId == schoolUserId
+                && s.SessionDate >= fromDate
+                && s.SessionDate <= toDate
+                && s.Status != TheoryClassStatuses.Cancelled
+                && TheoryReservationStatuses.OccupiesSeatStatuses.Contains(r.Status)
+            select s.Id)
+            .Distinct()
+            .ToListAsync(ct);
+
+        var sessions = await _db.Set<TheoryClassSession>()
+            .Where(s => sessionIds.Contains(s.Id))
+            .OrderBy(s => s.SessionDate)
+            .ThenBy(s => s.StartTime)
+            .ToListAsync(ct);
+
+        var result = new List<TheoryClassSessionDto>();
+        foreach (var s in sessions)
+        {
+            result.Add(await MapSessionAsync(s.Id, null, ct));
+        }
+
+        return result;
+    }
+
+    public async Task ProcessRemindersAsync(CancellationToken ct)
+    {
+        var now = _clock.UtcNow;
+        var recentOpen = now.AddMinutes(-10);
+
+        var openedSessions = await _db.Set<TheoryClassSession>()
+            .Include(x => x.Topic)
+            .Where(x => x.Status == TheoryClassStatuses.Scheduled
+                && x.ReservationOpenAt <= now
+                && x.ReservationOpenAt > recentOpen)
+            .ToListAsync(ct);
+
+        foreach (var session in openedSessions)
+        {
+            var settings = await GetOrCreateSettingsAsync(session.SchoolUserId, ct);
+            if (!settings.NotifyReservationOpen)
+            {
+                continue;
+            }
+
+            var students = await GetActiveStudentIdsAsync(session.SchoolUserId, ct);
+            var reserved = await _db.Set<TheoryClassReservation>()
+                .Where(x => x.ClassSessionId == session.Id
+                    && TheoryReservationStatuses.ActiveStatuses.Contains(x.Status))
+                .Select(x => x.StudentUserId)
+                .ToListAsync(ct);
+            var targets = students.Except(reserved).ToList();
+            foreach (var studentId in targets)
+            {
+                await _notifications.NotifyUsersAsync(
+                    [studentId],
+                    new NotificationDraft(
+                        "Reservas abiertas",
+                        $"Ya puedes reservar: {session.Topic?.Name ?? "Clase teórica"} · {session.SessionDate:dd/MM/yyyy} {session.StartTime:HH:mm}.",
+                        NotificationTypes.TheoryClass,
+                        RelatedEntity: "theory_class",
+                        RelatedId: session.Id,
+                        Link: "/student/training",
+                        DedupeKey: $"theory:open:{session.Id}:{studentId}"),
+                    ct);
+            }
+        }
+
+        await SendClassRemindersAsync(
+            now.AddHours(23),
+            now.AddHours(25),
+            settings => settings.NotifyClassReminder24h,
+            "24h",
+            "Recuerda que tienes clase mañana",
+            ct);
+
+        await SendClassRemindersAsync(
+            now.AddMinutes(55),
+            now.AddMinutes(65),
+            settings => settings.NotifyClassReminder1h,
+            "1h",
+            "Tu clase comienza en 1 hora",
+            ct);
+    }
+
+    private async Task SendClassRemindersAsync(
+        DateTime windowStart,
+        DateTime windowEnd,
+        Func<TheoryTrainingSettings, bool> enabled,
+        string kind,
+        string titlePrefix,
+        CancellationToken ct)
+    {
+        var today = ColombiaTime.TodayInColombia();
+        var fromDate = today.AddDays(-1);
+        var toDate = today.AddDays(2);
+        var sessions = await _db.Set<TheoryClassSession>()
+            .Include(x => x.Topic)
+            .Include(x => x.Classroom)
+            .Where(x => x.Status == TheoryClassStatuses.Scheduled
+                && x.SessionDate >= fromDate
+                && x.SessionDate <= toDate)
+            .ToListAsync(ct);
+
+        foreach (var session in sessions)
+        {
+            var startUtc = ColombiaTime.ToUtc(session.SessionDate, session.StartTime);
+            if (startUtc < windowStart || startUtc > windowEnd)
+            {
+                continue;
+            }
+
+            var settings = await GetOrCreateSettingsAsync(session.SchoolUserId, ct);
+            if (!enabled(settings))
+            {
+                continue;
+            }
+
+            var studentIds = await _db.Set<TheoryClassReservation>()
+                .Where(x => x.ClassSessionId == session.Id
+                    && TheoryReservationStatuses.ActiveStatuses.Contains(x.Status))
+                .Select(x => x.StudentUserId)
+                .ToListAsync(ct);
+
+            foreach (var studentId in studentIds)
+            {
+                await _notifications.NotifyUsersAsync(
+                    [studentId],
+                    new NotificationDraft(
+                        titlePrefix,
+                        $"{session.Topic?.Name ?? "Clase teórica"} · {session.SessionDate:dd/MM/yyyy} {session.StartTime:HH:mm} · {session.Classroom?.Name ?? "Aula"}",
+                        NotificationTypes.TheoryClass,
+                        RelatedEntity: "theory_class",
+                        RelatedId: session.Id,
+                        Link: "/student/training",
+                        DedupeKey: $"theory:remind:{kind}:{session.Id}:{studentId}"),
+                    ct);
+            }
+        }
+    }
+
+    private async Task<List<int>> GetActiveStudentIdsAsync(int schoolUserId, CancellationToken ct)
+    {
+        var enrolled = await _db.Set<SchoolStudentEnrollment>()
+            .Where(x => x.SchoolUserId == schoolUserId
+                && StudentEnrollmentStatuses.CanReserveStatuses.Contains(x.Status))
+            .Select(x => x.StudentUserId)
+            .ToListAsync(ct);
+        if (enrolled.Count > 0)
+        {
+            return enrolled;
+        }
+
+        var users = await _users.ListBySchoolAsync(schoolUserId, ct);
+        return users
+            .Where(x => x.Role == Roles.Student && x.IsActive)
+            .Select(x => x.Id)
+            .ToList();
     }
 
     // ── Dashboards ──────────────────────────────────────────────────────
@@ -515,7 +701,7 @@ public sealed class TheoryTrainingService
             ? 0
             : await _db.Set<TheoryClassReservation>()
                 .CountAsync(x => sessionIds.Contains(x.ClassSessionId)
-                    && TheoryReservationStatuses.OccupiesSeat.Contains(x.Status), ct);
+                    && TheoryReservationStatuses.OccupiesSeatStatuses.Contains(x.Status), ct);
         var capacity = sessionsToday.Sum(x => x.Capacity);
         var absences = sessionIds.Count == 0
             ? 0
@@ -548,7 +734,7 @@ public sealed class TheoryTrainingService
             .Include(x => x.ClassSession)!.ThenInclude(s => s!.Topic)
             .Include(x => x.ClassSession)!.ThenInclude(s => s!.Classroom)
             .Where(x => x.StudentUserId == studentUserId
-                && TheoryReservationStatuses.OccupiesSeat.Contains(x.Status))
+                && TheoryReservationStatuses.OccupiesSeatStatuses.Contains(x.Status))
             .ToListAsync(ct);
 
         var upcoming = myReservations
@@ -746,7 +932,7 @@ public sealed class TheoryTrainingService
             mine = await _db.Set<TheoryClassReservation>()
                 .FirstOrDefaultAsync(x => x.ClassSessionId == sessionId
                     && x.StudentUserId == studentUserId
-                    && TheoryReservationStatuses.OccupiesSeat.Contains(x.Status), ct);
+                    && TheoryReservationStatuses.OccupiesSeatStatuses.Contains(x.Status), ct);
         }
 
         string? instructorName = null;
@@ -798,7 +984,7 @@ public sealed class TheoryTrainingService
             return ("started", "Clase iniciada");
         }
 
-        if (mine is not null && TheoryReservationStatuses.Active.Contains(mine.Status))
+        if (mine is not null && TheoryReservationStatuses.ActiveStatuses.Contains(mine.Status))
         {
             return ("reserved", "Reservada");
         }
@@ -839,7 +1025,7 @@ public sealed class TheoryTrainingService
     private async Task<int> CountOccupiedSeatsAsync(int sessionId, CancellationToken ct) =>
         await _db.Set<TheoryClassReservation>()
             .CountAsync(x => x.ClassSessionId == sessionId
-                && TheoryReservationStatuses.OccupiesSeat.Contains(x.Status), ct);
+                && TheoryReservationStatuses.OccupiesSeatStatuses.Contains(x.Status), ct);
 
     private async Task AcquireSessionLockAsync(int sessionId, CancellationToken ct)
     {
@@ -861,7 +1047,7 @@ public sealed class TheoryTrainingService
         var existing = await _db.Set<TheoryClassReservation>()
             .Include(x => x.ClassSession)
             .Where(x => x.StudentUserId == studentUserId
-                && TheoryReservationStatuses.Active.Contains(x.Status)
+                && TheoryReservationStatuses.ActiveStatuses.Contains(x.Status)
                 && (ignoreReservationId == null || x.Id != ignoreReservationId))
             .ToListAsync(ct);
 
@@ -924,7 +1110,7 @@ public sealed class TheoryTrainingService
         var enrollment = await _db.Set<SchoolStudentEnrollment>()
             .FirstAsync(x => x.SchoolUserId == schoolUserId
                 && x.StudentUserId == studentUserId, ct);
-        if (!StudentEnrollmentStatuses.CanReserve.Contains(enrollment.Status))
+        if (!StudentEnrollmentStatuses.CanReserveStatuses.Contains(enrollment.Status))
         {
             throw new ForbiddenException(
                 "Tu escuela aún no te ha habilitado para reservar clases.",
@@ -1102,7 +1288,7 @@ public sealed class TheoryTrainingService
         var hasReservation = await _db.Set<TheoryClassReservation>()
             .AnyAsync(x => x.ClassSessionId == session.Id
                 && x.StudentUserId == studentUserId
-                && TheoryReservationStatuses.Active.Contains(x.Status), ct);
+                && TheoryReservationStatuses.ActiveStatuses.Contains(x.Status), ct);
         if (!hasReservation)
         {
             return ("Ya puedes reservar tu clase de mañana.", null, null);
@@ -1112,11 +1298,25 @@ public sealed class TheoryTrainingService
     }
 
     private static TheorySettingsDto MapSettings(TheoryTrainingSettings s) =>
-        new(s.DefaultDurationMinutes, s.MinCancelHours, s.ReservationCloseMinutesBefore,
-            s.RequiredTheoryHours, s.SaturdayEnabled);
+        new(
+            s.DefaultDurationMinutes,
+            s.MinCancelHours,
+            s.ReservationCloseMinutesBefore,
+            s.RequiredTheoryHours,
+            s.SaturdayEnabled,
+            s.NotifyReservationOpen,
+            s.NotifyClassReminder24h,
+            s.NotifyClassReminder1h);
 
-    private static TimeOnly ParseTime(string value) =>
-        TimeOnly.Parse(value.Trim(), System.Globalization.CultureInfo.InvariantCulture);
+    private static TimeOnly ParseTime(string value)
+    {
+        if (TimeOnly.TryParse(value.Trim(), System.Globalization.CultureInfo.InvariantCulture, out var time))
+        {
+            return time;
+        }
+
+        throw new DomainException("La hora no es válida.", 400, "invalid_time");
+    }
 
     private static DateOnly StartOfWeek(DateOnly date)
     {

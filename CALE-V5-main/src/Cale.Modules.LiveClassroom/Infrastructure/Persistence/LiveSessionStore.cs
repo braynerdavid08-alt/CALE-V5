@@ -16,12 +16,14 @@ public sealed class LiveSessionStore : ILiveSessionStore
 
     public Task<LiveSession?> GetByIdAsync(int id, CancellationToken ct = default) =>
         _db.Set<LiveSession>()
+            .AsSplitQuery()
             .Include(x => x.Participants)
             .Include(x => x.Questions)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
 
     public Task<LiveSession?> GetByJoinCodeAsync(string code, CancellationToken ct = default) =>
         _db.Set<LiveSession>()
+            .AsSplitQuery()
             .Include(x => x.Participants)
             .Include(x => x.Questions)
             .FirstOrDefaultAsync(x => x.JoinCode == code, ct);
@@ -74,6 +76,8 @@ public sealed class LiveSessionStore : ILiveSessionStore
                 && s.CurrentQuestionIndex >= 0
                 && s.QuestionClosesAt != null
                 && s.QuestionClosesAt <= utcNow)
+            .OrderBy(s => s.QuestionClosesAt)
+            .ThenBy(s => s.Id)
             .Select(s => s.Id)
             .Take(40)
             .ToListAsync(ct);

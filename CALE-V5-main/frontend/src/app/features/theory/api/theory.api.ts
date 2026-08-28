@@ -25,6 +25,16 @@ export interface TheorySettingsDto {
   reservationCloseMinutesBefore: number;
   requiredTheoryHours: number;
   saturdayEnabled: boolean;
+  notifyReservationOpen: boolean;
+  notifyClassReminder24h: boolean;
+  notifyClassReminder1h: boolean;
+}
+
+export interface AttendanceRowDto {
+  studentUserId: number;
+  studentName: string;
+  status: string;
+  reservationId?: number | null;
 }
 
 export interface TheoryClassSessionDto {
@@ -162,6 +172,30 @@ export class TheoryApi {
 
   cancelSession(id: number, reason?: string) {
     return this.http.post<void>(`${this.schoolBase}/sessions/${id}/cancel`, reason ?? '');
+  }
+
+  listAttendanceSessions() {
+    return this.http.get<TheoryClassSessionDto[]>(`${this.schoolBase}/sessions/attendance`);
+  }
+
+  listAttendance(sessionId: number) {
+    return this.http.get<AttendanceRowDto[]>(
+      `${this.schoolBase}/sessions/${sessionId}/attendance`
+    );
+  }
+
+  markAttendance(sessionId: number, body: { studentUserId: number; status: string; notes?: string }) {
+    return this.http.post<void>(`${this.schoolBase}/sessions/${sessionId}/attendance`, body);
+  }
+
+  markAttendanceBatch(
+    sessionId: number,
+    rows: Array<{ studentUserId: number; status: string; notes?: string }>
+  ) {
+    return this.http.post<void>(
+      `${this.schoolBase}/sessions/${sessionId}/attendance/batch`,
+      { rows }
+    );
   }
 
   // Student

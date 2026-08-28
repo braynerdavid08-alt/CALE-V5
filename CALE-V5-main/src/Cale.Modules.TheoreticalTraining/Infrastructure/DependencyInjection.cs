@@ -9,6 +9,7 @@ public static class DependencyInjection
         this IServiceCollection services)
     {
         services.AddScoped<TheoryTrainingService>();
+        services.AddHostedService<TheoryReminderService>();
         return services;
     }
 }

@@ -17,12 +17,14 @@
   }
 
   <div class="tabs">
-    <button type="button" [class.on]="tab() === 'schedule'" (click)="tab.set('schedule')">Horario</button>
-    <button type="button" [class.on]="tab() === 'topics'" (click)="tab.set('topics')">Temas</button>
-    <button type="button" [class.on]="tab() === 'classrooms'" (click)="tab.set('classrooms')">Aulas</button>
+    <button type="button" [class.on]="tab() === 'schedule'" (click)="setTab('schedule')">Horario</button>
+    <button type="button" [class.on]="tab() === 'attendance'" (click)="setTab('attendance')">Asistencia</button>
+    <button type="button" [class.on]="tab() === 'topics'" (click)="setTab('topics')">Temas</button>
+    <button type="button" [class.on]="tab() === 'classrooms'" (click)="setTab('classrooms')">Aulas</button>
+    <button type="button" [class.on]="tab() === 'settings'" (click)="setTab('settings')">Ajustes</button>
   </div>
 
-  @if (loading()) {
+  @if (loading() && tab() !== 'attendance') {
     <ui-loading />
   } @else if (tab() === 'schedule') {
     <div class="layout">
@@ -80,6 +82,76 @@
         <ui-button type="button" (click)="createSession()">Publicar clase</ui-button>
       </aside>
     </div>
+  } @else if (tab() === 'attendance') {
+    @if (attendanceLoading()) {
+      <ui-loading />
+    } @else {
+      <div class="attendance-layout">
+        <aside class="form-card">
+          <h2>Clases con reservas</h2>
+          @if (!attendanceSessions().length) {
+            <p class="muted">No hay clases con estudiantes reservados en las próximas fechas.</p>
+          } @else {
+            <ul class="session-pick">
+              @for (s of attendanceSessions(); track s.id) {
+                <li>
+                  <button
+                    type="button"
+                    class="session-pick-btn"
+                    [class.on]="selectedAttendanceSessionId() === s.id"
+                    (click)="selectAttendanceSession(s.id)"
+                  >
+                    {{ formatSessionLabel(s) }}
+                    <small>{{ s.reservedCount }} reservas</small>
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </aside>
+
+        <div class="form-card">
+          @if (selectedAttendanceSessionId(); as sessionId) {
+            <div class="attendance-head">
+              <h2>Lista de asistencia</h2>
+              <ui-button type="button" (click)="markAllPresent()">Marcar todos presentes</ui-button>
+            </div>
+            @if (!attendanceRows().length) {
+              <p class="muted">Sin reservas activas para esta clase.</p>
+            } @else {
+              <table class="attendance-table">
+                <thead>
+                  <tr>
+                    <th>Estudiante</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of attendanceRows(); track row.studentUserId) {
+                    <tr>
+                      <td>{{ row.studentName }}</td>
+                      <td>
+                        <span class="status-pill" [attr.data-status]="row.status">
+                          {{ attendanceStatusLabel(row.status) }}
+                        </span>
+                      </td>
+                      <td class="actions">
+                        <button type="button" (click)="markStudentAttendance(row.studentUserId, 'Present')">Presente</button>
+                        <button type="button" (click)="markStudentAttendance(row.studentUserId, 'Late')">Tarde</button>
+                        <button type="button" (click)="markStudentAttendance(row.studentUserId, 'Absent')">Ausente</button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          } @else {
+            <p class="muted">Selecciona una clase para registrar asistencia.</p>
+          }
+        </div>
+      </div>
+    }
   } @else if (tab() === 'topics') {
     <div class="form-card">
       <h2>Nuevo tema</h2>
@@ -93,6 +165,38 @@
         <li><span class="swatch" [style.background]="t.color"></span>{{ t.name }}</li>
       }
     </ul>
+  } @else if (tab() === 'settings') {
+    @if (settings(); as cfg) {
+      <div class="form-card settings-card">
+        <h2>Notificaciones automáticas</h2>
+        <p class="muted">Los estudiantes reciben avisos en la campana de notificaciones.</p>
+        <label class="check">
+          <input type="checkbox" [(ngModel)]="cfg.notifyReservationOpen" />
+          Avisar cuando abren las reservas
+        </label>
+        <label class="check">
+          <input type="checkbox" [(ngModel)]="cfg.notifyClassReminder24h" />
+          Recordatorio 24 horas antes de la clase
+        </label>
+        <label class="check">
+          <input type="checkbox" [(ngModel)]="cfg.notifyClassReminder1h" />
+          Recordatorio 1 hora antes de la clase
+        </label>
+
+        <h2>Políticas</h2>
+        <label>Horas teóricas requeridas
+          <input type="number" min="1" max="200" [(ngModel)]="cfg.requiredTheoryHours" />
+        </label>
+        <label>Horas mínimas para cancelar
+          <input type="number" min="0" max="72" [(ngModel)]="cfg.minCancelHours" />
+        </label>
+        <label class="check">
+          <input type="checkbox" [(ngModel)]="cfg.saturdayEnabled" />
+          Habilitar clases los sábados
+        </label>
+        <ui-button type="button" (click)="saveSettings()">Guardar ajustes</ui-button>
+      </div>
+    }
   } @else {
     <div class="form-card">
       <h2>Nueva aula</h2>

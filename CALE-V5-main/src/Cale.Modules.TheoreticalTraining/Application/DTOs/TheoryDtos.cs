@@ -33,7 +33,10 @@ public sealed record TheorySettingsDto(
     int MinCancelHours,
     int ReservationCloseMinutesBefore,
     int RequiredTheoryHours,
-    bool SaturdayEnabled);
+    bool SaturdayEnabled,
+    bool NotifyReservationOpen = true,
+    bool NotifyClassReminder24h = true,
+    bool NotifyClassReminder1h = true);
 
 public sealed record TheoryTimeSlotDto(
     string Label,
@@ -109,6 +112,9 @@ public sealed record MarkAttendanceRequest(
     int StudentUserId,
     string Status,
     string? Notes);
+
+public sealed record MarkAttendanceBatchRequest(
+    IReadOnlyList<MarkAttendanceRequest> Rows);
 
 public sealed record AttendanceRowDto(
     int StudentUserId,
