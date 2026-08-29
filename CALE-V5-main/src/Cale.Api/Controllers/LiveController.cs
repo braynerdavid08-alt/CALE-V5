@@ -44,7 +44,7 @@ public sealed class LiveController : ControllerBase
             ct));
 
     [HttpGet("sessions/{id:int}/play")]
-    [AllowAnonymous]
+    [Authorize]
     public async Task<ActionResult<LiveLobbyDto>> GetPlay(
         int id,
         [FromQuery] Guid token,
@@ -52,19 +52,13 @@ public sealed class LiveController : ControllerBase
         Ok(await _handler.GetParticipantViewAsync(id, token, PublicBaseUrl(), ct));
 
     [HttpPost("sessions/join")]
-    [AllowAnonymous]
+    [Authorize]
     public async Task<ActionResult<JoinLiveSessionResponse>> Join(
         [FromBody] JoinLiveSessionRequest request,
         CancellationToken ct)
     {
-        int? userId = null;
-        string? userName = null;
-        if (User?.Identity?.IsAuthenticated == true)
-        {
-            userId = CurrentUser.GetId(User);
-            userName = User.Identity?.Name;
-        }
-
+        var userId = CurrentUser.GetId(User);
+        var userName = User.Identity?.Name;
         return Ok(await _handler.JoinAsync(request, userId, userName, ct));
     }
 
@@ -98,7 +92,7 @@ public sealed class LiveController : ControllerBase
     }
 
     [HttpPost("sessions/{id:int}/questions/{sessionQuestionId:int}/answer")]
-    [AllowAnonymous]
+    [Authorize]
     public async Task<IActionResult> Answer(
         int id,
         int sessionQuestionId,
@@ -107,7 +101,7 @@ public sealed class LiveController : ControllerBase
         Ok(await _handler.AnswerAsync(id, sessionQuestionId, request, ct));
 
     [HttpGet("sessions/{id:int}/doubts")]
-    [AllowAnonymous]
+    [Authorize]
     public async Task<ActionResult<IReadOnlyList<LiveDoubtDto>>> ListDoubts(
         int id,
         [FromQuery] Guid? token,
@@ -115,7 +109,7 @@ public sealed class LiveController : ControllerBase
         Ok(await _handler.ListDoubtsAsync(id, token, ct));
 
     [HttpPost("sessions/{id:int}/doubts")]
-    [AllowAnonymous]
+    [Authorize]
     public async Task<ActionResult<LiveDoubtDto>> PostDoubt(
         int id,
         [FromBody] LiveDoubtRequest request,
@@ -123,7 +117,7 @@ public sealed class LiveController : ControllerBase
         Ok(await _handler.PostDoubtAsync(id, request, ct));
 
     [HttpPost("sessions/{id:int}/doubts/{doubtId:int}/vote")]
-    [AllowAnonymous]
+    [Authorize]
     public async Task<ActionResult<LiveDoubtDto>> VoteDoubt(
         int id,
         int doubtId,

@@ -17,9 +17,9 @@ export class AuthFacade {
   readonly error = signal<string | null>(null);
   readonly success = signal<string | null>(null);
 
-  login(email: string, password: string): void {
+  login(email: string, password: string, returnUrl?: string | null): void {
     this.run(() => this.api.login(email, password).subscribe({
-      next: (res) => this.enter(res),
+      next: (res) => this.enter(res, returnUrl),
       error: (err) => this.failLogin(err, email)
     }));
   }
@@ -114,7 +114,7 @@ export class AuthFacade {
     });
   }
 
-  private enter(res: Parameters<SessionStore['set']>[0]): void {
+  private enter(res: Parameters<SessionStore['set']>[0], returnUrl?: string | null): void {
     this.motivation.clearSession();
     this.session.set(res);
     this.api.me().subscribe({
@@ -127,7 +127,8 @@ export class AuthFacade {
       void this.router.navigateByUrl('/profile');
       return;
     }
-    void this.router.navigateByUrl(this.session.homeRoute());
+    const target = returnUrl && returnUrl.startsWith('/') ? returnUrl : this.session.homeRoute();
+    void this.router.navigateByUrl(target);
   }
 
   private run(start: () => void): void {

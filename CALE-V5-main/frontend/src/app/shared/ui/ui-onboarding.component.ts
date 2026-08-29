@@ -47,7 +47,7 @@ const TIPS: Record<OnboardingRole, OnboardingTip[]> = {
     },
     {
       title: 'Unirse en vivo',
-      text: 'Con el código de sala puedes entrar a la actividad Live del instructor.',
+      text: 'Inicia sesión, escanea el QR del instructor o ingresa el código de sala.',
       link: '/live/join',
       linkLabel: 'Entrar a Live'
     }

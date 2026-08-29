@@ -105,7 +105,7 @@ public sealed class LiveSessionHandler
 
     public async Task<JoinLiveSessionResponse> JoinAsync(
         JoinLiveSessionRequest request,
-        int? userId,
+        int userId,
         string? userName,
         CancellationToken ct)
     {
@@ -123,24 +123,23 @@ public sealed class LiveSessionHandler
             throw new DomainException("La sesión ya terminó.", 400, "session_ended");
         }
 
-        var displayName = string.IsNullOrWhiteSpace(request.DisplayName)
-            ? (userName ?? "Participante")
-            : request.DisplayName;
+        var displayName = !string.IsNullOrWhiteSpace(userName)
+            ? userName.Trim()
+            : string.IsNullOrWhiteSpace(request.DisplayName)
+                ? "Estudiante"
+                : request.DisplayName.Trim();
 
-        if (userId is int uid)
+        var existing = session.Participants.FirstOrDefault(p => p.UserId == userId);
+        if (existing is not null)
         {
-            var existing = session.Participants.FirstOrDefault(p => p.UserId == uid);
-            if (existing is not null)
-            {
-                return new JoinLiveSessionResponse(
-                    session.Id,
-                    existing.ParticipantToken,
-                    existing.Id,
-                    existing.DisplayName,
-                    session.Title,
-                    session.Status,
-                    session.JoinCode);
-            }
+            return new JoinLiveSessionResponse(
+                session.Id,
+                existing.ParticipantToken,
+                existing.Id,
+                existing.DisplayName,
+                session.Title,
+                session.Status,
+                session.JoinCode);
         }
 
         var participant = LiveParticipant.Create(

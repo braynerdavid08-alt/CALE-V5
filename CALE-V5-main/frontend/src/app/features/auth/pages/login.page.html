@@ -12,6 +12,9 @@
     <p class="eyebrow">Bienvenido</p>
     <h2>Iniciar sesión</h2>
     <p class="lead">Entra para continuar tu formación.</p>
+    @if (returnUrl) {
+      <p class="lead notice">Inicia sesión para continuar a la sala en vivo.</p>
+    }
     <ui-error [message]="auth.error()" />
     <form [formGroup]="form" (ngSubmit)="submit()">
       <label class="field">

@@ -95,18 +95,21 @@ export const routes: Routes = [
   {
     path: 'live/join',
     pathMatch: 'full',
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/live/pages/live-join.page')
         .then((m) => m.LiveJoinPage)
   },
   {
     path: 'live/join/:code',
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/live/pages/live-join.page')
         .then((m) => m.LiveJoinPage)
   },
   {
     path: 'live/play/:sessionId',
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/live/pages/live-play.page')
         .then((m) => m.LivePlayPage)

@@ -123,6 +123,8 @@
           }
           @if (role() === 'Student') {
             <a routerLink="/student/simulator"><ui-button type="button" variant="ghost">Simulador</ui-button></a>
+            <a routerLink="/live/join"><ui-button type="button" variant="ghost">Entrar a Live</ui-button></a>
+            <a routerLink="/live/join" [queryParams]="{ scan: '1' }"><ui-button type="button" variant="ghost">Escanear QR</ui-button></a>
           }
           @if (role() === 'Admin') {
             <a routerLink="/admin/settings"><ui-button type="button" variant="ghost">Configuración</ui-button></a>
@@ -235,6 +237,15 @@
           }
         } @else {
           <p class="muted">Cuando tu escuela te agregue, verás aquí su nombre y plan.</p>
+          <div class="row actions" style="margin-top: 1rem;">
+            <a routerLink="/live/join"><ui-button type="button">Entrar a Live</ui-button></a>
+            <a routerLink="/live/join" [queryParams]="{ scan: '1' }">
+              <ui-button type="button" variant="secondary">Escanear QR</ui-button>
+            </a>
+          </div>
+          <p class="muted" style="margin-top: 0.75rem;">
+            Necesitas una cuenta activa para unirte y guardar tu progreso en la actividad en vivo.
+          </p>
         }
       } @else {
         <p class="muted">No hay contexto institucional para este rol.</p>
