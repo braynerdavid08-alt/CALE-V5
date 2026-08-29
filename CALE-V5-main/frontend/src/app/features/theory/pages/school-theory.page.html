@@ -222,8 +222,8 @@
     <div class="form-card">
       <h2>Autorización de estudiantes</h2>
       <p class="muted">
-        Asigna si cada estudiante es de <strong>Semana</strong> o <strong>Sábados</strong> y su curso de licencia.
-        El estudiante elige libremente a qué hora asistir entre las clases que programe la escuela (máximo 1 por día).
+        Asigna el <strong>grupo</strong> y el <strong>curso</strong> de cada estudiante. Al guardar, se mueve a su lista
+        (Semana o Sábados) y conserva el curso asignado. Semana: 1 clase por día. Sábados: hasta 4 clases el mismo día.
       </p>
 
       <div class="enrollment-summary">
@@ -263,6 +263,12 @@
         </button>
         <button
           type="button"
+          [class.on]="enrollmentFilter() === 'unassigned'"
+          (click)="enrollmentFilter.set('unassigned')">
+          Sin grupo ({{ enrollmentCount('unassigned') }})
+        </button>
+        <button
+          type="button"
           [class.on]="enrollmentFilter() === 'weekday'"
           (click)="enrollmentFilter.set('weekday')">
           Semana ({{ enrollmentCount('weekday') }})
@@ -291,45 +297,55 @@
             <tr>
               <th>Estudiante</th>
               <th>Estado</th>
-              <th>Semana / Sábado</th>
+              <th>Grupo</th>
               <th>Curso</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            @for (row of filteredEnrollments(); track row.studentUserId) {
-              <tr>
-                <td>
-                  <strong>{{ row.studentName }}</strong>
-                  <small>{{ row.studentEmail }}</small>
-                </td>
-                <td>{{ enrollmentStatusLabel(row.status) }}</td>
-                <td>
-                  <select
-                    [ngModel]="row.attendanceDayType ?? ''"
-                    (ngModelChange)="onEnrollmentSelect(row, 'attendanceDayType', $event)">
-                    <option value="">Sin asignar</option>
-                    <option value="Weekday">Semana</option>
-                    <option value="Saturday">Sábados</option>
-                  </select>
-                </td>
-                <td>
-                  <select
-                    [ngModel]="row.licenseCategories ?? ''"
-                    (ngModelChange)="onEnrollmentSelect(row, 'licenseCategories', $event)">
-                    <option value="">Sin asignar</option>
-                    @for (opt of licenseCategoryOptions; track opt.value) {
-                      <option [value]="opt.value">{{ opt.label }}</option>
+            @for (section of visibleEnrollmentSections(); track section.key) {
+              @if (section.showHeader) {
+                <tr class="enrollment-section-row">
+                  <td colspan="5">{{ section.label }} ({{ section.rows.length }})</td>
+                </tr>
+              }
+              @for (row of section.rows; track row.studentUserId) {
+                <tr [class]="'group-row group-' + groupBadgeClass(row.attendanceDayType)">
+                  <td>
+                    <span class="group-pill" [attr.data-group]="groupBadgeClass(row.attendanceDayType)">
+                      {{ attendanceDayTypeLabel(row.attendanceDayType) }}
+                    </span>
+                    <strong>{{ row.studentName }}</strong>
+                    <small>{{ row.studentEmail }}</small>
+                  </td>
+                  <td>{{ enrollmentStatusLabel(row.status) }}</td>
+                  <td>
+                    <select
+                      [ngModel]="row.attendanceDayType ?? ''"
+                      (ngModelChange)="onEnrollmentSelect(row, 'attendanceDayType', $event)">
+                      <option value="">Sin asignar</option>
+                      <option value="Weekday">Semana</option>
+                      <option value="Saturday">Sábados</option>
+                    </select>
+                  </td>
+                  <td>
+                    <select
+                      [ngModel]="row.licenseCategories ?? ''"
+                      (ngModelChange)="onEnrollmentSelect(row, 'licenseCategories', $event)">
+                      <option value="">Sin asignar</option>
+                      @for (opt of licenseCategoryOptions; track opt.value) {
+                        <option [value]="opt.value">{{ opt.label }}</option>
+                      }
+                    </select>
+                  </td>
+                  <td class="actions">
+                    <ui-button type="button" (click)="saveEnrollment(row, true)">Autorizar</ui-button>
+                    @if (row.status === 'Active' || row.status === 'Accepted') {
+                      <button type="button" class="link-btn" (click)="suspendEnrollment(row)">Suspender</button>
                     }
-                  </select>
-                </td>
-                <td class="actions">
-                  <ui-button type="button" (click)="saveEnrollment(row, true)">Autorizar</ui-button>
-                  @if (row.status === 'Active' || row.status === 'Accepted') {
-                    <button type="button" class="link-btn" (click)="suspendEnrollment(row)">Suspender</button>
-                  }
-                </td>
-              </tr>
+                  </td>
+                </tr>
+              }
             }
           </tbody>
         </table>
