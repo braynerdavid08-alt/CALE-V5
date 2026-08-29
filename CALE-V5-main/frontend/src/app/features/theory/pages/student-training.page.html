@@ -66,14 +66,27 @@
         @if (studentGroupLabel(); as group) {
           <p class="group-badge">Tu grupo: <strong>{{ group }}</strong></p>
         }
+        @if (weekRangeLabel()) {
+          <p class="week-range">{{ weekRangeLabel() }}</p>
+        }
       </div>
-      <div class="tabs">
-        <button type="button" [class.on]="view() === 'week'" (click)="view.set('week')">Semana</button>
-        <button type="button" [class.on]="view() === 'list'" (click)="view.set('list')">Lista</button>
+      <div class="toolbar-actions">
+        <div class="week-nav">
+          <button type="button" class="nav-btn" (click)="prevWeek()">←</button>
+          <button type="button" class="nav-btn ghost" (click)="goCurrentWeek()">Hoy</button>
+          <button type="button" class="nav-btn" (click)="nextWeek()">→</button>
+        </div>
+        <div class="tabs">
+          <button type="button" [class.on]="view() === 'week'" (click)="view.set('week')">Semana</button>
+          <button type="button" [class.on]="view() === 'list'" (click)="view.set('list')">Lista</button>
+        </div>
       </div>
     </div>
 
     @if (schedule(); as sch) {
+      @if (actionLoading()) {
+        <p class="inline-loading">Actualizando reservas…</p>
+      }
       @if (view() === 'week') {
         <div class="week-grid" [class.weekday-only]="studentGroupLabel() === 'Semana'" [class.saturday-only]="studentGroupLabel() === 'Sábados'">
           @for (dayIndex of visibleDayIndices(); track dayIndex) {
@@ -112,6 +125,8 @@
               <button
                 type="button"
                 class="btn"
+                [class.reserve]="canReserve(session)"
+                [class.reserved]="session.bookingState === 'reserved'"
                 [class.blocked]="session.bookingState === 'day_taken' || session.bookingState === 'day_limit' || session.bookingState === 'locked'"
                 [disabled]="actionLoading() || (!canReserve(session) && session.bookingState !== 'reserved')"
                 (click)="canReserve(session) ? reserve(session) : (session.bookingState === 'reserved' ? cancel(session) : null)">

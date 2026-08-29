@@ -30,6 +30,7 @@ export class StudentTrainingPage implements OnInit {
   readonly schedule = signal<TheoryWeekScheduleDto | null>(null);
   readonly view = signal<'week' | 'list'>('week');
   readonly actionLoading = signal(false);
+  readonly weekStart = signal(this.startOfWeekIso(new Date()));
 
   readonly bookingLabel = theoryBookingLabel;
   readonly cupoTone = cupoTone;
@@ -41,25 +42,56 @@ export class StudentTrainingPage implements OnInit {
   reload(): void {
     this.loading.set(true);
     this.error.set(null);
+    this.loadData(() => this.loading.set(false));
+  }
+
+  private loadData(onDone?: () => void): void {
     this.api.studentDashboard().subscribe({
       next: (d) => {
         this.dashboard.set(d);
-        this.api.studentSchedule().subscribe({
+        this.api.studentSchedule(this.weekStart()).subscribe({
           next: (s) => {
             this.schedule.set(s);
-            this.loading.set(false);
+            onDone?.();
           },
           error: (err) => {
-            this.loading.set(false);
+            onDone?.();
             this.error.set(mapApiError(err));
           }
         });
       },
       error: (err) => {
-        this.loading.set(false);
+        onDone?.();
         this.error.set(mapApiError(err));
       }
     });
+  }
+
+  private refreshSchedule(): void {
+    this.loadData();
+  }
+
+  weekRangeLabel(): string {
+    const sch = this.schedule();
+    if (!sch?.weekStart || !sch?.weekEnd) {
+      return '';
+    }
+    return `${this.formatDisplayDate(sch.weekStart)} – ${this.formatDisplayDate(sch.weekEnd)}`;
+  }
+
+  prevWeek(): void {
+    this.weekStart.set(this.addDaysIso(this.weekStart(), -7));
+    this.refreshSchedule();
+  }
+
+  nextWeek(): void {
+    this.weekStart.set(this.addDaysIso(this.weekStart(), 7));
+    this.refreshSchedule();
+  }
+
+  goCurrentWeek(): void {
+    this.weekStart.set(this.startOfWeekIso(new Date()));
+    this.refreshSchedule();
   }
 
   sessionsByDay(dayIndex: number): TheoryClassSessionDto[] {
@@ -67,11 +99,10 @@ export class StudentTrainingPage implements OnInit {
     if (!s) {
       return [];
     }
-    const start = new Date(s.weekStart + 'T12:00:00');
-    const d = new Date(start);
-    d.setDate(start.getDate() + dayIndex);
-    const key = d.toISOString().slice(0, 10);
-    return s.sessions.filter((x) => x.sessionDate === key);
+    const base = this.parseDate(s.weekStart);
+    const d = this.addDays(base, dayIndex);
+    const dateKey = this.formatDateOnly(d);
+    return s.sessions.filter((x) => x.sessionDate === dateKey);
   }
 
   dayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -116,7 +147,7 @@ export class StudentTrainingPage implements OnInit {
     this.api.reserve(session.id).subscribe({
       next: () => {
         this.actionLoading.set(false);
-        this.reload();
+        this.refreshSchedule();
       },
       error: (err) => {
         this.actionLoading.set(false);
@@ -133,7 +164,7 @@ export class StudentTrainingPage implements OnInit {
     this.api.cancelReservation(session.myReservationId).subscribe({
       next: () => {
         this.actionLoading.set(false);
-        this.reload();
+        this.refreshSchedule();
       },
       error: (err) => {
         this.actionLoading.set(false);
@@ -144,8 +175,46 @@ export class StudentTrainingPage implements OnInit {
 
   checkIn(): void {
     this.api.checkIn().subscribe({
-      next: () => this.reload(),
+      next: () => this.refreshSchedule(),
       error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  private startOfWeekIso(date: Date): string {
+    const d = new Date(date);
+    const day = (d.getDay() + 6) % 7;
+    d.setDate(d.getDate() - day);
+    return this.formatDateOnly(d);
+  }
+
+  private addDaysIso(iso: string, days: number): string {
+    const d = this.parseDate(iso);
+    d.setDate(d.getDate() + days);
+    return this.formatDateOnly(d);
+  }
+
+  private addDays(date: Date, days: number): Date {
+    const d = new Date(date);
+    d.setDate(d.getDate() + days);
+    return d;
+  }
+
+  private parseDate(iso: string): Date {
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  private formatDateOnly(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  private formatDisplayDate(iso: string): string {
+    return this.parseDate(iso).toLocaleDateString('es-CO', {
+      day: 'numeric',
+      month: 'short'
     });
   }
 }
