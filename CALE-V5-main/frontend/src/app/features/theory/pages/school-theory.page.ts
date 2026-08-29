@@ -53,8 +53,7 @@ export class SchoolTheoryPage implements OnInit {
     { value: 'B1', label: 'B1' },
     { value: 'C1', label: 'C1' },
     { value: 'A2,B1', label: 'A2 + B1' },
-    { value: 'A2,C1', label: 'A2 + C1' },
-    { value: 'B1,C1', label: 'B1 + C1' }
+    { value: 'A2,C1', label: 'A2 + C1' }
   ];
 
   readonly dayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
