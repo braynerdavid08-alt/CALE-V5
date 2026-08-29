@@ -75,11 +75,24 @@ public sealed class SchoolTheoryController : ControllerBase
         CancellationToken ct) =>
         Ok(await _service.GetWeekScheduleAsync(SchoolId, weekStart, null, ct));
 
+    [HttpGet("schedule/month")]
+    public async Task<IActionResult> MonthSchedule(
+        [FromQuery] DateOnly? month,
+        CancellationToken ct) =>
+        Ok(await _service.GetMonthScheduleAsync(SchoolId, month, ct));
+
     [HttpPost("sessions")]
     public async Task<IActionResult> CreateSession(
         CreateTheoryClassRequest request,
         CancellationToken ct) =>
         Ok(await _service.CreateSessionAsync(SchoolId, request, ct));
+
+    [HttpPut("sessions/{id:int}")]
+    public async Task<IActionResult> UpdateSession(
+        int id,
+        UpdateTheoryClassRequest request,
+        CancellationToken ct) =>
+        Ok(await _service.UpdateSessionAsync(SchoolId, id, request, ct));
 
     [HttpPost("sessions/{id:int}/cancel")]
     public async Task<IActionResult> CancelSession(
@@ -128,7 +141,14 @@ public sealed class SchoolTheoryController : ControllerBase
         int id,
         UpdateEnrollmentRequest request,
         CancellationToken ct) =>
-        Ok(await _service.UpdateEnrollmentAsync(SchoolId, id, request, ct));
+        Ok(await _service.UpdateEnrollmentByIdAsync(SchoolId, id, request, ct));
+
+    [HttpPut("enrollments/student/{studentUserId:int}")]
+    public async Task<IActionResult> UpdateEnrollmentByStudent(
+        int studentUserId,
+        UpdateEnrollmentRequest request,
+        CancellationToken ct) =>
+        Ok(await _service.UpdateEnrollmentAsync(SchoolId, studentUserId, request, ct));
 }
 
 [ApiController]

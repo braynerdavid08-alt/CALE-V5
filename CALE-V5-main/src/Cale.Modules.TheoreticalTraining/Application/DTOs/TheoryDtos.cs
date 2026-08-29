@@ -77,6 +77,21 @@ public sealed record CreateTheoryClassRequest(
     int? InstructorUserId,
     string? Notes);
 
+public sealed record UpdateTheoryClassRequest(
+    DateOnly SessionDate,
+    string StartTime,
+    string EndTime,
+    int TopicId,
+    int ClassroomId,
+    int? Capacity,
+    int? InstructorUserId,
+    string? Notes);
+
+public sealed record TheoryMonthScheduleDto(
+    DateOnly MonthStart,
+    DateOnly MonthEnd,
+    IReadOnlyList<TheoryClassSessionDto> Sessions);
+
 public sealed record TheoryWeekScheduleDto(
     DateOnly WeekStart,
     DateOnly WeekEnd,
@@ -128,7 +143,12 @@ public sealed record EnrollmentDto(
     string StudentName,
     string StudentEmail,
     string Status,
+    string? AttendanceDayType,
+    string? AllowedStartTime,
     DateTime CreatedAt,
     DateTime? AcceptedAt);
 
-public sealed record UpdateEnrollmentRequest(string Status);
+public sealed record UpdateEnrollmentRequest(
+    string Status,
+    string? AttendanceDayType = null,
+    string? AllowedStartTime = null);

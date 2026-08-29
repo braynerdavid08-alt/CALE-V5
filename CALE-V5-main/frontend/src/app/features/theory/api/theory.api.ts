@@ -69,6 +69,12 @@ export interface TheoryWeekScheduleDto {
   timeSlots: Array<{ label: string; start: string; end: string }>;
 }
 
+export interface TheoryMonthScheduleDto {
+  monthStart: string;
+  monthEnd: string;
+  sessions: TheoryClassSessionDto[];
+}
+
 export interface TheorySchoolDashboardDto {
   classesToday: number;
   studentsReserved: number;
@@ -92,6 +98,18 @@ export interface TheoryStudentDashboardDto {
   reservationOpensAt?: string | null;
   checkedInToday: boolean;
   todayTasks: Array<{ label: string; done: boolean }>;
+}
+
+export interface EnrollmentDto {
+  id: number;
+  studentUserId: number;
+  studentName: string;
+  studentEmail: string;
+  status: string;
+  attendanceDayType?: string | null;
+  allowedStartTime?: string | null;
+  createdAt: string;
+  acceptedAt?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -158,6 +176,14 @@ export class TheoryApi {
     return this.http.get<TheoryWeekScheduleDto>(`${this.schoolBase}/schedule`, { params });
   }
 
+  schoolMonthSchedule(month?: string) {
+    let params = new HttpParams();
+    if (month) {
+      params = params.set('month', month);
+    }
+    return this.http.get<TheoryMonthScheduleDto>(`${this.schoolBase}/schedule/month`, { params });
+  }
+
   createSession(body: {
     sessionDate: string;
     startTime: string;
@@ -168,6 +194,21 @@ export class TheoryApi {
     notes?: string;
   }) {
     return this.http.post<TheoryClassSessionDto>(`${this.schoolBase}/sessions`, body);
+  }
+
+  updateSession(
+    id: number,
+    body: {
+      sessionDate: string;
+      startTime: string;
+      endTime: string;
+      topicId: number;
+      classroomId: number;
+      capacity?: number;
+      notes?: string;
+    }
+  ) {
+    return this.http.put<TheoryClassSessionDto>(`${this.schoolBase}/sessions/${id}`, body);
   }
 
   cancelSession(id: number, reason?: string) {
@@ -195,6 +236,20 @@ export class TheoryApi {
     return this.http.post<void>(
       `${this.schoolBase}/sessions/${sessionId}/attendance/batch`,
       { rows }
+    );
+  }
+
+  listEnrollments() {
+    return this.http.get<EnrollmentDto[]>(`${this.schoolBase}/enrollments`);
+  }
+
+  updateEnrollment(
+    studentUserId: number,
+    body: { status: string; attendanceDayType?: string | null; allowedStartTime?: string | null }
+  ) {
+    return this.http.put<EnrollmentDto>(
+      `${this.schoolBase}/enrollments/student/${studentUserId}`,
+      body
     );
   }
 
@@ -237,7 +292,9 @@ export function theoryBookingLabel(state?: string | null, message?: string | nul
     case 'locked_tomorrow':
       return 'Disponible mañana';
     case 'locked':
-      return 'Reservas cerradas';
+      return 'No disponible';
+    case 'not_authorized':
+      return 'Sin autorización';
     case 'full':
       return 'Sin cupos';
     case 'reserved':

@@ -1,5 +1,14 @@
 namespace Cale.Modules.TheoreticalTraining.Domain;
 
+public static class StudentAttendanceDayTypes
+{
+    public const string Weekday = "Weekday";
+    public const string Saturday = "Saturday";
+
+    public static bool IsValid(string? value) =>
+        value is Weekday or Saturday;
+}
+
 public static class StudentEnrollmentStatuses
 {
     public const string Pending = "Pending";

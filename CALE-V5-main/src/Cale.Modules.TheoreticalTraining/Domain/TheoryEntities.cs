@@ -101,6 +101,10 @@ public sealed class SchoolStudentEnrollment
     public int SchoolUserId { get; set; }
     public int StudentUserId { get; set; }
     public string Status { get; set; } = StudentEnrollmentStatuses.Pending;
+    /// <summary>Weekday or Saturday — must match the school's scheduling mode.</summary>
+    public string? AttendanceDayType { get; set; }
+    /// <summary>Only slot start time the student may book (e.g. 08:00).</summary>
+    public TimeOnly? AllowedStartTime { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? AcceptedAt { get; set; }
     public DateTime? SuspendedAt { get; set; }

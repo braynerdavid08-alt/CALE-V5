@@ -516,6 +516,8 @@ public static class FeatureSchema
                     "SchoolUserId" INTEGER NOT NULL,
                     "StudentUserId" INTEGER NOT NULL,
                     "Status" TEXT NOT NULL,
+                    "AttendanceDayType" TEXT NULL,
+                    "AllowedStartTime" TEXT NULL,
                     "CreatedAt" TEXT NOT NULL,
                     "AcceptedAt" TEXT NULL,
                     "SuspendedAt" TEXT NULL,
@@ -551,6 +553,14 @@ public static class FeatureSchema
             await TryAddSqliteColumnAsync(
                 db,
                 """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN "NotifyClassReminder1h" INTEGER NOT NULL DEFAULT 1;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN "AttendanceDayType" TEXT NULL;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN "AllowedStartTime" TEXT NULL;""",
                 ct);
 
             return;
@@ -668,6 +678,12 @@ public static class FeatureSchema
                 ct);
             await TryPostgresAsync(db,
                 """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "NotifyClassReminder1h" boolean NOT NULL DEFAULT TRUE;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "AttendanceDayType" varchar(16) NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "AllowedStartTime" time NULL;""",
                 ct);
             await TryPostgresAsync(db,
                 """
@@ -802,6 +818,8 @@ public static class FeatureSchema
                     "SchoolUserId" integer NOT NULL,
                     "StudentUserId" integer NOT NULL,
                     "Status" varchar(32) NOT NULL,
+                    "AttendanceDayType" varchar(16) NULL,
+                    "AllowedStartTime" time NULL,
                     "CreatedAt" timestamp with time zone NOT NULL,
                     "AcceptedAt" timestamp with time zone NULL,
                     "SuspendedAt" timestamp with time zone NULL,

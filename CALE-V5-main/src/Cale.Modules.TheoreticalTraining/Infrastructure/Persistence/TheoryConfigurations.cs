@@ -84,6 +84,7 @@ public sealed class SchoolStudentEnrollmentConfiguration : IEntityTypeConfigurat
         builder.ToTable("SchoolStudentEnrollments");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Status).HasMaxLength(32).IsRequired();
+        builder.Property(x => x.AttendanceDayType).HasMaxLength(16);
         builder.HasIndex(x => new { x.SchoolUserId, x.StudentUserId }).IsUnique();
         builder.HasIndex(x => x.StudentUserId);
     }

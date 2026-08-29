@@ -69,7 +69,23 @@ const messages: Record<string, string> = {
   quick_unavailable: 'No se puede añadir una pregunta rápida ahora.',
   session_not_ended: 'La revancha solo se puede crear cuando la sesión terminó.',
   db_error: 'Error de base de datos. Inténtalo de nuevo.',
-  timeout: 'La operación tardó demasiado. Inténtalo de nuevo.'
+  timeout: 'La operación tardó demasiado. Inténtalo de nuevo.',
+  enrollment_not_active: 'Tu escuela aún no te ha habilitado para reservar clases.',
+  session_day_taken: 'Ya existe una clase programada para esa fecha.',
+  class_already_started: 'No puedes editar una clase que ya comenzó.',
+  class_cancelled: 'Esta clase está cancelada.',
+  capacity_below_reserved: 'El cupo no puede ser menor que las reservas actuales.',
+  day_already_reserved: 'Ya tienes una clase reservada ese día.',
+  saturday_disabled: 'Las clases de sábado están desactivadas.',
+  weekday_disabled: 'La escuela solo programa clases los sábados.',
+  weekday_only: 'La escuela solo programa clases de lunes a viernes.',
+  sunday_disabled: 'No se programan clases los domingos.',
+  slot_not_assigned: 'Tu escuela aún no te ha asignado un horario.',
+  slot_not_allowed: 'Ese horario no está habilitado para ti.',
+  slot_required: 'Asigna un horario al estudiante.',
+  day_not_allowed: 'No estás autorizado para clases en ese día.',
+  day_type_required: 'Indica los días de asistencia del estudiante.',
+  day_type_mismatch: 'El día asignado no coincide con el modo de la escuela.'
 };
 
 function withSupportCode(message: string, error: unknown): string {

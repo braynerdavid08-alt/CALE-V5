@@ -188,9 +188,23 @@ public sealed class TheoryTrainingService
             .FirstOrDefaultAsync(x => x.Id == request.ClassroomId && x.SchoolUserId == schoolUserId && x.IsActive, ct)
             ?? throw new DomainException("Aula no válida.", 400, "invalid_classroom");
 
-        if (request.SessionDate.DayOfWeek == DayOfWeek.Saturday && !settings.SaturdayEnabled)
+        if (request.SessionDate.DayOfWeek == DayOfWeek.Sunday)
         {
-            throw new DomainException("Las clases de sábado están desactivadas.", 400, "saturday_disabled");
+            throw new DomainException("No se programan clases los domingos.", 400, "sunday_disabled");
+        }
+
+        ValidateSessionDayForSettings(request.SessionDate, settings);
+
+        var existingDay = await _db.Set<TheoryClassSession>()
+            .AnyAsync(x => x.SchoolUserId == schoolUserId
+                && x.SessionDate == request.SessionDate
+                && x.Status != TheoryClassStatuses.Cancelled, ct);
+        if (existingDay)
+        {
+            throw new DomainException(
+                "Ya existe una clase programada para esa fecha. Solo se permite una por día.",
+                400,
+                "session_day_taken");
         }
 
         var start = ParseTime(request.StartTime);
@@ -232,13 +246,137 @@ public sealed class TheoryTrainingService
         return await MapSessionAsync(session.Id, null, ct);
     }
 
+    public async Task<TheoryClassSessionDto> UpdateSessionAsync(
+        int schoolUserId,
+        int sessionId,
+        UpdateTheoryClassRequest request,
+        CancellationToken ct)
+    {
+        await EnsureSchoolMembershipActiveAsync(schoolUserId, ct);
+        var settings = await GetOrCreateSettingsAsync(schoolUserId, ct);
+        var session = await RequireSessionAsync(schoolUserId, sessionId, ct);
+
+        if (session.Status == TheoryClassStatuses.Cancelled)
+        {
+            throw new DomainException("Esta clase está cancelada.", 400, "class_cancelled");
+        }
+
+        var startUtc = ColombiaTime.ToUtc(session.SessionDate, session.StartTime);
+        if (_clock.UtcNow >= startUtc)
+        {
+            throw new DomainException(
+                "No puedes editar una clase que ya comenzó.",
+                400,
+                "class_already_started");
+        }
+
+        var topic = await _db.Set<TheoryTopic>()
+            .FirstOrDefaultAsync(x => x.Id == request.TopicId && x.SchoolUserId == schoolUserId && x.IsActive, ct)
+            ?? throw new DomainException("Tema no válido.", 400, "invalid_topic");
+        var classroom = await _db.Set<TheoryClassroom>()
+            .FirstOrDefaultAsync(x => x.Id == request.ClassroomId && x.SchoolUserId == schoolUserId && x.IsActive, ct)
+            ?? throw new DomainException("Aula no válida.", 400, "invalid_classroom");
+
+        if (request.SessionDate.DayOfWeek == DayOfWeek.Sunday)
+        {
+            throw new DomainException("No se programan clases los domingos.", 400, "sunday_disabled");
+        }
+
+        ValidateSessionDayForSettings(request.SessionDate, settings);
+
+        if (request.SessionDate != session.SessionDate)
+        {
+            var existingDay = await _db.Set<TheoryClassSession>()
+                .AnyAsync(x => x.SchoolUserId == schoolUserId
+                    && x.Id != sessionId
+                    && x.SessionDate == request.SessionDate
+                    && x.Status != TheoryClassStatuses.Cancelled, ct);
+            if (existingDay)
+            {
+                throw new DomainException(
+                    "Ya existe una clase programada para esa fecha.",
+                    400,
+                    "session_day_taken");
+            }
+        }
+
+        var start = ParseTime(request.StartTime);
+        var end = ParseTime(request.EndTime);
+        if (end <= start)
+        {
+            throw new DomainException("La hora de fin debe ser posterior al inicio.", 400, "invalid_time");
+        }
+
+        var occupied = await CountOccupiedSeatsAsync(sessionId, ct);
+        var capacity = request.Capacity is > 0
+            ? Math.Min(request.Capacity.Value, classroom.Capacity)
+            : classroom.Capacity;
+        if (capacity < occupied)
+        {
+            throw new DomainException(
+                $"El cupo no puede ser menor que las reservas actuales ({occupied}).",
+                400,
+                "capacity_below_reserved");
+        }
+
+        var (openUtc, closeUtc) = ColombiaTime.ComputeReservationWindow(
+            request.SessionDate,
+            start,
+            settings.ReservationCloseMinutesBefore);
+
+        session.TopicId = topic.Id;
+        session.ClassroomId = classroom.Id;
+        session.InstructorUserId = request.InstructorUserId;
+        session.SessionDate = request.SessionDate;
+        session.StartTime = start;
+        session.EndTime = end;
+        session.Capacity = capacity;
+        session.ReservationOpenAt = openUtc;
+        session.ReservationCloseAt = closeUtc;
+        session.Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
+        session.UpdatedAt = _clock.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
+        return await MapSessionAsync(session.Id, null, ct);
+    }
+
+    public async Task<TheoryMonthScheduleDto> GetMonthScheduleAsync(
+        int schoolUserId,
+        DateOnly? month,
+        CancellationToken ct)
+    {
+        var today = ColombiaTime.TodayInColombia();
+        var anchor = month ?? new DateOnly(today.Year, today.Month, 1);
+        var monthStart = new DateOnly(anchor.Year, anchor.Month, 1);
+        var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+
+        var sessions = await _db.Set<TheoryClassSession>()
+            .Include(x => x.Topic)
+            .Include(x => x.Classroom)
+            .Where(x => x.SchoolUserId == schoolUserId
+                && x.SessionDate >= monthStart
+                && x.SessionDate <= monthEnd
+                && x.Status != TheoryClassStatuses.Cancelled)
+            .OrderBy(x => x.SessionDate)
+            .ThenBy(x => x.StartTime)
+            .ToListAsync(ct);
+
+        var dtos = new List<TheoryClassSessionDto>();
+        foreach (var s in sessions)
+        {
+            dtos.Add(await MapSessionAsync(s.Id, null, ct));
+        }
+
+        return new TheoryMonthScheduleDto(monthStart, monthEnd, dtos);
+    }
+
     public async Task<TheoryWeekScheduleDto> GetWeekScheduleAsync(
         int schoolUserId,
         DateOnly? weekStart,
         int? studentUserId,
         CancellationToken ct)
     {
-        var start = weekStart ?? StartOfWeek(ColombiaTime.TodayInColombia());
+        var start = StartOfWeek(weekStart ?? ColombiaTime.TodayInColombia());
         var end = start.AddDays(6);
         var sessions = await _db.Set<TheoryClassSession>()
             .Include(x => x.Topic)
@@ -251,9 +389,20 @@ public sealed class TheoryTrainingService
             .ToListAsync(ct);
 
         var dtos = new List<TheoryClassSessionDto>();
+        StudentScheduleContext? studentCtx = null;
+        if (studentUserId is > 0)
+        {
+            studentCtx = await BuildStudentScheduleContextAsync(
+                studentUserId.Value,
+                schoolUserId,
+                start,
+                end,
+                ct);
+        }
+
         foreach (var s in sessions)
         {
-            dtos.Add(await MapSessionAsync(s.Id, studentUserId, ct));
+            dtos.Add(await MapSessionAsync(s.Id, studentUserId, ct, studentCtx));
         }
 
         return new TheoryWeekScheduleDto(
@@ -334,6 +483,8 @@ public sealed class TheoryTrainingService
         await EnsureStudentCanReserveAsync(studentUserId, schoolUserId, ct);
         var session = await RequireSessionAsync(schoolUserId, sessionId, ct);
         ValidateReservationWindow(session);
+        var enrollment = await GetEnrollmentAsync(schoolUserId, studentUserId, ct);
+        ValidateStudentSessionAccess(enrollment, session);
         await ValidateNoScheduleConflictAsync(studentUserId, session, null, ct);
 
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
@@ -831,28 +982,118 @@ public sealed class TheoryTrainingService
         int schoolUserId,
         CancellationToken ct)
     {
+        var students = (await _users.ListBySchoolAsync(schoolUserId, ct))
+            .Where(x => x.Role == Roles.Student)
+            .OrderBy(x => x.Name)
+            .ToList();
         var items = await _db.Set<SchoolStudentEnrollment>()
             .Where(x => x.SchoolUserId == schoolUserId)
-            .OrderByDescending(x => x.UpdatedAt)
-            .ToListAsync(ct);
+            .ToDictionaryAsync(x => x.StudentUserId, ct);
+
         var result = new List<EnrollmentDto>();
-        foreach (var e in items)
+        foreach (var student in students)
         {
-            var user = await _users.GetByIdAsync(e.StudentUserId, ct);
-            result.Add(new EnrollmentDto(
-                e.Id,
-                e.StudentUserId,
-                user?.Name ?? $"#{e.StudentUserId}",
-                user?.Email ?? "",
-                e.Status,
-                e.CreatedAt,
-                e.AcceptedAt));
+            if (items.TryGetValue(student.Id, out var e))
+            {
+                result.Add(MapEnrollmentDto(e, student.Name, student.Email));
+            }
+            else
+            {
+                result.Add(new EnrollmentDto(
+                    0,
+                    student.Id,
+                    student.Name,
+                    student.Email ?? "",
+                    StudentEnrollmentStatuses.Pending,
+                    null,
+                    null,
+                    DateTime.UtcNow,
+                    null));
+            }
         }
 
         return result;
     }
 
     public async Task<EnrollmentDto> UpdateEnrollmentAsync(
+        int schoolUserId,
+        int studentUserId,
+        UpdateEnrollmentRequest request,
+        CancellationToken ct)
+    {
+        var student = (await _users.ListBySchoolAsync(schoolUserId, ct))
+            .FirstOrDefault(x => x.Id == studentUserId && x.Role == Roles.Student)
+            ?? throw new NotFoundException("Estudiante no encontrado.", "student_not_found");
+
+        var settings = await GetOrCreateSettingsAsync(schoolUserId, ct);
+        var enrollment = await _db.Set<SchoolStudentEnrollment>()
+            .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
+                && x.StudentUserId == studentUserId, ct);
+
+        var now = _clock.UtcNow;
+        if (enrollment is null)
+        {
+            enrollment = new SchoolStudentEnrollment
+            {
+                SchoolUserId = schoolUserId,
+                StudentUserId = studentUserId,
+                CreatedAt = now
+            };
+            await _db.Set<SchoolStudentEnrollment>().AddAsync(enrollment, ct);
+        }
+
+        enrollment.Status = request.Status;
+        enrollment.UpdatedAt = now;
+
+        if (!string.IsNullOrWhiteSpace(request.AttendanceDayType))
+        {
+            var dayType = request.AttendanceDayType.Trim();
+            if (!StudentAttendanceDayTypes.IsValid(dayType))
+            {
+                throw new DomainException("Tipo de día no válido.", 400, "invalid_day_type");
+            }
+
+            ValidateEnrollmentDayTypeForSettings(dayType, settings);
+            enrollment.AttendanceDayType = dayType;
+        }
+
+        if (request.AllowedStartTime is not null)
+        {
+            enrollment.AllowedStartTime = string.IsNullOrWhiteSpace(request.AllowedStartTime)
+                ? null
+                : ParseTime(request.AllowedStartTime);
+        }
+
+        if (request.Status is StudentEnrollmentStatuses.Accepted or StudentEnrollmentStatuses.Active)
+        {
+            enrollment.AcceptedAt ??= now;
+            if (enrollment.AttendanceDayType is null)
+            {
+                throw new DomainException(
+                    "Indica si el estudiante asiste entre semana o los sábados.",
+                    400,
+                    "day_type_required");
+            }
+
+            if (enrollment.AllowedStartTime is null)
+            {
+                throw new DomainException(
+                    "Asigna un horario habilitado al estudiante.",
+                    400,
+                    "slot_required");
+            }
+        }
+
+        if (request.Status == StudentEnrollmentStatuses.Suspended)
+        {
+            enrollment.SuspendedAt = now;
+        }
+
+        await _db.SaveChangesAsync(ct);
+        return MapEnrollmentDto(enrollment, student.Name, student.Email ?? "");
+    }
+
+    public async Task<EnrollmentDto> UpdateEnrollmentByIdAsync(
         int schoolUserId,
         int enrollmentId,
         UpdateEnrollmentRequest request,
@@ -862,55 +1103,7 @@ public sealed class TheoryTrainingService
             .FirstOrDefaultAsync(x => x.Id == enrollmentId && x.SchoolUserId == schoolUserId, ct)
             ?? throw new NotFoundException("Inscripción no encontrada.", "enrollment_not_found");
 
-        var now = _clock.UtcNow;
-        enrollment.Status = request.Status;
-        enrollment.UpdatedAt = now;
-        if (request.Status is StudentEnrollmentStatuses.Accepted or StudentEnrollmentStatuses.Active)
-        {
-            enrollment.AcceptedAt ??= now;
-        }
-
-        if (request.Status == StudentEnrollmentStatuses.Suspended)
-        {
-            enrollment.SuspendedAt = now;
-        }
-
-        await _db.SaveChangesAsync(ct);
-        var user = await _users.GetByIdAsync(enrollment.StudentUserId, ct);
-        return new EnrollmentDto(
-            enrollment.Id,
-            enrollment.StudentUserId,
-            user?.Name ?? "",
-            user?.Email ?? "",
-            enrollment.Status,
-            enrollment.CreatedAt,
-            enrollment.AcceptedAt);
-    }
-
-    public async Task EnsureEnrollmentForStudentAsync(
-        int schoolUserId,
-        int studentUserId,
-        CancellationToken ct)
-    {
-        var existing = await _db.Set<SchoolStudentEnrollment>()
-            .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
-                && x.StudentUserId == studentUserId, ct);
-        if (existing is not null)
-        {
-            return;
-        }
-
-        var now = _clock.UtcNow;
-        await _db.Set<SchoolStudentEnrollment>().AddAsync(new SchoolStudentEnrollment
-        {
-            SchoolUserId = schoolUserId,
-            StudentUserId = studentUserId,
-            Status = StudentEnrollmentStatuses.Active,
-            CreatedAt = now,
-            AcceptedAt = now,
-            UpdatedAt = now
-        }, ct);
-        await _db.SaveChangesAsync(ct);
+        return await UpdateEnrollmentAsync(schoolUserId, enrollment.StudentUserId, request, ct);
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────
@@ -918,7 +1111,8 @@ public sealed class TheoryTrainingService
     private async Task<TheoryClassSessionDto> MapSessionAsync(
         int sessionId,
         int? studentUserId,
-        CancellationToken ct)
+        CancellationToken ct,
+        StudentScheduleContext? studentCtx = null)
     {
         var session = await _db.Set<TheoryClassSession>()
             .Include(x => x.Topic)
@@ -941,7 +1135,12 @@ public sealed class TheoryTrainingService
             instructorName = (await _users.GetByIdAsync(instructorId, ct))?.Name;
         }
 
-        var (state, message) = ComputeBookingState(session, occupied, mine, _clock.UtcNow);
+        var (state, message) = ComputeBookingState(
+            session,
+            occupied,
+            mine,
+            _clock.UtcNow,
+            studentCtx);
         return new TheoryClassSessionDto(
             session.Id,
             session.SessionDate,
@@ -971,7 +1170,8 @@ public sealed class TheoryTrainingService
         TheoryClassSession session,
         int occupied,
         TheoryClassReservation? mine,
-        DateTime nowUtc)
+        DateTime nowUtc,
+        StudentScheduleContext? studentCtx = null)
     {
         if (session.Status == TheoryClassStatuses.Cancelled)
         {
@@ -1011,6 +1211,15 @@ public sealed class TheoryTrainingService
         if (nowUtc > session.ReservationCloseAt)
         {
             return ("closed", "Reservas cerradas");
+        }
+
+        if (studentCtx is not null)
+        {
+            var access = EvaluateStudentAccess(studentCtx.Enrollment, session, studentCtx);
+            if (access is not null)
+            {
+                return access.Value;
+            }
         }
 
         var available = session.Capacity - occupied;
@@ -1059,14 +1268,12 @@ public sealed class TheoryTrainingService
                 continue;
             }
 
-            if (ColombiaTime.TimesOverlap(
-                    target.SessionDate, target.StartTime, target.EndTime,
-                    s.SessionDate, s.StartTime, s.EndTime))
+            if (s.SessionDate == target.SessionDate)
             {
                 throw new DomainException(
-                    "Ya tienes otra clase reservada en ese horario.",
+                    "Ya tienes una clase reservada ese día. Solo puedes reservar una por día.",
                     400,
-                    "schedule_conflict");
+                    "day_already_reserved");
             }
         }
     }
@@ -1106,10 +1313,7 @@ public sealed class TheoryTrainingService
         }
 
         await EnsureSchoolMembershipActiveAsync(schoolUserId, ct);
-        await EnsureEnrollmentForStudentAsync(schoolUserId, studentUserId, ct);
-        var enrollment = await _db.Set<SchoolStudentEnrollment>()
-            .FirstAsync(x => x.SchoolUserId == schoolUserId
-                && x.StudentUserId == studentUserId, ct);
+        var enrollment = await GetEnrollmentAsync(schoolUserId, studentUserId, ct);
         if (!StudentEnrollmentStatuses.CanReserveStatuses.Contains(enrollment.Status))
         {
             throw new ForbiddenException(
@@ -1322,5 +1526,177 @@ public sealed class TheoryTrainingService
     {
         var diff = ((int)date.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
         return date.AddDays(-diff);
+    }
+
+    private sealed record StudentScheduleContext(
+        SchoolStudentEnrollment? Enrollment,
+        HashSet<DateOnly> ReservedDates);
+
+    private async Task<StudentScheduleContext> BuildStudentScheduleContextAsync(
+        int studentUserId,
+        int schoolUserId,
+        DateOnly weekStart,
+        DateOnly weekEnd,
+        CancellationToken ct)
+    {
+        var enrollment = await _db.Set<SchoolStudentEnrollment>()
+            .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
+                && x.StudentUserId == studentUserId, ct);
+
+        var reservedDates = await _db.Set<TheoryClassReservation>()
+            .Include(x => x.ClassSession)
+            .Where(x => x.StudentUserId == studentUserId
+                && TheoryReservationStatuses.ActiveStatuses.Contains(x.Status)
+                && x.ClassSession != null
+                && x.ClassSession.SchoolUserId == schoolUserId
+                && x.ClassSession.SessionDate >= weekStart
+                && x.ClassSession.SessionDate <= weekEnd)
+            .Select(x => x.ClassSession!.SessionDate)
+            .ToListAsync(ct);
+
+        return new StudentScheduleContext(enrollment, reservedDates.ToHashSet());
+    }
+
+    private async Task<SchoolStudentEnrollment> GetEnrollmentAsync(
+        int schoolUserId,
+        int studentUserId,
+        CancellationToken ct) =>
+        await _db.Set<SchoolStudentEnrollment>()
+            .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
+                && x.StudentUserId == studentUserId, ct)
+        ?? throw new ForbiddenException(
+            "Tu escuela aún no te ha habilitado para reservar clases.",
+            "enrollment_not_active");
+
+    private static EnrollmentDto MapEnrollmentDto(
+        SchoolStudentEnrollment enrollment,
+        string studentName,
+        string studentEmail) =>
+        new(
+            enrollment.Id,
+            enrollment.StudentUserId,
+            studentName,
+            studentEmail,
+            enrollment.Status,
+            enrollment.AttendanceDayType,
+            enrollment.AllowedStartTime?.ToString("HH:mm"),
+            enrollment.CreatedAt,
+            enrollment.AcceptedAt);
+
+    private static void ValidateSessionDayForSettings(
+        DateOnly sessionDate,
+        TheoryTrainingSettings settings)
+    {
+        var isSaturday = sessionDate.DayOfWeek == DayOfWeek.Saturday;
+        var isWeekday = sessionDate.DayOfWeek is >= DayOfWeek.Monday and <= DayOfWeek.Friday;
+
+        if (settings.SaturdayEnabled)
+        {
+            if (!isSaturday)
+            {
+                throw new DomainException(
+                    "La escuela solo programa clases los sábados. Desactiva el modo sábado para usar días de semana.",
+                    400,
+                    "weekday_disabled");
+            }
+
+            return;
+        }
+
+        if (!isWeekday)
+        {
+            throw new DomainException(
+                "La escuela solo programa clases de lunes a viernes.",
+                400,
+                "weekday_only");
+        }
+    }
+
+    private static void ValidateEnrollmentDayTypeForSettings(
+        string dayType,
+        TheoryTrainingSettings settings)
+    {
+        if (settings.SaturdayEnabled && dayType != StudentAttendanceDayTypes.Saturday)
+        {
+            throw new DomainException(
+                "La escuela opera los sábados. Asigna «Sábados» al estudiante.",
+                400,
+                "day_type_mismatch");
+        }
+
+        if (!settings.SaturdayEnabled && dayType != StudentAttendanceDayTypes.Weekday)
+        {
+            throw new DomainException(
+                "La escuela opera entre semana. Asigna «Lunes a viernes» al estudiante.",
+                400,
+                "day_type_mismatch");
+        }
+    }
+
+    private static void ValidateStudentSessionAccess(
+        SchoolStudentEnrollment enrollment,
+        TheoryClassSession session)
+    {
+        var issue = EvaluateStudentAccessIssue(enrollment, session);
+        if (issue is not null)
+        {
+            throw new DomainException(issue.Value.Message, 400, issue.Value.Code);
+        }
+    }
+
+    private static (string State, string Message)? EvaluateStudentAccess(
+        SchoolStudentEnrollment? enrollment,
+        TheoryClassSession session,
+        StudentScheduleContext ctx)
+    {
+        if (enrollment is null
+            || !StudentEnrollmentStatuses.CanReserveStatuses.Contains(enrollment.Status))
+        {
+            return ("locked", "No autorizado por la escuela");
+        }
+
+        var issue = EvaluateStudentAccessIssue(enrollment, session);
+        if (issue is not null)
+        {
+            return ("locked", issue.Value.Message);
+        }
+
+        if (ctx.ReservedDates.Contains(session.SessionDate))
+        {
+            return ("locked", "Ya tienes una clase ese día");
+        }
+
+        return null;
+    }
+
+    private static (string Code, string Message)? EvaluateStudentAccessIssue(
+        SchoolStudentEnrollment enrollment,
+        TheoryClassSession session)
+    {
+        if (enrollment.AllowedStartTime is null)
+        {
+            return ("slot_not_assigned", "Horario no asignado por la escuela");
+        }
+
+        if (session.StartTime != enrollment.AllowedStartTime)
+        {
+            return ("slot_not_allowed", $"Tu horario autorizado es {enrollment.AllowedStartTime:HH:mm}");
+        }
+
+        if (enrollment.AttendanceDayType is null)
+        {
+            return ("day_not_assigned", "Día de asistencia no asignado");
+        }
+
+        var sessionDayType = session.SessionDate.DayOfWeek == DayOfWeek.Saturday
+            ? StudentAttendanceDayTypes.Saturday
+            : StudentAttendanceDayTypes.Weekday;
+
+        if (!string.Equals(enrollment.AttendanceDayType, sessionDayType, StringComparison.OrdinalIgnoreCase))
+        {
+            return ("day_not_allowed", "No estás autorizado para clases en ese día");
+        }
+
+        return null;
     }
 }

@@ -18,6 +18,7 @@
 
   <div class="tabs">
     <button type="button" [class.on]="tab() === 'schedule'" (click)="setTab('schedule')">Horario</button>
+    <button type="button" [class.on]="tab() === 'students'" (click)="setTab('students')">Estudiantes</button>
     <button type="button" [class.on]="tab() === 'attendance'" (click)="setTab('attendance')">Asistencia</button>
     <button type="button" [class.on]="tab() === 'topics'" (click)="setTab('topics')">Temas</button>
     <button type="button" [class.on]="tab() === 'classrooms'" (click)="setTab('classrooms')">Aulas</button>
@@ -27,13 +28,39 @@
   @if (loading() && tab() !== 'attendance') {
     <ui-loading />
   } @else if (tab() === 'schedule') {
+    <div class="schedule-nav">
+      <div class="month-nav">
+        <button type="button" class="nav-btn" (click)="prevMonth()" aria-label="Mes anterior">‹</button>
+        <input
+          type="month"
+          class="month-input"
+          [value]="monthKey()"
+          (change)="onMonthPick($any($event.target).value)" />
+        <button type="button" class="nav-btn" (click)="nextMonth()" aria-label="Mes siguiente">›</button>
+        <span class="month-label">{{ monthLabel() }}</span>
+        <button type="button" class="nav-btn ghost" (click)="goToday()">Ir a hoy</button>
+      </div>
+    </div>
+
     <div class="layout">
       <div class="grid-wrap">
-        <table class="grid">
+        <div class="grid-week-bar">
+          <button type="button" class="week-nav-btn" (click)="prevWeek()">← Semana anterior</button>
+          <span class="week-range">{{ weekRangeLabel() }}</span>
+          <button type="button" class="week-nav-btn primary" (click)="nextWeek()">Siguiente semana →</button>
+        </div>
+
+        @if (scheduleLoading()) {
+          <div class="grid-loading"><ui-loading /></div>
+        }
+
+        <table class="grid" [class.dimmed]="scheduleLoading()">
           <thead>
             <tr>
               <th></th>
-              @for (d of dayLabels; track d) { <th>{{ d }}</th> }
+              @for (d of dayLabels; track d; let i = $index) {
+                <th>{{ dayHeader(i) }}</th>
+              }
             </tr>
           </thead>
           <tbody>
@@ -41,14 +68,23 @@
               <tr>
                 <th class="slot-label">{{ slot }}</th>
                 @for (d of dayLabels; track d; let i = $index) {
-                  <td>
-                    <button type="button" class="cell" (click)="pickSlot(i, slot)">+</button>
+                  <td [class.day-off]="!isDayAllowed(i)">
+                    @if (isDayAllowed(i)) {
+                      <button type="button" class="cell" (click)="pickSlot(i, slot)">+</button>
+                    } @else {
+                      <span class="cell-off" title="Día no habilitado">—</span>
+                    }
                     @for (s of sessionsAt(i, slot); track s.id) {
-                      <div class="session" [style.borderColor]="s.topicColor">
+                      <button
+                        type="button"
+                        class="session"
+                        [class.selected]="editingSessionId() === s.id"
+                        [style.borderColor]="s.topicColor"
+                        (click)="selectSessionForEdit(s)">
                         <strong>{{ s.topicName }}</strong>
                         <small>{{ s.classroomName }}</small>
                         <small>{{ s.reservedCount }}/{{ s.capacity }}</small>
-                      </div>
+                      </button>
                     }
                   </td>
                 }
@@ -56,10 +92,32 @@
             }
           </tbody>
         </table>
+
+        <div class="month-list">
+          <h3>Clases en {{ monthLabel() }}</h3>
+          @if (!monthSchedule()?.sessions?.length) {
+            <p class="muted">No hay clases programadas este mes.</p>
+          } @else {
+            <ul>
+              @for (s of monthSchedule()!.sessions; track s.id) {
+                <li>
+                  <button type="button" class="month-item" (click)="selectSessionForEdit(s)">
+                    <span>{{ formatSessionLabel(s) }}</span>
+                    <small>{{ s.reservedCount }}/{{ s.capacity }} reservas</small>
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
       </div>
 
       <aside class="form-card">
-        <h2>Crear clase teórica</h2>
+        @if (editingSessionId(); as editId) {
+          <h2>Editar clase #{{ editId }}</h2>
+        } @else {
+          <h2>Crear clase teórica</h2>
+        }
         <label>Fecha <input type="date" [(ngModel)]="createForm.sessionDate" /></label>
         <label>Inicio <input type="time" [(ngModel)]="createForm.startTime" /></label>
         <label>Fin <input type="time" [(ngModel)]="createForm.endTime" /></label>
@@ -79,7 +137,15 @@
         </label>
         <label>Cupo (opcional) <input type="number" min="0" [(ngModel)]="createForm.capacity" /></label>
         <label>Observaciones <textarea rows="2" [(ngModel)]="createForm.notes"></textarea></label>
-        <ui-button type="button" (click)="createSession()">Publicar clase</ui-button>
+        <div class="form-actions">
+          <ui-button type="button" (click)="saveSession()">
+            {{ editingSessionId() ? 'Guardar cambios' : 'Publicar clase' }}
+          </ui-button>
+          @if (editingSessionId()) {
+            <button type="button" class="link-btn" (click)="resetSessionForm()">Nueva clase</button>
+            <button type="button" class="link-btn danger" (click)="cancelEditingSession()">Cancelar clase</button>
+          }
+        </div>
       </aside>
     </div>
   } @else if (tab() === 'attendance') {
@@ -152,6 +218,68 @@
         </div>
       </div>
     }
+  } @else if (tab() === 'students') {
+    <div class="form-card">
+      <h2>Autorización de estudiantes</h2>
+      <p class="muted">
+        Autoriza a cada estudiante, indica si asiste entre semana o los sábados (según el modo de la escuela)
+        y asigna un único horario habilitado.
+      </p>
+      @if (!enrollments().length) {
+        <p class="muted">No hay estudiantes vinculados a la escuela.</p>
+      } @else {
+        <table class="enrollment-table">
+          <thead>
+            <tr>
+              <th>Estudiante</th>
+              <th>Estado</th>
+              <th>Días</th>
+              <th>Horario</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of enrollments(); track row.studentUserId) {
+              <tr>
+                <td>
+                  <strong>{{ row.studentName }}</strong>
+                  <small>{{ row.studentEmail }}</small>
+                </td>
+                <td>{{ enrollmentStatusLabel(row.status) }}</td>
+                <td>
+                  <select
+                    [ngModel]="row.attendanceDayType ?? ''"
+                    (ngModelChange)="updateEnrollmentField(row, 'attendanceDayType', $event)">
+                    <option value="">Sin asignar</option>
+                    @if (isSaturdayMode()) {
+                      <option value="Saturday">Sábados</option>
+                    } @else {
+                      <option value="Weekday">Lunes a viernes</option>
+                    }
+                  </select>
+                </td>
+                <td>
+                  <select
+                    [ngModel]="row.allowedStartTime ?? ''"
+                    (ngModelChange)="updateEnrollmentField(row, 'allowedStartTime', $event)">
+                    <option value="">Sin asignar</option>
+                    @for (slot of timeSlots; track slot) {
+                      <option [value]="slot">{{ slot }}</option>
+                    }
+                  </select>
+                </td>
+                <td class="actions">
+                  <ui-button type="button" (click)="saveEnrollment(row)">Guardar</ui-button>
+                  @if (row.status === 'Active' || row.status === 'Accepted') {
+                    <button type="button" class="link-btn" (click)="suspendEnrollment(row)">Suspender</button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
   } @else if (tab() === 'topics') {
     <div class="form-card">
       <h2>Nuevo tema</h2>
@@ -183,16 +311,31 @@
           Recordatorio 1 hora antes de la clase
         </label>
 
+        <h2>Modo de programación</h2>
+        <p class="muted">Solo un modo activo: entre semana <strong>o</strong> sábados.</p>
+        <label class="radio">
+          <input
+            type="radio"
+            name="schedMode"
+            [checked]="!cfg.saturdayEnabled"
+            (change)="setSchedulingMode(false)" />
+          Clases de lunes a viernes
+        </label>
+        <label class="radio">
+          <input
+            type="radio"
+            name="schedMode"
+            [checked]="cfg.saturdayEnabled"
+            (change)="setSchedulingMode(true)" />
+          Clases los sábados
+        </label>
+
         <h2>Políticas</h2>
         <label>Horas teóricas requeridas
           <input type="number" min="1" max="200" [(ngModel)]="cfg.requiredTheoryHours" />
         </label>
         <label>Horas mínimas para cancelar
           <input type="number" min="0" max="72" [(ngModel)]="cfg.minCancelHours" />
-        </label>
-        <label class="check">
-          <input type="checkbox" [(ngModel)]="cfg.saturdayEnabled" />
-          Habilitar clases los sábados
         </label>
         <ui-button type="button" (click)="saveSettings()">Guardar ajustes</ui-button>
       </div>

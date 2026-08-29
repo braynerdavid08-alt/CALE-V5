@@ -7,8 +7,10 @@ import { mapApiError } from '../../../core/http/map-api-error';
 import {
   TheoryApi,
   AttendanceRowDto,
+  EnrollmentDto,
   TheoryClassroomDto,
   TheoryClassSessionDto,
+  TheoryMonthScheduleDto,
   TheorySchoolDashboardDto,
   TheorySettingsDto,
   TheoryTopicDto,
@@ -27,15 +29,21 @@ export class SchoolTheoryPage implements OnInit {
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
-  readonly tab = signal<'schedule' | 'attendance' | 'topics' | 'classrooms' | 'settings'>('schedule');
+  readonly tab = signal<'schedule' | 'students' | 'attendance' | 'topics' | 'classrooms' | 'settings'>('schedule');
   readonly dashboard = signal<TheorySchoolDashboardDto | null>(null);
   readonly schedule = signal<TheoryWeekScheduleDto | null>(null);
+  readonly monthSchedule = signal<TheoryMonthScheduleDto | null>(null);
+  readonly weekStart = signal(this.startOfWeekIso(new Date()));
+  readonly monthKey = signal(this.currentMonthKey());
+  readonly editingSessionId = signal<number | null>(null);
+  readonly scheduleLoading = signal(false);
   readonly topics = signal<TheoryTopicDto[]>([]);
   readonly classrooms = signal<TheoryClassroomDto[]>([]);
   readonly attendanceSessions = signal<TheoryClassSessionDto[]>([]);
   readonly selectedAttendanceSessionId = signal<number | null>(null);
   readonly attendanceRows = signal<AttendanceRowDto[]>([]);
   readonly settings = signal<TheorySettingsDto | null>(null);
+  readonly enrollments = signal<EnrollmentDto[]>([]);
   readonly attendanceLoading = signal(false);
 
   readonly dayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -89,21 +97,277 @@ export class SchoolTheoryPage implements OnInit {
         this.loading.set(false);
       }
     });
-    this.api.schoolSchedule().subscribe({
-      next: (s) => this.schedule.set(s),
-      error: () => this.schedule.set(null)
-    });
+    this.loadScheduleData();
     this.api.getSettings().subscribe({
       next: (s) => this.settings.set(s),
       error: () => this.settings.set(null)
     });
   }
 
-  setTab(value: 'schedule' | 'attendance' | 'topics' | 'classrooms' | 'settings'): void {
+  loadScheduleData(): void {
+    this.scheduleLoading.set(true);
+    const week = this.weekStart();
+    const month = this.monthKey() + '-01';
+    this.api.schoolSchedule(week).subscribe({
+      next: (s) => {
+        this.schedule.set(s);
+        this.scheduleLoading.set(false);
+      },
+      error: () => {
+        this.schedule.set(null);
+        this.scheduleLoading.set(false);
+      }
+    });
+    this.api.schoolMonthSchedule(month).subscribe({
+      next: (m) => this.monthSchedule.set(m),
+      error: () => this.monthSchedule.set(null)
+    });
+  }
+
+  weekRangeLabel(): string {
+    const sch = this.schedule();
+    if (sch?.weekStart && sch?.weekEnd) {
+      return `${this.formatDisplayDate(sch.weekStart)} – ${this.formatDisplayDate(sch.weekEnd)}`;
+    }
+    const start = this.parseDate(this.weekStart());
+    const end = this.addDays(start, 6);
+    return `${this.formatDisplayDate(this.weekStart())} – ${this.formatDisplayDate(this.formatDateOnly(end))}`;
+  }
+
+  monthLabel(): string {
+    const [y, m] = this.monthKey().split('-').map(Number);
+    const d = new Date(y, m - 1, 1);
+    return d.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
+  }
+
+  dayHeader(dayIndex: number): string {
+    const sch = this.schedule();
+    if (!sch) {
+      return this.dayLabels[dayIndex];
+    }
+    const d = this.addDays(this.parseDate(sch.weekStart), dayIndex);
+    return `${this.dayLabels[dayIndex]} ${d.getDate()}`;
+  }
+
+  prevWeek(): void {
+    this.weekStart.set(this.addDaysIso(this.weekStart(), -7));
+    this.syncMonthFromWeek();
+    this.loadScheduleData();
+  }
+
+  nextWeek(): void {
+    this.weekStart.set(this.addDaysIso(this.weekStart(), 7));
+    this.syncMonthFromWeek();
+    this.loadScheduleData();
+  }
+
+  prevMonth(): void {
+    this.monthKey.set(this.shiftMonth(this.monthKey(), -1));
+    this.weekStart.set(this.startOfWeekIso(this.parseDate(`${this.monthKey()}-01`)));
+    this.loadScheduleData();
+  }
+
+  nextMonth(): void {
+    this.monthKey.set(this.shiftMonth(this.monthKey(), 1));
+    this.weekStart.set(this.startOfWeekIso(this.parseDate(`${this.monthKey()}-01`)));
+    this.loadScheduleData();
+  }
+
+  goToday(): void {
+    const today = new Date();
+    this.monthKey.set(this.currentMonthKey(today));
+    this.weekStart.set(this.startOfWeekIso(today));
+    this.loadScheduleData();
+  }
+
+  onMonthPick(value: string): void {
+    if (!value) {
+      return;
+    }
+    this.monthKey.set(value);
+    this.weekStart.set(this.startOfWeekIso(this.parseDate(`${value}-01`)));
+    this.loadScheduleData();
+  }
+
+  jumpToSessionWeek(sessionDate: string): void {
+    this.weekStart.set(this.startOfWeekIso(this.parseDate(sessionDate)));
+    const [y, m] = sessionDate.split('-');
+    this.monthKey.set(`${y}-${m}`);
+    this.loadScheduleData();
+  }
+
+  selectSessionForEdit(session: TheoryClassSessionDto): void {
+    this.editingSessionId.set(session.id);
+    this.createForm = {
+      sessionDate: session.sessionDate,
+      startTime: session.startTime.slice(0, 5),
+      endTime: session.endTime.slice(0, 5),
+      topicId: session.topicId,
+      classroomId: session.classroomId,
+      capacity: session.capacity,
+      notes: session.notes ?? ''
+    };
+    this.jumpToSessionWeek(session.sessionDate);
+  }
+
+  resetSessionForm(): void {
+    this.editingSessionId.set(null);
+    this.createForm = {
+      sessionDate: '',
+      startTime: '08:00',
+      endTime: '09:59',
+      topicId: this.topics()[0]?.id ?? 0,
+      classroomId: this.classrooms()[0]?.id ?? 0,
+      capacity: 0,
+      notes: ''
+    };
+  }
+
+  cancelEditingSession(): void {
+    if (!this.editingSessionId()) {
+      return;
+    }
+    const id = this.editingSessionId()!;
+    if (!confirm('¿Cancelar esta clase? Se avisará a los estudiantes con reserva.')) {
+      return;
+    }
+    this.api.cancelSession(id).subscribe({
+      next: () => {
+        this.resetSessionForm();
+        this.reload();
+      },
+      error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  private syncMonthFromWeek(): void {
+    const week = this.parseDate(this.weekStart());
+    this.monthKey.set(this.currentMonthKey(week));
+  }
+
+  private currentMonthKey(date = new Date()): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
+  }
+
+  private shiftMonth(key: string, delta: number): string {
+    const [y, m] = key.split('-').map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    return this.currentMonthKey(d);
+  }
+
+  private startOfWeekIso(date: Date): string {
+    const d = new Date(date);
+    const day = (d.getDay() + 6) % 7;
+    d.setDate(d.getDate() - day);
+    return this.formatDateOnly(d);
+  }
+
+  private addDaysIso(iso: string, days: number): string {
+    const d = this.parseDate(iso);
+    d.setDate(d.getDate() + days);
+    return this.formatDateOnly(d);
+  }
+
+  private addDays(date: Date, days: number): Date {
+    const d = new Date(date);
+    d.setDate(d.getDate() + days);
+    return d;
+  }
+
+  private parseDate(iso: string): Date {
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  private formatDateOnly(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  private formatDisplayDate(iso: string): string {
+    return this.parseDate(iso).toLocaleDateString('es-CO', {
+      day: 'numeric',
+      month: 'short'
+    });
+  }
+
+  setTab(value: 'schedule' | 'students' | 'attendance' | 'topics' | 'classrooms' | 'settings'): void {
     this.tab.set(value);
     if (value === 'attendance') {
       this.loadAttendanceSessions();
     }
+    if (value === 'students') {
+      this.loadEnrollments();
+    }
+  }
+
+  loadEnrollments(): void {
+    this.api.listEnrollments().subscribe({
+      next: (rows) => this.enrollments.set(rows),
+      error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  saveEnrollment(row: EnrollmentDto): void {
+    const current = this.enrollments().find((r) => r.studentUserId === row.studentUserId) ?? row;
+    const dayType = current.attendanceDayType ?? null;
+    const slot = current.allowedStartTime ?? null;
+    const status = current.status === 'Pending' ? 'Active' : current.status;
+    this.api.updateEnrollment(row.studentUserId, {
+      status,
+      attendanceDayType: dayType,
+      allowedStartTime: slot
+    }).subscribe({
+      next: () => this.loadEnrollments(),
+      error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  suspendEnrollment(row: EnrollmentDto): void {
+    this.api.updateEnrollment(row.studentUserId, {
+      status: 'Suspended',
+      attendanceDayType: row.attendanceDayType,
+      allowedStartTime: row.allowedStartTime
+    }).subscribe({
+      next: () => this.loadEnrollments(),
+      error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  enrollmentStatusLabel(status: string): string {
+    switch (status) {
+      case 'Active':
+      case 'Accepted':
+        return 'Autorizado';
+      case 'Suspended':
+        return 'Suspendido';
+      default:
+        return 'Pendiente';
+    }
+  }
+
+  isSaturdayMode(): boolean {
+    return this.settings()?.saturdayEnabled ?? false;
+  }
+
+  isDayAllowed(dayIndex: number): boolean {
+    const saturday = this.isSaturdayMode();
+    if (saturday) {
+      return dayIndex === 5;
+    }
+    return dayIndex >= 0 && dayIndex <= 4;
+  }
+
+  setSchedulingMode(saturday: boolean): void {
+    const cfg = this.settings();
+    if (!cfg) {
+      return;
+    }
+    this.settings.set({ ...cfg, saturdayEnabled: saturday });
   }
 
   loadAttendanceSessions(): void {
@@ -207,10 +471,9 @@ export class SchoolTheoryPage implements OnInit {
     if (!sch) {
       return [];
     }
-    const base = new Date(sch.weekStart + 'T12:00:00');
-    const d = new Date(base);
-    d.setDate(base.getDate() + dayIndex);
-    const dateKey = d.toISOString().slice(0, 10);
+    const base = this.parseDate(sch.weekStart);
+    const d = this.addDays(base, dayIndex);
+    const dateKey = this.formatDateOnly(d);
     return sch.sessions.filter(
       (s) => s.sessionDate === dateKey && s.startTime.startsWith(start.slice(0, 2))
     );
@@ -236,12 +499,22 @@ export class SchoolTheoryPage implements OnInit {
     });
   }
 
-  createSession(): void {
+  saveSession(): void {
     if (!this.createForm.sessionDate || !this.createForm.topicId || !this.createForm.classroomId) {
       this.error.set('Completa fecha, tema y aula.');
       return;
     }
-    this.api.createSession({
+    const date = this.parseDate(this.createForm.sessionDate);
+    const dayIndex = (date.getDay() + 6) % 7;
+    if (!this.isDayAllowed(dayIndex)) {
+      this.error.set(
+        this.isSaturdayMode()
+          ? 'Solo puedes programar clases los sábados.'
+          : 'Solo puedes programar clases de lunes a viernes.'
+      );
+      return;
+    }
+    const body = {
       sessionDate: this.createForm.sessionDate,
       startTime: this.createForm.startTime,
       endTime: this.createForm.endTime,
@@ -249,28 +522,57 @@ export class SchoolTheoryPage implements OnInit {
       classroomId: this.createForm.classroomId,
       capacity: this.createForm.capacity > 0 ? this.createForm.capacity : undefined,
       notes: this.createForm.notes || undefined
-    }).subscribe({
+    };
+    const editId = this.editingSessionId();
+    const req = editId
+      ? this.api.updateSession(editId, body)
+      : this.api.createSession(body);
+    req.subscribe({
       next: () => {
         this.createForm.notes = '';
+        this.editingSessionId.set(null);
+        this.jumpToSessionWeek(body.sessionDate);
         this.reload();
       },
       error: (err) => this.error.set(mapApiError(err))
     });
   }
 
+  createSession(): void {
+    this.saveSession();
+  }
+
   pickSlot(dayIndex: number, start: string): void {
+    if (!this.isDayAllowed(dayIndex)) {
+      this.error.set(
+        this.isSaturdayMode()
+          ? 'La escuela solo programa clases los sábados.'
+          : 'La escuela solo programa clases de lunes a viernes.'
+      );
+      return;
+    }
     const sch = this.schedule();
     if (!sch) {
       return;
     }
-    const base = new Date(sch.weekStart + 'T12:00:00');
-    const d = new Date(base);
-    d.setDate(base.getDate() + dayIndex);
-    this.createForm.sessionDate = d.toISOString().slice(0, 10);
+    const d = this.addDays(this.parseDate(sch.weekStart), dayIndex);
+    this.createForm.sessionDate = this.formatDateOnly(d);
     this.createForm.startTime = start;
     const hour = parseInt(start.slice(0, 2), 10) + 2;
     const endHour = hour >= 24 ? 23 : hour;
     this.createForm.endTime = `${String(endHour).padStart(2, '0')}:59`;
     this.tab.set('schedule');
+  }
+
+  updateEnrollmentField(
+    row: EnrollmentDto,
+    field: 'attendanceDayType' | 'allowedStartTime' | 'status',
+    value: string
+  ): void {
+    this.enrollments.update((rows) =>
+      rows.map((r) =>
+        r.studentUserId === row.studentUserId ? { ...r, [field]: value || null } : r
+      )
+    );
   }
 }
