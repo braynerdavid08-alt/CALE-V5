@@ -1089,12 +1089,18 @@ public sealed class TheoryTrainingService
         {
             enrollment.SuspendedAt = now;
         }
+        else if (StudentEnrollmentStatuses.CanReserveStatuses.Contains(enrollment.Status))
+        {
+            enrollment.SuspendedAt = null;
+            enrollment.AcceptedAt ??= now;
+        }
         else if (!string.IsNullOrWhiteSpace(enrollment.AttendanceDayType)
             && !string.IsNullOrWhiteSpace(enrollment.LicenseCategories)
             && enrollment.Status == StudentEnrollmentStatuses.Pending)
         {
             enrollment.Status = StudentEnrollmentStatuses.Active;
             enrollment.AcceptedAt ??= now;
+            enrollment.SuspendedAt = null;
         }
 
         await _db.SaveChangesAsync(ct);
@@ -1708,9 +1714,19 @@ public sealed class TheoryTrainingService
         TheoryClassSession session,
         StudentScheduleContext ctx)
     {
-        if (enrollment is null || !CanStudentReserve(enrollment))
+        if (enrollment is null)
         {
             return ("locked", "No autorizado por la escuela");
+        }
+
+        if (enrollment.Status == StudentEnrollmentStatuses.Suspended)
+        {
+            return ("locked", "Tu acceso está suspendido. Pide a la escuela que te autorice de nuevo.");
+        }
+
+        if (!CanStudentReserve(enrollment))
+        {
+            return ("locked", "Pendiente de autorización por la escuela");
         }
 
         var dayLimit = EvaluateDayBookingLimit(enrollment, session, ctx);

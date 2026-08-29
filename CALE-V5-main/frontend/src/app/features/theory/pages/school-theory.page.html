@@ -339,9 +339,12 @@
                     </select>
                   </td>
                   <td class="actions">
-                    <ui-button type="button" (click)="saveEnrollment(row, true)">Autorizar</ui-button>
                     @if (row.status === 'Active' || row.status === 'Accepted') {
                       <button type="button" class="link-btn" (click)="suspendEnrollment(row)">Suspender</button>
+                    } @else {
+                      <ui-button type="button" (click)="saveEnrollment(row, true)">
+                        {{ row.status === 'Suspended' ? 'Reactivar' : 'Autorizar' }}
+                      </ui-button>
                     }
                   </td>
                 </tr>

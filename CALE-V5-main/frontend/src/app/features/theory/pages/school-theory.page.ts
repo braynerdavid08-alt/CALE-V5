@@ -330,8 +330,7 @@ export class SchoolTheoryPage implements OnInit {
     const current = this.enrollments().find((r) => r.studentUserId === row.studentUserId) ?? row;
     const dayType = current.attendanceDayType ?? null;
     const license = current.licenseCategories ?? null;
-    const status =
-      activate && current.status === 'Pending' ? 'Active' : current.status;
+    const status = activate ? 'Active' : current.status;
     this.api.updateEnrollment(row.studentUserId, {
       status,
       attendanceDayType: dayType,
