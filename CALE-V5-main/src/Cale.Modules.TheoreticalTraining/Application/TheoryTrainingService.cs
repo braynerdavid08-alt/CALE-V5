@@ -356,7 +356,8 @@ public sealed class TheoryTrainingService
             .Include(x => x.Classroom)
             .Where(x => x.SchoolUserId == schoolUserId
                 && x.SessionDate >= start
-                && x.SessionDate <= end)
+                && x.SessionDate <= end
+                && x.Status != TheoryClassStatuses.Cancelled)
             .OrderBy(x => x.SessionDate)
             .ThenBy(x => x.StartTime)
             .ToListAsync(ct);
@@ -405,43 +406,44 @@ public sealed class TheoryTrainingService
         CancellationToken ct)
     {
         var session = await RequireSessionAsync(schoolUserId, sessionId, ct);
-        if (session.Status == TheoryClassStatuses.Cancelled)
-        {
-            return;
-        }
-
-        session.Status = TheoryClassStatuses.Cancelled;
-        session.CancellationReason = reason;
-        session.CancelledByUserId = actorUserId;
-        session.CancelledAt = _clock.UtcNow;
-        session.UpdatedAt = _clock.UtcNow;
 
         var reservations = await _db.Set<TheoryClassReservation>()
-            .Where(x => x.ClassSessionId == sessionId
-                && TheoryReservationStatuses.ActiveStatuses.Contains(x.Status))
+            .Where(x => x.ClassSessionId == sessionId)
             .ToListAsync(ct);
 
-        var studentIds = new List<int>();
-        foreach (var r in reservations)
+        var studentIds = reservations
+            .Where(r => TheoryReservationStatuses.OccupiesSeatStatuses.Contains(r.Status))
+            .Select(r => r.StudentUserId)
+            .Distinct()
+            .ToList();
+
+        var attendance = await _db.Set<TheoryAttendanceRecord>()
+            .Where(x => x.ClassSessionId == sessionId)
+            .ToListAsync(ct);
+
+        if (attendance.Count > 0)
         {
-            r.Status = TheoryReservationStatuses.CancelledBySchool;
-            r.CancelledAt = _clock.UtcNow;
-            r.CancellationReason = reason;
-            r.UpdatedAt = _clock.UtcNow;
-            studentIds.Add(r.StudentUserId);
+            _db.Set<TheoryAttendanceRecord>().RemoveRange(attendance);
         }
 
+        if (reservations.Count > 0)
+        {
+            _db.Set<TheoryClassReservation>().RemoveRange(reservations);
+        }
+
+        _db.Set<TheoryClassSession>().Remove(session);
         await _db.SaveChangesAsync(ct);
+
         if (studentIds.Count > 0)
         {
             await _notifications.NotifyUsersAsync(
                 studentIds,
-                "Clase teórica cancelada",
-                $"La escuela canceló la clase del {session.SessionDate:dd/MM/yyyy} a las {session.StartTime:HH:mm}.",
+                "Clase teórica eliminada",
+                $"La escuela eliminó la clase del {session.SessionDate:dd/MM/yyyy} a las {session.StartTime:HH:mm}.",
                 NotificationTypes.TheoryClass,
                 null,
                 "theory_class",
-                session.Id,
+                sessionId,
                 ct);
         }
     }

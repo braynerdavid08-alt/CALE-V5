@@ -45,6 +45,7 @@ export class SchoolTheoryPage implements OnInit {
   readonly settings = signal<TheorySettingsDto | null>(null);
   readonly enrollments = signal<EnrollmentDto[]>([]);
   readonly enrollmentFilter = signal<'all' | 'weekday' | 'saturday'>('all');
+  readonly enrollmentSearch = signal('');
   readonly attendanceLoading = signal(false);
 
   readonly licenseCategoryOptions = [
@@ -53,8 +54,7 @@ export class SchoolTheoryPage implements OnInit {
     { value: 'C1', label: 'C1' },
     { value: 'A2,B1', label: 'A2 + B1' },
     { value: 'A2,C1', label: 'A2 + C1' },
-    { value: 'B1,C1', label: 'B1 + C1' },
-    { value: 'A2,B1,C1', label: 'A2 + B1 + C1' }
+    { value: 'B1,C1', label: 'B1 + C1' }
   ];
 
   readonly dayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -239,13 +239,17 @@ export class SchoolTheoryPage implements OnInit {
       return;
     }
     const id = this.editingSessionId()!;
-    if (!confirm('¿Cancelar esta clase? Se avisará a los estudiantes con reserva.')) {
+    if (!confirm('¿Eliminar esta clase? Se quitarán todas las reservas y desaparecerá del horario.')) {
       return;
     }
     this.api.cancelSession(id).subscribe({
       next: () => {
         this.resetSessionForm();
-        this.reload();
+        this.loadScheduleData();
+        this.api.schoolDashboard().subscribe({
+          next: (d) => this.dashboard.set(d),
+          error: () => this.dashboard.set(null)
+        });
       },
       error: (err) => this.error.set(mapApiError(err))
     });
@@ -379,14 +383,25 @@ export class SchoolTheoryPage implements OnInit {
 
   filteredEnrollments(): EnrollmentDto[] {
     const filter = this.enrollmentFilter();
-    const rows = this.enrollments();
+    const query = this.enrollmentSearch().trim().toLowerCase();
+    let rows = this.enrollments();
     if (filter === 'weekday') {
-      return rows.filter((r) => r.attendanceDayType === 'Weekday');
+      rows = rows.filter((r) => r.attendanceDayType === 'Weekday');
+    } else if (filter === 'saturday') {
+      rows = rows.filter((r) => r.attendanceDayType === 'Saturday');
     }
-    if (filter === 'saturday') {
-      return rows.filter((r) => r.attendanceDayType === 'Saturday');
+    if (!query) {
+      return rows;
     }
-    return rows;
+    return rows.filter(
+      (r) =>
+        r.studentName.toLowerCase().includes(query)
+        || (r.studentEmail ?? '').toLowerCase().includes(query)
+    );
+  }
+
+  clearEnrollmentSearch(): void {
+    this.enrollmentSearch.set('');
   }
 
   enrollmentCount(filter: 'all' | 'weekday' | 'saturday'): number {

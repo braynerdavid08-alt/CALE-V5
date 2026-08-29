@@ -139,6 +139,33 @@
 .enrollment-filters button.on {
   border-color: var(--color-primary); color: var(--color-primary); font-weight: 700;
 }
+.enrollment-toolbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem;
+  margin: 0.75rem 0 0.5rem;
+}
+.enrollment-search {
+  position: relative; flex: 1 1 220px; max-width: 420px;
+}
+.enrollment-search input {
+  width: 100%; padding: 0.55rem 2rem 0.55rem 0.75rem;
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  background: var(--color-background); color: var(--color-text); font-size: var(--text-sm);
+}
+.enrollment-search input:focus {
+  outline: none; border-color: var(--color-primary);
+}
+.search-clear {
+  position: absolute; right: 0.35rem; top: 50%; transform: translateY(-50%);
+  border: 0; background: transparent; color: var(--color-text-secondary);
+  font-size: 1.25rem; line-height: 1; cursor: pointer; padding: 0.15rem 0.35rem;
+}
+.enrollment-count {
+  font-size: var(--text-xs); color: var(--color-text-secondary); white-space: nowrap;
+}
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;
+}
 .link-btn { border: 0; background: transparent; color: var(--color-text-secondary); cursor: pointer; text-decoration: underline; font-size: var(--text-xs); }
 @media (max-width: 900px) {
   .layout { grid-template-columns: 1fr; }

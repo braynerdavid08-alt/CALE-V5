@@ -143,7 +143,7 @@
           </ui-button>
           @if (editingSessionId()) {
             <button type="button" class="link-btn" (click)="resetSessionForm()">Nueva clase</button>
-            <button type="button" class="link-btn danger" (click)="cancelEditingSession()">Cancelar clase</button>
+            <button type="button" class="link-btn danger" (click)="cancelEditingSession()">Eliminar clase</button>
           }
         </div>
       </aside>
@@ -237,6 +237,23 @@
         </div>
       </div>
 
+      <div class="enrollment-toolbar">
+        <label class="enrollment-search">
+          <span class="sr-only">Buscar estudiante</span>
+          <input
+            type="search"
+            placeholder="Buscar por nombre o correo…"
+            [ngModel]="enrollmentSearch()"
+            (ngModelChange)="enrollmentSearch.set($event)" />
+          @if (enrollmentSearch()) {
+            <button type="button" class="search-clear" (click)="clearEnrollmentSearch()" aria-label="Limpiar búsqueda">×</button>
+          }
+        </label>
+        <span class="enrollment-count">
+          Mostrando {{ filteredEnrollments().length }} de {{ enrollments().length }}
+        </span>
+      </div>
+
       <div class="enrollment-filters">
         <button
           type="button"
@@ -261,7 +278,13 @@
       @if (!enrollments().length) {
         <p class="muted">No hay estudiantes vinculados a la escuela.</p>
       } @else if (!filteredEnrollments().length) {
-        <p class="muted">No hay estudiantes en este grupo.</p>
+        <p class="muted">
+          @if (enrollmentSearch()) {
+            No hay estudiantes que coincidan con "{{ enrollmentSearch() }}".
+          } @else {
+            No hay estudiantes en este grupo.
+          }
+        </p>
       } @else {
         <table class="enrollment-table">
           <thead>
