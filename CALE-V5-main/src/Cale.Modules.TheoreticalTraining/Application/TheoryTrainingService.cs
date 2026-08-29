@@ -1033,6 +1033,7 @@ public sealed class TheoryTrainingService
 
         enrollment.Status = request.Status;
         enrollment.UpdatedAt = now;
+        enrollment.AllowedStartTime = null;
 
         if (!string.IsNullOrWhiteSpace(request.AttendanceDayType))
         {
@@ -1044,13 +1045,6 @@ public sealed class TheoryTrainingService
 
             ActivateSchedulingGroup(settings, dayType);
             enrollment.AttendanceDayType = dayType;
-        }
-
-        if (request.AllowedStartTime is not null)
-        {
-            enrollment.AllowedStartTime = string.IsNullOrWhiteSpace(request.AllowedStartTime)
-                ? null
-                : ParseTime(request.AllowedStartTime);
         }
 
         if (request.LicenseCategories is not null)
@@ -1080,14 +1074,6 @@ public sealed class TheoryTrainingService
                     "Indica si el estudiante asiste en Semana o los sábados.",
                     400,
                     "day_type_required");
-            }
-
-            if (enrollment.AllowedStartTime is null)
-            {
-                throw new DomainException(
-                    "Asigna un horario habilitado al estudiante.",
-                    400,
-                    "slot_required");
             }
 
             if (string.IsNullOrWhiteSpace(enrollment.LicenseCategories))
@@ -1707,16 +1693,6 @@ public sealed class TheoryTrainingService
         SchoolStudentEnrollment enrollment,
         TheoryClassSession session)
     {
-        if (enrollment.AllowedStartTime is null)
-        {
-            return ("slot_not_assigned", "Horario no asignado por la escuela");
-        }
-
-        if (session.StartTime != enrollment.AllowedStartTime)
-        {
-            return ("slot_not_allowed", $"Tu horario autorizado es {enrollment.AllowedStartTime:HH:mm}");
-        }
-
         if (enrollment.AttendanceDayType is null)
         {
             return ("day_not_assigned", "Día de asistencia no asignado");

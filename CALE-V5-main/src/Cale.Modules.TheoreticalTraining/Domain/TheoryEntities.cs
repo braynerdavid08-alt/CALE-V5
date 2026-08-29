@@ -104,7 +104,7 @@ public sealed class SchoolStudentEnrollment
     public string Status { get; set; } = StudentEnrollmentStatuses.Pending;
     /// <summary>Weekday or Saturday — must match the school's scheduling mode.</summary>
     public string? AttendanceDayType { get; set; }
-    /// <summary>Only slot start time the student may book (e.g. 08:00).</summary>
+    /// <summary>Legacy field — students may book any school session on their assigned day.</summary>
     public TimeOnly? AllowedStartTime { get; set; }
     /// <summary>License categories in progress, e.g. A2,B1 or A2,C1.</summary>
     public string? LicenseCategories { get; set; }

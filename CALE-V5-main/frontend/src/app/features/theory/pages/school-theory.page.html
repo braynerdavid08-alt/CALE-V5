@@ -222,8 +222,8 @@
     <div class="form-card">
       <h2>Autorización de estudiantes</h2>
       <p class="muted">
-        Asigna aquí si cada estudiante es de <strong>Semana</strong> o <strong>Sábados</strong>,
-        su curso de licencia y horario. No necesitas ir a Ajustes.
+        Asigna si cada estudiante es de <strong>Semana</strong> o <strong>Sábados</strong> y su curso de licencia.
+        El estudiante elige libremente a qué hora asistir entre las clases que programe la escuela (máximo 1 por día).
       </p>
 
       <div class="enrollment-summary">
@@ -293,7 +293,6 @@
               <th>Estado</th>
               <th>Semana / Sábado</th>
               <th>Curso</th>
-              <th>Horario</th>
               <th></th>
             </tr>
           </thead>
@@ -321,16 +320,6 @@
                     <option value="">Sin asignar</option>
                     @for (opt of licenseCategoryOptions; track opt.value) {
                       <option [value]="opt.value">{{ opt.label }}</option>
-                    }
-                  </select>
-                </td>
-                <td>
-                  <select
-                    [ngModel]="row.allowedStartTime ?? ''"
-                    (ngModelChange)="onEnrollmentSelect(row, 'allowedStartTime', $event)">
-                    <option value="">Sin asignar</option>
-                    @for (slot of timeSlots; track slot) {
-                      <option [value]="slot">{{ slot }}</option>
                     }
                   </select>
                 </td>

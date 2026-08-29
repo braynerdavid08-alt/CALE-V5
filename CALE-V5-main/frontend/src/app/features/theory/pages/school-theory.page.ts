@@ -329,14 +329,13 @@ export class SchoolTheoryPage implements OnInit {
   saveEnrollment(row: EnrollmentDto, activate = false): void {
     const current = this.enrollments().find((r) => r.studentUserId === row.studentUserId) ?? row;
     const dayType = current.attendanceDayType ?? null;
-    const slot = current.allowedStartTime ?? null;
     const license = current.licenseCategories ?? null;
     const status =
       activate && current.status === 'Pending' ? 'Active' : current.status;
     this.api.updateEnrollment(row.studentUserId, {
       status,
       attendanceDayType: dayType,
-      allowedStartTime: slot,
+      allowedStartTime: null,
       licenseCategories: license
     }).subscribe({
       next: () => {
@@ -349,7 +348,7 @@ export class SchoolTheoryPage implements OnInit {
 
   onEnrollmentSelect(
     row: EnrollmentDto,
-    field: 'attendanceDayType' | 'allowedStartTime' | 'licenseCategories',
+    field: 'attendanceDayType' | 'licenseCategories',
     value: string
   ): void {
     this.updateEnrollmentField(row, field, value);
@@ -360,7 +359,7 @@ export class SchoolTheoryPage implements OnInit {
     this.api.updateEnrollment(row.studentUserId, {
       status: 'Suspended',
       attendanceDayType: row.attendanceDayType,
-      allowedStartTime: row.allowedStartTime,
+      allowedStartTime: null,
       licenseCategories: row.licenseCategories
     }).subscribe({
       next: () => this.loadEnrollments(),
