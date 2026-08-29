@@ -89,7 +89,7 @@
                     class="btn"
                     [class.reserve]="canReserve(session)"
                     [class.reserved]="session.bookingState === 'reserved'"
-                    [class.blocked]="session.bookingState === 'day_taken' || session.bookingState === 'locked'"
+                    [class.blocked]="session.bookingState === 'day_taken' || session.bookingState === 'day_limit' || session.bookingState === 'locked'"
                     [disabled]="actionLoading() || (!canReserve(session) && session.bookingState !== 'reserved')"
                     (click)="canReserve(session) ? reserve(session) : (session.bookingState === 'reserved' ? cancel(session) : null)">
                     {{ bookingLabel(session.bookingState, session.bookingMessage) }}

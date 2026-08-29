@@ -304,6 +304,8 @@ export function theoryBookingLabel(state?: string | null, message?: string | nul
       return 'No disponible';
     case 'day_taken':
       return 'Ya tienes clase este día';
+    case 'day_limit':
+      return 'Máximo de clases del sábado reservadas';
     case 'not_authorized':
       return 'Sin autorización';
     case 'full':

@@ -76,6 +76,7 @@ const messages: Record<string, string> = {
   class_cancelled: 'Esta clase está cancelada.',
   capacity_below_reserved: 'El cupo no puede ser menor que las reservas actuales.',
   day_already_reserved: 'Ya tienes una clase reservada ese día.',
+  saturday_day_limit: 'Ya reservaste el máximo de 4 clases este sábado.',
   saturday_disabled: 'Las clases de sábado están desactivadas.',
   weekday_disabled: 'La escuela solo programa clases los sábados.',
   weekday_only: 'La escuela solo programa clases de lunes a viernes.',

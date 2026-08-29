@@ -43,6 +43,11 @@ public static class StudentLicenseCategories
     }
 }
 
+public static class TheoryAttendanceLimits
+{
+    public const int MaxSaturdayReservationsPerDay = 4;
+}
+
 public static class StudentEnrollmentStatuses
 {
     public const string Pending = "Pending";

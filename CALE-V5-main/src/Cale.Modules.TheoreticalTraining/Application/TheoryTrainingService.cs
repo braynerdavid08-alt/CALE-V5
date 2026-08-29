@@ -467,7 +467,7 @@ public sealed class TheoryTrainingService
         ValidateReservationWindow(session);
         var enrollment = await GetEnrollmentAsync(schoolUserId, studentUserId, ct);
         ValidateStudentSessionAccess(enrollment, session);
-        await ValidateNoScheduleConflictAsync(studentUserId, session, null, ct);
+        await ValidateNoScheduleConflictAsync(studentUserId, session, enrollment, null, ct);
 
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
         try
@@ -1089,6 +1089,13 @@ public sealed class TheoryTrainingService
         {
             enrollment.SuspendedAt = now;
         }
+        else if (!string.IsNullOrWhiteSpace(enrollment.AttendanceDayType)
+            && !string.IsNullOrWhiteSpace(enrollment.LicenseCategories)
+            && enrollment.Status == StudentEnrollmentStatuses.Pending)
+        {
+            enrollment.Status = StudentEnrollmentStatuses.Active;
+            enrollment.AcceptedAt ??= now;
+        }
 
         await _db.SaveChangesAsync(ct);
         return MapEnrollmentDto(enrollment, student.Name, student.Email ?? "");
@@ -1251,6 +1258,7 @@ public sealed class TheoryTrainingService
     private async Task ValidateNoScheduleConflictAsync(
         int studentUserId,
         TheoryClassSession target,
+        SchoolStudentEnrollment enrollment,
         int? ignoreReservationId,
         CancellationToken ct)
     {
@@ -1261,6 +1269,9 @@ public sealed class TheoryTrainingService
                 && (ignoreReservationId == null || x.Id != ignoreReservationId))
             .ToListAsync(ct);
 
+        var saturdayGroup = enrollment.AttendanceDayType == StudentAttendanceDayTypes.Saturday;
+        var targetIsSaturday = target.SessionDate.DayOfWeek == DayOfWeek.Saturday;
+
         foreach (var r in existing)
         {
             var s = r.ClassSession;
@@ -1269,13 +1280,29 @@ public sealed class TheoryTrainingService
                 continue;
             }
 
-            if (s.SessionDate == target.SessionDate)
+            if (s.SessionDate != target.SessionDate)
             {
-                throw new DomainException(
-                    "Ya tienes una clase reservada ese día. Solo puedes reservar una por día.",
-                    400,
-                    "day_already_reserved");
+                continue;
             }
+
+            if (saturdayGroup && targetIsSaturday)
+            {
+                var countOnDay = existing.Count(x => x.ClassSession?.SessionDate == target.SessionDate);
+                if (countOnDay >= TheoryAttendanceLimits.MaxSaturdayReservationsPerDay)
+                {
+                    throw new DomainException(
+                        $"Ya reservaste {TheoryAttendanceLimits.MaxSaturdayReservationsPerDay} clases este sábado.",
+                        400,
+                        "saturday_day_limit");
+                }
+
+                continue;
+            }
+
+            throw new DomainException(
+                "Ya tienes una clase reservada ese día. Solo puedes reservar una por día.",
+                400,
+                "day_already_reserved");
         }
     }
 
@@ -1315,13 +1342,19 @@ public sealed class TheoryTrainingService
 
         await EnsureSchoolMembershipActiveAsync(schoolUserId, ct);
         var enrollment = await GetEnrollmentAsync(schoolUserId, studentUserId, ct);
-        if (!StudentEnrollmentStatuses.CanReserveStatuses.Contains(enrollment.Status))
+        if (!CanStudentReserve(enrollment))
         {
             throw new ForbiddenException(
                 "Tu escuela aún no te ha habilitado para reservar clases.",
                 "enrollment_not_active");
         }
     }
+
+    private static bool CanStudentReserve(SchoolStudentEnrollment enrollment) =>
+        StudentEnrollmentStatuses.CanReserveStatuses.Contains(enrollment.Status)
+        || (enrollment.Status == StudentEnrollmentStatuses.Pending
+            && !string.IsNullOrWhiteSpace(enrollment.AttendanceDayType)
+            && !string.IsNullOrWhiteSpace(enrollment.LicenseCategories));
 
     private async Task<(int SchoolUserId, User Student)> ResolveStudentSchoolAsync(
         int studentUserId,
@@ -1536,7 +1569,7 @@ public sealed class TheoryTrainingService
 
     private sealed record StudentScheduleContext(
         SchoolStudentEnrollment? Enrollment,
-        HashSet<DateOnly> ReservedDates);
+        IReadOnlyDictionary<DateOnly, int> ReservationsPerDate);
 
     private async Task<StudentScheduleContext> BuildStudentScheduleContextAsync(
         int studentUserId,
@@ -1560,7 +1593,13 @@ public sealed class TheoryTrainingService
             .Select(x => x.ClassSession!.SessionDate)
             .ToListAsync(ct);
 
-        return new StudentScheduleContext(enrollment, reservedDates.ToHashSet());
+        var perDate = new Dictionary<DateOnly, int>();
+        foreach (var date in reservedDates)
+        {
+            perDate[date] = perDate.GetValueOrDefault(date) + 1;
+        }
+
+        return new StudentScheduleContext(enrollment, perDate);
     }
 
     private async Task<SchoolStudentEnrollment> GetEnrollmentAsync(
@@ -1669,15 +1708,15 @@ public sealed class TheoryTrainingService
         TheoryClassSession session,
         StudentScheduleContext ctx)
     {
-        if (enrollment is null
-            || !StudentEnrollmentStatuses.CanReserveStatuses.Contains(enrollment.Status))
+        if (enrollment is null || !CanStudentReserve(enrollment))
         {
             return ("locked", "No autorizado por la escuela");
         }
 
-        if (ctx.ReservedDates.Contains(session.SessionDate))
+        var dayLimit = EvaluateDayBookingLimit(enrollment, session, ctx);
+        if (dayLimit is not null)
         {
-            return ("day_taken", "Ya reservaste una clase este día");
+            return dayLimit.Value;
         }
 
         var issue = EvaluateStudentAccessIssue(enrollment, session);
@@ -1687,6 +1726,35 @@ public sealed class TheoryTrainingService
         }
 
         return null;
+    }
+
+    private static (string State, string Message)? EvaluateDayBookingLimit(
+        SchoolStudentEnrollment enrollment,
+        TheoryClassSession session,
+        StudentScheduleContext ctx)
+    {
+        var count = ctx.ReservationsPerDate.GetValueOrDefault(session.SessionDate);
+        if (count <= 0)
+        {
+            return null;
+        }
+
+        var isSaturdaySession = session.SessionDate.DayOfWeek == DayOfWeek.Saturday;
+        var isSaturdayStudent = enrollment.AttendanceDayType == StudentAttendanceDayTypes.Saturday;
+
+        if (isSaturdaySession && isSaturdayStudent)
+        {
+            if (count >= TheoryAttendanceLimits.MaxSaturdayReservationsPerDay)
+            {
+                return (
+                    "day_limit",
+                    $"Ya reservaste {TheoryAttendanceLimits.MaxSaturdayReservationsPerDay} clases este sábado");
+            }
+
+            return null;
+        }
+
+        return ("day_taken", "Ya reservaste una clase este día");
     }
 
     private static (string Code, string Message)? EvaluateStudentAccessIssue(
