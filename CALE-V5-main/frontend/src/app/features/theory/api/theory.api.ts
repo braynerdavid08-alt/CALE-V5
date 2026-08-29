@@ -24,6 +24,7 @@ export interface TheorySettingsDto {
   minCancelHours: number;
   reservationCloseMinutesBefore: number;
   requiredTheoryHours: number;
+  weekdaysEnabled: boolean;
   saturdayEnabled: boolean;
   notifyReservationOpen: boolean;
   notifyClassReminder24h: boolean;
@@ -67,6 +68,7 @@ export interface TheoryWeekScheduleDto {
   weekEnd: string;
   sessions: TheoryClassSessionDto[];
   timeSlots: Array<{ label: string; start: string; end: string }>;
+  studentAttendanceDayType?: string | null;
 }
 
 export interface TheoryMonthScheduleDto {
@@ -98,6 +100,7 @@ export interface TheoryStudentDashboardDto {
   reservationOpensAt?: string | null;
   checkedInToday: boolean;
   todayTasks: Array<{ label: string; done: boolean }>;
+  attendanceDayType?: string | null;
 }
 
 export interface EnrollmentDto {
@@ -108,6 +111,7 @@ export interface EnrollmentDto {
   status: string;
   attendanceDayType?: string | null;
   allowedStartTime?: string | null;
+  licenseCategories?: string | null;
   createdAt: string;
   acceptedAt?: string | null;
 }
@@ -245,7 +249,12 @@ export class TheoryApi {
 
   updateEnrollment(
     studentUserId: number,
-    body: { status: string; attendanceDayType?: string | null; allowedStartTime?: string | null }
+    body: {
+      status: string;
+      attendanceDayType?: string | null;
+      allowedStartTime?: string | null;
+      licenseCategories?: string | null;
+    }
   ) {
     return this.http.put<EnrollmentDto>(
       `${this.schoolBase}/enrollments/student/${studentUserId}`,
@@ -293,6 +302,8 @@ export function theoryBookingLabel(state?: string | null, message?: string | nul
       return 'Disponible mañana';
     case 'locked':
       return 'No disponible';
+    case 'day_taken':
+      return 'Ya tienes clase este día';
     case 'not_authorized':
       return 'Sin autorización';
     case 'full':

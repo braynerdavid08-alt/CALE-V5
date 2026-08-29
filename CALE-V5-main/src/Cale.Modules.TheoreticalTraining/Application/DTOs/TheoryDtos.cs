@@ -33,6 +33,7 @@ public sealed record TheorySettingsDto(
     int MinCancelHours,
     int ReservationCloseMinutesBefore,
     int RequiredTheoryHours,
+    bool WeekdaysEnabled,
     bool SaturdayEnabled,
     bool NotifyReservationOpen = true,
     bool NotifyClassReminder24h = true,
@@ -96,7 +97,8 @@ public sealed record TheoryWeekScheduleDto(
     DateOnly WeekStart,
     DateOnly WeekEnd,
     IReadOnlyList<TheoryClassSessionDto> Sessions,
-    IReadOnlyList<TheoryTimeSlotDto> TimeSlots);
+    IReadOnlyList<TheoryTimeSlotDto> TimeSlots,
+    string? StudentAttendanceDayType = null);
 
 public sealed record TheorySchoolDashboardDto(
     int ClassesToday,
@@ -119,7 +121,8 @@ public sealed record TheoryStudentDashboardDto(
     string? ReservationCountdownLabel,
     DateTime? ReservationOpensAt,
     bool CheckedInToday,
-    IReadOnlyList<TheoryDailyTaskDto> TodayTasks);
+    IReadOnlyList<TheoryDailyTaskDto> TodayTasks,
+    string? AttendanceDayType = null);
 
 public sealed record TheoryDailyTaskDto(string Label, bool Done);
 
@@ -145,10 +148,12 @@ public sealed record EnrollmentDto(
     string Status,
     string? AttendanceDayType,
     string? AllowedStartTime,
+    string? LicenseCategories,
     DateTime CreatedAt,
     DateTime? AcceptedAt);
 
 public sealed record UpdateEnrollmentRequest(
     string Status,
     string? AttendanceDayType = null,
-    string? AllowedStartTime = null);
+    string? AllowedStartTime = null,
+    string? LicenseCategories = null);

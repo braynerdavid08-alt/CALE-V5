@@ -149,7 +149,7 @@ public sealed class TheoryTrainingService
 
     public async Task<TheorySettingsDto> GetSettingsAsync(int schoolUserId, CancellationToken ct)
     {
-        var settings = await GetOrCreateSettingsAsync(schoolUserId, ct);
+        var settings = await EnsureBothSchedulingGroupsAsync(schoolUserId, ct);
         return MapSettings(settings);
     }
 
@@ -163,7 +163,8 @@ public sealed class TheoryTrainingService
         settings.MinCancelHours = Math.Clamp(request.MinCancelHours, 0, 72);
         settings.ReservationCloseMinutesBefore = Math.Clamp(request.ReservationCloseMinutesBefore, 0, 180);
         settings.RequiredTheoryHours = Math.Clamp(request.RequiredTheoryHours, 1, 200);
-        settings.SaturdayEnabled = request.SaturdayEnabled;
+        settings.WeekdaysEnabled = true;
+        settings.SaturdayEnabled = true;
         settings.NotifyReservationOpen = request.NotifyReservationOpen;
         settings.NotifyClassReminder24h = request.NotifyClassReminder24h;
         settings.NotifyClassReminder1h = request.NotifyClassReminder1h;
@@ -194,18 +195,6 @@ public sealed class TheoryTrainingService
         }
 
         ValidateSessionDayForSettings(request.SessionDate, settings);
-
-        var existingDay = await _db.Set<TheoryClassSession>()
-            .AnyAsync(x => x.SchoolUserId == schoolUserId
-                && x.SessionDate == request.SessionDate
-                && x.Status != TheoryClassStatuses.Cancelled, ct);
-        if (existingDay)
-        {
-            throw new DomainException(
-                "Ya existe una clase programada para esa fecha. Solo se permite una por día.",
-                400,
-                "session_day_taken");
-        }
 
         var start = ParseTime(request.StartTime);
         var end = ParseTime(request.EndTime);
@@ -283,22 +272,6 @@ public sealed class TheoryTrainingService
         }
 
         ValidateSessionDayForSettings(request.SessionDate, settings);
-
-        if (request.SessionDate != session.SessionDate)
-        {
-            var existingDay = await _db.Set<TheoryClassSession>()
-                .AnyAsync(x => x.SchoolUserId == schoolUserId
-                    && x.Id != sessionId
-                    && x.SessionDate == request.SessionDate
-                    && x.Status != TheoryClassStatuses.Cancelled, ct);
-            if (existingDay)
-            {
-                throw new DomainException(
-                    "Ya existe una clase programada para esa fecha.",
-                    400,
-                    "session_day_taken");
-            }
-        }
 
         var start = ParseTime(request.StartTime);
         var end = ParseTime(request.EndTime);
@@ -402,6 +375,12 @@ public sealed class TheoryTrainingService
 
         foreach (var s in sessions)
         {
+            if (studentCtx?.Enrollment?.AttendanceDayType is not null
+                && !SessionMatchesDayType(s.SessionDate, studentCtx.Enrollment.AttendanceDayType))
+            {
+                continue;
+            }
+
             dtos.Add(await MapSessionAsync(s.Id, studentUserId, ct, studentCtx));
         }
 
@@ -414,7 +393,8 @@ public sealed class TheoryTrainingService
                     $"{s.Start:HH\\:mm} – {s.End:HH\\:mm}",
                     s.Start.ToString("HH:mm"),
                     s.End.ToString("HH:mm")))
-                .ToList());
+                .ToList(),
+            studentCtx?.Enrollment?.AttendanceDayType);
     }
 
     public async Task CancelSessionAsync(
@@ -919,9 +899,14 @@ public sealed class TheoryTrainingService
         var checkedIn = await _db.Set<StudentDailyCheckIn>()
             .AnyAsync(x => x.StudentUserId == studentUserId && x.CheckInDate == today, ct);
 
+        var enrollment = await _db.Set<SchoolStudentEnrollment>()
+            .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
+                && x.StudentUserId == studentUserId, ct);
+
         var (nextAction, opensAt, countdownLabel) = await ComputeNextActionAsync(
             studentUserId,
             schoolUserId,
+            enrollment?.AttendanceDayType,
             ct);
 
         var tasks = new List<TheoryDailyTaskDto>
@@ -945,7 +930,8 @@ public sealed class TheoryTrainingService
             countdownLabel,
             opensAt,
             checkedIn,
-            tasks);
+            tasks,
+            enrollment?.AttendanceDayType);
     }
 
     public async Task<TheoryWeekScheduleDto> GetStudentWeekScheduleAsync(
@@ -1007,6 +993,7 @@ public sealed class TheoryTrainingService
                     StudentEnrollmentStatuses.Pending,
                     null,
                     null,
+                    null,
                     DateTime.UtcNow,
                     null));
             }
@@ -1053,7 +1040,7 @@ public sealed class TheoryTrainingService
                 throw new DomainException("Tipo de día no válido.", 400, "invalid_day_type");
             }
 
-            ValidateEnrollmentDayTypeForSettings(dayType, settings);
+            ActivateSchedulingGroup(settings, dayType);
             enrollment.AttendanceDayType = dayType;
         }
 
@@ -1064,13 +1051,31 @@ public sealed class TheoryTrainingService
                 : ParseTime(request.AllowedStartTime);
         }
 
+        if (request.LicenseCategories is not null)
+        {
+            var categories = request.LicenseCategories.Trim();
+            if (categories.Length == 0)
+            {
+                enrollment.LicenseCategories = null;
+            }
+            else if (!StudentLicenseCategories.IsValid(categories))
+            {
+                throw new DomainException("Categoría de licencia no válida.", 400, "invalid_license_category");
+            }
+            else
+            {
+                enrollment.LicenseCategories = StudentLicenseCategories.Presets
+                    .First(p => p.Equals(categories, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+
         if (request.Status is StudentEnrollmentStatuses.Accepted or StudentEnrollmentStatuses.Active)
         {
             enrollment.AcceptedAt ??= now;
             if (enrollment.AttendanceDayType is null)
             {
                 throw new DomainException(
-                    "Indica si el estudiante asiste entre semana o los sábados.",
+                    "Indica si el estudiante asiste en Semana o los sábados.",
                     400,
                     "day_type_required");
             }
@@ -1081,6 +1086,14 @@ public sealed class TheoryTrainingService
                     "Asigna un horario habilitado al estudiante.",
                     400,
                     "slot_required");
+            }
+
+            if (string.IsNullOrWhiteSpace(enrollment.LicenseCategories))
+            {
+                throw new DomainException(
+                    "Indica la categoría de licencia que cursa el estudiante.",
+                    400,
+                    "license_category_required");
             }
         }
 
@@ -1465,15 +1478,19 @@ public sealed class TheoryTrainingService
     private async Task<(string? Action, DateTime? OpensAt, string? Countdown)> ComputeNextActionAsync(
         int studentUserId,
         int schoolUserId,
+        string? attendanceDayType,
         CancellationToken ct)
     {
         var tomorrow = ColombiaTime.TodayInColombia().AddDays(1);
-        var session = await _db.Set<TheoryClassSession>()
+        var sessions = await _db.Set<TheoryClassSession>()
             .Where(x => x.SchoolUserId == schoolUserId
                 && x.SessionDate == tomorrow
                 && x.Status == TheoryClassStatuses.Scheduled)
             .OrderBy(x => x.StartTime)
-            .FirstOrDefaultAsync(ct);
+            .ToListAsync(ct);
+
+        var session = sessions.FirstOrDefault(s =>
+            attendanceDayType is null || SessionMatchesDayType(s.SessionDate, attendanceDayType));
         if (session is null)
         {
             return ("Consulta tu programación para planificar tu formación.", null, null);
@@ -1507,6 +1524,7 @@ public sealed class TheoryTrainingService
             s.MinCancelHours,
             s.ReservationCloseMinutesBefore,
             s.RequiredTheoryHours,
+            s.WeekdaysEnabled,
             s.SaturdayEnabled,
             s.NotifyReservationOpen,
             s.NotifyClassReminder24h,
@@ -1580,6 +1598,7 @@ public sealed class TheoryTrainingService
             enrollment.Status,
             enrollment.AttendanceDayType,
             enrollment.AllowedStartTime?.ToString("HH:mm"),
+            enrollment.LicenseCategories,
             enrollment.CreatedAt,
             enrollment.AcceptedAt);
 
@@ -1590,14 +1609,11 @@ public sealed class TheoryTrainingService
         var isSaturday = sessionDate.DayOfWeek == DayOfWeek.Saturday;
         var isWeekday = sessionDate.DayOfWeek is >= DayOfWeek.Monday and <= DayOfWeek.Friday;
 
-        if (settings.SaturdayEnabled)
+        if (isSaturday)
         {
-            if (!isSaturday)
+            if (!settings.SaturdayEnabled)
             {
-                throw new DomainException(
-                    "La escuela solo programa clases los sábados. Desactiva el modo sábado para usar días de semana.",
-                    400,
-                    "weekday_disabled");
+                throw new DomainException("Las clases de sábado están desactivadas.", 400, "saturday_disabled");
             }
 
             return;
@@ -1606,30 +1622,46 @@ public sealed class TheoryTrainingService
         if (!isWeekday)
         {
             throw new DomainException(
-                "La escuela solo programa clases de lunes a viernes.",
+                "La escuela solo programa clases de lunes a viernes o sábados.",
                 400,
                 "weekday_only");
         }
+
+        if (!settings.WeekdaysEnabled)
+        {
+            throw new DomainException(
+                "Las clases entre semana están desactivadas.",
+                400,
+                "weekday_disabled");
+        }
     }
 
-    private static void ValidateEnrollmentDayTypeForSettings(
-        string dayType,
-        TheoryTrainingSettings settings)
+    private async Task<TheoryTrainingSettings> EnsureBothSchedulingGroupsAsync(
+        int schoolUserId,
+        CancellationToken ct)
     {
-        if (settings.SaturdayEnabled && dayType != StudentAttendanceDayTypes.Saturday)
+        var settings = await GetOrCreateSettingsAsync(schoolUserId, ct);
+        if (settings.WeekdaysEnabled && settings.SaturdayEnabled)
         {
-            throw new DomainException(
-                "La escuela opera los sábados. Asigna «Sábados» al estudiante.",
-                400,
-                "day_type_mismatch");
+            return settings;
         }
 
-        if (!settings.SaturdayEnabled && dayType != StudentAttendanceDayTypes.Weekday)
+        settings.WeekdaysEnabled = true;
+        settings.SaturdayEnabled = true;
+        settings.UpdatedAt = _clock.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return settings;
+    }
+
+    private static void ActivateSchedulingGroup(TheoryTrainingSettings settings, string dayType)
+    {
+        if (dayType == StudentAttendanceDayTypes.Weekday)
         {
-            throw new DomainException(
-                "La escuela opera entre semana. Asigna «Lunes a viernes» al estudiante.",
-                400,
-                "day_type_mismatch");
+            settings.WeekdaysEnabled = true;
+        }
+        else if (dayType == StudentAttendanceDayTypes.Saturday)
+        {
+            settings.SaturdayEnabled = true;
         }
     }
 
@@ -1655,15 +1687,15 @@ public sealed class TheoryTrainingService
             return ("locked", "No autorizado por la escuela");
         }
 
+        if (ctx.ReservedDates.Contains(session.SessionDate))
+        {
+            return ("day_taken", "Ya reservaste una clase este día");
+        }
+
         var issue = EvaluateStudentAccessIssue(enrollment, session);
         if (issue is not null)
         {
             return ("locked", issue.Value.Message);
-        }
-
-        if (ctx.ReservedDates.Contains(session.SessionDate))
-        {
-            return ("locked", "Ya tienes una clase ese día");
         }
 
         return null;
@@ -1694,9 +1726,21 @@ public sealed class TheoryTrainingService
 
         if (!string.Equals(enrollment.AttendanceDayType, sessionDayType, StringComparison.OrdinalIgnoreCase))
         {
-            return ("day_not_allowed", "No estás autorizado para clases en ese día");
+            var groupLabel = StudentAttendanceDayTypes.FormatLabel(enrollment.AttendanceDayType);
+            return enrollment.AttendanceDayType == StudentAttendanceDayTypes.Weekday
+                ? ("day_not_allowed", "Tu grupo es Semana; no puedes reservar los sábados")
+                : ("day_not_allowed", $"Tu grupo es {groupLabel}; no puedes reservar entre semana");
         }
 
         return null;
+    }
+
+    private static bool SessionMatchesDayType(DateOnly sessionDate, string dayType)
+    {
+        var sessionDayType = sessionDate.DayOfWeek == DayOfWeek.Saturday
+            ? StudentAttendanceDayTypes.Saturday
+            : StudentAttendanceDayTypes.Weekday;
+
+        return string.Equals(sessionDayType, dayType, StringComparison.OrdinalIgnoreCase);
     }
 }

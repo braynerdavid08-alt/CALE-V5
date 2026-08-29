@@ -84,8 +84,11 @@ const messages: Record<string, string> = {
   slot_not_allowed: 'Ese horario no está habilitado para ti.',
   slot_required: 'Asigna un horario al estudiante.',
   day_not_allowed: 'No estás autorizado para clases en ese día.',
-  day_type_required: 'Indica los días de asistencia del estudiante.',
-  day_type_mismatch: 'El día asignado no coincide con el modo de la escuela.'
+  day_type_required: 'Indica si el estudiante asiste en Semana o los sábados.',
+  day_type_mismatch: 'El día asignado no coincide con los grupos habilitados de la escuela.',
+  no_schedule_group: 'Activa al menos un grupo: entre semana o sábados.',
+  invalid_license_category: 'La categoría de licencia no es válida.',
+  license_category_required: 'Asigna la categoría de licencia del estudiante.'
 };
 
 function withSupportCode(message: string, error: unknown): string {

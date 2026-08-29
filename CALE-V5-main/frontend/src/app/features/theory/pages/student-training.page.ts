@@ -76,6 +76,34 @@ export class StudentTrainingPage implements OnInit {
 
   dayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
+  studentGroupLabel(): string | null {
+    const dayType =
+      this.schedule()?.studentAttendanceDayType ?? this.dashboard()?.attendanceDayType ?? null;
+    if (dayType === 'Weekday') {
+      return 'Semana';
+    }
+    if (dayType === 'Saturday') {
+      return 'Sábados';
+    }
+    return null;
+  }
+
+  visibleDayIndices(): number[] {
+    const dayType =
+      this.schedule()?.studentAttendanceDayType ?? this.dashboard()?.attendanceDayType ?? null;
+    if (dayType === 'Weekday') {
+      return [0, 1, 2, 3, 4];
+    }
+    if (dayType === 'Saturday') {
+      return [5];
+    }
+    return [0, 1, 2, 3, 4, 5, 6];
+  }
+
+  visibleDayLabel(dayIndex: number): string {
+    return this.dayLabels[dayIndex];
+  }
+
   canReserve(session: TheoryClassSessionDto): boolean {
     return session.bookingState === 'can_reserve';
   }

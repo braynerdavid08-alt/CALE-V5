@@ -7,6 +7,42 @@ public static class StudentAttendanceDayTypes
 
     public static bool IsValid(string? value) =>
         value is Weekday or Saturday;
+
+    public static string FormatLabel(string? value) =>
+        value switch
+        {
+            Weekday => "Semana",
+            Saturday => "Sábados",
+            _ => "Sin asignar"
+        };
+}
+
+public static class StudentLicenseCategories
+{
+    public const string A2 = "A2";
+    public const string B1 = "B1";
+    public const string C1 = "C1";
+    public const string A2B1 = "A2,B1";
+    public const string A2C1 = "A2,C1";
+    public const string B1C1 = "B1,C1";
+    public const string A2B1C1 = "A2,B1,C1";
+
+    public static readonly string[] Presets =
+        [A2, B1, C1, A2B1, A2C1, B1C1, A2B1C1];
+
+    public static bool IsValid(string? value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && Presets.Contains(value.Trim(), StringComparer.OrdinalIgnoreCase);
+
+    public static string FormatLabel(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "Sin asignar";
+        }
+
+        return string.Join(" + ", value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+    }
 }
 
 public static class StudentEnrollmentStatuses

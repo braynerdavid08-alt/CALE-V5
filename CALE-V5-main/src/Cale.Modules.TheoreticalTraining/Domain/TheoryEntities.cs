@@ -33,6 +33,7 @@ public sealed class TheoryTrainingSettings
     public int MinCancelHours { get; set; } = 2;
     public int ReservationCloseMinutesBefore { get; set; }
     public int RequiredTheoryHours { get; set; } = 20;
+    public bool WeekdaysEnabled { get; set; } = true;
     public bool SaturdayEnabled { get; set; } = true;
     public bool NotifyReservationOpen { get; set; } = true;
     public bool NotifyClassReminder24h { get; set; } = true;
@@ -105,6 +106,8 @@ public sealed class SchoolStudentEnrollment
     public string? AttendanceDayType { get; set; }
     /// <summary>Only slot start time the student may book (e.g. 08:00).</summary>
     public TimeOnly? AllowedStartTime { get; set; }
+    /// <summary>License categories in progress, e.g. A2,B1 or A2,C1.</summary>
+    public string? LicenseCategories { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? AcceptedAt { get; set; }
     public DateTime? SuspendedAt { get; set; }

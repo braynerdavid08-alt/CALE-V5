@@ -61,7 +61,12 @@
     }
 
     <div class="toolbar">
-      <h2>Calendario semanal</h2>
+      <div>
+        <h2>Calendario semanal</h2>
+        @if (studentGroupLabel(); as group) {
+          <p class="group-badge">Tu grupo: <strong>{{ group }}</strong></p>
+        }
+      </div>
       <div class="tabs">
         <button type="button" [class.on]="view() === 'week'" (click)="view.set('week')">Semana</button>
         <button type="button" [class.on]="view() === 'list'" (click)="view.set('list')">Lista</button>
@@ -70,11 +75,11 @@
 
     @if (schedule(); as sch) {
       @if (view() === 'week') {
-        <div class="week-grid">
-          @for (label of dayLabels; track label; let i = $index) {
+        <div class="week-grid" [class.weekday-only]="studentGroupLabel() === 'Semana'" [class.saturday-only]="studentGroupLabel() === 'Sábados'">
+          @for (dayIndex of visibleDayIndices(); track dayIndex) {
             <div class="day-col">
-              <h3>{{ label }}</h3>
-              @for (session of sessionsByDay(i); track session.id) {
+              <h3>{{ visibleDayLabel(dayIndex) }}</h3>
+              @for (session of sessionsByDay(dayIndex); track session.id) {
                 <div class="slot" [style.borderLeftColor]="session.topicColor">
                   <p class="time">{{ session.startTime }} – {{ session.endTime }}</p>
                   <p class="title">{{ session.topicName }}</p>
@@ -84,6 +89,7 @@
                     class="btn"
                     [class.reserve]="canReserve(session)"
                     [class.reserved]="session.bookingState === 'reserved'"
+                    [class.blocked]="session.bookingState === 'day_taken' || session.bookingState === 'locked'"
                     [disabled]="actionLoading() || (!canReserve(session) && session.bookingState !== 'reserved')"
                     (click)="canReserve(session) ? reserve(session) : (session.bookingState === 'reserved' ? cancel(session) : null)">
                     {{ bookingLabel(session.bookingState, session.bookingMessage) }}
@@ -106,6 +112,7 @@
               <button
                 type="button"
                 class="btn"
+                [class.blocked]="session.bookingState === 'day_taken' || session.bookingState === 'locked'"
                 [disabled]="actionLoading() || (!canReserve(session) && session.bookingState !== 'reserved')"
                 (click)="canReserve(session) ? reserve(session) : (session.bookingState === 'reserved' ? cancel(session) : null)">
                 {{ bookingLabel(session.bookingState, session.bookingMessage) }}

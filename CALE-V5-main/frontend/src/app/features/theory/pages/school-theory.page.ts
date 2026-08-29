@@ -44,7 +44,18 @@ export class SchoolTheoryPage implements OnInit {
   readonly attendanceRows = signal<AttendanceRowDto[]>([]);
   readonly settings = signal<TheorySettingsDto | null>(null);
   readonly enrollments = signal<EnrollmentDto[]>([]);
+  readonly enrollmentFilter = signal<'all' | 'weekday' | 'saturday'>('all');
   readonly attendanceLoading = signal(false);
+
+  readonly licenseCategoryOptions = [
+    { value: 'A2', label: 'A2' },
+    { value: 'B1', label: 'B1' },
+    { value: 'C1', label: 'C1' },
+    { value: 'A2,B1', label: 'A2 + B1' },
+    { value: 'A2,C1', label: 'A2 + C1' },
+    { value: 'B1,C1', label: 'B1 + C1' },
+    { value: 'A2,B1,C1', label: 'A2 + B1 + C1' }
+  ];
 
   readonly dayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
   readonly timeSlots = [
@@ -99,7 +110,7 @@ export class SchoolTheoryPage implements OnInit {
     });
     this.loadScheduleData();
     this.api.getSettings().subscribe({
-      next: (s) => this.settings.set(s),
+      next: (s) => this.settings.set(this.normalizeSettings(s)),
       error: () => this.settings.set(null)
     });
   }
@@ -312,26 +323,42 @@ export class SchoolTheoryPage implements OnInit {
     });
   }
 
-  saveEnrollment(row: EnrollmentDto): void {
+  saveEnrollment(row: EnrollmentDto, activate = false): void {
     const current = this.enrollments().find((r) => r.studentUserId === row.studentUserId) ?? row;
     const dayType = current.attendanceDayType ?? null;
     const slot = current.allowedStartTime ?? null;
-    const status = current.status === 'Pending' ? 'Active' : current.status;
+    const license = current.licenseCategories ?? null;
+    const status =
+      activate && current.status === 'Pending' ? 'Active' : current.status;
     this.api.updateEnrollment(row.studentUserId, {
       status,
       attendanceDayType: dayType,
-      allowedStartTime: slot
+      allowedStartTime: slot,
+      licenseCategories: license
     }).subscribe({
-      next: () => this.loadEnrollments(),
+      next: () => {
+        this.error.set(null);
+        this.loadEnrollments();
+      },
       error: (err) => this.error.set(mapApiError(err))
     });
+  }
+
+  onEnrollmentSelect(
+    row: EnrollmentDto,
+    field: 'attendanceDayType' | 'allowedStartTime' | 'licenseCategories',
+    value: string
+  ): void {
+    this.updateEnrollmentField(row, field, value);
+    this.saveEnrollment(row, false);
   }
 
   suspendEnrollment(row: EnrollmentDto): void {
     this.api.updateEnrollment(row.studentUserId, {
       status: 'Suspended',
       attendanceDayType: row.attendanceDayType,
-      allowedStartTime: row.allowedStartTime
+      allowedStartTime: row.allowedStartTime,
+      licenseCategories: row.licenseCategories
     }).subscribe({
       next: () => this.loadEnrollments(),
       error: (err) => this.error.set(mapApiError(err))
@@ -350,24 +377,68 @@ export class SchoolTheoryPage implements OnInit {
     }
   }
 
-  isSaturdayMode(): boolean {
-    return this.settings()?.saturdayEnabled ?? false;
+  filteredEnrollments(): EnrollmentDto[] {
+    const filter = this.enrollmentFilter();
+    const rows = this.enrollments();
+    if (filter === 'weekday') {
+      return rows.filter((r) => r.attendanceDayType === 'Weekday');
+    }
+    if (filter === 'saturday') {
+      return rows.filter((r) => r.attendanceDayType === 'Saturday');
+    }
+    return rows;
+  }
+
+  enrollmentCount(filter: 'all' | 'weekday' | 'saturday'): number {
+    if (filter === 'all') {
+      return this.enrollments().length;
+    }
+    if (filter === 'weekday') {
+      return this.enrollments().filter((r) => r.attendanceDayType === 'Weekday').length;
+    }
+    return this.enrollments().filter((r) => r.attendanceDayType === 'Saturday').length;
+  }
+
+  authorizedCount(filter: 'weekday' | 'saturday'): number {
+    return this.enrollments().filter(
+      (r) =>
+        r.attendanceDayType === (filter === 'weekday' ? 'Weekday' : 'Saturday')
+        && (r.status === 'Active' || r.status === 'Accepted')
+    ).length;
+  }
+
+  attendanceDayTypeLabel(value?: string | null): string {
+    if (value === 'Weekday') {
+      return 'Semana';
+    }
+    if (value === 'Saturday') {
+      return 'Sábados';
+    }
+    return 'Sin asignar';
+  }
+
+  licenseCategoryLabel(value?: string | null): string {
+    if (!value) {
+      return 'Sin asignar';
+    }
+    const found = this.licenseCategoryOptions.find((o) => o.value === value);
+    return found?.label ?? value.replace(/,/g, ' + ');
+  }
+
+  private normalizeSettings(settings: TheorySettingsDto): TheorySettingsDto {
+    return {
+      ...settings,
+      weekdaysEnabled: true,
+      saturdayEnabled: true
+    };
   }
 
   isDayAllowed(dayIndex: number): boolean {
-    const saturday = this.isSaturdayMode();
-    if (saturday) {
-      return dayIndex === 5;
-    }
-    return dayIndex >= 0 && dayIndex <= 4;
+    return dayIndex >= 0 && dayIndex <= 5;
   }
 
-  setSchedulingMode(saturday: boolean): void {
-    const cfg = this.settings();
-    if (!cfg) {
-      return;
-    }
-    this.settings.set({ ...cfg, saturdayEnabled: saturday });
+  schedulingDaysMessage(): string {
+    return 'Solo puedes programar clases de lunes a viernes o los sábados.';
   }
 
   loadAttendanceSessions(): void {
@@ -442,7 +513,7 @@ export class SchoolTheoryPage implements OnInit {
     }
     this.api.updateSettings(s).subscribe({
       next: (updated) => {
-        this.settings.set(updated);
+        this.settings.set(this.normalizeSettings(updated));
         this.error.set(null);
       },
       error: (err) => this.error.set(mapApiError(err))
@@ -507,11 +578,7 @@ export class SchoolTheoryPage implements OnInit {
     const date = this.parseDate(this.createForm.sessionDate);
     const dayIndex = (date.getDay() + 6) % 7;
     if (!this.isDayAllowed(dayIndex)) {
-      this.error.set(
-        this.isSaturdayMode()
-          ? 'Solo puedes programar clases los sábados.'
-          : 'Solo puedes programar clases de lunes a viernes.'
-      );
+      this.error.set(this.schedulingDaysMessage());
       return;
     }
     const body = {
@@ -544,11 +611,7 @@ export class SchoolTheoryPage implements OnInit {
 
   pickSlot(dayIndex: number, start: string): void {
     if (!this.isDayAllowed(dayIndex)) {
-      this.error.set(
-        this.isSaturdayMode()
-          ? 'La escuela solo programa clases los sábados.'
-          : 'La escuela solo programa clases de lunes a viernes.'
-      );
+      this.error.set(this.schedulingDaysMessage());
       return;
     }
     const sch = this.schedule();
@@ -566,7 +629,7 @@ export class SchoolTheoryPage implements OnInit {
 
   updateEnrollmentField(
     row: EnrollmentDto,
-    field: 'attendanceDayType' | 'allowedStartTime' | 'status',
+    field: 'attendanceDayType' | 'allowedStartTime' | 'status' | 'licenseCategories',
     value: string
   ): void {
     this.enrollments.update((rows) =>

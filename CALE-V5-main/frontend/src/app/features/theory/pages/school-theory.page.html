@@ -222,24 +222,60 @@
     <div class="form-card">
       <h2>Autorización de estudiantes</h2>
       <p class="muted">
-        Autoriza a cada estudiante, indica si asiste entre semana o los sábados (según el modo de la escuela)
-        y asigna un único horario habilitado.
+        Asigna aquí si cada estudiante es de <strong>Semana</strong> o <strong>Sábados</strong>,
+        su curso de licencia y horario. No necesitas ir a Ajustes.
       </p>
+
+      <div class="enrollment-summary">
+        <div>
+          <strong>{{ authorizedCount('weekday') }}</strong>
+          <span>Autorizados en semana</span>
+        </div>
+        <div>
+          <strong>{{ authorizedCount('saturday') }}</strong>
+          <span>Autorizados sábados</span>
+        </div>
+      </div>
+
+      <div class="enrollment-filters">
+        <button
+          type="button"
+          [class.on]="enrollmentFilter() === 'all'"
+          (click)="enrollmentFilter.set('all')">
+          Todos ({{ enrollmentCount('all') }})
+        </button>
+        <button
+          type="button"
+          [class.on]="enrollmentFilter() === 'weekday'"
+          (click)="enrollmentFilter.set('weekday')">
+          Semana ({{ enrollmentCount('weekday') }})
+        </button>
+        <button
+          type="button"
+          [class.on]="enrollmentFilter() === 'saturday'"
+          (click)="enrollmentFilter.set('saturday')">
+          Sábados ({{ enrollmentCount('saturday') }})
+        </button>
+      </div>
+
       @if (!enrollments().length) {
         <p class="muted">No hay estudiantes vinculados a la escuela.</p>
+      } @else if (!filteredEnrollments().length) {
+        <p class="muted">No hay estudiantes en este grupo.</p>
       } @else {
         <table class="enrollment-table">
           <thead>
             <tr>
               <th>Estudiante</th>
               <th>Estado</th>
-              <th>Días</th>
+              <th>Semana / Sábado</th>
+              <th>Curso</th>
               <th>Horario</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            @for (row of enrollments(); track row.studentUserId) {
+            @for (row of filteredEnrollments(); track row.studentUserId) {
               <tr>
                 <td>
                   <strong>{{ row.studentName }}</strong>
@@ -249,19 +285,26 @@
                 <td>
                   <select
                     [ngModel]="row.attendanceDayType ?? ''"
-                    (ngModelChange)="updateEnrollmentField(row, 'attendanceDayType', $event)">
+                    (ngModelChange)="onEnrollmentSelect(row, 'attendanceDayType', $event)">
                     <option value="">Sin asignar</option>
-                    @if (isSaturdayMode()) {
-                      <option value="Saturday">Sábados</option>
-                    } @else {
-                      <option value="Weekday">Lunes a viernes</option>
+                    <option value="Weekday">Semana</option>
+                    <option value="Saturday">Sábados</option>
+                  </select>
+                </td>
+                <td>
+                  <select
+                    [ngModel]="row.licenseCategories ?? ''"
+                    (ngModelChange)="onEnrollmentSelect(row, 'licenseCategories', $event)">
+                    <option value="">Sin asignar</option>
+                    @for (opt of licenseCategoryOptions; track opt.value) {
+                      <option [value]="opt.value">{{ opt.label }}</option>
                     }
                   </select>
                 </td>
                 <td>
                   <select
                     [ngModel]="row.allowedStartTime ?? ''"
-                    (ngModelChange)="updateEnrollmentField(row, 'allowedStartTime', $event)">
+                    (ngModelChange)="onEnrollmentSelect(row, 'allowedStartTime', $event)">
                     <option value="">Sin asignar</option>
                     @for (slot of timeSlots; track slot) {
                       <option [value]="slot">{{ slot }}</option>
@@ -269,7 +312,7 @@
                   </select>
                 </td>
                 <td class="actions">
-                  <ui-button type="button" (click)="saveEnrollment(row)">Guardar</ui-button>
+                  <ui-button type="button" (click)="saveEnrollment(row, true)">Autorizar</ui-button>
                   @if (row.status === 'Active' || row.status === 'Accepted') {
                     <button type="button" class="link-btn" (click)="suspendEnrollment(row)">Suspender</button>
                   }
@@ -309,25 +352,6 @@
         <label class="check">
           <input type="checkbox" [(ngModel)]="cfg.notifyClassReminder1h" />
           Recordatorio 1 hora antes de la clase
-        </label>
-
-        <h2>Modo de programación</h2>
-        <p class="muted">Solo un modo activo: entre semana <strong>o</strong> sábados.</p>
-        <label class="radio">
-          <input
-            type="radio"
-            name="schedMode"
-            [checked]="!cfg.saturdayEnabled"
-            (change)="setSchedulingMode(false)" />
-          Clases de lunes a viernes
-        </label>
-        <label class="radio">
-          <input
-            type="radio"
-            name="schedMode"
-            [checked]="cfg.saturdayEnabled"
-            (change)="setSchedulingMode(true)" />
-          Clases los sábados
         </label>
 
         <h2>Políticas</h2>

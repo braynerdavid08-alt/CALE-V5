@@ -562,6 +562,14 @@ public static class FeatureSchema
                 db,
                 """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN "AllowedStartTime" TEXT NULL;""",
                 ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN "LicenseCategories" TEXT NULL;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN "WeekdaysEnabled" INTEGER NOT NULL DEFAULT 1;""",
+                ct);
 
             return;
         }
@@ -684,6 +692,12 @@ public static class FeatureSchema
                 ct);
             await TryPostgresAsync(db,
                 """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "AllowedStartTime" time NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "LicenseCategories" varchar(32) NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "WeekdaysEnabled" boolean NOT NULL DEFAULT TRUE;""",
                 ct);
             await TryPostgresAsync(db,
                 """
