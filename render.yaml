@@ -1,0 +1,10 @@
+# Render blueprint — deploy from repo root with Docker (Angular + .NET).
+services:
+  - type: web
+    name: micale
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    branch: main
+    healthCheckPath: /api/health
+    autoDeploy: true

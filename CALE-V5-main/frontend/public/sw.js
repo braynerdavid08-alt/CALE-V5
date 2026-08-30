@@ -1,5 +1,5 @@
 /* Minimal service worker — enables install to home screen (PWA). */
-const CACHE = 'mi-cale-shell-v2';
+const CACHE = 'mi-cale-shell-v3';
 const SHELL = ['/', '/index.html', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
