@@ -90,7 +90,7 @@
         <tbody>
           @for (slot of timeSlots; track slot.start) {
             <tr>
-              <th class="time-col">{{ slot.label }}</th>
+              <th class="time-col">{{ slot.start }}</th>
               @for (label of dayLabels; track label; let i = $index) {
                 <td>
                   @if (lessonAt(i, slot); as lesson) {

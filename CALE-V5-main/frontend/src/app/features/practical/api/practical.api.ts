@@ -71,14 +71,16 @@ export interface TimeSlot {
   label: string;
 }
 
-export const PRACTICAL_TIME_SLOTS: TimeSlot[] = [
-  { start: '07:00', end: '08:30', label: '7:00 – 8:30' },
-  { start: '09:00', end: '10:30', label: '9:00 – 10:30' },
-  { start: '11:00', end: '12:30', label: '11:00 – 12:30' },
-  { start: '13:00', end: '14:30', label: '1:00 – 2:30' },
-  { start: '15:00', end: '16:30', label: '3:00 – 4:30' },
-  { start: '16:30', end: '18:00', label: '4:30 – 6:00' }
-];
+function buildTwoHourSlot(startHour: number): TimeSlot {
+  const start = `${String(startHour).padStart(2, '0')}:00`;
+  const end = startHour >= 22 ? '23:59' : `${String(startHour + 2).padStart(2, '0')}:59`;
+  return { start, end, label: `${start} – ${end}` };
+}
+
+/** Bloques de 2 horas, igual que clases teóricas: 06:00 hasta 22:00 (fin 23:59). */
+export const PRACTICAL_TIME_SLOTS: TimeSlot[] = [6, 8, 10, 12, 14, 16, 18, 20, 22].map(
+  buildTwoHourSlot
+);
 
 @Injectable({ providedIn: 'root' })
 export class PracticalApi {
