@@ -490,14 +490,14 @@ public sealed class PresentationExchangeService
         var style = level <= 1 ? "Heading1" : "Heading2";
         var para = new W.Paragraph(
             new W.ParagraphProperties(new W.ParagraphStyleId { Val = style }),
-            new W.Run(new W.Text(text) { Space = SpaceProcessingModeValues.Preserve }));
+            new W.Run(new W.Text(text)));
         body.Append(para);
     }
 
     private static void AppendWordParagraph(W.Body body, string text, bool italic = false)
     {
         var runProps = italic ? new W.RunProperties(new W.Italic()) : null;
-        var para = new W.Paragraph(new W.Run(runProps, new W.Text(text) { Space = SpaceProcessingModeValues.Preserve }));
+        var para = new W.Paragraph(new W.Run(runProps, new W.Text(text)));
         body.Append(para);
     }
 }
