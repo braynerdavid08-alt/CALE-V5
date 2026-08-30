@@ -46,7 +46,26 @@
   @if (form.examDate) {
     <section class="form-card">
       <h3>{{ dayLabel(form.examDate) }} · {{ form.slotTime }}</h3>
-      <label>Aprendiz <input [(ngModel)]="form.studentLabel" placeholder="Nombre del estudiante" /></label>
+      <label class="student-field">
+        Aprendiz
+        <input
+          type="search"
+          placeholder="Buscar por nombre..."
+          [ngModel]="studentSearch()"
+          (ngModelChange)="studentSearch.set($event)" />
+        <select [(ngModel)]="form.studentUserId">
+          <option [ngValue]="null">Selecciona un estudiante</option>
+          @for (s of filteredStudents(); track s.studentUserId) {
+            <option [ngValue]="s.studentUserId">
+              {{ s.studentName }}
+              @if (s.licenseCategories) { · {{ s.licenseCategories }} }
+            </option>
+          }
+        </select>
+        @if (!students().length) {
+          <small class="muted">No hay aprendices autorizados. Autorízalos en Programación o importa tu Excel.</small>
+        }
+      </label>
       <label>Notas <input [(ngModel)]="form.notes" /></label>
       <ui-button type="button" (click)="save()">Guardar cita</ui-button>
     </section>

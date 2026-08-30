@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { forkJoin } from 'rxjs';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
@@ -6,6 +7,10 @@ import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
 import { mapApiError } from '../../../core/http/map-api-error';
+import {
+  PracticalApi,
+  PracticalSchedulingStudentDto
+} from '../../practical/api/practical.api';
 import { ApprenticeApi, TheoryExamSlotDto } from '../api/apprentice.api';
 
 const EXAM_SLOTS = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'];
@@ -26,14 +31,26 @@ const EXAM_SLOTS = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00
 })
 export class SchoolTheoryExamsPage implements OnInit {
   private readonly api = inject(ApprenticeApi);
+  private readonly practicalApi = inject(PracticalApi);
 
   readonly slots = EXAM_SLOTS;
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly rows = signal<TheoryExamSlotDto[]>([]);
+  readonly students = signal<PracticalSchedulingStudentDto[]>([]);
+  readonly studentSearch = signal('');
   readonly weekStart = signal(this.monday(new Date()));
 
-  form = { examDate: '', slotTime: '09:00', studentLabel: '', notes: '' };
+  readonly filteredStudents = computed(() => {
+    const q = this.studentSearch().trim().toLowerCase();
+    const rows = this.students();
+    if (!q) {
+      return rows;
+    }
+    return rows.filter((s) => s.studentName.toLowerCase().includes(q));
+  });
+
+  form = { examDate: '', slotTime: '09:00', studentUserId: null as number | null, notes: '' };
 
   ngOnInit(): void {
     this.reload();
@@ -43,9 +60,13 @@ export class SchoolTheoryExamsPage implements OnInit {
     this.loading.set(true);
     const start = this.weekStart();
     const end = this.addDays(start, 13);
-    this.api.listExamSlots(start, end).subscribe({
-      next: (rows) => {
+    forkJoin({
+      rows: this.api.listExamSlots(start, end),
+      students: this.practicalApi.listSchedulingStudents()
+    }).subscribe({
+      next: ({ rows, students }) => {
         this.rows.set(rows);
+        this.students.set(students);
         this.loading.set(false);
       },
       error: (err) => {
@@ -80,20 +101,25 @@ export class SchoolTheoryExamsPage implements OnInit {
 
   openForm(date: string, time: string): void {
     const existing = this.slotAt(date, time);
+    this.studentSearch.set('');
     this.form = {
       examDate: date,
       slotTime: time,
-      studentLabel: existing?.studentLabel ?? existing?.studentName ?? '',
+      studentUserId: existing?.studentUserId ?? this.matchStudentId(existing) ?? null,
       notes: existing?.notes ?? ''
     };
   }
 
   save(): void {
+    if (!this.form.studentUserId) {
+      this.error.set('Selecciona un aprendiz autorizado.');
+      return;
+    }
     const existing = this.slotAt(this.form.examDate, this.form.slotTime);
     this.api.saveExamSlot({
       examDate: this.form.examDate,
       slotTime: this.form.slotTime,
-      studentLabel: this.form.studentLabel.trim() || null,
+      studentUserId: this.form.studentUserId,
       notes: this.form.notes.trim() || null
     }, existing?.id).subscribe({
       next: () => this.reload(),
@@ -125,5 +151,17 @@ export class SchoolTheoryExamsPage implements OnInit {
 
   private key(d: Date): string {
     return `${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, '0')}-${`${d.getDate()}`.padStart(2, '0')}`;
+  }
+
+  private matchStudentId(slot?: TheoryExamSlotDto): number | null {
+    if (!slot) {
+      return null;
+    }
+    const label = (slot.studentName || slot.studentLabel || '').trim().toLowerCase();
+    if (!label) {
+      return null;
+    }
+    const match = this.students().find((s) => s.studentName.trim().toLowerCase() === label);
+    return match?.studentUserId ?? null;
   }
 }
