@@ -13,6 +13,7 @@ public static class DependencyInjection
         services.AddScoped<IPresentationStore, PresentationStore>();
         services.AddScoped<PresentationCommandHandler>();
         services.AddScoped<PresentationQueryHandler>();
+        services.AddScoped<PresentationExchangeService>();
         return services;
     }
 }

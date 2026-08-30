@@ -939,6 +939,24 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     void this.router.navigate(['/teacher/presentations', this.presentationId(), 'present']);
   }
 
+  exportDeck(format: 'xlsx' | 'docx'): void {
+    const id = this.presentationId();
+    if (!id) return;
+    this.saveNow();
+    this.api.exportFile(id, format).subscribe({
+      next: (blob) => {
+        const name = (this.title().trim() || 'presentacion').replace(/[<>:"/\\|?*]+/g, '-');
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${name}.${format}`;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
   bgStyle(slide: EditorSlide): Record<string, string> {
     const css = backgroundCss(slide.background);
     if (css['backgroundImage'] && slide.background.imageUrl) {

@@ -1,5 +1,7 @@
+using System.Text;
 using Cale.Api.Extensions;
 using Cale.BuildingBlocks.Domain.Exceptions;
+using Cale.Modules.Presentation.Application;
 using Cale.Modules.Presentation.Application.Commands;
 using Cale.Modules.Presentation.Application.DTOs;
 using Cale.Modules.Presentation.Application.Queries;
@@ -15,15 +17,18 @@ public sealed class PresentationsController : ControllerBase
 {
     private readonly PresentationCommandHandler _commands;
     private readonly PresentationQueryHandler _queries;
+    private readonly PresentationExchangeService _exchange;
     private readonly IWebHostEnvironment _env;
 
     public PresentationsController(
         PresentationCommandHandler commands,
         PresentationQueryHandler queries,
+        PresentationExchangeService exchange,
         IWebHostEnvironment env)
     {
         _commands = commands;
         _queries = queries;
+        _exchange = exchange;
         _env = env;
     }
 
@@ -94,6 +99,81 @@ public sealed class PresentationsController : ControllerBase
         return NoContent();
     }
 
+    [HttpGet("import/template")]
+    public IActionResult ImportTemplate([FromQuery] string format)
+    {
+        var f = (format ?? "xlsx").Trim().ToLowerInvariant();
+        if (f is "doc" or "docx" or "word")
+        {
+            var bytes = _exchange.BuildWordTemplate();
+            return File(bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "cale-presentacion-plantilla.docx");
+        }
+
+        var excel = _exchange.BuildExcelTemplate();
+        return File(excel, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "cale-presentacion-plantilla.xlsx");
+    }
+
+    [HttpPost("import")]
+    [RequestSizeLimit(25 * 1024 * 1024)]
+    public async Task<IActionResult> Import(
+        [FromForm] IFormFile? file,
+        [FromForm] string? title,
+        [FromForm] string? description,
+        [FromForm] string? category,
+        CancellationToken ct)
+    {
+        if (file is null || file.Length == 0)
+        {
+            throw new DomainException("Selecciona un archivo Excel, Word o PowerPoint.", 400, "invalid_file");
+        }
+
+        await using var stream = file.OpenReadStream();
+        IReadOnlyList<ImportedSlideOutline> outlines;
+        try
+        {
+            outlines = _exchange.ParseImport(stream, file.FileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new DomainException(ex.Message, 400, "invalid_import");
+        }
+
+        var deckTitle = string.IsNullOrWhiteSpace(title)
+            ? Path.GetFileNameWithoutExtension(file.FileName)
+            : title.Trim();
+
+        var detail = await _commands.ImportFromOutlinesAsync(
+            deckTitle,
+            string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+            string.IsNullOrWhiteSpace(category) ? null : category.Trim(),
+            outlines,
+            CurrentUser.GetId(User),
+            schoolId: null,
+            ct);
+        return Ok(detail);
+    }
+
+    [HttpGet("{id:int}/export")]
+    public async Task<IActionResult> Export(int id, [FromQuery] string format, CancellationToken ct)
+    {
+        var detail = await _queries.GetAsync(
+            id,
+            CurrentUser.GetId(User),
+            CurrentUser.IsAdmin(User),
+            ct);
+        var f = (format ?? "xlsx").Trim().ToLowerInvariant();
+        var safeName = SanitizeFileName(detail.Title);
+
+        if (f is "doc" or "docx" or "word")
+        {
+            var bytes = _exchange.ExportWord(detail);
+            return File(bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", $"{safeName}.docx");
+        }
+
+        var excel = _exchange.ExportExcel(detail);
+        return File(excel, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{safeName}.xlsx");
+    }
+
     [HttpPost("upload")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(6_000_000)]
@@ -129,5 +209,18 @@ public sealed class PresentationsController : ControllerBase
         await using var stream = System.IO.File.Create(path);
         await file.CopyToAsync(stream, ct);
         return Ok(new { url = $"/uploads/presentations/{name}" });
+    }
+
+    private static string SanitizeFileName(string value)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var sb = new StringBuilder(value.Length);
+        foreach (var ch in value.Trim())
+        {
+            sb.Append(invalid.Contains(ch) ? '-' : ch);
+        }
+
+        var result = sb.ToString().Trim('-', ' ');
+        return string.IsNullOrWhiteSpace(result) ? "presentacion" : result;
     }
 }

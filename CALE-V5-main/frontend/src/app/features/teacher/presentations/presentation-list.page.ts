@@ -35,12 +35,15 @@ export class PresentationListPage implements OnInit {
   readonly error = signal<string | null>(null);
   readonly items = signal<PresentationListItem[]>([]);
   readonly creating = signal(false);
+  readonly importing = signal(false);
   readonly showCreate = signal(false);
 
   title = '';
   description = '';
   category: string = PRESENTATION_CATEGORIES[0];
   templateKey = 'cover';
+  importTitle = '';
+  importFile: File | null = null;
   readonly categories = PRESENTATION_CATEGORIES;
   readonly templates = TEMPLATE_OPTIONS;
 
@@ -66,10 +69,6 @@ export class PresentationListPage implements OnInit {
     });
   }
 
-  openCreate(): void {
-    this.showCreate.set(true);
-  }
-
   create(): void {
     if (!this.title.trim() || this.creating()) {
       return;
@@ -92,6 +91,62 @@ export class PresentationListPage implements OnInit {
           this.error.set(mapApiError(err));
         }
       });
+  }
+
+  openCreate(): void {
+    this.showCreate.set(true);
+  }
+
+  onImportFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.importFile = input.files?.[0] ?? null;
+    if (this.importFile && !this.importTitle.trim()) {
+      this.importTitle = this.importFile.name.replace(/\.(xlsx|xls|docx|pptx)$/i, '');
+    }
+  }
+
+  downloadTemplate(format: 'xlsx' | 'docx'): void {
+    this.api.downloadImportTemplate(format).subscribe({
+      next: (blob) => this.saveBlob(blob, format === 'xlsx' ? 'cale-presentacion-plantilla.xlsx' : 'cale-presentacion-plantilla.docx'),
+      error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  importPresentation(): void {
+    if (!this.importFile || this.importing()) return;
+    this.importing.set(true);
+    this.error.set(null);
+    this.api.importFile(this.importFile, {
+      title: this.importTitle.trim() || undefined,
+      category: this.category
+    }).subscribe({
+      next: (detail) => {
+        this.importing.set(false);
+        void this.router.navigate(['/teacher/presentations', detail.id, 'edit']);
+      },
+      error: (err) => {
+        this.importing.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  exportPresentation(item: PresentationListItem, format: 'xlsx' | 'docx', ev: Event): void {
+    ev.preventDefault();
+    ev.stopPropagation();
+    this.api.exportFile(item.id, format).subscribe({
+      next: (blob) => this.saveBlob(blob, `${item.title}.${format === 'xlsx' ? 'xlsx' : 'docx'}`),
+      error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  private saveBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   duplicate(item: PresentationListItem, ev: Event): void {

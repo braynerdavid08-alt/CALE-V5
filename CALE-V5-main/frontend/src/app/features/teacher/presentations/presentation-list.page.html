@@ -10,6 +10,36 @@
     <ui-button type="button" (click)="openCreate()">+ Nueva presentación</ui-button>
   </header>
 
+  <section class="import-panel">
+    <h2>Importar desde Excel, Word o PowerPoint</h2>
+    <p class="meta">Arma el guion en Excel/Word o sube un .pptx existente. Mi CALE crea las diapositivas y luego las ajustas en el editor.</p>
+    <div class="import-grid">
+      <label class="span2">
+        Nombre de la presentación (opcional)
+        <input [(ngModel)]="importTitle" maxlength="200" placeholder="Se usa el nombre del archivo si lo dejas vacío" />
+      </label>
+      <label>
+        Categoría
+        <select [(ngModel)]="category">
+          @for (c of categories; track c) {
+            <option [value]="c">{{ c }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        Archivo Excel, Word o PowerPoint
+        <input type="file" accept=".xlsx,.xls,.docx,.pptx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation" (change)="onImportFile($event)" />
+      </label>
+    </div>
+    <div class="create-actions">
+      <ui-button type="button" [disabled]="!importFile || importing()" (click)="importPresentation()">
+        {{ importing() ? 'Importando…' : 'Importar y abrir editor' }}
+      </ui-button>
+      <ui-button type="button" variant="secondary" (click)="downloadTemplate('xlsx')">Plantilla Excel</ui-button>
+      <ui-button type="button" variant="secondary" (click)="downloadTemplate('docx')">Plantilla Word</ui-button>
+    </div>
+  </section>
+
   <ui-error [message]="error()" />
 
   @if (showCreate()) {
@@ -75,6 +105,8 @@
             <div class="actions">
               <a [routerLink]="['/teacher/presentations', item.id, 'edit']">Editar</a>
               <a [routerLink]="['/teacher/presentations', item.id, 'present']">Presentar</a>
+              <button type="button" (click)="exportPresentation(item, 'xlsx', $event)">Excel</button>
+              <button type="button" (click)="exportPresentation(item, 'docx', $event)">Word</button>
               <button type="button" (click)="duplicate(item, $event)">Duplicar</button>
               <button type="button" class="danger" (click)="remove(item, $event)">Eliminar</button>
             </div>

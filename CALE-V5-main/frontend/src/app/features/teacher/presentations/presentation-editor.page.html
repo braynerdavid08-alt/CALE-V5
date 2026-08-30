@@ -23,6 +23,8 @@
       </div>
       <div class="ed-top-actions">
         <span class="save-pill" [attr.data-state]="saveState()">{{ saveLabel() }}</span>
+        <button type="button" class="btn ghost" (click)="exportDeck('xlsx')">Excel</button>
+        <button type="button" class="btn ghost" (click)="exportDeck('docx')">Word</button>
         <button type="button" class="btn ghost" (click)="saveNow()">Guardar</button>
         <button type="button" class="btn primary" (click)="present()">▶ Presentar</button>
       </div>

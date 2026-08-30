@@ -79,4 +79,27 @@ export class PresentationApi {
     fd.append('file', file);
     return this.http.post<{ url: string }>(`${this.base}/upload`, fd);
   }
+
+  downloadImportTemplate(format: 'xlsx' | 'docx') {
+    return this.http.get(`${this.base}/import/template`, {
+      params: { format },
+      responseType: 'blob'
+    });
+  }
+
+  importFile(file: File, body: { title?: string; description?: string | null; category?: string | null }) {
+    const fd = new FormData();
+    fd.append('file', file);
+    if (body.title) fd.append('title', body.title);
+    if (body.description) fd.append('description', body.description);
+    if (body.category) fd.append('category', body.category);
+    return this.http.post<PresentationDetail>(`${this.base}/import`, fd);
+  }
+
+  exportFile(id: number, format: 'xlsx' | 'docx') {
+    return this.http.get(`${this.base}/${id}/export`, {
+      params: { format },
+      responseType: 'blob'
+    });
+  }
 }

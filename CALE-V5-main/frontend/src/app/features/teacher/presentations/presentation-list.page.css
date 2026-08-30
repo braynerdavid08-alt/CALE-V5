@@ -77,6 +77,46 @@
   flex-wrap: wrap;
 }
 
+.import-panel {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  background: var(--color-surface);
+}
+
+.import-panel h2 {
+  margin: 0 0 0.25rem;
+}
+
+.import-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 1rem;
+  margin: 1rem 0;
+}
+
+.import-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.import-grid .span2 {
+  grid-column: 1 / -1;
+}
+
+.import-grid input,
+.import-grid select {
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
 .cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -167,6 +207,10 @@
   }
 
   .create-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .import-grid {
     grid-template-columns: 1fr;
   }
 }

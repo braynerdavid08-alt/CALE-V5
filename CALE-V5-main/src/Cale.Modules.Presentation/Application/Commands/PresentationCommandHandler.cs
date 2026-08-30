@@ -1,4 +1,5 @@
 using Cale.BuildingBlocks.Domain.Exceptions;
+using Cale.Modules.Presentation.Application;
 using Cale.Modules.Presentation.Application.Abstractions;
 using Cale.Modules.Presentation.Application.DTOs;
 using Cale.Modules.Presentation.Domain;
@@ -34,6 +35,56 @@ public sealed class PresentationCommandHandler
         var slide = PresentationSlide.Create(deck.Id, 0, slideTitle, null, bg, elements, now);
         await _store.ReplaceSlidesAsync(deck.Id, [slide], ct);
         deck.MarkSlideCount(1, userId, now);
+        await _store.SaveChangesAsync(ct);
+
+        var loaded = await RequireOwnedAsync(deck.Id, userId, isAdmin: false, ct);
+        return MapDetail(loaded);
+    }
+
+    public async Task<PresentationDetailDto> ImportFromOutlinesAsync(
+        string title,
+        string? description,
+        string? category,
+        IReadOnlyList<ImportedSlideOutline> outlines,
+        int userId,
+        int? schoolId,
+        CancellationToken ct)
+    {
+        if (outlines.Count == 0)
+        {
+            throw new DomainException("El archivo no contiene diapositivas.", 400, "empty_import");
+        }
+
+        var now = DateTime.UtcNow;
+        var deck = PresentationDeck.Create(
+            userId,
+            title,
+            description,
+            category,
+            schoolId,
+            groupId: null,
+            now);
+
+        await _store.AddAsync(deck, ct);
+        await _store.SaveChangesAsync(ct);
+
+        var slides = new List<PresentationSlide>();
+        for (var i = 0; i < outlines.Count; i++)
+        {
+            var outline = outlines[i];
+            var (slideTitle, bg, elements) = PresentationExchangeService.BuildSlideFromOutline(outline);
+            slides.Add(PresentationSlide.Create(
+                deck.Id,
+                i,
+                slideTitle,
+                outline.Notes,
+                bg,
+                elements,
+                now));
+        }
+
+        await _store.ReplaceSlidesAsync(deck.Id, slides, ct);
+        deck.MarkSlideCount(slides.Count, userId, now);
         await _store.SaveChangesAsync(ct);
 
         var loaded = await RequireOwnedAsync(deck.Id, userId, isAdmin: false, ct);
