@@ -84,6 +84,10 @@ public sealed class PresentationCommandHandler
             else
             {
                 (slideTitle, bg, elements) = PresentationExchangeService.BuildSlideFromOutline(outline);
+                if (!string.IsNullOrWhiteSpace(outline.BackgroundJson))
+                {
+                    bg = outline.BackgroundJson;
+                }
             }
 
             slides.Add(PresentationSlide.Create(

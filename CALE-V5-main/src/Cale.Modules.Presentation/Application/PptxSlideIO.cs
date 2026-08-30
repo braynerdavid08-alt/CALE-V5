@@ -52,8 +52,8 @@ internal static class PptxSlideIO
                 continue;
             }
 
-            var collector = new SlideCollector(slidePart, uploadsDirectory, scaleX, scaleY);
-            collector.Collect(tree);
+            var collector = new SlideCollector(presentationPart, slidePart, uploadsDirectory, scaleX, scaleY);
+            collector.CollectSlide();
 
             var notes = ExtractSlideNotes(slidePart);
             var title = collector.Title
@@ -66,27 +66,16 @@ internal static class PptxSlideIO
                         .Where(t => !string.Equals(t, title, StringComparison.OrdinalIgnoreCase))
                         .Distinct(StringComparer.OrdinalIgnoreCase));
 
-            if (collector.Elements.Count == 0)
+            if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(body) && collector.Elements.Count == 0)
             {
-                if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(body))
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                slides.Add(new ImportedSlideOutline(
-                    title.Trim(),
-                    body.Trim(),
-                    notes));
-            }
-            else
-            {
-                slides.Add(new ImportedSlideOutline(
-                    title.Trim(),
-                    body.Trim(),
-                    notes,
-                    PresentationTemplates.LightBackground,
-                    JsonSerializer.Serialize(collector.Elements, JsonOptions)));
-            }
+            var background = collector.BackgroundJson ?? PresentationTemplates.LightBackground;
+            var elementsJson = BuildElementsJson(collector.Elements, title.Trim(), body.Trim());
+            slides.Add(elementsJson is null
+                ? new ImportedSlideOutline(title.Trim(), body.Trim(), notes, background, null)
+                : new ImportedSlideOutline(title.Trim(), body.Trim(), notes, background, elementsJson));
 
             index++;
         }
@@ -354,8 +343,116 @@ internal static class PptxSlideIO
         text.Contains("click to add notes", StringComparison.OrdinalIgnoreCase)
         || text.Contains("haga clic para agregar notas", StringComparison.OrdinalIgnoreCase);
 
+    private static string? BuildElementsJson(List<object> elements, string title, string body)
+    {
+        if (elements.Count == 0)
+        {
+            return null;
+        }
+
+        var serialized = JsonSerializer.Serialize(elements, JsonOptions);
+        var parsed = JsonSerializer.Deserialize<List<JsonElement>>(serialized, JsonOptions) ?? [];
+        var clamped = parsed.Select(ClampElement).Where(HasElementContent).ToList();
+        if (clamped.Count == 0 || !clamped.Any(IsOnCanvas))
+        {
+            return null;
+        }
+
+        if (!clamped.Any(HasReadableText))
+        {
+            var (_, _, overlayJson) = PresentationExchangeService.BuildSlideFromOutline(
+                new ImportedSlideOutline(title, body, null));
+            var overlay = JsonSerializer.Deserialize<List<JsonElement>>(overlayJson, JsonOptions) ?? [];
+            clamped = overlay.Concat(clamped).ToList();
+        }
+
+        return JsonSerializer.Serialize(clamped, JsonOptions);
+    }
+
+    private static JsonElement ClampElement(JsonElement el)
+    {
+        if (el.ValueKind != JsonValueKind.Object)
+        {
+            return el;
+        }
+
+        var x = Math.Clamp(GetInt(el, "x", 0), 0, CanvasW - 40);
+        var y = Math.Clamp(GetInt(el, "y", 0), 0, CanvasH - 40);
+        var w = Math.Clamp(GetInt(el, "w", 120), 40, CanvasW - x);
+        var h = Math.Clamp(GetInt(el, "h", 40), 24, CanvasH - y);
+        using var stream = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(stream))
+        {
+            writer.WriteStartObject();
+            foreach (var prop in el.EnumerateObject())
+            {
+                if (prop.NameEquals("x"))
+                {
+                    writer.WriteNumber("x", x);
+                }
+                else if (prop.NameEquals("y"))
+                {
+                    writer.WriteNumber("y", y);
+                }
+                else if (prop.NameEquals("w"))
+                {
+                    writer.WriteNumber("w", w);
+                }
+                else if (prop.NameEquals("h"))
+                {
+                    writer.WriteNumber("h", h);
+                }
+                else
+                {
+                    prop.WriteTo(writer);
+                }
+            }
+
+            writer.WriteEndObject();
+        }
+
+        return JsonDocument.Parse(stream.ToArray()).RootElement.Clone();
+    }
+
+    private static bool HasElementContent(JsonElement el)
+    {
+        var type = el.TryGetProperty("type", out var t) ? t.GetString() : null;
+        if (type == "image")
+        {
+            return el.TryGetProperty("props", out var props)
+                && props.TryGetProperty("src", out var src)
+                && !string.IsNullOrWhiteSpace(src.GetString());
+        }
+
+        if (type == "text")
+        {
+            return el.TryGetProperty("props", out var props)
+                && props.TryGetProperty("text", out var text)
+                && !string.IsNullOrWhiteSpace(text.GetString());
+        }
+
+        return true;
+    }
+
+    private static bool IsOnCanvas(JsonElement el)
+    {
+        var x = GetInt(el, "x", 0);
+        var y = GetInt(el, "y", 0);
+        var w = GetInt(el, "w", 0);
+        var h = GetInt(el, "h", 0);
+        return x < CanvasW && y < CanvasH && x + w > 0 && y + h > 0;
+    }
+
+    private static bool HasReadableText(JsonElement el) =>
+        el.TryGetProperty("type", out var t)
+        && t.GetString() == "text"
+        && el.TryGetProperty("props", out var props)
+        && props.TryGetProperty("text", out var text)
+        && !string.IsNullOrWhiteSpace(text.GetString());
+
     private sealed class SlideCollector
     {
+        private readonly PresentationPart _presentationPart;
         private readonly SlidePart _slidePart;
         private readonly string _uploadsDir;
         private readonly double _scaleX;
@@ -366,38 +463,126 @@ internal static class PptxSlideIO
         public List<string> TextBlocks { get; } = [];
         public string? Title { get; private set; }
         public string? Body { get; private set; }
+        public string? BackgroundJson { get; private set; }
 
-        public SlideCollector(SlidePart slidePart, string uploadsDir, double scaleX, double scaleY)
+        public SlideCollector(
+            PresentationPart presentationPart,
+            SlidePart slidePart,
+            string uploadsDir,
+            double scaleX,
+            double scaleY)
         {
+            _presentationPart = presentationPart;
             _slidePart = slidePart;
             _uploadsDir = uploadsDir;
             _scaleX = scaleX;
             _scaleY = scaleY;
+            BackgroundJson = TryReadBackground(slidePart);
+        }
+
+        public void CollectSlide()
+        {
+            var tree = _slidePart.Slide?.CommonSlideData?.ShapeTree;
+            if (tree is not null)
+            {
+                CollectTree(tree, 0, 0);
+            }
+
+            if (TextBlocks.Count < 2)
+            {
+                var layoutTree = _slidePart.SlideLayoutPart?.SlideLayout?.CommonSlideData?.ShapeTree;
+                if (layoutTree is not null)
+                {
+                    CollectTree(layoutTree, 0, 0, layoutOnly: true);
+                }
+            }
+
+            if (tree is not null)
+            {
+                foreach (var blip in tree.Descendants<A.Blip>())
+                {
+                    TryAddPictureFromBlip(blip, FindTransform(blip));
+                }
+            }
+        }
+
+        private static string? TryReadBackground(SlidePart slidePart)
+        {
+            var solid = slidePart.Slide?
+                .CommonSlideData?
+                .Background?
+                .Descendants<A.SolidFill>()
+                .Select(f => f.RgbColorModelHex?.Val?.Value)
+                .FirstOrDefault(v => !string.IsNullOrWhiteSpace(v));
+
+            if (string.IsNullOrWhiteSpace(solid))
+            {
+                return null;
+            }
+
+            return JsonSerializer.Serialize(new { type = "solid", color = $"#{solid}" }, JsonOptions);
+        }
+
+        private static A.Transform2D? FindTransform(OpenXmlElement blip)
+        {
+            var current = blip.Parent;
+            while (current is not null)
+            {
+                if (current is P.Shape shape)
+                {
+                    return shape.ShapeProperties?.GetFirstChild<A.Transform2D>();
+                }
+
+                if (current is P.Picture picture)
+                {
+                    return picture.ShapeProperties?.GetFirstChild<A.Transform2D>();
+                }
+
+                current = current.Parent;
+            }
+
+            return null;
         }
 
         public void Collect(OpenXmlCompositeElement container)
+        {
+            CollectTree(container, 0, 0);
+        }
+
+        private void CollectTree(OpenXmlCompositeElement container, long parentX, long parentY, bool layoutOnly = false)
         {
             foreach (var child in container.ChildElements)
             {
                 switch (child)
                 {
                     case P.Shape shape:
-                        ProcessShape(shape);
+                        ProcessShape(shape, parentX, parentY, layoutOnly);
                         break;
                     case P.Picture picture:
-                        ProcessPicture(picture);
+                        if (!layoutOnly)
+                        {
+                            ProcessPicture(picture, parentX, parentY);
+                        }
+
                         break;
                     case P.GraphicFrame frame:
-                        ProcessGraphicFrame(frame);
+                        ProcessGraphicFrame(frame, parentX, parentY);
                         break;
                     case P.GroupShape group:
-                        Collect(group);
+                        var (gx, gy) = GetGroupOffset(group);
+                        CollectTree(group, parentX + gx, parentY + gy, layoutOnly);
                         break;
                 }
             }
         }
 
-        private void ProcessShape(P.Shape shape)
+        private static (long x, long y) GetGroupOffset(P.GroupShape group)
+        {
+            var xfrm = group.GroupShapeProperties?.GetFirstChild<A.TransformGroup>();
+            return (xfrm?.Offset?.X?.Value ?? 0, xfrm?.Offset?.Y?.Value ?? 0);
+        }
+
+        private void ProcessShape(P.Shape shape, long parentX, long parentY, bool layoutOnly)
         {
             var text = GetText(shape.TextBody);
             if (!string.IsNullOrWhiteSpace(text))
@@ -416,17 +601,26 @@ internal static class PptxSlideIO
                     Body = string.IsNullOrWhiteSpace(Body) ? text : $"{Body}\n{text}";
                 }
 
-                AddTextElement(shape, text);
+                AddTextElement(shape, text, parentX, parentY);
             }
 
-            TryAddPictureFromBlip(shape.Descendants<A.Blip>().FirstOrDefault(), shape.ShapeProperties?.GetFirstChild<A.Transform2D>());
+            if (!layoutOnly)
+            {
+                TryAddPictureFromBlip(
+                    shape.Descendants<A.Blip>().FirstOrDefault(),
+                    shape.ShapeProperties?.GetFirstChild<A.Transform2D>(),
+                    parentX,
+                    parentY);
+            }
         }
 
-        private void ProcessPicture(P.Picture picture)
+        private void ProcessPicture(P.Picture picture, long parentX, long parentY)
         {
             TryAddPictureFromBlip(
                 picture.BlipFill?.Blip,
-                picture.ShapeProperties?.GetFirstChild<A.Transform2D>());
+                picture.ShapeProperties?.GetFirstChild<A.Transform2D>(),
+                parentX,
+                parentY);
             var desc = picture.NonVisualPictureProperties?
                 .NonVisualDrawingProperties?.Description?.Value;
             if (!string.IsNullOrWhiteSpace(desc))
@@ -435,25 +629,25 @@ internal static class PptxSlideIO
             }
         }
 
-        private void ProcessGraphicFrame(P.GraphicFrame frame)
+        private void ProcessGraphicFrame(P.GraphicFrame frame, long parentX, long parentY)
         {
             var text = string.Concat(frame.Descendants<A.Text>().Select(t => t.Text)).Trim();
             if (!string.IsNullOrWhiteSpace(text))
             {
                 TextBlocks.Add(text);
-                var (x, y, w, h) = GetGraphicFrameBounds(frame);
-                Elements.Add(BuildTextElement(text, x, y, w, h, 22, 400));
+                var (x, y, w, h) = GetGraphicFrameBounds(frame, parentX, parentY);
+                Elements.Add(BuildTextElement(text, x, y, w, h, 22, 400, "#243447"));
             }
         }
 
-        private (int x, int y, int w, int h) GetGraphicFrameBounds(P.GraphicFrame frame)
+        private (int x, int y, int w, int h) GetGraphicFrameBounds(P.GraphicFrame frame, long parentX, long parentY)
         {
             var transform = frame.Transform;
             if (transform?.Offset is not null && transform.Extents is not null)
             {
                 return (
-                    ToPx(transform.Offset.X?.Value ?? 0, _scaleX),
-                    ToPx(transform.Offset.Y?.Value ?? 0, _scaleY),
+                    ToPx((transform.Offset.X?.Value ?? 0) + parentX, _scaleX),
+                    ToPx((transform.Offset.Y?.Value ?? 0) + parentY, _scaleY),
                     ToPx(transform.Extents.Cx?.Value ?? 400_000, _scaleX),
                     ToPx(transform.Extents.Cy?.Value ?? 300_000, _scaleY));
             }
@@ -461,7 +655,7 @@ internal static class PptxSlideIO
             return (64, 140, 832, 320);
         }
 
-        private void TryAddPictureFromBlip(A.Blip? blip, A.Transform2D? xfrm)
+        private void TryAddPictureFromBlip(A.Blip? blip, A.Transform2D? xfrm, long parentX = 0, long parentY = 0)
         {
             if (blip?.Embed?.Value is null)
             {
@@ -470,14 +664,19 @@ internal static class PptxSlideIO
 
             try
             {
-                var imagePart = (ImagePart)_slidePart.GetPartById(blip.Embed.Value);
+                var imagePart = ResolveImagePart(blip.Embed.Value);
+                if (imagePart is null)
+                {
+                    return;
+                }
+
                 var url = SaveImage(imagePart);
                 if (url is null)
                 {
                     return;
                 }
 
-                var (x, y, w, h) = GetBounds(xfrm);
+                var (x, y, w, h) = GetBounds(xfrm, parentX, parentY);
                 Elements.Add(new
                 {
                     id = $"el-img-{Guid.NewGuid():N}"[..12],
@@ -497,15 +696,48 @@ internal static class PptxSlideIO
             }
         }
 
-        private void AddTextElement(P.Shape shape, string text)
+        private ImagePart? ResolveImagePart(string relId)
         {
-            var (x, y, w, h) = GetBounds(shape.ShapeProperties?.GetFirstChild<A.Transform2D>());
-            var fontSize = GetFontSize(shape.TextBody);
-            var bold = IsBold(shape.TextBody) || IsTitlePlaceholder(shape) ? 700 : 400;
-            Elements.Add(BuildTextElement(text, x, y, w, h, fontSize, bold));
+            OpenXmlPartContainer?[] roots =
+            [
+                _slidePart,
+                _slidePart.SlideLayoutPart,
+                _presentationPart
+            ];
+
+            foreach (var root in roots)
+            {
+                if (root is null)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    if (root.GetPartById(relId) is ImagePart imagePart)
+                    {
+                        return imagePart;
+                    }
+                }
+                catch
+                {
+                    // Try next container.
+                }
+            }
+
+            return null;
         }
 
-        private object BuildTextElement(string text, int x, int y, int w, int h, int fontSize, int fontWeight) =>
+        private void AddTextElement(P.Shape shape, string text, long parentX, long parentY)
+        {
+            var (x, y, w, h) = GetBounds(shape.ShapeProperties?.GetFirstChild<A.Transform2D>(), parentX, parentY);
+            var fontSize = GetFontSize(shape.TextBody);
+            var bold = IsBold(shape.TextBody) || IsTitlePlaceholder(shape) ? 700 : 400;
+            var color = ExtractTextColor(shape.TextBody);
+            Elements.Add(BuildTextElement(text, x, y, w, h, fontSize, bold, color));
+        }
+
+        private object BuildTextElement(string text, int x, int y, int w, int h, int fontSize, int fontWeight, string color) =>
             new
             {
                 id = $"el-txt-{Guid.NewGuid():N}"[..12],
@@ -521,19 +753,19 @@ internal static class PptxSlideIO
                     text,
                     fontSize,
                     fontWeight,
-                    color = "#243447",
+                    color,
                     align = "left",
                     fontFamily = "Segoe UI, sans-serif"
                 }
             };
 
-        private (int x, int y, int w, int h) GetBounds(A.Transform2D? xfrm)
+        private (int x, int y, int w, int h) GetBounds(A.Transform2D? xfrm, long parentX, long parentY)
         {
             if (xfrm?.Offset is not null && xfrm.Extents is not null)
             {
                 return (
-                    ToPx(xfrm.Offset.X?.Value ?? 0, _scaleX),
-                    ToPx(xfrm.Offset.Y?.Value ?? 0, _scaleY),
+                    ToPx((xfrm.Offset.X?.Value ?? 0) + parentX, _scaleX),
+                    ToPx((xfrm.Offset.Y?.Value ?? 0) + parentY, _scaleY),
                     ToPx(xfrm.Extents.Cx?.Value ?? 400_000, _scaleX),
                     ToPx(xfrm.Extents.Cy?.Value ?? 300_000, _scaleY));
             }
@@ -606,5 +838,39 @@ internal static class PptxSlideIO
 
         private static bool IsBold(P.TextBody? body) =>
             body?.Descendants<A.RunProperties>().FirstOrDefault()?.Bold?.Value == true;
+
+        private static string ExtractTextColor(P.TextBody? body)
+        {
+            var rgb = body?
+                .Descendants<A.RunProperties>()
+                .Select(r => r.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val?.Value)
+                .FirstOrDefault(v => !string.IsNullOrWhiteSpace(v));
+
+            if (string.IsNullOrWhiteSpace(rgb))
+            {
+                return "#243447";
+            }
+
+            var color = $"#{rgb.TrimStart('#')}";
+            return IsLightColor(color) ? "#0B1F33" : color;
+        }
+
+        private static bool IsLightColor(string hex)
+        {
+            if (hex.Length < 7 || !hex.StartsWith('#'))
+            {
+                return false;
+            }
+
+            if (!int.TryParse(hex.AsSpan(1, 2), System.Globalization.NumberStyles.HexNumber, null, out var r)
+                || !int.TryParse(hex.AsSpan(3, 2), System.Globalization.NumberStyles.HexNumber, null, out var g)
+                || !int.TryParse(hex.AsSpan(5, 2), System.Globalization.NumberStyles.HexNumber, null, out var b))
+            {
+                return false;
+            }
+
+            var luminance = (0.299 * r) + (0.587 * g) + (0.114 * b);
+            return luminance > 200;
+        }
     }
 }
