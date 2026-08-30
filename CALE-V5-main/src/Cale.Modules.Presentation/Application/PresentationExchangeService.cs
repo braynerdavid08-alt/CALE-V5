@@ -5,10 +5,9 @@ using ClosedXML.Excel;
 using Cale.Modules.Presentation.Application.DTOs;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using DocumentFormat.OpenXml.Wordprocessing;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace Cale.Modules.Presentation.Application;
 
@@ -58,7 +57,7 @@ public sealed class PresentationExchangeService
         using (var doc = WordprocessingDocument.Create(ms, WordprocessingDocumentType.Document, true))
         {
             var main = doc.AddMainDocumentPart();
-            main.Document = new Document(new Body());
+            main.Document = new W.Document(new W.Body());
             var body = main.Document.Body!;
             AppendWordHeading(body, "Plantilla Mi CALE — Presentaciones", 1);
             AppendWordParagraph(body, "Escribe cada diapositiva con un título (Estilo Título 1 o Título 2) y párrafos debajo para el contenido. Las notas del instructor van entre corchetes al final, por ejemplo [Nota: repasar examen].");
@@ -110,7 +109,7 @@ public sealed class PresentationExchangeService
         using (var doc = WordprocessingDocument.Create(ms, WordprocessingDocumentType.Document, true))
         {
             var main = doc.AddMainDocumentPart();
-            main.Document = new Document(new Body());
+            main.Document = new W.Document(new W.Body());
             var body = main.Document.Body!;
             AppendWordHeading(body, detail.Title, 1);
             if (!string.IsNullOrWhiteSpace(detail.Description))
@@ -287,7 +286,7 @@ public sealed class PresentationExchangeService
 
         foreach (var element in body.Elements())
         {
-            if (element is not Paragraph para)
+            if (element is not W.Paragraph para)
             {
                 continue;
             }
@@ -350,7 +349,7 @@ public sealed class PresentationExchangeService
         var presentationPart = presentation.PresentationPart
             ?? throw new InvalidOperationException("El archivo PowerPoint no es válido.");
 
-        var slideIds = presentationPart.Presentation?.SlideIdList?.Elements<SlideId>().ToList()
+        var slideIds = presentationPart.Presentation?.SlideIdList?.Elements<P.SlideId>().ToList()
             ?? throw new InvalidOperationException("El PowerPoint no tiene diapositivas.");
 
         if (slideIds.Count == 0)
@@ -362,7 +361,7 @@ public sealed class PresentationExchangeService
         var index = 1;
         foreach (var slideId in slideIds)
         {
-            var slidePart = (SlidePart)presentationPart.GetPartById(slideId.RelationshipId!);
+            var slidePart = (P.SlidePart)presentationPart.GetPartById(slideId.RelationshipId!);
             var texts = ExtractSlideTexts(slidePart);
             if (texts.Count == 0)
             {
@@ -400,7 +399,7 @@ public sealed class PresentationExchangeService
         return slides;
     }
 
-    private static List<string> ExtractSlideTexts(SlidePart slidePart)
+    private static List<string> ExtractSlideTexts(P.SlidePart slidePart)
     {
         var texts = new List<string>();
         var tree = slidePart.Slide?.CommonSlideData?.ShapeTree;
@@ -424,7 +423,7 @@ public sealed class PresentationExchangeService
                 case P.Shape shape:
                     AppendShapeText(shape, texts);
                     break;
-                case GroupShape group:
+                case P.GroupShape group:
                     CollectShapeTexts(group, texts);
                     break;
             }
@@ -451,7 +450,7 @@ public sealed class PresentationExchangeService
         return string.Concat(body.Descendants<A.Text>().Select(t => t.Text));
     }
 
-    private static string? ExtractSlideNotes(SlidePart slidePart)
+    private static string? ExtractSlideNotes(P.SlidePart slidePart)
     {
         var notesPart = slidePart.NotesSlidePart;
         var tree = notesPart?.NotesSlide?.CommonSlideData?.ShapeTree;
@@ -476,7 +475,7 @@ public sealed class PresentationExchangeService
         || text.Contains("haga clic para agregar notas", StringComparison.OrdinalIgnoreCase)
         || text.Contains("click to add note", StringComparison.OrdinalIgnoreCase);
 
-    private static bool IsHeading(Paragraph para)
+    private static bool IsHeading(W.Paragraph para)
     {
         var style = para.ParagraphProperties?.ParagraphStyleId?.Val?.Value ?? "";
         if (style.StartsWith("Heading", StringComparison.OrdinalIgnoreCase)
@@ -611,19 +610,19 @@ public sealed class PresentationExchangeService
         }
     }
 
-    private static void AppendWordHeading(Body body, string text, int level)
+    private static void AppendWordHeading(W.Body body, string text, int level)
     {
         var style = level <= 1 ? "Heading1" : "Heading2";
-        var para = new Paragraph(
-            new ParagraphProperties(new ParagraphStyleId { Val = style }),
-            new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve }));
+        var para = new W.Paragraph(
+            new W.ParagraphProperties(new W.ParagraphStyleId { Val = style }),
+            new W.Run(new W.Text(text) { Space = SpaceProcessingModeValues.Preserve }));
         body.Append(para);
     }
 
-    private static void AppendWordParagraph(Body body, string text, bool italic = false)
+    private static void AppendWordParagraph(W.Body body, string text, bool italic = false)
     {
-        var runProps = italic ? new RunProperties(new Italic()) : null;
-        var para = new Paragraph(new Run(runProps, new Text(text) { Space = SpaceProcessingModeValues.Preserve }));
+        var runProps = italic ? new W.RunProperties(new W.Italic()) : null;
+        var para = new W.Paragraph(new W.Run(runProps, new W.Text(text) { Space = SpaceProcessingModeValues.Preserve }));
         body.Append(para);
     }
 }
