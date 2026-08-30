@@ -114,6 +114,7 @@ public sealed class PresentationsController : ControllerBase
     }
 
     [HttpPost("import")]
+    [Consumes("multipart/form-data")]
     [RequestSizeLimit(25 * 1024 * 1024)]
     public async Task<IActionResult> Import(
         [FromForm] IFormFile? file,
@@ -131,7 +132,11 @@ public sealed class PresentationsController : ControllerBase
         IReadOnlyList<ImportedSlideOutline> outlines;
         try
         {
-            outlines = _exchange.ParseImport(stream, file.FileName);
+            var webRoot = string.IsNullOrWhiteSpace(_env.WebRootPath)
+                ? Path.Combine(_env.ContentRootPath, "wwwroot")
+                : _env.WebRootPath;
+            var uploadsDir = Path.Combine(webRoot, "uploads", "presentations");
+            outlines = _exchange.ParseImport(stream, file.FileName, uploadsDir);
         }
         catch (InvalidOperationException ex)
         {
@@ -168,6 +173,15 @@ public sealed class PresentationsController : ControllerBase
         {
             var bytes = _exchange.ExportWord(detail);
             return File(bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", $"{safeName}.docx");
+        }
+
+        if (f is "ppt" or "pptx" or "powerpoint")
+        {
+            var bytes = _exchange.ExportPowerPoint(detail);
+            return File(
+                bytes,
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                $"{safeName}.pptx");
         }
 
         var excel = _exchange.ExportExcel(detail);

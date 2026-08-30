@@ -939,7 +939,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     void this.router.navigate(['/teacher/presentations', this.presentationId(), 'present']);
   }
 
-  exportDeck(format: 'xlsx' | 'docx'): void {
+  exportDeck(format: 'xlsx' | 'docx' | 'pptx'): void {
     const id = this.presentationId();
     if (!id) return;
     this.saveNow();

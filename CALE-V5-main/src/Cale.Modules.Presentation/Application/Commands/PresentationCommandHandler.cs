@@ -72,7 +72,20 @@ public sealed class PresentationCommandHandler
         for (var i = 0; i < outlines.Count; i++)
         {
             var outline = outlines[i];
-            var (slideTitle, bg, elements) = PresentationExchangeService.BuildSlideFromOutline(outline);
+            string slideTitle;
+            string bg;
+            string elements;
+            if (!string.IsNullOrWhiteSpace(outline.ElementsJson))
+            {
+                slideTitle = outline.Title;
+                bg = outline.BackgroundJson ?? PresentationTemplates.LightBackground;
+                elements = outline.ElementsJson;
+            }
+            else
+            {
+                (slideTitle, bg, elements) = PresentationExchangeService.BuildSlideFromOutline(outline);
+            }
+
             slides.Add(PresentationSlide.Create(
                 deck.Id,
                 i,

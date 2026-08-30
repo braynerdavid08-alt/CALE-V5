@@ -96,7 +96,7 @@ export class PresentationApi {
     return this.http.post<PresentationDetail>(`${this.base}/import`, fd);
   }
 
-  exportFile(id: number, format: 'xlsx' | 'docx') {
+  exportFile(id: number, format: 'xlsx' | 'docx' | 'pptx') {
     return this.http.get(`${this.base}/${id}/export`, {
       params: { format },
       responseType: 'blob'

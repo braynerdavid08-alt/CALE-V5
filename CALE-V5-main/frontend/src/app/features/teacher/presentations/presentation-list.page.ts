@@ -131,11 +131,12 @@ export class PresentationListPage implements OnInit {
     });
   }
 
-  exportPresentation(item: PresentationListItem, format: 'xlsx' | 'docx', ev: Event): void {
+  exportPresentation(item: PresentationListItem, format: 'xlsx' | 'docx' | 'pptx', ev: Event): void {
     ev.preventDefault();
     ev.stopPropagation();
+    const ext = format === 'xlsx' ? 'xlsx' : format === 'docx' ? 'docx' : 'pptx';
     this.api.exportFile(item.id, format).subscribe({
-      next: (blob) => this.saveBlob(blob, `${item.title}.${format === 'xlsx' ? 'xlsx' : 'docx'}`),
+      next: (blob) => this.saveBlob(blob, `${item.title}.${ext}`),
       error: (err) => this.error.set(mapApiError(err))
     });
   }

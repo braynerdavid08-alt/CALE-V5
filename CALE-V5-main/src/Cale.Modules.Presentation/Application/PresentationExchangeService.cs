@@ -3,28 +3,32 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using ClosedXML.Excel;
 using Cale.Modules.Presentation.Application.DTOs;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace Cale.Modules.Presentation.Application;
 
-public sealed record ImportedSlideOutline(string Title, string Content, string? Notes);
+public sealed record ImportedSlideOutline(
+    string Title,
+    string Content,
+    string? Notes,
+    string? BackgroundJson = null,
+    string? ElementsJson = null);
 
 public sealed class PresentationExchangeService
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-    public IReadOnlyList<ImportedSlideOutline> ParseImport(Stream stream, string fileName)
+    public IReadOnlyList<ImportedSlideOutline> ParseImport(Stream stream, string fileName, string? uploadsDirectory = null)
     {
         var ext = Path.GetExtension(fileName).ToLowerInvariant();
         return ext switch
         {
             ".xlsx" or ".xls" => ParseExcel(stream),
             ".docx" => ParseWord(stream),
-            ".pptx" => ParsePowerPoint(stream),
+            ".pptx" => string.IsNullOrWhiteSpace(uploadsDirectory)
+                ? throw new InvalidOperationException("No se pudo preparar la carpeta de imágenes para el PowerPoint.")
+                : PptxSlideIO.Import(stream, uploadsDirectory),
             _ => throw new InvalidOperationException("Usa Excel (.xlsx), Word (.docx) o PowerPoint (.pptx).")
         };
     }
@@ -137,6 +141,8 @@ public sealed class PresentationExchangeService
 
         return ms.ToArray();
     }
+
+    public byte[] ExportPowerPoint(PresentationDetailDto detail) => PptxSlideIO.Export(detail);
 
     public static (string SlideTitle, string BackgroundJson, string ElementsJson) BuildSlideFromOutline(
         ImportedSlideOutline outline)
@@ -342,138 +348,6 @@ public sealed class PresentationExchangeService
 
         return slides;
     }
-
-    private static IReadOnlyList<ImportedSlideOutline> ParsePowerPoint(Stream stream)
-    {
-        using var presentation = PresentationDocument.Open(stream, false);
-        var presentationPart = presentation.PresentationPart
-            ?? throw new InvalidOperationException("El archivo PowerPoint no es válido.");
-
-        var slideIds = presentationPart.Presentation?.SlideIdList?.Elements<P.SlideId>().ToList()
-            ?? throw new InvalidOperationException("El PowerPoint no tiene diapositivas.");
-
-        if (slideIds.Count == 0)
-        {
-            throw new InvalidOperationException("El PowerPoint no tiene diapositivas.");
-        }
-
-        var slides = new List<ImportedSlideOutline>();
-        var index = 1;
-        foreach (var slideId in slideIds)
-        {
-            var slidePart = (SlidePart)presentationPart.GetPartById(slideId.RelationshipId!);
-            var texts = ExtractSlideTexts(slidePart);
-            if (texts.Count == 0)
-            {
-                continue;
-            }
-
-            var title = texts[0];
-            var content = texts.Count > 1
-                ? string.Join("\n", texts.Skip(1))
-                : "";
-            var notes = ExtractSlideNotes(slidePart);
-
-            if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(content))
-            {
-                continue;
-            }
-
-            if (string.IsNullOrWhiteSpace(title))
-            {
-                title = $"Diapositiva {index}";
-            }
-
-            slides.Add(new ImportedSlideOutline(
-                title.Trim(),
-                content.Trim(),
-                string.IsNullOrWhiteSpace(notes) ? null : notes));
-            index++;
-        }
-
-        if (slides.Count == 0)
-        {
-            throw new InvalidOperationException("No se pudo leer texto del PowerPoint. Verifica que tenga contenido editable.");
-        }
-
-        return slides;
-    }
-
-    private static List<string> ExtractSlideTexts(SlidePart slidePart)
-    {
-        var texts = new List<string>();
-        var tree = slidePart.Slide?.CommonSlideData?.ShapeTree;
-        if (tree is not null)
-        {
-            CollectShapeTexts(tree, texts);
-        }
-
-        return texts
-            .Select(t => t.Trim())
-            .Where(t => !string.IsNullOrWhiteSpace(t))
-            .ToList();
-    }
-
-    private static void CollectShapeTexts(OpenXmlCompositeElement container, List<string> texts)
-    {
-        foreach (var child in container.ChildElements)
-        {
-            switch (child)
-            {
-                case P.Shape shape:
-                    AppendShapeText(shape, texts);
-                    break;
-                case P.GroupShape group:
-                    CollectShapeTexts(group, texts);
-                    break;
-            }
-        }
-    }
-
-    private static void AppendShapeText(P.Shape shape, List<string> texts)
-    {
-        var text = GetShapeText(shape);
-        if (!string.IsNullOrWhiteSpace(text))
-        {
-            texts.Add(text.Trim());
-        }
-    }
-
-    private static string GetShapeText(P.Shape shape)
-    {
-        var body = shape.TextBody;
-        if (body is null)
-        {
-            return "";
-        }
-
-        return string.Concat(body.Descendants<A.Text>().Select(t => t.Text));
-    }
-
-    private static string? ExtractSlideNotes(SlidePart slidePart)
-    {
-        var notesPart = slidePart.NotesSlidePart;
-        var tree = notesPart?.NotesSlide?.CommonSlideData?.ShapeTree;
-        if (tree is null)
-        {
-            return null;
-        }
-
-        var texts = new List<string>();
-        CollectShapeTexts(tree, texts);
-        var joined = string.Join(
-            "\n",
-            texts
-                .Select(t => t.Trim())
-                .Where(t => !string.IsNullOrWhiteSpace(t) && !IsNotesPlaceholder(t)));
-
-        return string.IsNullOrWhiteSpace(joined) ? null : joined;
-    }
-
-    private static bool IsNotesPlaceholder(string text) =>
-        text.Contains("click to add notes", StringComparison.OrdinalIgnoreCase)
-        || text.Contains("haga clic para agregar notas", StringComparison.OrdinalIgnoreCase)
-        || text.Contains("click to add note", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsHeading(W.Paragraph para)
     {
