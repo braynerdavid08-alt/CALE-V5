@@ -182,6 +182,15 @@ public sealed record SavePracticalVehicleRequest(
     string? Plate,
     bool IsActive);
 
+public sealed record PracticalLessonAssignmentDto(
+    int StudentUserId,
+    string StudentName,
+    string? LicenseCategory,
+    int LessonNumber,
+    int LessonsRequired,
+    int ReservationId,
+    string ReservationStatus);
+
 public sealed record PracticalLessonSessionDto(
     int Id,
     string SessionDate,
@@ -198,7 +207,31 @@ public sealed record PracticalLessonSessionDto(
     string? Notes,
     string? BookingState,
     string? BookingMessage,
-    int? MyReservationId);
+    int? MyReservationId,
+    PracticalLessonAssignmentDto? Assignment = null);
+
+public sealed record PracticalSchedulingStudentDto(
+    int StudentUserId,
+    string StudentName,
+    string? LicenseCategories,
+    int CompletedLessons,
+    int RequiredLessons,
+    int NextLessonNumber,
+    bool IsEligible,
+    string? BlockReason);
+
+public sealed record QuickAssignPracticalRequest(
+    DateOnly SessionDate,
+    string StartTime,
+    string EndTime,
+    int InstructorUserId,
+    int VehicleId,
+    int StudentUserId);
+
+public sealed record DuplicatePracticalWeekRequest(
+    DateOnly WeekStart,
+    int InstructorUserId,
+    int VehicleId);
 
 public sealed record CreatePracticalLessonRequest(
     DateOnly SessionDate,
@@ -214,6 +247,14 @@ public sealed record PracticalStudentDashboardDto(
     PracticalLessonSessionDto? NextLesson,
     IReadOnlyList<PracticalLessonSessionDto> UpcomingReservations,
     IReadOnlyList<PracticalLessonSessionDto> AvailableLessons);
+
+public sealed record TheoryExamOptionDto(int Id, string Name);
+
+public sealed record PracticalAttendanceRowDto(
+    int StudentUserId,
+    string StudentName,
+    string Status,
+    int ReservationId);
 
 public sealed record UpdateEnrollmentRequest(
     string Status,

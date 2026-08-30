@@ -7,6 +7,7 @@ using Cale.BuildingBlocks.Infrastructure.Persistence;
 using Cale.Modules.Identity.Application.Abstractions;
 using Cale.Modules.Identity.Domain;
 using Cale.Modules.Assessment.Domain;
+using Cale.Modules.Catalog.Application.Abstractions;
 using Cale.Modules.TheoreticalTraining.Application.DTOs;
 using Cale.Modules.TheoreticalTraining.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,7 @@ public sealed class TheoryTrainingService
     private readonly CaleDbContext _db;
     private readonly IUserStore _users;
     private readonly ISchoolProfileStore _schoolProfiles;
+    private readonly ICatalogStore _catalog;
     private readonly IClock _clock;
     private readonly INotificationPublisher _notifications;
 
@@ -26,12 +28,14 @@ public sealed class TheoryTrainingService
         CaleDbContext db,
         IUserStore users,
         ISchoolProfileStore schoolProfiles,
+        ICatalogStore catalog,
         IClock clock,
         INotificationPublisher notifications)
     {
         _db = db;
         _users = users;
         _schoolProfiles = schoolProfiles;
+        _catalog = catalog;
         _clock = clock;
         _notifications = notifications;
     }
@@ -979,6 +983,24 @@ public sealed class TheoryTrainingService
             CheckInAt = _clock.UtcNow
         }, ct);
         await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<TheoryExamOptionDto>> ListExamOptionsAsync(
+        int schoolUserId,
+        CancellationToken ct)
+    {
+        var members = await _users.ListBySchoolAsync(schoolUserId, ct);
+        var ownerIds = members
+            .Where(m => m.Role is Roles.Teacher or Roles.School)
+            .Select(m => m.Id)
+            .ToHashSet();
+
+        var exams = await _catalog.ListPublishedExamsAsync(ct);
+        return exams
+            .Where(e => ownerIds.Contains(e.CreatedById))
+            .OrderBy(e => e.Name)
+            .Select(e => new TheoryExamOptionDto(e.Id, e.Name))
+            .ToList();
     }
 
     public async Task<(int SchoolUserId, User Student)> ResolveStudentSchoolPublicAsync(

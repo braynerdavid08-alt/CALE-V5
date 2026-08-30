@@ -377,9 +377,21 @@
       </label>
       <ui-button type="button" (click)="saveTopic()">Guardar tema</ui-button>
     </div>
-    <ul class="items">
+    <ul class="items topic-list">
       @for (t of topics(); track t.id) {
-        <li><span class="swatch" [style.background]="t.color"></span>{{ t.name }} <small>({{ t.category === 'Workshop' ? 'Taller' : 'Teoría' }})</small></li>
+        <li>
+          <span class="swatch" [style.background]="t.color"></span>
+          <div class="topic-edit">
+            <strong>{{ t.name }}</strong>
+            <label class="inline">
+              Tipo
+              <select [ngModel]="t.category" (ngModelChange)="onTopicCategoryChange(t, $event)">
+                <option value="Theory">Teoría</option>
+                <option value="Workshop">Taller</option>
+              </select>
+            </label>
+          </div>
+        </li>
       }
     </ul>
   } @else if (tab() === 'settings') {
@@ -407,10 +419,18 @@
         <label>Horas de taller requeridas
           <input type="number" min="0" max="200" [(ngModel)]="cfg.requiredWorkshopHours" />
         </label>
-        <label>ID del examen teórico oficial
-          <input type="number" min="1" [(ngModel)]="cfg.theoryExamId" placeholder="Ej. 12" />
+        <label>Examen teórico oficial
+          <select [(ngModel)]="cfg.theoryExamId">
+            <option [ngValue]="null">Sin examen obligatorio</option>
+            @for (exam of examOptions(); track exam.id) {
+              <option [ngValue]="exam.id">{{ exam.name }} (#{{ exam.id }})</option>
+            }
+          </select>
         </label>
         <p class="muted">El estudiante debe aprobar ese examen (≥80%) antes de agendar clases de manejo.</p>
+        @if (!examOptions().length) {
+          <p class="muted">Publica un examen desde la biblioteca de instructores para seleccionarlo aquí.</p>
+        }
         <label>Horas mínimas para cancelar
           <input type="number" min="0" max="72" [(ngModel)]="cfg.minCancelHours" />
         </label>

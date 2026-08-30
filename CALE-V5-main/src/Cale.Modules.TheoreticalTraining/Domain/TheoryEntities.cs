@@ -168,3 +168,48 @@ public sealed class PracticalLessonReservation
 
     public PracticalLessonSession? LessonSession { get; set; }
 }
+
+public sealed class SchoolApprenticeProfile
+{
+    public int Id { get; set; }
+    public int SchoolUserId { get; set; }
+    public int StudentUserId { get; set; }
+    public string? DocumentType { get; set; }
+    public string? DocumentNumber { get; set; }
+    public string? Phone { get; set; }
+    public string? Address { get; set; }
+    public string? ContactEmail { get; set; }
+    public DateOnly? EnrollmentDate { get; set; }
+    public string? EnrollmentMonth { get; set; }
+    public int? OrderNumber { get; set; }
+    public string? ScheduleSlot { get; set; }
+    public string? ReceiptNumber { get; set; }
+    public decimal AmountDue { get; set; }
+    public decimal AmountPaid { get; set; }
+    public decimal BalanceDue { get; set; }
+    public string? PaymentMethod { get; set; }
+    public decimal? BalancePaymentAmount { get; set; }
+    public decimal AccountsReceivable { get; set; }
+    public DateOnly? BalancePaymentDate { get; set; }
+    public string? BalancePaymentMethod { get; set; }
+    public string? BalanceReceiptNumber { get; set; }
+    public string? EnrollmentPin { get; set; }
+    public bool RuntRegistered { get; set; }
+    public bool IsEnrolled { get; set; }
+    public string? Notes { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+public sealed class TheoryExamAppointment
+{
+    public int Id { get; set; }
+    public int SchoolUserId { get; set; }
+    public DateOnly ExamDate { get; set; }
+    public TimeOnly SlotTime { get; set; }
+    public int? StudentUserId { get; set; }
+    public string? StudentLabel { get; set; }
+    public string? Notes { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}

@@ -1,0 +1,54 @@
+<ui-page-header
+  title="Exámenes teóricos"
+  subtitle="Calendario de citas como tu Excel EXAMENES TEORICOS." />
+
+<ui-error [message]="error()" />
+
+<div class="toolbar">
+  <button type="button" (click)="prevWeek()">← Anterior</button>
+  <button type="button" (click)="nextWeek()">Siguiente →</button>
+  <a routerLink="/school/import"><ui-button type="button" variant="secondary">Importar Excel</ui-button></a>
+</div>
+
+@if (loading()) {
+  <ui-loading />
+} @else {
+  <div class="grid-wrap">
+    <table class="exam-grid">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          @for (t of slots; track t) { <th>{{ t }}</th> }
+        </tr>
+      </thead>
+      <tbody>
+        @for (date of dayDates(); track date) {
+          <tr>
+            <th>{{ dayLabel(date) }}</th>
+            @for (t of slots; track t) {
+              <td>
+                @if (slotAt(date, t); as slot) {
+                  <button type="button" class="cell filled" (click)="openForm(date, t)">
+                    {{ slot.studentName || slot.studentLabel }}
+                  </button>
+                  <button type="button" class="mini danger" (click)="remove(slot)">×</button>
+                } @else {
+                  <button type="button" class="cell" (click)="openForm(date, t)">+</button>
+                }
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (form.examDate) {
+    <section class="form-card">
+      <h3>{{ dayLabel(form.examDate) }} · {{ form.slotTime }}</h3>
+      <label>Aprendiz <input [(ngModel)]="form.studentLabel" placeholder="Nombre del estudiante" /></label>
+      <label>Notas <input [(ngModel)]="form.notes" /></label>
+      <ui-button type="button" (click)="save()">Guardar cita</ui-button>
+    </section>
+  }
+}

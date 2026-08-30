@@ -10,6 +10,16 @@ export interface PracticalVehicleDto {
   isActive: boolean;
 }
 
+export interface PracticalLessonAssignmentDto {
+  studentUserId: number;
+  studentName: string;
+  licenseCategory?: string | null;
+  lessonNumber: number;
+  lessonsRequired: number;
+  reservationId: number;
+  reservationStatus: string;
+}
+
 export interface PracticalLessonSessionDto {
   id: number;
   sessionDate: string;
@@ -27,6 +37,18 @@ export interface PracticalLessonSessionDto {
   bookingState?: string | null;
   bookingMessage?: string | null;
   myReservationId?: number | null;
+  assignment?: PracticalLessonAssignmentDto | null;
+}
+
+export interface PracticalSchedulingStudentDto {
+  studentUserId: number;
+  studentName: string;
+  licenseCategories?: string | null;
+  completedLessons: number;
+  requiredLessons: number;
+  nextLessonNumber: number;
+  isEligible: boolean;
+  blockReason?: string | null;
 }
 
 export interface PracticalStudentDashboardDto {
@@ -35,6 +57,28 @@ export interface PracticalStudentDashboardDto {
   upcomingReservations: PracticalLessonSessionDto[];
   availableLessons: PracticalLessonSessionDto[];
 }
+
+export interface PracticalAttendanceRowDto {
+  studentUserId: number;
+  studentName: string;
+  status: string;
+  reservationId: number;
+}
+
+export interface TimeSlot {
+  start: string;
+  end: string;
+  label: string;
+}
+
+export const PRACTICAL_TIME_SLOTS: TimeSlot[] = [
+  { start: '07:00', end: '08:30', label: '7:00 – 8:30' },
+  { start: '09:00', end: '10:30', label: '9:00 – 10:30' },
+  { start: '11:00', end: '12:30', label: '11:00 – 12:30' },
+  { start: '13:00', end: '14:30', label: '1:00 – 2:30' },
+  { start: '15:00', end: '16:30', label: '3:00 – 4:30' },
+  { start: '16:30', end: '18:00', label: '4:30 – 6:00' }
+];
 
 @Injectable({ providedIn: 'root' })
 export class PracticalApi {
@@ -54,12 +98,41 @@ export class PracticalApi {
       : this.http.post<PracticalVehicleDto>(`${this.schoolBase}/vehicles`, body);
   }
 
-  listLessons(weekStart?: string) {
+  listLessons(weekStart?: string, instructorUserId?: number, vehicleId?: number) {
     let params = new HttpParams();
     if (weekStart) {
       params = params.set('weekStart', weekStart);
     }
+    if (instructorUserId) {
+      params = params.set('instructorUserId', instructorUserId);
+    }
+    if (vehicleId) {
+      params = params.set('vehicleId', vehicleId);
+    }
     return this.http.get<PracticalLessonSessionDto[]>(`${this.schoolBase}/lessons`, { params });
+  }
+
+  listSchedulingStudents() {
+    return this.http.get<PracticalSchedulingStudentDto[]>(`${this.schoolBase}/students`);
+  }
+
+  quickAssign(body: {
+    sessionDate: string;
+    startTime: string;
+    endTime: string;
+    instructorUserId: number;
+    vehicleId: number;
+    studentUserId: number;
+  }) {
+    return this.http.post<PracticalLessonSessionDto>(`${this.schoolBase}/lessons/quick-assign`, body);
+  }
+
+  unassignStudent(lessonId: number) {
+    return this.http.post(`${this.schoolBase}/lessons/${lessonId}/unassign`, {});
+  }
+
+  duplicateWeek(body: { weekStart: string; instructorUserId: number; vehicleId: number }) {
+    return this.http.post<{ created: number }>(`${this.schoolBase}/schedule/duplicate-week`, body);
   }
 
   createLesson(body: {
@@ -76,6 +149,29 @@ export class PracticalApi {
 
   cancelLesson(id: number) {
     return this.http.post(`${this.schoolBase}/lessons/${id}/cancel`, {});
+  }
+
+  listAttendanceLessons() {
+    return this.http.get<PracticalLessonSessionDto[]>(`${this.schoolBase}/lessons/attendance`);
+  }
+
+  listAttendance(lessonId: number) {
+    return this.http.get<PracticalAttendanceRowDto[]>(
+      `${this.schoolBase}/lessons/${lessonId}/attendance`
+    );
+  }
+
+  markAttendance(lessonId: number, studentUserId: number, status: string) {
+    return this.http.post(`${this.schoolBase}/lessons/${lessonId}/attendance`, {
+      studentUserId,
+      status
+    });
+  }
+
+  markAllPresent(lessonId: number, rows: PracticalAttendanceRowDto[]) {
+    return this.http.post(`${this.schoolBase}/lessons/${lessonId}/attendance/batch`, {
+      rows: rows.map((r) => ({ studentUserId: r.studentUserId, status: 'Present' }))
+    });
   }
 
   studentDashboard() {

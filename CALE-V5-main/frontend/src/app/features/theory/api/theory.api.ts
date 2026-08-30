@@ -135,6 +135,11 @@ export interface EnrollmentDto {
   practicalEligibility?: PracticalEligibilityDto | null;
 }
 
+export interface TheoryExamOptionDto {
+  id: number;
+  name: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class TheoryApi {
   private readonly http = inject(HttpClient);
@@ -190,6 +195,10 @@ export class TheoryApi {
 
   updateSettings(body: TheorySettingsDto) {
     return this.http.put<TheorySettingsDto>(`${this.schoolBase}/settings`, body);
+  }
+
+  listExamOptions() {
+    return this.http.get<TheoryExamOptionDto[]>(`${this.schoolBase}/exam-options`);
   }
 
   schoolSchedule(weekStart?: string) {

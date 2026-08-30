@@ -10,6 +10,9 @@ public static class DependencyInjection
     {
         services.AddScoped<TheoryTrainingService>();
         services.AddScoped<PracticalTrainingService>();
+        services.AddScoped<ApprenticeRegistryService>();
+        services.AddScoped<SchoolExcelImportService>();
+        services.AddSingleton<SchoolExcelImportPreviewCache>();
         services.AddHostedService<TheoryReminderService>();
         return services;
     }

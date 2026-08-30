@@ -1,0 +1,128 @@
+<ui-page-header
+  title="Aprendices"
+  subtitle="Expediente, pagos y datos de matrícula. Importa tu Excel APRENDICES 2026." />
+
+<ui-error [message]="error()" />
+
+<div class="toolbar">
+  <input type="search" placeholder="Buscar nombre, cédula o celular..." [(ngModel)]="search" (keyup.enter)="reload()" />
+  <label class="check">
+    <input type="checkbox" [(ngModel)]="onlyBalance" (change)="reload()" />
+    Solo con saldo pendiente
+  </label>
+  <ui-button type="button" variant="secondary" (click)="reload()">Buscar</ui-button>
+  <a routerLink="/school/import"><ui-button type="button">Importar Excel</ui-button></a>
+  <a routerLink="/school/theory-exams"><ui-button type="button" variant="secondary">Exámenes teóricos</ui-button></a>
+</div>
+
+@if (loading()) {
+  <ui-loading />
+} @else {
+  <div class="layout">
+    <section class="card list-card">
+      <h2>{{ rows().length }} aprendices</h2>
+      <table class="grid-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Doc.</th>
+            <th>Cat.</th>
+            <th>Horario</th>
+            <th>Saldo</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of rows(); track r.studentUserId) {
+            <tr [class.on]="selected()?.studentUserId === r.studentUserId" (click)="select(r)">
+              <td>
+                <strong>{{ r.studentName }}</strong>
+                @if (r.isEnrolled) { <span class="pill ok">Enrolado</span> }
+                @if (r.runtRegistered) { <span class="pill">RUNT</span> }
+              </td>
+              <td>{{ r.documentNumber || '—' }}</td>
+              <td>{{ r.licenseCategories || '—' }}</td>
+              <td>{{ r.scheduleSlot || '—' }}</td>
+              <td [class.warn]="r.balanceDue > 0">{{ formatMoney(r.balanceDue) }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="5" class="muted">Sin aprendices. Importa tu Excel o autoriza estudiantes en Programación.</td></tr>
+          }
+        </tbody>
+      </table>
+    </section>
+
+    @if (selected(); as s) {
+      @let d = detail();
+      <aside class="card detail-card">
+        <h2>{{ s.studentName }}</h2>
+        <p class="login-hint muted">Acceso app: <strong>{{ s.studentEmail || '—' }}</strong></p>
+
+        @if (detailLoading()) {
+          <ui-loading />
+        } @else if (d) {
+          <section class="summary-card">
+            <h3>Formación</h3>
+            <ul class="summary-list">
+              <li [class.ok]="d.training.theoryHoursComplete">
+                Teoría: {{ d.training.theoryHoursCompleted }}/{{ d.training.theoryHoursRequired }} h
+              </li>
+              <li [class.ok]="d.training.workshopHoursComplete">
+                Taller: {{ d.training.workshopHoursCompleted }}/{{ d.training.workshopHoursRequired }} h
+              </li>
+              <li [class.ok]="d.training.theoryExamPassed">
+                Examen teórico: {{ d.training.theoryExamPassed ? 'Aprobado' : 'Pendiente' }}
+              </li>
+              <li [class.ok]="d.practical.completedLessons >= d.practical.requiredLessons">
+                Práctica: {{ d.practical.completedLessons }}/{{ d.practical.requiredLessons }} clases
+                @if (d.practical.scheduledLessons > 0) {
+                  · {{ d.practical.scheduledLessons }} programada(s)
+                }
+              </li>
+              @if (d.nextExam) {
+                <li class="ok">Examen: {{ d.nextExam.examDate }} {{ d.nextExam.slotTime }}</li>
+              }
+              @if (d.practical.nextLessonDate) {
+                <li>Próxima práctica: {{ d.practical.nextLessonDate }} {{ d.practical.nextLessonTime }}</li>
+              }
+              @if (!d.training.canBookPractical && d.training.blockReason) {
+                <li class="warn">{{ d.training.blockReason }}</li>
+              }
+            </ul>
+            <div class="quick-links">
+              <a routerLink="/school/training"><ui-button type="button" variant="secondary">Programación</ui-button></a>
+              <a routerLink="/school/practical"><ui-button type="button" variant="secondary">Práctica</ui-button></a>
+              <a routerLink="/school/theory-exams"><ui-button type="button" variant="secondary">Exámenes</ui-button></a>
+            </div>
+          </section>
+        }
+
+        <h3>Expediente</h3>
+        <div class="form-grid">
+          <label>Tipo doc. <input [(ngModel)]="s.documentType" /></label>
+          <label>Número <input [(ngModel)]="s.documentNumber" /></label>
+          <label>Celular <input [(ngModel)]="s.phone" /></label>
+          <label>Correo <input [(ngModel)]="s.contactEmail" /></label>
+          <label>Dirección <input [(ngModel)]="s.address" /></label>
+          <label>Categoría <input [(ngModel)]="s.licenseCategories" placeholder="A2, B1, C1" /></label>
+          <label>Horario <input [(ngModel)]="s.scheduleSlot" placeholder="DE 4 A 6 / SABADOS" /></label>
+          <label>Grupo
+            <select [(ngModel)]="s.attendanceDayType">
+              <option [ngValue]="null">Sin asignar</option>
+              <option value="Weekday">Semana</option>
+              <option value="Saturday">Sábados</option>
+            </select>
+          </label>
+          <label>Valor a pagar <input type="number" [(ngModel)]="s.amountDue" /></label>
+          <label>Valor pagado <input type="number" [(ngModel)]="s.amountPaid" /></label>
+          <label>Método pago <input [(ngModel)]="s.paymentMethod" /></label>
+          <label>Recibo <input [(ngModel)]="s.receiptNumber" /></label>
+          <label>PIN enrolamiento <input [(ngModel)]="s.enrollmentPin" /></label>
+          <label class="check"><input type="checkbox" [(ngModel)]="s.runtRegistered" /> Inscrito RUNT</label>
+          <label class="check"><input type="checkbox" [(ngModel)]="s.isEnrolled" /> Enrolado</label>
+          <label class="full">Notas <textarea rows="2" [(ngModel)]="s.notes"></textarea></label>
+        </div>
+        <ui-button type="button" [loading]="saving()" (click)="save()">Guardar cambios</ui-button>
+      </aside>
+    }
+  </div>
+}

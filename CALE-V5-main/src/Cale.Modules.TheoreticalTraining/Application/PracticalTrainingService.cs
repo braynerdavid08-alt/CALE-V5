@@ -77,16 +77,30 @@ public sealed class PracticalTrainingService
     public async Task<IReadOnlyList<PracticalLessonSessionDto>> ListSchoolLessonsAsync(
         int schoolUserId,
         DateOnly? weekStart,
+        int? instructorUserId,
+        int? vehicleId,
         CancellationToken ct)
     {
         var start = weekStart ?? StartOfWeek(ColombiaTime.TodayInColombia());
         var end = start.AddDays(6);
-        var sessions = await _db.Set<PracticalLessonSession>()
+        var query = _db.Set<PracticalLessonSession>()
             .Include(x => x.Vehicle)
             .Where(x => x.SchoolUserId == schoolUserId
                 && x.SessionDate >= start
                 && x.SessionDate <= end
-                && x.Status != PracticalLessonStatuses.Cancelled)
+                && x.Status != PracticalLessonStatuses.Cancelled);
+
+        if (instructorUserId is > 0)
+        {
+            query = query.Where(x => x.InstructorUserId == instructorUserId);
+        }
+
+        if (vehicleId is > 0)
+        {
+            query = query.Where(x => x.VehicleId == vehicleId);
+        }
+
+        var sessions = await query
             .OrderBy(x => x.SessionDate)
             .ThenBy(x => x.StartTime)
             .ToListAsync(ct);
@@ -94,10 +108,240 @@ public sealed class PracticalTrainingService
         var result = new List<PracticalLessonSessionDto>();
         foreach (var s in sessions)
         {
-            result.Add(await MapLessonAsync(s, null, ct));
+            result.Add(await MapLessonAsync(s, null, includeAssignment: true, ct));
         }
 
         return result;
+    }
+
+    public async Task<IReadOnlyList<PracticalSchedulingStudentDto>> ListSchedulingStudentsAsync(
+        int schoolUserId,
+        CancellationToken ct)
+    {
+        var enrollments = await _db.Set<SchoolStudentEnrollment>()
+            .Where(x => x.SchoolUserId == schoolUserId
+                && StudentEnrollmentStatuses.CanReserveStatuses.Contains(x.Status))
+            .OrderBy(x => x.StudentUserId)
+            .ToListAsync(ct);
+
+        var result = new List<PracticalSchedulingStudentDto>();
+        foreach (var enrollment in enrollments)
+        {
+            var user = await _users.GetByIdAsync(enrollment.StudentUserId, ct);
+            var eligibility = await _theory.GetPracticalEligibilityAsync(
+                schoolUserId,
+                enrollment.StudentUserId,
+                ct);
+            var progress = await GetStudentLessonProgressAsync(
+                schoolUserId,
+                enrollment.StudentUserId,
+                enrollment.LicenseCategories,
+                ct);
+
+            result.Add(new PracticalSchedulingStudentDto(
+                enrollment.StudentUserId,
+                user?.Name ?? $"Estudiante {enrollment.StudentUserId}",
+                enrollment.LicenseCategories,
+                progress.Completed,
+                progress.Required,
+                progress.NextNumber,
+                eligibility.CanBookPractical,
+                eligibility.BlockReason));
+        }
+
+        return result.OrderBy(x => x.StudentName).ToList();
+    }
+
+    public async Task<PracticalLessonSessionDto> QuickAssignAsync(
+        int schoolUserId,
+        QuickAssignPracticalRequest request,
+        CancellationToken ct)
+    {
+        if (request.SessionDate.DayOfWeek == DayOfWeek.Sunday)
+        {
+            throw new DomainException("No se programan clases los domingos.", 400, "sunday_disabled");
+        }
+
+        var enrollment = await _db.Set<SchoolStudentEnrollment>()
+            .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
+                && x.StudentUserId == request.StudentUserId, ct)
+            ?? throw new DomainException("El estudiante no está inscrito en la escuela.", 400, "student_not_enrolled");
+
+        if (!StudentEnrollmentStatuses.CanReserve.Contains(enrollment.Status))
+        {
+            throw new DomainException(
+                "El estudiante debe estar autorizado para asignar clases.",
+                400,
+                "student_not_authorized");
+        }
+
+        var start = ParseTime(request.StartTime);
+        var end = ParseTime(request.EndTime);
+        if (end <= start)
+        {
+            throw new DomainException("La hora de fin debe ser posterior al inicio.", 400, "invalid_time_range");
+        }
+
+        var session = await _db.Set<PracticalLessonSession>()
+            .Include(x => x.Vehicle)
+            .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
+                && x.SessionDate == request.SessionDate
+                && x.StartTime == start
+                && x.InstructorUserId == request.InstructorUserId
+                && x.VehicleId == request.VehicleId
+                && x.Status != PracticalLessonStatuses.Cancelled, ct);
+
+        var now = _clock.UtcNow;
+        if (session is null)
+        {
+            session = await CreateLessonInternalAsync(
+                schoolUserId,
+                request.SessionDate,
+                start,
+                end,
+                request.InstructorUserId,
+                request.VehicleId,
+                capacity: 1,
+                notes: null,
+                ct);
+        }
+        else
+        {
+            await EnsureNoScheduleConflictAsync(
+                schoolUserId,
+                request.SessionDate,
+                start,
+                end,
+                request.InstructorUserId,
+                request.VehicleId,
+                session.Id,
+                ct);
+        }
+
+        var existingReservation = await _db.Set<PracticalLessonReservation>()
+            .FirstOrDefaultAsync(x => x.LessonSessionId == session.Id
+                && PracticalReservationStatuses.OccupiesSeatStatuses.Contains(x.Status), ct);
+
+        if (existingReservation is not null)
+        {
+            if (existingReservation.StudentUserId == request.StudentUserId)
+            {
+                return await MapLessonAsync(session, null, includeAssignment: true, ct);
+            }
+
+            throw new DomainException(
+                "Ese horario ya tiene un estudiante asignado.",
+                400,
+                "slot_taken");
+        }
+
+        var studentConflict = await _db.Set<PracticalLessonReservation>()
+            .Include(x => x.LessonSession)
+            .AnyAsync(x => x.StudentUserId == request.StudentUserId
+                && x.LessonSession!.SchoolUserId == schoolUserId
+                && x.LessonSession.SessionDate == request.SessionDate
+                && PracticalReservationStatuses.OccupiesSeatStatuses.Contains(x.Status), ct);
+        if (studentConflict)
+        {
+            throw new DomainException(
+                "El estudiante ya tiene una clase ese día.",
+                400,
+                "student_day_taken");
+        }
+
+        await _db.Set<PracticalLessonReservation>().AddAsync(new PracticalLessonReservation
+        {
+            LessonSessionId = session.Id,
+            StudentUserId = request.StudentUserId,
+            Status = PracticalReservationStatuses.Reserved,
+            ReservedAt = now,
+            CreatedAt = now,
+            UpdatedAt = now
+        }, ct);
+        await _db.SaveChangesAsync(ct);
+
+        return await MapLessonAsync(session, null, includeAssignment: true, ct);
+    }
+
+    public async Task UnassignStudentAsync(int schoolUserId, int lessonId, CancellationToken ct)
+    {
+        await RequireLessonAsync(schoolUserId, lessonId, ct);
+        var reservations = await _db.Set<PracticalLessonReservation>()
+            .Where(x => x.LessonSessionId == lessonId
+                && PracticalReservationStatuses.OccupiesSeatStatuses.Contains(x.Status))
+            .ToListAsync(ct);
+
+        var now = _clock.UtcNow;
+        foreach (var reservation in reservations)
+        {
+            reservation.Status = PracticalReservationStatuses.CancelledBySchool;
+            reservation.CancelledAt = now;
+            reservation.UpdatedAt = now;
+        }
+
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<int> DuplicatePreviousWeekAsync(
+        int schoolUserId,
+        DuplicatePracticalWeekRequest request,
+        CancellationToken ct)
+    {
+        var targetStart = StartOfWeek(request.WeekStart);
+        var sourceStart = targetStart.AddDays(-7);
+        var sourceEnd = sourceStart.AddDays(6);
+
+        var sourceSessions = await _db.Set<PracticalLessonSession>()
+            .Where(x => x.SchoolUserId == schoolUserId
+                && x.InstructorUserId == request.InstructorUserId
+                && x.VehicleId == request.VehicleId
+                && x.SessionDate >= sourceStart
+                && x.SessionDate <= sourceEnd
+                && x.Status != PracticalLessonStatuses.Cancelled)
+            .OrderBy(x => x.SessionDate)
+            .ThenBy(x => x.StartTime)
+            .ToListAsync(ct);
+
+        if (sourceSessions.Count == 0)
+        {
+            return 0;
+        }
+
+        var created = 0;
+        foreach (var source in sourceSessions)
+        {
+            var targetDate = source.SessionDate.AddDays(7);
+            if (targetDate.DayOfWeek == DayOfWeek.Sunday)
+            {
+                continue;
+            }
+
+            var exists = await _db.Set<PracticalLessonSession>()
+                .AnyAsync(x => x.SchoolUserId == schoolUserId
+                    && x.SessionDate == targetDate
+                    && x.StartTime == source.StartTime
+                    && x.InstructorUserId == request.InstructorUserId
+                    && x.VehicleId == request.VehicleId
+                    && x.Status != PracticalLessonStatuses.Cancelled, ct);
+            if (exists)
+            {
+                continue;
+            }
+
+            await CreateLessonInternalAsync(
+                schoolUserId,
+                targetDate,
+                source.StartTime,
+                source.EndTime,
+                request.InstructorUserId,
+                request.VehicleId,
+                source.Capacity,
+                source.Notes,
+                ct);
+            created++;
+        }
+
+        return created;
     }
 
     public async Task<PracticalLessonSessionDto> CreateLessonAsync(
@@ -110,17 +354,6 @@ public sealed class PracticalTrainingService
             throw new DomainException("No se programan clases los domingos.", 400, "sunday_disabled");
         }
 
-        var vehicle = await _db.Set<PracticalVehicle>()
-            .FirstOrDefaultAsync(x => x.Id == request.VehicleId && x.SchoolUserId == schoolUserId && x.IsActive, ct)
-            ?? throw new DomainException("Vehículo no válido.", 400, "invalid_vehicle");
-
-        var instructor = await _users.GetByIdAsync(request.InstructorUserId, ct)
-            ?? throw new DomainException("Instructor no válido.", 400, "invalid_instructor");
-        if (instructor.SchoolId != schoolUserId || instructor.Role != Roles.Teacher)
-        {
-            throw new DomainException("El instructor no pertenece a la escuela.", 400, "invalid_instructor");
-        }
-
         var start = ParseTime(request.StartTime);
         var end = ParseTime(request.EndTime);
         if (end <= start)
@@ -128,25 +361,18 @@ public sealed class PracticalTrainingService
             throw new DomainException("La hora de fin debe ser posterior al inicio.", 400, "invalid_time_range");
         }
 
-        var now = _clock.UtcNow;
-        var session = new PracticalLessonSession
-        {
-            SchoolUserId = schoolUserId,
-            SessionDate = request.SessionDate,
-            StartTime = start,
-            EndTime = end,
-            InstructorUserId = request.InstructorUserId,
-            VehicleId = vehicle.Id,
-            Capacity = Math.Clamp(request.Capacity ?? 1, 1, 4),
-            Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
-            Status = PracticalLessonStatuses.Scheduled,
-            CreatedAt = now,
-            UpdatedAt = now
-        };
-        await _db.Set<PracticalLessonSession>().AddAsync(session, ct);
-        await _db.SaveChangesAsync(ct);
-        session.Vehicle = vehicle;
-        return await MapLessonAsync(session, null, ct);
+        var session = await CreateLessonInternalAsync(
+            schoolUserId,
+            request.SessionDate,
+            start,
+            end,
+            request.InstructorUserId,
+            request.VehicleId,
+            Math.Clamp(request.Capacity ?? 1, 1, 4),
+            string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
+            ct);
+
+        return await MapLessonAsync(session, null, includeAssignment: true, ct);
     }
 
     public async Task CancelLessonAsync(int schoolUserId, int lessonId, CancellationToken ct)
@@ -194,13 +420,13 @@ public sealed class PracticalTrainingService
         PracticalLessonSessionDto? nextDto = null;
         if (upcoming.Count > 0)
         {
-            nextDto = await MapLessonAsync(upcoming[0], studentUserId, ct);
+            nextDto = await MapLessonAsync(upcoming[0], studentUserId, includeAssignment: false, ct);
         }
 
         var upcomingDtos = new List<PracticalLessonSessionDto>();
         foreach (var s in upcoming.Take(8))
         {
-            upcomingDtos.Add(await MapLessonAsync(s, studentUserId, ct));
+            upcomingDtos.Add(await MapLessonAsync(s, studentUserId, includeAssignment: false, ct));
         }
 
         var available = await _db.Set<PracticalLessonSession>()
@@ -216,10 +442,52 @@ public sealed class PracticalTrainingService
         var availableDtos = new List<PracticalLessonSessionDto>();
         foreach (var s in available)
         {
-            availableDtos.Add(await MapLessonAsync(s, studentUserId, ct));
+            availableDtos.Add(await MapLessonAsync(s, studentUserId, includeAssignment: false, ct));
         }
 
         return new PracticalStudentDashboardDto(eligibility, nextDto, upcomingDtos, availableDtos);
+    }
+
+    public async Task<ApprenticePracticalSummaryDto> GetApprenticePracticalSummaryAsync(
+        int schoolUserId,
+        int studentUserId,
+        CancellationToken ct)
+    {
+        var enrollment = await _db.Set<SchoolStudentEnrollment>()
+            .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId && x.StudentUserId == studentUserId, ct);
+        var (completed, required, _) = await GetStudentLessonProgressAsync(
+            schoolUserId,
+            studentUserId,
+            enrollment?.LicenseCategories,
+            ct);
+
+        var today = ColombiaTime.TodayInColombia();
+        var reservations = await _db.Set<PracticalLessonReservation>()
+            .Include(x => x.LessonSession)
+            .Where(x => x.StudentUserId == studentUserId
+                && x.LessonSession!.SchoolUserId == schoolUserId
+                && PracticalReservationStatuses.OccupiesSeatStatuses.Contains(x.Status))
+            .ToListAsync(ct);
+
+        var scheduled = reservations.Count(x =>
+            x.Status == PracticalReservationStatuses.Reserved
+            && x.LessonSession is not null
+            && x.LessonSession.SessionDate >= today);
+
+        var next = reservations
+            .Where(x => x.Status == PracticalReservationStatuses.Reserved
+                && x.LessonSession is not null
+                && x.LessonSession.SessionDate >= today)
+            .OrderBy(x => x.LessonSession!.SessionDate)
+            .ThenBy(x => x.LessonSession!.StartTime)
+            .FirstOrDefault();
+
+        return new ApprenticePracticalSummaryDto(
+            completed,
+            required,
+            scheduled,
+            next?.LessonSession?.SessionDate.ToString("yyyy-MM-dd"),
+            next?.LessonSession?.StartTime.ToString("HH:mm"));
     }
 
     public async Task<PracticalLessonSessionDto> ReserveAsync(
@@ -261,7 +529,7 @@ public sealed class PracticalTrainingService
                 && PracticalReservationStatuses.ActiveStatuses.Contains(x.Status), ct);
         if (existing is not null)
         {
-            return await MapLessonAsync(session, studentUserId, ct);
+            return await MapLessonAsync(session, studentUserId, includeAssignment: false, ct);
         }
 
         var now = _clock.UtcNow;
@@ -275,7 +543,7 @@ public sealed class PracticalTrainingService
             UpdatedAt = now
         }, ct);
         await _db.SaveChangesAsync(ct);
-        return await MapLessonAsync(session, studentUserId, ct);
+        return await MapLessonAsync(session, studentUserId, includeAssignment: false, ct);
     }
 
     public async Task CancelReservationAsync(int studentUserId, int reservationId, CancellationToken ct)
@@ -295,6 +563,107 @@ public sealed class PracticalTrainingService
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task<IReadOnlyList<PracticalLessonSessionDto>> ListAttendanceLessonsAsync(
+        int schoolUserId,
+        CancellationToken ct)
+    {
+        var today = ColombiaTime.TodayInColombia();
+        var from = today.AddDays(-7);
+        var to = today.AddDays(14);
+        var lessonIds = await _db.Set<PracticalLessonReservation>()
+            .Where(r => PracticalReservationStatuses.OccupiesSeatStatuses.Contains(r.Status))
+            .Select(r => r.LessonSessionId)
+            .Distinct()
+            .ToListAsync(ct);
+
+        var sessions = await _db.Set<PracticalLessonSession>()
+            .Include(x => x.Vehicle)
+            .Where(x => x.SchoolUserId == schoolUserId
+                && lessonIds.Contains(x.Id)
+                && x.SessionDate >= from
+                && x.SessionDate <= to
+                && x.Status == PracticalLessonStatuses.Scheduled)
+            .OrderBy(x => x.SessionDate)
+            .ThenBy(x => x.StartTime)
+            .ToListAsync(ct);
+
+        var result = new List<PracticalLessonSessionDto>();
+        foreach (var s in sessions)
+        {
+            result.Add(await MapLessonAsync(s, null, includeAssignment: true, ct));
+        }
+
+        return result;
+    }
+
+    public async Task<IReadOnlyList<PracticalAttendanceRowDto>> ListAttendanceAsync(
+        int schoolUserId,
+        int lessonId,
+        CancellationToken ct)
+    {
+        await RequireLessonAsync(schoolUserId, lessonId, ct);
+        var reservations = await _db.Set<PracticalLessonReservation>()
+            .Where(x => x.LessonSessionId == lessonId
+                && PracticalReservationStatuses.OccupiesSeatStatuses.Contains(x.Status))
+            .ToListAsync(ct);
+
+        var rows = new List<PracticalAttendanceRowDto>();
+        foreach (var r in reservations)
+        {
+            var user = await _users.GetByIdAsync(r.StudentUserId, ct);
+            var status = r.Status switch
+            {
+                PracticalReservationStatuses.Attended => TheoryAttendanceStatuses.Present,
+                PracticalReservationStatuses.NoShow => TheoryAttendanceStatuses.Absent,
+                _ => TheoryAttendanceStatuses.Pending
+            };
+            rows.Add(new PracticalAttendanceRowDto(
+                r.StudentUserId,
+                user?.Name ?? $"Estudiante {r.StudentUserId}",
+                status,
+                r.Id));
+        }
+
+        return rows.OrderBy(x => x.StudentName).ToList();
+    }
+
+    public async Task MarkAttendanceAsync(
+        int schoolUserId,
+        int lessonId,
+        MarkAttendanceRequest request,
+        CancellationToken ct)
+    {
+        await RequireLessonAsync(schoolUserId, lessonId, ct);
+        var reservation = await _db.Set<PracticalLessonReservation>()
+            .FirstOrDefaultAsync(x => x.LessonSessionId == lessonId
+                && x.StudentUserId == request.StudentUserId
+                && PracticalReservationStatuses.OccupiesSeatStatuses.Contains(x.Status), ct)
+            ?? throw new NotFoundException("Reserva no encontrada.", "reservation_not_found");
+
+        var now = _clock.UtcNow;
+        reservation.Status = request.Status switch
+        {
+            TheoryAttendanceStatuses.Present or TheoryAttendanceStatuses.Late
+                => PracticalReservationStatuses.Attended,
+            TheoryAttendanceStatuses.Absent => PracticalReservationStatuses.NoShow,
+            _ => PracticalReservationStatuses.Reserved
+        };
+        reservation.UpdatedAt = now;
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task MarkAttendanceBatchAsync(
+        int schoolUserId,
+        int lessonId,
+        MarkAttendanceBatchRequest request,
+        CancellationToken ct)
+    {
+        foreach (var row in request.Rows)
+        {
+            await MarkAttendanceAsync(schoolUserId, lessonId, row, ct);
+        }
+    }
+
     private async Task<PracticalLessonSession> RequireLessonAsync(
         int schoolUserId,
         int lessonId,
@@ -303,33 +672,207 @@ public sealed class PracticalTrainingService
             .FirstOrDefaultAsync(x => x.Id == lessonId && x.SchoolUserId == schoolUserId, ct)
             ?? throw new NotFoundException("Clase no encontrada.", "lesson_not_found");
 
+    private async Task<PracticalLessonSession> CreateLessonInternalAsync(
+        int schoolUserId,
+        DateOnly sessionDate,
+        TimeOnly start,
+        TimeOnly end,
+        int instructorUserId,
+        int vehicleId,
+        int capacity,
+        string? notes,
+        CancellationToken ct)
+    {
+        var vehicle = await _db.Set<PracticalVehicle>()
+            .FirstOrDefaultAsync(x => x.Id == vehicleId && x.SchoolUserId == schoolUserId && x.IsActive, ct)
+            ?? throw new DomainException("Vehículo no válido.", 400, "invalid_vehicle");
+
+        var instructor = await _users.GetByIdAsync(instructorUserId, ct)
+            ?? throw new DomainException("Instructor no válido.", 400, "invalid_instructor");
+        if (instructor.SchoolId != schoolUserId || instructor.Role != Roles.Teacher)
+        {
+            throw new DomainException("El instructor no pertenece a la escuela.", 400, "invalid_instructor");
+        }
+
+        await EnsureNoScheduleConflictAsync(
+            schoolUserId,
+            sessionDate,
+            start,
+            end,
+            instructorUserId,
+            vehicleId,
+            excludeLessonId: null,
+            ct);
+
+        var now = _clock.UtcNow;
+        var session = new PracticalLessonSession
+        {
+            SchoolUserId = schoolUserId,
+            SessionDate = sessionDate,
+            StartTime = start,
+            EndTime = end,
+            InstructorUserId = instructorUserId,
+            VehicleId = vehicle.Id,
+            Capacity = Math.Clamp(capacity, 1, 4),
+            Notes = notes,
+            Status = PracticalLessonStatuses.Scheduled,
+            CreatedAt = now,
+            UpdatedAt = now,
+            Vehicle = vehicle
+        };
+        await _db.Set<PracticalLessonSession>().AddAsync(session, ct);
+        await _db.SaveChangesAsync(ct);
+        return session;
+    }
+
+    private async Task EnsureNoScheduleConflictAsync(
+        int schoolUserId,
+        DateOnly sessionDate,
+        TimeOnly start,
+        TimeOnly end,
+        int instructorUserId,
+        int vehicleId,
+        int? excludeLessonId,
+        CancellationToken ct)
+    {
+        var query = _db.Set<PracticalLessonSession>()
+            .Where(x => x.SchoolUserId == schoolUserId
+                && x.SessionDate == sessionDate
+                && x.Status != PracticalLessonStatuses.Cancelled
+                && x.StartTime < end
+                && x.EndTime > start
+                && (x.InstructorUserId == instructorUserId || x.VehicleId == vehicleId));
+
+        if (excludeLessonId is > 0)
+        {
+            query = query.Where(x => x.Id != excludeLessonId);
+        }
+
+        if (await query.AnyAsync(ct))
+        {
+            throw new DomainException(
+                "El instructor o el vehículo ya tienen una clase en ese horario.",
+                400,
+                "schedule_conflict");
+        }
+    }
+
+    private async Task<(int Completed, int Required, int NextNumber)> GetStudentLessonProgressAsync(
+        int schoolUserId,
+        int studentUserId,
+        string? licenseCategories,
+        CancellationToken ct)
+    {
+        var required = PracticalLessonRequirements.GetRequired(licenseCategories);
+        var reservations = await _db.Set<PracticalLessonReservation>()
+            .Include(x => x.LessonSession)
+            .Where(x => x.StudentUserId == studentUserId
+                && x.LessonSession!.SchoolUserId == schoolUserId
+                && PracticalReservationStatuses.OccupiesSeatStatuses.Contains(x.Status))
+            .OrderBy(x => x.LessonSession!.SessionDate)
+            .ThenBy(x => x.LessonSession!.StartTime)
+            .ToListAsync(ct);
+
+        var completed = reservations.Count(x => x.Status == PracticalReservationStatuses.Attended);
+        var nextNumber = Math.Min(required, reservations.Count + 1);
+        return (completed, required, nextNumber);
+    }
+
+    private async Task<PracticalLessonAssignmentDto?> BuildAssignmentAsync(
+        int schoolUserId,
+        int lessonId,
+        CancellationToken ct)
+    {
+        var reservation = await _db.Set<PracticalLessonReservation>()
+            .Include(x => x.LessonSession)
+            .FirstOrDefaultAsync(x => x.LessonSessionId == lessonId
+                && PracticalReservationStatuses.OccupiesSeatStatuses.Contains(x.Status), ct);
+        if (reservation is null)
+        {
+            return null;
+        }
+
+        var enrollment = await _db.Set<SchoolStudentEnrollment>()
+            .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
+                && x.StudentUserId == reservation.StudentUserId, ct);
+        var user = await _users.GetByIdAsync(reservation.StudentUserId, ct);
+        var progress = await GetStudentLessonProgressAsync(
+            schoolUserId,
+            reservation.StudentUserId,
+            enrollment?.LicenseCategories,
+            ct);
+
+        var ordered = await _db.Set<PracticalLessonReservation>()
+            .Include(x => x.LessonSession)
+            .Where(x => x.StudentUserId == reservation.StudentUserId
+                && x.LessonSession!.SchoolUserId == schoolUserId
+                && PracticalReservationStatuses.OccupiesSeatStatuses.Contains(x.Status))
+            .OrderBy(x => x.LessonSession!.SessionDate)
+            .ThenBy(x => x.LessonSession!.StartTime)
+            .Select(x => x.Id)
+            .ToListAsync(ct);
+
+        var lessonNumber = ordered.IndexOf(reservation.Id) + 1;
+        if (lessonNumber <= 0)
+        {
+            lessonNumber = progress.NextNumber;
+        }
+
+        return new PracticalLessonAssignmentDto(
+            reservation.StudentUserId,
+            user?.Name ?? $"Estudiante {reservation.StudentUserId}",
+            PracticalLessonRequirements.PrimaryCategory(enrollment?.LicenseCategories),
+            lessonNumber,
+            progress.Required,
+            reservation.Id,
+            reservation.Status);
+    }
+
     private async Task<PracticalLessonSessionDto> MapLessonAsync(
         PracticalLessonSession session,
         int? studentUserId,
+        bool includeAssignment,
         CancellationToken ct)
     {
         var instructor = await _users.GetByIdAsync(session.InstructorUserId, ct);
         var reserved = await _db.Set<PracticalLessonReservation>()
+            .CountAsync(x => x.LessonSessionId == session.Id
+                && PracticalReservationStatuses.OccupiesSeatStatuses.Contains(x.Status), ct);
+        var activeReserved = await _db.Set<PracticalLessonReservation>()
             .CountAsync(x => x.LessonSessionId == session.Id
                 && PracticalReservationStatuses.ActiveStatuses.Contains(x.Status), ct);
 
         int? myReservationId = null;
         string? bookingState = null;
         string? bookingMessage = null;
+        PracticalLessonAssignmentDto? assignment = null;
+
+        if (includeAssignment)
+        {
+            assignment = await BuildAssignmentAsync(session.SchoolUserId, session.Id, ct);
+        }
 
         if (studentUserId is int sid)
         {
             var mine = await _db.Set<PracticalLessonReservation>()
                 .FirstOrDefaultAsync(x => x.LessonSessionId == session.Id
                     && x.StudentUserId == sid
-                    && PracticalReservationStatuses.ActiveStatuses.Contains(x.Status), ct);
+                    && PracticalReservationStatuses.OccupiesSeatStatuses.Contains(x.Status), ct);
             if (mine is not null)
             {
                 myReservationId = mine.Id;
-                bookingState = "reserved";
-                bookingMessage = "Reservada";
+                bookingState = mine.Status == PracticalReservationStatuses.Reserved
+                    ? "reserved"
+                    : "attended";
+                bookingMessage = mine.Status switch
+                {
+                    PracticalReservationStatuses.Reserved => "Reservada",
+                    PracticalReservationStatuses.Attended => "Asistió",
+                    PracticalReservationStatuses.NoShow => "No asistió",
+                    _ => mine.Status
+                };
             }
-            else if (reserved >= session.Capacity)
+            else if (activeReserved >= session.Capacity)
             {
                 bookingState = "full";
                 bookingMessage = "Sin cupos";
@@ -337,7 +880,7 @@ public sealed class PracticalTrainingService
             else
             {
                 bookingState = "can_reserve";
-                bookingMessage = $"{session.Capacity - reserved} cupo(s)";
+                bookingMessage = $"{session.Capacity - activeReserved} cupo(s)";
             }
         }
 
@@ -352,12 +895,13 @@ public sealed class PracticalTrainingService
             session.Vehicle?.Label ?? "Vehículo",
             session.Capacity,
             reserved,
-            Math.Max(0, session.Capacity - reserved),
+            Math.Max(0, session.Capacity - activeReserved),
             session.Status,
             session.Notes,
             bookingState,
             bookingMessage,
-            myReservationId);
+            myReservationId,
+            assignment);
     }
 
     private static DateOnly StartOfWeek(DateOnly date)

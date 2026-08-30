@@ -39,8 +39,33 @@ public sealed class SchoolPracticalController : ControllerBase
     [HttpGet("lessons")]
     public async Task<IActionResult> Lessons(
         [FromQuery] DateOnly? weekStart,
+        [FromQuery] int? instructorUserId,
+        [FromQuery] int? vehicleId,
         CancellationToken ct) =>
-        Ok(await _service.ListSchoolLessonsAsync(SchoolId, weekStart, ct));
+        Ok(await _service.ListSchoolLessonsAsync(SchoolId, weekStart, instructorUserId, vehicleId, ct));
+
+    [HttpGet("students")]
+    public async Task<IActionResult> SchedulingStudents(CancellationToken ct) =>
+        Ok(await _service.ListSchedulingStudentsAsync(SchoolId, ct));
+
+    [HttpPost("lessons/quick-assign")]
+    public async Task<IActionResult> QuickAssign(
+        QuickAssignPracticalRequest request,
+        CancellationToken ct) =>
+        Ok(await _service.QuickAssignAsync(SchoolId, request, ct));
+
+    [HttpPost("lessons/{id:int}/unassign")]
+    public async Task<IActionResult> UnassignStudent(int id, CancellationToken ct)
+    {
+        await _service.UnassignStudentAsync(SchoolId, id, ct);
+        return NoContent();
+    }
+
+    [HttpPost("schedule/duplicate-week")]
+    public async Task<IActionResult> DuplicateWeek(
+        DuplicatePracticalWeekRequest request,
+        CancellationToken ct) =>
+        Ok(new { created = await _service.DuplicatePreviousWeekAsync(SchoolId, request, ct) });
 
     [HttpPost("lessons")]
     public async Task<IActionResult> CreateLesson(
@@ -52,6 +77,34 @@ public sealed class SchoolPracticalController : ControllerBase
     public async Task<IActionResult> CancelLesson(int id, CancellationToken ct)
     {
         await _service.CancelLessonAsync(SchoolId, id, ct);
+        return NoContent();
+    }
+
+    [HttpGet("lessons/attendance")]
+    public async Task<IActionResult> AttendanceLessons(CancellationToken ct) =>
+        Ok(await _service.ListAttendanceLessonsAsync(SchoolId, ct));
+
+    [HttpGet("lessons/{id:int}/attendance")]
+    public async Task<IActionResult> Attendance(int id, CancellationToken ct) =>
+        Ok(await _service.ListAttendanceAsync(SchoolId, id, ct));
+
+    [HttpPost("lessons/{id:int}/attendance")]
+    public async Task<IActionResult> MarkAttendance(
+        int id,
+        MarkAttendanceRequest request,
+        CancellationToken ct)
+    {
+        await _service.MarkAttendanceAsync(SchoolId, id, request, ct);
+        return NoContent();
+    }
+
+    [HttpPost("lessons/{id:int}/attendance/batch")]
+    public async Task<IActionResult> MarkAttendanceBatch(
+        int id,
+        MarkAttendanceBatchRequest request,
+        CancellationToken ct)
+    {
+        await _service.MarkAttendanceBatchAsync(SchoolId, id, request, ct);
         return NoContent();
     }
 }

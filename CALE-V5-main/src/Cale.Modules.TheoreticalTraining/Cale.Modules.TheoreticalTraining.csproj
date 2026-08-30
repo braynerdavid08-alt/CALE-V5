@@ -5,9 +5,11 @@
     <ProjectReference Include="..\Cale.BuildingBlocks.Infrastructure\Cale.BuildingBlocks.Infrastructure.csproj" />
     <ProjectReference Include="..\Cale.Modules.Identity\Cale.Modules.Identity.csproj" />
     <ProjectReference Include="..\Cale.Modules.Assessment\Cale.Modules.Assessment.csproj" />
+    <ProjectReference Include="..\Cale.Modules.Catalog\Cale.Modules.Catalog.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.104.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.11" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.1" />

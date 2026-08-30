@@ -11,6 +11,7 @@ import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
 import { UiStatComponent } from '../../../shared/ui/ui-stat.component';
 import { UiSuccessComponent } from '../../../shared/ui/ui-success.component';
+import { ApprenticeApi, ExcelImportCommitResult, ExcelImportPreview } from '../api/apprentice.api';
 
 interface ImportRowPreview {
   lineNumber: number;
@@ -47,6 +48,8 @@ interface ImportCommitResult {
   credentialsCsv: string;
 }
 
+type ImportMode = 'users' | 'apprentices' | 'theory-exams';
+
 @Component({
   selector: 'app-school-import-page',
   standalone: true,
@@ -61,144 +64,54 @@ interface ImportCommitResult {
     UiStatComponent,
     UiSuccessComponent
   ],
-  template: `
-    <ui-page-header
-      eyebrow="Escuela"
-      title="Importar usuarios"
-      subtitle="Sube un CSV de estudiantes e instructores. Primero verás el preview; luego confirmas." />
-
-    <ui-error [message]="error()" />
-    <ui-success [message]="ok()" />
-
-    <div class="actions-top">
-      <a routerLink="/school/users"><ui-button type="button" variant="secondary">Volver a usuarios</ui-button></a>
-      <ui-button type="button" variant="secondary" (click)="downloadTemplate()">Descargar plantilla CSV</ui-button>
-    </div>
-
-    <ui-card>
-      <h2>1. Archivo</h2>
-      <p class="muted">Columnas: <code>nombre,email,rol</code> (Student o Teacher). Máximo 2000 filas.</p>
-      <input type="file" accept=".csv,text/csv" (change)="onFile($event)" />
-      <div class="row">
-        <ui-button type="button" [disabled]="!file() || loading()" (click)="preview()">
-          Analizar CSV
-        </ui-button>
-      </div>
-    </ui-card>
-
-    @if (loading()) {
-      <ui-loading />
-    }
-
-    @if (previewData()) {
-      <div class="grid-stats">
-        <ui-stat label="Filas" [value]="previewData()!.totalRows" />
-        <ui-stat label="Crear" [value]="previewData()!.createCount" tone="success" />
-        <ui-stat label="Vincular" [value]="previewData()!.attachCount" tone="primary" />
-        <ui-stat label="Omitir" [value]="previewData()!.skipCount" />
-        <ui-stat label="Errores" [value]="previewData()!.errorCount" tone="warning" />
-      </div>
-
-      @if (previewData()!.blockingReason) {
-        <ui-error [message]="previewData()!.blockingReason!" />
-      }
-
-      <ui-card>
-        <div class="head">
-          <h2>2. Vista previa — {{ previewData()!.fileName }}</h2>
-          <ui-button
-            type="button"
-            [disabled]="!previewData()!.canCommit || committing()"
-            (click)="commit()">
-            Confirmar importación
-          </ui-button>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Nombre</th>
-                <th>Email</th>
-                <th>Rol</th>
-                <th>Acción</th>
-                <th>Detalle</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (row of previewData()!.rows; track row.lineNumber + row.email) {
-                <tr [attr.data-sev]="row.severity">
-                  <td>{{ row.lineNumber }}</td>
-                  <td>{{ row.name }}</td>
-                  <td>{{ row.email }}</td>
-                  <td>{{ row.role }}</td>
-                  <td><ui-badge [tone]="actionTone(row.action)">{{ actionLabel(row.action) }}</ui-badge></td>
-                  <td>{{ row.message || '—' }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </ui-card>
-    }
-
-    @if (commitResult()) {
-      <ui-card>
-        <h2>3. Resultado</h2>
-        <p>
-          Creados {{ commitResult()!.created }},
-          vinculados {{ commitResult()!.attached }},
-          omitidos {{ commitResult()!.skipped }},
-          fallidos {{ commitResult()!.failed }}.
-        </p>
-        @if (commitResult()!.credentials.length) {
-          <p class="muted">
-            Descarga las contraseñas temporales y entrégalas a cada usuario.
-            Deberán cambiarlas al primer acceso.
-          </p>
-          <ui-button type="button" (click)="downloadCredentials()">Descargar contraseñas CSV</ui-button>
-        }
-      </ui-card>
-    }
-  `,
-  styles: [`
-    .actions-top { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem; }
-    .muted { color: var(--color-text-secondary); }
-    .row { margin-top: 0.75rem; }
-    h2 { margin: 0 0 0.75rem; font-size: var(--text-lg); }
-    .head { display: flex; justify-content: space-between; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.75rem; }
-    .head h2 { margin: 0; }
-    .table-wrap { overflow: auto; max-height: 28rem; }
-    table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
-    th, td { text-align: left; padding: 0.45rem 0.5rem; border-bottom: 1px solid var(--color-border); vertical-align: top; }
-    tr[data-sev='error'] td { color: var(--color-danger); }
-    tr[data-sev='warning'] td { color: var(--color-warning); }
-    code { font-size: 0.9em; }
-  `]
+  templateUrl: './school-import.page.html',
+  styleUrl: './school-import.page.css'
 })
 export class SchoolImportPage {
   private readonly http = inject(HttpClient);
+  private readonly apprenticeApi = inject(ApprenticeApi);
+
+  readonly mode = signal<ImportMode>('apprentices');
   readonly loading = signal(false);
   readonly committing = signal(false);
   readonly error = signal<string | null>(null);
   readonly ok = signal<string | null>(null);
   readonly file = signal<File | null>(null);
-  readonly previewData = signal<ImportPreview | null>(null);
-  readonly commitResult = signal<ImportCommitResult | null>(null);
+  readonly csvPreview = signal<ImportPreview | null>(null);
+  readonly excelPreview = signal<ExcelImportPreview | null>(null);
+  readonly csvCommit = signal<ImportCommitResult | null>(null);
+  readonly excelCommit = signal<ExcelImportCommitResult | null>(null);
 
-  onFile(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.file.set(input.files?.[0] ?? null);
-    this.previewData.set(null);
-    this.commitResult.set(null);
+  setMode(value: ImportMode): void {
+    this.mode.set(value);
+    this.file.set(null);
+    this.csvPreview.set(null);
+    this.excelPreview.set(null);
+    this.csvCommit.set(null);
+    this.excelCommit.set(null);
     this.error.set(null);
     this.ok.set(null);
   }
 
+  onFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.file.set(input.files?.[0] ?? null);
+    this.csvPreview.set(null);
+    this.excelPreview.set(null);
+    this.csvCommit.set(null);
+    this.excelCommit.set(null);
+    this.error.set(null);
+    this.ok.set(null);
+  }
+
+  acceptTypes(): string {
+    return this.mode() === 'users'
+      ? '.csv,text/csv'
+      : '.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  }
+
   downloadTemplate(): void {
-    this.http.get(`${env.apiUrl}/api/school/imports/template`, {
-      responseType: 'blob'
-    }).subscribe({
+    this.http.get(`${env.apiUrl}/api/school/imports/template`, { responseType: 'blob' }).subscribe({
       next: (blob) => this.saveBlob(blob, 'cale-import-usuarios.csv'),
       error: (err) => this.error.set(mapApiError(err))
     });
@@ -210,18 +123,30 @@ export class SchoolImportPage {
     this.loading.set(true);
     this.error.set(null);
     this.ok.set(null);
-    this.commitResult.set(null);
-    const body = new FormData();
-    body.append('file', f, f.name);
-    this.http.post<ImportPreview>(`${env.apiUrl}/api/school/imports/preview`, body).subscribe({
+
+    if (this.mode() === 'users') {
+      const body = new FormData();
+      body.append('file', f, f.name);
+      this.http.post<ImportPreview>(`${env.apiUrl}/api/school/imports/preview`, body).subscribe({
+        next: (dto) => {
+          this.csvPreview.set(dto);
+          this.loading.set(false);
+          this.ok.set(dto.canCommit ? 'Preview listo. Revisa y confirma.' : null);
+        },
+        error: (err) => {
+          this.loading.set(false);
+          this.error.set(mapApiError(err));
+        }
+      });
+      return;
+    }
+
+    const importType = this.mode() === 'apprentices' ? 'apprentices' : 'theory-exams';
+    this.apprenticeApi.previewExcel(importType, f).subscribe({
       next: (dto) => {
-        this.previewData.set(dto);
+        this.excelPreview.set(dto);
         this.loading.set(false);
-        this.ok.set(
-          dto.canCommit
-            ? 'Preview listo. Revisa la tabla y confirma la importación.'
-            : null
-        );
+        this.ok.set(dto.canCommit ? 'Preview listo. Revisa y confirma.' : null);
       },
       error: (err) => {
         this.loading.set(false);
@@ -231,21 +156,37 @@ export class SchoolImportPage {
   }
 
   commit(): void {
-    const preview = this.previewData();
+    if (this.mode() === 'users') {
+      const preview = this.csvPreview();
+      if (!preview?.canCommit) return;
+      this.committing.set(true);
+      this.http.post<ImportCommitResult>(
+        `${env.apiUrl}/api/school/imports/${preview.previewId}/commit`,
+        {}
+      ).subscribe({
+        next: (dto) => {
+          this.committing.set(false);
+          this.csvCommit.set(dto);
+          this.csvPreview.set(null);
+          this.ok.set(`Importación: ${dto.created} creados, ${dto.attached} vinculados.`);
+        },
+        error: (err) => {
+          this.committing.set(false);
+          this.error.set(mapApiError(err));
+        }
+      });
+      return;
+    }
+
+    const preview = this.excelPreview();
     if (!preview?.canCommit) return;
     this.committing.set(true);
-    this.error.set(null);
-    this.http.post<ImportCommitResult>(
-      `${env.apiUrl}/api/school/imports/${preview.previewId}/commit`,
-      {}
-    ).subscribe({
+    this.apprenticeApi.commitExcel(preview.previewId).subscribe({
       next: (dto) => {
         this.committing.set(false);
-        this.commitResult.set(dto);
-        this.previewData.set(null);
-        this.ok.set(
-          `Importación terminada: ${dto.created} creados, ${dto.attached} vinculados.`
-        );
+        this.excelCommit.set(dto);
+        this.excelPreview.set(null);
+        this.ok.set(`Importación: ${dto.created} nuevos, ${dto.updated} actualizados.`);
       },
       error: (err) => {
         this.committing.set(false);
@@ -255,24 +196,33 @@ export class SchoolImportPage {
   }
 
   downloadCredentials(): void {
-    const result = this.commitResult();
+    const result = this.csvCommit();
     if (!result?.credentialsCsv) return;
-    const blob = new Blob([result.credentialsCsv], { type: 'text/csv;charset=utf-8' });
-    this.saveBlob(blob, 'cale-credenciales-temporales.csv');
+    this.saveBlob(new Blob([result.credentialsCsv], { type: 'text/csv;charset=utf-8' }), 'cale-credenciales.csv');
+  }
+
+  downloadExcelCredentials(): void {
+    const result = this.excelCommit();
+    if (!result?.credentialsCsv) return;
+    this.saveBlob(new Blob([result.credentialsCsv], { type: 'text/csv;charset=utf-8' }), 'cale-aprendices-credenciales.csv');
   }
 
   actionLabel(action: string): string {
-    if (action === 'create') return 'Crear';
-    if (action === 'attach') return 'Vincular';
-    if (action === 'skip') return 'Omitir';
-    if (action === 'error') return 'Error';
-    return action;
+    const map: Record<string, string> = {
+      create: 'Crear',
+      update: 'Actualizar',
+      attach: 'Vincular',
+      skip: 'Omitir',
+      error: 'Error',
+      pending: 'Pendiente'
+    };
+    return map[action] ?? action;
   }
 
   actionTone(action: string): 'success' | 'warning' | 'danger' | 'neutral' | 'primary' {
-    if (action === 'create') return 'success';
+    if (action === 'create' || action === 'update') return 'success';
     if (action === 'attach') return 'primary';
-    if (action === 'skip') return 'warning';
+    if (action === 'skip' || action === 'pending') return 'warning';
     if (action === 'error') return 'danger';
     return 'neutral';
   }

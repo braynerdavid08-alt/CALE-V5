@@ -69,6 +69,10 @@ public sealed class SchoolTheoryController : ControllerBase
         CancellationToken ct) =>
         Ok(await _service.UpdateSettingsAsync(SchoolId, request, ct));
 
+    [HttpGet("exam-options")]
+    public async Task<IActionResult> ExamOptions(CancellationToken ct) =>
+        Ok(await _service.ListExamOptionsAsync(SchoolId, ct));
+
     [HttpGet("schedule")]
     public async Task<IActionResult> Schedule(
         [FromQuery] DateOnly? weekStart,

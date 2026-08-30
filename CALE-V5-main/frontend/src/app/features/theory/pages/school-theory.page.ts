@@ -43,6 +43,7 @@ export class SchoolTheoryPage implements OnInit {
   readonly selectedAttendanceSessionId = signal<number | null>(null);
   readonly attendanceRows = signal<AttendanceRowDto[]>([]);
   readonly settings = signal<TheorySettingsDto | null>(null);
+  readonly examOptions = signal<Array<{ id: number; name: string }>>([]);
   readonly enrollments = signal<EnrollmentDto[]>([]);
   readonly enrollmentFilter = signal<'all' | 'weekday' | 'saturday' | 'unassigned'>('all');
   readonly enrollmentSearch = signal('');
@@ -111,6 +112,10 @@ export class SchoolTheoryPage implements OnInit {
     this.api.getSettings().subscribe({
       next: (s) => this.settings.set(this.normalizeSettings(s)),
       error: () => this.settings.set(null)
+    });
+    this.api.listExamOptions().subscribe({
+      next: (opts) => this.examOptions.set(opts),
+      error: () => this.examOptions.set([])
     });
   }
 
@@ -648,6 +653,23 @@ export class SchoolTheoryPage implements OnInit {
       },
       error: (err) => this.error.set(mapApiError(err))
     });
+  }
+
+  updateTopic(topic: TheoryTopicDto): void {
+    this.api.saveTopic(topic, topic.id).subscribe({
+      next: (updated) => {
+        this.topics.update((rows) => rows.map((t) => (t.id === updated.id ? updated : t)));
+      },
+      error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  onTopicCategoryChange(topic: TheoryTopicDto, category: string): void {
+    this.updateTopic({ ...topic, category });
+  }
+
+  topicCategoryLabel(category: string): string {
+    return category === 'Workshop' ? 'Taller' : 'Teoría';
   }
 
   saveClassroom(): void {

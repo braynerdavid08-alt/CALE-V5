@@ -1,0 +1,70 @@
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.toolbar input[type="search"] {
+  flex: 1;
+  min-width: 220px;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+}
+.check { display: flex; align-items: center; gap: 0.35rem; font-size: 0.95rem; }
+.layout { display: grid; gap: 1rem; grid-template-columns: 1.4fr 1fr; }
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+}
+.grid-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+.grid-table th, .grid-table td { padding: 0.55rem 0.4rem; border-bottom: 1px solid var(--color-border); text-align: left; }
+.grid-table tbody tr { cursor: pointer; }
+.grid-table tbody tr:hover { background: var(--color-background); }
+.grid-table tbody tr.on { background: #eff6ff; }
+.pill {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  background: #e5e7eb;
+}
+.pill.ok { background: #dcfce7; color: #166534; }
+.warn { color: #b45309; font-weight: 700; }
+.muted { color: var(--color-text-secondary); }
+.form-grid {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: 1fr 1fr;
+  margin: 0.75rem 0 1rem;
+}
+.form-grid label { display: grid; gap: 0.2rem; font-size: 0.85rem; font-weight: 700; }
+.form-grid .full { grid-column: 1 / -1; }
+.form-grid input, .form-grid select, .form-grid textarea {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+  font-weight: 400;
+}
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+.summary-card {
+  margin: 0.75rem 0 1rem;
+  padding: 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+}
+.summary-card h3 { margin: 0 0 0.5rem; font-size: 0.95rem; }
+.summary-list { margin: 0; padding-left: 1.1rem; font-size: 0.9rem; }
+.summary-list li { margin-bottom: 0.25rem; }
+.summary-list li.ok { color: #166534; font-weight: 700; }
+.summary-list li.warn { color: #b45309; font-weight: 700; list-style: none; margin-left: -1.1rem; }
+.quick-links { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.65rem; }
+.login-hint { margin: 0.25rem 0 0.5rem; font-size: 0.9rem; }
+.detail-card h3 { margin: 0.75rem 0 0.35rem; font-size: 0.95rem; }

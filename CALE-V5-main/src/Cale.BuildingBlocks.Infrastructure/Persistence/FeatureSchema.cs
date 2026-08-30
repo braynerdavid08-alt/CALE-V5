@@ -622,6 +622,53 @@ public static class FeatureSchema
                     "CreatedAt" TEXT NOT NULL,
                     "UpdatedAt" TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS "SchoolApprenticeProfiles" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_SchoolApprenticeProfiles" PRIMARY KEY AUTOINCREMENT,
+                    "SchoolUserId" INTEGER NOT NULL,
+                    "StudentUserId" INTEGER NOT NULL,
+                    "DocumentType" TEXT NULL,
+                    "DocumentNumber" TEXT NULL,
+                    "Phone" TEXT NULL,
+                    "Address" TEXT NULL,
+                    "ContactEmail" TEXT NULL,
+                    "EnrollmentDate" TEXT NULL,
+                    "EnrollmentMonth" TEXT NULL,
+                    "OrderNumber" INTEGER NULL,
+                    "ScheduleSlot" TEXT NULL,
+                    "ReceiptNumber" TEXT NULL,
+                    "AmountDue" REAL NOT NULL DEFAULT 0,
+                    "AmountPaid" REAL NOT NULL DEFAULT 0,
+                    "BalanceDue" REAL NOT NULL DEFAULT 0,
+                    "PaymentMethod" TEXT NULL,
+                    "BalancePaymentAmount" REAL NULL,
+                    "AccountsReceivable" REAL NOT NULL DEFAULT 0,
+                    "BalancePaymentDate" TEXT NULL,
+                    "BalancePaymentMethod" TEXT NULL,
+                    "BalanceReceiptNumber" TEXT NULL,
+                    "EnrollmentPin" TEXT NULL,
+                    "RuntRegistered" INTEGER NOT NULL DEFAULT 0,
+                    "IsEnrolled" INTEGER NOT NULL DEFAULT 0,
+                    "Notes" TEXT NULL,
+                    "CreatedAt" TEXT NOT NULL,
+                    "UpdatedAt" TEXT NOT NULL
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_SchoolApprenticeProfiles_SchoolUserId_StudentUserId"
+                    ON "SchoolApprenticeProfiles" ("SchoolUserId", "StudentUserId");
+                CREATE INDEX IF NOT EXISTS "IX_SchoolApprenticeProfiles_SchoolUserId_DocumentNumber"
+                    ON "SchoolApprenticeProfiles" ("SchoolUserId", "DocumentNumber");
+                CREATE TABLE IF NOT EXISTS "TheoryExamAppointments" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_TheoryExamAppointments" PRIMARY KEY AUTOINCREMENT,
+                    "SchoolUserId" INTEGER NOT NULL,
+                    "ExamDate" TEXT NOT NULL,
+                    "SlotTime" TEXT NOT NULL,
+                    "StudentUserId" INTEGER NULL,
+                    "StudentLabel" TEXT NULL,
+                    "Notes" TEXT NULL,
+                    "CreatedAt" TEXT NOT NULL,
+                    "UpdatedAt" TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS "IX_TheoryExamAppointments_SchoolUserId_ExamDate_SlotTime"
+                    ON "TheoryExamAppointments" ("SchoolUserId", "ExamDate", "SlotTime");
                 """,
                 ct);
             await TrySqliteAsync(
@@ -801,6 +848,49 @@ public static class FeatureSchema
                     "Status" varchar(32) NOT NULL,
                     "ReservedAt" timestamp with time zone NOT NULL,
                     "CancelledAt" timestamp with time zone NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL,
+                    "UpdatedAt" timestamp with time zone NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS "SchoolApprenticeProfiles" (
+                    "Id" serial PRIMARY KEY,
+                    "SchoolUserId" integer NOT NULL,
+                    "StudentUserId" integer NOT NULL,
+                    "DocumentType" varchar(8) NULL,
+                    "DocumentNumber" varchar(32) NULL,
+                    "Phone" varchar(32) NULL,
+                    "Address" varchar(256) NULL,
+                    "ContactEmail" varchar(256) NULL,
+                    "EnrollmentDate" date NULL,
+                    "EnrollmentMonth" varchar(32) NULL,
+                    "OrderNumber" integer NULL,
+                    "ScheduleSlot" varchar(32) NULL,
+                    "ReceiptNumber" varchar(32) NULL,
+                    "AmountDue" numeric(18,2) NOT NULL DEFAULT 0,
+                    "AmountPaid" numeric(18,2) NOT NULL DEFAULT 0,
+                    "BalanceDue" numeric(18,2) NOT NULL DEFAULT 0,
+                    "PaymentMethod" varchar(32) NULL,
+                    "BalancePaymentAmount" numeric(18,2) NULL,
+                    "AccountsReceivable" numeric(18,2) NOT NULL DEFAULT 0,
+                    "BalancePaymentDate" date NULL,
+                    "BalancePaymentMethod" varchar(32) NULL,
+                    "BalanceReceiptNumber" varchar(32) NULL,
+                    "EnrollmentPin" varchar(32) NULL,
+                    "RuntRegistered" boolean NOT NULL DEFAULT FALSE,
+                    "IsEnrolled" boolean NOT NULL DEFAULT FALSE,
+                    "Notes" varchar(512) NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL,
+                    "UpdatedAt" timestamp with time zone NOT NULL
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_SchoolApprenticeProfiles_SchoolUserId_StudentUserId"
+                    ON "SchoolApprenticeProfiles" ("SchoolUserId", "StudentUserId");
+                CREATE TABLE IF NOT EXISTS "TheoryExamAppointments" (
+                    "Id" serial PRIMARY KEY,
+                    "SchoolUserId" integer NOT NULL,
+                    "ExamDate" date NOT NULL,
+                    "SlotTime" time NOT NULL,
+                    "StudentUserId" integer NULL,
+                    "StudentLabel" varchar(160) NULL,
+                    "Notes" varchar(256) NULL,
                     "CreatedAt" timestamp with time zone NOT NULL,
                     "UpdatedAt" timestamp with time zone NOT NULL
                 );

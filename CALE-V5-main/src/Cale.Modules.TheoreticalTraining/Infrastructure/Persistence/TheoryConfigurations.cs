@@ -137,3 +137,39 @@ public sealed class PracticalLessonReservationConfiguration : IEntityTypeConfigu
         builder.HasOne(x => x.LessonSession).WithMany().HasForeignKey(x => x.LessonSessionId);
     }
 }
+
+public sealed class SchoolApprenticeProfileConfiguration : IEntityTypeConfiguration<SchoolApprenticeProfile>
+{
+    public void Configure(EntityTypeBuilder<SchoolApprenticeProfile> builder)
+    {
+        builder.ToTable("SchoolApprenticeProfiles");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.DocumentType).HasMaxLength(8);
+        builder.Property(x => x.DocumentNumber).HasMaxLength(32);
+        builder.Property(x => x.Phone).HasMaxLength(32);
+        builder.Property(x => x.Address).HasMaxLength(256);
+        builder.Property(x => x.ContactEmail).HasMaxLength(256);
+        builder.Property(x => x.EnrollmentMonth).HasMaxLength(32);
+        builder.Property(x => x.ScheduleSlot).HasMaxLength(32);
+        builder.Property(x => x.ReceiptNumber).HasMaxLength(32);
+        builder.Property(x => x.PaymentMethod).HasMaxLength(32);
+        builder.Property(x => x.BalancePaymentMethod).HasMaxLength(32);
+        builder.Property(x => x.BalanceReceiptNumber).HasMaxLength(32);
+        builder.Property(x => x.EnrollmentPin).HasMaxLength(32);
+        builder.Property(x => x.Notes).HasMaxLength(512);
+        builder.HasIndex(x => new { x.SchoolUserId, x.StudentUserId }).IsUnique();
+        builder.HasIndex(x => new { x.SchoolUserId, x.DocumentNumber });
+    }
+}
+
+public sealed class TheoryExamAppointmentConfiguration : IEntityTypeConfiguration<TheoryExamAppointment>
+{
+    public void Configure(EntityTypeBuilder<TheoryExamAppointment> builder)
+    {
+        builder.ToTable("TheoryExamAppointments");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.StudentLabel).HasMaxLength(160);
+        builder.Property(x => x.Notes).HasMaxLength(256);
+        builder.HasIndex(x => new { x.SchoolUserId, x.ExamDate, x.SlotTime });
+    }
+}

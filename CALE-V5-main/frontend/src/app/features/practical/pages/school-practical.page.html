@@ -1,70 +1,233 @@
 <ui-page-header
   title="Práctica vehicular"
-  subtitle="Programa clases de manejo. Solo estudiantes que aprobaron teoría y completaron horas podrán reservar." />
+  subtitle="Programa clases como en tu Excel: un clic en el horario y eliges al estudiante." />
 
 <ui-error [message]="error()" />
 
-@if (loading()) {
+<div class="tabs">
+  <button type="button" [class.on]="tab() === 'schedule'" (click)="setTab('schedule')">Programación</button>
+  <button type="button" [class.on]="tab() === 'attendance'" (click)="setTab('attendance')">Asistencia</button>
+</div>
+
+@if (loading() && tab() === 'schedule') {
   <ui-loading />
-} @else {
-  <div class="grid-2">
-    <section class="card">
+} @else if (tab() === 'schedule') {
+  <section class="toolbar card">
+    <div class="toolbar-row">
+      <div class="week-nav">
+        <button type="button" class="nav-btn" (click)="prevWeek()">← Semana anterior</button>
+        <button type="button" class="nav-btn ghost" (click)="goToday()">Esta semana</button>
+        <button type="button" class="nav-btn" (click)="nextWeek()">Siguiente semana →</button>
+      </div>
+      <strong class="week-label">{{ weekRangeLabel() }}</strong>
+    </div>
+
+    <div class="toolbar-row filters">
+      <label class="filter">
+        Instructor
+        <select [ngModel]="instructorId()" (ngModelChange)="onInstructorChange($event)">
+          @for (t of teachers(); track t.id) {
+            <option [ngValue]="t.id">{{ t.name }}</option>
+          }
+        </select>
+      </label>
+      <label class="filter">
+        Vehículo
+        <select [ngModel]="vehicleId()" (ngModelChange)="onVehicleChange($event)">
+          @for (v of vehicles(); track v.id) {
+            <option [ngValue]="v.id">{{ v.label }} @if (v.plate) { ({{ v.plate }}) }</option>
+          }
+        </select>
+      </label>
+      <ui-button type="button" variant="secondary" [loading]="saving()" (click)="duplicateWeek()">
+        Copiar semana anterior
+      </ui-button>
+      <button type="button" class="link-btn" (click)="showVehicles.set(!showVehicles())">
+        {{ showVehicles() ? 'Ocultar vehículos' : 'Gestionar vehículos' }}
+      </button>
+    </div>
+
+    @if (selectedInstructorName() && selectedVehicleLabel()) {
+      <p class="sheet-meta">
+        <strong>{{ selectedInstructorName() }}</strong> · Placa: <strong>{{ selectedVehicleLabel() }}</strong>
+      </p>
+    }
+  </section>
+
+  @if (showVehicles()) {
+    <section class="card vehicles-card">
       <h2>Vehículos</h2>
-      <form class="stack" (ngSubmit)="saveVehicle()">
-        <label>Nombre <input [(ngModel)]="vehicleForm.label" name="vlabel" placeholder="Carro 1" /></label>
-        <label>Placa <input [(ngModel)]="vehicleForm.plate" name="vplate" placeholder="ABC123" /></label>
-        <ui-button type="submit" [loading]="saving()">Agregar vehículo</ui-button>
+      <form class="vehicle-form" (ngSubmit)="saveVehicle()">
+        <input [(ngModel)]="vehicleForm.label" name="vlabel" placeholder="Nombre (Carro 1)" />
+        <input [(ngModel)]="vehicleForm.plate" name="vplate" placeholder="Placa" />
+        <ui-button type="submit" [loading]="saving()">Agregar</ui-button>
       </form>
-      <ul class="simple-list">
+      <ul class="vehicle-chips">
         @for (v of vehicles(); track v.id) {
           <li>{{ v.label }} @if (v.plate) { ({{ v.plate }}) }</li>
-        } @empty {
-          <li class="muted">Sin vehículos registrados.</li>
         }
       </ul>
     </section>
+  }
 
-    <section class="card">
-      <h2>Programar clase</h2>
-      <form class="stack" (ngSubmit)="createLesson()">
-        <label>Fecha <input type="date" [(ngModel)]="lessonForm.sessionDate" name="ldate" /></label>
-        <label>Inicio <input type="time" [(ngModel)]="lessonForm.startTime" name="lstart" /></label>
-        <label>Fin <input type="time" [(ngModel)]="lessonForm.endTime" name="lend" /></label>
-        <label>Instructor
-          <select [(ngModel)]="lessonForm.instructorUserId" name="linstructor">
-            @for (t of teachers(); track t.id) {
-              <option [ngValue]="t.id">{{ t.name }}</option>
-            }
-          </select>
-        </label>
-        <label>Vehículo
-          <select [(ngModel)]="lessonForm.vehicleId" name="lvehicle">
-            @for (v of vehicles(); track v.id) {
-              <option [ngValue]="v.id">{{ v.label }}</option>
-            }
-          </select>
-        </label>
-        <label>Cupos <input type="number" min="1" max="4" [(ngModel)]="lessonForm.capacity" name="lcap" /></label>
-        <label>Notas <input [(ngModel)]="lessonForm.notes" name="lnotes" /></label>
-        <ui-button type="submit" [loading]="saving()">Publicar clase</ui-button>
-      </form>
-    </section>
-  </div>
+  @if (!instructorId() || !vehicleId()) {
+    <p class="muted hint">Agrega al menos un instructor y un vehículo para programar.</p>
+  } @else {
+    @if (gridLoading()) {
+      <div class="grid-loading"><ui-loading /></div>
+    }
 
-  <section class="card">
-    <h2>Clases programadas</h2>
-    <ul class="lesson-list">
-      @for (l of lessons(); track l.id) {
-        <li>
-          <div>
-            <strong>{{ l.sessionDate }} · {{ l.startTime }} – {{ l.endTime }}</strong>
-            <p class="muted">{{ l.instructorName }} · {{ l.vehicleLabel }} · {{ l.reservedCount }}/{{ l.capacity }}</p>
+    <div class="grid-wrap" [class.dimmed]="gridLoading()">
+      <table class="schedule-grid">
+        <thead>
+          <tr>
+            <th class="time-col">Hora</th>
+            @for (label of dayLabels; track label; let i = $index) {
+              <th>{{ dayHeader(i) }}</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (slot of timeSlots; track slot.start) {
+            <tr>
+              <th class="time-col">{{ slot.label }}</th>
+              @for (label of dayLabels; track label; let i = $index) {
+                <td>
+                  @if (lessonAt(i, slot); as lesson) {
+                    @if (lesson.assignment; as a) {
+                      <div class="cell assigned" [class.done]="a.reservationStatus === 'Attended'">
+                        <span class="cat">{{ a.licenseCategory }}</span>
+                        <strong>{{ a.studentName }}</strong>
+                        <small>{{ a.lessonNumber }}/{{ a.lessonsRequired }}</small>
+                        <div class="cell-actions">
+                          @if (a.reservationStatus === 'Reserved') {
+                            <button type="button" (click)="markLessonPresent(lesson)">Presente</button>
+                          }
+                          <button type="button" class="danger" (click)="unassignLesson(lesson)">Quitar</button>
+                        </div>
+                      </div>
+                    } @else {
+                      <button type="button" class="cell empty" (click)="openPicker(i, slot)">+ Asignar</button>
+                    }
+                  } @else {
+                    <button type="button" class="cell empty" (click)="openPicker(i, slot)">+ Asignar</button>
+                  }
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <p class="muted hint">
+      Clic en una celda vacía → elige estudiante. Se crea la clase y la asignación en un solo paso.
+    </p>
+  }
+} @else {
+  @if (attendanceLoading()) {
+    <ui-loading />
+  } @else {
+    <div class="attendance-layout">
+      <aside class="card">
+        <h2>Clases con reservas</h2>
+        @if (!attendanceLessons().length) {
+          <p class="muted">No hay clases de manejo con estudiantes reservados.</p>
+        } @else {
+          <ul class="session-pick">
+            @for (l of attendanceLessons(); track l.id) {
+              <li>
+                <button
+                  type="button"
+                  class="session-pick-btn"
+                  [class.on]="selectedAttendanceLessonId() === l.id"
+                  (click)="selectAttendanceLesson(l.id)">
+                  {{ lessonLabel(l) }}
+                  <small>{{ l.reservedCount }} reservas</small>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </aside>
+
+      <div class="card">
+        @if (selectedAttendanceLessonId(); as lessonId) {
+          <div class="attendance-head">
+            <h2>Lista de asistencia</h2>
+            <ui-button type="button" (click)="markAllPresent()">Marcar todos presentes</ui-button>
           </div>
-          <ui-button type="button" variant="ghost" (click)="cancelLesson(l.id)">Cancelar</ui-button>
-        </li>
-      } @empty {
-        <li class="muted">No hay clases de manejo esta semana.</li>
-      }
-    </ul>
-  </section>
+          @if (!attendanceRows().length) {
+            <p class="muted">Sin reservas para esta clase.</p>
+          } @else {
+            <table class="attendance-table">
+              <thead>
+                <tr>
+                  <th>Estudiante</th>
+                  <th>Estado</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of attendanceRows(); track row.studentUserId) {
+                  <tr>
+                    <td>{{ row.studentName }}</td>
+                    <td>{{ row.status }}</td>
+                    <td class="actions">
+                      <button type="button" (click)="markAttendance(row, 'Present')">Presente</button>
+                      <button type="button" (click)="markAttendance(row, 'Absent')">Ausente</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        } @else {
+          <p class="muted">Selecciona una clase para marcar asistencia.</p>
+        }
+      </div>
+    </div>
+  }
+}
+
+@if (picker(); as cell) {
+  <div class="modal-backdrop" (click)="closePicker()">
+    <div class="modal card" (click)="$event.stopPropagation()">
+      <header class="modal-head">
+        <h2>Asignar estudiante</h2>
+        <p class="muted">
+          {{ dayLabels[cell.dayIndex] }} {{ cell.sessionDate }} · {{ cell.slot.label }}
+        </p>
+        <button type="button" class="close-btn" (click)="closePicker()">×</button>
+      </header>
+
+      <input
+        class="search"
+        type="search"
+        placeholder="Buscar por nombre..."
+        [ngModel]="studentSearch()"
+        (ngModelChange)="studentSearch.set($event)" />
+
+      <ul class="student-pick">
+        @for (s of filteredStudents(); track s.studentUserId) {
+          <li>
+            <button type="button" class="student-btn" [disabled]="saving()" (click)="assignStudent(s)">
+              <span class="student-main">
+                <strong>{{ s.studentName }}</strong>
+                <span class="progress-pill">{{ studentProgressLabel(s) }}</span>
+              </span>
+              <small>
+                {{ s.licenseCategories || 'Sin categoría' }}
+                @if (!s.isEligible) {
+                  · <span class="warn">Requisitos pendientes</span>
+                }
+              </small>
+            </button>
+          </li>
+        } @empty {
+          <li class="muted">No hay estudiantes autorizados.</li>
+        }
+      </ul>
+    </div>
+  </div>
 }

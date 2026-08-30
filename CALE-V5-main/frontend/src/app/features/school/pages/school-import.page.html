@@ -1,0 +1,119 @@
+<ui-page-header
+  eyebrow="Escuela"
+  title="Importar datos"
+  subtitle="Sube tus archivos Excel o CSV como los usas hoy en la escuela." />
+
+<ui-error [message]="error()" />
+<ui-success [message]="ok()" />
+
+<div class="actions-top">
+  <a routerLink="/school/apprentices"><ui-button type="button" variant="secondary">Ver aprendices</ui-button></a>
+</div>
+
+<div class="tabs">
+  <button type="button" [class.on]="mode() === 'apprentices'" (click)="setMode('apprentices')">Aprendices (Excel)</button>
+  <button type="button" [class.on]="mode() === 'theory-exams'" (click)="setMode('theory-exams')">Exámenes teóricos (Excel)</button>
+  <button type="button" [class.on]="mode() === 'users'" (click)="setMode('users')">Usuarios (CSV)</button>
+</div>
+
+<ui-card>
+  @if (mode() === 'apprentices') {
+    <h2>APRENDICES 2026 — Relación pagos matrícula</h2>
+    <p class="muted">Sube el archivo con la hoja <strong>RELACION PAGOS MATRICULA</strong>. Si falta correo, se crea como <code>valentina164&#64;ceavip.com</code> (primer nombre + últimos 3 dígitos de la cédula).</p>
+  } @else if (mode() === 'theory-exams') {
+    <h2>Exámenes teóricos</h2>
+    <p class="muted">Sube el Excel con la hoja <strong>EXAMENES TEORICOS</strong> (calendario por día y hora).</p>
+  } @else {
+    <h2>Usuarios instructores / estudiantes</h2>
+    <p class="muted">Columnas: <code>nombre,email,rol</code>. Máximo 2000 filas.</p>
+    <ui-button type="button" variant="secondary" (click)="downloadTemplate()">Descargar plantilla CSV</ui-button>
+  }
+
+  <input class="file-input" type="file" [attr.accept]="acceptTypes()" (change)="onFile($event)" />
+  <ui-button type="button" [disabled]="!file() || loading()" (click)="preview()">Analizar archivo</ui-button>
+</ui-card>
+
+@if (loading()) { <ui-loading /> }
+
+@if (csvPreview(); as preview) {
+  <div class="grid-stats">
+    <ui-stat label="Filas" [value]="preview.totalRows" />
+    <ui-stat label="Crear" [value]="preview.createCount" tone="success" />
+    <ui-stat label="Vincular" [value]="preview.attachCount" tone="primary" />
+    <ui-stat label="Errores" [value]="preview.errorCount" tone="warning" />
+  </div>
+  @if (preview.blockingReason) { <ui-error [message]="preview.blockingReason" /> }
+  <ui-card>
+    <div class="head">
+      <h2>Vista previa — {{ preview.fileName }}</h2>
+      <ui-button type="button" [disabled]="!preview.canCommit || committing()" (click)="commit()">Confirmar importación</ui-button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Acción</th><th>Detalle</th></tr></thead>
+        <tbody>
+          @for (row of preview.rows; track row.lineNumber) {
+            <tr [attr.data-sev]="row.severity">
+              <td>{{ row.lineNumber }}</td><td>{{ row.name }}</td><td>{{ row.email }}</td><td>{{ row.role }}</td>
+              <td><ui-badge [tone]="actionTone(row.action)">{{ actionLabel(row.action) }}</ui-badge></td>
+              <td>{{ row.message || '—' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </ui-card>
+}
+
+@if (excelPreview(); as preview) {
+  <div class="grid-stats">
+    <ui-stat label="Filas" [value]="preview.totalRows" />
+    <ui-stat label="Nuevos" [value]="preview.createCount" tone="success" />
+    <ui-stat label="Actualizar" [value]="preview.updateCount" tone="primary" />
+    <ui-stat label="Errores" [value]="preview.errorCount" tone="warning" />
+  </div>
+  @if (preview.blockingReason) { <ui-error [message]="preview.blockingReason" /> }
+  <ui-card>
+    <div class="head">
+      <h2>Vista previa — {{ preview.fileName }}</h2>
+      <ui-button type="button" [disabled]="!preview.canCommit || committing()" (click)="commit()">Confirmar importación</ui-button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Registro</th><th>Acción</th><th>Detalle</th></tr></thead>
+        <tbody>
+          @for (row of preview.rows; track row.lineNumber) {
+            <tr [attr.data-sev]="row.severity">
+              <td>{{ row.lineNumber }}</td>
+              <td>{{ row.label }}</td>
+              <td><ui-badge [tone]="actionTone(row.action)">{{ actionLabel(row.action) }}</ui-badge></td>
+              <td>{{ row.message || '—' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </ui-card>
+}
+
+@if (csvCommit(); as result) {
+  <ui-card>
+    <h2>Resultado</h2>
+    <p>Creados {{ result.created }}, vinculados {{ result.attached }}, fallidos {{ result.failed }}.</p>
+    @if (result.credentials.length) {
+      <ui-button type="button" (click)="downloadCredentials()">Descargar contraseñas CSV</ui-button>
+    }
+  </ui-card>
+}
+
+@if (excelCommit(); as result) {
+  <ui-card>
+    <h2>Resultado</h2>
+    <p>Nuevos {{ result.created }}, actualizados {{ result.updated }}, omitidos {{ result.skipped }}, fallidos {{ result.failed }}.</p>
+    @if (result.credentials.length) {
+      <p class="muted">Descarga las contraseñas de los aprendices nuevos y entrégalas a cada uno.</p>
+      <ui-button type="button" (click)="downloadExcelCredentials()">Descargar contraseñas CSV</ui-button>
+    }
+    <a routerLink="/school/apprentices"><ui-button type="button">Ver aprendices</ui-button></a>
+  </ui-card>
+}

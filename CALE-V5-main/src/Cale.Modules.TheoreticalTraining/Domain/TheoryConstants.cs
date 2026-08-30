@@ -34,6 +34,60 @@ public static class PracticalLessonStatuses
     public const string Cancelled = "Cancelled";
 }
 
+/// <summary>Clases prácticas requeridas por categoría (Colombia CEA).</summary>
+public static class PracticalLessonRequirements
+{
+    public const int A2 = 15;
+    public const int B1 = 20;
+    public const int C1 = 30;
+
+    public static int GetRequired(string? licenseCategories)
+    {
+        if (string.IsNullOrWhiteSpace(licenseCategories))
+        {
+            return B1;
+        }
+
+        var parts = licenseCategories
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(x => x.ToUpperInvariant())
+            .ToList();
+
+        if (parts.Contains(StudentLicenseCategories.C1))
+        {
+            return C1;
+        }
+
+        if (parts.Contains(StudentLicenseCategories.B1))
+        {
+            return B1;
+        }
+
+        if (parts.Contains(StudentLicenseCategories.A2))
+        {
+            return A2;
+        }
+
+        return B1;
+    }
+
+    public static string PrimaryCategory(string? licenseCategories)
+    {
+        if (string.IsNullOrWhiteSpace(licenseCategories))
+        {
+            return StudentLicenseCategories.B1;
+        }
+
+        var first = licenseCategories
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .FirstOrDefault();
+
+        return string.IsNullOrWhiteSpace(first)
+            ? StudentLicenseCategories.B1
+            : first.ToUpperInvariant();
+    }
+}
+
 public static class PracticalReservationStatuses
 {
     public const string Reserved = "Reserved";
@@ -43,6 +97,8 @@ public static class PracticalReservationStatuses
     public const string NoShow = "NoShow";
 
     public static readonly string[] ActiveStatuses = [Reserved];
+
+    public static readonly string[] OccupiesSeatStatuses = [Reserved, Attended, NoShow];
 }
 
 public static class StudentAttendanceDayTypes

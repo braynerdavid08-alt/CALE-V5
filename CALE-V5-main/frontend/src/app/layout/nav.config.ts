@@ -113,14 +113,16 @@ export function navForRole(role?: string): NavItem[] {
       }
     ];
   }
-  if (role === 'School') {
+    if (role === 'School') {
     return [
       { label: 'Dashboard', path: '/school', icon: 'home', exact: true },
+      { label: 'Aprendices', path: '/school/apprentices', icon: 'graduate', exact: true },
       { label: 'Programación', path: '/school/training', icon: 'exam', exact: true },
       { label: 'Práctica vehicular', path: '/school/practical', icon: 'exam', exact: true },
+      { label: 'Exámenes teóricos', path: '/school/theory-exams', icon: 'exam', exact: true },
+      { label: 'Importar', path: '/school/import', icon: 'users', exact: true },
       { label: 'Pagos y Suscripciones', path: '/school/membership', icon: 'card', exact: true },
       { label: 'Usuarios', path: '/school/users', icon: 'users', exact: true },
-      { label: 'Importar', path: '/school/import', icon: 'users', exact: true },
       { label: 'Preguntas', path: '/school/questions', icon: 'book', exact: true },
       { label: 'Bancos', path: '/school/banks', icon: 'bank', exact: true }
     ];
