@@ -108,7 +108,12 @@ internal static class PptxSlideIO
             var presentationPart = doc.AddPresentationPart();
             presentationPart.Presentation = new P.Presentation(
                 new P.SlideIdList(),
-                new P.SlideSize { Cx = DefaultSlideCx, Cy = DefaultSlideCy, Type = P.SlideSizeValues.Screen16x9 },
+                new P.SlideSize
+                {
+                    Cx = (int)DefaultSlideCx,
+                    Cy = (int)DefaultSlideCy,
+                    Type = P.SlideSizeValues.Screen16x9
+                },
                 new P.NotesSize { Cx = 6858000, Cy = 9144000 },
                 new P.DefaultTextStyle());
 
@@ -402,11 +407,11 @@ internal static class PptxSlideIO
                     .ApplicationNonVisualDrawingProperties?
                     .PlaceholderShape?.Type?.Value;
 
-                if (ph is P.PlaceholderValues.Title or P.PlaceholderValues.CenteredTitle or P.PlaceholderValues.SubTitle)
+                if (IsTitlePlaceholderType(ph))
                 {
                     Title ??= text;
                 }
-                else if (ph is P.PlaceholderValues.Body or P.PlaceholderValues.Object)
+                else if (IsBodyPlaceholderType(ph))
                 {
                     Body = string.IsNullOrWhiteSpace(Body) ? text : $"{Body}\n{text}";
                 }
@@ -536,11 +541,21 @@ internal static class PptxSlideIO
             return (64, 140, 832, 320);
         }
 
-        private static bool IsTitlePlaceholder(P.Shape shape) =>
-            shape.NonVisualShapeProperties?
+        private static bool IsTitlePlaceholder(P.Shape shape)
+        {
+            var ph = shape.NonVisualShapeProperties?
                 .ApplicationNonVisualDrawingProperties?
-                .PlaceholderShape?.Type?.Value
-            is P.PlaceholderValues.Title or P.PlaceholderValues.CenteredTitle;
+                .PlaceholderShape?.Type?.Value;
+            return IsTitlePlaceholderType(ph);
+        }
+
+        private static bool IsTitlePlaceholderType(P.PlaceholderValues? ph) =>
+            ph == P.PlaceholderValues.Title
+            || ph == P.PlaceholderValues.CenteredTitle
+            || ph == P.PlaceholderValues.SubTitle;
+
+        private static bool IsBodyPlaceholderType(P.PlaceholderValues? ph) =>
+            ph == P.PlaceholderValues.Body || ph == P.PlaceholderValues.Object;
 
         private string? SaveImage(ImagePart imagePart)
         {
@@ -565,7 +580,7 @@ internal static class PptxSlideIO
         private static int ToPx(long emu, double scale) =>
             (int)Math.Max(0, Math.Round(emu * scale));
 
-        private static string GetText(A.TextBody? body)
+        private static string GetText(P.TextBody? body)
         {
             if (body is null)
             {
@@ -578,13 +593,18 @@ internal static class PptxSlideIO
             return string.Join("\n", lines);
         }
 
-        private static int GetFontSize(A.TextBody? body)
+        private static int GetFontSize(P.TextBody? body)
         {
             var sz = body?.Descendants<A.RunProperties>().FirstOrDefault()?.FontSize?.Value;
-            return sz is null or 0 ? 24 : Math.Clamp((int)Math.Round(sz / 100.0), 12, 72);
+            if (sz is null or 0)
+            {
+                return 24;
+            }
+
+            return Math.Clamp((int)Math.Round(sz.Value / 100.0), 12, 72);
         }
 
-        private static bool IsBold(A.TextBody? body) =>
+        private static bool IsBold(P.TextBody? body) =>
             body?.Descendants<A.RunProperties>().FirstOrDefault()?.Bold?.Value == true;
     }
 }
