@@ -144,7 +144,8 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
       return;
     }
 
-    this.slideScale.set(Math.min(w / SLIDE_W, h / SLIDE_H));
+    // Cover: fill the viewport (may crop edges on non-16:9 screens).
+    this.slideScale.set(Math.max(w / SLIDE_W, h / SLIDE_H));
   }
 
   slidePresentStyle(slide: EditorSlide): Record<string, string> {
