@@ -11,6 +11,7 @@ import {
   NotificationDto,
   NotificationsApi
 } from '../../../core/notifications/notifications.api';
+import { ApprenticeApi, SchoolOperationsDashboard } from '../api/apprentice.api';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiDashBarsComponent, DashBarItem } from '../../../shared/ui/ui-dash-bars.component';
@@ -71,6 +72,7 @@ interface UserRow {
 export class SchoolHomePage implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly notificationsApi = inject(NotificationsApi);
+  private readonly apprenticeApi = inject(ApprenticeApi);
   private readonly router = inject(Router);
   readonly session = inject(SessionStore);
 
@@ -80,6 +82,7 @@ export class SchoolHomePage implements OnInit {
   readonly events = signal<MembershipEventDto[]>([]);
   readonly members = signal<UserRow[]>([]);
   readonly notifs = signal<NotificationDto[]>([]);
+  readonly ops = signal<SchoolOperationsDashboard | null>(null);
 
   readonly seatBars = computed<DashBarItem[]>(() => {
     const p = this.profile();
@@ -120,6 +123,9 @@ export class SchoolHomePage implements OnInit {
         .pipe(catchError(() => of([] as UserRow[]))),
       notifs: this.notificationsApi.list({ take: 5 }).pipe(
         catchError(() => of({ items: [] as NotificationDto[], unreadCount: 0 }))
+      ),
+      ops: this.apprenticeApi.getDashboard().pipe(
+        catchError(() => of(null as SchoolOperationsDashboard | null))
       )
     }).subscribe({
       next: (res) => {
@@ -127,6 +133,7 @@ export class SchoolHomePage implements OnInit {
         this.events.set(res.events.slice(0, 6));
         this.members.set(res.members);
         this.notifs.set(res.notifs.items);
+        this.ops.set(res.ops);
         this.loading.set(false);
       },
       error: (err) => {
@@ -174,6 +181,10 @@ export class SchoolHomePage implements OnInit {
       RequestReopened: 'Solicitud reabierta'
     };
     return map[type] || type;
+  }
+
+  formatMoney(value: number): string {
+    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value);
   }
 
   openNotif(n: NotificationDto): void {

@@ -126,6 +126,88 @@ public sealed class ApprenticeRegistryService
         return new ApprenticeDetailDto(apprentice, training, practical, nextExam);
     }
 
+    public async Task<SchoolOperationsDashboardDto> GetDashboardAsync(
+        int schoolUserId,
+        CancellationToken ct)
+    {
+        var students = await _users.ListBySchoolAsync(schoolUserId, ct);
+        var studentMap = students
+            .Where(x => x.Role == Roles.Student)
+            .ToDictionary(x => x.Id);
+
+        var profiles = await _db.Set<SchoolApprenticeProfile>()
+            .Where(x => x.SchoolUserId == schoolUserId)
+            .ToListAsync(ct);
+
+        var apprenticeCount = studentMap.Count;
+        var balanceRows = new List<SchoolDashboardBalanceRowDto>();
+
+        foreach (var profile in profiles.Where(x => x.BalanceDue > 0))
+        {
+            if (!studentMap.TryGetValue(profile.StudentUserId, out var user))
+            {
+                continue;
+            }
+
+            balanceRows.Add(new SchoolDashboardBalanceRowDto(
+                profile.StudentUserId,
+                user.Name,
+                profile.BalanceDue));
+        }
+
+        var topBalanceDue = balanceRows
+            .Where(x => x.BalanceDue > 0)
+            .OrderByDescending(x => x.BalanceDue)
+            .Take(5)
+            .ToList();
+
+        var balancePendingCount = balanceRows.Count(x => x.BalanceDue > 0);
+        var balancePendingTotal = balanceRows.Sum(x => x.BalanceDue);
+        var pendingEnrollmentCount = profiles.Count(x => !x.IsEnrolled);
+
+        var today = DateOnly.FromDateTime(_clock.UtcNow.Date);
+        var weekEnd = today.AddDays(7);
+        var examSlots = await _db.Set<TheoryExamAppointment>()
+            .Where(x => x.SchoolUserId == schoolUserId
+                && x.ExamDate >= today
+                && x.ExamDate <= weekEnd)
+            .OrderBy(x => x.ExamDate)
+            .ThenBy(x => x.SlotTime)
+            .ToListAsync(ct);
+
+        var upcomingExams = new List<TheoryExamSlotDto>();
+        foreach (var slot in examSlots.Take(6))
+        {
+            string? studentName = null;
+            if (slot.StudentUserId is int sid)
+            {
+                studentName = studentMap.TryGetValue(sid, out var user) ? user.Name : null;
+                if (studentName is null)
+                {
+                    studentName = (await _users.GetByIdAsync(sid, ct))?.Name;
+                }
+            }
+
+            upcomingExams.Add(new TheoryExamSlotDto(
+                slot.Id,
+                slot.ExamDate.ToString("yyyy-MM-dd"),
+                slot.SlotTime.ToString("HH:mm"),
+                slot.StudentUserId,
+                slot.StudentLabel,
+                studentName,
+                slot.Notes));
+        }
+
+        return new SchoolOperationsDashboardDto(
+            apprenticeCount,
+            balancePendingCount,
+            balancePendingTotal,
+            examSlots.Count,
+            pendingEnrollmentCount,
+            topBalanceDue,
+            upcomingExams);
+    }
+
     public async Task<ApprenticeDto> UpdateAsync(
         int schoolUserId,
         int studentUserId,

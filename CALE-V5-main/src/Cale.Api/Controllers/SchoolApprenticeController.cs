@@ -36,6 +36,10 @@ public sealed class SchoolApprenticeController : ControllerBase
     public async Task<IActionResult> GetDetail(int studentUserId, CancellationToken ct) =>
         Ok(await _registry.GetDetailAsync(SchoolId, studentUserId, ct));
 
+    [HttpGet("dashboard")]
+    public async Task<IActionResult> Dashboard(CancellationToken ct) =>
+        Ok(await _registry.GetDashboardAsync(SchoolId, ct));
+
     [HttpPut("apprentices/{studentUserId:int}")]
     public async Task<IActionResult> Update(
         int studentUserId,

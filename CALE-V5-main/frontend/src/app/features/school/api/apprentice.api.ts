@@ -101,6 +101,22 @@ export interface ApprenticeDetail {
   nextExam?: ApprenticeExamSummary | null;
 }
 
+export interface SchoolDashboardBalanceRow {
+  studentUserId: number;
+  studentName: string;
+  balanceDue: number;
+}
+
+export interface SchoolOperationsDashboard {
+  apprenticeCount: number;
+  balancePendingCount: number;
+  balancePendingTotal: number;
+  examsNext7Days: number;
+  pendingEnrollmentCount: number;
+  topBalanceDue: SchoolDashboardBalanceRow[];
+  upcomingExams: TheoryExamSlotDto[];
+}
+
 export interface TheoryExamSlotDto {
   id: number;
   examDate: string;
@@ -126,6 +142,10 @@ export class ApprenticeApi {
 
   getDetail(studentUserId: number) {
     return this.http.get<ApprenticeDetail>(`${this.base}/apprentices/${studentUserId}`);
+  }
+
+  getDashboard() {
+    return this.http.get<SchoolOperationsDashboard>(`${this.base}/dashboard`);
   }
 
   update(studentUserId: number, body: Partial<ApprenticeDto>) {

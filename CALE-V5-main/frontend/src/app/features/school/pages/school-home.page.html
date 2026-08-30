@@ -4,8 +4,8 @@
       <h1>{{ profile()?.legalName || 'Tu escuela' }}</h1>
     </div>
     <div class="dash-hero-actions">
-      <a routerLink="/school/membership"><ui-button type="button">Membresía</ui-button></a>
-      <a routerLink="/school/users"><ui-button type="button" variant="secondary">Usuarios</ui-button></a>
+      <a routerLink="/school/import"><ui-button type="button">Importar Excel</ui-button></a>
+      <a routerLink="/school/apprentices"><ui-button type="button" variant="secondary">Aprendices</ui-button></a>
     </div>
   </header>
 
@@ -18,6 +18,35 @@
   }
 
   @if (profile(); as p) {
+    @if (ops(); as o) {
+      <div class="dash-kpis ops-kpis">
+        <ui-dash-kpi
+          label="Aprendices"
+          [value]="o.apprenticeCount"
+          icon="graduate"
+          tone="primary"
+          hint="Registrados en la escuela" />
+        <ui-dash-kpi
+          label="Saldos pendientes"
+          [value]="o.balancePendingCount"
+          icon="card"
+          tone="warning"
+          [hint]="formatMoney(o.balancePendingTotal) + ' por cobrar'" />
+        <ui-dash-kpi
+          label="Exámenes (7 días)"
+          [value]="o.examsNext7Days"
+          icon="exam"
+          tone="info"
+          hint="Citas programadas" />
+        <ui-dash-kpi
+          label="Sin enrolar"
+          [value]="o.pendingEnrollmentCount"
+          icon="users"
+          [tone]="o.pendingEnrollmentCount > 0 ? 'warning' : 'success'"
+          hint="Pendientes de enrolamiento" />
+      </div>
+    }
+
     <div class="dash-kpis">
       <ui-dash-kpi
         label="Estudiantes activos"
@@ -46,6 +75,46 @@
 
     <div class="dash-main">
       <div class="dash-side">
+        @if (ops(); as o) {
+          <section class="dash-panel">
+            <div class="dash-panel-head">
+              <h2>Saldos por cobrar</h2>
+              <a routerLink="/school/apprentices">Ver todos</a>
+            </div>
+            @if (!o.topBalanceDue.length) {
+              <p class="dash-empty">No hay saldos pendientes.</p>
+            } @else {
+              <ul class="dash-feed balance-feed">
+                @for (row of o.topBalanceDue; track row.studentUserId) {
+                  <li>
+                    <strong>{{ row.studentName }}</strong>
+                    <p class="meta warn">{{ formatMoney(row.balanceDue) }}</p>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+
+          <section class="dash-panel">
+            <div class="dash-panel-head">
+              <h2>Próximos exámenes teóricos</h2>
+              <a routerLink="/school/theory-exams">Calendario</a>
+            </div>
+            @if (!o.upcomingExams.length) {
+              <p class="dash-empty">Sin exámenes en los próximos 7 días.</p>
+            } @else {
+              <ul class="dash-feed">
+                @for (exam of o.upcomingExams; track exam.id) {
+                  <li>
+                    <strong>{{ exam.examDate }} · {{ exam.slotTime }}</strong>
+                    <p class="meta">{{ exam.studentName || exam.studentLabel || 'Sin asignar' }}</p>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+        }
+
         <section class="dash-panel">
           <div class="dash-panel-head">
             <h2>Uso de cupos</h2>
@@ -91,12 +160,15 @@
 
         <section class="dash-panel">
           <div class="dash-panel-head">
-            <h2>Accesos</h2>
+            <h2>Accesos rápidos</h2>
           </div>
-          <div class="row">
-            <a routerLink="/school/import"><ui-button type="button" variant="secondary">Importar</ui-button></a>
-            <a routerLink="/school/questions"><ui-button type="button" variant="ghost">Preguntas</ui-button></a>
-            <a routerLink="/school/banks"><ui-button type="button" variant="ghost">Bancos</ui-button></a>
+          <div class="row quick-row">
+            <a routerLink="/school/import"><ui-button type="button">Importar Excel</ui-button></a>
+            <a routerLink="/school/apprentices"><ui-button type="button" variant="secondary">Aprendices</ui-button></a>
+            <a routerLink="/school/training"><ui-button type="button" variant="secondary">Programación</ui-button></a>
+            <a routerLink="/school/practical"><ui-button type="button" variant="secondary">Práctica</ui-button></a>
+            <a routerLink="/school/theory-exams"><ui-button type="button" variant="ghost">Exámenes</ui-button></a>
+            <a routerLink="/school/membership"><ui-button type="button" variant="ghost">Membresía</ui-button></a>
           </div>
         </section>
       </div>

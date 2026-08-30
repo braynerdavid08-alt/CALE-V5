@@ -111,6 +111,20 @@ public sealed record ApprenticeDetailDto(
     ApprenticePracticalSummaryDto Practical,
     ApprenticeExamSummaryDto? NextExam);
 
+public sealed record SchoolDashboardBalanceRowDto(
+    int StudentUserId,
+    string StudentName,
+    decimal BalanceDue);
+
+public sealed record SchoolOperationsDashboardDto(
+    int ApprenticeCount,
+    int BalancePendingCount,
+    decimal BalancePendingTotal,
+    int ExamsNext7Days,
+    int PendingEnrollmentCount,
+    IReadOnlyList<SchoolDashboardBalanceRowDto> TopBalanceDue,
+    IReadOnlyList<TheoryExamSlotDto> UpcomingExams);
+
 public sealed record TheoryExamSlotDto(
     int Id,
     string ExamDate,

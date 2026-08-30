@@ -1,3 +1,15 @@
 .dash-panel ui-badge {
   vertical-align: middle;
 }
+.ops-kpis {
+  margin-bottom: 0.75rem;
+}
+.balance-feed .warn {
+  color: #b45309;
+  font-weight: 700;
+}
+.quick-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
