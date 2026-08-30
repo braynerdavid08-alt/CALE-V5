@@ -1,5 +1,50 @@
 namespace Cale.Modules.TheoreticalTraining.Domain;
 
+public static class TheoryTopicCategories
+{
+    public const string Theory = "Theory";
+    public const string Workshop = "Workshop";
+
+    public static bool IsValid(string? value) =>
+        value is Theory or Workshop;
+
+    public static string FormatLabel(string? value) =>
+        value switch
+        {
+            Theory => "Teoría",
+            Workshop => "Taller",
+            _ => "Teoría"
+        };
+
+    public static string InferFromName(string name)
+    {
+        if (name.Contains("taller", StringComparison.OrdinalIgnoreCase))
+        {
+            return Workshop;
+        }
+
+        return Theory;
+    }
+}
+
+public static class PracticalLessonStatuses
+{
+    public const string Scheduled = "Scheduled";
+    public const string Completed = "Completed";
+    public const string Cancelled = "Cancelled";
+}
+
+public static class PracticalReservationStatuses
+{
+    public const string Reserved = "Reserved";
+    public const string CancelledByStudent = "CancelledByStudent";
+    public const string CancelledBySchool = "CancelledBySchool";
+    public const string Attended = "Attended";
+    public const string NoShow = "NoShow";
+
+    public static readonly string[] ActiveStatuses = [Reserved];
+}
+
 public static class StudentAttendanceDayTypes
 {
     public const string Weekday = "Weekday";

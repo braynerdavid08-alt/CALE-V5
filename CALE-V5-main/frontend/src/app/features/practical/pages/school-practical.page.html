@@ -1,0 +1,70 @@
+<ui-page-header
+  title="Práctica vehicular"
+  subtitle="Programa clases de manejo. Solo estudiantes que aprobaron teoría y completaron horas podrán reservar." />
+
+<ui-error [message]="error()" />
+
+@if (loading()) {
+  <ui-loading />
+} @else {
+  <div class="grid-2">
+    <section class="card">
+      <h2>Vehículos</h2>
+      <form class="stack" (ngSubmit)="saveVehicle()">
+        <label>Nombre <input [(ngModel)]="vehicleForm.label" name="vlabel" placeholder="Carro 1" /></label>
+        <label>Placa <input [(ngModel)]="vehicleForm.plate" name="vplate" placeholder="ABC123" /></label>
+        <ui-button type="submit" [loading]="saving()">Agregar vehículo</ui-button>
+      </form>
+      <ul class="simple-list">
+        @for (v of vehicles(); track v.id) {
+          <li>{{ v.label }} @if (v.plate) { ({{ v.plate }}) }</li>
+        } @empty {
+          <li class="muted">Sin vehículos registrados.</li>
+        }
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Programar clase</h2>
+      <form class="stack" (ngSubmit)="createLesson()">
+        <label>Fecha <input type="date" [(ngModel)]="lessonForm.sessionDate" name="ldate" /></label>
+        <label>Inicio <input type="time" [(ngModel)]="lessonForm.startTime" name="lstart" /></label>
+        <label>Fin <input type="time" [(ngModel)]="lessonForm.endTime" name="lend" /></label>
+        <label>Instructor
+          <select [(ngModel)]="lessonForm.instructorUserId" name="linstructor">
+            @for (t of teachers(); track t.id) {
+              <option [ngValue]="t.id">{{ t.name }}</option>
+            }
+          </select>
+        </label>
+        <label>Vehículo
+          <select [(ngModel)]="lessonForm.vehicleId" name="lvehicle">
+            @for (v of vehicles(); track v.id) {
+              <option [ngValue]="v.id">{{ v.label }}</option>
+            }
+          </select>
+        </label>
+        <label>Cupos <input type="number" min="1" max="4" [(ngModel)]="lessonForm.capacity" name="lcap" /></label>
+        <label>Notas <input [(ngModel)]="lessonForm.notes" name="lnotes" /></label>
+        <ui-button type="submit" [loading]="saving()">Publicar clase</ui-button>
+      </form>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Clases programadas</h2>
+    <ul class="lesson-list">
+      @for (l of lessons(); track l.id) {
+        <li>
+          <div>
+            <strong>{{ l.sessionDate }} · {{ l.startTime }} – {{ l.endTime }}</strong>
+            <p class="muted">{{ l.instructorName }} · {{ l.vehicleLabel }} · {{ l.reservedCount }}/{{ l.capacity }}</p>
+          </div>
+          <ui-button type="button" variant="ghost" (click)="cancelLesson(l.id)">Cancelar</ui-button>
+        </li>
+      } @empty {
+        <li class="muted">No hay clases de manejo esta semana.</li>
+      }
+    </ul>
+  </section>
+}

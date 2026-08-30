@@ -176,6 +176,15 @@ export const routes: Routes = [
             .then((m) => m.AdminBanksPage)
       },
       {
+        path: 'school/practical',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['School'] },
+        loadComponent: () =>
+          import('./features/practical/pages/school-practical.page')
+            .then((m) => m.SchoolPracticalPage)
+      },
+      {
         path: 'school/training',
         pathMatch: 'full',
         canActivate: [roleGuard],
@@ -243,6 +252,15 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/student/pages/student-group.page')
             .then((m) => m.StudentGroupPage)
+      },
+      {
+        path: 'student/practical',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['Student'] },
+        loadComponent: () =>
+          import('./features/practical/pages/student-practical.page')
+            .then((m) => m.StudentPracticalPage)
       },
       {
         path: 'student/training',

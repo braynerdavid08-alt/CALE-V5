@@ -574,6 +574,60 @@ public static class FeatureSchema
                 db,
                 """UPDATE "SchoolStudentEnrollments" SET "AllowedStartTime" = NULL WHERE "AllowedStartTime" IS NOT NULL;""",
                 ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "TheoryTopics" ADD COLUMN "Category" TEXT NOT NULL DEFAULT 'Theory';""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN "RequiredWorkshopHours" INTEGER NOT NULL DEFAULT 10;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN "TheoryExamId" INTEGER NULL;""",
+                ct);
+            await TrySqliteAsync(
+                db,
+                """
+                CREATE TABLE IF NOT EXISTS "PracticalVehicles" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_PracticalVehicles" PRIMARY KEY AUTOINCREMENT,
+                    "SchoolUserId" INTEGER NOT NULL,
+                    "Label" TEXT NOT NULL,
+                    "Plate" TEXT NULL,
+                    "IsActive" INTEGER NOT NULL DEFAULT 1,
+                    "CreatedAt" TEXT NOT NULL,
+                    "UpdatedAt" TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS "PracticalLessonSessions" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_PracticalLessonSessions" PRIMARY KEY AUTOINCREMENT,
+                    "SchoolUserId" INTEGER NOT NULL,
+                    "SessionDate" TEXT NOT NULL,
+                    "StartTime" TEXT NOT NULL,
+                    "EndTime" TEXT NOT NULL,
+                    "InstructorUserId" INTEGER NOT NULL,
+                    "VehicleId" INTEGER NOT NULL,
+                    "Capacity" INTEGER NOT NULL DEFAULT 1,
+                    "Status" TEXT NOT NULL,
+                    "Notes" TEXT NULL,
+                    "CreatedAt" TEXT NOT NULL,
+                    "UpdatedAt" TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS "PracticalLessonReservations" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_PracticalLessonReservations" PRIMARY KEY AUTOINCREMENT,
+                    "LessonSessionId" INTEGER NOT NULL,
+                    "StudentUserId" INTEGER NOT NULL,
+                    "Status" TEXT NOT NULL,
+                    "ReservedAt" TEXT NOT NULL,
+                    "CancelledAt" TEXT NULL,
+                    "CreatedAt" TEXT NOT NULL,
+                    "UpdatedAt" TEXT NOT NULL
+                );
+                """,
+                ct);
+            await TrySqliteAsync(
+                db,
+                """UPDATE "TheoryTopics" SET "Category" = 'Workshop' WHERE lower("Name") LIKE '%taller%';""",
+                ct);
 
             return;
         }
@@ -705,6 +759,52 @@ public static class FeatureSchema
                 ct);
             await TryPostgresAsync(db,
                 """UPDATE "SchoolStudentEnrollments" SET "AllowedStartTime" = NULL WHERE "AllowedStartTime" IS NOT NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTopics" ADD COLUMN IF NOT EXISTS "Category" varchar(16) NOT NULL DEFAULT 'Theory';""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "RequiredWorkshopHours" integer NOT NULL DEFAULT 10;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "TheoryExamId" integer NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """
+                CREATE TABLE IF NOT EXISTS "PracticalVehicles" (
+                    "Id" serial PRIMARY KEY,
+                    "SchoolUserId" integer NOT NULL,
+                    "Label" varchar(80) NOT NULL,
+                    "Plate" varchar(16) NULL,
+                    "IsActive" boolean NOT NULL DEFAULT TRUE,
+                    "CreatedAt" timestamp with time zone NOT NULL,
+                    "UpdatedAt" timestamp with time zone NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS "PracticalLessonSessions" (
+                    "Id" serial PRIMARY KEY,
+                    "SchoolUserId" integer NOT NULL,
+                    "SessionDate" date NOT NULL,
+                    "StartTime" time NOT NULL,
+                    "EndTime" time NOT NULL,
+                    "InstructorUserId" integer NOT NULL,
+                    "VehicleId" integer NOT NULL,
+                    "Capacity" integer NOT NULL DEFAULT 1,
+                    "Status" varchar(32) NOT NULL,
+                    "Notes" varchar(500) NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL,
+                    "UpdatedAt" timestamp with time zone NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS "PracticalLessonReservations" (
+                    "Id" serial PRIMARY KEY,
+                    "LessonSessionId" integer NOT NULL,
+                    "StudentUserId" integer NOT NULL,
+                    "Status" varchar(32) NOT NULL,
+                    "ReservedAt" timestamp with time zone NOT NULL,
+                    "CancelledAt" timestamp with time zone NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL,
+                    "UpdatedAt" timestamp with time zone NOT NULL
+                );
+                """,
                 ct);
             await TryPostgresAsync(db,
                 """

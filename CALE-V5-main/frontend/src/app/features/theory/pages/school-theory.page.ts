@@ -62,7 +62,7 @@ export class SchoolTheoryPage implements OnInit {
     '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'
   ];
 
-  newTopic = { name: '', description: '', color: '#3B82F6', isActive: true };
+  newTopic = { name: '', description: '', color: '#3B82F6', category: 'Theory', isActive: true };
   newClassroom = { name: '', identifier: '', capacity: 15, location: '', isActive: true };
   createForm = {
     sessionDate: '',
@@ -643,7 +643,7 @@ export class SchoolTheoryPage implements OnInit {
   saveTopic(): void {
     this.api.saveTopic(this.newTopic).subscribe({
       next: () => {
-        this.newTopic = { name: '', description: '', color: '#3B82F6', isActive: true };
+        this.newTopic = { name: '', description: '', color: '#3B82F6', category: 'Theory', isActive: true };
         this.reload();
       },
       error: (err) => this.error.set(mapApiError(err))

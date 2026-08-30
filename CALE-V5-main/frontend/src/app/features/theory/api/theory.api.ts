@@ -7,6 +7,7 @@ export interface TheoryTopicDto {
   name: string;
   description?: string | null;
   color: string;
+  category: string;
   isActive: boolean;
 }
 
@@ -24,11 +25,25 @@ export interface TheorySettingsDto {
   minCancelHours: number;
   reservationCloseMinutesBefore: number;
   requiredTheoryHours: number;
+  requiredWorkshopHours: number;
+  theoryExamId?: number | null;
   weekdaysEnabled: boolean;
   saturdayEnabled: boolean;
   notifyReservationOpen: boolean;
   notifyClassReminder24h: boolean;
   notifyClassReminder1h: boolean;
+}
+
+export interface PracticalEligibilityDto {
+  canBookPractical: boolean;
+  theoryExamPassed: boolean;
+  theoryHoursComplete: boolean;
+  workshopHoursComplete: boolean;
+  theoryHoursCompleted: number;
+  theoryHoursRequired: number;
+  workshopHoursCompleted: number;
+  workshopHoursRequired: number;
+  blockReason?: string | null;
 }
 
 export interface AttendanceRowDto {
@@ -91,6 +106,8 @@ export interface TheoryStudentDashboardDto {
   progressPercent: number;
   hoursCompleted: number;
   hoursRequired: number;
+  workshopHoursCompleted: number;
+  workshopHoursRequired: number;
   pendingClasses: number;
   absences: number;
   currentStreak: number;
@@ -101,6 +118,7 @@ export interface TheoryStudentDashboardDto {
   checkedInToday: boolean;
   todayTasks: Array<{ label: string; done: boolean }>;
   attendanceDayType?: string | null;
+  practicalEligibility?: PracticalEligibilityDto | null;
 }
 
 export interface EnrollmentDto {
@@ -114,6 +132,7 @@ export interface EnrollmentDto {
   licenseCategories?: string | null;
   createdAt: string;
   acceptedAt?: string | null;
+  practicalEligibility?: PracticalEligibilityDto | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -138,6 +157,7 @@ export class TheoryApi {
       name: body.name ?? '',
       description: body.description,
       color: body.color ?? '#3B82F6',
+      category: body.category ?? 'Theory',
       isActive: body.isActive ?? true
     };
     return id

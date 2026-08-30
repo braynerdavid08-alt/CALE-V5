@@ -6,6 +6,7 @@ using Cale.BuildingBlocks.Domain.Time;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
 using Cale.Modules.Identity.Application.Abstractions;
 using Cale.Modules.Identity.Domain;
+using Cale.Modules.Assessment.Domain;
 using Cale.Modules.TheoreticalTraining.Application.DTOs;
 using Cale.Modules.TheoreticalTraining.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -50,7 +51,7 @@ public sealed class TheoryTrainingService
 
         return await query
             .OrderBy(x => x.Name)
-            .Select(x => new TheoryTopicDto(x.Id, x.Name, x.Description, x.Color, x.IsActive))
+            .Select(x => new TheoryTopicDto(x.Id, x.Name, x.Description, x.Color, x.Category, x.IsActive))
             .ToListAsync(ct);
     }
 
@@ -79,10 +80,13 @@ public sealed class TheoryTrainingService
             ? null
             : request.Description.Trim();
         entity.Color = string.IsNullOrWhiteSpace(request.Color) ? "#3B82F6" : request.Color.Trim();
+        entity.Category = TheoryTopicCategories.IsValid(request.Category)
+            ? request.Category
+            : TheoryTopicCategories.InferFromName(request.Name);
         entity.IsActive = request.IsActive;
         entity.UpdatedAt = now;
         await _db.SaveChangesAsync(ct);
-        return new TheoryTopicDto(entity.Id, entity.Name, entity.Description, entity.Color, entity.IsActive);
+        return new TheoryTopicDto(entity.Id, entity.Name, entity.Description, entity.Color, entity.Category, entity.IsActive);
     }
 
     // ── Classrooms ──────────────────────────────────────────────────────
@@ -163,6 +167,8 @@ public sealed class TheoryTrainingService
         settings.MinCancelHours = Math.Clamp(request.MinCancelHours, 0, 72);
         settings.ReservationCloseMinutesBefore = Math.Clamp(request.ReservationCloseMinutesBefore, 0, 180);
         settings.RequiredTheoryHours = Math.Clamp(request.RequiredTheoryHours, 1, 200);
+        settings.RequiredWorkshopHours = Math.Clamp(request.RequiredWorkshopHours, 0, 200);
+        settings.TheoryExamId = request.TheoryExamId;
         settings.WeekdaysEnabled = true;
         settings.SaturdayEnabled = true;
         settings.NotifyReservationOpen = request.NotifyReservationOpen;
@@ -891,11 +897,19 @@ public sealed class TheoryTrainingService
             upcomingDtos.Add(await MapSessionAsync(s.Id, studentUserId, ct));
         }
 
-        var (hoursCompleted, absences) = await ComputeProgressAsync(studentUserId, ct);
+        var (theoryHours, workshopHours, absences) = await ComputeHoursBreakdownAsync(studentUserId, ct);
         var hoursRequired = settings.RequiredTheoryHours;
+        var workshopRequired = settings.RequiredWorkshopHours;
         var progress = hoursRequired <= 0
             ? 0
-            : Math.Round(hoursCompleted / hoursRequired * 100m, 1);
+            : Math.Round(theoryHours / hoursRequired * 100m, 1);
+        var eligibility = await GetPracticalEligibilityAsync(
+            schoolUserId,
+            studentUserId,
+            settings,
+            theoryHours,
+            workshopHours,
+            ct);
 
         var (currentStreak, bestStreak) = await ComputeStreaksAsync(studentUserId, ct);
         var checkedIn = await _db.Set<StudentDailyCheckIn>()
@@ -922,8 +936,10 @@ public sealed class TheoryTrainingService
             nextDto,
             upcomingDtos,
             progress,
-            hoursCompleted,
+            theoryHours,
             hoursRequired,
+            workshopHours,
+            workshopRequired,
             Math.Max(0, upcoming.Count),
             absences,
             currentStreak,
@@ -933,7 +949,8 @@ public sealed class TheoryTrainingService
             opensAt,
             checkedIn,
             tasks,
-            enrollment?.AttendanceDayType);
+            enrollment?.AttendanceDayType,
+            eligibility);
     }
 
     public async Task<TheoryWeekScheduleDto> GetStudentWeekScheduleAsync(
@@ -964,12 +981,34 @@ public sealed class TheoryTrainingService
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task<(int SchoolUserId, User Student)> ResolveStudentSchoolPublicAsync(
+        int studentUserId,
+        CancellationToken ct) =>
+        await ResolveStudentSchoolAsync(studentUserId, ct);
+
+    public async Task<PracticalEligibilityDto> GetPracticalEligibilityAsync(
+        int schoolUserId,
+        int studentUserId,
+        CancellationToken ct)
+    {
+        var settings = await GetOrCreateSettingsAsync(schoolUserId, ct);
+        var (theoryHours, workshopHours, _) = await ComputeHoursBreakdownAsync(studentUserId, ct);
+        return await GetPracticalEligibilityAsync(
+            schoolUserId,
+            studentUserId,
+            settings,
+            theoryHours,
+            workshopHours,
+            ct);
+    }
+
     // ── Enrollments ─────────────────────────────────────────────────────
 
     public async Task<IReadOnlyList<EnrollmentDto>> ListEnrollmentsAsync(
         int schoolUserId,
         CancellationToken ct)
     {
+        var settings = await GetOrCreateSettingsAsync(schoolUserId, ct);
         var students = (await _users.ListBySchoolAsync(schoolUserId, ct))
             .Where(x => x.Role == Roles.Student)
             .OrderBy(x => x.Name)
@@ -981,9 +1020,17 @@ public sealed class TheoryTrainingService
         var result = new List<EnrollmentDto>();
         foreach (var student in students)
         {
+            var (theoryHours, workshopHours, _) = await ComputeHoursBreakdownAsync(student.Id, ct);
+            var eligibility = await GetPracticalEligibilityAsync(
+                schoolUserId,
+                student.Id,
+                settings,
+                theoryHours,
+                workshopHours,
+                ct);
             if (items.TryGetValue(student.Id, out var e))
             {
-                result.Add(MapEnrollmentDto(e, student.Name, student.Email));
+                result.Add(MapEnrollmentDto(e, student.Name, student.Email, eligibility));
             }
             else
             {
@@ -997,7 +1044,8 @@ public sealed class TheoryTrainingService
                     null,
                     null,
                     DateTime.UtcNow,
-                    null));
+                    null,
+                    eligibility));
             }
         }
 
@@ -1419,15 +1467,16 @@ public sealed class TheoryTrainingService
         }
     }
 
-    private async Task<(decimal Hours, int Absences)> ComputeProgressAsync(
+    private async Task<(decimal TheoryHours, decimal WorkshopHours, int Absences)> ComputeHoursBreakdownAsync(
         int studentUserId,
         CancellationToken ct)
     {
         var records = await _db.Set<TheoryAttendanceRecord>()
-            .Include(x => x.ClassSession)
+            .Include(x => x.ClassSession)!.ThenInclude(s => s!.Topic)
             .Where(x => x.StudentUserId == studentUserId)
             .ToListAsync(ct);
-        decimal hours = 0;
+        decimal theoryHours = 0;
+        decimal workshopHours = 0;
         var absences = 0;
         foreach (var r in records)
         {
@@ -1436,7 +1485,16 @@ public sealed class TheoryTrainingService
                 var s = r.ClassSession;
                 if (s is not null)
                 {
-                    hours += (decimal)(s.EndTime - s.StartTime).TotalHours;
+                    var duration = (decimal)(s.EndTime - s.StartTime).TotalHours;
+                    var category = s.Topic?.Category ?? TheoryTopicCategories.Theory;
+                    if (category == TheoryTopicCategories.Workshop)
+                    {
+                        workshopHours += duration;
+                    }
+                    else
+                    {
+                        theoryHours += duration;
+                    }
                 }
             }
             else if (r.Status == TheoryAttendanceStatuses.Absent)
@@ -1445,7 +1503,55 @@ public sealed class TheoryTrainingService
             }
         }
 
-        return (Math.Round(hours, 1), absences);
+        return (Math.Round(theoryHours, 1), Math.Round(workshopHours, 1), absences);
+    }
+
+    private async Task<PracticalEligibilityDto> GetPracticalEligibilityAsync(
+        int schoolUserId,
+        int studentUserId,
+        TheoryTrainingSettings settings,
+        decimal theoryHours,
+        decimal workshopHours,
+        CancellationToken ct)
+    {
+        var theoryExamPassed = true;
+        if (settings.TheoryExamId is int examId)
+        {
+            theoryExamPassed = await _db.Set<Attempt>()
+                .AnyAsync(a => a.UserId == studentUserId
+                    && a.ExamId == examId
+                    && a.FinishedAt != null
+                    && a.Passed, ct);
+        }
+
+        var theoryComplete = theoryHours >= settings.RequiredTheoryHours;
+        var workshopComplete = workshopHours >= settings.RequiredWorkshopHours;
+        var canBook = theoryExamPassed && theoryComplete && workshopComplete;
+
+        string? blockReason = null;
+        if (!theoryExamPassed)
+        {
+            blockReason = "Debes aprobar el examen teórico.";
+        }
+        else if (!theoryComplete)
+        {
+            blockReason = $"Te faltan horas de teoría ({theoryHours}/{settings.RequiredTheoryHours}).";
+        }
+        else if (!workshopComplete)
+        {
+            blockReason = $"Te faltan horas de taller ({workshopHours}/{settings.RequiredWorkshopHours}).";
+        }
+
+        return new PracticalEligibilityDto(
+            canBook,
+            theoryExamPassed,
+            theoryComplete,
+            workshopComplete,
+            theoryHours,
+            settings.RequiredTheoryHours,
+            workshopHours,
+            settings.RequiredWorkshopHours,
+            blockReason);
     }
 
     private async Task<(int Current, int Best)> ComputeStreaksAsync(
@@ -1551,11 +1657,31 @@ public sealed class TheoryTrainingService
             s.MinCancelHours,
             s.ReservationCloseMinutesBefore,
             s.RequiredTheoryHours,
+            s.RequiredWorkshopHours,
+            s.TheoryExamId,
             s.WeekdaysEnabled,
             s.SaturdayEnabled,
             s.NotifyReservationOpen,
             s.NotifyClassReminder24h,
             s.NotifyClassReminder1h);
+
+    private static EnrollmentDto MapEnrollmentDto(
+        SchoolStudentEnrollment enrollment,
+        string studentName,
+        string studentEmail,
+        PracticalEligibilityDto? eligibility = null) =>
+        new(
+            enrollment.Id,
+            enrollment.StudentUserId,
+            studentName,
+            studentEmail,
+            enrollment.Status,
+            enrollment.AttendanceDayType,
+            enrollment.AllowedStartTime?.ToString("HH:mm"),
+            enrollment.LicenseCategories,
+            enrollment.CreatedAt,
+            enrollment.AcceptedAt,
+            eligibility);
 
     private static TimeOnly ParseTime(string value)
     {
@@ -1618,22 +1744,6 @@ public sealed class TheoryTrainingService
         ?? throw new ForbiddenException(
             "Tu escuela aún no te ha habilitado para reservar clases.",
             "enrollment_not_active");
-
-    private static EnrollmentDto MapEnrollmentDto(
-        SchoolStudentEnrollment enrollment,
-        string studentName,
-        string studentEmail) =>
-        new(
-            enrollment.Id,
-            enrollment.StudentUserId,
-            studentName,
-            studentEmail,
-            enrollment.Status,
-            enrollment.AttendanceDayType,
-            enrollment.AllowedStartTime?.ToString("HH:mm"),
-            enrollment.LicenseCategories,
-            enrollment.CreatedAt,
-            enrollment.AcceptedAt);
 
     private static void ValidateSessionDayForSettings(
         DateOnly sessionDate,

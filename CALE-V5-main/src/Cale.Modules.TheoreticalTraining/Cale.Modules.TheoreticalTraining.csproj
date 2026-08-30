@@ -4,6 +4,7 @@
     <ProjectReference Include="..\Cale.BuildingBlocks.Domain\Cale.BuildingBlocks.Domain.csproj" />
     <ProjectReference Include="..\Cale.BuildingBlocks.Infrastructure\Cale.BuildingBlocks.Infrastructure.csproj" />
     <ProjectReference Include="..\Cale.Modules.Identity\Cale.Modules.Identity.csproj" />
+    <ProjectReference Include="..\Cale.Modules.Assessment\Cale.Modules.Assessment.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -317,6 +317,15 @@
                     </span>
                     <strong>{{ row.studentName }}</strong>
                     <small>{{ row.studentEmail }}</small>
+                    @if (row.practicalEligibility; as pe) {
+                      <small class="eligibility" [class.ready]="pe.canBookPractical">
+                        @if (pe.canBookPractical) {
+                          Listo para manejo
+                        } @else {
+                          {{ pe.blockReason }}
+                        }
+                      </small>
+                    }
                   </td>
                   <td>{{ enrollmentStatusLabel(row.status) }}</td>
                   <td>
@@ -360,11 +369,17 @@
       <label>Nombre <input [(ngModel)]="newTopic.name" /></label>
       <label>Descripción <input [(ngModel)]="newTopic.description" /></label>
       <label>Color <input type="color" [(ngModel)]="newTopic.color" /></label>
+      <label>Tipo
+        <select [(ngModel)]="newTopic.category">
+          <option value="Theory">Teoría</option>
+          <option value="Workshop">Taller</option>
+        </select>
+      </label>
       <ui-button type="button" (click)="saveTopic()">Guardar tema</ui-button>
     </div>
     <ul class="items">
       @for (t of topics(); track t.id) {
-        <li><span class="swatch" [style.background]="t.color"></span>{{ t.name }}</li>
+        <li><span class="swatch" [style.background]="t.color"></span>{{ t.name }} <small>({{ t.category === 'Workshop' ? 'Taller' : 'Teoría' }})</small></li>
       }
     </ul>
   } @else if (tab() === 'settings') {
@@ -389,6 +404,13 @@
         <label>Horas teóricas requeridas
           <input type="number" min="1" max="200" [(ngModel)]="cfg.requiredTheoryHours" />
         </label>
+        <label>Horas de taller requeridas
+          <input type="number" min="0" max="200" [(ngModel)]="cfg.requiredWorkshopHours" />
+        </label>
+        <label>ID del examen teórico oficial
+          <input type="number" min="1" [(ngModel)]="cfg.theoryExamId" placeholder="Ej. 12" />
+        </label>
+        <p class="muted">El estudiante debe aprobar ese examen (≥80%) antes de agendar clases de manejo.</p>
         <label>Horas mínimas para cancelar
           <input type="number" min="0" max="72" [(ngModel)]="cfg.minCancelHours" />
         </label>

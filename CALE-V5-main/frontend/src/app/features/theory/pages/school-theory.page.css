@@ -113,7 +113,8 @@
 .status-pill[data-status="Present"] { color: #15803d; }
 .status-pill[data-status="Absent"] { color: #b91c1c; }
 .status-pill[data-status="Late"] { color: #a16207; }
-.settings-card .check { display: flex; align-items: center; gap: 0.5rem; }
+.eligibility { display: block; color: #f59e0b; margin-top: 0.2rem; }
+.eligibility.ready { color: #22c55e; font-weight: 700; }
 .settings-card .radio { display: flex; align-items: center; gap: 0.5rem; margin: 0.35rem 0; }
 .day-off { background: color-mix(in srgb, var(--color-border) 35%, transparent); }
 .cell-off { display: block; text-align: center; color: var(--color-text-secondary); font-size: var(--text-xs); }

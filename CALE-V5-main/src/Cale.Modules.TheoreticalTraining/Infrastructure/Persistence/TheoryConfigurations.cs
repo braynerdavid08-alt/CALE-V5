@@ -12,6 +12,7 @@ public sealed class TheoryTopicConfiguration : IEntityTypeConfiguration<TheoryTo
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Name).HasMaxLength(120).IsRequired();
         builder.Property(x => x.Color).HasMaxLength(16).IsRequired();
+        builder.Property(x => x.Category).HasMaxLength(16).IsRequired();
         builder.HasIndex(x => new { x.SchoolUserId, x.Name });
     }
 }
@@ -98,5 +99,41 @@ public sealed class StudentDailyCheckInConfiguration : IEntityTypeConfiguration<
         builder.ToTable("StudentDailyCheckIns");
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => new { x.StudentUserId, x.CheckInDate }).IsUnique();
+    }
+}
+
+public sealed class PracticalVehicleConfiguration : IEntityTypeConfiguration<PracticalVehicle>
+{
+    public void Configure(EntityTypeBuilder<PracticalVehicle> builder)
+    {
+        builder.ToTable("PracticalVehicles");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Label).HasMaxLength(80).IsRequired();
+        builder.Property(x => x.Plate).HasMaxLength(16);
+        builder.HasIndex(x => x.SchoolUserId);
+    }
+}
+
+public sealed class PracticalLessonSessionConfiguration : IEntityTypeConfiguration<PracticalLessonSession>
+{
+    public void Configure(EntityTypeBuilder<PracticalLessonSession> builder)
+    {
+        builder.ToTable("PracticalLessonSessions");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Status).HasMaxLength(32).IsRequired();
+        builder.HasIndex(x => new { x.SchoolUserId, x.SessionDate });
+        builder.HasOne(x => x.Vehicle).WithMany().HasForeignKey(x => x.VehicleId);
+    }
+}
+
+public sealed class PracticalLessonReservationConfiguration : IEntityTypeConfiguration<PracticalLessonReservation>
+{
+    public void Configure(EntityTypeBuilder<PracticalLessonReservation> builder)
+    {
+        builder.ToTable("PracticalLessonReservations");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Status).HasMaxLength(32).IsRequired();
+        builder.HasIndex(x => new { x.LessonSessionId, x.StudentUserId });
+        builder.HasOne(x => x.LessonSession).WithMany().HasForeignKey(x => x.LessonSessionId);
     }
 }

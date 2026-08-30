@@ -5,12 +5,14 @@ public sealed record TheoryTopicDto(
     string Name,
     string? Description,
     string Color,
+    string Category,
     bool IsActive);
 
 public sealed record SaveTheoryTopicRequest(
     string Name,
     string? Description,
     string Color,
+    string Category,
     bool IsActive);
 
 public sealed record TheoryClassroomDto(
@@ -33,6 +35,8 @@ public sealed record TheorySettingsDto(
     int MinCancelHours,
     int ReservationCloseMinutesBefore,
     int RequiredTheoryHours,
+    int RequiredWorkshopHours,
+    int? TheoryExamId,
     bool WeekdaysEnabled,
     bool SaturdayEnabled,
     bool NotifyReservationOpen = true,
@@ -113,6 +117,8 @@ public sealed record TheoryStudentDashboardDto(
     decimal ProgressPercent,
     decimal HoursCompleted,
     decimal HoursRequired,
+    decimal WorkshopHoursCompleted,
+    decimal WorkshopHoursRequired,
     int PendingClasses,
     int Absences,
     int CurrentStreak,
@@ -122,7 +128,8 @@ public sealed record TheoryStudentDashboardDto(
     DateTime? ReservationOpensAt,
     bool CheckedInToday,
     IReadOnlyList<TheoryDailyTaskDto> TodayTasks,
-    string? AttendanceDayType = null);
+    string? AttendanceDayType = null,
+    PracticalEligibilityDto? PracticalEligibility = null);
 
 public sealed record TheoryDailyTaskDto(string Label, bool Done);
 
@@ -150,7 +157,63 @@ public sealed record EnrollmentDto(
     string? AllowedStartTime,
     string? LicenseCategories,
     DateTime CreatedAt,
-    DateTime? AcceptedAt);
+    DateTime? AcceptedAt,
+    PracticalEligibilityDto? PracticalEligibility = null);
+
+public sealed record PracticalEligibilityDto(
+    bool CanBookPractical,
+    bool TheoryExamPassed,
+    bool TheoryHoursComplete,
+    bool WorkshopHoursComplete,
+    decimal TheoryHoursCompleted,
+    decimal TheoryHoursRequired,
+    decimal WorkshopHoursCompleted,
+    decimal WorkshopHoursRequired,
+    string? BlockReason);
+
+public sealed record PracticalVehicleDto(
+    int Id,
+    string Label,
+    string? Plate,
+    bool IsActive);
+
+public sealed record SavePracticalVehicleRequest(
+    string Label,
+    string? Plate,
+    bool IsActive);
+
+public sealed record PracticalLessonSessionDto(
+    int Id,
+    string SessionDate,
+    string StartTime,
+    string EndTime,
+    int InstructorUserId,
+    string InstructorName,
+    int VehicleId,
+    string VehicleLabel,
+    int Capacity,
+    int ReservedCount,
+    int AvailableSeats,
+    string Status,
+    string? Notes,
+    string? BookingState,
+    string? BookingMessage,
+    int? MyReservationId);
+
+public sealed record CreatePracticalLessonRequest(
+    DateOnly SessionDate,
+    string StartTime,
+    string EndTime,
+    int InstructorUserId,
+    int VehicleId,
+    int? Capacity,
+    string? Notes);
+
+public sealed record PracticalStudentDashboardDto(
+    PracticalEligibilityDto Eligibility,
+    PracticalLessonSessionDto? NextLesson,
+    IReadOnlyList<PracticalLessonSessionDto> UpcomingReservations,
+    IReadOnlyList<PracticalLessonSessionDto> AvailableLessons);
 
 public sealed record UpdateEnrollmentRequest(
     string Status,

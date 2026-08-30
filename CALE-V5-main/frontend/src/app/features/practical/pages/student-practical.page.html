@@ -1,0 +1,75 @@
+<section class="page">
+  <header class="hero">
+    <p class="eyebrow">Mi formación</p>
+    <h1>Clases de manejo</h1>
+    <p class="lead">Agenda tu práctica vehicular cuando completes los requisitos de teoría.</p>
+  </header>
+
+  <ui-error [message]="error()" />
+
+  @if (loading()) {
+    <ui-loading />
+  } @else if (dashboard()) {
+    @let dash = dashboard()!;
+    <article class="card requirements">
+      <h2>Requisitos para agendar</h2>
+      <ul>
+        <li [class.done]="dash.eligibility.theoryExamPassed">
+          {{ dash.eligibility.theoryExamPassed ? '☑' : '☐' }} Examen teórico aprobado
+        </li>
+        <li [class.done]="dash.eligibility.theoryHoursComplete">
+          {{ dash.eligibility.theoryHoursComplete ? '☑' : '☐' }}
+          Horas de teoría: {{ dash.eligibility.theoryHoursCompleted }} / {{ dash.eligibility.theoryHoursRequired }}
+        </li>
+        <li [class.done]="dash.eligibility.workshopHoursComplete">
+          {{ dash.eligibility.workshopHoursComplete ? '☑' : '☐' }}
+          Horas de taller: {{ dash.eligibility.workshopHoursCompleted }} / {{ dash.eligibility.workshopHoursRequired }}
+        </li>
+      </ul>
+      @if (dash.eligibility.canBookPractical) {
+        <p class="ok">✅ Ya puedes reservar clases de manejo.</p>
+      } @else if (dash.eligibility.blockReason) {
+        <p class="blocked">{{ dash.eligibility.blockReason }}</p>
+      }
+      <p class="hint"><a routerLink="/student/training">Ir a clases teóricas</a> · <a routerLink="/student/simulator">Simulador</a></p>
+    </article>
+
+    @if (dash.nextLesson; as next) {
+      <article class="card highlight">
+        <h2>Próxima clase de manejo</h2>
+        <p class="when">{{ next.sessionDate }} · {{ next.startTime }} – {{ next.endTime }}</p>
+        <p class="meta">{{ next.instructorName }} · {{ next.vehicleLabel }}</p>
+      </article>
+    }
+
+    <h2>Clases disponibles</h2>
+    @if (actionLoading()) {
+      <p class="inline-loading">Actualizando reservas…</p>
+    }
+    <ul class="list">
+      @for (session of dash.availableLessons; track session.id) {
+        <li class="slot">
+          <div>
+            <p class="title">{{ session.sessionDate }} · {{ session.startTime }} – {{ session.endTime }}</p>
+            <p class="meta">{{ session.instructorName }} · {{ session.vehicleLabel }} · {{ session.bookingMessage }}</p>
+          </div>
+          <button
+            type="button"
+            class="btn"
+            [class.reserve]="canReserve(session)"
+            [class.reserved]="session.bookingState === 'reserved'"
+            [class.blocked]="!dash.eligibility.canBookPractical && session.bookingState !== 'reserved'"
+            [disabled]="actionLoading() || (!canReserve(session) && session.bookingState !== 'reserved')"
+            (click)="canReserve(session) ? reserve(session) : (session.bookingState === 'reserved' ? cancel(session) : null)">
+            @if (session.bookingState === 'reserved') { Reservada }
+            @else if (!dash.eligibility.canBookPractical) { Bloqueado }
+            @else if (session.bookingState === 'full') { Sin cupos }
+            @else { Reservar }
+          </button>
+        </li>
+      } @empty {
+        <li class="empty">No hay clases de manejo programadas por tu escuela.</li>
+      }
+    </ul>
+  }
+</section>

@@ -7,6 +7,8 @@ public sealed class TheoryTopic
     public string Name { get; set; } = "";
     public string? Description { get; set; }
     public string Color { get; set; } = "#3B82F6";
+    /// <summary>Theory or Workshop (taller).</summary>
+    public string Category { get; set; } = TheoryTopicCategories.Theory;
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
@@ -33,6 +35,8 @@ public sealed class TheoryTrainingSettings
     public int MinCancelHours { get; set; } = 2;
     public int ReservationCloseMinutesBefore { get; set; }
     public int RequiredTheoryHours { get; set; } = 20;
+    public int RequiredWorkshopHours { get; set; } = 10;
+    public int? TheoryExamId { get; set; }
     public bool WeekdaysEnabled { get; set; } = true;
     public bool SaturdayEnabled { get; set; } = true;
     public bool NotifyReservationOpen { get; set; } = true;
@@ -120,4 +124,47 @@ public sealed class StudentDailyCheckIn
     public int StudentUserId { get; set; }
     public DateOnly CheckInDate { get; set; }
     public DateTime CheckInAt { get; set; }
+}
+
+public sealed class PracticalVehicle
+{
+    public int Id { get; set; }
+    public int SchoolUserId { get; set; }
+    public string Label { get; set; } = "";
+    public string? Plate { get; set; }
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+public sealed class PracticalLessonSession
+{
+    public int Id { get; set; }
+    public int SchoolUserId { get; set; }
+    public DateOnly SessionDate { get; set; }
+    public TimeOnly StartTime { get; set; }
+    public TimeOnly EndTime { get; set; }
+    public int InstructorUserId { get; set; }
+    public int VehicleId { get; set; }
+    public int Capacity { get; set; } = 1;
+    public string Status { get; set; } = PracticalLessonStatuses.Scheduled;
+    public string? Notes { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+
+    public PracticalVehicle? Vehicle { get; set; }
+}
+
+public sealed class PracticalLessonReservation
+{
+    public int Id { get; set; }
+    public int LessonSessionId { get; set; }
+    public int StudentUserId { get; set; }
+    public string Status { get; set; } = PracticalReservationStatuses.Reserved;
+    public DateTime ReservedAt { get; set; }
+    public DateTime? CancelledAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+
+    public PracticalLessonSession? LessonSession { get; set; }
 }

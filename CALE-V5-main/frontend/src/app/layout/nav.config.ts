@@ -117,6 +117,7 @@ export function navForRole(role?: string): NavItem[] {
     return [
       { label: 'Dashboard', path: '/school', icon: 'home', exact: true },
       { label: 'Programación', path: '/school/training', icon: 'exam', exact: true },
+      { label: 'Práctica vehicular', path: '/school/practical', icon: 'exam', exact: true },
       { label: 'Pagos y Suscripciones', path: '/school/membership', icon: 'card', exact: true },
       { label: 'Usuarios', path: '/school/users', icon: 'users', exact: true },
       { label: 'Importar', path: '/school/import', icon: 'users', exact: true },
@@ -131,6 +132,7 @@ export function navForRole(role?: string): NavItem[] {
   return [
     { label: 'Dashboard', path: '/student', icon: 'home', exact: true },
     { label: 'Mi formación', path: '/student/training', icon: 'exam', exact: true },
+    { label: 'Clases de manejo', path: '/student/practical', icon: 'exam', exact: true },
     { label: 'Mis Clases', path: '/student/classes', icon: 'book', exact: true },
     { label: 'Mis Evaluaciones', path: '/student/evaluations', icon: 'exam', exact: true },
     { label: 'Mi Progreso', path: '/student/progress', icon: 'chart', exact: true },
