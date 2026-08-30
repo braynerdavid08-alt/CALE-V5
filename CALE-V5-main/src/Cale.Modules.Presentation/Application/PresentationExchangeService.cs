@@ -361,7 +361,7 @@ public sealed class PresentationExchangeService
         var index = 1;
         foreach (var slideId in slideIds)
         {
-            var slidePart = (P.SlidePart)presentationPart.GetPartById(slideId.RelationshipId!);
+            var slidePart = (SlidePart)presentationPart.GetPartById(slideId.RelationshipId!);
             var texts = ExtractSlideTexts(slidePart);
             if (texts.Count == 0)
             {
@@ -399,7 +399,7 @@ public sealed class PresentationExchangeService
         return slides;
     }
 
-    private static List<string> ExtractSlideTexts(P.SlidePart slidePart)
+    private static List<string> ExtractSlideTexts(SlidePart slidePart)
     {
         var texts = new List<string>();
         var tree = slidePart.Slide?.CommonSlideData?.ShapeTree;
@@ -450,7 +450,7 @@ public sealed class PresentationExchangeService
         return string.Concat(body.Descendants<A.Text>().Select(t => t.Text));
     }
 
-    private static string? ExtractSlideNotes(P.SlidePart slidePart)
+    private static string? ExtractSlideNotes(SlidePart slidePart)
     {
         var notesPart = slidePart.NotesSlidePart;
         var tree = notesPart?.NotesSlide?.CommonSlideData?.ShapeTree;

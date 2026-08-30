@@ -18,3 +18,7 @@ TestResults/
 appsettings.Development.local.json
 src/Cale.Api/wwwroot/uploads/*
 !src/Cale.Api/wwwroot/uploads/.gitkeep
+.build-out/
+.build-out2/
+.build-verify/
+.tmp-theory-test/

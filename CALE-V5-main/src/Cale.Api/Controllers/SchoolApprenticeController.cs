@@ -48,6 +48,7 @@ public sealed class SchoolApprenticeController : ControllerBase
         Ok(await _registry.UpdateAsync(SchoolId, studentUserId, request, ct));
 
     [HttpPost("imports/excel/preview")]
+    [Consumes("multipart/form-data")]
     [RequestSizeLimit(20 * 1024 * 1024)]
     public async Task<IActionResult> ExcelPreview(
         [FromForm] string importType,

@@ -9,6 +9,11 @@
     "test": "ng test"
   },
   "private": true,
+  "overrides": {
+    "rimraf": "^5.0.10",
+    "glob": "^11.0.0",
+    "tar": "^7.4.3"
+  },
   "dependencies": {
     "@angular/animations": "^18.2.0",
     "@angular/common": "^18.2.0",

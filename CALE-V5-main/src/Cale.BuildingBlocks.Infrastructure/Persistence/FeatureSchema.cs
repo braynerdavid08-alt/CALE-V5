@@ -894,6 +894,8 @@ public static class FeatureSchema
                     "CreatedAt" timestamp with time zone NOT NULL,
                     "UpdatedAt" timestamp with time zone NOT NULL
                 );
+                CREATE INDEX IF NOT EXISTS "IX_TheoryExamAppointments_SchoolUserId_ExamDate_SlotTime"
+                    ON "TheoryExamAppointments" ("SchoolUserId", "ExamDate", "SlotTime");
                 """,
                 ct);
             await TryPostgresAsync(db,
@@ -1471,6 +1473,106 @@ public static class FeatureSchema
                     ON dbo.SchoolJoinRequests(SchoolUserId, Status);
                 CREATE INDEX IX_SchoolJoinRequests_TeacherUserId_Status
                     ON dbo.SchoolJoinRequests(TeacherUserId, Status);
+            END
+
+            IF OBJECT_ID(N'dbo.PracticalVehicles', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.PracticalVehicles (
+                    Id int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                    SchoolUserId int NOT NULL,
+                    Label nvarchar(80) NOT NULL,
+                    Plate nvarchar(16) NULL,
+                    IsActive bit NOT NULL CONSTRAINT DF_PracticalVehicles_Active DEFAULT(1),
+                    CreatedAt datetime2 NOT NULL,
+                    UpdatedAt datetime2 NOT NULL
+                );
+            END
+
+            IF OBJECT_ID(N'dbo.PracticalLessonSessions', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.PracticalLessonSessions (
+                    Id int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                    SchoolUserId int NOT NULL,
+                    SessionDate date NOT NULL,
+                    StartTime time NOT NULL,
+                    EndTime time NOT NULL,
+                    InstructorUserId int NOT NULL,
+                    VehicleId int NOT NULL,
+                    Capacity int NOT NULL CONSTRAINT DF_PracticalLessonSessions_Capacity DEFAULT(1),
+                    Status nvarchar(32) NOT NULL,
+                    Notes nvarchar(500) NULL,
+                    CreatedAt datetime2 NOT NULL,
+                    UpdatedAt datetime2 NOT NULL
+                );
+            END
+
+            IF OBJECT_ID(N'dbo.PracticalLessonReservations', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.PracticalLessonReservations (
+                    Id int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                    LessonSessionId int NOT NULL,
+                    StudentUserId int NOT NULL,
+                    Status nvarchar(32) NOT NULL,
+                    ReservedAt datetime2 NOT NULL,
+                    CancelledAt datetime2 NULL,
+                    CreatedAt datetime2 NOT NULL,
+                    UpdatedAt datetime2 NOT NULL
+                );
+            END
+
+            IF OBJECT_ID(N'dbo.SchoolApprenticeProfiles', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.SchoolApprenticeProfiles (
+                    Id int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                    SchoolUserId int NOT NULL,
+                    StudentUserId int NOT NULL,
+                    DocumentType nvarchar(8) NULL,
+                    DocumentNumber nvarchar(32) NULL,
+                    Phone nvarchar(32) NULL,
+                    Address nvarchar(256) NULL,
+                    ContactEmail nvarchar(256) NULL,
+                    EnrollmentDate date NULL,
+                    EnrollmentMonth nvarchar(32) NULL,
+                    OrderNumber int NULL,
+                    ScheduleSlot nvarchar(32) NULL,
+                    ReceiptNumber nvarchar(32) NULL,
+                    AmountDue decimal(18,2) NOT NULL CONSTRAINT DF_SchoolApprenticeProfiles_AmountDue DEFAULT(0),
+                    AmountPaid decimal(18,2) NOT NULL CONSTRAINT DF_SchoolApprenticeProfiles_AmountPaid DEFAULT(0),
+                    BalanceDue decimal(18,2) NOT NULL CONSTRAINT DF_SchoolApprenticeProfiles_BalanceDue DEFAULT(0),
+                    PaymentMethod nvarchar(32) NULL,
+                    BalancePaymentAmount decimal(18,2) NULL,
+                    AccountsReceivable decimal(18,2) NOT NULL CONSTRAINT DF_SchoolApprenticeProfiles_AR DEFAULT(0),
+                    BalancePaymentDate date NULL,
+                    BalancePaymentMethod nvarchar(32) NULL,
+                    BalanceReceiptNumber nvarchar(32) NULL,
+                    EnrollmentPin nvarchar(32) NULL,
+                    RuntRegistered bit NOT NULL CONSTRAINT DF_SchoolApprenticeProfiles_Runt DEFAULT(0),
+                    IsEnrolled bit NOT NULL CONSTRAINT DF_SchoolApprenticeProfiles_Enrolled DEFAULT(0),
+                    Notes nvarchar(512) NULL,
+                    CreatedAt datetime2 NOT NULL,
+                    UpdatedAt datetime2 NOT NULL
+                );
+                CREATE UNIQUE INDEX IX_SchoolApprenticeProfiles_SchoolUserId_StudentUserId
+                    ON dbo.SchoolApprenticeProfiles(SchoolUserId, StudentUserId);
+                CREATE INDEX IX_SchoolApprenticeProfiles_SchoolUserId_DocumentNumber
+                    ON dbo.SchoolApprenticeProfiles(SchoolUserId, DocumentNumber);
+            END
+
+            IF OBJECT_ID(N'dbo.TheoryExamAppointments', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.TheoryExamAppointments (
+                    Id int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                    SchoolUserId int NOT NULL,
+                    ExamDate date NOT NULL,
+                    SlotTime time NOT NULL,
+                    StudentUserId int NULL,
+                    StudentLabel nvarchar(160) NULL,
+                    Notes nvarchar(256) NULL,
+                    CreatedAt datetime2 NOT NULL,
+                    UpdatedAt datetime2 NOT NULL
+                );
+                CREATE INDEX IX_TheoryExamAppointments_SchoolUserId_ExamDate_SlotTime
+                    ON dbo.TheoryExamAppointments(SchoolUserId, ExamDate, SlotTime);
             END
             """,
             ct);

@@ -27,22 +27,22 @@
     <div class="dash-kpis">
       <ui-dash-kpi
         label="Grupos"
-        [value]="d.groups?.length ?? 0"
+        [value]="d.groups.length"
         icon="users"
         tone="primary" />
       <ui-dash-kpi
         label="Estudiantes a cargo"
-        [value]="d.activeStudents ?? 0"
+        [value]="d.activeStudents"
         icon="graduate"
         tone="info" />
       <ui-dash-kpi
         label="Por calificar"
-        [value]="d.pendingGrades?.length ?? 0"
+        [value]="d.pendingGrades.length"
         icon="exam"
-        [tone]="(d.pendingGrades?.length ?? 0) > 0 ? 'warning' : 'success'" />
+        [tone]="d.pendingGrades.length > 0 ? 'warning' : 'success'" />
       <ui-dash-kpi
         label="Exámenes publicados"
-        [value]="(d.publishedExams ?? 0) + ' / ' + (d.totalExams ?? 0)"
+        [value]="d.publishedExams + ' / ' + d.totalExams"
         icon="book"
         tone="primary" />
     </div>
@@ -94,7 +94,7 @@
           <div class="dash-panel-head">
             <h2>Entregas pendientes</h2>
           </div>
-          @if (!d.pendingGrades?.length) {
+          @if (!d.pendingGrades.length) {
             <p class="dash-empty">Nada pendiente por calificar.</p>
           } @else {
             <ul class="dash-feed">
@@ -119,7 +119,7 @@
             <h2>Mis grupos</h2>
             <a routerLink="/teacher/groups">Ver todos</a>
           </div>
-          @if (!d.groups?.length) {
+          @if (!d.groups.length) {
             <p class="dash-empty">Crea tu primer grupo para empezar.</p>
           } @else {
             <ul class="dash-feed">
@@ -157,7 +157,7 @@
           <div class="dash-panel-head">
             <h2>Bajo rendimiento</h2>
           </div>
-          @if (!d.lowScores?.length) {
+          @if (!d.lowScores.length) {
             <p class="dash-empty">Sin intentos reprobados recientes.</p>
           } @else {
             <ul class="dash-feed">
