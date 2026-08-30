@@ -18,6 +18,8 @@ import {
   EditorSlide,
   ImageProps,
   LineProps,
+  SLIDE_H,
+  SLIDE_W,
   ShapeKind,
   ShapeProps,
   SlideElement,
@@ -47,6 +49,7 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
   readonly index = signal(0);
   readonly showChrome = signal(true);
   readonly presentationId = signal(0);
+  readonly slideScale = signal(1);
 
   readonly current = computed(() => this.slides()[this.index()] ?? null);
 
@@ -61,7 +64,10 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
         this.title.set(detail.title);
         this.slides.set(dtoToEditorSlides(detail));
         this.loading.set(false);
-        setTimeout(() => this.enterFullscreen(), 200);
+        setTimeout(() => {
+          this.updateSlideScale();
+          this.enterFullscreen();
+        }, 200);
       },
       error: (err) => {
         this.error.set(mapApiError(err));
@@ -77,6 +83,16 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
     if (document.fullscreenElement) {
       void document.exitFullscreen();
     }
+  }
+
+  @HostListener('window:resize')
+  onResize(): void {
+    this.updateSlideScale();
+  }
+
+  @HostListener('document:fullscreenchange')
+  onFullscreenChange(): void {
+    setTimeout(() => this.updateSlideScale(), 50);
   }
 
   @HostListener('window:keydown', ['$event'])
@@ -118,6 +134,24 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
       clearTimeout(this.hideTimer);
     }
     this.hideTimer = setTimeout(() => this.showChrome.set(false), 2500);
+    this.updateSlideScale();
+  }
+
+  updateSlideScale(): void {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    if (w <= 0 || h <= 0) {
+      return;
+    }
+
+    this.slideScale.set(Math.min(w / SLIDE_W, h / SLIDE_H));
+  }
+
+  slidePresentStyle(slide: EditorSlide): Record<string, string> {
+    return {
+      ...this.bgStyle(slide),
+      transform: `scale(${this.slideScale()})`
+    };
   }
 
   enterFullscreen(): void {

@@ -13,7 +13,7 @@
     (click)="onStageClick()">
     @if (current(); as slide) {
       <div class="viewport">
-        <div class="slide" [ngStyle]="bgStyle(slide)">
+        <div class="slide" [ngStyle]="slidePresentStyle(slide)">
           @for (el of slide.elements; track el.id) {
             <div
               class="el"
