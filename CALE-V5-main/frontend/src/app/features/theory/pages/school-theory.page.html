@@ -1,14 +1,13 @@
-<section class="page">
-  <header class="hero">
-    <p class="eyebrow">Programación académica</p>
-    <h1>Clases teóricas</h1>
-    <p class="lead">Configura horarios, temas, aulas y cupos de tu escuela.</p>
-  </header>
+<div class="school-page school-page--wide">
+  <ui-page-header
+    eyebrow="Escuela"
+    title="Programación teórica"
+    subtitle="Horarios, estudiantes, asistencia, temas y aulas de tu escuela." />
 
   <ui-error [message]="error()" />
 
   @if (dashboard(); as dash) {
-    <div class="kpis">
+    <div class="school-kpis">
       <div><strong>{{ dash.classesToday }}</strong><span>Clases hoy</span></div>
       <div><strong>{{ dash.studentsReserved }}</strong><span>Reservados</span></div>
       <div><strong>{{ dash.availableSeats }}</strong><span>Cupos libres</span></div>
@@ -16,14 +15,14 @@
     </div>
   }
 
-  <div class="tabs">
+  <nav class="school-tabs" aria-label="Secciones de programación">
     <button type="button" [class.on]="tab() === 'schedule'" (click)="setTab('schedule')">Horario</button>
     <button type="button" [class.on]="tab() === 'students'" (click)="setTab('students')">Estudiantes</button>
     <button type="button" [class.on]="tab() === 'attendance'" (click)="setTab('attendance')">Asistencia</button>
     <button type="button" [class.on]="tab() === 'topics'" (click)="setTab('topics')">Temas</button>
     <button type="button" [class.on]="tab() === 'classrooms'" (click)="setTab('classrooms')">Aulas</button>
     <button type="button" [class.on]="tab() === 'settings'" (click)="setTab('settings')">Ajustes</button>
-  </div>
+  </nav>
 
   @if (loading() && tab() !== 'attendance') {
     <ui-loading />
@@ -292,7 +291,8 @@
           }
         </p>
       } @else {
-        <table class="enrollment-table">
+        <div class="school-table-wrap">
+        <table class="school-data-table enrollment-table">
           <thead>
             <tr>
               <th>Estudiante</th>
@@ -391,6 +391,7 @@
             }
           </tbody>
         </table>
+        </div>
       }
     </div>
   } @else if (tab() === 'topics') {
@@ -482,4 +483,4 @@
       }
     </ul>
   }
-</section>
+</div>

@@ -1,23 +1,25 @@
-<ui-page-header
-  title="Práctica vehicular"
-  subtitle="Programa clases como en tu Excel: un clic en el horario y eliges al estudiante." />
+<div class="school-page school-page--wide">
+  <ui-page-header
+    eyebrow="Escuela"
+    title="Práctica vehicular"
+    subtitle="Programa clases de manejo. Solo aparecen aprendices autorizados para práctica." />
 
-<ui-error [message]="error()" />
+  <ui-error [message]="error()" />
 
-<div class="tabs">
-  <button type="button" [class.on]="tab() === 'schedule'" (click)="setTab('schedule')">Programación</button>
-  <button type="button" [class.on]="tab() === 'attendance'" (click)="setTab('attendance')">Asistencia</button>
-</div>
+  <nav class="school-tabs" aria-label="Secciones de práctica">
+    <button type="button" [class.on]="tab() === 'schedule'" (click)="setTab('schedule')">Programación</button>
+    <button type="button" [class.on]="tab() === 'attendance'" (click)="setTab('attendance')">Asistencia</button>
+  </nav>
 
 @if (loading() && tab() === 'schedule') {
   <ui-loading />
 } @else if (tab() === 'schedule') {
-  <section class="toolbar card">
+  <section class="school-toolbar">
     <div class="toolbar-row">
       <div class="week-nav">
-        <button type="button" class="nav-btn" (click)="prevWeek()">← Semana anterior</button>
-        <button type="button" class="nav-btn ghost" (click)="goToday()">Esta semana</button>
-        <button type="button" class="nav-btn" (click)="nextWeek()">Siguiente semana →</button>
+        <button type="button" class="school-nav-btn" (click)="prevWeek()">← Semana anterior</button>
+        <button type="button" class="school-nav-btn" (click)="goToday()">Esta semana</button>
+        <button type="button" class="school-nav-btn" (click)="nextWeek()">Siguiente semana →</button>
       </div>
       <strong class="week-label">{{ weekRangeLabel() }}</strong>
     </div>
@@ -55,7 +57,7 @@
   </section>
 
   @if (showVehicles()) {
-    <section class="card vehicles-card">
+    <section class="school-card vehicles-card">
       <h2>Vehículos</h2>
       <form class="vehicle-form" (ngSubmit)="saveVehicle()">
         <input [(ngModel)]="vehicleForm.label" name="vlabel" placeholder="Nombre (Carro 1)" />
@@ -77,7 +79,7 @@
       <div class="grid-loading"><ui-loading /></div>
     }
 
-    <div class="grid-wrap" [class.dimmed]="gridLoading()">
+    <div class="school-grid-wrap" [class.dimmed]="gridLoading()">
       <table class="schedule-grid">
         <thead>
           <tr>
@@ -239,3 +241,4 @@
     </div>
   </div>
 }
+</div>

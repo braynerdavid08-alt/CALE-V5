@@ -1,15 +1,40 @@
-.toolbar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
-.toolbar button {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  cursor: pointer;
+.exam-layout {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  align-items: start;
 }
-.grid-wrap { overflow-x: auto; margin-bottom: 1rem; }
-.exam-grid { border-collapse: collapse; min-width: 900px; width: 100%; font-size: 0.9rem; }
-.exam-grid th, .exam-grid td { border: 1px solid var(--color-border); padding: 0.35rem; vertical-align: top; }
-.exam-grid thead th { background: var(--color-background); text-align: center; }
+
+.exam-grid {
+  border-collapse: collapse;
+  min-width: 720px;
+  width: 100%;
+  font-size: var(--text-sm);
+}
+
+.exam-grid th,
+.exam-grid td {
+  border: 1px solid var(--color-border);
+  padding: 0.35rem;
+  vertical-align: top;
+}
+
+.exam-grid thead th {
+  background: var(--color-surface-raised);
+  text-align: center;
+  font-weight: 700;
+}
+
+.exam-grid .date-col {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--color-surface);
+  min-width: 6.5rem;
+  text-align: left;
+  font-weight: 700;
+}
+
 .cell {
   width: 100%;
   min-height: 48px;
@@ -17,41 +42,41 @@
   border-radius: var(--radius-sm);
   background: var(--color-background);
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
   padding: 0.25rem;
+  color: var(--color-text);
 }
+
 .cell.filled {
   border-style: solid;
   background: var(--color-primary-soft);
-  color: var(--color-text);
   text-align: left;
 }
+
 .mini.danger {
   margin-top: 0.15rem;
   width: 100%;
   border: none;
   background: transparent;
-  color: #b91c1c;
+  color: var(--color-danger);
   cursor: pointer;
+  font-size: var(--text-xs);
 }
-.form-card {
-  padding: 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
-  display: grid;
-  gap: 0.5rem;
-  max-width: 420px;
+
+.detail-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 10rem;
+  text-align: center;
 }
-.form-card label { display: grid; gap: 0.2rem; font-weight: 700; font-size: 0.9rem; }
-.form-card input,
-.form-card select {
-  padding: 0.5rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
+
+.detail-placeholder p { margin: 0; }
+
+@media (max-width: 900px) {
+  .exam-layout { grid-template-columns: 1fr; }
 }
-.student-field small.muted {
-  font-weight: 400;
-  color: var(--color-text-muted, #64748b);
+
+@media (max-width: 600px) {
+  .exam-grid { min-width: 600px; }
 }

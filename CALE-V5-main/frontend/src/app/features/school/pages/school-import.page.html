@@ -1,20 +1,23 @@
-<ui-page-header
-  eyebrow="Escuela"
-  title="Importar datos"
-  subtitle="Sube tus archivos Excel o CSV como los usas hoy en la escuela." />
+<div class="school-page">
+  <ui-page-header
+    eyebrow="Escuela"
+    title="Importar datos"
+    subtitle="Sube tus archivos Excel o CSV como los usas hoy en la escuela." />
 
-<ui-error [message]="error()" />
-<ui-success [message]="ok()" />
+  <ui-error [message]="error()" />
+  <ui-success [message]="ok()" />
 
-<div class="actions-top">
-  <a routerLink="/school/apprentices"><ui-button type="button" variant="secondary">Ver aprendices</ui-button></a>
-</div>
+  <div class="school-toolbar">
+    <div class="school-toolbar-actions" style="margin-left: 0;">
+      <a routerLink="/school/apprentices"><ui-button type="button" variant="secondary">Ver aprendices</ui-button></a>
+    </div>
+  </div>
 
-<div class="tabs">
-  <button type="button" [class.on]="mode() === 'apprentices'" (click)="setMode('apprentices')">Aprendices (Excel)</button>
-  <button type="button" [class.on]="mode() === 'theory-exams'" (click)="setMode('theory-exams')">Exámenes teóricos (Excel)</button>
-  <button type="button" [class.on]="mode() === 'users'" (click)="setMode('users')">Usuarios (CSV)</button>
-</div>
+  <nav class="school-tabs" aria-label="Tipo de importación">
+    <button type="button" [class.on]="mode() === 'apprentices'" (click)="setMode('apprentices')">Aprendices</button>
+    <button type="button" [class.on]="mode() === 'theory-exams'" (click)="setMode('theory-exams')">Exámenes teóricos</button>
+    <button type="button" [class.on]="mode() === 'users'" (click)="setMode('users')">Usuarios CSV</button>
+  </nav>
 
 <ui-card>
   @if (mode() === 'apprentices') {
@@ -117,3 +120,4 @@
     <a routerLink="/school/apprentices"><ui-button type="button">Ver aprendices</ui-button></a>
   </ui-card>
 }
+</div>

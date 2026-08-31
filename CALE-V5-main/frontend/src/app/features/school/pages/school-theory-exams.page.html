@@ -1,73 +1,93 @@
-<ui-page-header
-  title="Exámenes teóricos"
-  subtitle="Calendario de citas como tu Excel EXAMENES TEORICOS." />
+<div class="school-page school-page--wide">
+  <ui-page-header
+    eyebrow="Escuela"
+    title="Exámenes teóricos"
+    subtitle="Calendario de citas. Solo aparecen aprendices autorizados con horas completas." />
 
-<ui-error [message]="error()" />
+  <ui-error [message]="error()" />
 
-<div class="toolbar">
-  <button type="button" (click)="prevWeek()">← Anterior</button>
-  <button type="button" (click)="nextWeek()">Siguiente →</button>
-  <a routerLink="/school/import"><ui-button type="button" variant="secondary">Importar Excel</ui-button></a>
-</div>
-
-@if (loading()) {
-  <ui-loading />
-} @else {
-  <div class="grid-wrap">
-    <table class="exam-grid">
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          @for (t of slots; track t) { <th>{{ t }}</th> }
-        </tr>
-      </thead>
-      <tbody>
-        @for (date of dayDates(); track date) {
-          <tr>
-            <th>{{ dayLabel(date) }}</th>
-            @for (t of slots; track t) {
-              <td>
-                @if (slotAt(date, t); as slot) {
-                  <button type="button" class="cell filled" (click)="openForm(date, t)">
-                    {{ slot.studentName || slot.studentLabel }}
-                  </button>
-                  <button type="button" class="mini danger" (click)="remove(slot)">×</button>
-                } @else {
-                  <button type="button" class="cell" (click)="openForm(date, t)">+</button>
-                }
-              </td>
-            }
-          </tr>
-        }
-      </tbody>
-    </table>
+  <div class="school-toolbar">
+    <div class="school-toolbar-actions" style="margin-left: 0;">
+      <button type="button" class="school-nav-btn" (click)="prevWeek()">← Semana anterior</button>
+      <button type="button" class="school-nav-btn" (click)="nextWeek()">Siguiente semana →</button>
+    </div>
+    <div class="school-toolbar-actions">
+      <a routerLink="/school/training"><ui-button type="button" variant="secondary">Autorizar estudiantes</ui-button></a>
+      <a routerLink="/school/import"><ui-button type="button" variant="secondary">Importar Excel</ui-button></a>
+    </div>
   </div>
 
-  @if (form.examDate) {
-    <section class="form-card">
-      <h3>{{ dayLabel(form.examDate) }} · {{ form.slotTime }}</h3>
-      <label class="student-field">
-        Aprendiz
-        <input
-          type="search"
-          placeholder="Buscar por nombre..."
-          [ngModel]="studentSearch()"
-          (ngModelChange)="studentSearch.set($event)" />
-        <select [(ngModel)]="form.studentUserId">
-          <option [ngValue]="null">Selecciona un estudiante</option>
-          @for (s of filteredStudents(); track s.studentUserId) {
-            <option [ngValue]="s.studentUserId">
-              {{ s.studentName }}
-              @if (s.licenseCategories) { · {{ s.licenseCategories }} }
-            </option>
-          }
-        </select>
-        @if (!students().length) {
-          <small class="muted">No hay aprendices listos para examen. Autorízalos en Programación → Estudiantes cuando completen teoría y taller.</small>
-        }
-      </label>
-      <label>Notas <input [(ngModel)]="form.notes" /></label>
-      <ui-button type="button" (click)="save()">Guardar cita</ui-button>
-    </section>
+  @if (loading()) {
+    <ui-loading />
+  } @else {
+    <div class="exam-layout">
+      <div class="school-grid-wrap">
+        <table class="exam-grid">
+          <thead>
+            <tr>
+              <th class="date-col">Fecha</th>
+              @for (t of slots; track t) { <th>{{ t }}</th> }
+            </tr>
+          </thead>
+          <tbody>
+            @for (date of dayDates(); track date) {
+              <tr>
+                <th class="date-col">{{ dayLabel(date) }}</th>
+                @for (t of slots; track t) {
+                  <td>
+                    @if (slotAt(date, t); as slot) {
+                      <button type="button" class="cell filled" (click)="openForm(date, t)">
+                        {{ slot.studentName || slot.studentLabel }}
+                      </button>
+                      <button type="button" class="mini danger" (click)="remove(slot)">×</button>
+                    } @else {
+                      <button type="button" class="cell" (click)="openForm(date, t)">+</button>
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (form.examDate) {
+        <aside class="school-side-panel">
+          <h3>{{ dayLabel(form.examDate) }} · {{ form.slotTime }}</h3>
+          <label class="school-field">
+            <span class="school-field-label">Buscar aprendiz</span>
+            <input
+              type="search"
+              placeholder="Nombre…"
+              [ngModel]="studentSearch()"
+              (ngModelChange)="studentSearch.set($event)" />
+          </label>
+          <label class="school-field">
+            <span class="school-field-label">Aprendiz</span>
+            <select [(ngModel)]="form.studentUserId">
+              <option [ngValue]="null">Selecciona un estudiante</option>
+              @for (s of filteredStudents(); track s.studentUserId) {
+                <option [ngValue]="s.studentUserId">
+                  {{ s.studentName }}
+                  @if (s.licenseCategories) { · {{ s.licenseCategories }} }
+                </option>
+              }
+            </select>
+            @if (!students().length) {
+              <small class="muted">No hay aprendices listos. Autorízalos en Programación → Estudiantes.</small>
+            }
+          </label>
+          <label class="school-field">
+            <span class="school-field-label">Notas</span>
+            <input [(ngModel)]="form.notes" placeholder="Observaciones opcionales" />
+          </label>
+          <ui-button type="button" (click)="save()">Guardar cita</ui-button>
+        </aside>
+      } @else {
+        <aside class="school-side-panel detail-placeholder">
+          <p class="muted">Haz clic en una celda del calendario para asignar o editar una cita de examen.</p>
+        </aside>
+      }
+    </div>
   }
-}
+</div>

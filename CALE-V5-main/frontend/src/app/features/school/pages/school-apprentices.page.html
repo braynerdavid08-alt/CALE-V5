@@ -1,266 +1,289 @@
-<ui-page-header
-  title="Aprendices"
-  subtitle="Expediente, pagos y datos de matrícula. Importa tu Excel APRENDICES 2026." />
+<div class="school-page">
+  <ui-page-header
+    eyebrow="Escuela"
+    title="Aprendices"
+    subtitle="Expediente, pagos, autorizaciones y datos de matrícula." />
 
-<ui-error [message]="error()" />
+  <ui-error [message]="error()" />
 
-<div class="toolbar">
-  <input type="search" placeholder="Buscar nombre, cédula o celular..." [(ngModel)]="search" (keyup.enter)="reload()" />
-  <label class="toolbar-check">
-    <input type="checkbox" [(ngModel)]="onlyBalance" (change)="reload()" />
-    Solo con saldo pendiente
-  </label>
-  <ui-button type="button" variant="secondary" (click)="reload()">Buscar</ui-button>
-  <a routerLink="/school/import"><ui-button type="button">Importar Excel</ui-button></a>
-  <a routerLink="/school/theory-exams"><ui-button type="button" variant="secondary">Exámenes teóricos</ui-button></a>
-</div>
-
-@if (loading()) {
-  <ui-loading />
-} @else {
-  <div class="layout">
-    <section class="card list-card">
-      <h2>{{ rows().length }} aprendices</h2>
-      <table class="grid-table">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Doc.</th>
-            <th>Cat.</th>
-            <th>Horario</th>
-            <th>Saldo</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (r of rows(); track r.studentUserId) {
-            <tr [class.on]="selected()?.studentUserId === r.studentUserId" (click)="select(r)">
-              <td>
-                <strong>{{ r.studentName }}</strong>
-                @if (r.isEnrolled) { <span class="pill ok">Enrolado</span> }
-                @if (r.runtRegistered) { <span class="pill">RUNT</span> }
-              </td>
-              <td>{{ r.documentNumber || '—' }}</td>
-              <td>{{ r.licenseCategories || '—' }}</td>
-              <td>{{ r.scheduleSlot || '—' }}</td>
-              <td [class.warn]="r.balanceDue > 0">{{ formatMoney(r.balanceDue) }}</td>
-            </tr>
-          } @empty {
-            <tr><td colspan="5" class="muted">Sin aprendices. Importa tu Excel o autoriza estudiantes en Programación.</td></tr>
-          }
-        </tbody>
-      </table>
-    </section>
-
-    @if (selected(); as s) {
-      @let d = detail();
-      <aside class="card detail-card">
-        <h2>{{ s.studentName }}</h2>
-        <p class="login-hint muted">Acceso app: <strong>{{ s.studentEmail || '—' }}</strong></p>
-
-        @if (detailLoading()) {
-          <ui-loading />
-        } @else if (detailError()) {
-          <p class="detail-warn muted">{{ detailError() }}</p>
-        } @else if (d) {
-          <section class="summary-card">
-            <h3>Formación</h3>
-            <ul class="summary-list">
-              <li [class.ok]="d.training.theoryHoursComplete">
-                Teoría: {{ d.training.theoryHoursCompleted }}/{{ d.training.theoryHoursRequired }} h
-              </li>
-              <li [class.ok]="d.training.workshopHoursComplete">
-                Taller: {{ d.training.workshopHoursCompleted }}/{{ d.training.workshopHoursRequired }} h
-              </li>
-              <li [class.ok]="d.training.theoryExamPassed">
-                Examen teórico: {{ d.training.theoryExamPassed ? 'Aprobado' : 'Pendiente' }}
-              </li>
-              <li [class.ok]="d.practical.completedLessons >= d.practical.requiredLessons">
-                Práctica: {{ d.practical.completedLessons }}/{{ d.practical.requiredLessons }} clases
-                @if (d.practical.scheduledLessons > 0) {
-                  · {{ d.practical.scheduledLessons }} programada(s)
-                }
-              </li>
-              @if (d.nextExam) {
-                <li class="ok">Examen: {{ d.nextExam.examDate }} {{ d.nextExam.slotTime }}</li>
-              }
-              @if (d.practical.nextLessonDate) {
-                <li>Próxima práctica: {{ d.practical.nextLessonDate }} {{ d.practical.nextLessonTime }}</li>
-              }
-              @if (!d.training.canBookPractical && d.training.blockReason) {
-                <li class="warn">{{ d.training.blockReason }}</li>
-              }
-            </ul>
-            <div class="quick-links">
-              <a routerLink="/school/training"><ui-button type="button" variant="secondary">Programación</ui-button></a>
-              <a routerLink="/school/practical"><ui-button type="button" variant="secondary">Práctica</ui-button></a>
-              <a routerLink="/school/theory-exams"><ui-button type="button" variant="secondary">Exámenes</ui-button></a>
-            </div>
-          </section>
-        }
-
-        <fieldset class="field-group">
-          <legend>Autorizaciones</legend>
-          <div class="flag-list">
-            <label class="flag-field">
-              <input
-                type="checkbox"
-                [checked]="s.theoryExamAuthorized"
-                [disabled]="!canAuthorizeTheoryExam() && !s.theoryExamAuthorized"
-                (change)="toggleTheoryExamAuth($any($event.target).checked)" />
-              <span>
-                <strong>Examen teórico</strong>
-                <small>
-                  @if (s.theoryExamAuthorized) {
-                    Autorizado para agendar cita de examen.
-                  } @else if (canAuthorizeTheoryExam()) {
-                    Completa teoría y taller — listo para autorizar.
-                  } @else if (d && d.training.theoryExamPassed) {
-                    Ya aprobó el examen teórico.
-                  } @else if (d) {
-                    Pendiente: {{ d.training.theoryHoursCompleted }}/{{ d.training.theoryHoursRequired }} h teoría,
-                    {{ d.training.workshopHoursCompleted }}/{{ d.training.workshopHoursRequired }} h taller.
-                  } @else {
-                    Cargando progreso…
-                  }
-                </small>
-              </span>
-            </label>
-            <label class="flag-field">
-              <input
-                type="checkbox"
-                [checked]="s.practicalAuthorized"
-                [disabled]="!canAuthorizePractical() && !s.practicalAuthorized"
-                (change)="togglePracticalAuth($any($event.target).checked)" />
-              <span>
-                <strong>Clases de manejo</strong>
-                <small>
-                  @if (s.practicalAuthorized) {
-                    Autorizado para programar y reservar práctica.
-                  } @else if (canAuthorizePractical()) {
-                    Aprobó el examen — listo para autorizar manejo.
-                  } @else {
-                    Debe aprobar el examen teórico primero.
-                  }
-                </small>
-              </span>
-            </label>
-          </div>
-        </fieldset>
-
-        <h3 class="section-title">Expediente</h3>
-
-        <fieldset class="field-group">
-          <legend>Identificación</legend>
-          <div class="form-grid">
-            <label class="field">
-              <span class="field-label">Tipo de documento</span>
-              <input [(ngModel)]="s.documentType" placeholder="CC, CE, TI..." />
-            </label>
-            <label class="field">
-              <span class="field-label">Número de documento</span>
-              <input [(ngModel)]="s.documentNumber" placeholder="Sin puntos ni espacios" />
-            </label>
-          </div>
-        </fieldset>
-
-        <fieldset class="field-group">
-          <legend>Contacto</legend>
-          <div class="form-grid">
-            <label class="field">
-              <span class="field-label">Celular</span>
-              <input [(ngModel)]="s.phone" type="tel" placeholder="300 123 4567" />
-            </label>
-            <label class="field">
-              <span class="field-label">Correo de contacto</span>
-              <input [(ngModel)]="s.contactEmail" type="email" placeholder="correo@ejemplo.com" />
-            </label>
-            <label class="field full">
-              <span class="field-label">Dirección</span>
-              <input [(ngModel)]="s.address" placeholder="Barrio, ciudad" />
-            </label>
-          </div>
-        </fieldset>
-
-        <fieldset class="field-group">
-          <legend>Matrícula y curso</legend>
-          <div class="form-grid">
-            <label class="field">
-              <span class="field-label">Categoría de licencia</span>
-              <input [(ngModel)]="s.licenseCategories" placeholder="A2, B1, C1" />
-            </label>
-            <label class="field">
-              <span class="field-label">Horario asignado</span>
-              <input [(ngModel)]="s.scheduleSlot" placeholder="DE 4 A 6 / SÁBADOS" />
-            </label>
-            <label class="field">
-              <span class="field-label">Grupo de asistencia</span>
-              <select [(ngModel)]="s.attendanceDayType">
-                <option [ngValue]="null">Sin asignar</option>
-                <option value="Weekday">Semana (lun–vie)</option>
-                <option value="Saturday">Sábados</option>
-              </select>
-            </label>
-            <label class="field">
-              <span class="field-label">PIN de enrolamiento</span>
-              <input [(ngModel)]="s.enrollmentPin" placeholder="Código RUNT / escuela" />
-            </label>
-          </div>
-        </fieldset>
-
-        <fieldset class="field-group">
-          <legend>Pagos</legend>
-          <div class="form-grid">
-            <label class="field">
-              <span class="field-label">Valor a pagar (COP)</span>
-              <input type="number" [(ngModel)]="s.amountDue" min="0" />
-            </label>
-            <label class="field">
-              <span class="field-label">Valor pagado (COP)</span>
-              <input type="number" [(ngModel)]="s.amountPaid" min="0" />
-            </label>
-            <label class="field">
-              <span class="field-label">Método de pago</span>
-              <input [(ngModel)]="s.paymentMethod" placeholder="Efectivo, transferencia..." />
-            </label>
-            <label class="field">
-              <span class="field-label">Número de recibo</span>
-              <input [(ngModel)]="s.receiptNumber" placeholder="Recibo o factura" />
-            </label>
-          </div>
-        </fieldset>
-
-        <fieldset class="field-group">
-          <legend>Estado administrativo</legend>
-          <div class="flag-list">
-            <label class="flag-field">
-              <input type="checkbox" [(ngModel)]="s.runtRegistered" />
-              <span>
-                <strong>Inscrito en RUNT</strong>
-                <small>El aprendiz ya aparece en el sistema RUNT.</small>
-              </span>
-            </label>
-            <label class="flag-field">
-              <input type="checkbox" [(ngModel)]="s.isEnrolled" />
-              <span>
-                <strong>Enrolado en la escuela</strong>
-                <small>Marcado como matriculado en tu expediente.</small>
-              </span>
-            </label>
-          </div>
-        </fieldset>
-
-        <fieldset class="field-group">
-          <legend>Notas internas</legend>
-          <label class="field full">
-            <span class="field-label">Observaciones</span>
-            <textarea rows="3" [(ngModel)]="s.notes" placeholder="Anotaciones visibles solo para la escuela"></textarea>
-          </label>
-        </fieldset>
-
-        <div class="form-actions">
-          <ui-button type="button" [loading]="saving()" (click)="save()">Guardar cambios</ui-button>
-        </div>
-      </aside>
-    }
+  <div class="school-toolbar">
+    <input
+      class="search-input"
+      type="search"
+      placeholder="Buscar nombre, cédula o celular…"
+      [(ngModel)]="search"
+      (keyup.enter)="reload()" />
+    <label class="school-toolbar-check">
+      <input type="checkbox" [(ngModel)]="onlyBalance" (change)="reload()" />
+      Solo con saldo
+    </label>
+    <div class="school-toolbar-actions">
+      <ui-button type="button" variant="secondary" (click)="reload()">Buscar</ui-button>
+      <a routerLink="/school/import"><ui-button type="button" variant="secondary">Importar</ui-button></a>
+    </div>
   </div>
-}
+
+  @if (loading()) {
+    <ui-loading />
+  } @else {
+    <div class="school-split">
+      <section class="school-card">
+        <p class="school-card-title">{{ rows().length }} aprendices registrados</p>
+        <div class="school-table-wrap">
+          <table class="school-data-table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Documento</th>
+                <th>Categoría</th>
+                <th>Horario</th>
+                <th>Saldo</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (r of rows(); track r.studentUserId) {
+                <tr
+                  [class.is-selected]="selected()?.studentUserId === r.studentUserId"
+                  (click)="select(r)">
+                  <td>
+                    <strong>{{ r.studentName }}</strong>
+                    @if (r.isEnrolled) { <span class="school-pill ok">Enrolado</span> }
+                    @if (r.runtRegistered) { <span class="school-pill">RUNT</span> }
+                    @if (r.theoryExamAuthorized) { <span class="school-pill">Examen</span> }
+                    @if (r.practicalAuthorized) { <span class="school-pill ok">Manejo</span> }
+                  </td>
+                  <td>{{ r.documentNumber || '—' }}</td>
+                  <td>{{ r.licenseCategories || '—' }}</td>
+                  <td>{{ r.scheduleSlot || '—' }}</td>
+                  <td [class.warn]="r.balanceDue > 0">{{ formatMoney(r.balanceDue) }}</td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="5" class="muted">
+                    Sin aprendices. Importa tu Excel o autoriza estudiantes en Programación.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      @if (selected(); as s) {
+        @let d = detail();
+        <aside class="school-card school-panel-scroll">
+          <h2>{{ s.studentName }}</h2>
+          <p class="login-hint muted">Acceso app: <strong>{{ s.studentEmail || '—' }}</strong></p>
+
+          @if (detailLoading()) {
+            <ui-loading />
+          } @else if (detailError()) {
+            <p class="detail-warn muted">{{ detailError() }}</p>
+          } @else if (d) {
+            <section class="school-summary">
+              <h3>Progreso de formación</h3>
+              <ul class="school-summary-list">
+                <li [class.ok]="d.training.theoryHoursComplete">
+                  Teoría: {{ d.training.theoryHoursCompleted }}/{{ d.training.theoryHoursRequired }} h
+                </li>
+                <li [class.ok]="d.training.workshopHoursComplete">
+                  Taller: {{ d.training.workshopHoursCompleted }}/{{ d.training.workshopHoursRequired }} h
+                </li>
+                <li [class.ok]="d.training.theoryExamPassed">
+                  Examen teórico: {{ d.training.theoryExamPassed ? 'Aprobado' : 'Pendiente' }}
+                </li>
+                <li [class.ok]="d.practical.completedLessons >= d.practical.requiredLessons">
+                  Práctica: {{ d.practical.completedLessons }}/{{ d.practical.requiredLessons }} clases
+                  @if (d.practical.scheduledLessons > 0) {
+                    · {{ d.practical.scheduledLessons }} programada(s)
+                  }
+                </li>
+                @if (d.nextExam) {
+                  <li class="ok">Cita examen: {{ d.nextExam.examDate }} {{ d.nextExam.slotTime }}</li>
+                }
+                @if (d.practical.nextLessonDate) {
+                  <li>Próxima práctica: {{ d.practical.nextLessonDate }} {{ d.practical.nextLessonTime }}</li>
+                }
+                @if (!d.training.canBookPractical && d.training.blockReason) {
+                  <li class="warn">{{ d.training.blockReason }}</li>
+                }
+              </ul>
+              <div class="school-quick-links">
+                <a routerLink="/school/training"><ui-button type="button" variant="secondary">Programación</ui-button></a>
+                <a routerLink="/school/practical"><ui-button type="button" variant="secondary">Práctica</ui-button></a>
+                <a routerLink="/school/theory-exams"><ui-button type="button" variant="secondary">Exámenes</ui-button></a>
+              </div>
+            </section>
+          }
+
+          <fieldset class="school-field-group">
+            <legend>Autorizaciones</legend>
+            <div class="school-flag-list">
+              <label class="school-flag-field">
+                <input
+                  type="checkbox"
+                  [checked]="s.theoryExamAuthorized"
+                  [disabled]="!canAuthorizeTheoryExam() && !s.theoryExamAuthorized"
+                  (change)="toggleTheoryExamAuth($any($event.target).checked)" />
+                <span>
+                  <strong>Examen teórico</strong>
+                  <small>
+                    @if (s.theoryExamAuthorized) {
+                      Autorizado para agendar cita de examen.
+                    } @else if (canAuthorizeTheoryExam()) {
+                      Completa teoría y taller — listo para autorizar.
+                    } @else if (d && d.training.theoryExamPassed) {
+                      Ya aprobó el examen teórico.
+                    } @else if (d) {
+                      Pendiente: {{ d.training.theoryHoursCompleted }}/{{ d.training.theoryHoursRequired }} h teoría,
+                      {{ d.training.workshopHoursCompleted }}/{{ d.training.workshopHoursRequired }} h taller.
+                    } @else {
+                      Cargando progreso…
+                    }
+                  </small>
+                </span>
+              </label>
+              <label class="school-flag-field">
+                <input
+                  type="checkbox"
+                  [checked]="s.practicalAuthorized"
+                  [disabled]="!canAuthorizePractical() && !s.practicalAuthorized"
+                  (change)="togglePracticalAuth($any($event.target).checked)" />
+                <span>
+                  <strong>Clases de manejo</strong>
+                  <small>
+                    @if (s.practicalAuthorized) {
+                      Autorizado para programar y reservar práctica.
+                    } @else if (canAuthorizePractical()) {
+                      Aprobó el examen — listo para autorizar manejo.
+                    } @else {
+                      Debe aprobar el examen teórico primero.
+                    }
+                  </small>
+                </span>
+              </label>
+            </div>
+          </fieldset>
+
+          <h3 class="school-section-title">Expediente</h3>
+
+          <fieldset class="school-field-group">
+            <legend>Identificación</legend>
+            <div class="school-form-grid">
+              <label class="school-field">
+                <span class="school-field-label">Tipo de documento</span>
+                <input [(ngModel)]="s.documentType" placeholder="CC, CE, TI…" />
+              </label>
+              <label class="school-field">
+                <span class="school-field-label">Número de documento</span>
+                <input [(ngModel)]="s.documentNumber" placeholder="Sin puntos ni espacios" />
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="school-field-group">
+            <legend>Contacto</legend>
+            <div class="school-form-grid">
+              <label class="school-field">
+                <span class="school-field-label">Celular</span>
+                <input [(ngModel)]="s.phone" type="tel" placeholder="300 123 4567" />
+              </label>
+              <label class="school-field">
+                <span class="school-field-label">Correo de contacto</span>
+                <input [(ngModel)]="s.contactEmail" type="email" placeholder="correo@ejemplo.com" />
+              </label>
+              <label class="school-field full">
+                <span class="school-field-label">Dirección</span>
+                <input [(ngModel)]="s.address" placeholder="Barrio, ciudad" />
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="school-field-group">
+            <legend>Matrícula y curso</legend>
+            <div class="school-form-grid">
+              <label class="school-field">
+                <span class="school-field-label">Categoría de licencia</span>
+                <input [(ngModel)]="s.licenseCategories" placeholder="A2, B1, C1" />
+              </label>
+              <label class="school-field">
+                <span class="school-field-label">Horario asignado</span>
+                <input [(ngModel)]="s.scheduleSlot" placeholder="DE 4 A 6 / SÁBADOS" />
+              </label>
+              <label class="school-field">
+                <span class="school-field-label">Grupo de asistencia</span>
+                <select [(ngModel)]="s.attendanceDayType">
+                  <option [ngValue]="null">Sin asignar</option>
+                  <option value="Weekday">Semana (lun–vie)</option>
+                  <option value="Saturday">Sábados</option>
+                </select>
+              </label>
+              <label class="school-field">
+                <span class="school-field-label">PIN de enrolamiento</span>
+                <input [(ngModel)]="s.enrollmentPin" placeholder="Código RUNT / escuela" />
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="school-field-group">
+            <legend>Pagos</legend>
+            <div class="school-form-grid">
+              <label class="school-field">
+                <span class="school-field-label">Valor a pagar (COP)</span>
+                <input type="number" [(ngModel)]="s.amountDue" min="0" />
+              </label>
+              <label class="school-field">
+                <span class="school-field-label">Valor pagado (COP)</span>
+                <input type="number" [(ngModel)]="s.amountPaid" min="0" />
+              </label>
+              <label class="school-field">
+                <span class="school-field-label">Método de pago</span>
+                <input [(ngModel)]="s.paymentMethod" placeholder="Efectivo, transferencia…" />
+              </label>
+              <label class="school-field">
+                <span class="school-field-label">Número de recibo</span>
+                <input [(ngModel)]="s.receiptNumber" placeholder="Recibo o factura" />
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="school-field-group">
+            <legend>Estado administrativo</legend>
+            <div class="school-flag-list">
+              <label class="school-flag-field">
+                <input type="checkbox" [(ngModel)]="s.runtRegistered" />
+                <span>
+                  <strong>Inscrito en RUNT</strong>
+                  <small>El aprendiz ya aparece en el sistema RUNT.</small>
+                </span>
+              </label>
+              <label class="school-flag-field">
+                <input type="checkbox" [(ngModel)]="s.isEnrolled" />
+                <span>
+                  <strong>Enrolado en la escuela</strong>
+                  <small>Marcado como matriculado en tu expediente.</small>
+                </span>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="school-field-group">
+            <legend>Notas internas</legend>
+            <label class="school-field full">
+              <span class="school-field-label">Observaciones</span>
+              <textarea rows="3" [(ngModel)]="s.notes" placeholder="Anotaciones visibles solo para la escuela"></textarea>
+            </label>
+          </fieldset>
+
+          <div class="school-form-actions">
+            <ui-button type="button" [loading]="saving()" (click)="save()">Guardar cambios</ui-button>
+          </div>
+        </aside>
+      } @else {
+        <aside class="school-card detail-placeholder">
+          <p class="muted">Selecciona un aprendiz de la lista para ver su expediente y autorizaciones.</p>
+        </aside>
+      }
+    </div>
+  }
+</div>

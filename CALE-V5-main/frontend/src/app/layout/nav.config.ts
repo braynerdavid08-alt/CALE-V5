@@ -116,15 +116,39 @@ export function navForRole(role?: string): NavItem[] {
     if (role === 'School') {
     return [
       { label: 'Dashboard', path: '/school', icon: 'home', exact: true },
-      { label: 'Aprendices', path: '/school/apprentices', icon: 'graduate', exact: true },
-      { label: 'Programación', path: '/school/training', icon: 'exam', exact: true },
-      { label: 'Práctica vehicular', path: '/school/practical', icon: 'exam', exact: true },
-      { label: 'Exámenes teóricos', path: '/school/theory-exams', icon: 'exam', exact: true },
-      { label: 'Importar', path: '/school/import', icon: 'users', exact: true },
-      { label: 'Pagos y Suscripciones', path: '/school/membership', icon: 'card', exact: true },
-      { label: 'Usuarios', path: '/school/users', icon: 'users', exact: true },
-      { label: 'Preguntas', path: '/school/questions', icon: 'book', exact: true },
-      { label: 'Bancos', path: '/school/banks', icon: 'bank', exact: true }
+      {
+        label: 'Operaciones',
+        icon: 'graduate',
+        children: [
+          { label: 'Aprendices', path: '/school/apprentices', exact: true },
+          { label: 'Importar datos', path: '/school/import', exact: true }
+        ]
+      },
+      {
+        label: 'Formación',
+        icon: 'exam',
+        children: [
+          { label: 'Programación teórica', path: '/school/training', exact: true },
+          { label: 'Exámenes teóricos', path: '/school/theory-exams', exact: true },
+          { label: 'Práctica vehicular', path: '/school/practical', exact: true }
+        ]
+      },
+      {
+        label: 'Evaluaciones',
+        icon: 'book',
+        children: [
+          { label: 'Preguntas', path: '/school/questions', exact: true },
+          { label: 'Bancos', path: '/school/banks', exact: true }
+        ]
+      },
+      {
+        label: 'Administración',
+        icon: 'settings',
+        children: [
+          { label: 'Usuarios', path: '/school/users', exact: true },
+          { label: 'Pagos y membresía', path: '/school/membership', exact: true }
+        ]
+      }
     ];
   }
   if (role === 'Teacher') {

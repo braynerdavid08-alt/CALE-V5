@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
@@ -20,7 +21,7 @@ import {
 @Component({
   selector: 'app-school-theory-page',
   standalone: true,
-  imports: [FormsModule, UiButtonComponent, UiErrorComponent, UiLoadingComponent],
+  imports: [FormsModule, UiButtonComponent, UiErrorComponent, UiLoadingComponent, UiPageHeaderComponent],
   templateUrl: './school-theory.page.html',
   styleUrl: './school-theory.page.css'
 })

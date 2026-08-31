@@ -1,13 +1,5 @@
-.page { padding: var(--page-pad); max-width: 1280px; margin: 0 auto; }
-.eyebrow { color: var(--color-primary); font-weight: 800; text-transform: uppercase; font-size: var(--text-xs); }
+/* Page-specific schedule grid styles */
 .lead { color: var(--color-text-secondary); }
-.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin: 1rem 0; }
-.kpis div { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 0.75rem; text-align: center; background: var(--color-surface); }
-.kpis strong { display: block; font-size: 1.5rem; }
-.kpis span { font-size: var(--text-xs); color: var(--color-text-secondary); }
-.tabs { display: flex; gap: 0.5rem; margin: 1rem 0; }
-.tabs button { border: 1px solid var(--color-border); background: var(--color-background); padding: 0.45rem 0.9rem; border-radius: 999px; cursor: pointer; }
-.tabs button.on { border-color: var(--color-primary); color: var(--color-primary); }
 .layout { display: grid; grid-template-columns: 1fr 300px; gap: 1rem; }
 .schedule-nav {
   display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.75rem;
