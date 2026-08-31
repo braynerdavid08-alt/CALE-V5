@@ -20,7 +20,12 @@
   font-size: 0.8rem;
   padding: 0.25rem;
 }
-.cell.filled { border-style: solid; background: #eff6ff; text-align: left; }
+.cell.filled {
+  border-style: solid;
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+  text-align: left;
+}
 .mini.danger {
   margin-top: 0.15rem;
   width: 100%;

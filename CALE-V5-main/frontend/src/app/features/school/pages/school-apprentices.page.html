@@ -6,7 +6,7 @@
 
 <div class="toolbar">
   <input type="search" placeholder="Buscar nombre, cédula o celular..." [(ngModel)]="search" (keyup.enter)="reload()" />
-  <label class="check">
+  <label class="toolbar-check">
     <input type="checkbox" [(ngModel)]="onlyBalance" (change)="reload()" />
     Solo con saldo pendiente
   </label>
@@ -98,32 +98,119 @@
           </section>
         }
 
-        <h3>Expediente</h3>
-        <div class="form-grid">
-          <label>Tipo doc. <input [(ngModel)]="s.documentType" /></label>
-          <label>Número <input [(ngModel)]="s.documentNumber" /></label>
-          <label>Celular <input [(ngModel)]="s.phone" /></label>
-          <label>Correo <input [(ngModel)]="s.contactEmail" /></label>
-          <label>Dirección <input [(ngModel)]="s.address" /></label>
-          <label>Categoría <input [(ngModel)]="s.licenseCategories" placeholder="A2, B1, C1" /></label>
-          <label>Horario <input [(ngModel)]="s.scheduleSlot" placeholder="DE 4 A 6 / SABADOS" /></label>
-          <label>Grupo
-            <select [(ngModel)]="s.attendanceDayType">
-              <option [ngValue]="null">Sin asignar</option>
-              <option value="Weekday">Semana</option>
-              <option value="Saturday">Sábados</option>
-            </select>
+        <h3 class="section-title">Expediente</h3>
+
+        <fieldset class="field-group">
+          <legend>Identificación</legend>
+          <div class="form-grid">
+            <label class="field">
+              <span class="field-label">Tipo de documento</span>
+              <input [(ngModel)]="s.documentType" placeholder="CC, CE, TI..." />
+            </label>
+            <label class="field">
+              <span class="field-label">Número de documento</span>
+              <input [(ngModel)]="s.documentNumber" placeholder="Sin puntos ni espacios" />
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="field-group">
+          <legend>Contacto</legend>
+          <div class="form-grid">
+            <label class="field">
+              <span class="field-label">Celular</span>
+              <input [(ngModel)]="s.phone" type="tel" placeholder="300 123 4567" />
+            </label>
+            <label class="field">
+              <span class="field-label">Correo de contacto</span>
+              <input [(ngModel)]="s.contactEmail" type="email" placeholder="correo@ejemplo.com" />
+            </label>
+            <label class="field full">
+              <span class="field-label">Dirección</span>
+              <input [(ngModel)]="s.address" placeholder="Barrio, ciudad" />
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="field-group">
+          <legend>Matrícula y curso</legend>
+          <div class="form-grid">
+            <label class="field">
+              <span class="field-label">Categoría de licencia</span>
+              <input [(ngModel)]="s.licenseCategories" placeholder="A2, B1, C1" />
+            </label>
+            <label class="field">
+              <span class="field-label">Horario asignado</span>
+              <input [(ngModel)]="s.scheduleSlot" placeholder="DE 4 A 6 / SÁBADOS" />
+            </label>
+            <label class="field">
+              <span class="field-label">Grupo de asistencia</span>
+              <select [(ngModel)]="s.attendanceDayType">
+                <option [ngValue]="null">Sin asignar</option>
+                <option value="Weekday">Semana (lun–vie)</option>
+                <option value="Saturday">Sábados</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="field-label">PIN de enrolamiento</span>
+              <input [(ngModel)]="s.enrollmentPin" placeholder="Código RUNT / escuela" />
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="field-group">
+          <legend>Pagos</legend>
+          <div class="form-grid">
+            <label class="field">
+              <span class="field-label">Valor a pagar (COP)</span>
+              <input type="number" [(ngModel)]="s.amountDue" min="0" />
+            </label>
+            <label class="field">
+              <span class="field-label">Valor pagado (COP)</span>
+              <input type="number" [(ngModel)]="s.amountPaid" min="0" />
+            </label>
+            <label class="field">
+              <span class="field-label">Método de pago</span>
+              <input [(ngModel)]="s.paymentMethod" placeholder="Efectivo, transferencia..." />
+            </label>
+            <label class="field">
+              <span class="field-label">Número de recibo</span>
+              <input [(ngModel)]="s.receiptNumber" placeholder="Recibo o factura" />
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="field-group">
+          <legend>Estado administrativo</legend>
+          <div class="flag-list">
+            <label class="flag-field">
+              <input type="checkbox" [(ngModel)]="s.runtRegistered" />
+              <span>
+                <strong>Inscrito en RUNT</strong>
+                <small>El aprendiz ya aparece en el sistema RUNT.</small>
+              </span>
+            </label>
+            <label class="flag-field">
+              <input type="checkbox" [(ngModel)]="s.isEnrolled" />
+              <span>
+                <strong>Enrolado en la escuela</strong>
+                <small>Marcado como matriculado en tu expediente.</small>
+              </span>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="field-group">
+          <legend>Notas internas</legend>
+          <label class="field full">
+            <span class="field-label">Observaciones</span>
+            <textarea rows="3" [(ngModel)]="s.notes" placeholder="Anotaciones visibles solo para la escuela"></textarea>
           </label>
-          <label>Valor a pagar <input type="number" [(ngModel)]="s.amountDue" /></label>
-          <label>Valor pagado <input type="number" [(ngModel)]="s.amountPaid" /></label>
-          <label>Método pago <input [(ngModel)]="s.paymentMethod" /></label>
-          <label>Recibo <input [(ngModel)]="s.receiptNumber" /></label>
-          <label>PIN enrolamiento <input [(ngModel)]="s.enrollmentPin" /></label>
-          <label class="check"><input type="checkbox" [(ngModel)]="s.runtRegistered" /> Inscrito RUNT</label>
-          <label class="check"><input type="checkbox" [(ngModel)]="s.isEnrolled" /> Enrolado</label>
-          <label class="full">Notas <textarea rows="2" [(ngModel)]="s.notes"></textarea></label>
+        </fieldset>
+
+        <div class="form-actions">
+          <ui-button type="button" [loading]="saving()" (click)="save()">Guardar cambios</ui-button>
         </div>
-        <ui-button type="button" [loading]="saving()" (click)="save()">Guardar cambios</ui-button>
       </aside>
     }
   </div>
