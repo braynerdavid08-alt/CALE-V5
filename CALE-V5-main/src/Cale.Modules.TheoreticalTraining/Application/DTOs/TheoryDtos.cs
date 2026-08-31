@@ -129,9 +129,28 @@ public sealed record TheoryStudentDashboardDto(
     bool CheckedInToday,
     IReadOnlyList<TheoryDailyTaskDto> TodayTasks,
     string? AttendanceDayType = null,
-    PracticalEligibilityDto? PracticalEligibility = null);
+    PracticalEligibilityDto? PracticalEligibility = null,
+    StudentExamAppointmentDto? NextExamAppointment = null,
+    StudentPlatformExamDto? PlatformExam = null);
 
 public sealed record TheoryDailyTaskDto(string Label, bool Done);
+
+public sealed record StudentExamAppointmentDto(
+    int Id,
+    string ExamDate,
+    string SlotTime);
+
+public sealed record StudentPlatformExamDto(
+    int Id,
+    string Name);
+
+public sealed record BulkAuthorizeEnrollmentsRequest(
+    bool TheoryExam,
+    bool Practical);
+
+public sealed record BulkAuthorizeEnrollmentsResultDto(
+    int AuthorizedCount,
+    int SkippedCount);
 
 public sealed record MarkAttendanceRequest(
     int StudentUserId,

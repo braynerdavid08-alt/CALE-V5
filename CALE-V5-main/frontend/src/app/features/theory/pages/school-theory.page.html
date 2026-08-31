@@ -280,6 +280,16 @@
         </button>
       </div>
 
+      <div class="bulk-actions">
+        <ui-button type="button" variant="secondary" (click)="bulkAuthorizeExam()">
+          Autorizar examen ({{ eligibleForExamCount() }})
+        </ui-button>
+        <ui-button type="button" variant="secondary" (click)="bulkAuthorizePractical()">
+          Autorizar manejo ({{ eligibleForPracticalCount() }})
+        </ui-button>
+        <a routerLink="/school/theory-exams"><ui-button type="button" variant="secondary">Calendario de exámenes</ui-button></a>
+      </div>
+
       @if (!enrollments().length) {
         <p class="muted">No hay estudiantes vinculados a la escuela.</p>
       } @else if (!filteredEnrollments().length) {
@@ -458,7 +468,10 @@
             }
           </select>
         </label>
-        <p class="muted">El estudiante debe aprobar ese examen (≥80%) antes de agendar clases de manejo.</p>
+        <p class="muted">
+          <strong>Importante:</strong> la cita en el calendario (Exámenes teóricos) es la fecha física en tu escuela.
+          El examen en la plataforma (arriba) es el que el estudiante debe aprobar en Evaluaciones para continuar a manejo.
+        </p>
         @if (!examOptions().length) {
           <p class="muted">Publica un examen desde la biblioteca de instructores para seleccionarlo aquí.</p>
         }

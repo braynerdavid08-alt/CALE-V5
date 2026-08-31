@@ -153,6 +153,12 @@ public sealed class SchoolTheoryController : ControllerBase
         UpdateEnrollmentRequest request,
         CancellationToken ct) =>
         Ok(await _service.UpdateEnrollmentAsync(SchoolId, studentUserId, request, ct));
+
+    [HttpPost("enrollments/bulk-authorize")]
+    public async Task<IActionResult> BulkAuthorize(
+        BulkAuthorizeEnrollmentsRequest request,
+        CancellationToken ct) =>
+        Ok(await _service.BulkAuthorizeEnrollmentsAsync(SchoolId, request, ct));
 }
 
 [ApiController]

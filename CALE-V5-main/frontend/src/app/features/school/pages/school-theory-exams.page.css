@@ -1,3 +1,15 @@
+.info-banner {
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+  font-size: var(--text-sm);
+}
+.info-banner strong { display: block; margin-bottom: 0.35rem; }
+.info-banner ol { margin: 0.35rem 0 0; padding-left: 1.2rem; }
+.info-banner li { margin-bottom: 0.25rem; }
+
 .exam-layout {
   display: grid;
   gap: 1rem;

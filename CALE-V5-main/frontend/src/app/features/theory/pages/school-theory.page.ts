@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
@@ -21,7 +22,7 @@ import {
 @Component({
   selector: 'app-school-theory-page',
   standalone: true,
-  imports: [FormsModule, UiButtonComponent, UiErrorComponent, UiLoadingComponent, UiPageHeaderComponent],
+  imports: [FormsModule, RouterLink, UiButtonComponent, UiErrorComponent, UiLoadingComponent, UiPageHeaderComponent],
   templateUrl: './school-theory.page.html',
   styleUrl: './school-theory.page.css'
 })
@@ -392,6 +393,52 @@ export class SchoolTheoryPage implements OnInit {
       next: () => {
         this.error.set(null);
         this.loadEnrollments();
+      },
+      error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  eligibleForExamCount(): number {
+    return this.enrollments().filter((row) => this.canAuthorizeTheoryExam(row)).length;
+  }
+
+  eligibleForPracticalCount(): number {
+    return this.enrollments().filter((row) => this.canAuthorizePractical(row) && !row.practicalAuthorized).length;
+  }
+
+  bulkAuthorizeExam(): void {
+    const count = this.eligibleForExamCount();
+    if (count === 0) {
+      this.error.set('No hay estudiantes elegibles para autorizar examen.');
+      return;
+    }
+    if (!confirm(`¿Autorizar examen teórico a ${count} estudiante(s) elegible(s)?`)) {
+      return;
+    }
+    this.api.bulkAuthorize({ theoryExam: true, practical: false }).subscribe({
+      next: (result) => {
+        this.error.set(null);
+        this.loadEnrollments();
+        alert(`Autorizados: ${result.authorizedCount}. Omitidos: ${result.skippedCount}.`);
+      },
+      error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  bulkAuthorizePractical(): void {
+    const count = this.eligibleForPracticalCount();
+    if (count === 0) {
+      this.error.set('No hay estudiantes elegibles para autorizar manejo.');
+      return;
+    }
+    if (!confirm(`¿Autorizar clases de manejo a ${count} estudiante(s) elegible(s)?`)) {
+      return;
+    }
+    this.api.bulkAuthorize({ theoryExam: false, practical: true }).subscribe({
+      next: (result) => {
+        this.error.set(null);
+        this.loadEnrollments();
+        alert(`Autorizados: ${result.authorizedCount}. Omitidos: ${result.skippedCount}.`);
       },
       error: (err) => this.error.set(mapApiError(err))
     });

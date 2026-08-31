@@ -938,6 +938,33 @@ public sealed class TheoryTrainingService
             new("Reservar clase de mañana", false)
         };
 
+        StudentExamAppointmentDto? nextExamAppointment = null;
+        var examSlot = await _db.Set<TheoryExamAppointment>()
+            .Where(x => x.SchoolUserId == schoolUserId
+                && x.StudentUserId == studentUserId
+                && x.ExamDate >= today)
+            .OrderBy(x => x.ExamDate)
+            .ThenBy(x => x.SlotTime)
+            .FirstOrDefaultAsync(ct);
+        if (examSlot is not null)
+        {
+            nextExamAppointment = new StudentExamAppointmentDto(
+                examSlot.Id,
+                examSlot.ExamDate.ToString("yyyy-MM-dd"),
+                examSlot.SlotTime.ToString("HH:mm"));
+        }
+
+        StudentPlatformExamDto? platformExam = null;
+        if (settings.TheoryExamId is int platformExamId)
+        {
+            var exams = await _catalog.ListPublishedExamsAsync(ct);
+            var match = exams.FirstOrDefault(e => e.Id == platformExamId);
+            if (match is not null)
+            {
+                platformExam = new StudentPlatformExamDto(match.Id, match.Name);
+            }
+        }
+
         return new TheoryStudentDashboardDto(
             nextDto,
             upcomingDtos,
@@ -956,7 +983,9 @@ public sealed class TheoryTrainingService
             checkedIn,
             tasks,
             enrollment?.AttendanceDayType,
-            eligibility);
+            eligibility,
+            nextExamAppointment,
+            platformExam);
     }
 
     public async Task<TheoryWeekScheduleDto> GetStudentWeekScheduleAsync(
@@ -1258,6 +1287,80 @@ public sealed class TheoryTrainingService
             enrollment.PracticalAuthorized,
             ct);
         return MapEnrollmentDto(enrollment, student.Name, student.Email ?? "", eligibility);
+    }
+
+    public async Task<BulkAuthorizeEnrollmentsResultDto> BulkAuthorizeEnrollmentsAsync(
+        int schoolUserId,
+        BulkAuthorizeEnrollmentsRequest request,
+        CancellationToken ct)
+    {
+        if (!request.TheoryExam && !request.Practical)
+        {
+            throw new DomainException("Indica qué autorización aplicar.", 400, "invalid_request");
+        }
+
+        var settings = await GetOrCreateSettingsAsync(schoolUserId, ct);
+        var enrollments = await _db.Set<SchoolStudentEnrollment>()
+            .Where(x => x.SchoolUserId == schoolUserId)
+            .ToListAsync(ct);
+
+        var now = _clock.UtcNow;
+        var authorized = 0;
+        var skipped = 0;
+
+        foreach (var enrollment in enrollments)
+        {
+            if (!StudentEnrollmentStatuses.CanReserveStatuses.Contains(enrollment.Status))
+            {
+                skipped++;
+                continue;
+            }
+
+            var (theoryHours, workshopHours, _) = await ComputeHoursBreakdownAsync(
+                enrollment.StudentUserId,
+                ct);
+            var eligibility = await GetPracticalEligibilityAsync(
+                schoolUserId,
+                enrollment.StudentUserId,
+                settings,
+                theoryHours,
+                workshopHours,
+                enrollment.TheoryExamAuthorized,
+                enrollment.PracticalAuthorized,
+                ct);
+
+            if (request.TheoryExam)
+            {
+                if (enrollment.TheoryExamAuthorized
+                    || !eligibility.TheoryHoursComplete
+                    || !eligibility.WorkshopHoursComplete
+                    || eligibility.TheoryExamPassed)
+                {
+                    skipped++;
+                    continue;
+                }
+
+                enrollment.TheoryExamAuthorized = true;
+                enrollment.TheoryExamAuthorizedAt = now;
+                enrollment.UpdatedAt = now;
+                authorized++;
+                continue;
+            }
+
+            if (enrollment.PracticalAuthorized || !eligibility.TheoryExamPassed)
+            {
+                skipped++;
+                continue;
+            }
+
+            enrollment.PracticalAuthorized = true;
+            enrollment.PracticalAuthorizedAt = now;
+            enrollment.UpdatedAt = now;
+            authorized++;
+        }
+
+        await _db.SaveChangesAsync(ct);
+        return new BulkAuthorizeEnrollmentsResultDto(authorized, skipped);
     }
 
     public async Task<EnrollmentDto> UpdateEnrollmentByIdAsync(

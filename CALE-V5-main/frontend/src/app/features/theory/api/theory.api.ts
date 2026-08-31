@@ -121,6 +121,24 @@ export interface TheoryStudentDashboardDto {
   todayTasks: Array<{ label: string; done: boolean }>;
   attendanceDayType?: string | null;
   practicalEligibility?: PracticalEligibilityDto | null;
+  nextExamAppointment?: StudentExamAppointmentDto | null;
+  platformExam?: StudentPlatformExamDto | null;
+}
+
+export interface StudentExamAppointmentDto {
+  id: number;
+  examDate: string;
+  slotTime: string;
+}
+
+export interface StudentPlatformExamDto {
+  id: number;
+  name: string;
+}
+
+export interface BulkAuthorizeResultDto {
+  authorizedCount: number;
+  skippedCount: number;
 }
 
 export interface EnrollmentDto {
@@ -293,6 +311,13 @@ export class TheoryApi {
   ) {
     return this.http.put<EnrollmentDto>(
       `${this.schoolBase}/enrollments/student/${studentUserId}`,
+      body
+    );
+  }
+
+  bulkAuthorize(body: { theoryExam: boolean; practical: boolean }) {
+    return this.http.post<BulkAuthorizeResultDto>(
+      `${this.schoolBase}/enrollments/bulk-authorize`,
       body
     );
   }

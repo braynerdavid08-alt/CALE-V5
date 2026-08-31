@@ -58,6 +58,8 @@
   font-weight: 700;
   font-size: var(--text-sm);
 }
+.exam-card .ok { color: var(--color-success); font-weight: 700; margin: 0.5rem 0 0; }
+.exam-card ui-button { margin-top: 0.5rem; }
 .card { border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1rem; background: var(--color-surface); }
 .card.highlight { border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border)); }
 .topic { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; border-left: 4px solid; padding-left: 0.5rem; }
