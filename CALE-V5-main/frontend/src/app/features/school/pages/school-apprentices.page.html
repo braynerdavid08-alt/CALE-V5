@@ -130,6 +130,8 @@
                   <small>
                     @if (s.theoryExamAuthorized) {
                       Autorizado para agendar cita de examen.
+                    } @else if (hasBalanceDue()) {
+                      Tiene saldo pendiente — registra el pago antes de autorizar.
                     } @else if (canAuthorizeTheoryExam()) {
                       Completa teoría y taller — listo para autorizar.
                     } @else if (d && d.training.theoryExamPassed) {
@@ -154,6 +156,8 @@
                   <small>
                     @if (s.practicalAuthorized) {
                       Autorizado para programar y reservar práctica.
+                    } @else if (hasBalanceDue()) {
+                      Tiene saldo pendiente — registra el pago antes de autorizar.
                     } @else if (canAuthorizePractical()) {
                       Aprobó el examen — listo para autorizar manejo.
                     } @else {

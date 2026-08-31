@@ -95,14 +95,22 @@ export class SchoolApprenticesPage implements OnInit {
 
   canAuthorizeTheoryExam(): boolean {
     const d = this.detail();
+    const row = this.selected();
     return !!d
       && d.training.theoryHoursComplete
       && d.training.workshopHoursComplete
-      && !d.training.theoryExamPassed;
+      && !d.training.theoryExamPassed
+      && (row?.balanceDue ?? 0) <= 0;
   }
 
   canAuthorizePractical(): boolean {
-    return !!this.detail()?.training.theoryExamPassed;
+    const row = this.selected();
+    return !!this.detail()?.training.theoryExamPassed
+      && (row?.balanceDue ?? 0) <= 0;
+  }
+
+  hasBalanceDue(): boolean {
+    return (this.selected()?.balanceDue ?? 0) > 0;
   }
 
   toggleTheoryExamAuth(authorized: boolean): void {

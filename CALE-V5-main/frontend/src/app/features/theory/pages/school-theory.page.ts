@@ -359,11 +359,17 @@ export class SchoolTheoryPage implements OnInit {
     return !!pe
       && pe.theoryHoursComplete
       && pe.workshopHoursComplete
-      && !pe.theoryExamPassed;
+      && !pe.theoryExamPassed
+      && (row.balanceDue ?? 0) <= 0;
   }
 
   canAuthorizePractical(row: EnrollmentDto): boolean {
-    return !!row.practicalEligibility?.theoryExamPassed;
+    return !!row.practicalEligibility?.theoryExamPassed
+      && (row.balanceDue ?? 0) <= 0;
+  }
+
+  hasBalanceDue(row: EnrollmentDto): boolean {
+    return (row.balanceDue ?? 0) > 0;
   }
 
   toggleTheoryExamAuth(row: EnrollmentDto, authorized: boolean): void {

@@ -179,7 +179,8 @@ public sealed record EnrollmentDto(
     bool PracticalAuthorized,
     DateTime CreatedAt,
     DateTime? AcceptedAt,
-    PracticalEligibilityDto? PracticalEligibility = null);
+    PracticalEligibilityDto? PracticalEligibility = null,
+    decimal BalanceDue = 0);
 
 public sealed record TheoryExamSchedulingStudentDto(
     int StudentUserId,

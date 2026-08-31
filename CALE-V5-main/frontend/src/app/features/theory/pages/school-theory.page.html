@@ -363,6 +363,8 @@
                     @if (row.status === 'Active' || row.status === 'Accepted') {
                       @if (row.theoryExamAuthorized) {
                         <button type="button" class="link-btn ok" (click)="toggleTheoryExamAuth(row, false)">Autorizado ✓</button>
+                      } @else if (hasBalanceDue(row)) {
+                        <small class="muted warn">Saldo pendiente</small>
                       } @else if (canAuthorizeTheoryExam(row)) {
                         <ui-button type="button" variant="secondary" (click)="toggleTheoryExamAuth(row, true)">Autorizar examen</ui-button>
                       } @else {
@@ -378,6 +380,8 @@
                         <button type="button" class="link-btn ok" (click)="togglePracticalAuth(row, false)">Autorizado ✓</button>
                       } @else if (canAuthorizePractical(row)) {
                         <ui-button type="button" variant="secondary" (click)="togglePracticalAuth(row, true)">Autorizar manejo</ui-button>
+                      } @else if (hasBalanceDue(row) && row.practicalEligibility?.theoryExamPassed) {
+                        <small class="muted warn">Saldo pendiente</small>
                       } @else if (row.practicalEligibility?.theoryExamPassed) {
                         <small class="muted">Pendiente autorización</small>
                       } @else {

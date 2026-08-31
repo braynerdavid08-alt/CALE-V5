@@ -155,6 +155,7 @@ export interface EnrollmentDto {
   createdAt: string;
   acceptedAt?: string | null;
   practicalEligibility?: PracticalEligibilityDto | null;
+  balanceDue?: number;
 }
 
 export interface TheoryExamOptionDto {

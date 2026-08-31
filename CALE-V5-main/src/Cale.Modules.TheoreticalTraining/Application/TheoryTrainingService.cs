@@ -1074,6 +1074,9 @@ public sealed class TheoryTrainingService
         var items = await _db.Set<SchoolStudentEnrollment>()
             .Where(x => x.SchoolUserId == schoolUserId)
             .ToDictionaryAsync(x => x.StudentUserId, ct);
+        var balances = await _db.Set<SchoolApprenticeProfile>()
+            .Where(x => x.SchoolUserId == schoolUserId)
+            .ToDictionaryAsync(x => x.StudentUserId, x => x.BalanceDue, ct);
 
         var result = new List<EnrollmentDto>();
         foreach (var student in students)
@@ -1089,9 +1092,10 @@ public sealed class TheoryTrainingService
                 enrollmentRow?.TheoryExamAuthorized ?? false,
                 enrollmentRow?.PracticalAuthorized ?? false,
                 ct);
+            balances.TryGetValue(student.Id, out var balanceDue);
             if (items.TryGetValue(student.Id, out var e))
             {
-                result.Add(MapEnrollmentDto(e, student.Name, student.Email, eligibility));
+                result.Add(MapEnrollmentDto(e, student.Name, student.Email, eligibility, balanceDue));
             }
             else
             {
@@ -1108,7 +1112,8 @@ public sealed class TheoryTrainingService
                     false,
                     DateTime.UtcNow,
                     null,
-                    eligibility));
+                    eligibility,
+                    balanceDue));
             }
         }
 
@@ -1215,10 +1220,12 @@ public sealed class TheoryTrainingService
         }
 
         var (theoryHours, workshopHours, _) = await ComputeHoursBreakdownAsync(studentUserId, ct);
+        var notifyTheoryExam = false;
+        var notifyPractical = false;
 
         if (request.TheoryExamAuthorized is bool theoryExamAuthorized)
         {
-            if (theoryExamAuthorized)
+            if (theoryExamAuthorized && !enrollment.TheoryExamAuthorized)
             {
                 var hoursCheck = await GetPracticalEligibilityAsync(
                     schoolUserId,
@@ -1244,6 +1251,9 @@ public sealed class TheoryTrainingService
                         400,
                         "theory_exam_already_passed");
                 }
+
+                await EnsureNoBalanceDueAsync(schoolUserId, studentUserId, ct);
+                notifyTheoryExam = true;
             }
 
             enrollment.TheoryExamAuthorized = theoryExamAuthorized;
@@ -1252,7 +1262,7 @@ public sealed class TheoryTrainingService
 
         if (request.PracticalAuthorized is bool practicalAuthorized)
         {
-            if (practicalAuthorized)
+            if (practicalAuthorized && !enrollment.PracticalAuthorized)
             {
                 var examCheck = await GetPracticalEligibilityAsync(
                     schoolUserId,
@@ -1270,6 +1280,9 @@ public sealed class TheoryTrainingService
                         400,
                         "theory_exam_required");
                 }
+
+                await EnsureNoBalanceDueAsync(schoolUserId, studentUserId, ct);
+                notifyPractical = true;
             }
 
             enrollment.PracticalAuthorized = practicalAuthorized;
@@ -1277,6 +1290,16 @@ public sealed class TheoryTrainingService
         }
 
         await _db.SaveChangesAsync(ct);
+
+        if (notifyTheoryExam)
+        {
+            await NotifyTheoryExamAuthorizedAsync(studentUserId, enrollment.Id, ct);
+        }
+
+        if (notifyPractical)
+        {
+            await NotifyPracticalAuthorizedAsync(studentUserId, enrollment.Id, ct);
+        }
         var eligibility = await GetPracticalEligibilityAsync(
             schoolUserId,
             studentUserId,
@@ -1286,7 +1309,8 @@ public sealed class TheoryTrainingService
             enrollment.TheoryExamAuthorized,
             enrollment.PracticalAuthorized,
             ct);
-        return MapEnrollmentDto(enrollment, student.Name, student.Email ?? "", eligibility);
+        var balanceDue = await GetBalanceDueAsync(schoolUserId, studentUserId, ct);
+        return MapEnrollmentDto(enrollment, student.Name, student.Email ?? "", eligibility, balanceDue);
     }
 
     public async Task<BulkAuthorizeEnrollmentsResultDto> BulkAuthorizeEnrollmentsAsync(
@@ -1307,10 +1331,18 @@ public sealed class TheoryTrainingService
         var now = _clock.UtcNow;
         var authorized = 0;
         var skipped = 0;
+        var theoryExamNotified = new List<(int StudentUserId, int EnrollmentId)>();
+        var practicalNotified = new List<(int StudentUserId, int EnrollmentId)>();
 
         foreach (var enrollment in enrollments)
         {
             if (!StudentEnrollmentStatuses.CanReserveStatuses.Contains(enrollment.Status))
+            {
+                skipped++;
+                continue;
+            }
+
+            if (await GetBalanceDueAsync(schoolUserId, enrollment.StudentUserId, ct) > 0)
             {
                 skipped++;
                 continue;
@@ -1343,6 +1375,7 @@ public sealed class TheoryTrainingService
                 enrollment.TheoryExamAuthorized = true;
                 enrollment.TheoryExamAuthorizedAt = now;
                 enrollment.UpdatedAt = now;
+                theoryExamNotified.Add((enrollment.StudentUserId, enrollment.Id));
                 authorized++;
                 continue;
             }
@@ -1356,10 +1389,22 @@ public sealed class TheoryTrainingService
             enrollment.PracticalAuthorized = true;
             enrollment.PracticalAuthorizedAt = now;
             enrollment.UpdatedAt = now;
+            practicalNotified.Add((enrollment.StudentUserId, enrollment.Id));
             authorized++;
         }
 
         await _db.SaveChangesAsync(ct);
+
+        foreach (var (studentUserId, enrollmentId) in theoryExamNotified)
+        {
+            await NotifyTheoryExamAuthorizedAsync(studentUserId, enrollmentId, ct);
+        }
+
+        foreach (var (studentUserId, enrollmentId) in practicalNotified)
+        {
+            await NotifyPracticalAuthorizedAsync(studentUserId, enrollmentId, ct);
+        }
+
         return new BulkAuthorizeEnrollmentsResultDto(authorized, skipped);
     }
 
@@ -1887,7 +1932,8 @@ public sealed class TheoryTrainingService
         SchoolStudentEnrollment enrollment,
         string studentName,
         string studentEmail,
-        PracticalEligibilityDto? eligibility = null) =>
+        PracticalEligibilityDto? eligibility = null,
+        decimal balanceDue = 0) =>
         new(
             enrollment.Id,
             enrollment.StudentUserId,
@@ -1901,7 +1947,65 @@ public sealed class TheoryTrainingService
             enrollment.PracticalAuthorized,
             enrollment.CreatedAt,
             enrollment.AcceptedAt,
-            eligibility);
+            eligibility,
+            balanceDue);
+
+    private async Task<decimal> GetBalanceDueAsync(
+        int schoolUserId,
+        int studentUserId,
+        CancellationToken ct)
+    {
+        var profile = await _db.Set<SchoolApprenticeProfile>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
+                && x.StudentUserId == studentUserId, ct);
+        return profile?.BalanceDue ?? 0;
+    }
+
+    private async Task EnsureNoBalanceDueAsync(
+        int schoolUserId,
+        int studentUserId,
+        CancellationToken ct)
+    {
+        var balance = await GetBalanceDueAsync(schoolUserId, studentUserId, ct);
+        if (balance > 0)
+        {
+            throw new DomainException(
+                "El estudiante tiene saldo pendiente. Registra el pago en Aprendices antes de autorizar.",
+                400,
+                "balance_due_pending");
+        }
+    }
+
+    private Task NotifyTheoryExamAuthorizedAsync(
+        int studentUserId,
+        int enrollmentId,
+        CancellationToken ct) =>
+        _notifications.NotifyUsersAsync(
+            [studentUserId],
+            new NotificationDraft(
+                "Autorizado para examen teórico",
+                "Tu escuela te autorizó para presentar el examen teórico. Revisa Mi formación para ver los siguientes pasos.",
+                NotificationTypes.TheoryClass,
+                RelatedEntity: "theory_exam_auth",
+                RelatedId: enrollmentId,
+                Link: "/student/training"),
+            ct);
+
+    private Task NotifyPracticalAuthorizedAsync(
+        int studentUserId,
+        int enrollmentId,
+        CancellationToken ct) =>
+        _notifications.NotifyUsersAsync(
+            [studentUserId],
+            new NotificationDraft(
+                "Autorizado para clases de manejo",
+                "Tu escuela te autorizó para programar y reservar clases de manejo. Entra a Práctica para agendar.",
+                NotificationTypes.TheoryClass,
+                RelatedEntity: "practical_auth",
+                RelatedId: enrollmentId,
+                Link: "/student/practical"),
+            ct);
 
     private static TimeOnly ParseTime(string value)
     {
