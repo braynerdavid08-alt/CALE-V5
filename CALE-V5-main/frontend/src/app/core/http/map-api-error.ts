@@ -16,6 +16,7 @@ const messages: Record<string, string> = {
   unauthorized: 'Necesitas iniciar sesión.',
   user_not_found: 'Usuario no encontrado.',
   student_not_found: 'Estudiante no encontrado.',
+  invalid_student: 'El estudiante no pertenece a tu escuela.',
   cannot_deactivate_self: 'No puedes desactivar tu propia cuenta.',
   membership_admin_only: 'Solo el administrador puede activar la membresía tras verificar el pago.',
   membership_inactive: 'Tu membresía no está activa. Solicita un plan, sube el comprobante y espera la verificación del administrador.',

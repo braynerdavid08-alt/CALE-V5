@@ -917,6 +917,7 @@ public sealed class TheoryTrainingService
             settings,
             theoryHours,
             workshopHours,
+            enrollment?.TheoryExamAuthorized ?? false,
             enrollment?.PracticalAuthorized ?? false,
             ct);
 
@@ -1025,6 +1026,7 @@ public sealed class TheoryTrainingService
             settings,
             theoryHours,
             workshopHours,
+            enrollment?.TheoryExamAuthorized ?? false,
             enrollment?.PracticalAuthorized ?? false,
             ct);
     }
@@ -1048,13 +1050,15 @@ public sealed class TheoryTrainingService
         foreach (var student in students)
         {
             var (theoryHours, workshopHours, _) = await ComputeHoursBreakdownAsync(student.Id, ct);
+            items.TryGetValue(student.Id, out var enrollmentRow);
             var eligibility = await GetPracticalEligibilityAsync(
                 schoolUserId,
                 student.Id,
                 settings,
                 theoryHours,
                 workshopHours,
-                items.TryGetValue(student.Id, out var existing) && existing.PracticalAuthorized,
+                enrollmentRow?.TheoryExamAuthorized ?? false,
+                enrollmentRow?.PracticalAuthorized ?? false,
                 ct);
             if (items.TryGetValue(student.Id, out var e))
             {
@@ -1193,6 +1197,7 @@ public sealed class TheoryTrainingService
                     settings,
                     theoryHours,
                     workshopHours,
+                    enrollment.TheoryExamAuthorized,
                     enrollment.PracticalAuthorized,
                     ct);
                 if (!hoursCheck.TheoryHoursComplete || !hoursCheck.WorkshopHoursComplete)
@@ -1226,6 +1231,7 @@ public sealed class TheoryTrainingService
                     settings,
                     theoryHours,
                     workshopHours,
+                    true,
                     false,
                     ct);
                 if (!examCheck.TheoryExamPassed)
@@ -1248,6 +1254,7 @@ public sealed class TheoryTrainingService
             settings,
             theoryHours,
             workshopHours,
+            enrollment.TheoryExamAuthorized,
             enrollment.PracticalAuthorized,
             ct);
         return MapEnrollmentDto(enrollment, student.Name, student.Email ?? "", eligibility);
@@ -1610,6 +1617,7 @@ public sealed class TheoryTrainingService
         TheoryTrainingSettings settings,
         decimal theoryHours,
         decimal workshopHours,
+        bool theoryExamAuthorized,
         bool practicalAuthorized,
         CancellationToken ct)
     {
@@ -1628,11 +1636,7 @@ public sealed class TheoryTrainingService
         var canBook = theoryExamPassed && theoryComplete && workshopComplete && practicalAuthorized;
 
         string? blockReason = null;
-        if (!theoryExamPassed)
-        {
-            blockReason = "Debes aprobar el examen teórico.";
-        }
-        else if (!theoryComplete)
+        if (!theoryComplete)
         {
             blockReason = $"Te faltan horas de teoría ({theoryHours}/{settings.RequiredTheoryHours}).";
         }
@@ -1640,9 +1644,15 @@ public sealed class TheoryTrainingService
         {
             blockReason = $"Te faltan horas de taller ({workshopHours}/{settings.RequiredWorkshopHours}).";
         }
+        else if (!theoryExamPassed)
+        {
+            blockReason = theoryExamAuthorized
+                ? "Debes aprobar el examen teórico en la plataforma."
+                : "Tu escuela debe autorizarte para presentar el examen teórico.";
+        }
         else if (!practicalAuthorized)
         {
-            blockReason = "La escuela aún no te autorizó para clases de manejo.";
+            blockReason = "Tu escuela debe autorizarte para clases de manejo.";
         }
 
         return new PracticalEligibilityDto(
@@ -1654,6 +1664,8 @@ public sealed class TheoryTrainingService
             settings.RequiredTheoryHours,
             workshopHours,
             settings.RequiredWorkshopHours,
+            theoryExamAuthorized,
+            practicalAuthorized,
             blockReason);
     }
 

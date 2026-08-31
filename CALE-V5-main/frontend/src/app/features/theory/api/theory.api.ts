@@ -43,6 +43,8 @@ export interface PracticalEligibilityDto {
   theoryHoursRequired: number;
   workshopHoursCompleted: number;
   workshopHoursRequired: number;
+  theoryExamAuthorized: boolean;
+  practicalAuthorized: boolean;
   blockReason?: string | null;
 }
 

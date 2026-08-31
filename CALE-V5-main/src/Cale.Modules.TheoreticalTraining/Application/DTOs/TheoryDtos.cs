@@ -176,6 +176,8 @@ public sealed record PracticalEligibilityDto(
     decimal TheoryHoursRequired,
     decimal WorkshopHoursCompleted,
     decimal WorkshopHoursRequired,
+    bool TheoryExamAuthorized,
+    bool PracticalAuthorized,
     string? BlockReason);
 
 public sealed record PracticalVehicleDto(

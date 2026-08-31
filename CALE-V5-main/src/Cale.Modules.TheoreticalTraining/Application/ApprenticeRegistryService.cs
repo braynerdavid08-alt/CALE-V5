@@ -3,6 +3,7 @@ using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Time;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
 using Cale.Modules.Identity.Application.Abstractions;
+using Cale.Modules.Identity.Domain;
 using Cale.Modules.TheoreticalTraining.Application.DTOs;
 using Cale.Modules.TheoreticalTraining.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -60,7 +61,7 @@ public sealed class ApprenticeRegistryService
 
             profileMap.TryGetValue(studentUserId, out var profile);
             enrollmentMap.TryGetValue(studentUserId, out var enrollment);
-            rows.Add(MapDto(user.Name, user.Email, profile, enrollment));
+            rows.Add(MapDto(studentUserId, user.Name, user.Email, profile, enrollment));
         }
 
         IEnumerable<ApprenticeDto> query = rows.OrderBy(x => x.StudentName);
@@ -94,7 +95,7 @@ public sealed class ApprenticeRegistryService
     {
         var user = await _users.GetByIdAsync(studentUserId, ct)
             ?? throw new NotFoundException("Estudiante no encontrado.", "student_not_found");
-        if (user.SchoolId != schoolUserId || user.Role != Roles.Student)
+        if (!await BelongsToSchoolAsync(schoolUserId, studentUserId, user, ct))
         {
             throw new DomainException("El estudiante no pertenece a tu escuela.", 400, "invalid_student");
         }
@@ -103,7 +104,7 @@ public sealed class ApprenticeRegistryService
             .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId && x.StudentUserId == studentUserId, ct);
         var enrollment = await _db.Set<SchoolStudentEnrollment>()
             .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId && x.StudentUserId == studentUserId, ct);
-        var apprentice = MapDto(user.Name, user.Email, profile, enrollment);
+        var apprentice = MapDto(studentUserId, user.Name, user.Email, profile, enrollment);
         var training = await _theory.GetPracticalEligibilityAsync(schoolUserId, studentUserId, ct);
         var practical = await _practical.GetApprenticePracticalSummaryAsync(schoolUserId, studentUserId, ct);
 
@@ -216,7 +217,7 @@ public sealed class ApprenticeRegistryService
     {
         var user = await _users.GetByIdAsync(studentUserId, ct)
             ?? throw new NotFoundException("Estudiante no encontrado.", "student_not_found");
-        if (user.SchoolId != schoolUserId)
+        if (!await BelongsToSchoolAsync(schoolUserId, studentUserId, user, ct))
         {
             throw new DomainException("El estudiante no pertenece a tu escuela.", 400, "invalid_student");
         }
@@ -491,13 +492,14 @@ public sealed class ApprenticeRegistryService
     }
 
     private static ApprenticeDto MapDto(
+        int studentUserId,
         string studentName,
         string studentEmail,
         SchoolApprenticeProfile? profile,
         SchoolStudentEnrollment? enrollment) =>
         new(
             profile?.Id ?? 0,
-            profile?.StudentUserId ?? enrollment?.StudentUserId ?? 0,
+            studentUserId,
             studentName,
             studentEmail,
             profile?.DocumentType,
@@ -528,6 +530,33 @@ public sealed class ApprenticeRegistryService
             enrollment?.TheoryExamAuthorized ?? false,
             enrollment?.PracticalAuthorized ?? false,
             profile?.Notes);
+
+    private async Task<bool> BelongsToSchoolAsync(
+        int schoolUserId,
+        int studentUserId,
+        User user,
+        CancellationToken ct)
+    {
+        if (user.Role != Roles.Student)
+        {
+            return false;
+        }
+
+        if (user.SchoolId == schoolUserId)
+        {
+            return true;
+        }
+
+        var hasProfile = await _db.Set<SchoolApprenticeProfile>()
+            .AnyAsync(x => x.SchoolUserId == schoolUserId && x.StudentUserId == studentUserId, ct);
+        if (hasProfile)
+        {
+            return true;
+        }
+
+        return await _db.Set<SchoolStudentEnrollment>()
+            .AnyAsync(x => x.SchoolUserId == schoolUserId && x.StudentUserId == studentUserId, ct);
+    }
 
     private static TimeOnly ParseTime(string value)
     {

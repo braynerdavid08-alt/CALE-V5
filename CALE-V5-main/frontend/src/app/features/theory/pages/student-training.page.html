@@ -51,6 +51,66 @@
         <p>{{ dash.workshopHoursCompleted }} / {{ dash.workshopHoursRequired }} h taller</p>
         <p class="meta">Inasistencias: {{ dash.absences }}</p>
       </article>
+
+      @if (dash.practicalEligibility; as pe) {
+        <article class="card pathway">
+          <h2>Tu camino hacia el manejo</h2>
+          <ol class="pathway-steps">
+            <li [class.done]="pe.theoryHoursComplete">
+              <span class="step-icon">{{ pe.theoryHoursComplete ? '✓' : '1' }}</span>
+              <span>
+                <strong>Horas de teoría</strong>
+                <small>{{ pe.theoryHoursCompleted }} / {{ pe.theoryHoursRequired }} h</small>
+              </span>
+            </li>
+            <li [class.done]="pe.workshopHoursComplete">
+              <span class="step-icon">{{ pe.workshopHoursComplete ? '✓' : '2' }}</span>
+              <span>
+                <strong>Horas de taller</strong>
+                <small>{{ pe.workshopHoursCompleted }} / {{ pe.workshopHoursRequired }} h</small>
+              </span>
+            </li>
+            <li [class.done]="pe.theoryExamAuthorized || pe.theoryExamPassed">
+              <span class="step-icon">{{ pe.theoryExamAuthorized || pe.theoryExamPassed ? '✓' : '3' }}</span>
+              <span>
+                <strong>Autorización para examen</strong>
+                <small>
+                  @if (pe.theoryExamPassed) { Ya aprobaste el examen. }
+                  @else if (pe.theoryExamAuthorized) { Tu escuela te autorizó. Presenta el examen. }
+                  @else if (pe.theoryHoursComplete && pe.workshopHoursComplete) { Espera autorización de tu escuela. }
+                  @else { Completa primero teoría y taller. }
+                </small>
+              </span>
+            </li>
+            <li [class.done]="pe.theoryExamPassed">
+              <span class="step-icon">{{ pe.theoryExamPassed ? '✓' : '4' }}</span>
+              <span>
+                <strong>Examen teórico aprobado</strong>
+                <small>
+                  @if (pe.theoryExamPassed) { Requisito cumplido. }
+                  @else { Aprueba el examen en Evaluaciones o Simulador. }
+                </small>
+              </span>
+            </li>
+            <li [class.done]="pe.practicalAuthorized">
+              <span class="step-icon">{{ pe.practicalAuthorized ? '✓' : '5' }}</span>
+              <span>
+                <strong>Autorización para manejo</strong>
+                <small>
+                  @if (pe.practicalAuthorized) { Ya puedes reservar clases de manejo. }
+                  @else if (pe.theoryExamPassed) { Tu escuela debe autorizarte para practicar. }
+                  @else { Disponible después de aprobar el examen. }
+                </small>
+              </span>
+            </li>
+          </ol>
+          @if (pe.blockReason && !pe.canBookPractical) {
+            <p class="pathway-next">{{ pe.blockReason }}</p>
+          } @else if (pe.canBookPractical) {
+            <p class="pathway-ok">✅ Ya puedes reservar clases de manejo.</p>
+          }
+        </article>
+      }
     </div>
 
     @if (dash.nextAction) {

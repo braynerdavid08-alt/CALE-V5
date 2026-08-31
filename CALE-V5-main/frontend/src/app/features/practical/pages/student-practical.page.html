@@ -14,9 +14,6 @@
     <article class="card requirements">
       <h2>Requisitos para agendar</h2>
       <ul>
-        <li [class.done]="dash.eligibility.theoryExamPassed">
-          {{ dash.eligibility.theoryExamPassed ? '☑' : '☐' }} Examen teórico aprobado
-        </li>
         <li [class.done]="dash.eligibility.theoryHoursComplete">
           {{ dash.eligibility.theoryHoursComplete ? '☑' : '☐' }}
           Horas de teoría: {{ dash.eligibility.theoryHoursCompleted }} / {{ dash.eligibility.theoryHoursRequired }}
@@ -24,6 +21,17 @@
         <li [class.done]="dash.eligibility.workshopHoursComplete">
           {{ dash.eligibility.workshopHoursComplete ? '☑' : '☐' }}
           Horas de taller: {{ dash.eligibility.workshopHoursCompleted }} / {{ dash.eligibility.workshopHoursRequired }}
+        </li>
+        <li [class.done]="dash.eligibility.theoryExamAuthorized || dash.eligibility.theoryExamPassed">
+          {{ dash.eligibility.theoryExamAuthorized || dash.eligibility.theoryExamPassed ? '☑' : '☐' }}
+          Autorización de escuela para examen
+        </li>
+        <li [class.done]="dash.eligibility.theoryExamPassed">
+          {{ dash.eligibility.theoryExamPassed ? '☑' : '☐' }} Examen teórico aprobado
+        </li>
+        <li [class.done]="dash.eligibility.practicalAuthorized">
+          {{ dash.eligibility.practicalAuthorized ? '☑' : '☐' }}
+          Autorización de escuela para manejo
         </li>
       </ul>
       @if (dash.eligibility.canBookPractical) {
