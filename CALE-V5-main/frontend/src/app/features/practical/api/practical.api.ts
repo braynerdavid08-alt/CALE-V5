@@ -56,6 +56,13 @@ export interface PracticalStudentDashboardDto {
   nextLesson?: PracticalLessonSessionDto | null;
   upcomingReservations: PracticalLessonSessionDto[];
   availableLessons: PracticalLessonSessionDto[];
+  availableInstructors: PracticalInstructorOptionDto[];
+}
+
+export interface PracticalInstructorOptionDto {
+  instructorUserId: number;
+  instructorName: string;
+  availableLessonCount: number;
 }
 
 export interface PracticalAttendanceRowDto {
@@ -81,6 +88,26 @@ function buildTwoHourSlot(startHour: number): TimeSlot {
 export const PRACTICAL_TIME_SLOTS: TimeSlot[] = [6, 8, 10, 12, 14, 16, 18, 20, 22].map(
   buildTwoHourSlot
 );
+
+export const PRACTICAL_MAX_DAILY_HOURS = 8;
+
+export function slotDurationHours(slot: TimeSlot): number {
+  const [sh, sm] = slot.start.split(':').map(Number);
+  const [eh, em] = slot.end.split(':').map(Number);
+  const startMinutes = sh * 60 + sm;
+  const endMinutes = eh * 60 + em;
+  return (endMinutes - startMinutes + (em === 59 ? 1 : 0)) / 60;
+}
+
+export function lessonDurationHours(lesson: PracticalLessonSessionDto): number {
+  const start = lesson.startTime.slice(0, 5);
+  const end = lesson.endTime.slice(0, 5);
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  const startMinutes = sh * 60 + sm;
+  const endMinutes = eh * 60 + em;
+  return (endMinutes - startMinutes + (em === 59 ? 1 : 0)) / 60;
+}
 
 @Injectable({ providedIn: 'root' })
 export class PracticalApi {

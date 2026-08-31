@@ -93,7 +93,8 @@ const messages: Record<string, string> = {
   schedule_conflict: 'El instructor o el vehículo ya tienen clase en ese horario.',
   slot_taken: 'Ese horario ya tiene un estudiante asignado.',
   student_day_taken: 'El estudiante ya tiene una clase ese día.',
-  student_not_authorized: 'El estudiante debe estar autorizado para asignar clases.'
+  student_not_authorized: 'El estudiante debe estar autorizado para asignar clases.',
+  daily_hour_limit: 'El instructor ya alcanzó el máximo de 8 horas de manejo ese día.'
 };
 
 function withSupportCode(message: string, error: unknown): string {
@@ -114,20 +115,37 @@ export function mapApiError(error: unknown): string {
     return withSupportCode('No se pudo conectar con el servidor.', error);
   }
 
-  const detail = error.error?.detail;
-  const title = error.error?.title;
+  const detail = typeof error.error?.detail === 'string' ? error.error.detail : null;
+  const title = typeof error.error?.title === 'string' ? error.error.title : null;
+
   if (detail === 'internal_error'
-      && typeof title === 'string'
+      && title
       && title.trim()
       && title !== 'Unexpected error.') {
     return withSupportCode(title, error);
   }
 
-  if (typeof detail === 'string' && messages[detail]) {
+  if (detail && messages[detail]) {
     return withSupportCode(messages[detail], error);
   }
 
-  if (typeof title === 'string' && title.trim()) {
+  if (error.status === 401) {
+    return withSupportCode(messages['unauthorized'], error);
+  }
+
+  if (error.status === 403) {
+    return withSupportCode('No tienes permiso para esta acción.', error);
+  }
+
+  if (error.status === 404) {
+    return withSupportCode('No se encontró el recurso solicitado.', error);
+  }
+
+  if (error.status >= 500) {
+    return withSupportCode(messages['internal_error'], error);
+  }
+
+  if (title && title.trim() && title !== 'Unexpected error.') {
     return withSupportCode(title, error);
   }
 

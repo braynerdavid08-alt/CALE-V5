@@ -246,7 +246,13 @@ public sealed record PracticalStudentDashboardDto(
     PracticalEligibilityDto Eligibility,
     PracticalLessonSessionDto? NextLesson,
     IReadOnlyList<PracticalLessonSessionDto> UpcomingReservations,
-    IReadOnlyList<PracticalLessonSessionDto> AvailableLessons);
+    IReadOnlyList<PracticalLessonSessionDto> AvailableLessons,
+    IReadOnlyList<PracticalInstructorOptionDto> AvailableInstructors);
+
+public sealed record PracticalInstructorOptionDto(
+    int InstructorUserId,
+    string InstructorName,
+    int AvailableLessonCount);
 
 public sealed record TheoryExamOptionDto(int Id, string Name);
 

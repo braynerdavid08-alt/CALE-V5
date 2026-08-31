@@ -445,7 +445,22 @@ public sealed class PracticalTrainingService
             availableDtos.Add(await MapLessonAsync(s, studentUserId, includeAssignment: false, ct));
         }
 
-        return new PracticalStudentDashboardDto(eligibility, nextDto, upcomingDtos, availableDtos);
+        var instructorOptions = availableDtos
+            .Where(x => x.BookingState is "can_reserve" or "reserved")
+            .GroupBy(x => x.InstructorUserId)
+            .Select(g => new PracticalInstructorOptionDto(
+                g.Key,
+                g.First().InstructorName,
+                g.Count(x => x.BookingState == "can_reserve")))
+            .OrderBy(x => x.InstructorName)
+            .ToList();
+
+        return new PracticalStudentDashboardDto(
+            eligibility,
+            nextDto,
+            upcomingDtos,
+            availableDtos,
+            instructorOptions);
     }
 
     public async Task<ApprenticePracticalSummaryDto> GetApprenticePracticalSummaryAsync(
@@ -704,6 +719,15 @@ public sealed class PracticalTrainingService
             excludeLessonId: null,
             ct);
 
+        await EnsureInstructorDailyHourLimitAsync(
+            schoolUserId,
+            sessionDate,
+            start,
+            end,
+            instructorUserId,
+            excludeLessonId: null,
+            ct);
+
         var now = _clock.UtcNow;
         var session = new PracticalLessonSession
         {
@@ -755,6 +779,55 @@ public sealed class PracticalTrainingService
                 400,
                 "schedule_conflict");
         }
+    }
+
+    private async Task EnsureInstructorDailyHourLimitAsync(
+        int schoolUserId,
+        DateOnly sessionDate,
+        TimeOnly start,
+        TimeOnly end,
+        int instructorUserId,
+        int? excludeLessonId,
+        CancellationToken ct)
+    {
+        var query = _db.Set<PracticalLessonSession>()
+            .Where(x => x.SchoolUserId == schoolUserId
+                && x.SessionDate == sessionDate
+                && x.InstructorUserId == instructorUserId
+                && x.Status != PracticalLessonStatuses.Cancelled);
+
+        if (excludeLessonId is > 0)
+        {
+            query = query.Where(x => x.Id != excludeLessonId);
+        }
+
+        var sessions = await query.ToListAsync(ct);
+        var used = sessions.Sum(s => GetLessonDurationHours(s.StartTime, s.EndTime));
+        var adding = GetLessonDurationHours(start, end);
+
+        if (used + adding > PracticalScheduleLimits.MaxDailyInstructorHours)
+        {
+            throw new DomainException(
+                $"El instructor ya tiene {used:0.#} h programadas ese día. Máximo {PracticalScheduleLimits.MaxDailyInstructorHours} horas por día.",
+                400,
+                "daily_hour_limit");
+        }
+    }
+
+    private static decimal GetLessonDurationHours(TimeOnly start, TimeOnly end)
+    {
+        var minutes = (end - start).TotalMinutes;
+        if (minutes < 0)
+        {
+            return 0;
+        }
+
+        if (end.Minute == 59)
+        {
+            minutes += 1;
+        }
+
+        return (decimal)(minutes / 60.0);
     }
 
     private async Task<(int Completed, int Required, int NextNumber)> GetStudentLessonProgressAsync(

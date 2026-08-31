@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiThemeToggleComponent } from '../../../shared/ui/ui-theme-toggle.component';
@@ -25,10 +25,16 @@ import { BRAND } from '../../../core/brand';
 export class LoginPage {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   readonly auth = inject(AuthFacade);
   readonly brand = BRAND;
 
   readonly returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+  readonly sessionExpired =
+    (this.router.getCurrentNavigation()?.extras.state as { reason?: string } | undefined)?.reason
+      === 'session_expired'
+    || (typeof history !== 'undefined'
+      && (history.state as { reason?: string } | null)?.reason === 'session_expired');
 
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],

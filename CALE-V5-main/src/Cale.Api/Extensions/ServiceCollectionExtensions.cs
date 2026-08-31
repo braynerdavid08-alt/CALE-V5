@@ -22,6 +22,7 @@ using Cale.Modules.Presentation.Infrastructure;
 using Cale.Modules.Presentation.Infrastructure.Persistence;
 using Cale.Api.Hubs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
@@ -118,6 +119,25 @@ public static class ServiceCollectionExtensions
                         }
 
                         return Task.CompletedTask;
+                    },
+                    OnChallenge = async context =>
+                    {
+                        context.HandleResponse();
+                        if (context.Response.HasStarted)
+                        {
+                            return;
+                        }
+
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        context.Response.ContentType = "application/problem+json";
+                        await context.Response.WriteAsJsonAsync(new ProblemDetails
+                        {
+                            Status = StatusCodes.Status401Unauthorized,
+                            Title = "Necesitas iniciar sesión.",
+                            Detail = "unauthorized",
+                            Type = "https://httpstatuses.com/401",
+                            Instance = context.Request.Path
+                        });
                     }
                 };
             });

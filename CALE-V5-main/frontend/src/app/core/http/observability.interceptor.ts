@@ -45,24 +45,29 @@ export function extractTraceId(error: unknown): string | null {
   return getLastRequestId();
 }
 
-/** Propagates correlation id and remembers it for support messages. */
+function newRequestId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID().replace(/-/g, '');
+  }
+  return `${Date.now().toString(16)}${Math.random().toString(16).slice(2, 10)}`;
+}
+
+/** Sends a fresh correlation id per request and remembers the last one for support. */
 export const observabilityInterceptor: HttpInterceptorFn = (req, next) => {
-  const existing = req.headers.get(HEADER) ?? getLastRequestId();
-  const outbound = existing
-    ? req.clone({ setHeaders: { [HEADER]: existing } })
-    : req;
+  const requestId = req.headers.get(HEADER) || newRequestId();
+  const outbound = req.clone({ setHeaders: { [HEADER]: requestId } });
 
   return next(outbound).pipe(
     tap({
       next: (event) => {
         if (event instanceof HttpResponse) {
-          rememberRequestId(event.headers.get(HEADER));
+          rememberRequestId(event.headers.get(HEADER) ?? requestId);
         }
       },
       error: (err) => {
         if (err instanceof HttpErrorResponse) {
           rememberRequestId(
-            err.headers?.get(HEADER) ?? err.error?.traceId ?? existing
+            err.headers?.get(HEADER) ?? err.error?.traceId ?? requestId
           );
         }
       }

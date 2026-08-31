@@ -1,4 +1,5 @@
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -58,11 +59,14 @@ export class SchoolTheoryExamsPage implements OnInit {
 
   reload(): void {
     this.loading.set(true);
+    this.error.set(null);
     const start = this.weekStart();
     const end = this.addDays(start, 13);
     forkJoin({
       rows: this.api.listExamSlots(start, end),
-      students: this.practicalApi.listSchedulingStudents()
+      students: this.practicalApi.listSchedulingStudents().pipe(
+        catchError(() => of([] as PracticalSchedulingStudentDto[]))
+      )
     }).subscribe({
       next: ({ rows, students }) => {
         this.rows.set(rows);

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
@@ -24,6 +24,23 @@ export class StudentPracticalPage implements OnInit {
   readonly actionLoading = signal(false);
   readonly error = signal<string | null>(null);
   readonly dashboard = signal<PracticalStudentDashboardDto | null>(null);
+  readonly selectedInstructorId = signal(0);
+
+  readonly filteredLessons = computed(() => {
+    const dash = this.dashboard();
+    const instructorId = this.selectedInstructorId();
+    if (!dash || !instructorId) {
+      return [];
+    }
+    return dash.availableLessons.filter((l) => l.instructorUserId === instructorId);
+  });
+
+  readonly selectedInstructorName = computed(() => {
+    const dash = this.dashboard();
+    const id = this.selectedInstructorId();
+    return dash?.availableInstructors?.find((i) => i.instructorUserId === id)?.instructorName
+      ?? 'tu instructor';
+  });
 
   ngOnInit(): void {
     this.reload();
@@ -35,6 +52,13 @@ export class StudentPracticalPage implements OnInit {
     this.api.studentDashboard().subscribe({
       next: (d) => {
         this.dashboard.set(d);
+        const current = this.selectedInstructorId();
+        const instructors = d.availableInstructors ?? [];
+        if (instructors.length === 0) {
+          this.selectedInstructorId.set(0);
+        } else if (!current || !instructors.some((i) => i.instructorUserId === current)) {
+          this.selectedInstructorId.set(instructors[0].instructorUserId);
+        }
         this.loading.set(false);
       },
       error: (err) => {
@@ -42,6 +66,10 @@ export class StudentPracticalPage implements OnInit {
         this.error.set(mapApiError(err));
       }
     });
+  }
+
+  selectInstructor(instructorUserId: number): void {
+    this.selectedInstructorId.set(instructorUserId);
   }
 
   canReserve(session: PracticalLessonSessionDto): boolean {

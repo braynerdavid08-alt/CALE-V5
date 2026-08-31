@@ -34,6 +34,11 @@ public static class PracticalLessonStatuses
     public const string Cancelled = "Cancelled";
 }
 
+public static class PracticalScheduleLimits
+{
+    public const int MaxDailyInstructorHours = 8;
+}
+
 /// <summary>Clases prácticas requeridas por categoría (Colombia CEA).</summary>
 public static class PracticalLessonRequirements
 {

@@ -144,6 +144,20 @@
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
+.cell.limit {
+  min-height: 88px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0.35rem;
+  opacity: 0.75;
+}
 .cell.assigned {
   border-style: solid;
   border-color: #2563eb;

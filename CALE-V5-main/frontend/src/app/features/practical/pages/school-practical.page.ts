@@ -9,13 +9,16 @@ import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.compone
 import { mapApiError } from '../../../core/http/map-api-error';
 import { env } from '../../../core/config/env';
 import {
+  PRACTICAL_MAX_DAILY_HOURS,
   PRACTICAL_TIME_SLOTS,
   PracticalApi,
   PracticalAttendanceRowDto,
   PracticalLessonSessionDto,
   PracticalSchedulingStudentDto,
   PracticalVehicleDto,
-  TimeSlot
+  TimeSlot,
+  lessonDurationHours,
+  slotDurationHours
 } from '../api/practical.api';
 
 interface MemberRow {
@@ -49,6 +52,7 @@ export class SchoolPracticalPage implements OnInit {
   private readonly http = inject(HttpClient);
 
   readonly timeSlots = PRACTICAL_TIME_SLOTS;
+  readonly maxDailyHours = PRACTICAL_MAX_DAILY_HOURS;
   readonly dayLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
   readonly loading = signal(true);
@@ -206,7 +210,27 @@ export class SchoolPracticalPage implements OnInit {
   dayHeader(dayIndex: number): string {
     const d = this.parseDate(this.weekStart());
     d.setDate(d.getDate() + dayIndex);
-    return `${this.dayLabels[dayIndex]} ${d.getDate()}`;
+    const hours = this.dayScheduledHours(dayIndex);
+    const hoursLabel = hours > 0 ? ` · ${hours}h/${this.maxDailyHours}h` : '';
+    return `${this.dayLabels[dayIndex]} ${d.getDate()}${hoursLabel}`;
+  }
+
+  dayScheduledHours(dayIndex: number): number {
+    const date = this.dayDate(dayIndex);
+    return this.lessons()
+      .filter((l) => l.sessionDate === date)
+      .reduce((sum, l) => sum + lessonDurationHours(l), 0);
+  }
+
+  canAssignSlot(dayIndex: number, slot: TimeSlot): boolean {
+    if (this.lessonAt(dayIndex, slot)) {
+      return false;
+    }
+    return this.dayScheduledHours(dayIndex) + slotDurationHours(slot) <= this.maxDailyHours;
+  }
+
+  isDayAtHourLimit(dayIndex: number): boolean {
+    return this.dayScheduledHours(dayIndex) >= this.maxDailyHours;
   }
 
   lessonAt(dayIndex: number, slot: TimeSlot): PracticalLessonSessionDto | null {
@@ -226,6 +250,10 @@ export class SchoolPracticalPage implements OnInit {
   openPicker(dayIndex: number, slot: TimeSlot): void {
     if (!this.instructorId() || !this.vehicleId()) {
       this.error.set('Selecciona instructor y vehículo primero.');
+      return;
+    }
+    if (!this.canAssignSlot(dayIndex, slot)) {
+      this.error.set(`Este instructor ya alcanzó el máximo de ${this.maxDailyHours} horas ese día.`);
       return;
     }
     this.studentSearch.set('');

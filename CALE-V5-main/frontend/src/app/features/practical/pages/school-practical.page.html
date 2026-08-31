@@ -107,10 +107,18 @@
                         </div>
                       </div>
                     } @else {
-                      <button type="button" class="cell empty" (click)="openPicker(i, slot)">+ Asignar</button>
+                      @if (canAssignSlot(i, slot)) {
+                        <button type="button" class="cell empty" (click)="openPicker(i, slot)">+ Asignar</button>
+                      } @else {
+                        <span class="cell limit" title="Máximo {{ maxDailyHours }} horas por día">Límite {{ maxDailyHours }}h</span>
+                      }
                     }
                   } @else {
-                    <button type="button" class="cell empty" (click)="openPicker(i, slot)">+ Asignar</button>
+                    @if (canAssignSlot(i, slot)) {
+                      <button type="button" class="cell empty" (click)="openPicker(i, slot)">+ Asignar</button>
+                    } @else {
+                      <span class="cell limit" title="Máximo {{ maxDailyHours }} horas por día">Límite {{ maxDailyHours }}h</span>
+                    }
                   }
                 </td>
               }
@@ -121,7 +129,7 @@
     </div>
 
     <p class="muted hint">
-      Clic en una celda vacía → elige estudiante. Se crea la clase y la asignación en un solo paso.
+      Clic en una celda vacía → elige estudiante. Máximo {{ maxDailyHours }} horas de manejo por instructor y día.
     </p>
   }
 } @else {
