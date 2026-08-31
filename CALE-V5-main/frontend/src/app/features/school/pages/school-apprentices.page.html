@@ -59,6 +59,8 @@
 
         @if (detailLoading()) {
           <ui-loading />
+        } @else if (detailError()) {
+          <p class="detail-warn muted">{{ detailError() }}</p>
         } @else if (d) {
           <section class="summary-card">
             <h3>Formación</h3>

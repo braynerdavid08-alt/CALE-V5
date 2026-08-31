@@ -22,20 +22,48 @@
   padding: 1rem;
 }
 .grid-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
-.grid-table th, .grid-table td { padding: 0.55rem 0.4rem; border-bottom: 1px solid var(--color-border); text-align: left; }
-.grid-table tbody tr { cursor: pointer; }
-.grid-table tbody tr:hover { background: var(--color-background); }
-.grid-table tbody tr.on { background: #eff6ff; }
+.grid-table th {
+  padding: 0.55rem 0.4rem;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-raised);
+  font-weight: 650;
+}
+.grid-table td {
+  padding: 0.55rem 0.4rem;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  color: var(--color-text);
+}
+.grid-table tbody tr {
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.grid-table tbody tr:hover {
+  background: var(--color-surface-raised);
+}
+.grid-table tbody tr.on {
+  background: var(--color-primary-soft);
+}
+.grid-table tbody tr.on td,
+.grid-table tbody tr.on strong {
+  color: var(--color-text);
+}
 .pill {
   display: inline-block;
   margin-left: 0.35rem;
   padding: 0.1rem 0.4rem;
   border-radius: 999px;
   font-size: 0.7rem;
-  background: #e5e7eb;
+  background: var(--color-chip);
+  color: var(--color-text-secondary);
 }
-.pill.ok { background: #dcfce7; color: #166534; }
-.warn { color: #b45309; font-weight: 700; }
+.pill.ok {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+.warn { color: var(--color-warning); font-weight: 700; }
 .muted { color: var(--color-text-secondary); }
 .form-grid {
   display: grid;
@@ -63,8 +91,16 @@
 .summary-card h3 { margin: 0 0 0.5rem; font-size: 0.95rem; }
 .summary-list { margin: 0; padding-left: 1.1rem; font-size: 0.9rem; }
 .summary-list li { margin-bottom: 0.25rem; }
-.summary-list li.ok { color: #166534; font-weight: 700; }
-.summary-list li.warn { color: #b45309; font-weight: 700; list-style: none; margin-left: -1.1rem; }
+.summary-list li.ok { color: var(--color-success); font-weight: 700; }
+.summary-list li.warn { color: var(--color-warning); font-weight: 700; list-style: none; margin-left: -1.1rem; }
 .quick-links { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.65rem; }
 .login-hint { margin: 0.25rem 0 0.5rem; font-size: 0.9rem; }
 .detail-card h3 { margin: 0.75rem 0 0.35rem; font-size: 0.95rem; }
+.detail-warn {
+  margin: 0.5rem 0 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  font-size: 0.9rem;
+}

@@ -32,6 +32,7 @@ export class SchoolApprenticesPage implements OnInit {
   readonly selected = signal<ApprenticeDto | null>(null);
   readonly detail = signal<ApprenticeDetail | null>(null);
   readonly detailLoading = signal(false);
+  readonly detailError = signal<string | null>(null);
 
   search = '';
   onlyBalance = false;
@@ -58,6 +59,7 @@ export class SchoolApprenticesPage implements OnInit {
   select(row: ApprenticeDto): void {
     this.selected.set({ ...row });
     this.detail.set(null);
+    this.detailError.set(null);
     this.detailLoading.set(true);
     this.api.getDetail(row.studentUserId).subscribe({
       next: (detail) => {
@@ -66,7 +68,7 @@ export class SchoolApprenticesPage implements OnInit {
       },
       error: (err) => {
         this.detailLoading.set(false);
-        this.error.set(mapApiError(err));
+        this.detailError.set(mapApiError(err));
       }
     });
   }
