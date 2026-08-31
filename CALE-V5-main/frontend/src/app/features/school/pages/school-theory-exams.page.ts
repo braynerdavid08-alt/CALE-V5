@@ -8,11 +8,7 @@ import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
 import { mapApiError } from '../../../core/http/map-api-error';
-import {
-  PracticalApi,
-  PracticalSchedulingStudentDto
-} from '../../practical/api/practical.api';
-import { ApprenticeApi, TheoryExamSlotDto } from '../api/apprentice.api';
+import { ApprenticeApi, TheoryExamSchedulingStudentDto, TheoryExamSlotDto } from '../api/apprentice.api';
 
 const EXAM_SLOTS = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'];
 
@@ -32,13 +28,12 @@ const EXAM_SLOTS = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00
 })
 export class SchoolTheoryExamsPage implements OnInit {
   private readonly api = inject(ApprenticeApi);
-  private readonly practicalApi = inject(PracticalApi);
 
   readonly slots = EXAM_SLOTS;
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly rows = signal<TheoryExamSlotDto[]>([]);
-  readonly students = signal<PracticalSchedulingStudentDto[]>([]);
+  readonly students = signal<TheoryExamSchedulingStudentDto[]>([]);
   readonly studentSearch = signal('');
   readonly weekStart = signal(this.monday(new Date()));
 
@@ -64,8 +59,8 @@ export class SchoolTheoryExamsPage implements OnInit {
     const end = this.addDays(start, 13);
     forkJoin({
       rows: this.api.listExamSlots(start, end),
-      students: this.practicalApi.listSchedulingStudents().pipe(
-        catchError(() => of([] as PracticalSchedulingStudentDto[]))
+      students: this.api.listTheoryExamStudents().pipe(
+        catchError(() => of([] as TheoryExamSchedulingStudentDto[]))
       )
     }).subscribe({
       next: ({ rows, students }) => {

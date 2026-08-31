@@ -112,6 +112,12 @@ public sealed class SchoolStudentEnrollment
     public TimeOnly? AllowedStartTime { get; set; }
     /// <summary>License categories in progress, e.g. A2,B1 or A2,C1.</summary>
     public string? LicenseCategories { get; set; }
+    /// <summary>School authorized this student for the theory exam calendar.</summary>
+    public bool TheoryExamAuthorized { get; set; }
+    public DateTime? TheoryExamAuthorizedAt { get; set; }
+    /// <summary>School authorized this student for practical / driving lessons.</summary>
+    public bool PracticalAuthorized { get; set; }
+    public DateTime? PracticalAuthorizedAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? AcceptedAt { get; set; }
     public DateTime? SuspendedAt { get; set; }

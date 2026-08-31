@@ -299,6 +299,8 @@
               <th>Estado</th>
               <th>Grupo</th>
               <th>Curso</th>
+              <th>Examen</th>
+              <th>Manejo</th>
               <th></th>
             </tr>
           </thead>
@@ -306,7 +308,7 @@
             @for (section of visibleEnrollmentSections(); track section.key) {
               @if (section.showHeader) {
                 <tr class="enrollment-section-row">
-                  <td colspan="5">{{ section.label }} ({{ section.rows.length }})</td>
+                  <td colspan="7">{{ section.label }} ({{ section.rows.length }})</td>
                 </tr>
               }
               @for (row of section.rows; track row.studentUserId) {
@@ -346,6 +348,34 @@
                         <option [value]="opt.value">{{ opt.label }}</option>
                       }
                     </select>
+                  </td>
+                  <td class="auth-cell">
+                    @if (row.status === 'Active' || row.status === 'Accepted') {
+                      @if (row.theoryExamAuthorized) {
+                        <button type="button" class="link-btn ok" (click)="toggleTheoryExamAuth(row, false)">Autorizado ✓</button>
+                      } @else if (canAuthorizeTheoryExam(row)) {
+                        <ui-button type="button" variant="secondary" (click)="toggleTheoryExamAuth(row, true)">Autorizar examen</ui-button>
+                      } @else {
+                        <small class="muted" title="{{ row.practicalEligibility?.blockReason ?? '' }}">Horas pendientes</small>
+                      }
+                    } @else {
+                      <small class="muted">—</small>
+                    }
+                  </td>
+                  <td class="auth-cell">
+                    @if (row.status === 'Active' || row.status === 'Accepted') {
+                      @if (row.practicalAuthorized) {
+                        <button type="button" class="link-btn ok" (click)="togglePracticalAuth(row, false)">Autorizado ✓</button>
+                      } @else if (canAuthorizePractical(row)) {
+                        <ui-button type="button" variant="secondary" (click)="togglePracticalAuth(row, true)">Autorizar manejo</ui-button>
+                      } @else if (row.practicalEligibility?.theoryExamPassed) {
+                        <small class="muted">Pendiente autorización</small>
+                      } @else {
+                        <small class="muted">Sin examen</small>
+                      }
+                    } @else {
+                      <small class="muted">—</small>
+                    }
                   </td>
                   <td class="actions">
                     @if (row.status === 'Active' || row.status === 'Accepted') {

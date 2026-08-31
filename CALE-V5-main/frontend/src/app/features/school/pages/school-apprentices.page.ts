@@ -7,6 +7,7 @@ import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { ApprenticeApi, ApprenticeDetail, ApprenticeDto } from '../api/apprentice.api';
+import { TheoryApi } from '../../theory/api/theory.api';
 
 @Component({
   selector: 'app-school-apprentices-page',
@@ -24,6 +25,7 @@ import { ApprenticeApi, ApprenticeDetail, ApprenticeDto } from '../api/apprentic
 })
 export class SchoolApprenticesPage implements OnInit {
   private readonly api = inject(ApprenticeApi);
+  private readonly theoryApi = inject(TheoryApi);
 
   readonly loading = signal(true);
   readonly saving = signal(false);
@@ -88,6 +90,42 @@ export class SchoolApprenticesPage implements OnInit {
         this.saving.set(false);
         this.error.set(mapApiError(err));
       }
+    });
+  }
+
+  canAuthorizeTheoryExam(): boolean {
+    const d = this.detail();
+    return !!d
+      && d.training.theoryHoursComplete
+      && d.training.workshopHoursComplete
+      && !d.training.theoryExamPassed;
+  }
+
+  canAuthorizePractical(): boolean {
+    return !!this.detail()?.training.theoryExamPassed;
+  }
+
+  toggleTheoryExamAuth(authorized: boolean): void {
+    const row = this.selected();
+    if (!row) return;
+    this.theoryApi.updateEnrollment(row.studentUserId, {
+      status: row.enrollmentStatus,
+      theoryExamAuthorized: authorized
+    }).subscribe({
+      next: () => this.select(row),
+      error: (err) => this.detailError.set(mapApiError(err))
+    });
+  }
+
+  togglePracticalAuth(authorized: boolean): void {
+    const row = this.selected();
+    if (!row) return;
+    this.theoryApi.updateEnrollment(row.studentUserId, {
+      status: row.enrollmentStatus,
+      practicalAuthorized: authorized
+    }).subscribe({
+      next: () => this.select(row),
+      error: (err) => this.detailError.set(mapApiError(err))
     });
   }
 

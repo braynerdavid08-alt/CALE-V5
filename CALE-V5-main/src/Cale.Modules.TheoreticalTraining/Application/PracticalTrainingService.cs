@@ -120,6 +120,7 @@ public sealed class PracticalTrainingService
     {
         var enrollments = await _db.Set<SchoolStudentEnrollment>()
             .Where(x => x.SchoolUserId == schoolUserId
+                && x.PracticalAuthorized
                 && StudentEnrollmentStatuses.CanReserveStatuses.Contains(x.Status))
             .OrderBy(x => x.StudentUserId)
             .ToListAsync(ct);
@@ -173,6 +174,26 @@ public sealed class PracticalTrainingService
                 "El estudiante debe estar autorizado para asignar clases.",
                 400,
                 "student_not_authorized");
+        }
+
+        if (!enrollment.PracticalAuthorized)
+        {
+            throw new DomainException(
+                "El estudiante no está autorizado para clases de manejo.",
+                400,
+                "practical_not_authorized");
+        }
+
+        var eligibility = await _theory.GetPracticalEligibilityAsync(
+            schoolUserId,
+            request.StudentUserId,
+            ct);
+        if (!eligibility.TheoryExamPassed)
+        {
+            throw new DomainException(
+                "El estudiante debe aprobar el examen teórico.",
+                400,
+                "theory_exam_required");
         }
 
         var start = ParseTime(request.StartTime);

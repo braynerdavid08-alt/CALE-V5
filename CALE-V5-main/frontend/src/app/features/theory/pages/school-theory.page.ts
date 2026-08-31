@@ -340,7 +340,53 @@ export class SchoolTheoryPage implements OnInit {
       status,
       attendanceDayType: dayType,
       allowedStartTime: null,
-      licenseCategories: license
+      licenseCategories: license,
+      theoryExamAuthorized: current.theoryExamAuthorized,
+      practicalAuthorized: current.practicalAuthorized
+    }).subscribe({
+      next: () => {
+        this.error.set(null);
+        this.loadEnrollments();
+      },
+      error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  canAuthorizeTheoryExam(row: EnrollmentDto): boolean {
+    const pe = row.practicalEligibility;
+    return !!pe
+      && pe.theoryHoursComplete
+      && pe.workshopHoursComplete
+      && !pe.theoryExamPassed;
+  }
+
+  canAuthorizePractical(row: EnrollmentDto): boolean {
+    return !!row.practicalEligibility?.theoryExamPassed;
+  }
+
+  toggleTheoryExamAuth(row: EnrollmentDto, authorized: boolean): void {
+    this.api.updateEnrollment(row.studentUserId, {
+      status: row.status,
+      attendanceDayType: row.attendanceDayType,
+      allowedStartTime: null,
+      licenseCategories: row.licenseCategories,
+      theoryExamAuthorized: authorized
+    }).subscribe({
+      next: () => {
+        this.error.set(null);
+        this.loadEnrollments();
+      },
+      error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  togglePracticalAuth(row: EnrollmentDto, authorized: boolean): void {
+    this.api.updateEnrollment(row.studentUserId, {
+      status: row.status,
+      attendanceDayType: row.attendanceDayType,
+      allowedStartTime: null,
+      licenseCategories: row.licenseCategories,
+      practicalAuthorized: authorized
     }).subscribe({
       next: () => {
         this.error.set(null);

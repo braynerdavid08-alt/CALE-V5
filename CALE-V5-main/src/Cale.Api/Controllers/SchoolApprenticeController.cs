@@ -80,6 +80,10 @@ public sealed class SchoolApprenticeController : ControllerBase
         CancellationToken ct) =>
         Ok(await _registry.ListExamSlotsAsync(SchoolId, from, to, ct));
 
+    [HttpGet("theory-exams/students")]
+    public async Task<IActionResult> ListTheoryExamStudents(CancellationToken ct) =>
+        Ok(await _registry.ListTheoryExamStudentsAsync(SchoolId, ct));
+
     [HttpPost("theory-exams/schedule")]
     public async Task<IActionResult> CreateExamSlot(
         SaveTheoryExamSlotRequest request,

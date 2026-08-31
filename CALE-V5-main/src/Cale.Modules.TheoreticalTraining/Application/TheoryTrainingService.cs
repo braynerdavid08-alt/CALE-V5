@@ -907,21 +907,22 @@ public sealed class TheoryTrainingService
         var progress = hoursRequired <= 0
             ? 0
             : Math.Round(theoryHours / hoursRequired * 100m, 1);
+
+        var enrollment = await _db.Set<SchoolStudentEnrollment>()
+            .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
+                && x.StudentUserId == studentUserId, ct);
         var eligibility = await GetPracticalEligibilityAsync(
             schoolUserId,
             studentUserId,
             settings,
             theoryHours,
             workshopHours,
+            enrollment?.PracticalAuthorized ?? false,
             ct);
 
         var (currentStreak, bestStreak) = await ComputeStreaksAsync(studentUserId, ct);
         var checkedIn = await _db.Set<StudentDailyCheckIn>()
             .AnyAsync(x => x.StudentUserId == studentUserId && x.CheckInDate == today, ct);
-
-        var enrollment = await _db.Set<SchoolStudentEnrollment>()
-            .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
-                && x.StudentUserId == studentUserId, ct);
 
         var (nextAction, opensAt, countdownLabel) = await ComputeNextActionAsync(
             studentUserId,
@@ -1015,12 +1016,16 @@ public sealed class TheoryTrainingService
     {
         var settings = await GetOrCreateSettingsAsync(schoolUserId, ct);
         var (theoryHours, workshopHours, _) = await ComputeHoursBreakdownAsync(studentUserId, ct);
+        var enrollment = await _db.Set<SchoolStudentEnrollment>()
+            .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
+                && x.StudentUserId == studentUserId, ct);
         return await GetPracticalEligibilityAsync(
             schoolUserId,
             studentUserId,
             settings,
             theoryHours,
             workshopHours,
+            enrollment?.PracticalAuthorized ?? false,
             ct);
     }
 
@@ -1049,6 +1054,7 @@ public sealed class TheoryTrainingService
                 settings,
                 theoryHours,
                 workshopHours,
+                items.TryGetValue(student.Id, out var existing) && existing.PracticalAuthorized,
                 ct);
             if (items.TryGetValue(student.Id, out var e))
             {
@@ -1065,6 +1071,8 @@ public sealed class TheoryTrainingService
                     null,
                     null,
                     null,
+                    false,
+                    false,
                     DateTime.UtcNow,
                     null,
                     eligibility));
@@ -1173,8 +1181,76 @@ public sealed class TheoryTrainingService
             enrollment.SuspendedAt = null;
         }
 
+        var (theoryHours, workshopHours, _) = await ComputeHoursBreakdownAsync(studentUserId, ct);
+
+        if (request.TheoryExamAuthorized is bool theoryExamAuthorized)
+        {
+            if (theoryExamAuthorized)
+            {
+                var hoursCheck = await GetPracticalEligibilityAsync(
+                    schoolUserId,
+                    studentUserId,
+                    settings,
+                    theoryHours,
+                    workshopHours,
+                    enrollment.PracticalAuthorized,
+                    ct);
+                if (!hoursCheck.TheoryHoursComplete || !hoursCheck.WorkshopHoursComplete)
+                {
+                    throw new DomainException(
+                        "El estudiante debe completar las horas de teoría y taller antes de autorizar el examen.",
+                        400,
+                        "theory_hours_incomplete");
+                }
+
+                if (hoursCheck.TheoryExamPassed)
+                {
+                    throw new DomainException(
+                        "El estudiante ya aprobó el examen teórico.",
+                        400,
+                        "theory_exam_already_passed");
+                }
+            }
+
+            enrollment.TheoryExamAuthorized = theoryExamAuthorized;
+            enrollment.TheoryExamAuthorizedAt = theoryExamAuthorized ? now : null;
+        }
+
+        if (request.PracticalAuthorized is bool practicalAuthorized)
+        {
+            if (practicalAuthorized)
+            {
+                var examCheck = await GetPracticalEligibilityAsync(
+                    schoolUserId,
+                    studentUserId,
+                    settings,
+                    theoryHours,
+                    workshopHours,
+                    false,
+                    ct);
+                if (!examCheck.TheoryExamPassed)
+                {
+                    throw new DomainException(
+                        "El estudiante debe aprobar el examen teórico antes de autorizar manejo.",
+                        400,
+                        "theory_exam_required");
+                }
+            }
+
+            enrollment.PracticalAuthorized = practicalAuthorized;
+            enrollment.PracticalAuthorizedAt = practicalAuthorized ? now : null;
+        }
+
         await _db.SaveChangesAsync(ct);
-        return MapEnrollmentDto(enrollment, student.Name, student.Email ?? "");
+        var eligibility = await GetPracticalEligibilityAsync(
+            schoolUserId,
+            studentUserId,
+            settings,
+            theoryHours,
+            workshopHours,
+            enrollment.PracticalAuthorized,
+            ct);
+        return MapEnrollmentDto(enrollment, student.Name, student.Email ?? "", eligibility);
     }
 
     public async Task<EnrollmentDto> UpdateEnrollmentByIdAsync(
@@ -1534,6 +1610,7 @@ public sealed class TheoryTrainingService
         TheoryTrainingSettings settings,
         decimal theoryHours,
         decimal workshopHours,
+        bool practicalAuthorized,
         CancellationToken ct)
     {
         var theoryExamPassed = true;
@@ -1548,7 +1625,7 @@ public sealed class TheoryTrainingService
 
         var theoryComplete = theoryHours >= settings.RequiredTheoryHours;
         var workshopComplete = workshopHours >= settings.RequiredWorkshopHours;
-        var canBook = theoryExamPassed && theoryComplete && workshopComplete;
+        var canBook = theoryExamPassed && theoryComplete && workshopComplete && practicalAuthorized;
 
         string? blockReason = null;
         if (!theoryExamPassed)
@@ -1562,6 +1639,10 @@ public sealed class TheoryTrainingService
         else if (!workshopComplete)
         {
             blockReason = $"Te faltan horas de taller ({workshopHours}/{settings.RequiredWorkshopHours}).";
+        }
+        else if (!practicalAuthorized)
+        {
+            blockReason = "La escuela aún no te autorizó para clases de manejo.";
         }
 
         return new PracticalEligibilityDto(
@@ -1701,6 +1782,8 @@ public sealed class TheoryTrainingService
             enrollment.AttendanceDayType,
             enrollment.AllowedStartTime?.ToString("HH:mm"),
             enrollment.LicenseCategories,
+            enrollment.TheoryExamAuthorized,
+            enrollment.PracticalAuthorized,
             enrollment.CreatedAt,
             enrollment.AcceptedAt,
             eligibility);

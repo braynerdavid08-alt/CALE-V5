@@ -331,6 +331,43 @@ public sealed class ApprenticeRegistryService
         return result;
     }
 
+    public async Task<IReadOnlyList<TheoryExamSchedulingStudentDto>> ListTheoryExamStudentsAsync(
+        int schoolUserId,
+        CancellationToken ct)
+    {
+        var enrollments = await _db.Set<SchoolStudentEnrollment>()
+            .Where(x => x.SchoolUserId == schoolUserId
+                && x.TheoryExamAuthorized
+                && StudentEnrollmentStatuses.CanReserveStatuses.Contains(x.Status))
+            .ToListAsync(ct);
+
+        var result = new List<TheoryExamSchedulingStudentDto>();
+        foreach (var enrollment in enrollments)
+        {
+            var eligibility = await _theory.GetPracticalEligibilityAsync(
+                schoolUserId,
+                enrollment.StudentUserId,
+                ct);
+            if (eligibility.TheoryExamPassed)
+            {
+                continue;
+            }
+
+            if (!eligibility.TheoryHoursComplete || !eligibility.WorkshopHoursComplete)
+            {
+                continue;
+            }
+
+            var user = await _users.GetByIdAsync(enrollment.StudentUserId, ct);
+            result.Add(new TheoryExamSchedulingStudentDto(
+                enrollment.StudentUserId,
+                user?.Name ?? $"Estudiante {enrollment.StudentUserId}",
+                enrollment.LicenseCategories));
+        }
+
+        return result.OrderBy(x => x.StudentName).ToList();
+    }
+
     public async Task<TheoryExamSlotDto> SaveExamSlotAsync(
         int schoolUserId,
         int? id,
@@ -339,6 +376,68 @@ public sealed class ApprenticeRegistryService
     {
         var now = _clock.UtcNow;
         var start = ParseTime(request.SlotTime);
+
+        if (request.StudentUserId is int studentId)
+        {
+            var enrollment = await _db.Set<SchoolStudentEnrollment>()
+                .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
+                    && x.StudentUserId == studentId, ct)
+                ?? throw new DomainException(
+                    "El estudiante no está inscrito en la escuela.",
+                    400,
+                    "student_not_enrolled");
+
+            if (!StudentEnrollmentStatuses.CanReserve.Contains(enrollment.Status))
+            {
+                throw new DomainException(
+                    "El estudiante debe estar autorizado en Programación.",
+                    400,
+                    "student_not_authorized");
+            }
+
+            if (!enrollment.TheoryExamAuthorized)
+            {
+                throw new DomainException(
+                    "El estudiante no está autorizado para examen teórico.",
+                    400,
+                    "theory_exam_not_authorized");
+            }
+
+            var eligibility = await _theory.GetPracticalEligibilityAsync(
+                schoolUserId,
+                studentId,
+                ct);
+            if (eligibility.TheoryExamPassed)
+            {
+                throw new DomainException(
+                    "El estudiante ya aprobó el examen teórico.",
+                    400,
+                    "theory_exam_already_passed");
+            }
+
+            if (!eligibility.TheoryHoursComplete || !eligibility.WorkshopHoursComplete)
+            {
+                throw new DomainException(
+                    "El estudiante debe completar las horas de teoría y taller.",
+                    400,
+                    "theory_hours_incomplete");
+            }
+
+            var studentConflict = await _db.Set<TheoryExamAppointment>()
+                .AnyAsync(x => x.SchoolUserId == schoolUserId
+                    && x.StudentUserId == studentId
+                    && x.ExamDate == request.ExamDate
+                    && x.SlotTime == start
+                    && (id == null || x.Id != id.Value), ct);
+            if (studentConflict)
+            {
+                throw new DomainException(
+                    "El estudiante ya tiene cita de examen en ese horario.",
+                    400,
+                    "exam_slot_conflict");
+            }
+        }
+
         TheoryExamAppointment entity;
         if (id is > 0)
         {
@@ -426,6 +525,8 @@ public sealed class ApprenticeRegistryService
             profile?.RuntRegistered ?? false,
             profile?.IsEnrolled ?? false,
             enrollment?.Status ?? StudentEnrollmentStatuses.Pending,
+            enrollment?.TheoryExamAuthorized ?? false,
+            enrollment?.PracticalAuthorized ?? false,
             profile?.Notes);
 
     private static TimeOnly ParseTime(string value)

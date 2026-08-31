@@ -32,6 +32,8 @@ export interface ApprenticeDto {
   runtRegistered: boolean;
   isEnrolled: boolean;
   enrollmentStatus: string;
+  theoryExamAuthorized: boolean;
+  practicalAuthorized: boolean;
   notes?: string | null;
 }
 
@@ -117,6 +119,12 @@ export interface SchoolOperationsDashboard {
   upcomingExams: TheoryExamSlotDto[];
 }
 
+export interface TheoryExamSchedulingStudentDto {
+  studentUserId: number;
+  studentName: string;
+  licenseCategories?: string | null;
+}
+
 export interface TheoryExamSlotDto {
   id: number;
   examDate: string;
@@ -171,6 +179,10 @@ export class ApprenticeApi {
     if (from) params = params.set('from', from);
     if (to) params = params.set('to', to);
     return this.http.get<TheoryExamSlotDto[]>(`${this.base}/theory-exams/schedule`, { params });
+  }
+
+  listTheoryExamStudents() {
+    return this.http.get<TheoryExamSchedulingStudentDto[]>(`${this.base}/theory-exams/students`);
   }
 
   saveExamSlot(body: {

@@ -95,7 +95,14 @@ const messages: Record<string, string> = {
   slot_taken: 'Ese horario ya tiene un estudiante asignado.',
   student_day_taken: 'El estudiante ya tiene una clase ese día.',
   student_not_authorized: 'El estudiante debe estar autorizado para asignar clases.',
-  daily_hour_limit: 'El instructor ya alcanzó el máximo de 8 horas de manejo ese día.'
+  daily_hour_limit: 'El instructor ya alcanzó el máximo de 8 horas de manejo ese día.',
+  theory_exam_not_authorized: 'El estudiante no está autorizado para examen teórico.',
+  theory_exam_already_passed: 'El estudiante ya aprobó el examen teórico.',
+  theory_exam_required: 'El estudiante debe aprobar el examen teórico primero.',
+  theory_hours_incomplete: 'El estudiante debe completar las horas de teoría y taller.',
+  practical_not_authorized: 'El estudiante no está autorizado para clases de manejo.',
+  exam_slot_conflict: 'El estudiante ya tiene cita de examen en ese horario.',
+  practical_not_eligible: 'Aún no cumples los requisitos para clases de manejo.'
 };
 
 function withSupportCode(message: string, error: unknown): string {

@@ -30,6 +30,8 @@ public sealed record ApprenticeDto(
     bool RuntRegistered,
     bool IsEnrolled,
     string EnrollmentStatus,
+    bool TheoryExamAuthorized,
+    bool PracticalAuthorized,
     string? Notes);
 
 public sealed record SaveApprenticeRequest(

@@ -130,6 +130,8 @@ export interface EnrollmentDto {
   attendanceDayType?: string | null;
   allowedStartTime?: string | null;
   licenseCategories?: string | null;
+  theoryExamAuthorized: boolean;
+  practicalAuthorized: boolean;
   createdAt: string;
   acceptedAt?: string | null;
   practicalEligibility?: PracticalEligibilityDto | null;
@@ -283,6 +285,8 @@ export class TheoryApi {
       attendanceDayType?: string | null;
       allowedStartTime?: string | null;
       licenseCategories?: string | null;
+      theoryExamAuthorized?: boolean | null;
+      practicalAuthorized?: boolean | null;
     }
   ) {
     return this.http.put<EnrollmentDto>(

@@ -98,6 +98,55 @@
           </section>
         }
 
+        <fieldset class="field-group">
+          <legend>Autorizaciones</legend>
+          <div class="flag-list">
+            <label class="flag-field">
+              <input
+                type="checkbox"
+                [checked]="s.theoryExamAuthorized"
+                [disabled]="!canAuthorizeTheoryExam() && !s.theoryExamAuthorized"
+                (change)="toggleTheoryExamAuth($any($event.target).checked)" />
+              <span>
+                <strong>Examen teórico</strong>
+                <small>
+                  @if (s.theoryExamAuthorized) {
+                    Autorizado para agendar cita de examen.
+                  } @else if (canAuthorizeTheoryExam()) {
+                    Completa teoría y taller — listo para autorizar.
+                  } @else if (d && d.training.theoryExamPassed) {
+                    Ya aprobó el examen teórico.
+                  } @else if (d) {
+                    Pendiente: {{ d.training.theoryHoursCompleted }}/{{ d.training.theoryHoursRequired }} h teoría,
+                    {{ d.training.workshopHoursCompleted }}/{{ d.training.workshopHoursRequired }} h taller.
+                  } @else {
+                    Cargando progreso…
+                  }
+                </small>
+              </span>
+            </label>
+            <label class="flag-field">
+              <input
+                type="checkbox"
+                [checked]="s.practicalAuthorized"
+                [disabled]="!canAuthorizePractical() && !s.practicalAuthorized"
+                (change)="togglePracticalAuth($any($event.target).checked)" />
+              <span>
+                <strong>Clases de manejo</strong>
+                <small>
+                  @if (s.practicalAuthorized) {
+                    Autorizado para programar y reservar práctica.
+                  } @else if (canAuthorizePractical()) {
+                    Aprobó el examen — listo para autorizar manejo.
+                  } @else {
+                    Debe aprobar el examen teórico primero.
+                  }
+                </small>
+              </span>
+            </label>
+          </div>
+        </fieldset>
+
         <h3 class="section-title">Expediente</h3>
 
         <fieldset class="field-group">

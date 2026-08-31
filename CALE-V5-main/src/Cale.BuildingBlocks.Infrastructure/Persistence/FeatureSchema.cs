@@ -568,6 +568,22 @@ public static class FeatureSchema
                 ct);
             await TryAddSqliteColumnAsync(
                 db,
+                """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN "TheoryExamAuthorized" INTEGER NOT NULL DEFAULT 0;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN "TheoryExamAuthorizedAt" TEXT NULL;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN "PracticalAuthorized" INTEGER NOT NULL DEFAULT 0;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN "PracticalAuthorizedAt" TEXT NULL;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
                 """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN "WeekdaysEnabled" INTEGER NOT NULL DEFAULT 1;""",
                 ct);
             await TrySqliteAsync(
@@ -800,6 +816,18 @@ public static class FeatureSchema
                 ct);
             await TryPostgresAsync(db,
                 """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "LicenseCategories" varchar(32) NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "TheoryExamAuthorized" boolean NOT NULL DEFAULT FALSE;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "TheoryExamAuthorizedAt" timestamp with time zone NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "PracticalAuthorized" boolean NOT NULL DEFAULT FALSE;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "PracticalAuthorizedAt" timestamp with time zone NULL;""",
                 ct);
             await TryPostgresAsync(db,
                 """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "WeekdaysEnabled" boolean NOT NULL DEFAULT TRUE;""",

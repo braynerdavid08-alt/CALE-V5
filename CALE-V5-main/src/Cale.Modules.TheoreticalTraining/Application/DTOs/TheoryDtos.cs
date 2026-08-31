@@ -156,9 +156,16 @@ public sealed record EnrollmentDto(
     string? AttendanceDayType,
     string? AllowedStartTime,
     string? LicenseCategories,
+    bool TheoryExamAuthorized,
+    bool PracticalAuthorized,
     DateTime CreatedAt,
     DateTime? AcceptedAt,
     PracticalEligibilityDto? PracticalEligibility = null);
+
+public sealed record TheoryExamSchedulingStudentDto(
+    int StudentUserId,
+    string StudentName,
+    string? LicenseCategories);
 
 public sealed record PracticalEligibilityDto(
     bool CanBookPractical,
@@ -266,4 +273,6 @@ public sealed record UpdateEnrollmentRequest(
     string Status,
     string? AttendanceDayType = null,
     string? AllowedStartTime = null,
-    string? LicenseCategories = null);
+    string? LicenseCategories = null,
+    bool? TheoryExamAuthorized = null,
+    bool? PracticalAuthorized = null);
