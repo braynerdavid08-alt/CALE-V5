@@ -1454,6 +1454,13 @@ public sealed class TheoryTrainingService
         var now = _clock.UtcNow;
         var authorized = 0;
         var skipped = 0;
+        var skippedInactive = 0;
+        var skippedBalanceDue = 0;
+        var skippedAlreadyAuthorized = 0;
+        var skippedHoursIncomplete = 0;
+        var skippedExamPassed = 0;
+        var skippedExamNotPassed = 0;
+        var skippedAlreadyPractical = 0;
         var theoryExamNotified = new List<(int StudentUserId, int EnrollmentId)>();
         var practicalNotified = new List<(int StudentUserId, int EnrollmentId)>();
 
@@ -1462,12 +1469,14 @@ public sealed class TheoryTrainingService
             if (!StudentEnrollmentStatuses.CanReserveStatuses.Contains(enrollment.Status))
             {
                 skipped++;
+                skippedInactive++;
                 continue;
             }
 
             if (await GetBalanceDueAsync(schoolUserId, enrollment.StudentUserId, ct) > 0)
             {
                 skipped++;
+                skippedBalanceDue++;
                 continue;
             }
 
@@ -1486,12 +1495,24 @@ public sealed class TheoryTrainingService
 
             if (request.TheoryExam)
             {
-                if (enrollment.TheoryExamAuthorized
-                    || !eligibility.TheoryHoursComplete
-                    || !eligibility.WorkshopHoursComplete
-                    || eligibility.TheoryExamPassed)
+                if (enrollment.TheoryExamAuthorized)
                 {
                     skipped++;
+                    skippedAlreadyAuthorized++;
+                    continue;
+                }
+
+                if (!eligibility.TheoryHoursComplete || !eligibility.WorkshopHoursComplete)
+                {
+                    skipped++;
+                    skippedHoursIncomplete++;
+                    continue;
+                }
+
+                if (eligibility.TheoryExamPassed)
+                {
+                    skipped++;
+                    skippedExamPassed++;
                     continue;
                 }
 
@@ -1503,9 +1524,17 @@ public sealed class TheoryTrainingService
                 continue;
             }
 
-            if (enrollment.PracticalAuthorized || !eligibility.TheoryExamPassed)
+            if (enrollment.PracticalAuthorized)
             {
                 skipped++;
+                skippedAlreadyPractical++;
+                continue;
+            }
+
+            if (!eligibility.TheoryExamPassed)
+            {
+                skipped++;
+                skippedExamNotPassed++;
                 continue;
             }
 
@@ -1528,7 +1557,16 @@ public sealed class TheoryTrainingService
             await NotifyPracticalAuthorizedAsync(studentUserId, enrollmentId, ct);
         }
 
-        return new BulkAuthorizeEnrollmentsResultDto(authorized, skipped);
+        return new BulkAuthorizeEnrollmentsResultDto(
+            authorized,
+            skipped,
+            skippedInactive,
+            skippedBalanceDue,
+            skippedAlreadyAuthorized,
+            skippedHoursIncomplete,
+            skippedExamPassed,
+            skippedExamNotPassed,
+            skippedAlreadyPractical);
     }
 
     public async Task<EnrollmentDto> UpdateEnrollmentByIdAsync(

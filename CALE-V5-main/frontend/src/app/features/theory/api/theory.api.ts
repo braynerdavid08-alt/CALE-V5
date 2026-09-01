@@ -139,6 +139,13 @@ export interface StudentPlatformExamDto {
 export interface BulkAuthorizeResultDto {
   authorizedCount: number;
   skippedCount: number;
+  skippedInactive?: number;
+  skippedBalanceDue?: number;
+  skippedAlreadyAuthorized?: number;
+  skippedHoursIncomplete?: number;
+  skippedExamPassed?: number;
+  skippedExamNotPassed?: number;
+  skippedAlreadyPractical?: number;
 }
 
 export interface EnrollmentDto {

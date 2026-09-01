@@ -9,6 +9,7 @@ import { mapApiError } from '../../../core/http/map-api-error';
 import {
   TheoryApi,
   AttendanceRowDto,
+  BulkAuthorizeResultDto,
   EnrollmentDto,
   TheoryClassroomDto,
   TheoryClassSessionDto,
@@ -425,7 +426,7 @@ export class SchoolTheoryPage implements OnInit {
       next: (result) => {
         this.error.set(null);
         this.loadEnrollments();
-        alert(`Autorizados: ${result.authorizedCount}. Omitidos: ${result.skippedCount}.`);
+        alert(this.formatBulkResult(result, 'examen'));
       },
       error: (err) => this.error.set(mapApiError(err))
     });
@@ -444,10 +445,26 @@ export class SchoolTheoryPage implements OnInit {
       next: (result) => {
         this.error.set(null);
         this.loadEnrollments();
-        alert(`Autorizados: ${result.authorizedCount}. Omitidos: ${result.skippedCount}.`);
+        alert(this.formatBulkResult(result, 'manejo'));
       },
       error: (err) => this.error.set(mapApiError(err))
     });
+  }
+
+  private formatBulkResult(result: BulkAuthorizeResultDto, kind: 'examen' | 'manejo'): string {
+    const lines = [`Autorizados: ${result.authorizedCount}`, `Omitidos: ${result.skippedCount}`];
+    const reasons: string[] = [];
+    if (result.skippedInactive) reasons.push(`${result.skippedInactive} inactivos`);
+    if (result.skippedBalanceDue) reasons.push(`${result.skippedBalanceDue} con saldo pendiente`);
+    if (result.skippedAlreadyAuthorized) reasons.push(`${result.skippedAlreadyAuthorized} ya autorizados (examen)`);
+    if (result.skippedHoursIncomplete) reasons.push(`${result.skippedHoursIncomplete} horas incompletas`);
+    if (result.skippedExamPassed) reasons.push(`${result.skippedExamPassed} ya aprobaron examen`);
+    if (result.skippedExamNotPassed) reasons.push(`${result.skippedExamNotPassed} sin examen aprobado`);
+    if (result.skippedAlreadyPractical) reasons.push(`${result.skippedAlreadyPractical} ya autorizados (manejo)`);
+    if (reasons.length) {
+      lines.push(`Motivos: ${reasons.join(', ')}`);
+    }
+    return lines.join('\n');
   }
 
   onEnrollmentSelect(

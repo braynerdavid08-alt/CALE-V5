@@ -150,7 +150,14 @@ public sealed record BulkAuthorizeEnrollmentsRequest(
 
 public sealed record BulkAuthorizeEnrollmentsResultDto(
     int AuthorizedCount,
-    int SkippedCount);
+    int SkippedCount,
+    int SkippedInactive = 0,
+    int SkippedBalanceDue = 0,
+    int SkippedAlreadyAuthorized = 0,
+    int SkippedHoursIncomplete = 0,
+    int SkippedExamPassed = 0,
+    int SkippedExamNotPassed = 0,
+    int SkippedAlreadyPractical = 0);
 
 public sealed record MarkAttendanceRequest(
     int StudentUserId,

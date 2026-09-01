@@ -4,7 +4,9 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using ClosedXML.Excel;
+using Cale.BuildingBlocks.Domain.Abstractions;
 using Cale.BuildingBlocks.Domain.Auth;
+using Cale.BuildingBlocks.Domain.Engagement;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Security;
 using Cale.BuildingBlocks.Domain.Time;
@@ -102,6 +104,8 @@ public sealed class SchoolExcelImportService
     private readonly IPasswordHasher _hasher;
     private readonly IClock _clock;
     private readonly SchoolExcelImportPreviewCache _cache;
+    private readonly TheoryTrainingService _theory;
+    private readonly INotificationPublisher _notifications;
 
     public SchoolExcelImportService(
         CaleDbContext db,
@@ -109,7 +113,9 @@ public sealed class SchoolExcelImportService
         ISchoolProfileStore schoolProfiles,
         IPasswordHasher hasher,
         IClock clock,
-        SchoolExcelImportPreviewCache cache)
+        SchoolExcelImportPreviewCache cache,
+        TheoryTrainingService theory,
+        INotificationPublisher notifications)
     {
         _db = db;
         _users = users;
@@ -117,6 +123,8 @@ public sealed class SchoolExcelImportService
         _hasher = hasher;
         _clock = clock;
         _cache = cache;
+        _theory = theory;
+        _notifications = notifications;
     }
 
     public async Task<ExcelImportPreviewDto> PreviewAsync(
@@ -156,6 +164,10 @@ public sealed class SchoolExcelImportService
             if (row.Apprentice is not null)
             {
                 resolved.Add(await ClassifyApprenticeRowAsync(schoolUserId, row, ct));
+            }
+            else if (row.Exam is not null)
+            {
+                resolved.Add(await ClassifyTheoryExamRowAsync(schoolUserId, row, ct));
             }
             else
             {
@@ -288,6 +300,17 @@ public sealed class SchoolExcelImportService
 
         if (user.SchoolId == schoolUserId && user.Role == Roles.Student)
         {
+            var balance = Math.Max(0, payload.AmountDue - payload.AmountPaid);
+            if (balance > 0)
+            {
+                return row with
+                {
+                    Action = "update",
+                    Severity = "warning",
+                    Message = $"Actualizar expediente · Saldo pendiente: {balance:N0}"
+                };
+            }
+
             return row with { Action = "update", Severity = "ok", Message = "Actualizar expediente" };
         }
 
@@ -427,7 +450,7 @@ public sealed class SchoolExcelImportService
         profile.ReceiptNumber = payload.ReceiptNumber;
         profile.AmountDue = payload.AmountDue;
         profile.AmountPaid = payload.AmountPaid;
-        profile.BalanceDue = payload.BalanceDue;
+        profile.BalanceDue = Math.Max(0, payload.AmountDue - payload.AmountPaid);
         profile.PaymentMethod = payload.PaymentMethod;
         profile.BalancePaymentAmount = payload.BalancePaymentAmount;
         profile.AccountsReceivable = payload.AccountsReceivable;
@@ -447,14 +470,23 @@ public sealed class SchoolExcelImportService
     {
         var now = _clock.UtcNow;
         var studentUserId = await TryMatchStudentByNameAsync(schoolUserId, payload.StudentLabel, ct);
+
+        if (studentUserId is int studentId)
+        {
+            await ValidateExamSlotStudentAsync(schoolUserId, studentId, ct);
+        }
+
         var existing = await _db.Set<TheoryExamAppointment>()
             .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
                 && x.ExamDate == payload.ExamDate
                 && x.SlotTime == payload.SlotTime, ct);
 
+        var previousStudentId = existing?.StudentUserId;
+        TheoryExamAppointment entity;
+
         if (existing is null)
         {
-            await _db.Set<TheoryExamAppointment>().AddAsync(new TheoryExamAppointment
+            entity = new TheoryExamAppointment
             {
                 SchoolUserId = schoolUserId,
                 ExamDate = payload.ExamDate,
@@ -463,13 +495,115 @@ public sealed class SchoolExcelImportService
                 StudentLabel = payload.StudentLabel,
                 CreatedAt = now,
                 UpdatedAt = now
-            }, ct);
-            return;
+            };
+            await _db.Set<TheoryExamAppointment>().AddAsync(entity, ct);
+        }
+        else
+        {
+            entity = existing;
+            entity.StudentUserId = studentUserId;
+            entity.StudentLabel = payload.StudentLabel;
+            entity.UpdatedAt = now;
         }
 
-        existing.StudentUserId = studentUserId;
-        existing.StudentLabel = payload.StudentLabel;
-        existing.UpdatedAt = now;
+        await _db.SaveChangesAsync(ct);
+
+        if (entity.StudentUserId is int assignedId && assignedId != previousStudentId)
+        {
+            await _notifications.NotifyUsersAsync(
+                [assignedId],
+                new NotificationDraft(
+                    "Cita de examen teórico",
+                    $"Tu examen teórico está programado para el {entity.ExamDate:dd/MM/yyyy} a las {entity.SlotTime:HH:mm}.",
+                    NotificationTypes.TheoryClass,
+                    RelatedEntity: "theory_exam_appointment",
+                    RelatedId: entity.Id,
+                    Link: "/student/training"),
+                ct);
+        }
+    }
+
+    private async Task ValidateExamSlotStudentAsync(
+        int schoolUserId,
+        int studentId,
+        CancellationToken ct)
+    {
+        var enrollment = await _db.Set<SchoolStudentEnrollment>()
+            .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
+                && x.StudentUserId == studentId, ct)
+            ?? throw new DomainException(
+                "El estudiante no está inscrito en la escuela.",
+                400,
+                "student_not_enrolled");
+
+        if (!StudentEnrollmentStatuses.CanReserveStatuses.Contains(enrollment.Status))
+        {
+            throw new DomainException(
+                "El estudiante debe estar activo en Programación.",
+                400,
+                "student_not_authorized");
+        }
+
+        if (!enrollment.TheoryExamAuthorized)
+        {
+            throw new DomainException(
+                "El estudiante no está autorizado para examen teórico.",
+                400,
+                "theory_exam_not_authorized");
+        }
+
+        var eligibility = await _theory.GetPracticalEligibilityAsync(schoolUserId, studentId, ct);
+        if (eligibility.TheoryExamPassed)
+        {
+            throw new DomainException(
+                "El estudiante ya aprobó el examen teórico.",
+                400,
+                "theory_exam_already_passed");
+        }
+
+        if (!eligibility.TheoryHoursComplete || !eligibility.WorkshopHoursComplete)
+        {
+            throw new DomainException(
+                "El estudiante debe completar las horas de teoría y taller.",
+                400,
+                "theory_hours_incomplete");
+        }
+    }
+
+    private async Task<ParsedExcelRow> ClassifyTheoryExamRowAsync(
+        int schoolUserId,
+        ParsedExcelRow row,
+        CancellationToken ct)
+    {
+        var payload = row.Exam!;
+        var studentUserId = await TryMatchStudentByNameAsync(schoolUserId, payload.StudentLabel, ct);
+        if (studentUserId is null)
+        {
+            return row with
+            {
+                Severity = "warning",
+                Message = "Estudiante no encontrado — se guardará solo la etiqueta."
+            };
+        }
+
+        try
+        {
+            await ValidateExamSlotStudentAsync(schoolUserId, studentUserId.Value, ct);
+            return row with
+            {
+                Severity = "ok",
+                Message = $"Asignar cita a {payload.StudentLabel}"
+            };
+        }
+        catch (DomainException ex)
+        {
+            return row with
+            {
+                Action = "error",
+                Severity = "error",
+                Message = $"{payload.StudentLabel}: {ex.Message}"
+            };
+        }
     }
 
     private async Task<int?> TryMatchStudentByNameAsync(
