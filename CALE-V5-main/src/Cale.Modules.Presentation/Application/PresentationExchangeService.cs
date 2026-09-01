@@ -496,8 +496,10 @@ public sealed class PresentationExchangeService
 
     private static void AppendWordParagraph(W.Body body, string text, bool italic = false)
     {
-        var runProps = italic ? new W.RunProperties(new W.Italic()) : null;
-        var para = new W.Paragraph(new W.Run(runProps, new W.Text(text)));
+        var run = italic
+            ? new W.Run(new W.RunProperties(new W.Italic()), new W.Text(text))
+            : new W.Run(new W.Text(text));
+        var para = new W.Paragraph(run);
         body.Append(para);
     }
 }

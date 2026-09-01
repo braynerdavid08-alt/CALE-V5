@@ -66,7 +66,7 @@ public sealed class ApprenticeRegistryService
 
             profileMap.TryGetValue(studentUserId, out var profile);
             enrollmentMap.TryGetValue(studentUserId, out var enrollment);
-            rows.Add(MapDto(studentUserId, user.Name, user.Email, profile, enrollment));
+            rows.Add(MapDto(studentUserId, user.Name, user.Email ?? "", profile, enrollment));
         }
 
         IEnumerable<ApprenticeDto> query = rows.OrderBy(x => x.StudentName);
@@ -109,7 +109,7 @@ public sealed class ApprenticeRegistryService
             .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId && x.StudentUserId == studentUserId, ct);
         var enrollment = await _db.Set<SchoolStudentEnrollment>()
             .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId && x.StudentUserId == studentUserId, ct);
-        var apprentice = MapDto(studentUserId, user.Name, user.Email, profile, enrollment);
+        var apprentice = MapDto(studentUserId, user.Name, user.Email ?? "", profile, enrollment);
         var training = await _theory.GetPracticalEligibilityAsync(schoolUserId, studentUserId, ct);
         var practical = await _practical.GetApprenticePracticalSummaryAsync(schoolUserId, studentUserId, ct);
 
@@ -302,7 +302,7 @@ public sealed class ApprenticeRegistryService
         profile.UpdatedAt = now;
 
         await _db.SaveChangesAsync(ct);
-        return MapDto(user.Name, user.Email, profile, enrollment);
+        return MapDto(studentUserId, user.Name, user.Email ?? "", profile, enrollment);
     }
 
     public async Task<IReadOnlyList<TheoryExamSlotDto>> ListExamSlotsAsync(

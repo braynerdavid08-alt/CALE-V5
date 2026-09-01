@@ -1218,7 +1218,7 @@ public sealed class TheoryTrainingService
             balances.TryGetValue(student.Id, out var balanceDue);
             if (items.TryGetValue(student.Id, out var e))
             {
-                result.Add(MapEnrollmentDto(e, student.Name, student.Email, eligibility, balanceDue));
+                result.Add(MapEnrollmentDto(e, student.Name, student.Email ?? "", eligibility, balanceDue));
             }
             else
             {
