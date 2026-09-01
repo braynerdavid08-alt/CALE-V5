@@ -106,6 +106,7 @@ public sealed class SchoolExcelImportService
     private readonly SchoolExcelImportPreviewCache _cache;
     private readonly TheoryTrainingService _theory;
     private readonly INotificationPublisher _notifications;
+    private readonly ITrainingEligibilityService _eligibility;
 
     public SchoolExcelImportService(
         CaleDbContext db,
@@ -115,7 +116,8 @@ public sealed class SchoolExcelImportService
         IClock clock,
         SchoolExcelImportPreviewCache cache,
         TheoryTrainingService theory,
-        INotificationPublisher notifications)
+        INotificationPublisher notifications,
+        ITrainingEligibilityService eligibility)
     {
         _db = db;
         _users = users;
@@ -125,6 +127,7 @@ public sealed class SchoolExcelImportService
         _cache = cache;
         _theory = theory;
         _notifications = notifications;
+        _eligibility = eligibility;
     }
 
     public async Task<ExcelImportPreviewDto> PreviewAsync(
@@ -551,6 +554,8 @@ public sealed class SchoolExcelImportService
                 400,
                 "theory_exam_not_authorized");
         }
+
+        await _eligibility.EnsureNoBalanceDueAsync(schoolUserId, studentId, ct);
 
         var eligibility = await _theory.GetPracticalEligibilityAsync(schoolUserId, studentId, ct);
         if (eligibility.TheoryExamPassed)

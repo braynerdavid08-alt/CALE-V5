@@ -474,6 +474,7 @@ export class SchoolTheoryPage implements OnInit {
     if (result.skippedHoursIncomplete) reasons.push(`${result.skippedHoursIncomplete} horas incompletas`);
     if (result.skippedExamPassed) reasons.push(`${result.skippedExamPassed} ya aprobaron examen`);
     if (result.skippedExamNotPassed) reasons.push(`${result.skippedExamNotPassed} sin examen aprobado`);
+    if (result.skippedTheoryExamNotConfigured) reasons.push(`${result.skippedTheoryExamNotConfigured} sin examen configurado en Ajustes`);
     if (result.skippedAlreadyPractical) reasons.push(`${result.skippedAlreadyPractical} ya autorizados (manejo)`);
     if (reasons.length) {
       lines.push(`Motivos: ${reasons.join(', ')}`);

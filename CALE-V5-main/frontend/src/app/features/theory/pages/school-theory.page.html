@@ -466,12 +466,17 @@
         </label>
         <label>Examen teórico oficial
           <select [(ngModel)]="cfg.theoryExamId">
-            <option [ngValue]="null">Sin examen obligatorio</option>
+            <option [ngValue]="null">— Seleccionar examen —</option>
             @for (exam of examOptions(); track exam.id) {
               <option [ngValue]="exam.id">{{ exam.name }} (#{{ exam.id }})</option>
             }
           </select>
         </label>
+        @if (!cfg.theoryExamId) {
+          <p class="warn-banner">
+            Debes seleccionar el examen teórico oficial para autorizar exámenes y avanzar estudiantes a manejo.
+          </p>
+        }
         <p class="muted">
           <strong>Importante:</strong> la cita en el calendario (Exámenes teóricos) es la fecha física en tu escuela.
           El examen en la plataforma (arriba) es el que el estudiante debe aprobar en Evaluaciones para continuar a manejo.

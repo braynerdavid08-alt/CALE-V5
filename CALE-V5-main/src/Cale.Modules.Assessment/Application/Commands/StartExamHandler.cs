@@ -17,6 +17,7 @@ public sealed class StartExamHandler
     private readonly IAttemptStore _attempts;
     private readonly ICatalogStore _catalog;
     private readonly IGroupAccess _groups;
+    private readonly ITrainingEligibilityService _trainingEligibility;
     private readonly FinishExamHandler _finish;
     private readonly IClock _clock;
     private readonly ILogger<StartExamHandler> _logger;
@@ -25,6 +26,7 @@ public sealed class StartExamHandler
         IAttemptStore attempts,
         ICatalogStore catalog,
         IGroupAccess groups,
+        ITrainingEligibilityService trainingEligibility,
         FinishExamHandler finish,
         IClock clock,
         ILogger<StartExamHandler> logger)
@@ -32,6 +34,7 @@ public sealed class StartExamHandler
         _attempts = attempts;
         _catalog = catalog;
         _groups = groups;
+        _trainingEligibility = trainingEligibility;
         _finish = finish;
         _clock = clock;
         _logger = logger;
@@ -281,29 +284,32 @@ public sealed class StartExamHandler
         }
 
         var links = await _catalog.ListExamGroupsAsync(exam.Id, ct);
-        if (links.Count == 0)
+        if (links.Count > 0)
         {
-            return;
+            var groupIds = await _groups.GetActiveGroupIdsAsync(userId, ct);
+            var match = links.FirstOrDefault(x => groupIds.Contains(x.GroupId));
+            if (match is null)
+            {
+                throw new ForbiddenException(
+                    "You are not in a group for this exam.",
+                    "exam_not_assigned");
+            }
+
+            if (match.StartsAt is { } start && now < start)
+            {
+                throw new ForbiddenException("Exam has not started.", "exam_closed");
+            }
+
+            if (match.EndsAt is { } end && now > end)
+            {
+                throw new ForbiddenException("Exam window expired.", "exam_closed");
+            }
         }
 
-        var groupIds = await _groups.GetActiveGroupIdsAsync(userId, ct);
-        var match = links.FirstOrDefault(x => groupIds.Contains(x.GroupId));
-        if (match is null)
-        {
-            throw new ForbiddenException(
-                "You are not in a group for this exam.",
-                "exam_not_assigned");
-        }
-
-        if (match.StartsAt is { } start && now < start)
-        {
-            throw new ForbiddenException("Exam has not started.", "exam_closed");
-        }
-
-        if (match.EndsAt is { } end && now > end)
-        {
-            throw new ForbiddenException("Exam window expired.", "exam_closed");
-        }
+        await _trainingEligibility.EnsureCanStartSchoolTheoryExamAsync(
+            userId,
+            exam.Id,
+            ct);
     }
 
     private async Task<List<Question>> LoadPool(

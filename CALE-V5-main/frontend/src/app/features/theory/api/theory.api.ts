@@ -147,6 +147,7 @@ export interface BulkAuthorizeResultDto {
   skippedExamPassed?: number;
   skippedExamNotPassed?: number;
   skippedAlreadyPractical?: number;
+  skippedTheoryExamNotConfigured?: number;
 }
 
 export interface EnrollmentDto {

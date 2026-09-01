@@ -23,6 +23,7 @@ public sealed class TheoryTrainingService
     private readonly ICatalogStore _catalog;
     private readonly IClock _clock;
     private readonly INotificationPublisher _notifications;
+    private readonly ITrainingEligibilityService _eligibility;
 
     public TheoryTrainingService(
         CaleDbContext db,
@@ -30,7 +31,8 @@ public sealed class TheoryTrainingService
         ISchoolProfileStore schoolProfiles,
         ICatalogStore catalog,
         IClock clock,
-        INotificationPublisher notifications)
+        INotificationPublisher notifications,
+        ITrainingEligibilityService eligibility)
     {
         _db = db;
         _users = users;
@@ -38,6 +40,7 @@ public sealed class TheoryTrainingService
         _catalog = catalog;
         _clock = clock;
         _notifications = notifications;
+        _eligibility = eligibility;
     }
 
     // ── Topics ──────────────────────────────────────────────────────────
@@ -1160,6 +1163,7 @@ public sealed class TheoryTrainingService
                 ct);
 
             if (balanceDue <= 0
+                && settings.TheoryExamId is not null
                 && !enrollment.TheoryExamAuthorized
                 && eligibility.TheoryHoursComplete
                 && eligibility.WorkshopHoursComplete
@@ -1444,6 +1448,8 @@ public sealed class TheoryTrainingService
         {
             if (theoryExamAuthorized && !enrollment.TheoryExamAuthorized)
             {
+                await _eligibility.EnsureTheoryExamConfiguredAsync(schoolUserId, ct);
+
                 var hoursCheck = await GetPracticalEligibilityAsync(
                     schoolUserId,
                     studentUserId,
@@ -1469,7 +1475,7 @@ public sealed class TheoryTrainingService
                         "theory_exam_already_passed");
                 }
 
-                await EnsureNoBalanceDueAsync(schoolUserId, studentUserId, ct);
+                await _eligibility.EnsureNoBalanceDueAsync(schoolUserId, studentUserId, ct);
                 notifyTheoryExam = true;
             }
 
@@ -1481,6 +1487,8 @@ public sealed class TheoryTrainingService
         {
             if (practicalAuthorized && !enrollment.PracticalAuthorized)
             {
+                await _eligibility.EnsureTheoryExamConfiguredAsync(schoolUserId, ct);
+
                 var examCheck = await GetPracticalEligibilityAsync(
                     schoolUserId,
                     studentUserId,
@@ -1498,7 +1506,7 @@ public sealed class TheoryTrainingService
                         "theory_exam_required");
                 }
 
-                await EnsureNoBalanceDueAsync(schoolUserId, studentUserId, ct);
+                await _eligibility.EnsureNoBalanceDueAsync(schoolUserId, studentUserId, ct);
                 notifyPractical = true;
             }
 
@@ -1580,6 +1588,7 @@ public sealed class TheoryTrainingService
         var skippedExamPassed = 0;
         var skippedExamNotPassed = 0;
         var skippedAlreadyPractical = 0;
+        var skippedTheoryExamNotConfigured = 0;
         var theoryExamNotified = new List<(int StudentUserId, int EnrollmentId)>();
         var practicalNotified = new List<(int StudentUserId, int EnrollmentId)>();
 
@@ -1614,6 +1623,13 @@ public sealed class TheoryTrainingService
 
             if (request.TheoryExam)
             {
+                if (settings.TheoryExamId is null)
+                {
+                    skipped++;
+                    skippedTheoryExamNotConfigured++;
+                    continue;
+                }
+
                 if (enrollment.TheoryExamAuthorized)
                 {
                     skipped++;
@@ -1699,7 +1715,8 @@ public sealed class TheoryTrainingService
             skippedHoursIncomplete,
             skippedExamPassed,
             skippedExamNotPassed,
-            skippedAlreadyPractical);
+            skippedAlreadyPractical,
+            skippedTheoryExamNotConfigured);
     }
 
     public async Task<EnrollmentDto> UpdateEnrollmentByIdAsync(
@@ -1944,7 +1961,7 @@ public sealed class TheoryTrainingService
 
         await EnsureSchoolMembershipActiveAsync(schoolUserId, ct);
         var enrollment = await GetEnrollmentAsync(schoolUserId, studentUserId, ct);
-        if (!CanStudentReserve(enrollment))
+        if (!TrainingEligibilityService.CanStudentReserve(enrollment))
         {
             throw new ForbiddenException(
                 "Tu escuela aún no te ha habilitado para reservar clases.",
@@ -1953,10 +1970,7 @@ public sealed class TheoryTrainingService
     }
 
     private static bool CanStudentReserve(SchoolStudentEnrollment enrollment) =>
-        StudentEnrollmentStatuses.CanReserveStatuses.Contains(enrollment.Status)
-        || (enrollment.Status == StudentEnrollmentStatuses.Pending
-            && !string.IsNullOrWhiteSpace(enrollment.AttendanceDayType)
-            && !string.IsNullOrWhiteSpace(enrollment.LicenseCategories));
+        TrainingEligibilityService.CanStudentReserve(enrollment);
 
     private async Task<(int SchoolUserId, User Student)> ResolveStudentSchoolAsync(
         int studentUserId,
@@ -2064,7 +2078,7 @@ public sealed class TheoryTrainingService
         bool practicalAuthorized,
         CancellationToken ct)
     {
-        var theoryExamPassed = true;
+        var theoryExamPassed = false;
         if (settings.TheoryExamId is int examId)
         {
             theoryExamPassed = await _db.Set<Attempt>()
@@ -2086,6 +2100,10 @@ public sealed class TheoryTrainingService
         else if (!workshopComplete)
         {
             blockReason = $"Te faltan horas de taller ({workshopHours}/{settings.RequiredWorkshopHours}).";
+        }
+        else if (settings.TheoryExamId is null)
+        {
+            blockReason = "Tu escuela debe configurar el examen teórico oficial en Ajustes.";
         }
         else if (!theoryExamPassed)
         {
@@ -2277,21 +2295,6 @@ public sealed class TheoryTrainingService
         return profile?.BalanceDue ?? 0;
     }
 
-    private async Task EnsureNoBalanceDueAsync(
-        int schoolUserId,
-        int studentUserId,
-        CancellationToken ct)
-    {
-        var balance = await GetBalanceDueAsync(schoolUserId, studentUserId, ct);
-        if (balance > 0)
-        {
-            throw new DomainException(
-                "El estudiante tiene saldo pendiente. Registra el pago en Aprendices antes de autorizar.",
-                400,
-                "balance_due_pending");
-        }
-    }
-
     private Task NotifyTheoryExamAuthorizedAsync(
         int studentUserId,
         int enrollmentId,
@@ -2473,9 +2476,9 @@ public sealed class TheoryTrainingService
             return ("locked", "Tu acceso está suspendido. Pide a la escuela que te autorice de nuevo.");
         }
 
-        if (!CanStudentReserve(enrollment))
+        if (!TrainingEligibilityService.CanStudentReserve(enrollment))
         {
-            return ("locked", "Pendiente de autorización por la escuela");
+            return ("locked", "Debes estar activo en Programación para reservar clases.");
         }
 
         var dayLimit = EvaluateDayBookingLimit(enrollment, session, ctx);

@@ -20,6 +20,7 @@ public sealed class ApprenticeRegistryService
     private readonly TheoryTrainingService _theory;
     private readonly PracticalTrainingService _practical;
     private readonly INotificationPublisher _notifications;
+    private readonly ITrainingEligibilityService _eligibility;
 
     public ApprenticeRegistryService(
         CaleDbContext db,
@@ -27,7 +28,8 @@ public sealed class ApprenticeRegistryService
         IClock clock,
         TheoryTrainingService theory,
         PracticalTrainingService practical,
-        INotificationPublisher notifications)
+        INotificationPublisher notifications,
+        ITrainingEligibilityService eligibility)
     {
         _db = db;
         _users = users;
@@ -35,6 +37,7 @@ public sealed class ApprenticeRegistryService
         _theory = theory;
         _practical = practical;
         _notifications = notifications;
+        _eligibility = eligibility;
     }
 
     public async Task<IReadOnlyList<ApprenticeDto>> ListAsync(
@@ -421,6 +424,8 @@ public sealed class ApprenticeRegistryService
                     400,
                     "theory_exam_not_authorized");
             }
+
+            await _eligibility.EnsureNoBalanceDueAsync(schoolUserId, studentId, ct);
 
             var eligibility = await _theory.GetPracticalEligibilityAsync(
                 schoolUserId,

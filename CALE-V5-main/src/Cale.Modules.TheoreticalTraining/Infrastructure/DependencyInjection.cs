@@ -1,3 +1,4 @@
+using Cale.BuildingBlocks.Domain.Abstractions;
 using Cale.Modules.TheoreticalTraining.Application;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -8,6 +9,7 @@ public static class DependencyInjection
     public static IServiceCollection AddTheoreticalTrainingModule(
         this IServiceCollection services)
     {
+        services.AddScoped<ITrainingEligibilityService, TrainingEligibilityService>();
         services.AddScoped<TheoryTrainingService>();
         services.AddScoped<PracticalTrainingService>();
         services.AddScoped<ApprenticeRegistryService>();

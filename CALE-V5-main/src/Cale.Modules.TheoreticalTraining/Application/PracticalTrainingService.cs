@@ -15,17 +15,20 @@ public sealed class PracticalTrainingService
     private readonly CaleDbContext _db;
     private readonly IUserStore _users;
     private readonly TheoryTrainingService _theory;
+    private readonly ITrainingEligibilityService _eligibility;
     private readonly IClock _clock;
 
     public PracticalTrainingService(
         CaleDbContext db,
         IUserStore users,
         TheoryTrainingService theory,
+        ITrainingEligibilityService eligibility,
         IClock clock)
     {
         _db = db;
         _users = users;
         _theory = theory;
+        _eligibility = eligibility;
         _clock = clock;
     }
 
@@ -183,6 +186,8 @@ public sealed class PracticalTrainingService
                 400,
                 "practical_not_authorized");
         }
+
+        await _eligibility.EnsureNoBalanceDueAsync(schoolUserId, request.StudentUserId, ct);
 
         var eligibility = await _theory.GetPracticalEligibilityAsync(
             schoolUserId,
@@ -532,6 +537,9 @@ public sealed class PracticalTrainingService
         CancellationToken ct)
     {
         var (schoolUserId, _) = await _theory.ResolveStudentSchoolPublicAsync(studentUserId, ct);
+        await _eligibility.EnsureStudentCanBookAsync(schoolUserId, studentUserId, ct);
+        await _eligibility.EnsureNoBalanceDueAsync(schoolUserId, studentUserId, ct);
+
         var eligibility = await _theory.GetPracticalEligibilityAsync(schoolUserId, studentUserId, ct);
         if (!eligibility.CanBookPractical)
         {
@@ -549,6 +557,20 @@ public sealed class PracticalTrainingService
         if (session.Status != PracticalLessonStatuses.Scheduled)
         {
             throw new DomainException("Esta clase no está disponible.", 400, "lesson_unavailable");
+        }
+
+        var studentConflict = await _db.Set<PracticalLessonReservation>()
+            .Include(x => x.LessonSession)
+            .AnyAsync(x => x.StudentUserId == studentUserId
+                && x.LessonSession!.SchoolUserId == schoolUserId
+                && x.LessonSession.SessionDate == session.SessionDate
+                && PracticalReservationStatuses.OccupiesSeatStatuses.Contains(x.Status), ct);
+        if (studentConflict)
+        {
+            throw new DomainException(
+                "Ya tienes una clase de manejo programada ese día.",
+                400,
+                "student_day_taken");
         }
 
         var reserved = await _db.Set<PracticalLessonReservation>()
