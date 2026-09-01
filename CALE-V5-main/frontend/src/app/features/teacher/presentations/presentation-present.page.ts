@@ -26,7 +26,9 @@ import {
   TextProps,
   VideoProps,
   backgroundCss,
-  dtoToEditorSlides
+  dtoToEditorSlides,
+  hasImageCrop,
+  imageElementStyles
 } from './presentation.models';
 
 @Component({
@@ -187,6 +189,17 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
 
   imageProps(el: SlideElement): ImageProps {
     return el.props as ImageProps;
+  }
+
+  imageStyles(el: SlideElement): Record<string, string> {
+    if (el.type !== 'image') {
+      return {};
+    }
+    return imageElementStyles(el.props as ImageProps);
+  }
+
+  imageHasCrop(el: SlideElement): boolean {
+    return el.type === 'image' && hasImageCrop((el.props as ImageProps).crop);
   }
 
   videoProps(el: SlideElement): VideoProps {

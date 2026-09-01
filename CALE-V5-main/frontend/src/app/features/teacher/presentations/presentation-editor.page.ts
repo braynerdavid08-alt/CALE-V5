@@ -18,6 +18,7 @@ import { BRAND } from '../../../core/brand';
 import { PresentationApi } from './presentation.api';
 import {
   EditorSlide,
+  ImageCrop,
   ImageProps,
   LineProps,
   PRESENTATION_CATEGORIES,
@@ -32,7 +33,10 @@ import {
   VideoProps,
   backgroundCss,
   dtoToEditorSlides,
-  newClientId
+  hasImageCrop,
+  imageElementStyles,
+  newClientId,
+  normalizeImageCrop
 } from './presentation.models';
 
 type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'offline' | 'error';
@@ -120,12 +124,15 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     | {
         id: string;
         mode: 'move' | 'resize';
+        resizeDir?: 'se' | 'sw' | 'ne' | 'nw' | 'e' | 'w' | 'n' | 's';
         startX: number;
         startY: number;
         origX: number;
         origY: number;
         origW: number;
         origH: number;
+        aspect?: number;
+        lockAspect: boolean;
       }
     | null = null;
   private clipboard: SlideElement | null = null;
@@ -652,12 +659,67 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (!id || !sel || sel.type !== 'image') {
       return;
     }
-    this.patchElement(id, (el) => ({
-      ...el,
-      x: Math.round((SLIDE_W - el.w) / 2),
-      y: Math.round((SLIDE_H - el.h) / 2)
-    }));
-    this.markDirty();
+    const props = sel.props as ImageProps;
+    void this.probeNaturalSize(props.src).then((natural) => {
+      const maxW = SLIDE_W - 32;
+      const maxH = SLIDE_H - 32;
+      const scale = Math.min(1, maxW / natural.w, maxH / natural.h);
+      const w = Math.max(40, Math.round(natural.w * scale));
+      const h = Math.max(24, Math.round(natural.h * scale));
+      this.patchElement(id, (el) => ({
+        ...el,
+        x: Math.round((SLIDE_W - w) / 2),
+        y: Math.round((SLIDE_H - h) / 2),
+        w,
+        h
+      }));
+      this.markDirty();
+    });
+  }
+
+  setImageObjectFit(fit: 'contain' | 'cover'): void {
+    this.updateImageProp('objectFit', fit);
+    if (fit === 'cover') {
+      this.updateImageProp('crop', undefined);
+    }
+  }
+
+  updateImageCrop(key: keyof ImageCrop, raw: number): void {
+    const id = this.selectedId();
+    const sel = this.selected();
+    if (!id || !sel || sel.type !== 'image') {
+      return;
+    }
+    if (!Number.isFinite(raw)) {
+      return;
+    }
+    const current = normalizeImageCrop((sel.props as ImageProps).crop);
+    const next = normalizeImageCrop({ ...current, [key]: raw / 100 });
+    this.updateImageProp('crop', next);
+  }
+
+  resetImageCrop(): void {
+    this.updateImageProp('crop', undefined);
+  }
+
+  imageStyles(el: SlideElement): Record<string, string> {
+    if (el.type !== 'image') {
+      return {};
+    }
+    return imageElementStyles(el.props as ImageProps);
+  }
+
+  imageHasCrop(el: SlideElement): boolean {
+    return el.type === 'image' && hasImageCrop((el.props as ImageProps).crop);
+  }
+
+  imageCropPercent(key: keyof ImageCrop): number {
+    const sel = this.selected();
+    if (!sel || sel.type !== 'image') {
+      return key === 'w' || key === 'h' ? 100 : 0;
+    }
+    const crop = normalizeImageCrop((sel.props as ImageProps).crop);
+    return Math.round(crop[key] * 100);
   }
 
   private uploadAndInsertMedia(file: File, x?: number, y?: number): void {
@@ -794,17 +856,24 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   }
 
   private probeImageSize(src: string): Promise<{ w: number; h: number }> {
+    return this.probeNaturalSize(src).then((natural) => {
+      const maxW = 520;
+      const maxH = 380;
+      const scale = Math.min(1, maxW / natural.w, maxH / natural.h);
+      return {
+        w: Math.max(80, Math.round(natural.w * scale)),
+        h: Math.max(60, Math.round(natural.h * scale))
+      };
+    });
+  }
+
+  private probeNaturalSize(src: string): Promise<{ w: number; h: number }> {
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
-        const maxW = 520;
-        const maxH = 380;
-        let w = img.naturalWidth || 400;
-        let h = img.naturalHeight || 280;
-        const scale = Math.min(1, maxW / w, maxH / h);
         resolve({
-          w: Math.max(80, Math.round(w * scale)),
-          h: Math.max(60, Math.round(h * scale))
+          w: img.naturalWidth || 400,
+          h: img.naturalHeight || 280
         });
       };
       img.onerror = () => resolve({ w: 400, h: 280 });
@@ -828,7 +897,12 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     };
   }
 
-  startDrag(ev: PointerEvent, id: string, mode: 'move' | 'resize'): void {
+  startDrag(
+    ev: PointerEvent,
+    id: string,
+    mode: 'move' | 'resize',
+    resizeDir: 'se' | 'sw' | 'ne' | 'nw' | 'e' | 'w' | 'n' | 's' = 'se'
+  ): void {
     if (this.editingText()) {
       return;
     }
@@ -842,14 +916,17 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     this.drag = {
       id,
       mode,
+      resizeDir,
       startX: ev.clientX,
       startY: ev.clientY,
       origX: el.x,
       origY: el.y,
       origW: el.w,
-      origH: el.h
+      origH: el.h,
+      aspect: el.w / Math.max(el.h, 1),
+      lockAspect: el.type === 'image' && !ev.altKey
     };
-    (ev.target as HTMLElement).setPointerCapture?.(ev.pointerId);
+    (ev.currentTarget as HTMLElement).setPointerCapture?.(ev.pointerId);
   }
 
   onPointerMove(ev: PointerEvent): void {
@@ -865,13 +942,60 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
         x: Math.round(this.drag!.origX + dx),
         y: Math.round(this.drag!.origY + dy)
       }));
-    } else {
-      this.patchElement(this.drag.id, (el) => ({
-        ...el,
-        w: Math.max(40, Math.round(this.drag!.origW + dx)),
-        h: Math.max(24, Math.round(this.drag!.origH + dy))
-      }));
+      return;
     }
+
+    const dir = this.drag.resizeDir ?? 'se';
+    let x = this.drag.origX;
+    let y = this.drag.origY;
+    let w = this.drag.origW;
+    let h = this.drag.origH;
+
+    if (dir.includes('e')) {
+      w = this.drag.origW + dx;
+    }
+    if (dir.includes('w')) {
+      w = this.drag.origW - dx;
+      x = this.drag.origX + dx;
+    }
+    if (dir.includes('s')) {
+      h = this.drag.origH + dy;
+    }
+    if (dir.includes('n')) {
+      h = this.drag.origH - dy;
+      y = this.drag.origY + dy;
+    }
+
+    w = Math.max(40, Math.round(w));
+    h = Math.max(24, Math.round(h));
+
+    if (this.drag.lockAspect && this.drag.aspect) {
+      const aspect = this.drag.aspect;
+      if (dir === 'e' || dir === 'w') {
+        h = Math.max(24, Math.round(w / aspect));
+      } else if (dir === 'n' || dir === 's') {
+        w = Math.max(40, Math.round(h * aspect));
+      } else if (Math.abs(dx) >= Math.abs(dy)) {
+        h = Math.max(24, Math.round(w / aspect));
+      } else {
+        w = Math.max(40, Math.round(h * aspect));
+      }
+
+      if (dir.includes('w')) {
+        x = this.drag.origX + (this.drag.origW - w);
+      }
+      if (dir.includes('n')) {
+        y = this.drag.origY + (this.drag.origH - h);
+      }
+    }
+
+    this.patchElement(this.drag.id, (el) => ({
+      ...el,
+      x: Math.round(x),
+      y: Math.round(y),
+      w,
+      h
+    }));
   }
 
   endDrag(): void {

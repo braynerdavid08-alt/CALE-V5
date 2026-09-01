@@ -36,10 +36,13 @@
                   >{{ textProps(el).text }}</div>
               }
               @if (el.type === 'image') {
-                <img
-                  [src]="media(imageProps(el).src)"
-                  [style.opacity]="imageProps(el).opacity ?? 1"
-                  alt="" />
+                <div class="el-image-frame" [class.cropped]="imageHasCrop(el)">
+                  <img
+                    [src]="media(imageProps(el).src)"
+                    [ngStyle]="imageStyles(el)"
+                    [style.opacity]="imageProps(el).opacity ?? 1"
+                    alt="" />
+                </div>
               }
               @if (el.type === 'video') {
                 <video

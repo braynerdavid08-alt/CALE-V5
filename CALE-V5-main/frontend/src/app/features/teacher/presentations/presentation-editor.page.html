@@ -142,11 +142,14 @@
                     }
                   }
                   @if (el.type === 'image') {
-                    <img
-                      [src]="media(imageProps(el).src)"
-                      [style.opacity]="imageProps(el).opacity ?? 1"
-                      alt=""
-                      draggable="false" />
+                    <div class="el-image-frame" [class.cropped]="imageHasCrop(el)">
+                      <img
+                        [src]="media(imageProps(el).src)"
+                        [ngStyle]="imageStyles(el)"
+                        [style.opacity]="imageProps(el).opacity ?? 1"
+                        alt=""
+                        draggable="false" />
+                    </div>
                   }
                   @if (el.type === 'video') {
                     <video
@@ -180,8 +183,29 @@
                   }
                   @if (selectedId() === el.id && !editingText()) {
                     <span
-                      class="handle"
-                      (pointerdown)="startDrag($event, el.id, 'resize')"></span>
+                      class="handle handle-nw"
+                      (pointerdown)="startDrag($event, el.id, 'resize', 'nw')"></span>
+                    <span
+                      class="handle handle-ne"
+                      (pointerdown)="startDrag($event, el.id, 'resize', 'ne')"></span>
+                    <span
+                      class="handle handle-sw"
+                      (pointerdown)="startDrag($event, el.id, 'resize', 'sw')"></span>
+                    <span
+                      class="handle handle-se"
+                      (pointerdown)="startDrag($event, el.id, 'resize', 'se')"></span>
+                    <span
+                      class="handle handle-n"
+                      (pointerdown)="startDrag($event, el.id, 'resize', 'n')"></span>
+                    <span
+                      class="handle handle-s"
+                      (pointerdown)="startDrag($event, el.id, 'resize', 's')"></span>
+                    <span
+                      class="handle handle-w"
+                      (pointerdown)="startDrag($event, el.id, 'resize', 'w')"></span>
+                    <span
+                      class="handle handle-e"
+                      (pointerdown)="startDrag($event, el.id, 'resize', 'e')"></span>
                   }
                 </div>
               }
@@ -294,11 +318,60 @@
                 <input type="number" [ngModel]="sel.h" (ngModelChange)="updateImageGeometry('h', +$event)" />
               </label>
             </div>
+            <label>
+              Ajuste de imagen
+              <select
+                [ngModel]="imageProps(sel).objectFit ?? 'contain'"
+                (ngModelChange)="setImageObjectFit($event)">
+                <option value="contain">Contener (ver completa)</option>
+                <option value="cover">Rellenar marco</option>
+              </select>
+            </label>
             <div class="row">
-              <button type="button" (click)="fitImageToSlide()">Centrar</button>
+              <button type="button" (click)="fitImageToSlide()">Ajustar a diapositiva</button>
               <button type="button" (click)="openReplaceImageModal()">Cambiar imagen</button>
             </div>
-            <p class="meta hint">Arrastra para mover · esquina inferior para redimensionar · flechas ±4 px</p>
+            <fieldset class="crop-panel">
+              <legend>Recorte</legend>
+              <label>
+                Margen izquierdo (%)
+                <input
+                  type="range"
+                  min="0"
+                  max="90"
+                  [ngModel]="imageCropPercent('x')"
+                  (ngModelChange)="updateImageCrop('x', +$event)" />
+              </label>
+              <label>
+                Margen superior (%)
+                <input
+                  type="range"
+                  min="0"
+                  max="90"
+                  [ngModel]="imageCropPercent('y')"
+                  (ngModelChange)="updateImageCrop('y', +$event)" />
+              </label>
+              <label>
+                Ancho visible (%)
+                <input
+                  type="range"
+                  min="10"
+                  max="100"
+                  [ngModel]="imageCropPercent('w')"
+                  (ngModelChange)="updateImageCrop('w', +$event)" />
+              </label>
+              <label>
+                Alto visible (%)
+                <input
+                  type="range"
+                  min="10"
+                  max="100"
+                  [ngModel]="imageCropPercent('h')"
+                  (ngModelChange)="updateImageCrop('h', +$event)" />
+              </label>
+              <button type="button" (click)="resetImageCrop()">Quitar recorte</button>
+            </fieldset>
+            <p class="meta hint">Arrastra para mover · esquinas/bordes para redimensionar · Alt libera proporción</p>
           }
           @if (sel.type === 'video') {
             <label>

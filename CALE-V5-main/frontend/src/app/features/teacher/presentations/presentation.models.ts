@@ -20,9 +20,18 @@ export interface TextProps {
   underline?: boolean;
 }
 
+export interface ImageCrop {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 export interface ImageProps {
   src: string;
   opacity?: number;
+  objectFit?: 'contain' | 'cover';
+  crop?: ImageCrop;
 }
 
 export interface VideoProps {
@@ -176,6 +185,42 @@ export function dtoToEditorSlides(detail: PresentationDetail): EditorSlide[] {
       background: parseBackground(s.backgroundJson),
       elements: parseElements(s.elementsJson)
     }));
+}
+
+export const DEFAULT_IMAGE_CROP: ImageCrop = { x: 0, y: 0, w: 1, h: 1 };
+
+export function normalizeImageCrop(crop?: ImageCrop): ImageCrop {
+  if (!crop) {
+    return { ...DEFAULT_IMAGE_CROP };
+  }
+
+  const w = Math.min(1, Math.max(0.05, crop.w));
+  const h = Math.min(1, Math.max(0.05, crop.h));
+  const x = Math.min(1 - w, Math.max(0, crop.x));
+  const y = Math.min(1 - h, Math.max(0, crop.y));
+  return { x, y, w, h };
+}
+
+export function hasImageCrop(crop?: ImageCrop): boolean {
+  const c = normalizeImageCrop(crop);
+  return c.x > 0.001 || c.y > 0.001 || c.w < 0.999 || c.h < 0.999;
+}
+
+export function imageElementStyles(props: ImageProps): Record<string, string> {
+  const crop = normalizeImageCrop(props.crop);
+  if (hasImageCrop(props.crop)) {
+    return {
+      width: `${100 / crop.w}%`,
+      height: `${100 / crop.h}%`,
+      marginLeft: `${(-100 * crop.x) / crop.w}%`,
+      marginTop: `${(-100 * crop.y) / crop.h}%`,
+      objectFit: 'fill'
+    };
+  }
+
+  return {
+    objectFit: props.objectFit ?? 'contain'
+  };
 }
 
 export function backgroundCss(bg: SlideBackground): Record<string, string> {

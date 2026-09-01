@@ -460,6 +460,7 @@ internal static class PptxSlideIO
         private readonly double _scaleY;
         private int _z = 1;
         private readonly HashSet<string> _savedVideoRelIds = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, string> _imageUrlByRelId = new(StringComparer.Ordinal);
 
         public List<object> Elements { get; } = [];
         public List<string> TextBlocks { get; } = [];
@@ -501,11 +502,6 @@ internal static class PptxSlideIO
 
             if (tree is not null)
             {
-                foreach (var blip in tree.Descendants<A.Blip>())
-                {
-                    TryAddPictureFromBlip(blip, FindTransform(blip));
-                }
-
                 foreach (var videoFile in tree.Descendants().Where(IsVideoFileElement))
                 {
                     TryAddVideoFromLink(
@@ -704,16 +700,22 @@ internal static class PptxSlideIO
 
             try
             {
-                var imagePart = ResolveImagePart(blip.Embed.Value);
-                if (imagePart is null)
+                var relId = blip.Embed.Value;
+                if (!_imageUrlByRelId.TryGetValue(relId, out var url))
                 {
-                    return;
-                }
+                    var imagePart = ResolveImagePart(relId);
+                    if (imagePart is null)
+                    {
+                        return;
+                    }
 
-                var url = SaveImage(imagePart);
-                if (url is null)
-                {
-                    return;
+                    url = SaveImage(imagePart);
+                    if (url is null)
+                    {
+                        return;
+                    }
+
+                    _imageUrlByRelId[relId] = url;
                 }
 
                 var (x, y, w, h) = GetBounds(xfrm, parentX, parentY);

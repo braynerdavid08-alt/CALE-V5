@@ -269,11 +269,23 @@
   overflow: hidden;
 }
 
+.el-image-frame {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.el-image-frame.cropped {
+  background: #0a1118;
+}
+
 .el img,
 .el video {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  display: block;
 }
 
 .el img {
@@ -309,14 +321,77 @@
 
 .handle {
   position: absolute;
-  right: -6px;
-  bottom: -6px;
   width: 12px;
   height: 12px;
   background: #2bb0ed;
   border: 2px solid #fff;
   border-radius: 2px;
+  z-index: 5;
+  touch-action: none;
+}
+
+.handle-se {
+  right: -6px;
+  bottom: -6px;
   cursor: nwse-resize;
+}
+
+.handle-sw {
+  left: -6px;
+  bottom: -6px;
+  cursor: nesw-resize;
+}
+
+.handle-ne {
+  right: -6px;
+  top: -6px;
+  cursor: nesw-resize;
+}
+
+.handle-nw {
+  left: -6px;
+  top: -6px;
+  cursor: nwse-resize;
+}
+
+.handle-n {
+  left: 50%;
+  top: -6px;
+  margin-left: -6px;
+  cursor: ns-resize;
+}
+
+.handle-s {
+  left: 50%;
+  bottom: -6px;
+  margin-left: -6px;
+  cursor: ns-resize;
+}
+
+.handle-w {
+  left: -6px;
+  top: 50%;
+  margin-top: -6px;
+  cursor: ew-resize;
+}
+
+.handle-e {
+  right: -6px;
+  top: 50%;
+  margin-top: -6px;
+  cursor: ew-resize;
+}
+
+.crop-panel {
+  border: 1px solid #243447;
+  border-radius: 8px;
+  padding: 0.65rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.crop-panel legend {
+  padding: 0 0.35rem;
+  color: #b7c7d8;
 }
 
 .ed-props {
