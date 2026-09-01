@@ -22,20 +22,20 @@ public sealed class PresentationsController : ControllerBase
     private readonly PresentationQueryHandler _queries;
     private readonly PresentationExchangeService _exchange;
     private readonly IUserStore _users;
-    private readonly IWebHostEnvironment _env;
+    private readonly UploadStorage _uploads;
 
     public PresentationsController(
         PresentationCommandHandler commands,
         PresentationQueryHandler queries,
         PresentationExchangeService exchange,
         IUserStore users,
-        IWebHostEnvironment env)
+        UploadStorage uploads)
     {
         _commands = commands;
         _queries = queries;
         _exchange = exchange;
         _users = users;
-        _env = env;
+        _uploads = uploads;
     }
 
     [HttpGet]
@@ -186,11 +186,7 @@ public sealed class PresentationsController : ControllerBase
         IReadOnlyList<ImportedSlideOutline> outlines;
         try
         {
-            var webRoot = string.IsNullOrWhiteSpace(_env.WebRootPath)
-                ? Path.Combine(_env.ContentRootPath, "wwwroot")
-                : _env.WebRootPath;
-            var uploadsDir = Path.Combine(webRoot, "uploads", "presentations");
-            outlines = _exchange.ParseImport(stream, file.FileName, uploadsDir);
+            outlines = _exchange.ParseImport(stream, file.FileName, _uploads.PresentationsDirectory);
         }
         catch (InvalidOperationException ex)
         {
@@ -293,16 +289,10 @@ public sealed class PresentationsController : ControllerBase
                 "invalid_file");
         }
 
-        var webRoot = string.IsNullOrWhiteSpace(_env.WebRootPath)
-            ? Path.Combine(_env.ContentRootPath, "wwwroot")
-            : _env.WebRootPath;
-        var folder = Path.Combine(webRoot, "uploads", "presentations");
-        Directory.CreateDirectory(folder);
         var name = $"{Guid.NewGuid():N}{ext.ToLowerInvariant()}";
-        var path = Path.Combine(folder, name);
-        await using var stream = System.IO.File.Create(path);
-        await file.CopyToAsync(stream, ct);
-        return Ok(new { url = $"/uploads/presentations/{name}", mediaType });
+        await using var stream = file.OpenReadStream();
+        var url = await _uploads.SavePresentationFileAsync(stream, name, ct);
+        return Ok(new { url, mediaType });
     }
 
     private async Task<int?> ResolveSchoolUserIdAsync(int userId, CancellationToken ct)

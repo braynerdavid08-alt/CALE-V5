@@ -51,6 +51,7 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
   readonly slides = signal<EditorSlide[]>([]);
   readonly index = signal(0);
   readonly showChrome = signal(true);
+  readonly brokenMediaIds = signal<Set<string>>(new Set());
   readonly presentationId = signal(0);
   readonly slideScale = signal(1);
 
@@ -200,6 +201,18 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
 
   imageHasCrop(el: SlideElement): boolean {
     return el.type === 'image' && hasImageCrop((el.props as ImageProps).crop);
+  }
+
+  onMediaError(elementId: string): void {
+    this.brokenMediaIds.update((ids) => {
+      const next = new Set(ids);
+      next.add(elementId);
+      return next;
+    });
+  }
+
+  isMediaBroken(elementId: string): boolean {
+    return this.brokenMediaIds().has(elementId);
   }
 
   videoProps(el: SlideElement): VideoProps {

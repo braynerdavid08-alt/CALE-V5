@@ -88,6 +88,7 @@ public static class ServiceCollectionExtensions
         services.AddTheoreticalTrainingModule();
         services.AddEngagementModule();
         services.AddPresentationModule();
+        services.AddSingleton<UploadStorage>();
         services.AddScoped<ILiveSessionBroadcaster, LiveSessionBroadcaster>();
         services.AddMemoryCache();
         services.AddScoped<Cale.Api.Services.PilotMetricsService>();

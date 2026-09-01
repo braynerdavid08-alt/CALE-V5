@@ -82,6 +82,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   readonly imageUrlInput = signal('');
   readonly imageUploading = signal(false);
   readonly imageModalReplace = signal(false);
+  readonly brokenMediaIds = signal<Set<string>>(new Set());
 
   readonly activeSlide = computed(() => this.slides()[this.activeIndex()] ?? null);
   readonly selected = computed(() => {
@@ -779,6 +780,18 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     }
     const crop = normalizeImageCrop((sel.props as ImageProps).crop);
     return Math.round(crop[key] * 100);
+  }
+
+  onMediaError(elementId: string): void {
+    this.brokenMediaIds.update((ids) => {
+      const next = new Set(ids);
+      next.add(elementId);
+      return next;
+    });
+  }
+
+  isMediaBroken(elementId: string): boolean {
+    return this.brokenMediaIds().has(elementId);
   }
 
   private uploadAndInsertMedia(file: File, x?: number, y?: number): void {

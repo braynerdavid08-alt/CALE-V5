@@ -8,3 +8,10 @@ services:
     branch: main
     healthCheckPath: /api/health
     autoDeploy: true
+    envVars:
+      - key: UPLOADS_ROOT
+        value: /app/wwwroot/uploads
+    disk:
+      name: micale-uploads
+      mountPath: /app/wwwroot/uploads
+      sizeGB: 10

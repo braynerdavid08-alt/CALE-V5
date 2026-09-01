@@ -37,21 +37,32 @@
               }
               @if (el.type === 'image') {
                 <div class="el-image-frame" [class.cropped]="imageHasCrop(el)">
-                  <img
-                    [src]="media(imageProps(el).src)"
-                    [ngStyle]="imageStyles(el)"
-                    [style.opacity]="imageProps(el).opacity ?? 1"
-                    alt="" />
+                  @if (isMediaBroken(el.id)) {
+                    <div class="media-missing">Imagen no disponible</div>
+                  } @else {
+                    <img
+                      [src]="media(imageProps(el).src)"
+                      [ngStyle]="imageStyles(el)"
+                      [style.opacity]="imageProps(el).opacity ?? 1"
+                      alt=""
+                      (error)="onMediaError(el.id)" />
+                  }
                 </div>
               }
               @if (el.type === 'video') {
-                <video
-                  [src]="media(videoProps(el).src)"
-                  [attr.autoplay]="videoProps(el).autoplay ? '' : null"
-                  [attr.loop]="videoProps(el).loop ? '' : null"
-                  [muted]="videoProps(el).muted ?? true"
-                  controls
-                  playsinline></video>
+                @if (isMediaBroken(el.id)) {
+                  <div class="media-missing">Video no disponible</div>
+                } @else {
+                  <video
+                    [src]="media(videoProps(el).src)"
+                    [attr.autoplay]="videoProps(el).autoplay ? '' : null"
+                    [attr.loop]="videoProps(el).loop ? '' : null"
+                    [muted]="videoProps(el).muted ?? true"
+                    controls
+                    playsinline
+                    preload="metadata"
+                    (error)="onMediaError(el.id)"></video>
+                }
               }
               @if (el.type === 'shape') {
                 <div
