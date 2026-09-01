@@ -1060,6 +1060,129 @@ public sealed class TheoryTrainingService
             ct);
     }
 
+    public async Task<(int ReadyForExamCount, int ReadyForPracticalCount, int NoExamAppointmentCount,
+        IReadOnlyList<SchoolDashboardStudentRowDto> TopReadyForExam,
+        IReadOnlyList<SchoolDashboardStudentRowDto> TopNoExamAppointment)> GetEnrollmentPipelineStatsAsync(
+        int schoolUserId,
+        CancellationToken ct)
+    {
+        var settings = await GetOrCreateSettingsAsync(schoolUserId, ct);
+        var students = (await _users.ListBySchoolAsync(schoolUserId, ct))
+            .Where(x => x.Role == Roles.Student)
+            .ToDictionary(x => x.Id);
+
+        var enrollments = await _db.Set<SchoolStudentEnrollment>()
+            .Where(x => x.SchoolUserId == schoolUserId
+                && StudentEnrollmentStatuses.CanReserveStatuses.Contains(x.Status))
+            .ToListAsync(ct);
+
+        var balances = await _db.Set<SchoolApprenticeProfile>()
+            .Where(x => x.SchoolUserId == schoolUserId)
+            .ToDictionaryAsync(x => x.StudentUserId, x => x.BalanceDue, ct);
+
+        var today = DateOnly.FromDateTime(_clock.UtcNow.Date);
+        var studentsWithAppointment = await _db.Set<TheoryExamAppointment>()
+            .Where(x => x.SchoolUserId == schoolUserId
+                && x.ExamDate >= today
+                && x.StudentUserId != null)
+            .Select(x => x.StudentUserId!.Value)
+            .Distinct()
+            .ToListAsync(ct);
+        var appointmentSet = studentsWithAppointment.ToHashSet();
+
+        var readyForExam = new List<SchoolDashboardStudentRowDto>();
+        var readyForPractical = 0;
+        var noExamAppointment = new List<SchoolDashboardStudentRowDto>();
+
+        foreach (var enrollment in enrollments)
+        {
+            if (!students.TryGetValue(enrollment.StudentUserId, out var student))
+            {
+                continue;
+            }
+
+            balances.TryGetValue(enrollment.StudentUserId, out var balanceDue);
+            var (theoryHours, workshopHours, _) = await ComputeHoursBreakdownAsync(
+                enrollment.StudentUserId,
+                ct);
+            var eligibility = await GetPracticalEligibilityAsync(
+                schoolUserId,
+                enrollment.StudentUserId,
+                settings,
+                theoryHours,
+                workshopHours,
+                enrollment.TheoryExamAuthorized,
+                enrollment.PracticalAuthorized,
+                ct);
+
+            if (balanceDue <= 0
+                && !enrollment.TheoryExamAuthorized
+                && eligibility.TheoryHoursComplete
+                && eligibility.WorkshopHoursComplete
+                && !eligibility.TheoryExamPassed)
+            {
+                readyForExam.Add(new SchoolDashboardStudentRowDto(
+                    enrollment.StudentUserId,
+                    student.Name));
+            }
+
+            if (balanceDue <= 0
+                && !enrollment.PracticalAuthorized
+                && eligibility.TheoryExamPassed)
+            {
+                readyForPractical++;
+            }
+
+            if (enrollment.TheoryExamAuthorized
+                && !eligibility.TheoryExamPassed
+                && !appointmentSet.Contains(enrollment.StudentUserId))
+            {
+                noExamAppointment.Add(new SchoolDashboardStudentRowDto(
+                    enrollment.StudentUserId,
+                    student.Name));
+            }
+        }
+
+        return (
+            readyForExam.Count,
+            readyForPractical,
+            noExamAppointment.Count,
+            readyForExam.Take(5).ToList(),
+            noExamAppointment.Take(5).ToList());
+    }
+
+    public async Task OnPlatformTheoryExamPassedAsync(
+        int studentUserId,
+        int examId,
+        CancellationToken ct)
+    {
+        var user = await _users.GetByIdAsync(studentUserId, ct);
+        if (user?.SchoolId is not int schoolUserId)
+        {
+            return;
+        }
+
+        var settings = await GetOrCreateSettingsAsync(schoolUserId, ct);
+        if (settings.TheoryExamId != examId)
+        {
+            return;
+        }
+
+        var enrollment = await _db.Set<SchoolStudentEnrollment>()
+            .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
+                && x.StudentUserId == studentUserId, ct);
+        if (enrollment is null || !enrollment.TheoryExamAuthorized)
+        {
+            return;
+        }
+
+        var now = _clock.UtcNow;
+        enrollment.TheoryExamAuthorized = false;
+        enrollment.TheoryExamAuthorizedAt = null;
+        enrollment.UpdatedAt = now;
+        await _db.SaveChangesAsync(ct);
+    }
+
     // ── Enrollments ─────────────────────────────────────────────────────
 
     public async Task<IReadOnlyList<EnrollmentDto>> ListEnrollmentsAsync(

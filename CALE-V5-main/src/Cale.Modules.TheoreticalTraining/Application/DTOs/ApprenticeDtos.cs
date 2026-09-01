@@ -118,13 +118,22 @@ public sealed record SchoolDashboardBalanceRowDto(
     string StudentName,
     decimal BalanceDue);
 
+public sealed record SchoolDashboardStudentRowDto(
+    int StudentUserId,
+    string StudentName);
+
 public sealed record SchoolOperationsDashboardDto(
     int ApprenticeCount,
     int BalancePendingCount,
     decimal BalancePendingTotal,
     int ExamsNext7Days,
     int PendingEnrollmentCount,
+    int ReadyForExamCount,
+    int ReadyForPracticalCount,
+    int NoExamAppointmentCount,
     IReadOnlyList<SchoolDashboardBalanceRowDto> TopBalanceDue,
+    IReadOnlyList<SchoolDashboardStudentRowDto> TopReadyForExam,
+    IReadOnlyList<SchoolDashboardStudentRowDto> TopNoExamAppointment,
     IReadOnlyList<TheoryExamSlotDto> UpcomingExams);
 
 public sealed record TheoryExamSlotDto(

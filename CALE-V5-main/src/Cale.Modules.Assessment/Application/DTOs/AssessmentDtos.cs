@@ -28,6 +28,7 @@ public sealed record AnswerRequest(int QuestionId, int OptionId);
 
 public sealed record FinishResponse(
     int AttemptId,
+    int? ExamId,
     int TotalQuestions,
     int CorrectCount,
     decimal Percent,

@@ -111,13 +111,23 @@ export interface SchoolDashboardBalanceRow {
   balanceDue: number;
 }
 
+export interface SchoolDashboardStudentRow {
+  studentUserId: number;
+  studentName: string;
+}
+
 export interface SchoolOperationsDashboard {
   apprenticeCount: number;
   balancePendingCount: number;
   balancePendingTotal: number;
   examsNext7Days: number;
   pendingEnrollmentCount: number;
+  readyForExamCount: number;
+  readyForPracticalCount: number;
+  noExamAppointmentCount: number;
   topBalanceDue: SchoolDashboardBalanceRow[];
+  topReadyForExam: SchoolDashboardStudentRow[];
+  topNoExamAppointment: SchoolDashboardStudentRow[];
   upcomingExams: TheoryExamSlotDto[];
 }
 

@@ -3,6 +3,21 @@
 }
 .ops-kpis {
   margin-bottom: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+}
+.kpi-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  border-radius: 16px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.kpi-link:hover {
+  transform: translateY(-2px);
+}
+.kpi-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 .balance-feed .warn {
   color: #b45309;

@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
@@ -26,6 +26,7 @@ import { TheoryApi } from '../../theory/api/theory.api';
 export class SchoolApprenticesPage implements OnInit {
   private readonly api = inject(ApprenticeApi);
   private readonly theoryApi = inject(TheoryApi);
+  private readonly route = inject(ActivatedRoute);
 
   readonly loading = signal(true);
   readonly saving = signal(false);
@@ -40,7 +41,10 @@ export class SchoolApprenticesPage implements OnInit {
   onlyBalance = false;
 
   ngOnInit(): void {
-    this.reload();
+    this.route.queryParamMap.subscribe((params) => {
+      this.onlyBalance = params.get('withBalance') === 'true';
+      this.reload();
+    });
   }
 
   reload(): void {

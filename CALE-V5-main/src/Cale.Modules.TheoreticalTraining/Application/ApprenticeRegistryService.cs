@@ -1,4 +1,6 @@
+using Cale.BuildingBlocks.Domain.Abstractions;
 using Cale.BuildingBlocks.Domain.Auth;
+using Cale.BuildingBlocks.Domain.Engagement;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Time;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
@@ -17,19 +19,22 @@ public sealed class ApprenticeRegistryService
     private readonly IClock _clock;
     private readonly TheoryTrainingService _theory;
     private readonly PracticalTrainingService _practical;
+    private readonly INotificationPublisher _notifications;
 
     public ApprenticeRegistryService(
         CaleDbContext db,
         IUserStore users,
         IClock clock,
         TheoryTrainingService theory,
-        PracticalTrainingService practical)
+        PracticalTrainingService practical,
+        INotificationPublisher notifications)
     {
         _db = db;
         _users = users;
         _clock = clock;
         _theory = theory;
         _practical = practical;
+        _notifications = notifications;
     }
 
     public async Task<IReadOnlyList<ApprenticeDto>> ListAsync(
@@ -199,13 +204,20 @@ public sealed class ApprenticeRegistryService
                 slot.Notes));
         }
 
+        var pipeline = await _theory.GetEnrollmentPipelineStatsAsync(schoolUserId, ct);
+
         return new SchoolOperationsDashboardDto(
             apprenticeCount,
             balancePendingCount,
             balancePendingTotal,
             examSlots.Count,
             pendingEnrollmentCount,
+            pipeline.ReadyForExamCount,
+            pipeline.ReadyForPracticalCount,
+            pipeline.NoExamAppointmentCount,
             topBalanceDue,
+            pipeline.TopReadyForExam,
+            pipeline.TopNoExamAppointment,
             upcomingExams);
     }
 
@@ -440,11 +452,13 @@ public sealed class ApprenticeRegistryService
         }
 
         TheoryExamAppointment entity;
+        int? previousStudentId = null;
         if (id is > 0)
         {
             entity = await _db.Set<TheoryExamAppointment>()
                 .FirstOrDefaultAsync(x => x.Id == id && x.SchoolUserId == schoolUserId, ct)
                 ?? throw new NotFoundException("Cita no encontrada.", "slot_not_found");
+            previousStudentId = entity.StudentUserId;
         }
         else
         {
@@ -465,6 +479,21 @@ public sealed class ApprenticeRegistryService
         entity.Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
         entity.UpdatedAt = now;
         await _db.SaveChangesAsync(ct);
+
+        if (entity.StudentUserId is int assignedStudentId
+            && assignedStudentId != previousStudentId)
+        {
+            await _notifications.NotifyUsersAsync(
+                [assignedStudentId],
+                new NotificationDraft(
+                    "Cita de examen teórico",
+                    $"Tu examen teórico está programado para el {entity.ExamDate:dd/MM/yyyy} a las {entity.SlotTime:HH:mm}.",
+                    NotificationTypes.TheoryClass,
+                    RelatedEntity: "theory_exam_appointment",
+                    RelatedId: entity.Id,
+                    Link: "/student/training"),
+                ct);
+        }
 
         string? studentName = null;
         if (entity.StudentUserId is int sid)

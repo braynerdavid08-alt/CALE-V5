@@ -222,6 +222,7 @@ public sealed class FinishExamHandler
         IReadOnlyList<ScoreBreakdownDto> byBlock,
         decimal? bestPercent) => new(
         attempt.Id,
+        attempt.ExamId,
         attempt.TotalQuestions,
         attempt.CorrectCount,
         attempt.Percent,
