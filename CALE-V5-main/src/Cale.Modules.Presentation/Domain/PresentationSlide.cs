@@ -45,8 +45,8 @@ public sealed class PresentationSlide
         {
             PresentationId = presentationId,
             Position = Math.Max(0, position),
-            Title = string.IsNullOrWhiteSpace(title) ? $"Diapositiva {position + 1}" : title.Trim(),
-            Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
+            Title = PresentationFieldLimits.Title(title, $"Diapositiva {position + 1}"),
+            Notes = PresentationFieldLimits.Notes(notes),
             BackgroundJson = backgroundJson,
             ElementsJson = elementsJson,
             CreatedAt = utcNow,

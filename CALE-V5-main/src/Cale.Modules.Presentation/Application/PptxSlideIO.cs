@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Cale.Modules.Presentation.Application.DTOs;
+using Cale.Modules.Presentation.Domain;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -56,9 +57,9 @@ internal static class PptxSlideIO
             collector.CollectSlide();
 
             var notes = ExtractSlideNotes(slidePart);
-            var title = collector.Title
-                ?? collector.TextBlocks.FirstOrDefault()
-                ?? $"Diapositiva {index}";
+            var title = NormalizeSlideTitle(
+                collector.Title ?? collector.TextBlocks.FirstOrDefault(),
+                index);
             var body = collector.Body
                 ?? string.Join(
                     "\n",
@@ -1014,5 +1015,19 @@ internal static class PptxSlideIO
             var luminance = (0.299 * r) + (0.587 * g) + (0.114 * b);
             return luminance > 200;
         }
+    }
+
+    private static string NormalizeSlideTitle(string? raw, int index)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return $"Diapositiva {index}";
+        }
+
+        var firstLine = raw.Trim()
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .FirstOrDefault() ?? raw.Trim();
+
+        return PresentationFieldLimits.Truncate(firstLine, PresentationFieldLimits.TitleMax);
     }
 }
