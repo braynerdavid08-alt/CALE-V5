@@ -1,4 +1,4 @@
-export type SlideElementType = 'text' | 'image' | 'shape' | 'line' | 'arrow';
+export type SlideElementType = 'text' | 'image' | 'video' | 'shape' | 'line' | 'arrow';
 
 export type ShapeKind = 'rect' | 'ellipse' | 'triangle' | 'octagon';
 
@@ -25,6 +25,13 @@ export interface ImageProps {
   opacity?: number;
 }
 
+export interface VideoProps {
+  src: string;
+  autoplay?: boolean;
+  loop?: boolean;
+  muted?: boolean;
+}
+
 export interface ShapeProps {
   shape: ShapeKind;
   fill: string;
@@ -48,7 +55,7 @@ export interface SlideElement {
   h: number;
   rotation: number;
   z: number;
-  props: TextProps | ImageProps | ShapeProps | LineProps;
+  props: TextProps | ImageProps | VideoProps | ShapeProps | LineProps;
 }
 
 export interface EditorSlide {
@@ -101,6 +108,8 @@ export interface PresentationDetail {
   slides: PresentationSlideDto[];
 }
 
+export const PRESENTATION_IMPORT_MAX_BYTES = 200 * 1024 * 1024;
+export const PRESENTATION_MEDIA_MAX_BYTES = 100 * 1024 * 1024;
 export const SLIDE_W = 960;
 export const SLIDE_H = 540;
 

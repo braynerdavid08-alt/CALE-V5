@@ -54,6 +54,13 @@
   overflow: hidden;
 }
 
+.el img,
+.el video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 .el img {
   width: 100%;
   height: 100%;

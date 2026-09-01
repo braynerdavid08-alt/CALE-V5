@@ -77,7 +77,7 @@ export class PresentationApi {
   upload(file: File) {
     const fd = new FormData();
     fd.append('file', file);
-    return this.http.post<{ url: string }>(`${this.base}/upload`, fd);
+    return this.http.post<{ url: string; mediaType?: 'image' | 'video' }>(`${this.base}/upload`, fd);
   }
 
   downloadImportTemplate(format: 'xlsx' | 'docx') {

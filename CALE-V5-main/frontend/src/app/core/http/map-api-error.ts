@@ -43,6 +43,8 @@ const messages: Record<string, string> = {
   invalid_text: 'Escribe el enunciado de la pregunta.',
   invalid_file: 'La imagen no es válida. Usa jpg, png, gif o webp.',
   file_too_large: 'La imagen debe pesar 5 MB o menos.',
+  import_file_too_large: 'El archivo debe pesar 200 MB o menos.',
+  presentation_file_too_large: 'El archivo debe pesar 100 MB o menos.',
   empty_bank: 'No hay preguntas activas en ese banco.',
   exam_closed: 'El examen no está disponible ahora.',
   attempts_exhausted: 'Ya no te quedan intentos.',

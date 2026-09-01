@@ -21,6 +21,7 @@ import {
   ImageProps,
   LineProps,
   PRESENTATION_CATEGORIES,
+  PRESENTATION_MEDIA_MAX_BYTES,
   SLIDE_H,
   SLIDE_W,
   ShapeKind,
@@ -28,6 +29,7 @@ import {
   SlideElement,
   TEMPLATE_OPTIONS,
   TextProps,
+  VideoProps,
   backgroundCss,
   dtoToEditorSlides,
   newClientId
@@ -45,6 +47,7 @@ type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'offline' | 'error';
 export class PresentationEditorPage implements OnInit, OnDestroy {
   @ViewChild('canvasHost') canvasHost?: ElementRef<HTMLElement>;
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('videoInput') videoInput?: ElementRef<HTMLInputElement>;
 
   private readonly api = inject(PresentationApi);
   private readonly route = inject(ActivatedRoute);
@@ -511,6 +514,10 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     this.showImageModal.set(true);
   }
 
+  triggerVideo(): void {
+    this.videoInput?.nativeElement.click();
+  }
+
   openReplaceImageModal(): void {
     const sel = this.selected();
     if (!sel || sel.type !== 'image') {
@@ -535,11 +542,29 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (!file) {
       return;
     }
+    if (file.size > PRESENTATION_MEDIA_MAX_BYTES) {
+      this.error.set('El archivo debe pesar 100 MB o menos.');
+      return;
+    }
     if (this.imageModalReplace()) {
       this.uploadAndApplyToSelected(file);
     } else {
-      this.uploadAndInsertImage(file);
+      this.uploadAndInsertMedia(file);
     }
+  }
+
+  onVideoSelected(ev: Event): void {
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) {
+      return;
+    }
+    if (file.size > PRESENTATION_MEDIA_MAX_BYTES) {
+      this.error.set('El video debe pesar 100 MB o menos.');
+      return;
+    }
+    this.uploadAndInsertMedia(file);
   }
 
   addImageFromUrl(): void {
@@ -559,11 +584,15 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   onCanvasDrop(ev: DragEvent): void {
     ev.preventDefault();
     const file = ev.dataTransfer?.files?.[0];
-    if (!file?.type.startsWith('image/')) {
+    if (!file) {
+      return;
+    }
+    if (file.size > PRESENTATION_MEDIA_MAX_BYTES) {
+      this.error.set('El archivo debe pesar 100 MB o menos.');
       return;
     }
     const pos = this.dropPosition(ev);
-    this.uploadAndInsertImage(file, pos.x, pos.y);
+    this.uploadAndInsertMedia(file, pos.x, pos.y);
   }
 
   updateImageProp<K extends keyof ImageProps>(key: K, value: ImageProps[K]): void {
@@ -576,6 +605,20 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
         return el;
       }
       return { ...el, props: { ...(el.props as ImageProps), [key]: value } };
+    });
+    this.markDirty();
+  }
+
+  updateVideoProp<K extends keyof VideoProps>(key: K, value: VideoProps[K]): void {
+    const id = this.selectedId();
+    if (!id) {
+      return;
+    }
+    this.patchElement(id, (el) => {
+      if (el.type !== 'video') {
+        return el;
+      }
+      return { ...el, props: { ...(el.props as VideoProps), [key]: value } };
     });
     this.markDirty();
   }
@@ -617,12 +660,17 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     this.markDirty();
   }
 
-  private uploadAndInsertImage(file: File, x?: number, y?: number): void {
+  private uploadAndInsertMedia(file: File, x?: number, y?: number): void {
     this.imageUploading.set(true);
     this.api.upload(file).subscribe({
       next: (res) => {
         this.imageUploading.set(false);
-        void this.insertImageFromSrc(res.url, x, y).then(() => this.closeImageModal());
+        const isVideo = res.mediaType === 'video' || file.type.startsWith('video/');
+        if (isVideo) {
+          void this.insertVideoFromSrc(res.url, x, y).then(() => this.closeImageModal());
+        } else {
+          void this.insertImageFromSrc(res.url, x, y).then(() => this.closeImageModal());
+        }
       },
       error: (err) => {
         this.imageUploading.set(false);
@@ -631,12 +679,21 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     });
   }
 
+  private uploadAndInsertImage(file: File, x?: number, y?: number): void {
+    this.uploadAndInsertMedia(file, x, y);
+  }
+
   private uploadAndApplyToSelected(file: File): void {
     this.imageUploading.set(true);
     this.api.upload(file).subscribe({
       next: (res) => {
         this.imageUploading.set(false);
-        void this.applyImageSrcToSelected(res.url);
+        const isVideo = res.mediaType === 'video' || file.type.startsWith('video/');
+        if (isVideo) {
+          void this.applyVideoSrcToSelected(res.url);
+        } else {
+          void this.applyImageSrcToSelected(res.url);
+        }
         this.closeImageModal();
       },
       error: (err) => {
@@ -660,6 +717,41 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       props: { src, opacity: 1 }
     };
     this.pushElement(el);
+  }
+
+  private insertVideoFromSrc(src: string, x?: number, y?: number): Promise<void> {
+    const w = 640;
+    const h = 360;
+    const el: SlideElement = {
+      id: newClientId('el'),
+      type: 'video',
+      x: x ?? Math.round((SLIDE_W - w) / 2),
+      y: y ?? Math.round((SLIDE_H - h) / 2),
+      w,
+      h,
+      rotation: 0,
+      z: this.nextZ(),
+      props: { src, autoplay: false, loop: false, muted: true }
+    };
+    this.pushElement(el);
+    return Promise.resolve();
+  }
+
+  private applyVideoSrcToSelected(src: string): void {
+    const id = this.selectedId();
+    if (!id) {
+      return;
+    }
+    this.patchElement(id, (el) => {
+      if (el.type !== 'video') {
+        return el;
+      }
+      return {
+        ...el,
+        props: { ...(el.props as VideoProps), src }
+      };
+    });
+    this.markDirty();
   }
 
   private async applyImageSrcToSelected(src: string): Promise<void> {
@@ -974,6 +1066,10 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
 
   imageProps(el: SlideElement): ImageProps {
     return el.props as ImageProps;
+  }
+
+  videoProps(el: SlideElement): VideoProps {
+    return el.props as VideoProps;
   }
 
   shapeProps(el: SlideElement): ShapeProps {

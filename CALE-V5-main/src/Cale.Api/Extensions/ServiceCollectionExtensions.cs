@@ -21,7 +21,9 @@ using Cale.Modules.TheoreticalTraining.Infrastructure.Persistence;
 using Cale.Modules.Presentation.Infrastructure;
 using Cale.Modules.Presentation.Infrastructure.Persistence;
 using Cale.Api.Hubs;
+using Cale.Api.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -35,6 +37,15 @@ public static class ServiceCollectionExtensions
     {
         var services = builder.Services;
         var config = builder.Configuration;
+
+        builder.WebHost.ConfigureKestrel(options =>
+        {
+            options.Limits.MaxRequestBodySize = UploadLimits.PresentationImportBytes;
+        });
+        services.Configure<FormOptions>(options =>
+        {
+            options.MultipartBodyLengthLimit = UploadLimits.PresentationImportBytes;
+        });
 
         services.AddControllers();
         services.AddSignalR();

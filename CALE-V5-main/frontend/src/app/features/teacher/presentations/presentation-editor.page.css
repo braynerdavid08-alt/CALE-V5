@@ -269,10 +269,14 @@
   overflow: hidden;
 }
 
-.el img {
+.el img,
+.el video {
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+.el img {
   pointer-events: none;
 }
 
@@ -380,6 +384,14 @@
 .ed-props .meta.hint {
   font-size: 0.75rem;
   line-height: 1.35;
+}
+
+.ed-props .check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.35rem 0;
+  font-size: 0.85rem;
 }
 
 .ed-props .row.geom {

@@ -1,5 +1,6 @@
 using System.Text;
 using Cale.Api.Extensions;
+using Cale.Api.Infrastructure;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.Modules.Presentation.Application;
 using Cale.Modules.Presentation.Application.Commands;
@@ -115,7 +116,8 @@ public sealed class PresentationsController : ControllerBase
 
     [HttpPost("import")]
     [Consumes("multipart/form-data")]
-    [RequestSizeLimit(25 * 1024 * 1024)]
+    [RequestSizeLimit(UploadLimits.PresentationImportBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = UploadLimits.PresentationImportBytes)]
     public async Task<IActionResult> Import(
         [FromForm] IFormFile? file,
         [FromForm] string? title,
@@ -126,6 +128,14 @@ public sealed class PresentationsController : ControllerBase
         if (file is null || file.Length == 0)
         {
             throw new DomainException("Selecciona un archivo Excel, Word o PowerPoint.", 400, "invalid_file");
+        }
+
+        if (file.Length > UploadLimits.PresentationImportBytes)
+        {
+            throw new DomainException(
+                "El archivo debe pesar 200 MB o menos.",
+                400,
+                "import_file_too_large");
         }
 
         await using var stream = file.OpenReadStream();
@@ -190,27 +200,48 @@ public sealed class PresentationsController : ControllerBase
 
     [HttpPost("upload")]
     [Consumes("multipart/form-data")]
-    [RequestSizeLimit(6_000_000)]
+    [RequestSizeLimit(UploadLimits.PresentationMediaBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = UploadLimits.PresentationMediaBytes)]
     public async Task<IActionResult> Upload([FromForm] IFormFile? file, CancellationToken ct)
     {
         if (file is null || file.Length == 0)
         {
-            throw new DomainException("Selecciona una imagen.", 400, "invalid_file");
+            throw new DomainException("Selecciona un archivo.", 400, "invalid_file");
         }
 
-        if (file.Length > 5 * 1024 * 1024)
+        if (file.Length > UploadLimits.PresentationMediaBytes)
         {
-            throw new DomainException("La imagen debe pesar 5 MB o menos.", 400, "file_too_large");
+            throw new DomainException(
+                "El archivo debe pesar 100 MB o menos.",
+                400,
+                "presentation_file_too_large");
         }
 
         var ext = Path.GetExtension(file.FileName);
-        var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        var imageExts = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"
         };
-        if (!allowed.Contains(ext))
+        var videoExts = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            throw new DomainException("Usa jpg, png, gif o webp.", 400, "invalid_file");
+            ".mp4", ".webm", ".mov", ".m4v"
+        };
+
+        string mediaType;
+        if (imageExts.Contains(ext))
+        {
+            mediaType = "image";
+        }
+        else if (videoExts.Contains(ext))
+        {
+            mediaType = "video";
+        }
+        else
+        {
+            throw new DomainException(
+                "Usa jpg, png, gif, webp o video mp4/webm/mov.",
+                400,
+                "invalid_file");
         }
 
         var webRoot = string.IsNullOrWhiteSpace(_env.WebRootPath)
@@ -222,7 +253,7 @@ public sealed class PresentationsController : ControllerBase
         var path = Path.Combine(folder, name);
         await using var stream = System.IO.File.Create(path);
         await file.CopyToAsync(stream, ct);
-        return Ok(new { url = $"/uploads/presentations/{name}" });
+        return Ok(new { url = $"/uploads/presentations/{name}", mediaType });
     }
 
     private static string SanitizeFileName(string value)

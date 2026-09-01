@@ -41,6 +41,15 @@
                   [style.opacity]="imageProps(el).opacity ?? 1"
                   alt="" />
               }
+              @if (el.type === 'video') {
+                <video
+                  [src]="media(videoProps(el).src)"
+                  [attr.autoplay]="videoProps(el).autoplay ? '' : null"
+                  [attr.loop]="videoProps(el).loop ? '' : null"
+                  [muted]="videoProps(el).muted ?? true"
+                  controls
+                  playsinline></video>
+              }
               @if (el.type === 'shape') {
                 <div
                   class="el-shape"

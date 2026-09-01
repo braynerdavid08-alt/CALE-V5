@@ -458,6 +458,7 @@ internal static class PptxSlideIO
         private readonly double _scaleX;
         private readonly double _scaleY;
         private int _z = 1;
+        private readonly HashSet<string> _savedVideoRelIds = new(StringComparer.Ordinal);
 
         public List<object> Elements { get; } = [];
         public List<string> TextBlocks { get; } = [];
@@ -502,6 +503,13 @@ internal static class PptxSlideIO
                 foreach (var blip in tree.Descendants<A.Blip>())
                 {
                     TryAddPictureFromBlip(blip, FindTransform(blip));
+                }
+
+                foreach (var videoFile in tree.Descendants<A.VideoFile>())
+                {
+                    TryAddVideoFromLink(
+                        videoFile.Link?.Value,
+                        FindTransform(videoFile));
                 }
             }
         }
@@ -616,6 +624,22 @@ internal static class PptxSlideIO
 
         private void ProcessPicture(P.Picture picture, long parentX, long parentY)
         {
+            var videoLink = picture.NonVisualPictureProperties?
+                .NonVisualDrawingProperties?
+                .Descendants<A.VideoFile>()
+                .FirstOrDefault()?
+                .Link?
+                .Value;
+
+            if (!string.IsNullOrWhiteSpace(videoLink))
+            {
+                TryAddVideoFromLink(
+                    videoLink,
+                    picture.ShapeProperties?.GetFirstChild<A.Transform2D>(),
+                    parentX,
+                    parentY);
+            }
+
             TryAddPictureFromBlip(
                 picture.BlipFill?.Blip,
                 picture.ShapeProperties?.GetFirstChild<A.Transform2D>(),
@@ -694,6 +718,108 @@ internal static class PptxSlideIO
             {
                 // Skip broken image references.
             }
+        }
+
+        private void TryAddVideoFromLink(
+            string? relId,
+            A.Transform2D? xfrm,
+            long parentX = 0,
+            long parentY = 0)
+        {
+            if (string.IsNullOrWhiteSpace(relId) || !_savedVideoRelIds.Add(relId))
+            {
+                return;
+            }
+
+            try
+            {
+                var mediaPart = ResolveMediaPart(relId);
+                if (mediaPart is null)
+                {
+                    return;
+                }
+
+                var url = SaveMediaPart(mediaPart);
+                if (url is null)
+                {
+                    return;
+                }
+
+                var (x, y, w, h) = GetBounds(xfrm, parentX, parentY);
+                Elements.Add(new
+                {
+                    id = $"el-vid-{Guid.NewGuid():N}"[..12],
+                    type = "video",
+                    x,
+                    y,
+                    w = Math.Max(w, 160),
+                    h = Math.Max(h, 90),
+                    rotation = 0,
+                    z = _z++,
+                    props = new
+                    {
+                        src = url,
+                        autoplay = false,
+                        loop = false,
+                        muted = true
+                    }
+                });
+            }
+            catch
+            {
+                // Skip broken video references.
+            }
+        }
+
+        private MediaDataPart? ResolveMediaPart(string relId)
+        {
+            OpenXmlPartContainer?[] roots =
+            [
+                _slidePart,
+                _slidePart.SlideLayoutPart,
+                _presentationPart
+            ];
+
+            foreach (var root in roots)
+            {
+                if (root is null)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    if (root.GetPartById(relId) is MediaDataPart mediaPart)
+                    {
+                        return mediaPart;
+                    }
+                }
+                catch
+                {
+                    // Try next container.
+                }
+            }
+
+            return null;
+        }
+
+        private string? SaveMediaPart(MediaDataPart mediaPart)
+        {
+            var ext = mediaPart.ContentType switch
+            {
+                "video/mp4" => ".mp4",
+                "video/quicktime" => ".mov",
+                "video/x-msvideo" => ".avi",
+                "video/webm" => ".webm",
+                "video/x-m4v" => ".m4v",
+                _ => ".mp4"
+            };
+            var name = $"{Guid.NewGuid():N}{ext}";
+            var path = Path.Combine(_uploadsDir, name);
+            using var input = mediaPart.GetStream();
+            using var output = File.Create(path);
+            input.CopyTo(output);
+            return $"/uploads/presentations/{name}";
         }
 
         private ImagePart? ResolveImagePart(string relId)

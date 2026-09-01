@@ -39,6 +39,7 @@
       </div>
       <div class="group">
         <button type="button" (click)="triggerImage()">Imagen</button>
+        <button type="button" (click)="triggerVideo()">Video</button>
         <button type="button" (click)="addShape('rect')">Rectángulo</button>
         <button type="button" (click)="addShape('ellipse')">Círculo</button>
         <button type="button" (click)="addShape('triangle')">Triángulo</button>
@@ -55,6 +56,7 @@
         <button type="button" (click)="deleteSelected()">Eliminar</button>
       </div>
       <input #fileInput type="file" accept="image/*" hidden (change)="onImageSelected($event)" />
+      <input #videoInput type="file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" hidden (change)="onVideoSelected($event)" />
     </div>
 
     @if (error()) {
@@ -145,6 +147,16 @@
                       [style.opacity]="imageProps(el).opacity ?? 1"
                       alt=""
                       draggable="false" />
+                  }
+                  @if (el.type === 'video') {
+                    <video
+                      [src]="media(videoProps(el).src)"
+                      [attr.autoplay]="videoProps(el).autoplay ? '' : null"
+                      [attr.loop]="videoProps(el).loop ? '' : null"
+                      [muted]="videoProps(el).muted ?? true"
+                      controls
+                      playsinline
+                      draggable="false"></video>
                   }
                   @if (el.type === 'shape') {
                     <div
@@ -288,6 +300,29 @@
             </div>
             <p class="meta hint">Arrastra para mover · esquina inferior para redimensionar · flechas ±4 px</p>
           }
+          @if (sel.type === 'video') {
+            <label>
+              URL del video
+              <input
+                [ngModel]="videoProps(sel).src"
+                (ngModelChange)="updateVideoProp('src', $event)"
+                placeholder="https://... o /uploads/..." />
+            </label>
+            <label class="check">
+              <input
+                type="checkbox"
+                [ngModel]="videoProps(sel).loop ?? false"
+                (ngModelChange)="updateVideoProp('loop', $event)" />
+              Repetir en bucle
+            </label>
+            <label class="check">
+              <input
+                type="checkbox"
+                [ngModel]="videoProps(sel).muted ?? true"
+                (ngModelChange)="updateVideoProp('muted', $event)" />
+              Silenciado por defecto
+            </label>
+          }
           <p class="meta">x {{ sel.x }} · y {{ sel.y }} · {{ sel.w }}×{{ sel.h }}</p>
         } @else {
           <p class="meta">Selecciona un elemento o agrega uno desde la barra.</p>
@@ -353,7 +388,7 @@
               Usar enlace
             </button>
           </div>
-          <p class="meta hint">También puedes arrastrar una imagen directo al lienzo.</p>
+          <p class="meta hint">También puedes arrastrar una imagen o video directo al lienzo.</p>
         </div>
       </div>
     }

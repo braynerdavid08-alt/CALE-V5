@@ -24,6 +24,7 @@ import {
   ShapeProps,
   SlideElement,
   TextProps,
+  VideoProps,
   backgroundCss,
   dtoToEditorSlides
 } from './presentation.models';
@@ -186,6 +187,10 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
 
   imageProps(el: SlideElement): ImageProps {
     return el.props as ImageProps;
+  }
+
+  videoProps(el: SlideElement): VideoProps {
+    return el.props as VideoProps;
   }
 
   shapeProps(el: SlideElement): ShapeProps {

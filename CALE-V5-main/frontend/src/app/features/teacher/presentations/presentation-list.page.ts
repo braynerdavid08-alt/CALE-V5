@@ -9,6 +9,7 @@ import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import { PresentationApi } from './presentation.api';
 import {
   PRESENTATION_CATEGORIES,
+  PRESENTATION_IMPORT_MAX_BYTES,
   PresentationListItem,
   TEMPLATE_OPTIONS
 } from './presentation.models';
@@ -99,7 +100,14 @@ export class PresentationListPage implements OnInit {
 
   onImportFile(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.importFile = input.files?.[0] ?? null;
+    const file = input.files?.[0] ?? null;
+    if (file && file.size > PRESENTATION_IMPORT_MAX_BYTES) {
+      this.error.set('El archivo debe pesar 200 MB o menos.');
+      this.importFile = null;
+      input.value = '';
+      return;
+    }
+    this.importFile = file;
     if (this.importFile && !this.importTitle.trim()) {
       this.importTitle = this.importFile.name.replace(/\.(xlsx|xls|docx|pptx)$/i, '');
     }
