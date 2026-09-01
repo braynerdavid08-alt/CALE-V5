@@ -203,6 +203,14 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (this.editingText()) {
       return;
     }
+    if (ev.key === 'Enter' && this.selectedId()) {
+      const sel = this.selected();
+      if (sel?.type === 'text') {
+        ev.preventDefault();
+        this.startEditText(sel.id, ev);
+      }
+      return;
+    }
     const meta = ev.ctrlKey || ev.metaKey;
     if (meta && ev.key.toLowerCase() === 's') {
       ev.preventDefault();
@@ -409,8 +417,10 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
 
   selectElement(id: string, ev?: Event): void {
     ev?.stopPropagation();
+    if (this.selectedId() !== id) {
+      this.editingText.set(false);
+    }
     this.selectedId.set(id);
-    this.editingText.set(false);
   }
 
   clearSelection(): void {
@@ -418,20 +428,68 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     this.editingText.set(false);
   }
 
+  onElementPointerDown(ev: PointerEvent, el: SlideElement): void {
+    if (this.editingText() && this.selectedId() === el.id && el.type === 'text') {
+      return;
+    }
+
+    if (el.type === 'text') {
+      const inText = (ev.target as HTMLElement).closest('.el-text');
+      if (inText) {
+        ev.stopPropagation();
+        this.startEditText(el.id, ev);
+        return;
+      }
+
+      if (ev.altKey) {
+        this.startDrag(ev, el.id, 'move');
+      }
+      return;
+    }
+
+    this.startDrag(ev, el.id, 'move');
+  }
+
   startEditText(id: string, ev: Event): void {
     ev.stopPropagation();
+    const slideEl = this.activeSlide()?.elements.find((e) => e.id === id);
+    if (!slideEl || slideEl.type !== 'text') {
+      return;
+    }
+    const initialText = (slideEl.props as TextProps).text;
     this.selectedId.set(id);
     this.editingText.set(true);
+
+    queueMicrotask(() => {
+      const node = document.querySelector(`[data-text-id="${id}"]`) as HTMLElement | null;
+      if (!node) {
+        return;
+      }
+      node.innerText = initialText;
+      node.focus();
+      const range = document.createRange();
+      const selection = window.getSelection();
+      range.selectNodeContents(node);
+      range.collapse(false);
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    });
+  }
+
+  finishTextEdit(): void {
+    this.editingText.set(false);
+    this.markDirty();
   }
 
   onTextInput(id: string, ev: Event): void {
-    const text = (ev.target as HTMLElement).innerText;
+    const text = (ev.target as HTMLElement).innerText.replace(/\u00a0/g, ' ');
     this.patchElement(id, (el) => {
       if (el.type !== 'text') {
         return el;
       }
       return { ...el, props: { ...(el.props as TextProps), text } };
     });
+    this.markDirty();
   }
 
   addText(kind: 'title' | 'subtitle' | 'body' = 'body'): void {
@@ -455,6 +513,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       }
     };
     this.pushElement(el);
+    queueMicrotask(() => this.startEditText(el.id, new Event('init')));
   }
 
   addShape(shape: ShapeKind): void {

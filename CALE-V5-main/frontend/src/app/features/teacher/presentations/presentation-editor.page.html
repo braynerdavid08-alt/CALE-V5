@@ -104,20 +104,24 @@
                 <div
                   class="el"
                   [class.selected]="selectedId() === el.id"
+                  [class.is-text]="el.type === 'text'"
+                  [class.is-editing]="el.type === 'text' && editingText() && selectedId() === el.id"
                   [style.left.px]="el.x"
                   [style.top.px]="el.y"
                   [style.width.px]="el.w"
                   [style.height.px]="el.h"
                   [style.zIndex]="el.z"
                   [style.transform]="'rotate(' + el.rotation + 'deg)'"
-                  (pointerdown)="startDrag($event, el.id, 'move')"
+                  (pointerdown)="onElementPointerDown($event, el)"
                   (click)="selectElement(el.id, $event)"
                   (dblclick)="el.type === 'text' ? startEditText(el.id, $event) : null">
                   @if (el.type === 'text') {
                     @if (editingText() && selectedId() === el.id) {
                       <div
-                        class="el-text"
+                        class="el-text editing"
                         contenteditable="true"
+                        spellcheck="true"
+                        [attr.data-text-id]="el.id"
                         [style.fontSize.px]="textProps(el).fontSize"
                         [style.fontWeight]="textProps(el).fontWeight"
                         [style.color]="textProps(el).color"
@@ -126,8 +130,8 @@
                         [style.fontStyle]="textProps(el).italic ? 'italic' : 'normal'"
                         [style.textDecoration]="textProps(el).underline ? 'underline' : 'none'"
                         (input)="onTextInput(el.id, $event)"
-                        (blur)="editingText.set(false); markDirty()"
-                        >{{ textProps(el).text }}</div>
+                        (blur)="finishTextEdit()"
+                        (pointerdown)="$event.stopPropagation()"></div>
                     } @else {
                       <div
                         class="el-text"
@@ -180,6 +184,12 @@
                         <div class="line-head" [style.borderLeftColor]="lineProps(el).color"></div>
                       }
                     </div>
+                  }
+                  @if (el.type === 'text' && selectedId() === el.id && !editingText()) {
+                    <span
+                      class="text-drag-handle"
+                      title="Arrastrar texto"
+                      (pointerdown)="startDrag($event, el.id, 'move')">⠿</span>
                   }
                   @if (selectedId() === el.id && !editingText()) {
                     <span
