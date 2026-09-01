@@ -25,6 +25,7 @@ using Cale.Api.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
@@ -49,6 +50,16 @@ public static class ServiceCollectionExtensions
 
         services.AddControllers();
         services.AddSignalR();
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.AddFixedWindowLimiter("login", limiter =>
+            {
+                limiter.Window = TimeSpan.FromMinutes(1);
+                limiter.PermitLimit = 12;
+                limiter.QueueLimit = 0;
+            });
+        });
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
         {

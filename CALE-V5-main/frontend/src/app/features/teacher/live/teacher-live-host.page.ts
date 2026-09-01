@@ -57,6 +57,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     { text: '' },
     { text: '' }
   ]);
+  readonly qrDataUrl = signal('');
   private readonly bankNames = signal<Record<number, string>>({});
 
   ngOnInit(): void {
@@ -94,8 +95,16 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   }
 
   qrUrl(): string {
-    const joinUrl = this.lobby()?.joinUrl;
-    return joinUrl ? this.api.qrImageUrl(joinUrl) : '';
+    return this.qrDataUrl();
+  }
+
+  private refreshQr(joinUrl: string | null | undefined): void {
+    if (!joinUrl) {
+      this.qrDataUrl.set('');
+      return;
+    }
+
+    void this.api.buildQrDataUrl(joinUrl).then((url) => this.qrDataUrl.set(url));
   }
 
   showRanking(): boolean {
@@ -336,6 +345,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   private applyLobby(lobby: LiveLobbyDto): void {
     const safe = lobby.revealCorrect ? lobby : sanitizeLiveLobby(lobby);
     this.lobby.set(safe);
+    this.refreshQr(safe.joinUrl);
     this.answersReceived.set(lobby.answersReceived);
     if (lobby.ranking) {
       this.ranking.set(lobby.ranking);

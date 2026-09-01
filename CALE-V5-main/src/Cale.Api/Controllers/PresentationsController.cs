@@ -5,6 +5,7 @@ using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.Modules.Identity.Application.Abstractions;
 using Cale.Modules.Presentation.Application;
+using Cale.Modules.Presentation.Application.Abstractions;
 using Cale.Modules.Presentation.Application.Commands;
 using Cale.Modules.Presentation.Application.DTOs;
 using Cale.Modules.Presentation.Application.Queries;
@@ -22,20 +23,20 @@ public sealed class PresentationsController : ControllerBase
     private readonly PresentationQueryHandler _queries;
     private readonly PresentationExchangeService _exchange;
     private readonly IUserStore _users;
-    private readonly UploadStorage _uploads;
+    private readonly IPresentationMediaStore _media;
 
     public PresentationsController(
         PresentationCommandHandler commands,
         PresentationQueryHandler queries,
         PresentationExchangeService exchange,
         IUserStore users,
-        UploadStorage uploads)
+        IPresentationMediaStore media)
     {
         _commands = commands;
         _queries = queries;
         _exchange = exchange;
         _users = users;
-        _uploads = uploads;
+        _media = media;
     }
 
     [HttpGet]
@@ -186,7 +187,12 @@ public sealed class PresentationsController : ControllerBase
         IReadOnlyList<ImportedSlideOutline> outlines;
         try
         {
-            outlines = _exchange.ParseImport(stream, file.FileName, _uploads.PresentationsDirectory);
+            outlines = await _exchange.ParseImportAsync(
+                stream,
+                file.FileName,
+                _media,
+                CurrentUser.GetId(User),
+                ct);
         }
         catch (InvalidOperationException ex)
         {
@@ -289,10 +295,46 @@ public sealed class PresentationsController : ControllerBase
                 "invalid_file");
         }
 
-        var name = $"{Guid.NewGuid():N}{ext.ToLowerInvariant()}";
+        var contentType = file.ContentType;
+        if (string.IsNullOrWhiteSpace(contentType) || contentType == "application/octet-stream")
+        {
+            contentType = mediaType == "video" ? "video/mp4" : "image/jpeg";
+        }
+
         await using var stream = file.OpenReadStream();
-        var url = await _uploads.SavePresentationFileAsync(stream, name, ct);
+        var url = await _media.SaveAsync(
+            stream,
+            $"{Guid.NewGuid():N}{ext.ToLowerInvariant()}",
+            contentType,
+            CurrentUser.GetId(User),
+            ct);
         return Ok(new { url, mediaType });
+    }
+
+    [HttpGet("media/{id:guid}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetMedia(Guid id, CancellationToken ct)
+    {
+        var blob = await _media.ReadAsync(id, ct);
+        if (blob is null)
+        {
+            return NotFound();
+        }
+
+        return File(blob.Value.Data, blob.Value.ContentType, enableRangeProcessing: true);
+    }
+
+    [HttpGet("legacy/{fileName}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetLegacyMedia(string fileName, CancellationToken ct)
+    {
+        var blob = await _media.TryReadLegacyDiskAsync(fileName, ct);
+        if (blob is null)
+        {
+            return NotFound();
+        }
+
+        return File(blob.Value.Data, blob.Value.ContentType, enableRangeProcessing: true);
     }
 
     private async Task<int?> ResolveSchoolUserIdAsync(int userId, CancellationToken ct)

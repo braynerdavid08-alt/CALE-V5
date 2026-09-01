@@ -340,6 +340,18 @@ public static class FeatureSchema
                 );
                 CREATE INDEX IF NOT EXISTS "IX_PresentacionDiapositivas_PresentationId_Position"
                     ON "PresentacionDiapositivas" ("PresentationId", "Position");
+                CREATE TABLE IF NOT EXISTS "PresentationMediaBlobs" (
+                    "Id" TEXT NOT NULL CONSTRAINT "PK_PresentationMediaBlobs" PRIMARY KEY,
+                    "FileName" TEXT NOT NULL,
+                    "ContentType" TEXT NOT NULL,
+                    "Data" BLOB NOT NULL,
+                    "OwnerId" INTEGER NULL,
+                    "CreatedAt" TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS "IX_PresentationMediaBlobs_OwnerId"
+                    ON "PresentationMediaBlobs" ("OwnerId");
+                CREATE INDEX IF NOT EXISTS "IX_PresentationMediaBlobs_CreatedAt"
+                    ON "PresentationMediaBlobs" ("CreatedAt");
                 """,
                 ct);
 
@@ -906,6 +918,24 @@ public static class FeatureSchema
                 ct);
             await TryPostgresAsync(db,
                 """CREATE INDEX IF NOT EXISTS "IX_PresentacionDiapositivas_PresentationId_Position" ON "PresentacionDiapositivas" ("PresentationId", "Position");""",
+                ct);
+            await TryPostgresAsync(db,
+                """
+                CREATE TABLE IF NOT EXISTS "PresentationMediaBlobs" (
+                    "Id" uuid PRIMARY KEY,
+                    "FileName" varchar(260) NOT NULL,
+                    "ContentType" varchar(120) NOT NULL,
+                    "Data" bytea NOT NULL,
+                    "OwnerId" integer NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL
+                );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_PresentationMediaBlobs_OwnerId" ON "PresentationMediaBlobs" ("OwnerId");""",
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_PresentationMediaBlobs_CreatedAt" ON "PresentationMediaBlobs" ("CreatedAt");""",
                 ct);
             await TryPostgresAsync(db,
                 """

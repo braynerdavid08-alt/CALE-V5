@@ -267,7 +267,17 @@ export class LiveApi {
   }
 
   qrImageUrl(joinUrl: string): string {
-    return `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(joinUrl)}`;
+    return '';
+  }
+
+  buildQrDataUrl(joinUrl: string): Promise<string> {
+    return import('qrcode').then((QRCode) =>
+      QRCode.toDataURL(joinUrl, {
+        width: 240,
+        margin: 1,
+        errorCorrectionLevel: 'M'
+      })
+    );
   }
 }
 

@@ -4,6 +4,7 @@ using Cale.Modules.Identity.Application.DTOs;
 using Cale.Modules.Identity.Application.Queries;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Cale.Api.Controllers;
 
@@ -48,6 +49,7 @@ public sealed class AuthController : ControllerBase
 
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting("login")]
     public async Task<ActionResult<AuthResponse>> Login(
         LoginRequest request,
         CancellationToken ct) =>

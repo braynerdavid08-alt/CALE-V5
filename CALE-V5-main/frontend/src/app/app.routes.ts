@@ -260,8 +260,8 @@ export const routes: Routes = [
           ]
         },
         loadComponent: () =>
-          import('./features/student/pages/student-placeholder.page')
-            .then((m) => m.StudentPlaceholderPage)
+          import('./features/student/pages/student-certificates.page')
+            .then((m) => m.StudentCertificatesPage)
       },
       {
         path: 'student/group/:id',

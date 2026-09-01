@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using ClosedXML.Excel;
+using Cale.Modules.Presentation.Application.Abstractions;
 using Cale.Modules.Presentation.Application.DTOs;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -20,16 +21,19 @@ public sealed class PresentationExchangeService
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-    public IReadOnlyList<ImportedSlideOutline> ParseImport(Stream stream, string fileName, string? uploadsDirectory = null)
+    public async Task<IReadOnlyList<ImportedSlideOutline>> ParseImportAsync(
+        Stream stream,
+        string fileName,
+        IPresentationMediaStore mediaStore,
+        int? ownerId,
+        CancellationToken ct = default)
     {
         var ext = Path.GetExtension(fileName).ToLowerInvariant();
         return ext switch
         {
             ".xlsx" or ".xls" => ParseExcel(stream),
             ".docx" => ParseWord(stream),
-            ".pptx" => string.IsNullOrWhiteSpace(uploadsDirectory)
-                ? throw new InvalidOperationException("No se pudo preparar la carpeta de imágenes para el PowerPoint.")
-                : PptxSlideIO.Import(stream, uploadsDirectory),
+            ".pptx" => await PptxSlideIO.ImportAsync(stream, mediaStore, ownerId, ct),
             _ => throw new InvalidOperationException("Usa Excel (.xlsx), Word (.docx) o PowerPoint (.pptx).")
         };
     }

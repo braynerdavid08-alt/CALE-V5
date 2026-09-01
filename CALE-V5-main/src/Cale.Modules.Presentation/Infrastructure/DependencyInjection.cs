@@ -12,6 +12,7 @@ public static class DependencyInjection
     public static IServiceCollection AddPresentationModule(this IServiceCollection services)
     {
         services.AddScoped<IPresentationStore, PresentationStore>();
+        services.AddScoped<IPresentationMediaStore, PresentationMediaStore>();
         services.AddScoped<PresentationCommandHandler>();
         services.AddScoped<PresentationQueryHandler>();
         services.AddScoped<PresentationExchangeService>();

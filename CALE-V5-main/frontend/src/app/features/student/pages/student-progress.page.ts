@@ -9,6 +9,7 @@ import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
 import { StudentApi } from '../api/student.api';
+import { StudentTheoryApi } from '../api/student-theory.api';
 
 @Component({
   selector: 'app-student-progress-page',
@@ -62,6 +63,7 @@ import { StudentApi } from '../api/student.api';
 })
 export class StudentProgressPage implements OnInit {
   private readonly api = inject(StudentApi);
+  private readonly theoryApi = inject(StudentTheoryApi);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -70,6 +72,8 @@ export class StudentProgressPage implements OnInit {
   readonly totalAttempts = signal(0);
   readonly groups = signal(0);
   readonly pending = signal(0);
+  readonly theoryProgress = signal(0);
+  readonly theoryHours = signal('');
 
   readonly bars = computed<DashBarItem[]>(() => {
     const total = Math.max(this.totalAttempts(), 1);
@@ -93,6 +97,12 @@ export class StudentProgressPage implements OnInit {
         tone: 'info'
       },
       {
+        label: 'Horas teóricas',
+        value: Math.round(this.theoryProgress()),
+        max: 100,
+        tone: 'info'
+      },
+      {
         label: 'Actividades pendientes',
         value: this.pending(),
         max: Math.max(this.pending(), 5),
@@ -104,14 +114,22 @@ export class StudentProgressPage implements OnInit {
   ngOnInit(): void {
     forkJoin({
       dash: this.api.dashboard(),
-      results: this.api.results().pipe(catchError(() => of([])))
+      results: this.api.results().pipe(catchError(() => of([]))),
+      theory: this.theoryApi.dashboard().pipe(catchError(() => of(null)))
     }).subscribe({
-      next: ({ dash, results }) => {
+      next: ({ dash, results, theory }) => {
         this.bestPercent.set(Number(dash.bestPercent ?? 0));
         this.groups.set(dash.groups.length);
         this.pending.set(dash.pendingActivities.length);
         this.passed.set(results.filter((r) => r.passed).length);
         this.totalAttempts.set(results.length);
+        if (theory) {
+          this.theoryProgress.set(Number(theory.progressPercent ?? 0));
+          this.theoryHours.set(
+            `${theory.hoursCompleted}/${theory.hoursRequired} h teóricas · ` +
+            `${theory.workshopHoursCompleted}/${theory.workshopHoursRequired} h taller`
+          );
+        }
         this.loading.set(false);
       },
       error: (err) => {

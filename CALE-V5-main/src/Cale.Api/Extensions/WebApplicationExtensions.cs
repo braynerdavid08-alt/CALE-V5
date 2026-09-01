@@ -35,6 +35,7 @@ public static class WebApplicationExtensions
 
         app.UseMiddleware<RequestTelemetryMiddleware>();
         app.UseMiddleware<ExceptionHandlingMiddleware>();
+        app.UseMiddleware<LegacyPresentationUploadMiddleware>();
 
         if (app.Environment.IsDevelopment())
         {
@@ -43,6 +44,7 @@ public static class WebApplicationExtensions
         }
 
         app.UseCors("Cale");
+        app.UseRateLimiter();
         app.UseDefaultFiles();
         app.UseStaticFiles();
         app.UseAuthentication();

@@ -1,4 +1,5 @@
 # Render blueprint — deploy from repo root with Docker (Angular + .NET).
+# Presentation media is stored in PostgreSQL (no paid persistent disk required).
 services:
   - type: web
     name: micale
@@ -8,10 +9,3 @@ services:
     branch: main
     healthCheckPath: /api/health
     autoDeploy: true
-    envVars:
-      - key: UPLOADS_ROOT
-        value: /app/wwwroot/uploads
-    disk:
-      name: micale-uploads
-      mountPath: /app/wwwroot/uploads
-      sizeGB: 10

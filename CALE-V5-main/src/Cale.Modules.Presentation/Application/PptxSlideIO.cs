@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Cale.Modules.Presentation.Application.Abstractions;
 using Cale.Modules.Presentation.Application.DTOs;
 using Cale.Modules.Presentation.Domain;
 using DocumentFormat.OpenXml;
@@ -20,10 +21,12 @@ internal static class PptxSlideIO
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    public static IReadOnlyList<ImportedSlideOutline> Import(Stream stream, string uploadsDirectory)
+    public static async Task<IReadOnlyList<ImportedSlideOutline>> ImportAsync(
+        Stream stream,
+        IPresentationMediaStore mediaStore,
+        int? ownerId,
+        CancellationToken ct = default)
     {
-        Directory.CreateDirectory(uploadsDirectory);
-
         using var presentation = PresentationDocument.Open(stream, false);
         var presentationPart = presentation.PresentationPart
             ?? throw new InvalidOperationException("El archivo PowerPoint no es válido.");
@@ -53,7 +56,14 @@ internal static class PptxSlideIO
                 continue;
             }
 
-            var collector = new SlideCollector(presentationPart, slidePart, uploadsDirectory, scaleX, scaleY);
+            var collector = new SlideCollector(
+                presentationPart,
+                slidePart,
+                mediaStore,
+                ownerId,
+                scaleX,
+                scaleY,
+                ct);
             collector.CollectSlide();
 
             var notes = ExtractSlideNotes(slidePart);
@@ -455,7 +465,9 @@ internal static class PptxSlideIO
     {
         private readonly PresentationPart _presentationPart;
         private readonly SlidePart _slidePart;
-        private readonly string _uploadsDir;
+        private readonly IPresentationMediaStore _mediaStore;
+        private readonly int? _ownerId;
+        private readonly CancellationToken _ct;
         private readonly double _scaleX;
         private readonly double _scaleY;
         private int _z = 1;
@@ -471,15 +483,19 @@ internal static class PptxSlideIO
         public SlideCollector(
             PresentationPart presentationPart,
             SlidePart slidePart,
-            string uploadsDir,
+            IPresentationMediaStore mediaStore,
+            int? ownerId,
             double scaleX,
-            double scaleY)
+            double scaleY,
+            CancellationToken ct)
         {
             _presentationPart = presentationPart;
             _slidePart = slidePart;
-            _uploadsDir = uploadsDir;
+            _mediaStore = mediaStore;
+            _ownerId = ownerId;
             _scaleX = scaleX;
             _scaleY = scaleY;
+            _ct = ct;
             BackgroundJson = TryReadBackground(slidePart);
         }
 
@@ -834,11 +850,13 @@ internal static class PptxSlideIO
                 _ => ".mp4"
             };
             var name = $"{Guid.NewGuid():N}{ext}";
-            var path = Path.Combine(_uploadsDir, name);
             using var input = part.GetStream();
-            using var output = File.Create(path);
-            input.CopyTo(output);
-            return $"/uploads/presentations/{name}";
+            return _mediaStore.SaveAsync(
+                input,
+                name,
+                part.ContentType,
+                _ownerId,
+                _ct).GetAwaiter().GetResult();
         }
 
         private ImagePart? ResolveImagePart(string relId)
@@ -947,11 +965,13 @@ internal static class PptxSlideIO
                 _ => ".img"
             };
             var name = $"{Guid.NewGuid():N}{ext}";
-            var path = Path.Combine(_uploadsDir, name);
             using var input = imagePart.GetStream();
-            using var output = File.Create(path);
-            input.CopyTo(output);
-            return $"/uploads/presentations/{name}";
+            return _mediaStore.SaveAsync(
+                input,
+                name,
+                imagePart.ContentType,
+                _ownerId,
+                _ct).GetAwaiter().GetResult();
         }
 
         private static int ToPx(long emu, double scale) =>

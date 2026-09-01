@@ -1,3 +1,6 @@
+using System.Security.Claims;
+using Cale.BuildingBlocks.Domain.Auth;
+using Cale.Modules.LiveClassroom.Application.Abstractions;
 using Cale.Modules.LiveClassroom.Application.Commands;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
@@ -9,11 +12,16 @@ public sealed class LiveClassroomHub : Hub
     public const string GroupPrefix = "live-";
 
     private readonly LiveSessionHandler _handler;
+    private readonly ILiveSessionStore _sessions;
     private readonly ILogger<LiveClassroomHub> _logger;
 
-    public LiveClassroomHub(LiveSessionHandler handler, ILogger<LiveClassroomHub> logger)
+    public LiveClassroomHub(
+        LiveSessionHandler handler,
+        ILiveSessionStore sessions,
+        ILogger<LiveClassroomHub> logger)
     {
         _handler = handler;
+        _sessions = sessions;
         _logger = logger;
     }
 
@@ -21,11 +29,24 @@ public sealed class LiveClassroomHub : Hub
 
     public async Task JoinAsHost(int sessionId)
     {
+        var userId = TryGetUserId()
+            ?? throw new HubException("Debes iniciar sesión como anfitrión.");
+
+        var session = await _sessions.GetByIdAsync(sessionId, Context.ConnectionAborted)
+            ?? throw new HubException("Sesión no encontrada.");
+
+        var isAdmin = Context.User?.IsInRole(Roles.Admin) == true;
+        if (!isAdmin && session.HostUserId != userId)
+        {
+            throw new HubException("Solo el anfitrión puede controlar esta sesión.");
+        }
+
         await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(sessionId));
         _logger.LogInformation(
-            "Live host connected {ConnectionId} session {SessionId}",
+            "Live host connected {ConnectionId} session {SessionId} user {UserId}",
             Context.ConnectionId,
-            sessionId);
+            sessionId,
+            userId);
     }
 
     public async Task JoinAsParticipant(int sessionId, string participantToken)
@@ -72,6 +93,12 @@ public sealed class LiveClassroomHub : Hub
         }
 
         await base.OnDisconnectedAsync(exception);
+    }
+
+    private int? TryGetUserId()
+    {
+        var value = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+        return int.TryParse(value, out var id) ? id : null;
     }
 }
 
