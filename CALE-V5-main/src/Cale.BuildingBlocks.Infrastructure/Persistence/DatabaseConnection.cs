@@ -141,7 +141,7 @@ public static class DatabaseConnection
         try
         {
             var builder = new NpgsqlConnectionStringBuilder(connection);
-            builder.SslMode = ResolveSslMode(builder.Host) switch
+            builder.SslMode = ResolveSslMode(builder.Host ?? string.Empty) switch
             {
                 "disable" => SslMode.Disable,
                 "require" => SslMode.Require,
