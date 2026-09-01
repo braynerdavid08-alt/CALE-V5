@@ -505,13 +505,30 @@ internal static class PptxSlideIO
                     TryAddPictureFromBlip(blip, FindTransform(blip));
                 }
 
-                foreach (var videoFile in tree.Descendants<A.VideoFile>())
+                foreach (var videoFile in tree.Descendants().Where(IsVideoFileElement))
                 {
                     TryAddVideoFromLink(
-                        videoFile.Link?.Value,
+                        ReadRelationshipLink(videoFile),
                         FindTransform(videoFile));
                 }
             }
+        }
+
+        private static bool IsVideoFileElement(OpenXmlElement element) =>
+            string.Equals(element.LocalName, "videoFile", StringComparison.OrdinalIgnoreCase);
+
+        private static string? ReadRelationshipLink(OpenXmlElement element)
+        {
+            foreach (var attr in element.GetAttributes())
+            {
+                if (string.Equals(attr.LocalName, "link", StringComparison.OrdinalIgnoreCase)
+                    && !string.IsNullOrWhiteSpace(attr.Value))
+                {
+                    return attr.Value;
+                }
+            }
+
+            return null;
         }
 
         private static string? TryReadBackground(SlidePart slidePart)
@@ -624,12 +641,10 @@ internal static class PptxSlideIO
 
         private void ProcessPicture(P.Picture picture, long parentX, long parentY)
         {
-            var videoLink = picture.NonVisualPictureProperties?
-                .NonVisualDrawingProperties?
-                .Descendants<A.VideoFile>()
-                .FirstOrDefault()?
-                .Link?
-                .Value;
+            var videoLink = picture.Descendants()
+                .Where(IsVideoFileElement)
+                .Select(ReadRelationshipLink)
+                .FirstOrDefault(link => !string.IsNullOrWhiteSpace(link));
 
             if (!string.IsNullOrWhiteSpace(videoLink))
             {
@@ -739,7 +754,7 @@ internal static class PptxSlideIO
                     return;
                 }
 
-                var url = SaveMediaPart(mediaPart);
+                var url = SaveMediaFromPart(mediaPart);
                 if (url is null)
                 {
                     return;
@@ -771,7 +786,7 @@ internal static class PptxSlideIO
             }
         }
 
-        private MediaDataPart? ResolveMediaPart(string relId)
+        private OpenXmlPart? ResolveMediaPart(string relId)
         {
             OpenXmlPartContainer?[] roots =
             [
@@ -789,9 +804,10 @@ internal static class PptxSlideIO
 
                 try
                 {
-                    if (root.GetPartById(relId) is MediaDataPart mediaPart)
+                    var part = root.GetPartById(relId);
+                    if (part.ContentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase))
                     {
-                        return mediaPart;
+                        return part;
                     }
                 }
                 catch
@@ -803,9 +819,9 @@ internal static class PptxSlideIO
             return null;
         }
 
-        private string? SaveMediaPart(MediaDataPart mediaPart)
+        private string? SaveMediaFromPart(OpenXmlPart part)
         {
-            var ext = mediaPart.ContentType switch
+            var ext = part.ContentType switch
             {
                 "video/mp4" => ".mp4",
                 "video/quicktime" => ".mov",
@@ -816,7 +832,7 @@ internal static class PptxSlideIO
             };
             var name = $"{Guid.NewGuid():N}{ext}";
             var path = Path.Combine(_uploadsDir, name);
-            using var input = mediaPart.GetStream();
+            using var input = part.GetStream();
             using var output = File.Create(path);
             input.CopyTo(output);
             return $"/uploads/presentations/{name}";
