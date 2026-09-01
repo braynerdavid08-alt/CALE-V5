@@ -6,6 +6,9 @@
       <p class="lead">
         Crea, guarda y proyecta tu clase directamente desde Mi CALE — sin PowerPoint.
       </p>
+      @if (session.user(); as user) {
+        <p class="account-hint">Sesión: {{ user.email }}</p>
+      }
     </div>
     <ui-button type="button" (click)="openCreate()">+ Nueva presentación</ui-button>
   </header>
@@ -86,7 +89,9 @@
   @if (loading()) {
     <ui-loading />
   } @else if (!items().length && !showCreate()) {
-    <ui-empty title="Sin presentaciones" message="Crea tu primer material didáctico." />
+    <ui-empty
+      title="Sin presentaciones en esta cuenta"
+      message="Si creaste material antes, confirma que iniciaste sesión con el mismo correo de instructor. Las presentaciones se guardan por usuario." />
   } @else if (items().length) {
     <div class="cards">
       @for (item of items(); track item.id) {

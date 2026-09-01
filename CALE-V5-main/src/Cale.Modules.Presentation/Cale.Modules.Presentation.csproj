@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Cale.BuildingBlocks.Domain\Cale.BuildingBlocks.Domain.csproj" />
     <ProjectReference Include="..\Cale.BuildingBlocks.Infrastructure\Cale.BuildingBlocks.Infrastructure.csproj" />
+    <ProjectReference Include="..\Cale.Modules.Identity\Cale.Modules.Identity.csproj" />
   </ItemGroup>
 
 </Project>

@@ -37,7 +37,7 @@ public sealed class PresentationCommandHandler
         deck.MarkSlideCount(1, userId, now);
         await _store.SaveChangesAsync(ct);
 
-        var loaded = await RequireOwnedAsync(deck.Id, userId, isAdmin: false, ct);
+        var loaded = await RequireOwnedAsync(deck.Id, userId, schoolId, isAdmin: false, ct);
         return MapDetail(loaded);
     }
 
@@ -104,7 +104,7 @@ public sealed class PresentationCommandHandler
         deck.MarkSlideCount(slides.Count, userId, now);
         await _store.SaveChangesAsync(ct);
 
-        var loaded = await RequireOwnedAsync(deck.Id, userId, isAdmin: false, ct);
+        var loaded = await RequireOwnedAsync(deck.Id, userId, schoolId, isAdmin: false, ct);
         return MapDetail(loaded);
     }
 
@@ -112,10 +112,11 @@ public sealed class PresentationCommandHandler
         int id,
         SavePresentationDocumentRequest request,
         int userId,
+        int? schoolUserId,
         bool isAdmin,
         CancellationToken ct)
     {
-        var deck = await RequireOwnedAsync(id, userId, isAdmin, ct);
+        var deck = await RequireOwnedAsync(id, userId, schoolUserId, isAdmin, ct);
         var now = DateTime.UtcNow;
         deck.Rename(request.Title, request.Description, request.Category, userId, now);
         deck.Associate(request.GroupId, userId, now);
@@ -150,7 +151,7 @@ public sealed class PresentationCommandHandler
         deck.MarkSlideCount(slides.Count, userId, now);
         await _store.SaveChangesAsync(ct);
 
-        var loaded = await RequireOwnedAsync(id, userId, isAdmin, ct);
+        var loaded = await RequireOwnedAsync(id, userId, schoolUserId, isAdmin, ct);
         return MapDetail(loaded);
     }
 
@@ -158,10 +159,11 @@ public sealed class PresentationCommandHandler
         int id,
         UpdatePresentationMetaRequest request,
         int userId,
+        int? schoolUserId,
         bool isAdmin,
         CancellationToken ct)
     {
-        var deck = await RequireOwnedAsync(id, userId, isAdmin, ct);
+        var deck = await RequireOwnedAsync(id, userId, schoolUserId, isAdmin, ct);
         var now = DateTime.UtcNow;
         deck.Rename(request.Title, request.Description, request.Category, userId, now);
         deck.Associate(request.GroupId, userId, now);
@@ -171,10 +173,11 @@ public sealed class PresentationCommandHandler
     public async Task<PresentationDetailDto> DuplicateAsync(
         int id,
         int userId,
+        int? schoolUserId,
         bool isAdmin,
         CancellationToken ct)
     {
-        var source = await RequireOwnedAsync(id, userId, isAdmin, ct);
+        var source = await RequireOwnedAsync(id, userId, schoolUserId, isAdmin, ct);
         var now = DateTime.UtcNow;
         var copy = source.Duplicate(userId, now);
         await _store.AddAsync(copy, ct);
@@ -188,13 +191,18 @@ public sealed class PresentationCommandHandler
         copy.MarkSlideCount(slides.Count, userId, now);
         await _store.SaveChangesAsync(ct);
 
-        var loaded = await RequireOwnedAsync(copy.Id, userId, isAdmin: false, ct);
+        var loaded = await RequireOwnedAsync(copy.Id, userId, schoolUserId, isAdmin: false, ct);
         return MapDetail(loaded);
     }
 
-    public async Task DeleteAsync(int id, int userId, bool isAdmin, CancellationToken ct)
+    public async Task DeleteAsync(
+        int id,
+        int userId,
+        int? schoolUserId,
+        bool isAdmin,
+        CancellationToken ct)
     {
-        var deck = await RequireOwnedAsync(id, userId, isAdmin, ct);
+        var deck = await RequireOwnedAsync(id, userId, schoolUserId, isAdmin, ct);
         deck.SoftDelete(userId, DateTime.UtcNow);
         await _store.SoftDeleteAsync(deck, ct);
         await _store.SaveChangesAsync(ct);
@@ -203,6 +211,7 @@ public sealed class PresentationCommandHandler
     private async Task<PresentationDeck> RequireOwnedAsync(
         int id,
         int userId,
+        int? schoolUserId,
         bool isAdmin,
         CancellationToken ct)
     {
@@ -213,7 +222,8 @@ public sealed class PresentationCommandHandler
             throw new NotFoundException("Presentación no encontrada.");
         }
 
-        if (!deck.CanManage(userId, isAdmin))
+        if (!deck.CanManage(userId, isAdmin)
+            && !await _store.UserCanAccessAsync(id, userId, schoolUserId, ct))
         {
             throw new ForbiddenException("No tienes permiso para esta presentación.");
         }

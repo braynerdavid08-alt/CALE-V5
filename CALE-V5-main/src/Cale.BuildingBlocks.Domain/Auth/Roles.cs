@@ -15,7 +15,7 @@ public static class Roles
     public static string Normalize(string? role) => role switch
     {
         "Escuela" or School => School,
-        "Profesor" or Teacher => Teacher,
+        "Profesor" or "Instructor" or Teacher => Teacher,
         "Estudiante" or "Alumno" or Student => Student,
         "Administrador" or Admin => Admin,
         _ => Student

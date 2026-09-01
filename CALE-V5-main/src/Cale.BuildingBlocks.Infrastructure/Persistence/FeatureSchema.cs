@@ -866,6 +866,49 @@ public static class FeatureSchema
                 ct);
             await TryPostgresAsync(db,
                 """
+                CREATE TABLE IF NOT EXISTS "Presentaciones" (
+                    "Id" serial PRIMARY KEY,
+                    "OwnerId" integer NOT NULL,
+                    "SchoolId" integer NULL,
+                    "GroupId" integer NULL,
+                    "Title" varchar(200) NOT NULL,
+                    "Description" varchar(1000) NULL,
+                    "Category" varchar(80) NOT NULL,
+                    "ThumbnailUrl" varchar(500) NULL,
+                    "SlideCount" integer NOT NULL,
+                    "IsActive" boolean NOT NULL DEFAULT TRUE,
+                    "CreatedAt" timestamp with time zone NOT NULL,
+                    "UpdatedAt" timestamp with time zone NOT NULL,
+                    "UpdatedByUserId" integer NOT NULL
+                );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_Presentaciones_OwnerId" ON "Presentaciones" ("OwnerId");""",
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_Presentaciones_UpdatedAt" ON "Presentaciones" ("UpdatedAt");""",
+                ct);
+            await TryPostgresAsync(db,
+                """
+                CREATE TABLE IF NOT EXISTS "PresentacionDiapositivas" (
+                    "Id" serial PRIMARY KEY,
+                    "PresentationId" integer NOT NULL,
+                    "Position" integer NOT NULL,
+                    "Title" varchar(200) NOT NULL,
+                    "Notes" varchar(4000) NULL,
+                    "BackgroundJson" text NOT NULL,
+                    "ElementsJson" text NOT NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL,
+                    "UpdatedAt" timestamp with time zone NOT NULL
+                );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_PresentacionDiapositivas_PresentationId_Position" ON "PresentacionDiapositivas" ("PresentationId", "Position");""",
+                ct);
+            await TryPostgresAsync(db,
+                """
                 CREATE TABLE IF NOT EXISTS "PracticalVehicles" (
                     "Id" serial PRIMARY KEY,
                     "SchoolUserId" integer NOT NULL,

@@ -1,7 +1,8 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { mapApiError } from '../../../core/http/map-api-error';
+import { SessionStore } from '../../../core/auth/session.store';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiEmptyComponent } from '../../../shared/ui/ui-empty.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
@@ -31,6 +32,7 @@ import {
 export class PresentationListPage implements OnInit {
   private readonly api = inject(PresentationApi);
   private readonly router = inject(Router);
+  readonly session = inject(SessionStore);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -50,6 +52,13 @@ export class PresentationListPage implements OnInit {
 
   ngOnInit(): void {
     this.reload();
+  }
+
+  @HostListener('document:visibilitychange')
+  onVisibilityChange(): void {
+    if (document.visibilityState === 'visible' && !this.loading()) {
+      this.reload();
+    }
   }
 
   reload(): void {

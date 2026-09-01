@@ -112,16 +112,15 @@ export class SessionStore {
   }
 
   private persist(payload: { token: string; user: SessionUser }): void {
-    // sessionStorage: no persiste al cerrar el navegador (menos exposición que localStorage).
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    localStorage.removeItem(STORAGE_KEY);
+    const raw = JSON.stringify(payload);
+    sessionStorage.setItem(STORAGE_KEY, raw);
+    localStorage.setItem(STORAGE_KEY, raw);
   }
 
   private restore(): void {
-    // Migra/limpia restos antiguos en localStorage.
-    localStorage.removeItem(STORAGE_KEY);
-
-    const raw = sessionStorage.getItem(STORAGE_KEY);
+    const raw =
+      sessionStorage.getItem(STORAGE_KEY)
+      ?? localStorage.getItem(STORAGE_KEY);
     if (!raw) {
       return;
     }
@@ -133,9 +132,12 @@ export class SessionStore {
       if (parsed.token && parsed.user) {
         this.token.set(parsed.token);
         this.user.set(parsed.user);
+        sessionStorage.setItem(STORAGE_KEY, raw);
+        localStorage.setItem(STORAGE_KEY, raw);
       }
     } catch {
       sessionStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(STORAGE_KEY);
     }
   }
 }

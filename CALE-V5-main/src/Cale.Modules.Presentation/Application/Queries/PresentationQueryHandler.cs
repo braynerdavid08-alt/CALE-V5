@@ -13,18 +13,22 @@ public sealed class PresentationQueryHandler
 
     public async Task<IReadOnlyList<PresentationListItemDto>> ListMineAsync(
         int userId,
+        int? schoolUserId,
         CancellationToken ct)
     {
-        var items = await _store.ListByOwnerAsync(userId, ct);
+        var items = await _store.ListAccessibleAsync(userId, schoolUserId, ct);
         return items
             .OrderByDescending(x => x.UpdatedAt)
             .Select(MapList)
             .ToList();
     }
 
-    public async Task<PresentationSummaryDto> SummaryAsync(int userId, CancellationToken ct)
+    public async Task<PresentationSummaryDto> SummaryAsync(
+        int userId,
+        int? schoolUserId,
+        CancellationToken ct)
     {
-        var items = await _store.ListByOwnerAsync(userId, ct);
+        var items = await _store.ListAccessibleAsync(userId, schoolUserId, ct);
         var ordered = items.OrderByDescending(x => x.UpdatedAt).ToList();
         return new PresentationSummaryDto(
             ordered.Count,
@@ -34,6 +38,7 @@ public sealed class PresentationQueryHandler
     public async Task<PresentationDetailDto> GetAsync(
         int id,
         int userId,
+        int? schoolUserId,
         bool isAdmin,
         CancellationToken ct)
     {
@@ -44,7 +49,8 @@ public sealed class PresentationQueryHandler
             throw new NotFoundException("Presentación no encontrada.");
         }
 
-        if (!deck.CanManage(userId, isAdmin))
+        if (!deck.CanManage(userId, isAdmin)
+            && !await _store.UserCanAccessAsync(id, userId, schoolUserId, ct))
         {
             throw new ForbiddenException("No tienes permiso para esta presentación.");
         }

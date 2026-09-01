@@ -1,4 +1,5 @@
 using Cale.BuildingBlocks.Infrastructure.Persistence;
+using Cale.Modules.Identity.Domain;
 using Cale.Modules.Presentation.Application.Abstractions;
 using Cale.Modules.Presentation.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -41,6 +42,71 @@ public sealed class PresentationStore : IPresentationStore
             .Where(x => x.OwnerId == ownerId && x.IsActive)
             .OrderByDescending(x => x.UpdatedAt)
             .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<PresentationDeck>> ListAccessibleAsync(
+        int userId,
+        int? schoolUserId,
+        CancellationToken ct)
+    {
+        var query = _db.Set<PresentationDeck>()
+            .AsNoTracking()
+            .Where(x => x.IsActive);
+
+        if (schoolUserId is null)
+        {
+            query = query.Where(x => x.OwnerId == userId);
+        }
+        else
+        {
+            var schoolMemberIds = _db.Set<User>()
+                .AsNoTracking()
+                .Where(u => u.Id == schoolUserId || u.SchoolId == schoolUserId)
+                .Select(u => u.Id);
+
+            query = query.Where(x =>
+                x.OwnerId == userId
+                || x.SchoolId == schoolUserId
+                || schoolMemberIds.Contains(x.OwnerId));
+        }
+
+        return await query
+            .OrderByDescending(x => x.UpdatedAt)
+            .ToListAsync(ct);
+    }
+
+    public async Task<bool> UserCanAccessAsync(
+        int deckId,
+        int userId,
+        int? schoolUserId,
+        CancellationToken ct)
+    {
+        var deck = await _db.Set<PresentationDeck>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == deckId && x.IsActive, ct);
+        if (deck is null)
+        {
+            return false;
+        }
+
+        if (deck.OwnerId == userId)
+        {
+            return true;
+        }
+
+        if (schoolUserId is null)
+        {
+            return false;
+        }
+
+        if (deck.SchoolId == schoolUserId)
+        {
+            return true;
+        }
+
+        return await _db.Set<User>()
+            .AsNoTracking()
+            .AnyAsync(u => u.Id == deck.OwnerId && u.SchoolId == schoolUserId, ct);
     }
 
     public async Task AddAsync(PresentationDeck deck, CancellationToken ct) =>

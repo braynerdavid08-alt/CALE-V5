@@ -1,7 +1,9 @@
 using System.Text;
 using Cale.Api.Extensions;
 using Cale.Api.Infrastructure;
+using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Exceptions;
+using Cale.Modules.Identity.Application.Abstractions;
 using Cale.Modules.Presentation.Application;
 using Cale.Modules.Presentation.Application.Commands;
 using Cale.Modules.Presentation.Application.DTOs;
@@ -19,41 +21,63 @@ public sealed class PresentationsController : ControllerBase
     private readonly PresentationCommandHandler _commands;
     private readonly PresentationQueryHandler _queries;
     private readonly PresentationExchangeService _exchange;
+    private readonly IUserStore _users;
     private readonly IWebHostEnvironment _env;
 
     public PresentationsController(
         PresentationCommandHandler commands,
         PresentationQueryHandler queries,
         PresentationExchangeService exchange,
+        IUserStore users,
         IWebHostEnvironment env)
     {
         _commands = commands;
         _queries = queries;
         _exchange = exchange;
+        _users = users;
         _env = env;
     }
 
     [HttpGet]
-    public async Task<IActionResult> List(CancellationToken ct) =>
-        Ok(await _queries.ListMineAsync(CurrentUser.GetId(User), ct));
+    public async Task<IActionResult> List(CancellationToken ct)
+    {
+        var userId = CurrentUser.GetId(User);
+        var schoolUserId = await ResolveSchoolUserIdAsync(userId, ct);
+        return Ok(await _queries.ListMineAsync(userId, schoolUserId, ct));
+    }
 
     [HttpGet("summary")]
-    public async Task<IActionResult> Summary(CancellationToken ct) =>
-        Ok(await _queries.SummaryAsync(CurrentUser.GetId(User), ct));
+    public async Task<IActionResult> Summary(CancellationToken ct)
+    {
+        var userId = CurrentUser.GetId(User);
+        var schoolUserId = await ResolveSchoolUserIdAsync(userId, ct);
+        return Ok(await _queries.SummaryAsync(userId, schoolUserId, ct));
+    }
 
     [HttpGet("{id:int}")]
-    public async Task<IActionResult> Get(int id, CancellationToken ct) =>
-        Ok(await _queries.GetAsync(id, CurrentUser.GetId(User), CurrentUser.IsAdmin(User), ct));
+    public async Task<IActionResult> Get(int id, CancellationToken ct)
+    {
+        var userId = CurrentUser.GetId(User);
+        var schoolUserId = await ResolveSchoolUserIdAsync(userId, ct);
+        return Ok(await _queries.GetAsync(
+            id,
+            userId,
+            schoolUserId,
+            CurrentUser.IsAdmin(User),
+            ct));
+    }
 
     [HttpPost]
     public async Task<IActionResult> Create(
         [FromBody] CreatePresentationRequest request,
         CancellationToken ct)
     {
+        var userId = CurrentUser.GetId(User);
+        var schoolUserId = await ResolveSchoolUserIdAsync(userId, ct);
         var detail = await _commands.CreateAsync(
             request,
-            CurrentUser.GetId(User),
-            schoolId: null,
+            userId,
+            schoolUserId,
             ct);
         return Ok(detail);
     }
@@ -64,10 +88,13 @@ public sealed class PresentationsController : ControllerBase
         [FromBody] UpdatePresentationMetaRequest request,
         CancellationToken ct)
     {
+        var userId = CurrentUser.GetId(User);
+        var schoolUserId = await ResolveSchoolUserIdAsync(userId, ct);
         await _commands.UpdateMetaAsync(
             id,
             request,
-            CurrentUser.GetId(User),
+            userId,
+            schoolUserId,
             CurrentUser.IsAdmin(User),
             ct);
         return NoContent();
@@ -77,26 +104,43 @@ public sealed class PresentationsController : ControllerBase
     public async Task<IActionResult> SaveDocument(
         int id,
         [FromBody] SavePresentationDocumentRequest request,
-        CancellationToken ct) =>
-        Ok(await _commands.SaveDocumentAsync(
+        CancellationToken ct)
+    {
+        var userId = CurrentUser.GetId(User);
+        var schoolUserId = await ResolveSchoolUserIdAsync(userId, ct);
+        return Ok(await _commands.SaveDocumentAsync(
             id,
             request,
-            CurrentUser.GetId(User),
+            userId,
+            schoolUserId,
             CurrentUser.IsAdmin(User),
             ct));
+    }
 
     [HttpPost("{id:int}/duplicate")]
-    public async Task<IActionResult> Duplicate(int id, CancellationToken ct) =>
-        Ok(await _commands.DuplicateAsync(
+    public async Task<IActionResult> Duplicate(int id, CancellationToken ct)
+    {
+        var userId = CurrentUser.GetId(User);
+        var schoolUserId = await ResolveSchoolUserIdAsync(userId, ct);
+        return Ok(await _commands.DuplicateAsync(
             id,
-            CurrentUser.GetId(User),
+            userId,
+            schoolUserId,
             CurrentUser.IsAdmin(User),
             ct));
+    }
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
-        await _commands.DeleteAsync(id, CurrentUser.GetId(User), CurrentUser.IsAdmin(User), ct);
+        var userId = CurrentUser.GetId(User);
+        var schoolUserId = await ResolveSchoolUserIdAsync(userId, ct);
+        await _commands.DeleteAsync(
+            id,
+            userId,
+            schoolUserId,
+            CurrentUser.IsAdmin(User),
+            ct);
         return NoContent();
     }
 
@@ -157,13 +201,15 @@ public sealed class PresentationsController : ControllerBase
             ? Path.GetFileNameWithoutExtension(file.FileName)
             : title.Trim();
 
+        var userId = CurrentUser.GetId(User);
+        var schoolUserId = await ResolveSchoolUserIdAsync(userId, ct);
         var detail = await _commands.ImportFromOutlinesAsync(
             deckTitle,
             string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
             string.IsNullOrWhiteSpace(category) ? null : category.Trim(),
             outlines,
-            CurrentUser.GetId(User),
-            schoolId: null,
+            userId,
+            schoolUserId,
             ct);
         return Ok(detail);
     }
@@ -171,9 +217,12 @@ public sealed class PresentationsController : ControllerBase
     [HttpGet("{id:int}/export")]
     public async Task<IActionResult> Export(int id, [FromQuery] string format, CancellationToken ct)
     {
+        var userId = CurrentUser.GetId(User);
+        var schoolUserId = await ResolveSchoolUserIdAsync(userId, ct);
         var detail = await _queries.GetAsync(
             id,
-            CurrentUser.GetId(User),
+            userId,
+            schoolUserId,
             CurrentUser.IsAdmin(User),
             ct);
         var f = (format ?? "xlsx").Trim().ToLowerInvariant();
@@ -254,6 +303,23 @@ public sealed class PresentationsController : ControllerBase
         await using var stream = System.IO.File.Create(path);
         await file.CopyToAsync(stream, ct);
         return Ok(new { url = $"/uploads/presentations/{name}", mediaType });
+    }
+
+    private async Task<int?> ResolveSchoolUserIdAsync(int userId, CancellationToken ct)
+    {
+        var user = await _users.GetByIdAsync(userId, ct);
+        if (user is null)
+        {
+            return null;
+        }
+
+        var role = Roles.Normalize(user.Role);
+        if (role == Roles.School)
+        {
+            return user.Id;
+        }
+
+        return user.SchoolId;
     }
 
     private static string SanitizeFileName(string value)
