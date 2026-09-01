@@ -145,20 +145,27 @@ public sealed class SchoolTheoryController : ControllerBase
         int id,
         UpdateEnrollmentRequest request,
         CancellationToken ct) =>
-        Ok(await _service.UpdateEnrollmentByIdAsync(SchoolId, id, request, ct));
+        Ok(await _service.UpdateEnrollmentByIdAsync(SchoolId, id, request, SchoolId, ct));
 
     [HttpPut("enrollments/student/{studentUserId:int}")]
     public async Task<IActionResult> UpdateEnrollmentByStudent(
         int studentUserId,
         UpdateEnrollmentRequest request,
         CancellationToken ct) =>
-        Ok(await _service.UpdateEnrollmentAsync(SchoolId, studentUserId, request, ct));
+        Ok(await _service.UpdateEnrollmentAsync(SchoolId, studentUserId, request, SchoolId, ct));
 
     [HttpPost("enrollments/bulk-authorize")]
     public async Task<IActionResult> BulkAuthorize(
         BulkAuthorizeEnrollmentsRequest request,
         CancellationToken ct) =>
-        Ok(await _service.BulkAuthorizeEnrollmentsAsync(SchoolId, request, ct));
+        Ok(await _service.BulkAuthorizeEnrollmentsAsync(SchoolId, request, SchoolId, ct));
+
+    [HttpGet("students/{studentUserId:int}/authorization-history")]
+    public async Task<IActionResult> AuthorizationHistory(
+        int studentUserId,
+        [FromQuery] int limit = 20,
+        CancellationToken ct = default) =>
+        Ok(await _service.ListAuthorizationHistoryAsync(SchoolId, studentUserId, limit, ct));
 }
 
 [ApiController]

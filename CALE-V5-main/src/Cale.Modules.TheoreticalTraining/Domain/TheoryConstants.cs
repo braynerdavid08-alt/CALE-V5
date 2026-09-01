@@ -213,3 +213,15 @@ public static class TheoryAttendanceStatuses
     public const string Absent = "Absent";
     public const string Late = "Late";
 }
+
+public static class EnrollmentAuthorizationTypes
+{
+    public const string TheoryExam = "theory_exam";
+    public const string Practical = "practical";
+}
+
+public static class EnrollmentAuthorizationActions
+{
+    public const string Granted = "granted";
+    public const string Revoked = "revoked";
+}

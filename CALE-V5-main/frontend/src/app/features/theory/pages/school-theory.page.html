@@ -329,15 +329,11 @@
                     </span>
                     <strong>{{ row.studentName }}</strong>
                     <small>{{ row.studentEmail }}</small>
-                    @if (row.practicalEligibility; as pe) {
-                      <small class="eligibility" [class.ready]="pe.canBookPractical">
-                        @if (pe.canBookPractical) {
-                          Listo para manejo
-                        } @else {
-                          {{ pe.blockReason }}
-                        }
-                      </small>
-                    }
+                    <div class="school-badge-row">
+                      @for (badge of enrollmentBadges(row); track badge.label) {
+                        <span class="school-pill" [class.ok]="badge.tone === 'ok'" [class.warn]="badge.tone === 'warn'" [class.info]="badge.tone === 'info'" [class.danger]="badge.tone === 'danger'">{{ badge.label }}</span>
+                      }
+                    </div>
                   </td>
                   <td>{{ enrollmentStatusLabel(row.status) }}</td>
                   <td>
@@ -455,6 +451,10 @@
         <label class="check">
           <input type="checkbox" [(ngModel)]="cfg.notifyClassReminder1h" />
           Recordatorio 1 hora antes de la clase
+        </label>
+        <label class="check">
+          <input type="checkbox" [(ngModel)]="cfg.notifyExamReminder24h" />
+          Recordatorio 24 horas antes del examen teórico
         </label>
 
         <h2>Políticas</h2>

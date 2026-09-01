@@ -107,11 +107,18 @@ public sealed record ApprenticeExamSummaryDto(
     string ExamDate,
     string SlotTime);
 
+public sealed record EnrollmentAuthorizationEventDto(
+    string AuthorizationType,
+    string Action,
+    string PerformedByName,
+    DateTime CreatedAt);
+
 public sealed record ApprenticeDetailDto(
     ApprenticeDto Profile,
     PracticalEligibilityDto Training,
     ApprenticePracticalSummaryDto Practical,
-    ApprenticeExamSummaryDto? NextExam);
+    ApprenticeExamSummaryDto? NextExam,
+    IReadOnlyList<EnrollmentAuthorizationEventDto> AuthorizationHistory);
 
 public sealed record SchoolDashboardBalanceRowDto(
     int StudentUserId,

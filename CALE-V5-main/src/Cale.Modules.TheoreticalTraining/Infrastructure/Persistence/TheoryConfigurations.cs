@@ -173,3 +173,16 @@ public sealed class TheoryExamAppointmentConfiguration : IEntityTypeConfiguratio
         builder.HasIndex(x => new { x.SchoolUserId, x.ExamDate, x.SlotTime });
     }
 }
+
+public sealed class EnrollmentAuthorizationEventConfiguration
+    : IEntityTypeConfiguration<EnrollmentAuthorizationEvent>
+{
+    public void Configure(EntityTypeBuilder<EnrollmentAuthorizationEvent> builder)
+    {
+        builder.ToTable("EnrollmentAuthorizationEvents");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.AuthorizationType).HasMaxLength(32).IsRequired();
+        builder.Property(x => x.Action).HasMaxLength(16).IsRequired();
+        builder.HasIndex(x => new { x.SchoolUserId, x.StudentUserId, x.CreatedAt });
+    }
+}

@@ -41,7 +41,8 @@ public sealed record TheorySettingsDto(
     bool SaturdayEnabled,
     bool NotifyReservationOpen = true,
     bool NotifyClassReminder24h = true,
-    bool NotifyClassReminder1h = true);
+    bool NotifyClassReminder1h = true,
+    bool NotifyExamReminder24h = true);
 
 public sealed record TheoryTimeSlotDto(
     string Label,

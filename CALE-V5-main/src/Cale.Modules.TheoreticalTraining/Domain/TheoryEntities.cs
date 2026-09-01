@@ -42,7 +42,19 @@ public sealed class TheoryTrainingSettings
     public bool NotifyReservationOpen { get; set; } = true;
     public bool NotifyClassReminder24h { get; set; } = true;
     public bool NotifyClassReminder1h { get; set; } = true;
+    public bool NotifyExamReminder24h { get; set; } = true;
     public DateTime UpdatedAt { get; set; }
+}
+
+public sealed class EnrollmentAuthorizationEvent
+{
+    public int Id { get; set; }
+    public int SchoolUserId { get; set; }
+    public int StudentUserId { get; set; }
+    public string AuthorizationType { get; set; } = "";
+    public string Action { get; set; } = "";
+    public int? PerformedByUserId { get; set; }
+    public DateTime CreatedAt { get; set; }
 }
 
 public sealed class TheoryClassSession

@@ -129,7 +129,13 @@ public sealed class ApprenticeRegistryService
                 exam.ExamDate.ToString("yyyy-MM-dd"),
                 exam.SlotTime.ToString("HH:mm"));
 
-        return new ApprenticeDetailDto(apprentice, training, practical, nextExam);
+        var authHistory = await _theory.ListAuthorizationHistoryAsync(
+            schoolUserId,
+            studentUserId,
+            15,
+            ct);
+
+        return new ApprenticeDetailDto(apprentice, training, practical, nextExam, authHistory);
     }
 
     public async Task<SchoolOperationsDashboardDto> GetDashboardAsync(

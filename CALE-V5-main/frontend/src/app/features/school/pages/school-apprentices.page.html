@@ -47,10 +47,11 @@
                   (click)="select(r)">
                   <td>
                     <strong>{{ r.studentName }}</strong>
-                    @if (r.isEnrolled) { <span class="school-pill ok">Enrolado</span> }
-                    @if (r.runtRegistered) { <span class="school-pill">RUNT</span> }
-                    @if (r.theoryExamAuthorized) { <span class="school-pill">Examen</span> }
-                    @if (r.practicalAuthorized) { <span class="school-pill ok">Manejo</span> }
+                    <div class="school-badge-row">
+                      @for (badge of studentBadges(r); track badge.label) {
+                        <span class="school-pill" [class.ok]="badge.tone === 'ok'" [class.warn]="badge.tone === 'warn'" [class.info]="badge.tone === 'info'" [class.danger]="badge.tone === 'danger'">{{ badge.label }}</span>
+                      }
+                    </div>
                   </td>
                   <td>{{ r.documentNumber || '—' }}</td>
                   <td>{{ r.licenseCategories || '—' }}</td>
@@ -168,6 +169,20 @@
               </label>
             </div>
           </fieldset>
+
+          @if (d && d.authorizationHistory?.length) {
+            <fieldset class="school-field-group">
+              <legend>Historial de autorizaciones</legend>
+              <ul class="auth-history">
+                @for (ev of d.authorizationHistory!; track ev.createdAt + ev.authorizationType + ev.action) {
+                  <li>
+                    <strong>{{ authEventLabel(ev) }}</strong>
+                    <small>{{ ev.performedByName }} · {{ ev.createdAt | date:'short' }}</small>
+                  </li>
+                }
+              </ul>
+            </fieldset>
+          }
 
           <h3 class="school-section-title">Expediente</h3>
 

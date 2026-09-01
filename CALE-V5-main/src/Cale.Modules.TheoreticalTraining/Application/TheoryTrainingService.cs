@@ -178,6 +178,7 @@ public sealed class TheoryTrainingService
         settings.NotifyReservationOpen = request.NotifyReservationOpen;
         settings.NotifyClassReminder24h = request.NotifyClassReminder24h;
         settings.NotifyClassReminder1h = request.NotifyClassReminder1h;
+        settings.NotifyExamReminder24h = request.NotifyExamReminder24h;
         settings.UpdatedAt = _clock.UtcNow;
         await _db.SaveChangesAsync(ct);
         return MapSettings(settings);
@@ -750,6 +751,49 @@ public sealed class TheoryTrainingService
             "1h",
             "Tu clase comienza en 1 hora",
             ct);
+
+        await SendExamRemindersAsync(now.AddHours(23), now.AddHours(25), ct);
+    }
+
+    private async Task SendExamRemindersAsync(
+        DateTime windowStart,
+        DateTime windowEnd,
+        CancellationToken ct)
+    {
+        var fromDate = ColombiaTime.TodayInColombia().AddDays(-1);
+        var toDate = fromDate.AddDays(3);
+        var appointments = await _db.Set<TheoryExamAppointment>()
+            .Where(x => x.ExamDate >= fromDate
+                && x.ExamDate <= toDate
+                && x.StudentUserId != null)
+            .ToListAsync(ct);
+
+        foreach (var appointment in appointments)
+        {
+            var startUtc = ColombiaTime.ToUtc(appointment.ExamDate, appointment.SlotTime);
+            if (startUtc < windowStart || startUtc > windowEnd)
+            {
+                continue;
+            }
+
+            var settings = await GetOrCreateSettingsAsync(appointment.SchoolUserId, ct);
+            if (!settings.NotifyExamReminder24h)
+            {
+                continue;
+            }
+
+            await _notifications.NotifyUsersAsync(
+                [appointment.StudentUserId!.Value],
+                new NotificationDraft(
+                    "Recordatorio: examen teórico mañana",
+                    $"Tu examen teórico es el {appointment.ExamDate:dd/MM/yyyy} a las {appointment.SlotTime:HH:mm}.",
+                    NotificationTypes.TheoryClass,
+                    RelatedEntity: "theory_exam_appointment",
+                    RelatedId: appointment.Id,
+                    Link: "/student/training",
+                    DedupeKey: $"theory:exam:24h:{appointment.Id}:{appointment.StudentUserId}"),
+                ct);
+        }
     }
 
     private async Task SendClassRemindersAsync(
@@ -1180,7 +1224,54 @@ public sealed class TheoryTrainingService
         enrollment.TheoryExamAuthorized = false;
         enrollment.TheoryExamAuthorizedAt = null;
         enrollment.UpdatedAt = now;
+        await LogAuthorizationEventAsync(
+            schoolUserId,
+            studentUserId,
+            EnrollmentAuthorizationTypes.TheoryExam,
+            EnrollmentAuthorizationActions.Revoked,
+            null,
+            ct);
         await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<EnrollmentAuthorizationEventDto>> ListAuthorizationHistoryAsync(
+        int schoolUserId,
+        int? studentUserId,
+        int limit,
+        CancellationToken ct)
+    {
+        limit = Math.Clamp(limit, 1, 100);
+        var query = _db.Set<EnrollmentAuthorizationEvent>()
+            .Where(x => x.SchoolUserId == schoolUserId);
+        if (studentUserId is int sid)
+        {
+            query = query.Where(x => x.StudentUserId == sid);
+        }
+
+        var events = await query
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(limit)
+            .ToListAsync(ct);
+        var performerIds = events
+            .Where(x => x.PerformedByUserId is > 0)
+            .Select(x => x.PerformedByUserId!.Value)
+            .Distinct()
+            .ToList();
+        var performerNames = new Dictionary<int, string>();
+        foreach (var id in performerIds)
+        {
+            performerNames[id] = (await _users.GetByIdAsync(id, ct))?.Name ?? "Usuario";
+        }
+
+        return events
+            .Select(e => new EnrollmentAuthorizationEventDto(
+                e.AuthorizationType,
+                e.Action,
+                e.PerformedByUserId is int pid
+                    ? performerNames.GetValueOrDefault(pid, "Usuario")
+                    : "Sistema",
+                e.CreatedAt))
+            .ToList();
     }
 
     // ── Enrollments ─────────────────────────────────────────────────────
@@ -1247,6 +1338,7 @@ public sealed class TheoryTrainingService
         int schoolUserId,
         int studentUserId,
         UpdateEnrollmentRequest request,
+        int? actorUserId,
         CancellationToken ct)
     {
         var student = (await _users.ListBySchoolAsync(schoolUserId, ct))
@@ -1345,6 +1437,8 @@ public sealed class TheoryTrainingService
         var (theoryHours, workshopHours, _) = await ComputeHoursBreakdownAsync(studentUserId, ct);
         var notifyTheoryExam = false;
         var notifyPractical = false;
+        var prevTheoryAuth = enrollment.TheoryExamAuthorized;
+        var prevPracticalAuth = enrollment.PracticalAuthorized;
 
         if (request.TheoryExamAuthorized is bool theoryExamAuthorized)
         {
@@ -1412,6 +1506,30 @@ public sealed class TheoryTrainingService
             enrollment.PracticalAuthorizedAt = practicalAuthorized ? now : null;
         }
 
+        if (request.TheoryExamAuthorized is bool theoryFlag
+            && theoryFlag != prevTheoryAuth)
+        {
+            await LogAuthorizationEventAsync(
+                schoolUserId,
+                studentUserId,
+                EnrollmentAuthorizationTypes.TheoryExam,
+                theoryFlag ? EnrollmentAuthorizationActions.Granted : EnrollmentAuthorizationActions.Revoked,
+                actorUserId,
+                ct);
+        }
+
+        if (request.PracticalAuthorized is bool practicalFlag
+            && practicalFlag != prevPracticalAuth)
+        {
+            await LogAuthorizationEventAsync(
+                schoolUserId,
+                studentUserId,
+                EnrollmentAuthorizationTypes.Practical,
+                practicalFlag ? EnrollmentAuthorizationActions.Granted : EnrollmentAuthorizationActions.Revoked,
+                actorUserId,
+                ct);
+        }
+
         await _db.SaveChangesAsync(ct);
 
         if (notifyTheoryExam)
@@ -1439,6 +1557,7 @@ public sealed class TheoryTrainingService
     public async Task<BulkAuthorizeEnrollmentsResultDto> BulkAuthorizeEnrollmentsAsync(
         int schoolUserId,
         BulkAuthorizeEnrollmentsRequest request,
+        int? actorUserId,
         CancellationToken ct)
     {
         if (!request.TheoryExam && !request.Practical)
@@ -1519,6 +1638,13 @@ public sealed class TheoryTrainingService
                 enrollment.TheoryExamAuthorized = true;
                 enrollment.TheoryExamAuthorizedAt = now;
                 enrollment.UpdatedAt = now;
+                await LogAuthorizationEventAsync(
+                    schoolUserId,
+                    enrollment.StudentUserId,
+                    EnrollmentAuthorizationTypes.TheoryExam,
+                    EnrollmentAuthorizationActions.Granted,
+                    actorUserId,
+                    ct);
                 theoryExamNotified.Add((enrollment.StudentUserId, enrollment.Id));
                 authorized++;
                 continue;
@@ -1541,6 +1667,13 @@ public sealed class TheoryTrainingService
             enrollment.PracticalAuthorized = true;
             enrollment.PracticalAuthorizedAt = now;
             enrollment.UpdatedAt = now;
+            await LogAuthorizationEventAsync(
+                schoolUserId,
+                enrollment.StudentUserId,
+                EnrollmentAuthorizationTypes.Practical,
+                EnrollmentAuthorizationActions.Granted,
+                actorUserId,
+                ct);
             practicalNotified.Add((enrollment.StudentUserId, enrollment.Id));
             authorized++;
         }
@@ -1573,13 +1706,14 @@ public sealed class TheoryTrainingService
         int schoolUserId,
         int enrollmentId,
         UpdateEnrollmentRequest request,
+        int? actorUserId,
         CancellationToken ct)
     {
         var enrollment = await _db.Set<SchoolStudentEnrollment>()
             .FirstOrDefaultAsync(x => x.Id == enrollmentId && x.SchoolUserId == schoolUserId, ct)
             ?? throw new NotFoundException("Inscripción no encontrada.", "enrollment_not_found");
 
-        return await UpdateEnrollmentAsync(schoolUserId, enrollment.StudentUserId, request, ct);
+        return await UpdateEnrollmentAsync(schoolUserId, enrollment.StudentUserId, request, actorUserId, ct);
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────
@@ -2087,7 +2221,27 @@ public sealed class TheoryTrainingService
             s.SaturdayEnabled,
             s.NotifyReservationOpen,
             s.NotifyClassReminder24h,
-            s.NotifyClassReminder1h);
+            s.NotifyClassReminder1h,
+            s.NotifyExamReminder24h);
+
+    private async Task LogAuthorizationEventAsync(
+        int schoolUserId,
+        int studentUserId,
+        string authorizationType,
+        string action,
+        int? performedByUserId,
+        CancellationToken ct)
+    {
+        await _db.Set<EnrollmentAuthorizationEvent>().AddAsync(new EnrollmentAuthorizationEvent
+        {
+            SchoolUserId = schoolUserId,
+            StudentUserId = studentUserId,
+            AuthorizationType = authorizationType,
+            Action = action,
+            PerformedByUserId = performedByUserId,
+            CreatedAt = _clock.UtcNow
+        }, ct);
+    }
 
     private static EnrollmentDto MapEnrollmentDto(
         SchoolStudentEnrollment enrollment,

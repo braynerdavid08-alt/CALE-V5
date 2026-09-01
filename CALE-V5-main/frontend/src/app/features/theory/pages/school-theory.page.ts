@@ -19,6 +19,7 @@ import {
   TheoryTopicDto,
   TheoryWeekScheduleDto
 } from '../api/theory.api';
+import { buildStudentBadges, SchoolBadge } from '../../school/utils/school-student-badges';
 
 @Component({
   selector: 'app-school-theory-page',
@@ -371,6 +372,19 @@ export class SchoolTheoryPage implements OnInit {
 
   hasBalanceDue(row: EnrollmentDto): boolean {
     return (row.balanceDue ?? 0) > 0;
+  }
+
+  enrollmentBadges(row: EnrollmentDto): SchoolBadge[] {
+    const pe = row.practicalEligibility;
+    return buildStudentBadges({
+      status: row.status,
+      balanceDue: row.balanceDue,
+      theoryExamAuthorized: row.theoryExamAuthorized,
+      practicalAuthorized: row.practicalAuthorized,
+      theoryHoursComplete: pe?.theoryHoursComplete,
+      workshopHoursComplete: pe?.workshopHoursComplete,
+      theoryExamPassed: pe?.theoryExamPassed
+    });
   }
 
   toggleTheoryExamAuth(row: EnrollmentDto, authorized: boolean): void {

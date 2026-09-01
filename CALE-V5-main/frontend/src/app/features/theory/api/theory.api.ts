@@ -32,6 +32,7 @@ export interface TheorySettingsDto {
   notifyReservationOpen: boolean;
   notifyClassReminder24h: boolean;
   notifyClassReminder1h: boolean;
+  notifyExamReminder24h: boolean;
 }
 
 export interface PracticalEligibilityDto {

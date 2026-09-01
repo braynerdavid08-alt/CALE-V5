@@ -1,4 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
@@ -6,13 +7,20 @@ import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
 import { mapApiError } from '../../../core/http/map-api-error';
-import { ApprenticeApi, ApprenticeDetail, ApprenticeDto } from '../api/apprentice.api';
+import {
+  ApprenticeApi,
+  ApprenticeDetail,
+  ApprenticeDto,
+  EnrollmentAuthorizationEvent
+} from '../api/apprentice.api';
 import { TheoryApi } from '../../theory/api/theory.api';
+import { buildStudentBadges, SchoolBadge, StudentBadgeInput } from '../utils/school-student-badges';
 
 @Component({
   selector: 'app-school-apprentices-page',
   standalone: true,
   imports: [
+    DatePipe,
     FormsModule,
     RouterLink,
     UiButtonComponent,
@@ -143,5 +151,26 @@ export class SchoolApprenticesPage implements OnInit {
 
   formatMoney(value: number): string {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value);
+  }
+
+  studentBadges(row: ApprenticeDto, training?: ApprenticeDetail['training']): SchoolBadge[] {
+    const input: StudentBadgeInput = {
+      status: row.enrollmentStatus,
+      balanceDue: row.balanceDue,
+      theoryExamAuthorized: row.theoryExamAuthorized,
+      practicalAuthorized: row.practicalAuthorized,
+      isEnrolled: row.isEnrolled,
+      runtRegistered: row.runtRegistered,
+      theoryHoursComplete: training?.theoryHoursComplete,
+      workshopHoursComplete: training?.workshopHoursComplete,
+      theoryExamPassed: training?.theoryExamPassed
+    };
+    return buildStudentBadges(input);
+  }
+
+  authEventLabel(ev: EnrollmentAuthorizationEvent): string {
+    const type = ev.authorizationType === 'theory_exam' ? 'Examen teórico' : 'Clases de manejo';
+    const action = ev.action === 'granted' ? 'Autorizado' : 'Revocado';
+    return `${type}: ${action}`;
   }
 }

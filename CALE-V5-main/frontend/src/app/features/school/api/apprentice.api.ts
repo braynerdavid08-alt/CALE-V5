@@ -84,6 +84,13 @@ export interface ApprenticeExamSummary {
   slotTime: string;
 }
 
+export interface EnrollmentAuthorizationEvent {
+  authorizationType: string;
+  action: string;
+  performedByName: string;
+  createdAt: string;
+}
+
 export interface PracticalEligibility {
   canBookPractical: boolean;
   theoryExamPassed: boolean;
@@ -103,6 +110,7 @@ export interface ApprenticeDetail {
   training: PracticalEligibility;
   practical: ApprenticePracticalSummary;
   nextExam?: ApprenticeExamSummary | null;
+  authorizationHistory?: EnrollmentAuthorizationEvent[];
 }
 
 export interface SchoolDashboardBalanceRow {

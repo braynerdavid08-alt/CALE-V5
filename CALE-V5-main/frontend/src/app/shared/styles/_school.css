@@ -404,6 +404,45 @@
   color: var(--color-warning);
 }
 
+.school-pill.info {
+  background: var(--color-info-soft);
+  color: var(--color-info);
+}
+
+.school-pill.danger {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.school-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+}
+
+.auth-history {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+.auth-history li {
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.auth-history li:last-child {
+  border-bottom: none;
+}
+
+.auth-history small {
+  display: block;
+  color: var(--color-text-secondary);
+  margin-top: 0.15rem;
+}
+
 /* ── Summary blocks ─────────────────────────────────────────────── */
 
 .school-summary {

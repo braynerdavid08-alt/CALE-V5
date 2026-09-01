@@ -691,6 +691,26 @@ public static class FeatureSchema
                 db,
                 """UPDATE "TheoryTopics" SET "Category" = 'Workshop' WHERE lower("Name") LIKE '%taller%';""",
                 ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN "NotifyExamReminder24h" INTEGER NOT NULL DEFAULT 1;""",
+                ct);
+            await TrySqliteAsync(
+                db,
+                """
+                CREATE TABLE IF NOT EXISTS "EnrollmentAuthorizationEvents" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_EnrollmentAuthorizationEvents" PRIMARY KEY AUTOINCREMENT,
+                    "SchoolUserId" INTEGER NOT NULL,
+                    "StudentUserId" INTEGER NOT NULL,
+                    "AuthorizationType" TEXT NOT NULL,
+                    "Action" TEXT NOT NULL,
+                    "PerformedByUserId" INTEGER NULL,
+                    "CreatedAt" TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS "IX_EnrollmentAuthorizationEvents_School_Student_Created"
+                    ON "EnrollmentAuthorizationEvents" ("SchoolUserId", "StudentUserId", "CreatedAt");
+                """,
+                ct);
 
             return;
         }
@@ -975,6 +995,24 @@ public static class FeatureSchema
                 ct);
             await TryPostgresAsync(db,
                 """CREATE INDEX IF NOT EXISTS "IX_SchoolJoinRequests_TeacherUserId_Status" ON "SchoolJoinRequests" ("TeacherUserId", "Status");""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "NotifyExamReminder24h" boolean NOT NULL DEFAULT TRUE;""",
+                ct);
+            await TryPostgresAsync(db,
+                """
+                CREATE TABLE IF NOT EXISTS "EnrollmentAuthorizationEvents" (
+                    "Id" serial PRIMARY KEY,
+                    "SchoolUserId" integer NOT NULL,
+                    "StudentUserId" integer NOT NULL,
+                    "AuthorizationType" varchar(32) NOT NULL,
+                    "Action" varchar(16) NOT NULL,
+                    "PerformedByUserId" integer NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS "IX_EnrollmentAuthorizationEvents_School_Student_Created"
+                    ON "EnrollmentAuthorizationEvents" ("SchoolUserId", "StudentUserId", "CreatedAt");
+                """,
                 ct);
             await TryPostgresAsync(db,
                 """
@@ -1601,6 +1639,27 @@ public static class FeatureSchema
                 );
                 CREATE INDEX IX_TheoryExamAppointments_SchoolUserId_ExamDate_SlotTime
                     ON dbo.TheoryExamAppointments(SchoolUserId, ExamDate, SlotTime);
+            END
+
+            IF COL_LENGTH(N'dbo.TheoryTrainingSettings', N'NotifyExamReminder24h') IS NULL
+            BEGIN
+                ALTER TABLE dbo.TheoryTrainingSettings
+                    ADD NotifyExamReminder24h bit NOT NULL CONSTRAINT DF_TheoryTrainingSettings_NotifyExamReminder24h DEFAULT(1);
+            END
+
+            IF OBJECT_ID(N'dbo.EnrollmentAuthorizationEvents', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.EnrollmentAuthorizationEvents (
+                    Id int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                    SchoolUserId int NOT NULL,
+                    StudentUserId int NOT NULL,
+                    AuthorizationType nvarchar(32) NOT NULL,
+                    Action nvarchar(16) NOT NULL,
+                    PerformedByUserId int NULL,
+                    CreatedAt datetime2 NOT NULL
+                );
+                CREATE INDEX IX_EnrollmentAuthorizationEvents_School_Student_Created
+                    ON dbo.EnrollmentAuthorizationEvents(SchoolUserId, StudentUserId, CreatedAt);
             END
             """,
             ct);
