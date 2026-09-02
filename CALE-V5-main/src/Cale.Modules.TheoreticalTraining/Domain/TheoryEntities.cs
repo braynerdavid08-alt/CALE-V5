@@ -54,6 +54,7 @@ public sealed class TheoryTrainingSettings
     /// <summary>Hora Colombia desde la cual los estudiantes pueden reservar (null = todo el día).</summary>
     public TimeOnly? StudentBookingWindowStart { get; set; }
     public TimeOnly? StudentBookingWindowEnd { get; set; }
+    public string LicenseCategoryPoliciesJson { get; set; } = "{}";
     public DateTime UpdatedAt { get; set; }
 }
 

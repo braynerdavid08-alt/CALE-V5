@@ -735,6 +735,10 @@ public static class FeatureSchema
                 db,
                 """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN "StudentBookingWindowEnd" TEXT NULL;""",
                 ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN "LicenseCategoryPoliciesJson" TEXT NOT NULL DEFAULT '{}';""",
+                ct);
             await TrySqliteAsync(
                 db,
                 """
@@ -1138,6 +1142,9 @@ public static class FeatureSchema
                 ct);
             await TryPostgresAsync(db,
                 """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "StudentBookingWindowEnd" time without time zone NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "LicenseCategoryPoliciesJson" text NOT NULL DEFAULT '{}';""",
                 ct);
             await TryPostgresAsync(db,
                 """
@@ -1843,6 +1850,12 @@ public static class FeatureSchema
             IF COL_LENGTH(N'dbo.TheoryTrainingSettings', N'StudentBookingWindowEnd') IS NULL
             BEGIN
                 ALTER TABLE dbo.TheoryTrainingSettings ADD StudentBookingWindowEnd time NULL;
+            END
+
+            IF COL_LENGTH(N'dbo.TheoryTrainingSettings', N'LicenseCategoryPoliciesJson') IS NULL
+            BEGIN
+                ALTER TABLE dbo.TheoryTrainingSettings
+                    ADD LicenseCategoryPoliciesJson nvarchar(max) NOT NULL CONSTRAINT DF_TheoryTrainingSettings_LicenseCategoryPoliciesJson DEFAULT('{}');
             END
 
             IF OBJECT_ID(N'dbo.EnrollmentAuthorizationEvents', N'U') IS NULL

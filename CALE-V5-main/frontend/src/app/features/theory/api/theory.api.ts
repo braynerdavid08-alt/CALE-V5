@@ -20,6 +20,13 @@ export interface TheoryClassroomDto {
   isActive: boolean;
 }
 
+export interface LicenseCategoryPolicyDto {
+  code: string;
+  label: string;
+  requiredTheoryHours?: number | null;
+  requiredWorkshopHours?: number | null;
+}
+
 export interface TheorySettingsDto {
   defaultDurationMinutes: number;
   minCancelHours: number;
@@ -37,6 +44,7 @@ export interface TheorySettingsDto {
   studentBookingWindowStart?: string | null;
   studentBookingWindowEnd?: string | null;
   bookingPolicySummary: string;
+  licenseCategoryPolicies: LicenseCategoryPolicyDto[];
   notifyReservationOpen: boolean;
   notifyClassReminder24h: boolean;
   notifyClassReminder1h: boolean;

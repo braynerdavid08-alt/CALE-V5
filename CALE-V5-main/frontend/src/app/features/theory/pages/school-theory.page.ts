@@ -19,7 +19,8 @@ import {
   TheoryTopicDto,
   TheoryWeekScheduleDto,
   THEORY_BOOKING_PRESETS,
-  TheoryBookingPreset
+  TheoryBookingPreset,
+  LicenseCategoryPolicyDto
 } from '../api/theory.api';
 import { buildStudentBadges, SchoolBadge } from '../../school/utils/school-student-badges';
 
@@ -656,6 +657,7 @@ export class SchoolTheoryPage implements OnInit {
   }
 
   private normalizeSettings(settings: TheorySettingsDto): TheorySettingsDto {
+    const categoryPolicies = this.normalizeCategoryPolicies(settings.licenseCategoryPolicies);
     const normalized: TheorySettingsDto = {
       ...settings,
       maxWeekdayClassesPerDay: settings.maxWeekdayClassesPerDay ?? 1,
@@ -665,10 +667,30 @@ export class SchoolTheoryPage implements OnInit {
       saturdayReservationOpenDaysBefore: settings.saturdayReservationOpenDaysBefore ?? 2,
       weekdaysEnabled: settings.weekdaysEnabled ?? true,
       saturdayEnabled: settings.saturdayEnabled ?? true,
-      bookingPolicySummary: settings.bookingPolicySummary ?? ''
+      bookingPolicySummary: settings.bookingPolicySummary ?? '',
+      licenseCategoryPolicies: categoryPolicies
     };
     this.bookingPreset.set(this.detectBookingPreset(normalized));
     return normalized;
+  }
+
+  private normalizeCategoryPolicies(
+    policies?: LicenseCategoryPolicyDto[] | null
+  ): LicenseCategoryPolicyDto[] {
+    const byCode = new Map((policies ?? []).map((p) => [p.code, p]));
+    return this.licenseCategoryOptions.map((opt) => {
+      const existing = byCode.get(opt.value);
+      return {
+        code: opt.value,
+        label: opt.label,
+        requiredTheoryHours: existing?.requiredTheoryHours ?? null,
+        requiredWorkshopHours: existing?.requiredWorkshopHours ?? null
+      };
+    });
+  }
+
+  categoryPolicyHint(cfg: TheorySettingsDto): string {
+    return `Vacío = usa el valor general (${cfg.requiredTheoryHours} h teoría · ${cfg.requiredWorkshopHours} h taller).`;
   }
 
   detectBookingPreset(cfg: TheorySettingsDto): TheoryBookingPreset {
@@ -816,7 +838,12 @@ export class SchoolTheoryPage implements OnInit {
     const payload: TheorySettingsDto = {
       ...s,
       studentBookingWindowStart: s.studentBookingWindowStart?.trim() || null,
-      studentBookingWindowEnd: s.studentBookingWindowEnd?.trim() || null
+      studentBookingWindowEnd: s.studentBookingWindowEnd?.trim() || null,
+      licenseCategoryPolicies: s.licenseCategoryPolicies.map((p) => ({
+        ...p,
+        requiredTheoryHours: p.requiredTheoryHours ?? null,
+        requiredWorkshopHours: p.requiredWorkshopHours ?? null
+      }))
     };
     this.api.updateSettings(payload).subscribe({
       next: (updated) => {
@@ -868,16 +895,40 @@ export class SchoolTheoryPage implements OnInit {
   }
 
   updateTopic(topic: TheoryTopicDto): void {
+    if (!topic.name?.trim()) {
+      this.error.set('El nombre del tema no puede estar vacío.');
+      return;
+    }
     this.api.saveTopic(topic, topic.id).subscribe({
       next: (updated) => {
         this.topics.update((rows) => rows.map((t) => (t.id === updated.id ? updated : t)));
+        this.error.set(null);
       },
       error: (err) => this.error.set(mapApiError(err))
     });
   }
 
+  saveTopicById(topicId: number): void {
+    const topic = this.topics().find((t) => t.id === topicId);
+    if (topic) {
+      this.updateTopic(topic);
+    }
+  }
+
+  onTopicFieldChange(topicId: number, field: 'name' | 'description' | 'color', value: string): void {
+    this.topics.update((rows) =>
+      rows.map((t) => (t.id === topicId ? { ...t, [field]: value } : t))
+    );
+  }
+
+  onTopicActiveChange(topic: TheoryTopicDto, isActive: boolean): void {
+    const current = this.topics().find((t) => t.id === topic.id) ?? topic;
+    this.updateTopic({ ...current, isActive });
+  }
+
   onTopicCategoryChange(topic: TheoryTopicDto, category: string): void {
-    this.updateTopic({ ...topic, category });
+    const current = this.topics().find((t) => t.id === topic.id) ?? topic;
+    this.updateTopic({ ...current, category });
   }
 
   topicCategoryLabel(category: string): string {

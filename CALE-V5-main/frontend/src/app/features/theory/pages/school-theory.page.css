@@ -107,9 +107,16 @@
 .status-pill[data-status="Late"] { color: #a16207; }
 .eligibility { display: block; color: #f59e0b; margin-top: 0.2rem; }
 .eligibility.ready { color: #22c55e; font-weight: 700; }
-.topic-list li { display: flex; align-items: center; gap: 0.75rem; }
-.topic-edit { display: grid; gap: 0.35rem; flex: 1; }
+.topic-list li { display: flex; align-items: flex-start; gap: 0.75rem; }
+.topic-list li.inactive-topic { opacity: 0.65; }
+.topic-edit { display: grid; gap: 0.5rem; flex: 1; }
 .topic-edit .inline { display: flex; align-items: center; gap: 0.5rem; font-size: var(--text-sm); font-weight: 600; }
+.topic-inline-row { display: flex; flex-wrap: wrap; gap: 0.75rem 1rem; align-items: center; }
+.category-policy-table-wrap { overflow: auto; margin: 0.75rem 0 1rem; }
+.category-policy-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+.category-policy-table th,
+.category-policy-table td { border: 1px solid var(--color-border); padding: 0.5rem; text-align: left; }
+.category-policy-table input { width: 100%; min-width: 5rem; }
 .settings-card .check { display: flex; align-items: center; gap: 0.5rem; }
 .settings-card .radio { display: flex; align-items: center; gap: 0.5rem; margin: 0.35rem 0; }
 .warn-banner {

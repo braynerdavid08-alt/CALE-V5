@@ -30,6 +30,12 @@ public sealed record SaveTheoryClassroomRequest(
     string? Location,
     bool IsActive);
 
+public sealed record LicenseCategoryPolicyDto(
+    string Code,
+    string Label,
+    int? RequiredTheoryHours,
+    int? RequiredWorkshopHours);
+
 public sealed record TheorySettingsDto(
     int DefaultDurationMinutes,
     int MinCancelHours,
@@ -47,6 +53,7 @@ public sealed record TheorySettingsDto(
     string? StudentBookingWindowStart,
     string? StudentBookingWindowEnd,
     string BookingPolicySummary,
+    IReadOnlyList<LicenseCategoryPolicyDto> LicenseCategoryPolicies,
     bool NotifyReservationOpen = true,
     bool NotifyClassReminder24h = true,
     bool NotifyClassReminder1h = true,

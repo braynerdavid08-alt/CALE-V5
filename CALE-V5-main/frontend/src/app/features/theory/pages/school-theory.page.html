@@ -423,17 +423,44 @@
     </div>
     <ul class="items topic-list">
       @for (t of topics(); track t.id) {
-        <li>
+        <li [class.inactive-topic]="!t.isActive">
           <span class="swatch" [style.background]="t.color"></span>
           <div class="topic-edit">
-            <strong>{{ t.name }}</strong>
-            <label class="inline">
-              Tipo
-              <select [ngModel]="t.category" (ngModelChange)="onTopicCategoryChange(t, $event)">
-                <option value="Theory">Teoría</option>
-                <option value="Workshop">Taller</option>
-              </select>
+            <label>Nombre
+              <input
+                [ngModel]="t.name"
+                (ngModelChange)="onTopicFieldChange(t.id, 'name', $event)"
+                (blur)="saveTopicById(t.id)" />
             </label>
+            <label>Descripción
+              <input
+                [ngModel]="t.description ?? ''"
+                (ngModelChange)="onTopicFieldChange(t.id, 'description', $event)"
+                (blur)="saveTopicById(t.id)" />
+            </label>
+            <div class="topic-inline-row">
+              <label class="inline">Color
+                <input
+                  type="color"
+                  [ngModel]="t.color"
+                  (ngModelChange)="onTopicFieldChange(t.id, 'color', $event)"
+                  (change)="saveTopicById(t.id)" />
+              </label>
+              <label class="inline">
+                Tipo
+                <select [ngModel]="t.category" (ngModelChange)="onTopicCategoryChange(t, $event)">
+                  <option value="Theory">Teoría</option>
+                  <option value="Workshop">Taller</option>
+                </select>
+              </label>
+              <label class="inline check">
+                <input
+                  type="checkbox"
+                  [ngModel]="t.isActive"
+                  (ngModelChange)="onTopicActiveChange(t, $event)" />
+                Activo
+              </label>
+            </div>
           </div>
         </li>
       }
@@ -490,6 +517,43 @@
         <label>Horas mínimas para cancelar
           <input type="number" min="0" max="72" [(ngModel)]="cfg.minCancelHours" />
         </label>
+
+        <h3>Requisitos por categoría de licencia</h3>
+        <p class="muted">{{ categoryPolicyHint(cfg) }}</p>
+        <div class="category-policy-table-wrap">
+          <table class="category-policy-table">
+            <thead>
+              <tr>
+                <th>Categoría</th>
+                <th>Horas teoría</th>
+                <th>Horas taller</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (policy of cfg.licenseCategoryPolicies; track policy.code) {
+                <tr>
+                  <td><strong>{{ policy.label }}</strong></td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0"
+                      max="200"
+                      [placeholder]="cfg.requiredTheoryHours"
+                      [(ngModel)]="policy.requiredTheoryHours" />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0"
+                      max="200"
+                      [placeholder]="cfg.requiredWorkshopHours"
+                      [(ngModel)]="policy.requiredWorkshopHours" />
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
 
         <h2>Acceso de estudiantes a clases</h2>
         <p class="muted">

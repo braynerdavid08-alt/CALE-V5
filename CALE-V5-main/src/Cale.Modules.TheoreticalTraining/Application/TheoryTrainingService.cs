@@ -185,6 +185,8 @@ public sealed class TheoryTrainingService
         settings.SaturdayReservationOpenDaysBefore = Math.Clamp(request.SaturdayReservationOpenDaysBefore, 0, 14);
         settings.StudentBookingWindowStart = TheoryBookingPolicy.ParseOptionalTime(request.StudentBookingWindowStart);
         settings.StudentBookingWindowEnd = TheoryBookingPolicy.ParseOptionalTime(request.StudentBookingWindowEnd);
+        settings.LicenseCategoryPoliciesJson = LicenseCategoryPolicyHelper.SerializePolicies(
+            request.LicenseCategoryPolicies);
         settings.NotifyReservationOpen = request.NotifyReservationOpen;
         settings.NotifyClassReminder24h = request.NotifyClassReminder24h;
         settings.NotifyClassReminder1h = request.NotifyClassReminder1h;
@@ -967,15 +969,16 @@ public sealed class TheoryTrainingService
         }
 
         var (theoryHours, workshopHours, absences) = await ComputeHoursBreakdownAsync(studentUserId, ct);
-        var hoursRequired = settings.RequiredTheoryHours;
-        var workshopRequired = settings.RequiredWorkshopHours;
+        var enrollment = await _db.Set<SchoolStudentEnrollment>()
+            .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
+                && x.StudentUserId == studentUserId, ct);
+        var (hoursRequired, workshopRequired) = LicenseCategoryPolicyHelper.ResolveHourRequirements(
+            settings,
+            enrollment?.LicenseCategories);
         var progress = hoursRequired <= 0
             ? 0
             : Math.Round(theoryHours / hoursRequired * 100m, 1);
 
-        var enrollment = await _db.Set<SchoolStudentEnrollment>()
-            .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
-                && x.StudentUserId == studentUserId, ct);
         var eligibility = await GetPracticalEligibilityAsync(
             schoolUserId,
             studentUserId,
@@ -984,6 +987,7 @@ public sealed class TheoryTrainingService
             workshopHours,
             enrollment?.TheoryExamAuthorized ?? false,
             enrollment?.PracticalAuthorized ?? false,
+            enrollment?.LicenseCategories,
             ct);
 
         var (currentStreak, bestStreak) = await ComputeStreaksAsync(studentUserId, ct);
@@ -1122,6 +1126,7 @@ public sealed class TheoryTrainingService
             workshopHours,
             enrollment?.TheoryExamAuthorized ?? false,
             enrollment?.PracticalAuthorized ?? false,
+            enrollment?.LicenseCategories,
             ct);
     }
 
@@ -1178,6 +1183,7 @@ public sealed class TheoryTrainingService
                 workshopHours,
                 enrollment.TheoryExamAuthorized,
                 enrollment.PracticalAuthorized,
+                enrollment.LicenseCategories,
                 ct);
 
             if (balanceDue <= 0
@@ -1327,6 +1333,7 @@ public sealed class TheoryTrainingService
                 workshopHours,
                 enrollmentRow?.TheoryExamAuthorized ?? false,
                 enrollmentRow?.PracticalAuthorized ?? false,
+                enrollmentRow?.LicenseCategories,
                 ct);
             balances.TryGetValue(student.Id, out var balanceDue);
             if (items.TryGetValue(student.Id, out var e))
@@ -1476,6 +1483,7 @@ public sealed class TheoryTrainingService
                     workshopHours,
                     enrollment.TheoryExamAuthorized,
                     enrollment.PracticalAuthorized,
+                    enrollment.LicenseCategories,
                     ct);
                 if (!hoursCheck.TheoryHoursComplete || !hoursCheck.WorkshopHoursComplete)
                 {
@@ -1515,6 +1523,7 @@ public sealed class TheoryTrainingService
                     workshopHours,
                     true,
                     false,
+                    enrollment.LicenseCategories,
                     ct);
                 if (!examCheck.TheoryExamPassed)
                 {
@@ -1575,6 +1584,7 @@ public sealed class TheoryTrainingService
             workshopHours,
             enrollment.TheoryExamAuthorized,
             enrollment.PracticalAuthorized,
+            enrollment.LicenseCategories,
             ct);
         var balanceDue = await GetBalanceDueAsync(schoolUserId, studentUserId, ct);
         return MapEnrollmentDto(enrollment, student.Name, student.Email ?? "", eligibility, balanceDue);
@@ -1637,6 +1647,7 @@ public sealed class TheoryTrainingService
                 workshopHours,
                 enrollment.TheoryExamAuthorized,
                 enrollment.PracticalAuthorized,
+                enrollment.LicenseCategories,
                 ct);
 
             if (request.TheoryExam)
@@ -2123,6 +2134,7 @@ public sealed class TheoryTrainingService
         decimal workshopHours,
         bool theoryExamAuthorized,
         bool practicalAuthorized,
+        string? licenseCategories,
         CancellationToken ct)
     {
         var theoryExamPassed = false;
@@ -2135,18 +2147,21 @@ public sealed class TheoryTrainingService
                     && a.Passed, ct);
         }
 
-        var theoryComplete = theoryHours >= settings.RequiredTheoryHours;
-        var workshopComplete = workshopHours >= settings.RequiredWorkshopHours;
+        var (requiredTheoryHours, requiredWorkshopHours) = LicenseCategoryPolicyHelper.ResolveHourRequirements(
+            settings,
+            licenseCategories);
+        var theoryComplete = theoryHours >= requiredTheoryHours;
+        var workshopComplete = workshopHours >= requiredWorkshopHours;
         var canBook = theoryExamPassed && theoryComplete && workshopComplete && practicalAuthorized;
 
         string? blockReason = null;
         if (!theoryComplete)
         {
-            blockReason = $"Te faltan horas de teoría ({theoryHours}/{settings.RequiredTheoryHours}).";
+            blockReason = $"Te faltan horas de teoría ({theoryHours}/{requiredTheoryHours}).";
         }
         else if (!workshopComplete)
         {
-            blockReason = $"Te faltan horas de taller ({workshopHours}/{settings.RequiredWorkshopHours}).";
+            blockReason = $"Te faltan horas de taller ({workshopHours}/{requiredWorkshopHours}).";
         }
         else if (settings.TheoryExamId is null)
         {
@@ -2169,9 +2184,9 @@ public sealed class TheoryTrainingService
             theoryComplete,
             workshopComplete,
             theoryHours,
-            settings.RequiredTheoryHours,
+            requiredTheoryHours,
             workshopHours,
-            settings.RequiredWorkshopHours,
+            requiredWorkshopHours,
             theoryExamAuthorized,
             practicalAuthorized,
             blockReason);
@@ -2292,6 +2307,7 @@ public sealed class TheoryTrainingService
             TheoryBookingPolicy.FormatOptionalTime(s.StudentBookingWindowStart),
             TheoryBookingPolicy.FormatOptionalTime(s.StudentBookingWindowEnd),
             TheoryBookingPolicy.Describe(s),
+            LicenseCategoryPolicyHelper.BuildPolicyList(s),
             s.NotifyReservationOpen,
             s.NotifyClassReminder24h,
             s.NotifyClassReminder1h,
