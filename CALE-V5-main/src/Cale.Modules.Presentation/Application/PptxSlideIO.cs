@@ -326,7 +326,7 @@ internal static class PptxSlideIO
         tree.Append(shape);
     }
 
-    private static ImagePartType GuessImagePartType(string src, byte[] bytes)
+    private static PartTypeInfo GuessImagePartType(string src, byte[] bytes)
     {
         var lower = src.ToLowerInvariant();
         if (lower.EndsWith(".png") || (bytes.Length > 2 && bytes[0] == 0x89 && bytes[1] == 0x50))
