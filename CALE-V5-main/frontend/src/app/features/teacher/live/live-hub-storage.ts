@@ -15,6 +15,7 @@ export interface LiveHubDraft {
   selectedThemesByBank: Record<number, string[]>;
   bankQuotas: Record<number, number>;
   selectedDifficulties: string[];
+  presentationId?: number | null;
 }
 
 export interface LiveHubPreset extends LiveHubDraft {

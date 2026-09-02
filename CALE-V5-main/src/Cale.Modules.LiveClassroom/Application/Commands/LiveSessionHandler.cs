@@ -1473,7 +1473,8 @@ public sealed class LiveSessionHandler
             FeedbackTiming = string.IsNullOrWhiteSpace(dto.FeedbackTiming) ? "end" : dto.FeedbackTiming,
             TopicFilter = dto.TopicFilter,
             DifficultyFilter = dto.DifficultyFilter,
-            CaleStandardPreset = dto.CaleStandardPreset
+            CaleStandardPreset = dto.CaleStandardPreset,
+            PresentationId = dto.PresentationId is > 0 ? dto.PresentationId : null
         };
 
         if (dto.CaleStandardPreset)
@@ -1571,7 +1572,8 @@ public sealed class LiveSessionHandler
             c.TopicFilters.Count > 0 ? c.TopicFilters : null,
             c.BankTopicFilters.Count > 0 ? c.BankTopicFilters : null,
             c.BankQuestionQuotas.Count > 0 ? c.BankQuestionQuotas : null,
-            c.DifficultyFilters.Count > 0 ? c.DifficultyFilters : null);
+            c.DifficultyFilters.Count > 0 ? c.DifficultyFilters : null,
+            c.PresentationId);
 
     private static QuestionSnapshot DeserializeSnapshot(string json) =>
         JsonSerializer.Deserialize<QuestionSnapshot>(json, JsonOpts)

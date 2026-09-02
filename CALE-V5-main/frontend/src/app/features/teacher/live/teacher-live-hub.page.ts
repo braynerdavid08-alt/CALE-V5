@@ -8,6 +8,8 @@ import { SessionStore } from '../../../core/auth/session.store';
 import { AuthApi } from '../../auth/api/auth.api';
 import { LiveApi } from '../../live/api/live.api';
 import { BankAdminDto, BankThemeDto, TeacherApi } from '../api/teacher.api';
+import { PresentationApi } from '../presentations/presentation.api';
+import { PresentationListItem } from '../presentations/presentation.models';
 import {
   LiveDistributionMode,
   LiveHubDraft,
@@ -30,6 +32,7 @@ export class TeacherLiveHubPage implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(LiveApi);
   private readonly teacherApi = inject(TeacherApi);
+  private readonly presentationApi = inject(PresentationApi);
   private readonly authApi = inject(AuthApi);
   private readonly session = inject(SessionStore);
   private readonly router = inject(Router);
@@ -46,6 +49,8 @@ export class TeacherLiveHubPage implements OnInit {
   readonly distributionMode = signal<LiveDistributionMode>('mix');
   readonly savedPresets = signal<LiveHubPreset[]>(loadLiveHubPresets());
   readonly presetName = signal('');
+  readonly presentations = signal<PresentationListItem[]>([]);
+  readonly selectedPresentationId = signal<number | null>(null);
 
   readonly form = this.fb.nonNullable.group({
     title: ['CALE Aula en Vivo'],
@@ -151,7 +156,8 @@ export class TeacherLiveHubPage implements OnInit {
         selectedBankIds: this.selectedBankIds(),
         selectedThemesByBank: this.selectedThemesByBank(),
         bankQuotas: this.bankQuotas(),
-        selectedDifficulties: this.selectedDifficulties()
+        selectedDifficulties: this.selectedDifficulties(),
+        presentationId: this.selectedPresentationId()
       };
       saveLiveHubDraft(draft);
     });
@@ -160,6 +166,10 @@ export class TeacherLiveHubPage implements OnInit {
   ngOnInit(): void {
     this.restoreDraft();
     this.loadBanks();
+    this.presentationApi.list().subscribe({
+      next: (items) => this.presentations.set(items),
+      error: () => this.presentations.set([])
+    });
     this.authApi.me().subscribe({
       next: (dto) => {
         this.session.patchUser({
@@ -341,12 +351,18 @@ export class TeacherLiveHubPage implements OnInit {
     this.selectedThemesByBank.set({ ...preset.selectedThemesByBank });
     this.bankQuotas.set({ ...preset.bankQuotas });
     this.selectedDifficulties.set([...preset.selectedDifficulties]);
+    this.selectedPresentationId.set(preset.presentationId ?? null);
     this.error.set(null);
   }
 
   removePreset(id: string): void {
     deleteLiveHubPreset(id);
     this.savedPresets.set(loadLiveHubPresets());
+  }
+
+  onPresentationChange(ev: Event): void {
+    const raw = (ev.target as HTMLSelectElement).value;
+    this.selectedPresentationId.set(raw ? Number(raw) : null);
   }
 
   bankSelectedCount(bank: BankAdminDto): number {
@@ -446,7 +462,8 @@ export class TeacherLiveHubPage implements OnInit {
         bankIds,
         bankTopicFilters,
         bankQuestionQuotas,
-        difficultyFilters: difficulties.length ? difficulties : undefined
+        difficultyFilters: difficulties.length ? difficulties : undefined,
+        presentationId: this.selectedPresentationId() ?? undefined
       }
     }).subscribe({
       next: (lobby) => {
@@ -478,6 +495,7 @@ export class TeacherLiveHubPage implements OnInit {
     this.selectedThemesByBank.set(draft.selectedThemesByBank ?? {});
     this.bankQuotas.set(draft.bankQuotas ?? {});
     this.selectedDifficulties.set(draft.selectedDifficulties ?? []);
+    this.selectedPresentationId.set(draft.presentationId ?? null);
   }
 
   private buildDraft(): LiveHubDraft {
@@ -487,7 +505,8 @@ export class TeacherLiveHubPage implements OnInit {
       selectedBankIds: this.selectedBankIds(),
       selectedThemesByBank: this.selectedThemesByBank(),
       bankQuotas: this.bankQuotas(),
-      selectedDifficulties: this.selectedDifficulties()
+      selectedDifficulties: this.selectedDifficulties(),
+      presentationId: this.selectedPresentationId()
     };
   }
 

@@ -201,6 +201,9 @@ internal static class PptxSlideIO
                     case "shape":
                         AppendFilledShape(shapeTree, el, ref z);
                         break;
+                    case "video" when resolveImageBytes is not null:
+                        AppendVideoPlaceholder(shapeTree, el, resolveImageBytes, ref z);
+                        break;
                 }
             }
         }
@@ -280,6 +283,53 @@ internal static class PptxSlideIO
                     new A.Extents { Cx = cx, Cy = cy })));
 
         tree.Append(picture);
+    }
+
+    private static void AppendVideoPlaceholder(
+        OpenXmlCompositeElement tree,
+        JsonElement el,
+        Func<string, byte[]?> resolveMediaBytes,
+        ref uint shapeId)
+    {
+        if (!el.TryGetProperty("props", out var props))
+        {
+            return;
+        }
+
+        var src = props.TryGetProperty("src", out var srcProp) ? srcProp.GetString() : null;
+        var hasMedia = !string.IsNullOrWhiteSpace(src) &&
+            resolveMediaBytes(src) is { Length: > 0 };
+
+        var x = GetInt(el, "x", 64);
+        var y = GetInt(el, "y", 48);
+        var w = GetInt(el, "w", 400);
+        var h = GetInt(el, "h", 240);
+
+        var cx = ToEmu(w, CanvasW, DefaultSlideCx);
+        var cy = ToEmu(h, CanvasH, DefaultSlideCy);
+        var offX = ToEmu(x, CanvasW, DefaultSlideCx);
+        var offY = ToEmu(y, CanvasH, DefaultSlideCy);
+
+        var shape = new P.Shape(
+            new P.NonVisualShapeProperties(
+                new P.NonVisualDrawingProperties { Id = shapeId++, Name = $"Video {shapeId}" },
+                new P.NonVisualShapeDrawingProperties(),
+                new P.ApplicationNonVisualDrawingProperties()),
+            new P.ShapeProperties(
+                new A.Transform2D(
+                    new A.Offset { X = offX, Y = offY },
+                    new A.Extents { Cx = cx, Cy = cy }),
+                new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle },
+                new A.SolidFill(new A.RgbColorModelHex { Val = "0B1F33" }),
+                new A.Outline(
+                    new A.SolidFill(new A.RgbColorModelHex { Val = "2BB0ED" }),
+                    new A.PresetDash { Val = A.PresetLineDashValues.Solid })
+                { Width = 19050 }));
+
+        tree.Append(shape);
+
+        var label = hasMedia ? "▶ Video (Mi CALE)" : "▶ Video no disponible";
+        AppendTextShape(tree, label, x + 16, y + h / 2 - 20, w - 32, 40, 22, true, ref shapeId);
     }
 
     private static void AppendFilledShape(OpenXmlCompositeElement tree, JsonElement el, ref uint shapeId)

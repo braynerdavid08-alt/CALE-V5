@@ -10,6 +10,7 @@ import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
 import { StudentApi } from '../api/student.api';
+import { StudentTheoryApi } from '../api/student-theory.api';
 
 interface CertificateItem {
   title: string;
@@ -97,23 +98,75 @@ interface CertificateItem {
 })
 export class StudentCertificatesPage implements OnInit {
   private readonly api = inject(StudentApi);
+  private readonly theoryApi = inject(StudentTheoryApi);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly items = signal<CertificateItem[]>([]);
 
   ngOnInit(): void {
-    this.api.results().pipe(catchError(() => of([]))).subscribe({
-      next: (results) => {
+    forkJoin({
+      results: this.api.results().pipe(catchError(() => of([]))),
+      theory: this.theoryApi.dashboard().pipe(catchError(() => of(null)))
+    }).subscribe({
+      next: ({ results, theory }) => {
+        const certs: CertificateItem[] = [];
         const passed = results.filter((r) => r.passed);
-        this.items.set(
-          passed.map((r) => ({
+        for (const r of passed) {
+          certs.push({
             title: r.mode === 'Exam' ? 'Evaluación aprobada' : 'Simulador aprobado',
             detail: `Calificación: ${Math.round(r.percent)}%`,
             earnedAt: r.finishedAt ?? null,
-            tone: 'success' as const
-          }))
-        );
+            tone: 'success'
+          });
+        }
+
+        if (theory) {
+          if (theory.progressPercent >= 100) {
+            certs.push({
+              title: 'Horas teóricas completadas',
+              detail: `${theory.hoursCompleted}/${theory.hoursRequired} horas registradas`,
+              earnedAt: null,
+              tone: 'success'
+            });
+          } else if (theory.hoursCompleted > 0) {
+            certs.push({
+              title: 'Avance teórico en curso',
+              detail: `${Math.round(theory.progressPercent)}% · ${theory.hoursCompleted}/${theory.hoursRequired} h`,
+              earnedAt: null,
+              tone: 'muted'
+            });
+          }
+
+          if (theory.workshopHoursRequired > 0 && theory.workshopHoursCompleted >= theory.workshopHoursRequired) {
+            certs.push({
+              title: 'Taller práctico completado',
+              detail: `${theory.workshopHoursCompleted}/${theory.workshopHoursRequired} horas de taller`,
+              earnedAt: null,
+              tone: 'success'
+            });
+          }
+
+          if (theory.practicalEligibility?.canStart) {
+            certs.push({
+              title: 'Habilitado para práctica en vía',
+              detail: theory.practicalEligibility.reason ?? 'Cumples los requisitos teóricos.',
+              earnedAt: null,
+              tone: 'success'
+            });
+          }
+
+          if (theory.platformExam) {
+            certs.push({
+              title: 'Examen de plataforma asignado',
+              detail: theory.platformExam.name,
+              earnedAt: null,
+              tone: 'muted'
+            });
+          }
+        }
+
+        this.items.set(certs);
         this.loading.set(false);
       },
       error: (err) => {

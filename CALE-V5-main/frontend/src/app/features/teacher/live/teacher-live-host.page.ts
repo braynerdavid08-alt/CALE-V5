@@ -149,7 +149,26 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
           .join(' · ')}`
       );
     }
+    if (l.config.presentationId) {
+      lines.push(`Presentación #${l.config.presentationId} vinculada`);
+    }
     return lines;
+  }
+
+  linkedPresentationId(): number | null {
+    const id = this.lobby()?.config?.presentationId;
+    return id && id > 0 ? id : null;
+  }
+
+  openLinkedPresentation(): void {
+    const id = this.linkedPresentationId();
+    if (!id) {
+      return;
+    }
+    const url = this.router.serializeUrl(
+      this.router.createUrlTree(['/teacher/presentations', id, 'present'])
+    );
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 
   duplicateConfig(): void {

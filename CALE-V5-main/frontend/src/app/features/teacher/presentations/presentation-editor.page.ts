@@ -39,6 +39,10 @@ import {
   normalizeImageCrop
 } from './presentation.models';
 import { buildSlideFromTemplate, reassignElementIds } from './presentation-slide-templates';
+import {
+  TRAFFIC_SIGN_OPTIONS,
+  buildTrafficSignElements
+} from './presentation-traffic-signs';
 
 type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'offline' | 'error';
 
@@ -96,6 +100,9 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   readonly addSlideTemplate = signal('blank');
   readonly canUndo = signal(false);
   readonly canRedo = signal(false);
+  readonly showSignPicker = signal(false);
+  readonly snapEnabled = signal(true);
+  readonly trafficSigns = TRAFFIC_SIGN_OPTIONS;
 
   @ViewChild('bgImageInput') bgImageInput?: ElementRef<HTMLInputElement>;
 
@@ -197,6 +204,99 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     }
   }
 
+  @HostListener('window:paste', ['$event'])
+  onPaste(ev: ClipboardEvent): void {
+    if (this.editingText() || this.isTypingTarget(ev.target)) {
+      return;
+    }
+    const items = ev.clipboardData?.items;
+    if (!items?.length) {
+      return;
+    }
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.startsWith('image/')) {
+        ev.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          if (file.size > PRESENTATION_MEDIA_MAX_BYTES) {
+            this.error.set('La imagen debe pesar 100 MB o menos.');
+            return;
+          }
+          this.uploadAndInsertMedia(file);
+        }
+        return;
+      }
+    }
+  }
+
+  private isTypingTarget(target: EventTarget | null): boolean {
+    const el = target as HTMLElement | null;
+    if (!el) {
+      return false;
+    }
+    const tag = el.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable;
+  }
+
+  openSignPicker(): void {
+    this.showSignPicker.set(true);
+  }
+
+  closeSignPicker(): void {
+    this.showSignPicker.set(false);
+  }
+
+  insertTrafficSign(key: string): void {
+    const built = buildTrafficSignElements(key, 180, 120);
+    if (!built.length) {
+      return;
+    }
+    this.pushHistory();
+    const baseZ = this.nextZ();
+    for (let i = 0; i < built.length; i++) {
+      this.pushElement({ ...built[i], z: baseZ + i });
+    }
+    this.selectedId.set(built[0].id);
+    this.closeSignPicker();
+    this.markDirty();
+  }
+
+  updateRotation(degrees: number): void {
+    const id = this.selectedId();
+    if (!id) {
+      return;
+    }
+    this.patchElement(id, (el) => ({ ...el, rotation: degrees }));
+    this.markDirty();
+  }
+
+  toggleSnap(): void {
+    this.snapEnabled.update((v) => !v);
+  }
+
+  private snapCoord(value: number, grid = 8): number {
+    if (!this.snapEnabled()) {
+      return Math.round(value);
+    }
+    return Math.round(value / grid) * grid;
+  }
+
+  private snapBox(x: number, y: number, w: number, h: number): { x: number; y: number } {
+    let nx = this.snapCoord(x);
+    let ny = this.snapCoord(y);
+    const threshold = 8;
+    const elCx = x + w / 2;
+    const elCy = y + h / 2;
+    if (Math.abs(elCx - SLIDE_W / 2) < threshold) {
+      nx = Math.round(SLIDE_W / 2 - w / 2);
+    }
+    if (Math.abs(elCy - SLIDE_H / 2) < threshold) {
+      ny = Math.round(SLIDE_H / 2 - h / 2);
+    }
+    return { x: nx, y: ny };
+  }
+
   @HostListener('window:beforeunload', ['$event'])
   onBeforeUnload(ev: BeforeUnloadEvent): void {
     if (this.skipUnload || this.saveState() !== 'dirty') {
@@ -210,6 +310,10 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   @HostListener('window:keydown', ['$event'])
   onKey(ev: KeyboardEvent): void {
     if (ev.key === 'Escape') {
+      if (this.showSignPicker()) {
+        this.closeSignPicker();
+        return;
+      }
       if (this.showImageModal()) {
         this.closeImageModal();
         return;
@@ -1111,10 +1215,14 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     const dx = (ev.clientX - this.drag.startX) / z;
     const dy = (ev.clientY - this.drag.startY) / z;
     if (this.drag.mode === 'move') {
+      const el = this.activeSlide()?.elements.find((e) => e.id === this.drag!.id);
+      const w = el?.w ?? this.drag.origW;
+      const h = el?.h ?? this.drag.origH;
+      const pos = this.snapBox(this.drag.origX + dx, this.drag.origY + dy, w, h);
       this.patchElement(this.drag.id, (el) => ({
         ...el,
-        x: Math.round(this.drag!.origX + dx),
-        y: Math.round(this.drag!.origY + dy)
+        x: pos.x,
+        y: pos.y
       }));
       return;
     }

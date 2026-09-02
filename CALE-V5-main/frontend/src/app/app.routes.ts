@@ -463,16 +463,13 @@ export const routes: Routes = [
         canActivate: [roleGuard],
         data: {
           roles: ['Admin'],
+          roleFilter: 'Teacher',
           title: 'Instructores',
-          subtitle: 'Gestión global de instructores del ecosistema CALE.',
-          notes: [
-            'Alta, baja, escuela vinculada y estado operativo.',
-            'Hoy parte de esto vive en Usuarios (rol Teacher).'
-          ]
+          subtitle: 'Gestión global de instructores del ecosistema CALE.'
         },
         loadComponent: () =>
-          import('./features/admin/pages/admin-placeholder.page')
-            .then((m) => m.AdminPlaceholderPage)
+          import('./features/admin/pages/admin-role-users.page')
+            .then((m) => m.AdminRoleUsersPage)
       },
       {
         path: 'admin/students',
@@ -480,16 +477,13 @@ export const routes: Routes = [
         canActivate: [roleGuard],
         data: {
           roles: ['Admin'],
+          roleFilter: 'Student',
           title: 'Estudiantes',
-          subtitle: 'Directorio y seguimiento de estudiantes a nivel plataforma.',
-          notes: [
-            'Filtros por escuela, actividad y membresía.',
-            'Hoy puedes ver roles desde Usuarios.'
-          ]
+          subtitle: 'Directorio de estudiantes registrados en la plataforma.'
         },
         loadComponent: () =>
-          import('./features/admin/pages/admin-placeholder.page')
-            .then((m) => m.AdminPlaceholderPage)
+          import('./features/admin/pages/admin-role-users.page')
+            .then((m) => m.AdminRoleUsersPage)
       },
       {
         path: 'admin/courses',
@@ -498,15 +492,11 @@ export const routes: Routes = [
         data: {
           roles: ['Admin'],
           title: 'Cursos / Clases',
-          subtitle: 'Administración de cursos, clases y grupos formativos.',
-          notes: [
-            'Se prevé unificar grupos de aula y catálogo de cursos.',
-            'La gestión operativa de grupos ya existe en /teacher/groups.'
-          ]
+          subtitle: 'Administración de cursos, clases y grupos formativos.'
         },
         loadComponent: () =>
-          import('./features/admin/pages/admin-placeholder.page')
-            .then((m) => m.AdminPlaceholderPage)
+          import('./features/admin/pages/admin-courses.page')
+            .then((m) => m.AdminCoursesPage)
       },
       {
         path: 'admin/memberships',

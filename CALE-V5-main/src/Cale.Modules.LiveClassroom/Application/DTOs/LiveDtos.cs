@@ -15,7 +15,8 @@ public sealed record LiveSessionConfigDto(
     IReadOnlyList<string>? TopicFilters = null,
     Dictionary<int, List<string>>? BankTopicFilters = null,
     Dictionary<int, int>? BankQuestionQuotas = null,
-    IReadOnlyList<string>? DifficultyFilters = null);
+    IReadOnlyList<string>? DifficultyFilters = null,
+    int? PresentationId = null);
 
 public sealed record CreateLiveSessionRequest(
     string? Title,

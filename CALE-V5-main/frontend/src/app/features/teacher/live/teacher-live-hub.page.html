@@ -214,6 +214,19 @@
           </select>
         </label>
 
+        <label class="field">
+          Presentación vinculada (opcional)
+          <select
+            [value]="selectedPresentationId() ?? ''"
+            (change)="onPresentationChange($event)">
+            <option value="">Sin presentación</option>
+            @for (p of presentations(); track p.id) {
+              <option [value]="p.id">{{ p.title }}</option>
+            }
+          </select>
+          <span class="field-hint">Abre la diapositiva desde el panel del anfitrión durante la sesión.</span>
+        </label>
+
         <div class="preview">
           <h3>Vista previa de la sala</h3>
           <ul>

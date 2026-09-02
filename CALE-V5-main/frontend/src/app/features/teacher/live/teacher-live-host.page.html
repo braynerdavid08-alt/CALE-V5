@@ -14,7 +14,14 @@
           </ul>
         }
       </div>
-      <a routerLink="/teacher/live" class="back">Volver</a>
+      <div class="top-actions">
+        @if (linkedPresentationId()) {
+          <button type="button" class="btn ghost" (click)="openLinkedPresentation()">
+            ▶ Presentación
+          </button>
+        }
+        <a routerLink="/teacher/live" class="back">Volver</a>
+      </div>
     </header>
 
     <div class="layout" [class.playing]="!!l.currentQuestion && l.status !== 'Lobby'">

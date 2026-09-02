@@ -51,8 +51,16 @@
         <button type="button" (click)="addLine(false)">Línea</button>
         <button type="button" (click)="addLine(true)">Flecha</button>
         <button type="button" (click)="addLogo()">Logo CALE</button>
+        <button type="button" (click)="openSignPicker()">Señales</button>
       </div>
       <div class="group">
+        <button
+          type="button"
+          [class.on]="snapEnabled()"
+          (click)="toggleSnap()"
+          title="Ajustar a cuadrícula y centro">
+          ⊞ Snap
+        </button>
         <button type="button" (click)="align('left')" title="Alinear izquierda">⟸</button>
         <button type="button" (click)="align('center')" title="Centrar horizontal">⇔</button>
         <button type="button" (click)="align('right')" title="Alinear derecha">⟹</button>
@@ -287,6 +295,17 @@
         @if (selected(); as sel) {
           <hr />
           <p class="sel-type">{{ sel.type }}</p>
+          <label>
+            Rotación (°)
+            <input
+              type="range"
+              min="-180"
+              max="180"
+              step="1"
+              [ngModel]="sel.rotation"
+              (ngModelChange)="updateRotation(+$event)" />
+            <span class="hint-inline">{{ sel.rotation }}°</span>
+          </label>
           @if (sel.type === 'text') {
             <label>
               Tamaño
@@ -536,6 +555,28 @@
             </button>
           </div>
           <p class="meta hint">También puedes arrastrar una imagen o video directo al lienzo.</p>
+        </div>
+      </div>
+    }
+
+    @if (showSignPicker()) {
+      <div class="img-modal-overlay" (click)="closeSignPicker()">
+        <div class="img-modal sign-modal" (click)="$event.stopPropagation()">
+          <h3>Biblioteca de señales</h3>
+          <p class="meta hint">Inserta señales viales comunes como formas editables.</p>
+          <ul class="sign-grid">
+            @for (sign of trafficSigns; track sign.key) {
+              <li>
+                <button type="button" (click)="insertTrafficSign(sign.key)">
+                  <span class="sign-label">{{ sign.label }}</span>
+                  <span class="sign-cat">{{ sign.category }}</span>
+                </button>
+              </li>
+            }
+          </ul>
+          <div class="img-modal-actions">
+            <button type="button" class="btn ghost" (click)="closeSignPicker()">Cerrar</button>
+          </div>
         </div>
       </div>
     }

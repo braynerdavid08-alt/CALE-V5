@@ -17,6 +17,7 @@ public sealed class LiveSessionConfig
     public List<string> TopicFilters { get; set; } = [];
     public Dictionary<int, List<string>> BankTopicFilters { get; set; } = [];
     public Dictionary<int, int> BankQuestionQuotas { get; set; } = [];
+    public int? PresentationId { get; set; }
 
     public static LiveSessionConfig CaleStandard() => new()
     {

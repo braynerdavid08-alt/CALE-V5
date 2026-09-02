@@ -21,6 +21,7 @@ export interface LiveSessionConfigDto {
   bankTopicFilters?: Record<number, string[]> | null;
   bankQuestionQuotas?: Record<number, number> | null;
   difficultyFilters?: string[] | null;
+  presentationId?: number | null;
 }
 
 export interface LiveOptionDto {
