@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { HubConnection, HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 import { env } from '../../../core/config/env';
+import { buildQrDataUrl as buildQrDataUrlCore } from '../../../core/qr/build-qr-data-url';
 import { SessionStore } from '../../../core/auth/session.store';
 
 export interface LiveSessionConfigDto {
@@ -271,13 +272,7 @@ export class LiveApi {
   }
 
   buildQrDataUrl(joinUrl: string): Promise<string> {
-    return import('qrcode').then((QRCode) =>
-      QRCode.toDataURL(joinUrl, {
-        width: 240,
-        margin: 1,
-        errorCorrectionLevel: 'M'
-      })
-    );
+    return Promise.resolve(buildQrDataUrlCore(joinUrl, 240));
   }
 }
 
