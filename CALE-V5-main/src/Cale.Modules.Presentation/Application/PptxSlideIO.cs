@@ -100,7 +100,9 @@ internal static class PptxSlideIO
         return slides;
     }
 
-    public static byte[] Export(PresentationDetailDto detail)
+    public static byte[] Export(
+        PresentationDetailDto detail,
+        Func<string, byte[]?>? resolveImageBytes = null)
     {
         using var ms = new MemoryStream();
         using (var doc = PresentationDocument.Create(ms, PresentationDocumentType.Presentation, true))
@@ -127,7 +129,7 @@ internal static class PptxSlideIO
             uint slideId = 256;
             foreach (var slide in ordered)
             {
-                AddSlide(presentationPart, slideLayoutPart, slide, ref slideId);
+                AddSlide(presentationPart, slideLayoutPart, slide, resolveImageBytes, ref slideId);
             }
 
             presentationPart.Presentation.Save();
@@ -140,6 +142,7 @@ internal static class PptxSlideIO
         PresentationPart presentationPart,
         SlideLayoutPart slideLayoutPart,
         PresentationSlideDto slide,
+        Func<string, byte[]?>? resolveImageBytes,
         ref uint slideId)
     {
         var slidePart = presentationPart.AddNewPart<SlidePart>();
@@ -155,7 +158,9 @@ internal static class PptxSlideIO
             new P.GroupShapeProperties(new A.TransformGroup()));
 
         var z = 1U;
-        var elements = ParseElements(slide.ElementsJson);
+        var elements = ParseElements(slide.ElementsJson)
+            .OrderBy(el => GetInt(el, "z", 0))
+            .ToList();
         if (elements.Count == 0)
         {
             AppendTextShape(shapeTree, slide.Title, 64, 48, 832, 64, 32, true, ref z);
@@ -165,14 +170,19 @@ internal static class PptxSlideIO
         {
             foreach (var el in elements)
             {
-                if (el.TryGetProperty("type", out var typeProp))
+                if (!el.TryGetProperty("type", out var typeProp))
                 {
-                    var type = typeProp.GetString();
-                    if (type == "text" && el.TryGetProperty("props", out var props))
+                    continue;
+                }
+
+                var type = typeProp.GetString();
+                switch (type)
+                {
+                    case "text" when el.TryGetProperty("props", out var textProps):
                     {
-                        var text = props.TryGetProperty("text", out var t) ? t.GetString() ?? "" : "";
-                        var fontSize = props.TryGetProperty("fontSize", out var fs) ? fs.GetInt32() : 24;
-                        var bold = props.TryGetProperty("fontWeight", out var fw) && fw.GetInt32() >= 600;
+                        var text = textProps.TryGetProperty("text", out var t) ? t.GetString() ?? "" : "";
+                        var fontSize = textProps.TryGetProperty("fontSize", out var fs) ? fs.GetInt32() : 24;
+                        var bold = textProps.TryGetProperty("fontWeight", out var fw) && fw.GetInt32() >= 600;
                         AppendTextShape(
                             shapeTree,
                             text,
@@ -183,7 +193,14 @@ internal static class PptxSlideIO
                             fontSize,
                             bold,
                             ref z);
+                        break;
                     }
+                    case "image" when resolveImageBytes is not null:
+                        AppendImagePicture(slidePart, shapeTree, el, resolveImageBytes, ref z);
+                        break;
+                    case "shape":
+                        AppendFilledShape(shapeTree, el, ref z);
+                        break;
                 }
             }
         }
@@ -210,6 +227,139 @@ internal static class PptxSlideIO
                 new P.ColorMapOverride(new A.MasterColorMapping()));
             notesPart.NotesSlide.Save();
         }
+    }
+
+    private static void AppendImagePicture(
+        SlidePart slidePart,
+        OpenXmlCompositeElement tree,
+        JsonElement el,
+        Func<string, byte[]?> resolveImageBytes,
+        ref uint shapeId)
+    {
+        if (!el.TryGetProperty("props", out var props))
+        {
+            return;
+        }
+
+        var src = props.TryGetProperty("src", out var srcProp) ? srcProp.GetString() : null;
+        if (string.IsNullOrWhiteSpace(src))
+        {
+            return;
+        }
+
+        var bytes = resolveImageBytes(src);
+        if (bytes is null || bytes.Length == 0)
+        {
+            return;
+        }
+
+        var partType = GuessImagePartType(src, bytes);
+        var imagePart = slidePart.AddImagePart(partType);
+        using (var stream = new MemoryStream(bytes))
+        {
+            imagePart.FeedData(stream);
+        }
+
+        var embedId = slidePart.GetIdOfPart(imagePart);
+        var cx = ToEmu(GetInt(el, "w", 400), CanvasW, DefaultSlideCx);
+        var cy = ToEmu(GetInt(el, "h", 300), CanvasH, DefaultSlideCy);
+        var offX = ToEmu(GetInt(el, "x", 64), CanvasW, DefaultSlideCx);
+        var offY = ToEmu(GetInt(el, "y", 48), CanvasH, DefaultSlideCy);
+
+        var picture = new P.Picture(
+            new P.NonVisualPictureProperties(
+                new P.NonVisualDrawingProperties { Id = shapeId++, Name = $"Image {shapeId}" },
+                new P.NonVisualPictureDrawingProperties(new A.PictureLocks { NoChangeAspect = true }),
+                new P.ApplicationNonVisualDrawingProperties()),
+            new P.BlipFill(
+                new A.Blip { Embed = embedId, CompressionState = A.BlipCompressionValues.Print },
+                new A.Stretch(new A.FillRectangle())),
+            new P.ShapeProperties(
+                new A.Transform2D(
+                    new A.Offset { X = offX, Y = offY },
+                    new A.Extents { Cx = cx, Cy = cy })));
+
+        tree.Append(picture);
+    }
+
+    private static void AppendFilledShape(OpenXmlCompositeElement tree, JsonElement el, ref uint shapeId)
+    {
+        if (!el.TryGetProperty("props", out var props))
+        {
+            return;
+        }
+
+        var fill = props.TryGetProperty("fill", out var fillProp) ? fillProp.GetString() ?? "#2BB0ED" : "#2BB0ED";
+        var stroke = props.TryGetProperty("stroke", out var strokeProp) ? strokeProp.GetString() ?? "#0B1F33" : "#0B1F33";
+        var shapeKind = props.TryGetProperty("shape", out var shapeProp) ? shapeProp.GetString() : "rect";
+        var isEllipse = string.Equals(shapeKind, "ellipse", StringComparison.OrdinalIgnoreCase);
+
+        var cx = ToEmu(GetInt(el, "w", 200), CanvasW, DefaultSlideCx);
+        var cy = ToEmu(GetInt(el, "h", 140), CanvasH, DefaultSlideCy);
+        var offX = ToEmu(GetInt(el, "x", 64), CanvasW, DefaultSlideCx);
+        var offY = ToEmu(GetInt(el, "y", 48), CanvasH, DefaultSlideCy);
+
+        var shape = new P.Shape(
+            new P.NonVisualShapeProperties(
+                new P.NonVisualDrawingProperties { Id = shapeId++, Name = $"Shape {shapeId}" },
+                new P.NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
+                new P.ApplicationNonVisualDrawingProperties()),
+            new P.ShapeProperties(
+                new A.Transform2D(
+                    new A.Offset { X = offX, Y = offY },
+                    new A.Extents { Cx = cx, Cy = cy }),
+                new A.PresetGeometry { Preset = isEllipse ? A.ShapeTypeValues.Ellipse : A.ShapeTypeValues.Rectangle }),
+            new A.TextBody(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph()));
+
+        if (TryParseHexColor(fill, out var fillColor))
+        {
+            shape.ShapeProperties!.Append(new A.SolidFill(new A.RgbColorModelHex { Val = fillColor }));
+        }
+
+        if (TryParseHexColor(stroke, out var strokeColor))
+        {
+            shape.ShapeProperties!.Append(new A.Outline(
+                new A.SolidFill(new A.RgbColorModelHex { Val = strokeColor }))
+            { Width = 12700 });
+        }
+
+        tree.Append(shape);
+    }
+
+    private static ImagePartType GuessImagePartType(string src, byte[] bytes)
+    {
+        var lower = src.ToLowerInvariant();
+        if (lower.EndsWith(".png") || (bytes.Length > 2 && bytes[0] == 0x89 && bytes[1] == 0x50))
+        {
+            return ImagePartType.Png;
+        }
+
+        if (lower.EndsWith(".gif") || (bytes.Length > 2 && bytes[0] == 0x47 && bytes[1] == 0x49))
+        {
+            return ImagePartType.Gif;
+        }
+
+        return ImagePartType.Jpeg;
+    }
+
+    private static bool TryParseHexColor(string? value, out string hex)
+    {
+        hex = "";
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        var v = value.Trim().TrimStart('#');
+        if (v.Length is 3 or 6 && v.All(Uri.IsHexDigit))
+        {
+            hex = v.Length == 3
+                ? string.Concat(v.Select(c => $"{c}{c}"))
+                : v.ToUpperInvariant();
+            return true;
+        }
+
+        return false;
     }
 
     private static SlideMasterPart CreateSlideMaster(PresentationPart presentationPart)

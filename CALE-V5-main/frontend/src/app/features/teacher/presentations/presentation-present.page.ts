@@ -51,11 +51,13 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
   readonly slides = signal<EditorSlide[]>([]);
   readonly index = signal(0);
   readonly showChrome = signal(true);
+  readonly showNotes = signal(true);
   readonly brokenMediaIds = signal<Set<string>>(new Set());
   readonly presentationId = signal(0);
   readonly slideScale = signal(1);
 
   readonly current = computed(() => this.slides()[this.index()] ?? null);
+  readonly currentNotes = computed(() => this.current()?.notes?.trim() ?? '');
 
   private hideTimer?: ReturnType<typeof setTimeout>;
   readonly media = resolveMediaUrl;
@@ -111,6 +113,9 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
       this.exit();
     } else if (ev.key.toLowerCase() === 'f') {
       this.enterFullscreen();
+    } else if (ev.key.toLowerCase() === 'n') {
+      ev.preventDefault();
+      this.showNotes.update((v) => !v);
     }
     this.bumpChrome();
   }
@@ -125,6 +130,12 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
     if (this.index() > 0) {
       this.index.update((i) => i - 1);
     }
+  }
+
+  toggleNotes(ev?: Event): void {
+    ev?.stopPropagation();
+    this.showNotes.update((v) => !v);
+    this.bumpChrome();
   }
 
   onStageClick(): void {

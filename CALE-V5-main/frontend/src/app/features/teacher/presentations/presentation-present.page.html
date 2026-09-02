@@ -96,11 +96,21 @@
         <span>{{ index() + 1 }} / {{ slides().length }}</span>
       </div>
       <div class="right">
+        <button type="button" (click)="toggleNotes($event)">
+          {{ showNotes() ? 'Ocultar notas' : 'Notas (N)' }}
+        </button>
         <button type="button" (click)="prev(); $event.stopPropagation()">←</button>
         <button type="button" (click)="next(); $event.stopPropagation()">→</button>
         <button type="button" (click)="enterFullscreen(); $event.stopPropagation()">Pantalla completa</button>
         <button type="button" (click)="exit(); $event.stopPropagation()">Salir</button>
       </div>
     </div>
+
+    @if (showNotes() && currentNotes()) {
+      <aside class="speaker-notes" (click)="$event.stopPropagation()">
+        <h4>Notas del instructor</h4>
+        <p>{{ currentNotes() }}</p>
+      </aside>
+    }
   </div>
 }

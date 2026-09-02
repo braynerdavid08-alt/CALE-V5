@@ -20,6 +20,9 @@ public sealed record ImportedSlideOutline(
 public sealed class PresentationExchangeService
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    private readonly IPresentationMediaStore _media;
+
+    public PresentationExchangeService(IPresentationMediaStore media) => _media = media;
 
     public async Task<IReadOnlyList<ImportedSlideOutline>> ParseImportAsync(
         Stream stream,
@@ -147,7 +150,36 @@ public sealed class PresentationExchangeService
         return ms.ToArray();
     }
 
-    public byte[] ExportPowerPoint(PresentationDetailDto detail) => PptxSlideIO.Export(detail);
+    public byte[] ExportPowerPoint(PresentationDetailDto detail) =>
+        PptxSlideIO.Export(detail, ResolveImageBytes);
+
+    private byte[]? ResolveImageBytes(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return null;
+        }
+
+        var path = url.Split('?', 2)[0];
+        const string mediaPrefix = "/api/presentations/media/";
+        var idx = path.IndexOf(mediaPrefix, StringComparison.OrdinalIgnoreCase);
+        if (idx >= 0)
+        {
+            var idPart = path[(idx + mediaPrefix.Length)..].Trim('/');
+            if (Guid.TryParse(idPart, out var id))
+            {
+                return _media.ReadAsync(id).GetAwaiter().GetResult()?.Data;
+            }
+        }
+
+        if (path.Contains("/uploads/presentations/", StringComparison.OrdinalIgnoreCase))
+        {
+            var fileName = Path.GetFileName(path);
+            return _media.TryReadLegacyDiskAsync(fileName).GetAwaiter().GetResult()?.Data;
+        }
+
+        return null;
+    }
 
     public static (string SlideTitle, string BackgroundJson, string ElementsJson) BuildSlideFromOutline(
         ImportedSlideOutline outline)

@@ -180,6 +180,18 @@
   cursor: pointer;
 }
 
+.tpl-select {
+  flex: 1;
+  min-width: 0;
+  max-width: 130px;
+  font-size: 0.7rem;
+  background: #1a2736;
+  color: #e8eef4;
+  border: 1px solid #2c4258;
+  border-radius: 6px;
+  padding: 0.2rem;
+}
+
 .ed-slides ul {
   list-style: none;
   margin: 0;

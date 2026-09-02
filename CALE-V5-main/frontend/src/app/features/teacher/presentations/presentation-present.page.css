@@ -152,3 +152,32 @@
   cursor: pointer;
   font: inherit;
 }
+
+.speaker-notes {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: min(320px, 38vw);
+  padding: 1rem 1.1rem;
+  background: rgba(10, 16, 24, 0.92);
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+  overflow: auto;
+  z-index: 5;
+  pointer-events: auto;
+}
+
+.speaker-notes h4 {
+  margin: 0 0 0.65rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #9fb3c8;
+}
+
+.speaker-notes p {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}

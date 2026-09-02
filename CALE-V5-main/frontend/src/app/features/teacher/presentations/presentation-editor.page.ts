@@ -38,8 +38,18 @@ import {
   newClientId,
   normalizeImageCrop
 } from './presentation.models';
+import { buildSlideFromTemplate, reassignElementIds } from './presentation-slide-templates';
 
 type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'offline' | 'error';
+
+interface EditorSnapshot {
+  slides: EditorSlide[];
+  title: string;
+  description: string;
+  category: string;
+  activeIndex: number;
+  selectedId: string | null;
+}
 
 @Component({
   selector: 'app-presentation-editor-page',
@@ -83,6 +93,11 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   readonly imageUploading = signal(false);
   readonly imageModalReplace = signal(false);
   readonly brokenMediaIds = signal<Set<string>>(new Set());
+  readonly addSlideTemplate = signal('blank');
+  readonly canUndo = signal(false);
+  readonly canRedo = signal(false);
+
+  @ViewChild('bgImageInput') bgImageInput?: ElementRef<HTMLInputElement>;
 
   readonly activeSlide = computed(() => this.slides()[this.activeIndex()] ?? null);
   readonly selected = computed(() => {
@@ -138,6 +153,9 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     | null = null;
   private clipboard: SlideElement | null = null;
   private skipUnload = false;
+  private undoStack: EditorSnapshot[] = [];
+  private redoStack: EditorSnapshot[] = [];
+  private readonly historyMax = 50;
 
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
@@ -213,6 +231,31 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       return;
     }
     const meta = ev.ctrlKey || ev.metaKey;
+    if (meta && ev.key.toLowerCase() === 'z' && !ev.shiftKey) {
+      ev.preventDefault();
+      this.undo();
+      return;
+    }
+    if (meta && (ev.key.toLowerCase() === 'y' || (ev.key.toLowerCase() === 'z' && ev.shiftKey))) {
+      ev.preventDefault();
+      this.redo();
+      return;
+    }
+    if (ev.key === 'F5') {
+      ev.preventDefault();
+      this.present();
+      return;
+    }
+    if (ev.key === 'PageDown' && !meta) {
+      ev.preventDefault();
+      this.selectSlide(Math.min(this.slides().length - 1, this.activeIndex() + 1));
+      return;
+    }
+    if (ev.key === 'PageUp' && !meta) {
+      ev.preventDefault();
+      this.selectSlide(Math.max(0, this.activeIndex() - 1));
+      return;
+    }
     if (meta && ev.key.toLowerCase() === 's') {
       ev.preventDefault();
       this.saveNow();
@@ -272,6 +315,73 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     this.autosaveTimer = setTimeout(() => this.saveNow(true), 1400);
   }
 
+  private cloneSnapshot(): EditorSnapshot {
+    return {
+      slides: structuredClone(this.slides()),
+      title: this.title(),
+      description: this.description(),
+      category: this.category(),
+      activeIndex: this.activeIndex(),
+      selectedId: this.selectedId()
+    };
+  }
+
+  private refreshHistoryFlags(): void {
+    this.canUndo.set(this.undoStack.length > 0);
+    this.canRedo.set(this.redoStack.length > 0);
+  }
+
+  private pushHistory(): void {
+    this.undoStack.push(this.cloneSnapshot());
+    if (this.undoStack.length > this.historyMax) {
+      this.undoStack.shift();
+    }
+    this.redoStack = [];
+    this.refreshHistoryFlags();
+  }
+
+  undo(): void {
+    if (!this.undoStack.length) {
+      return;
+    }
+    this.redoStack.push(this.cloneSnapshot());
+    const snap = this.undoStack.pop()!;
+    this.restoreSnapshot(snap);
+    this.refreshHistoryFlags();
+    this.markDirty();
+  }
+
+  redo(): void {
+    if (!this.redoStack.length) {
+      return;
+    }
+    this.undoStack.push(this.cloneSnapshot());
+    const snap = this.redoStack.pop()!;
+    this.restoreSnapshot(snap);
+    this.refreshHistoryFlags();
+    this.markDirty();
+  }
+
+  private restoreSnapshot(snap: EditorSnapshot): void {
+    this.slides.set(snap.slides);
+    this.title.set(snap.title);
+    this.description.set(snap.description);
+    this.category.set(snap.category);
+    this.activeIndex.set(snap.activeIndex);
+    this.selectedId.set(snap.selectedId);
+    this.editingText.set(false);
+  }
+
+  private deriveThumbnailUrl(): string | null {
+    for (const slide of this.slides()) {
+      const image = slide.elements.find((e) => e.type === 'image');
+      if (image) {
+        return (image.props as ImageProps).src;
+      }
+    }
+    return null;
+  }
+
   saveNow(auto = false): void {
     const id = this.presentationId();
     if (!id || this.saveState() === 'saving') {
@@ -283,7 +393,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       description: this.description().trim() || null,
       category: this.category(),
       groupId: this.groupId(),
-      thumbnailUrl: null as string | null,
+      thumbnailUrl: this.deriveThumbnailUrl(),
       slides: this.slides().map((s) => ({
         id: s.id ?? null,
         title: s.title,
@@ -320,40 +430,15 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     this.editingText.set(false);
   }
 
-  addSlide(templateKey = 'blank'): void {
+  addSlide(templateKey?: string): void {
+    this.pushHistory();
+    const key = templateKey ?? this.addSlideTemplate();
     const slides = [...this.slides()];
-    const blank: EditorSlide = {
-      clientId: newClientId('slide'),
-      title: `Diapositiva ${slides.length + 1}`,
-      notes: '',
-      background: { type: 'solid', color: '#F7F9FC' },
-      elements: [
-        {
-          id: newClientId('el'),
-          type: 'text',
-          x: 80,
-          y: 200,
-          w: 800,
-          h: 80,
-          rotation: 0,
-          z: 1,
-          props: {
-            text: 'Nueva diapositiva',
-            fontSize: 32,
-            fontWeight: 600,
-            color: '#0B1F33',
-            align: 'center',
-            fontFamily: 'Segoe UI, sans-serif'
-          }
-        }
-      ]
-    };
-    if (templateKey !== 'blank') {
-      // Keep simple blank for add; templates applied at create time.
-    }
-    slides.splice(this.activeIndex() + 1, 0, blank);
+    const built = reassignElementIds(buildSlideFromTemplate(key, slides.length + 1));
+    slides.splice(this.activeIndex() + 1, 0, built);
     this.slides.set(slides);
     this.activeIndex.set(this.activeIndex() + 1);
+    this.selectedId.set(null);
     this.markDirty();
   }
 
@@ -362,6 +447,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (!cur) {
       return;
     }
+    this.pushHistory();
     const copy: EditorSlide = {
       clientId: newClientId('slide'),
       title: `${cur.title} (copia)`,
@@ -384,6 +470,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (this.slides().length <= 1) {
       return;
     }
+    this.pushHistory();
     const slides = [...this.slides()];
     slides.splice(this.activeIndex(), 1);
     this.slides.set(slides);
@@ -396,6 +483,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (to < 0 || to >= this.slides().length || from === to) {
       return;
     }
+    this.pushHistory();
     const slides = [...this.slides()];
     const [item] = slides.splice(from, 1);
     slides.splice(to, 0, item);
@@ -457,6 +545,9 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (!slideEl || slideEl.type !== 'text') {
       return;
     }
+    if (!this.editingText()) {
+      this.pushHistory();
+    }
     const initialText = (slideEl.props as TextProps).text;
     this.selectedId.set(id);
     this.editingText.set(true);
@@ -494,6 +585,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   }
 
   addText(kind: 'title' | 'subtitle' | 'body' = 'body'): void {
+    this.pushHistory();
     const sizes = { title: 40, subtitle: 28, body: 20 };
     const el: SlideElement = {
       id: newClientId('el'),
@@ -518,6 +610,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   }
 
   addShape(shape: ShapeKind): void {
+    this.pushHistory();
     const el: SlideElement = {
       id: newClientId('el'),
       type: 'shape',
@@ -539,6 +632,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   }
 
   addLine(arrow = false): void {
+    this.pushHistory();
     const el: SlideElement = {
       id: newClientId('el'),
       type: arrow ? 'arrow' : 'line',
@@ -554,6 +648,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   }
 
   addLogo(): void {
+    this.pushHistory();
     const el: SlideElement = {
       id: newClientId('el'),
       type: 'text',
@@ -667,6 +762,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (!id) {
       return;
     }
+    this.pushHistory();
     this.patchElement(id, (el) => {
       if (el.type !== 'image') {
         return el;
@@ -681,6 +777,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (!id) {
       return;
     }
+    this.pushHistory();
     this.patchElement(id, (el) => {
       if (el.type !== 'video') {
         return el;
@@ -838,6 +935,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   }
 
   private async insertImageFromSrc(src: string, x?: number, y?: number): Promise<void> {
+    this.pushHistory();
     const size = await this.probeImageSize(src);
     const el: SlideElement = {
       id: newClientId('el'),
@@ -854,6 +952,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   }
 
   private insertVideoFromSrc(src: string, x?: number, y?: number): Promise<void> {
+    this.pushHistory();
     const w = 640;
     const h = 360;
     const el: SlideElement = {
@@ -876,6 +975,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (!id) {
       return;
     }
+    this.pushHistory();
     this.patchElement(id, (el) => {
       if (el.type !== 'video') {
         return el;
@@ -893,6 +993,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (!id) {
       return;
     }
+    this.pushHistory();
     const size = await this.probeImageSize(src);
     this.patchElement(id, (el) => {
       if (el.type !== 'image') {
@@ -980,6 +1081,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     }
     ev.preventDefault();
     ev.stopPropagation();
+    this.pushHistory();
     const el = this.activeSlide()?.elements.find((e) => e.id === id);
     if (!el) {
       return;
@@ -1082,6 +1184,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (!id) {
       return;
     }
+    this.pushHistory();
     this.updateActive((slide) => ({
       ...slide,
       elements: slide.elements.filter((e) => e.id !== id)
@@ -1095,6 +1198,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (!sel) {
       return;
     }
+    this.pushHistory();
     const copy: SlideElement = {
       ...sel,
       id: newClientId('el'),
@@ -1117,6 +1221,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (!this.clipboard) {
       return;
     }
+    this.pushHistory();
     const copy: SlideElement = {
       ...structuredClone(this.clipboard),
       id: newClientId('el'),
@@ -1132,6 +1237,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (!id) {
       return;
     }
+    this.pushHistory();
     this.patchElement(id, (el) => ({ ...el, x: el.x + dx, y: el.y + dy }));
     this.markDirty();
   }
@@ -1141,6 +1247,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (!id) {
       return;
     }
+    this.pushHistory();
     this.patchElement(id, (el) => {
       let x = el.x;
       let y = el.y;
@@ -1172,6 +1279,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (!id) {
       return;
     }
+    this.pushHistory();
     this.patchElement(id, (el) => {
       if (el.type !== 'text') {
         return el;
@@ -1186,6 +1294,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (!id) {
       return;
     }
+    this.pushHistory();
     this.patchElement(id, (el) => {
       if (el.type !== 'shape') {
         return el;
@@ -1196,6 +1305,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   }
 
   updateBgColor(color: string): void {
+    this.pushHistory();
     this.updateActive((s) => ({
       ...s,
       background: { ...s.background, type: 'solid', color }
@@ -1204,10 +1314,130 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   }
 
   updateBgGradient(c1: string, c2: string): void {
+    this.pushHistory();
     this.updateActive((s) => ({
       ...s,
       background: { type: 'gradient', color: c1, color2: c2 }
     }));
+    this.markDirty();
+  }
+
+  clearBgImage(): void {
+    this.pushHistory();
+    this.updateActive((s) => ({
+      ...s,
+      background: { type: 'solid', color: s.background.color || '#F7F9FC' }
+    }));
+    this.markDirty();
+  }
+
+  updateBgImageUrl(url: string): void {
+    this.pushHistory();
+    this.updateActive((s) => ({
+      ...s,
+      background: { type: 'image', color: s.background.color || '#F7F9FC', imageUrl: url }
+    }));
+    this.markDirty();
+  }
+
+  triggerBgImage(): void {
+    this.bgImageInput?.nativeElement.click();
+  }
+
+  onBgImageSelected(ev: Event): void {
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) {
+      return;
+    }
+    if (file.size > PRESENTATION_MEDIA_MAX_BYTES) {
+      this.error.set('El archivo debe pesar 100 MB o menos.');
+      return;
+    }
+    this.imageUploading.set(true);
+    this.api.upload(file).subscribe({
+      next: (res) => {
+        this.imageUploading.set(false);
+        this.updateBgImageUrl(res.url);
+      },
+      error: (err) => {
+        this.imageUploading.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  changeLayer(direction: 'forward' | 'back' | 'front' | 'backmost'): void {
+    const id = this.selectedId();
+    const slide = this.activeSlide();
+    if (!id || !slide) {
+      return;
+    }
+    const sorted = [...slide.elements].sort((a, b) => a.z - b.z);
+    const idx = sorted.findIndex((e) => e.id === id);
+    if (idx < 0) {
+      return;
+    }
+    this.pushHistory();
+    const swap = (a: number, b: number) => {
+      const za = sorted[a].z;
+      sorted[a] = { ...sorted[a], z: sorted[b].z };
+      sorted[b] = { ...sorted[b], z: za };
+    };
+    if (direction === 'forward' && idx < sorted.length - 1) {
+      swap(idx, idx + 1);
+    } else if (direction === 'back' && idx > 0) {
+      swap(idx, idx - 1);
+    } else if (direction === 'front') {
+      const maxZ = Math.max(...sorted.map((e) => e.z));
+      sorted[idx] = { ...sorted[idx], z: maxZ + 1 };
+    } else if (direction === 'backmost') {
+      const minZ = Math.min(...sorted.map((e) => e.z));
+      sorted[idx] = { ...sorted[idx], z: minZ - 1 };
+    }
+    const byId = new Map(sorted.map((e) => [e.id, e]));
+    this.updateActive((s) => ({
+      ...s,
+      elements: s.elements.map((e) => byId.get(e.id) ?? e)
+    }));
+    this.markDirty();
+  }
+
+  toggleBullets(): void {
+    const sel = this.selected();
+    if (!sel || sel.type !== 'text') {
+      return;
+    }
+    const props = sel.props as TextProps;
+    const lines = props.text.split('\n');
+    const hasBullets = lines.some((l) => l.trim().startsWith('•'));
+    const next = lines
+      .map((line) => {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          return line;
+        }
+        if (hasBullets) {
+          return line.replace(/^\s*•\s?/, '');
+        }
+        return line.startsWith('•') ? line : `• ${line.trimStart()}`;
+      })
+      .join('\n');
+    this.updateTextProp('text', next);
+  }
+
+  toggleTextStyle(prop: 'italic' | 'underline'): void {
+    const sel = this.selected();
+    if (!sel || sel.type !== 'text') {
+      return;
+    }
+    const props = sel.props as TextProps;
+    this.updateTextProp(prop, !props[prop]);
+  }
+
+  updateDescription(value: string): void {
+    this.description.set(value);
     this.markDirty();
   }
 

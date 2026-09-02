@@ -33,6 +33,10 @@
 
     <div class="ed-toolbar">
       <div class="group">
+        <button type="button" (click)="undo()" [disabled]="!canUndo()" title="Deshacer (Ctrl+Z)">↶</button>
+        <button type="button" (click)="redo()" [disabled]="!canRedo()" title="Rehacer (Ctrl+Y)">↷</button>
+      </div>
+      <div class="group">
         <button type="button" (click)="addText('title')">Título</button>
         <button type="button" (click)="addText('subtitle')">Subtítulo</button>
         <button type="button" (click)="addText('body')">Texto</button>
@@ -49,9 +53,16 @@
         <button type="button" (click)="addLogo()">Logo CALE</button>
       </div>
       <div class="group">
-        <button type="button" (click)="align('left')">⟸</button>
-        <button type="button" (click)="align('center')">⇔</button>
-        <button type="button" (click)="align('right')">⟹</button>
+        <button type="button" (click)="align('left')" title="Alinear izquierda">⟸</button>
+        <button type="button" (click)="align('center')" title="Centrar horizontal">⇔</button>
+        <button type="button" (click)="align('right')" title="Alinear derecha">⟹</button>
+        <button type="button" (click)="align('top')" title="Arriba">↑</button>
+        <button type="button" (click)="align('middle')" title="Centro vertical">↕</button>
+        <button type="button" (click)="align('bottom')" title="Abajo">↓</button>
+      </div>
+      <div class="group">
+        <button type="button" (click)="changeLayer('forward')" title="Adelante">▴</button>
+        <button type="button" (click)="changeLayer('back')" title="Atrás">▾</button>
         <button type="button" (click)="duplicateElement()">Duplicar</button>
         <button type="button" (click)="deleteSelected()">Eliminar</button>
       </div>
@@ -67,7 +78,15 @@
       <aside class="ed-slides">
         <div class="slides-head">
           <span>Diapositivas</span>
-          <button type="button" (click)="addSlide()">+</button>
+          <select
+            class="tpl-select"
+            [ngModel]="addSlideTemplate()"
+            (ngModelChange)="addSlideTemplate.set($event)">
+            @for (t of templates; track t.key) {
+              <option [value]="t.key">{{ t.label }}</option>
+            }
+          </select>
+          <button type="button" (click)="addSlide()" title="Agregar diapositiva">+</button>
         </div>
         <ul>
           @for (s of slides(); track s.clientId; let i = $index) {
@@ -249,7 +268,12 @@
           <div class="row">
             <button type="button" (click)="updateBgGradient('#0B1F33', '#2BB0ED')">Gradiente CALE</button>
             <button type="button" (click)="updateBgColor('#F7F9FC')">Claro</button>
+            <button type="button" (click)="triggerBgImage()">Imagen fondo</button>
+            @if (slide.background.type === 'image') {
+              <button type="button" (click)="clearBgImage()">Quitar fondo</button>
+            }
           </div>
+          <input #bgImageInput type="file" accept="image/*" hidden (change)="onBgImageSelected($event)" />
           <label>
             Notas del instructor
             <textarea
@@ -282,10 +306,24 @@
               <button type="button" (click)="updateTextProp('fontWeight', textProps(sel).fontWeight >= 700 ? 400 : 700)">
                 B
               </button>
+              <button type="button" (click)="toggleTextStyle('italic')"><em>I</em></button>
+              <button type="button" (click)="toggleTextStyle('underline')"><u>U</u></button>
+              <button type="button" (click)="toggleBullets()" title="Viñetas">•</button>
               <button type="button" (click)="updateTextProp('align', 'left')">Izq</button>
               <button type="button" (click)="updateTextProp('align', 'center')">Cen</button>
               <button type="button" (click)="updateTextProp('align', 'right')">Der</button>
             </div>
+            <label>
+              Fuente
+              <select
+                [ngModel]="textProps(sel).fontFamily"
+                (ngModelChange)="updateTextProp('fontFamily', $event)">
+                <option value="Segoe UI, sans-serif">Segoe UI</option>
+                <option value="Arial, sans-serif">Arial</option>
+                <option value="Georgia, serif">Georgia</option>
+                <option value="Courier New, monospace">Courier</option>
+              </select>
+            </label>
           }
           @if (sel.type === 'shape') {
             <label>
@@ -405,6 +443,13 @@
             <label class="check">
               <input
                 type="checkbox"
+                [ngModel]="videoProps(sel).autoplay ?? false"
+                (ngModelChange)="updateVideoProp('autoplay', $event)" />
+              Reproducir automáticamente
+            </label>
+            <label class="check">
+              <input
+                type="checkbox"
                 [ngModel]="videoProps(sel).loop ?? false"
                 (ngModelChange)="updateVideoProp('loop', $event)" />
               Repetir en bucle
@@ -423,6 +468,14 @@
         }
 
         <hr />
+        <label>
+          Descripción
+          <textarea
+            rows="2"
+            [ngModel]="description()"
+            (ngModelChange)="updateDescription($event)"
+            placeholder="Resumen breve de la presentación"></textarea>
+        </label>
         <label>
           Categoría
           <select [ngModel]="category()" (ngModelChange)="category.set($event); markDirty()">
