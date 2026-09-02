@@ -21,7 +21,7 @@ internal static class PptxSlideIO
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    public static async Task<IReadOnlyList<ImportedSlideOutline>> ImportAsync(
+    public static Task<IReadOnlyList<ImportedSlideOutline>> ImportAsync(
         Stream stream,
         IPresentationMediaStore mediaStore,
         int? ownerId,
@@ -97,7 +97,7 @@ internal static class PptxSlideIO
                 "No se pudo leer contenido del PowerPoint. Verifica que tenga texto o imágenes.");
         }
 
-        return slides;
+        return Task.FromResult<IReadOnlyList<ImportedSlideOutline>>(slides);
     }
 
     public static byte[] Export(

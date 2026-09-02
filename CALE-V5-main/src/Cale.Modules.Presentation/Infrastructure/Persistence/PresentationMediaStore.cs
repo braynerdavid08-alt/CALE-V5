@@ -20,11 +20,8 @@ public sealed class PresentationMediaStore : IPresentationMediaStore
         _db = db;
         var configured = config["Uploads:Root"]
             ?? Environment.GetEnvironmentVariable("UPLOADS_ROOT");
-        var webRoot = string.IsNullOrWhiteSpace(env.WebRootPath)
-            ? Path.Combine(env.ContentRootPath, "wwwroot")
-            : env.WebRootPath;
         var uploadsRoot = string.IsNullOrWhiteSpace(configured)
-            ? Path.Combine(webRoot, "uploads")
+            ? Path.Combine(env.ContentRootPath, "wwwroot", "uploads")
             : configured.Trim();
         _legacyDiskDir = Path.Combine(uploadsRoot, "presentations");
     }
