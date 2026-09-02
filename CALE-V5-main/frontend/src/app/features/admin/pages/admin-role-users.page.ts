@@ -4,6 +4,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { env } from '../../../core/config/env';
 import { mapApiError } from '../../../core/http/map-api-error';
+import { SessionStore } from '../../../core/auth/session.store';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiCardComponent } from '../../../shared/ui/ui-card.component';
@@ -81,6 +82,7 @@ interface UserRow {
                   <th>Correo</th>
                   <th>Estado</th>
                   <th>Alta</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -94,7 +96,15 @@ interface UserRow {
                       </ui-badge>
                     </td>
                     <td>{{ u.createdAt | date: 'mediumDate' }}</td>
-                  </tr>
+                    <td>
+                      <ui-button
+                        type="button"
+                        variant="ghost"
+                        [disabled]="busyId() === u.id || u.id === meId"
+                        (click)="toggleActive(u)">
+                        {{ u.isActive ? 'Desactivar' : 'Activar' }}
+                      </ui-button>
+                    </td>
                 }
               </tbody>
             </table>
@@ -142,6 +152,7 @@ interface UserRow {
 export class AdminRoleUsersPage implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly route = inject(ActivatedRoute);
+  private readonly session = inject(SessionStore);
 
   readonly roleFilter = signal('Teacher');
   readonly pageTitle = signal('Instructores');
@@ -150,6 +161,8 @@ export class AdminRoleUsersPage implements OnInit {
   readonly error = signal<string | null>(null);
   readonly items = signal<UserRow[]>([]);
   readonly query = signal('');
+  readonly busyId = signal<number | null>(null);
+  readonly meId = this.session.user()?.id ?? -1;
 
   readonly filtered = computed(() => {
     const q = this.query().trim().toLowerCase();
@@ -183,6 +196,26 @@ export class AdminRoleUsersPage implements OnInit {
       },
       error: (err) => {
         this.loading.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  toggleActive(user: UserRow): void {
+    this.busyId.set(user.id);
+    this.http.patch<UserRow>(
+      `${env.apiUrl}/api/admin/users/${user.id}/active`,
+      { isActive: !user.isActive },
+      { withCredentials: true }
+    ).subscribe({
+      next: (updated) => {
+        this.items.update((rows) =>
+          rows.map((r) => (r.id === updated.id ? { ...r, isActive: updated.isActive } : r))
+        );
+        this.busyId.set(null);
+      },
+      error: (err) => {
+        this.busyId.set(null);
         this.error.set(mapApiError(err));
       }
     });

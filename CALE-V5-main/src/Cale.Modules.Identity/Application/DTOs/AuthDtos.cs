@@ -303,7 +303,8 @@ public sealed record AuthResponse(
     string Name,
     string Email,
     string Role,
-    bool MustChangePassword);
+    bool MustChangePassword,
+    bool UsesCookieAuth = false);
 
 public sealed record PendingEmailConfirmationResponse(
     string Email,

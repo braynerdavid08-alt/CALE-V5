@@ -126,6 +126,12 @@
             (click)="clearSelection()"
             (dragover)="$event.preventDefault()"
             (drop)="onCanvasDrop($event)">
+            @if (snapGuideX() !== null) {
+              <div class="snap-guide v" [style.left.px]="snapGuideX()!"></div>
+            }
+            @if (snapGuideY() !== null) {
+              <div class="snap-guide h" [style.top.px]="snapGuideY()!"></div>
+            }
             <div class="slide" [ngStyle]="bgStyle(slide)">
               @for (el of slide.elements; track el.id) {
                 <div

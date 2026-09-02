@@ -37,7 +37,7 @@ export class AuthApi {
     return this.http.post<AuthResponse>(`${this.base}/login`, {
       email,
       password
-    });
+    }, { withCredentials: true });
   }
 
   register(name: string, email: string, password: string) {
@@ -66,7 +66,7 @@ export class AuthApi {
     return this.http.post<AuthResponse>(`${this.base}/confirm-email`, {
       email,
       code
-    });
+    }, { withCredentials: true });
   }
 
   resendConfirmation(email: string) {
@@ -81,7 +81,7 @@ export class AuthApi {
   }
 
   me() {
-    return this.http.get<MeResponse>(`${this.base}/me`);
+    return this.http.get<MeResponse>(`${this.base}/me`, { withCredentials: true });
   }
 
   updateMe(name: string, email?: string) {
@@ -95,6 +95,14 @@ export class AuthApi {
     return this.http.post<void>(`${this.base}/change-password`, {
       currentPassword,
       newPassword
-    });
+    }, { withCredentials: true });
+  }
+
+  refresh() {
+    return this.http.post<AuthResponse>(`${this.base}/refresh`, {}, { withCredentials: true });
+  }
+
+  logout() {
+    return this.http.post<void>(`${this.base}/logout`, {}, { withCredentials: true });
   }
 }

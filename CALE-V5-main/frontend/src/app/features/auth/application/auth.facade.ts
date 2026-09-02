@@ -77,6 +77,13 @@ export class AuthFacade {
   }
 
   logout(): void {
+    this.api.logout().subscribe({
+      next: () => this.finishLogout(),
+      error: () => this.finishLogout()
+    });
+  }
+
+  private finishLogout(): void {
     this.motivation.clearSession();
     this.session.clear();
     void this.router.navigateByUrl('/login');
@@ -92,15 +99,15 @@ export class AuthFacade {
     role?: string;
     mustChangePassword?: boolean;
   }): void {
-    if (res.requiresEmailConfirmation === false && res.token && res.userId != null
-        && res.name && res.role) {
+    if (res.requiresEmailConfirmation === false && res.userId != null && res.name && res.role) {
       this.enter({
-        token: res.token,
+        token: res.token ?? '',
         userId: res.userId,
         name: res.name,
         email: res.email,
         role: res.role,
-        mustChangePassword: !!res.mustChangePassword
+        mustChangePassword: !!res.mustChangePassword,
+        usesCookieAuth: !res.token
       });
       return;
     }

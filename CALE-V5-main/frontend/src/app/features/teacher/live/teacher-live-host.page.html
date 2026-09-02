@@ -84,6 +84,21 @@
       </aside>
 
       <main class="stage">
+        @if (linkedPresentationId() && showPresentation()) {
+          <section class="pres-embed">
+            <div class="pres-toolbar">
+              <button type="button" class="btn ghost" (click)="changePresentationSlide(-1)">← Diapositiva</button>
+              <span>Diapositiva {{ presentationSlide() + 1 }}</span>
+              <button type="button" class="btn ghost" (click)="changePresentationSlide(1)">Diapositiva →</button>
+              <button type="button" class="btn ghost" (click)="showPresentation.set(false)">Ocultar</button>
+            </div>
+            <iframe
+              id="live-pres-iframe"
+              [src]="presentationEmbedUrl()"
+              title="Presentación en vivo"
+              class="pres-frame"></iframe>
+          </section>
+        }
         @if (l.status === 'Ended') {
           <div class="waiting end">
             <h2>Sesión finalizada</h2>

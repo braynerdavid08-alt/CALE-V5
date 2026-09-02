@@ -625,6 +625,25 @@
   color: #9fb3c8;
 }
 
+.slide-stage { position: relative; }
+.snap-guide {
+  position: absolute;
+  pointer-events: none;
+  z-index: 9999;
+  background: #2bb0ed;
+  opacity: 0.85;
+}
+.snap-guide.v {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+.snap-guide.h {
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
 .ed-bottom {
   display: flex;
   justify-content: space-between;

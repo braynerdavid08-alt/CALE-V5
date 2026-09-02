@@ -35,11 +35,15 @@ public sealed class JwtTokenService : ITokenService
             new Claim(ClaimTypes.Role, normalized)
         };
 
+        var accessMinutes = _options.AccessTokenMinutes > 0
+            ? _options.AccessTokenMinutes
+            : _options.ExpirationHours * 60;
+
         var token = new JwtSecurityToken(
             issuer: _options.Issuer,
             audience: _options.Audience,
             claims: claims,
-            expires: _clock.UtcNow.AddHours(_options.ExpirationHours),
+            expires: _clock.UtcNow.AddMinutes(accessMinutes),
             signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);

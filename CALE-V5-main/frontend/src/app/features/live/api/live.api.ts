@@ -259,10 +259,12 @@ export class LiveApi {
 
   buildHub(asHost: boolean): HubConnection {
     const token = this.session.token();
+    const url = this.hubUrl();
+    const options = token
+      ? { accessTokenFactory: () => token, withCredentials: true }
+      : { withCredentials: true };
     const builder = new HubConnectionBuilder()
-      .withUrl(this.hubUrl(), token
-        ? { accessTokenFactory: () => token }
-        : {})
+      .withUrl(url, options)
       .withAutomaticReconnect()
       .configureLogging(LogLevel.Warning);
     return builder.build();

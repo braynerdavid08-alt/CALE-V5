@@ -65,6 +65,16 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.presentationId.set(id);
+    const embed = this.route.snapshot.queryParamMap.get('embed') === '1';
+    const slide = Number(this.route.snapshot.queryParamMap.get('slide') ?? 0);
+    if (!Number.isNaN(slide) && slide >= 0) {
+      this.index.set(slide);
+    }
+    if (embed) {
+      this.showChrome.set(false);
+      this.showNotes.set(false);
+      window.addEventListener('message', this.onEmbedMessage);
+    }
     this.api.get(id).subscribe({
       next: (detail) => {
         this.title.set(detail.title);
@@ -72,7 +82,9 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
         this.loading.set(false);
         setTimeout(() => {
           this.updateSlideScale();
-          this.enterFullscreen();
+          if (!embed) {
+            this.enterFullscreen();
+          }
         }, 200);
       },
       error: (err) => {
@@ -83,6 +95,7 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    window.removeEventListener('message', this.onEmbedMessage);
     if (this.hideTimer) {
       clearTimeout(this.hideTimer);
     }
@@ -183,6 +196,17 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
     }
     void this.router.navigate(['/teacher/presentations', this.presentationId(), 'edit']);
   }
+
+  private readonly onEmbedMessage = (ev: MessageEvent): void => {
+    if (ev.data?.type !== 'cale-presentation-slide') {
+      return;
+    }
+    const idx = Number(ev.data.slideIndex);
+    if (!Number.isNaN(idx) && idx >= 0 && idx < this.slides().length) {
+      this.index.set(idx);
+      this.updateSlideScale();
+    }
+  };
 
   bgStyle(slide: EditorSlide): Record<string, string> {
     const css = backgroundCss(slide.background);

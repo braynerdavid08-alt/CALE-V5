@@ -1,13 +1,18 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { AuthApi } from '../../features/auth/api/auth.api';
 import { AuthResponse, MeSchoolContext, SessionUser } from './session.models';
 
 const STORAGE_KEY = 'cale.session.v5';
 
 @Injectable({ providedIn: 'root' })
 export class SessionStore {
+  private readonly authApi = inject(AuthApi);
+
   readonly token = signal<string | null>(null);
   readonly user = signal<SessionUser | null>(null);
-  readonly isAuthenticated = computed(() => !!this.token());
+  readonly cookieAuth = signal(false);
+  readonly isAuthenticated = computed(() => !!this.user());
   readonly hasCatalogAccess = computed(() => this.catalogAccess());
   readonly hasSimulacroAccess = computed(() => this.simulacroAccess());
 
@@ -46,6 +51,29 @@ export class SessionStore {
     this.restore();
   }
 
+  async bootstrap(): Promise<void> {
+    if (this.user()) {
+      try {
+        const me = await firstValueFrom(this.authApi.me());
+        this.applyMe(me);
+        return;
+      } catch {
+        /* try refresh below */
+      }
+    }
+
+    try {
+      const refreshed = await firstValueFrom(this.authApi.refresh());
+      this.set(refreshed);
+      const me = await firstValueFrom(this.authApi.me());
+      this.applyMe(me);
+    } catch {
+      if (!this.user()) {
+        this.clear();
+      }
+    }
+  }
+
   homeRoute(): string {
     const role = this.user()?.role;
     if (role === 'Admin') {
@@ -68,9 +96,34 @@ export class SessionStore {
       role: response.role,
       mustChangePassword: !!response.mustChangePassword
     };
-    this.token.set(response.token);
+    const usesCookie = !!response.usesCookieAuth;
+    this.cookieAuth.set(usesCookie);
+    this.token.set(usesCookie ? null : response.token || null);
     this.user.set(user);
-    this.persist({ token: response.token, user });
+    this.persist(user, usesCookie ? null : response.token || null);
+  }
+
+  applyMe(me: {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+    mustChangePassword?: boolean;
+    school?: MeSchoolContext | null;
+  }): void {
+    const current = this.user();
+    const user: SessionUser = {
+      id: me.id,
+      name: me.name,
+      email: me.email,
+      role: me.role,
+      mustChangePassword: !!me.mustChangePassword,
+      schoolId: me.school?.schoolId ?? current?.schoolId ?? null,
+      isMembershipActive: me.school?.isMembershipActive ?? current?.isMembershipActive,
+      planLabel: me.school?.planLabel ?? current?.planLabel ?? null
+    };
+    this.user.set(user);
+    this.persist(user, this.cookieAuth() ? null : this.token());
   }
 
   applySchoolContext(school: MeSchoolContext | null | undefined): void {
@@ -85,10 +138,7 @@ export class SessionStore {
       planLabel: school?.planLabel ?? null
     };
     this.user.set(user);
-    const token = this.token();
-    if (token) {
-      this.persist({ token, user });
-    }
+    this.persist(user, this.cookieAuth() ? null : this.token());
   }
 
   patchUser(partial: Partial<SessionUser>): void {
@@ -98,21 +148,19 @@ export class SessionStore {
     }
     const user = { ...current, ...partial };
     this.user.set(user);
-    const token = this.token();
-    if (token) {
-      this.persist({ token, user });
-    }
+    this.persist(user, this.cookieAuth() ? null : this.token());
   }
 
   clear(): void {
     this.token.set(null);
     this.user.set(null);
+    this.cookieAuth.set(false);
     sessionStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(STORAGE_KEY);
   }
 
-  private persist(payload: { token: string; user: SessionUser }): void {
-    const raw = JSON.stringify(payload);
+  private persist(user: SessionUser, token: string | null): void {
+    const raw = JSON.stringify({ user, cookieAuth: this.cookieAuth(), token });
     sessionStorage.setItem(STORAGE_KEY, raw);
     localStorage.setItem(STORAGE_KEY, raw);
   }
@@ -126,14 +174,14 @@ export class SessionStore {
     }
     try {
       const parsed = JSON.parse(raw) as {
-        token?: string;
+        token?: string | null;
         user?: SessionUser;
+        cookieAuth?: boolean;
       };
-      if (parsed.token && parsed.user) {
-        this.token.set(parsed.token);
+      if (parsed.user) {
         this.user.set(parsed.user);
-        sessionStorage.setItem(STORAGE_KEY, raw);
-        localStorage.setItem(STORAGE_KEY, raw);
+        this.cookieAuth.set(!!parsed.cookieAuth);
+        this.token.set(parsed.cookieAuth ? null : parsed.token ?? null);
       }
     } catch {
       sessionStorage.removeItem(STORAGE_KEY);

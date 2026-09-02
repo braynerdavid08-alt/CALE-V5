@@ -35,4 +35,5 @@ public interface ILiveSessionBroadcaster
     Task DoubtsUpdatedAsync(int sessionId, object payload, CancellationToken ct = default);
     Task RematchReadyAsync(int sessionId, object payload, CancellationToken ct = default);
     Task SurpriseQueuedAsync(int sessionId, object payload, CancellationToken ct = default);
+    Task PresentationSlideChangedAsync(int sessionId, object payload, CancellationToken ct = default);
 }

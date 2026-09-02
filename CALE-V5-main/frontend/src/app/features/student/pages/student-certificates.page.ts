@@ -53,7 +53,10 @@ interface CertificateItem {
           </a>
         </ui-card>
       } @else {
-        <div class="grid">
+        <div class="cert-actions">
+          <ui-button type="button" (click)="printCertificates()">Imprimir / guardar PDF</ui-button>
+        </div>
+        <div class="grid" id="certificates-print">
           @for (item of items(); track item.title) {
             <ui-card>
               <p class="badge" [class.muted]="item.tone === 'muted'">
@@ -94,6 +97,13 @@ interface CertificateItem {
     h2 { margin: 0 0 0.35rem; font-size: 1.05rem; }
     .detail { margin: 0; color: var(--color-text-secondary); line-height: 1.45; }
     .date { margin: 0.65rem 0 0; font-size: 0.85rem; color: var(--color-text-muted, var(--color-text-secondary)); }
+    .cert-actions { margin-bottom: 1rem; }
+    @media print {
+      .cert-actions { display: none; }
+      ui-page-header, ui-error { display: none; }
+      .grid { display: block; }
+      ui-card { break-inside: avoid; margin-bottom: 1rem; box-shadow: none; border: 1px solid #ccc; }
+    }
   `]
 })
 export class StudentCertificatesPage implements OnInit {
@@ -174,5 +184,9 @@ export class StudentCertificatesPage implements OnInit {
         this.error.set(mapApiError(err));
       }
     });
+  }
+
+  printCertificates(): void {
+    window.print();
   }
 }

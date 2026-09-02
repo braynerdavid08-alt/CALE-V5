@@ -14,12 +14,16 @@ public static class DependencyInjection
         this IServiceCollection services)
     {
         services.AddScoped<IUserStore, UserStore>();
+        services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();
         services.AddScoped<ISchoolProfileStore, SchoolProfileStore>();
         services.AddScoped<IMembershipEventStore, MembershipEventStore>();
         services.AddScoped<IUserLookup, UserLookupService>();
         services.AddScoped<ISchoolAffiliationLookup, SchoolAffiliationLookup>();
         services.AddScoped<ICatalogAccessGuard, CatalogAccessGuard>();
         services.AddScoped<LoginUserHandler>();
+        services.AddScoped<IssueAuthSessionHandler>();
+        services.AddScoped<RefreshAuthSessionHandler>();
+        services.AddScoped<LogoutAuthSessionHandler>();
         services.AddScoped<ConfirmEmailHandler>();
         services.AddScoped<ResendConfirmationHandler>();
         services.AddScoped<EmailConfirmationService>();

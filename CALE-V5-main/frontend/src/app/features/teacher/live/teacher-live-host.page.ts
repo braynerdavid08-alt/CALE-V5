@@ -1,4 +1,5 @@
 import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HubConnection } from '@microsoft/signalr';
@@ -33,6 +34,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly api = inject(LiveApi);
   private readonly teacherApi = inject(TeacherApi);
+  private readonly sanitizer = inject(DomSanitizer);
   private hub: HubConnection | null = null;
   private timerId: ReturnType<typeof setInterval> | null = null;
   private autoCloseSent = false;
@@ -58,6 +60,8 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     { text: '' }
   ]);
   readonly qrDataUrl = signal('');
+  readonly presentationSlide = signal(0);
+  readonly showPresentation = signal(false);
   private readonly bankNames = signal<Record<number, string>>({});
 
   ngOnInit(): void {
@@ -165,10 +169,34 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     if (!id) {
       return;
     }
-    const url = this.router.serializeUrl(
-      this.router.createUrlTree(['/teacher/presentations', id, 'present'])
+    this.showPresentation.set(true);
+  }
+
+  presentationEmbedUrl(): SafeResourceUrl {
+    const id = this.linkedPresentationId();
+    if (!id) {
+      return this.sanitizer.bypassSecurityTrustResourceUrl('about:blank');
+    }
+    const path = `/teacher/presentations/${id}/present?embed=1&slide=${this.presentationSlide()}`;
+    return this.sanitizer.bypassSecurityTrustResourceUrl(path);
+  }
+
+  async changePresentationSlide(delta: number): Promise<void> {
+    const next = Math.max(0, this.presentationSlide() + delta);
+    this.presentationSlide.set(next);
+    const iframe = document.getElementById('live-pres-iframe') as HTMLIFrameElement | null;
+    iframe?.contentWindow?.postMessage(
+      { type: 'cale-presentation-slide', slideIndex: next },
+      '*'
     );
-    window.open(url, '_blank', 'noopener,noreferrer');
+    const sessionId = this.lobby()?.sessionId;
+    if (sessionId && this.hub) {
+      try {
+        await this.hub.invoke('SyncPresentationSlide', sessionId, next);
+      } catch {
+        /* non-fatal */
+      }
+    }
   }
 
   duplicateConfig(): void {

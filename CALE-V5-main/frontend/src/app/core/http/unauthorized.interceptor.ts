@@ -1,37 +1,67 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, throwError } from 'rxjs';
+import { catchError, switchMap, throwError } from 'rxjs';
+import { AuthApi } from '../../features/auth/api/auth.api';
 import { SessionStore } from '../auth/session.store';
 
+let refreshInFlight: ReturnType<AuthApi['refresh']> | null = null;
+
 /**
- * If the JWT expired or was rejected, clear the local session and send the user
- * to login instead of leaving every page with a generic red banner.
+ * On 401, try cookie refresh once before clearing session and redirecting to login.
  */
 export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
   const session = inject(SessionStore);
   const router = inject(Router);
+  const authApi = inject(AuthApi);
 
   return next(req).pipe(
     catchError((err: unknown) => {
-      if (err instanceof HttpErrorResponse && err.status === 401) {
-        const path = req.url.toLowerCase();
-        const isAuthBootstrap =
-          path.includes('/api/auth/login')
-          || path.includes('/api/auth/register')
-          || path.includes('/api/auth/confirm')
-          || path.includes('/api/auth/resend');
+      if (!(err instanceof HttpErrorResponse) || err.status !== 401) {
+        return throwError(() => err);
+      }
 
-        if (!isAuthBootstrap && session.isAuthenticated()) {
+      const path = req.url.toLowerCase();
+      const isAuthBootstrap =
+        path.includes('/api/auth/login')
+        || path.includes('/api/auth/register')
+        || path.includes('/api/auth/confirm')
+        || path.includes('/api/auth/resend')
+        || path.includes('/api/auth/refresh');
+
+      if (isAuthBootstrap || !session.user()) {
+        return throwError(() => err);
+      }
+
+      if (!session.cookieAuth()) {
+        session.clear();
+        void router.navigateByUrl('/login', {
+          replaceUrl: true,
+          state: { reason: 'session_expired' }
+        });
+        return throwError(() => err);
+      }
+
+      if (!refreshInFlight) {
+        refreshInFlight = authApi.refresh();
+      }
+
+      return refreshInFlight.pipe(
+        switchMap((res) => {
+          refreshInFlight = null;
+          session.set(res);
+          return next(req.clone({ withCredentials: true }));
+        }),
+        catchError((refreshErr) => {
+          refreshInFlight = null;
           session.clear();
           void router.navigateByUrl('/login', {
             replaceUrl: true,
             state: { reason: 'session_expired' }
           });
-        }
-      }
-
-      return throwError(() => err);
+          return throwError(() => refreshErr);
+        })
+      );
     })
   );
 };

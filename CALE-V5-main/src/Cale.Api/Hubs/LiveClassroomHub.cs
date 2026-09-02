@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.Modules.LiveClassroom.Application.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 using Cale.Modules.LiveClassroom.Application.Commands;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
@@ -66,6 +67,38 @@ public sealed class LiveClassroomHub : Hub
             "Live participant connected {ConnectionId} session {SessionId}",
             Context.ConnectionId,
             sessionId);
+    }
+
+    public async Task SyncPresentationSlide(int sessionId, int slideIndex)
+    {
+        var userId = TryGetUserId()
+            ?? throw new HubException("Debes iniciar sesión como anfitrión.");
+
+        var session = await _sessions.GetByIdAsync(sessionId, Context.ConnectionAborted)
+            ?? throw new HubException("Sesión no encontrada.");
+
+        var isAdmin = Context.User?.IsInRole(Roles.Admin) == true;
+        if (!isAdmin && session.HostUserId != userId)
+        {
+            throw new HubException("Solo el anfitrión puede controlar la presentación.");
+        }
+
+        if (slideIndex < 0)
+        {
+            slideIndex = 0;
+        }
+
+        var broadcaster = Context.GetHttpContext()?.RequestServices
+            .GetRequiredService<ILiveSessionBroadcaster>();
+        if (broadcaster is null)
+        {
+            return;
+        }
+
+        await broadcaster.PresentationSlideChangedAsync(
+            sessionId,
+            new { slideIndex },
+            Context.ConnectionAborted);
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
@@ -147,4 +180,8 @@ public sealed class LiveSessionBroadcaster : Cale.Modules.LiveClassroom.Applicat
     public Task SurpriseQueuedAsync(int sessionId, object payload, CancellationToken ct = default) =>
         _hub.Clients.Group(LiveClassroomHub.GroupName(sessionId))
             .SendAsync("SurpriseQueued", payload, ct);
+
+    public Task PresentationSlideChangedAsync(int sessionId, object payload, CancellationToken ct = default) =>
+        _hub.Clients.Group(LiveClassroomHub.GroupName(sessionId))
+            .SendAsync("PresentationSlideChanged", payload, ct);
 }

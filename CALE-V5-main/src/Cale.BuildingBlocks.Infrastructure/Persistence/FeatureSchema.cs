@@ -724,6 +724,24 @@ public static class FeatureSchema
                 """,
                 ct);
 
+            await TrySqliteAsync(
+                db,
+                """
+                CREATE TABLE IF NOT EXISTS "AuthRefreshTokens" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_AuthRefreshTokens" PRIMARY KEY AUTOINCREMENT,
+                    "UserId" INTEGER NOT NULL,
+                    "TokenHash" TEXT NOT NULL,
+                    "ExpiresAt" TEXT NOT NULL,
+                    "CreatedAt" TEXT NOT NULL,
+                    "RevokedAt" TEXT NULL
+                );
+                CREATE INDEX IF NOT EXISTS "IX_AuthRefreshTokens_TokenHash"
+                    ON "AuthRefreshTokens" ("TokenHash");
+                CREATE INDEX IF NOT EXISTS "IX_AuthRefreshTokens_UserId"
+                    ON "AuthRefreshTokens" ("UserId");
+                """,
+                ct);
+
             return;
         }
 
@@ -1190,6 +1208,24 @@ public static class FeatureSchema
                 CREATE UNIQUE INDEX IF NOT EXISTS "IX_SchoolStudentEnrollments_SchoolUserId_StudentUserId" ON "SchoolStudentEnrollments" ("SchoolUserId", "StudentUserId");
                 CREATE UNIQUE INDEX IF NOT EXISTS "IX_StudentDailyCheckIns_StudentUserId_CheckInDate" ON "StudentDailyCheckIns" ("StudentUserId", "CheckInDate");
                 """,
+                ct);
+            await TryPostgresAsync(db,
+                """
+                CREATE TABLE IF NOT EXISTS "AuthRefreshTokens" (
+                    "Id" serial PRIMARY KEY,
+                    "UserId" integer NOT NULL,
+                    "TokenHash" varchar(128) NOT NULL,
+                    "ExpiresAt" timestamp with time zone NOT NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL,
+                    "RevokedAt" timestamp with time zone NULL
+                );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_AuthRefreshTokens_TokenHash" ON "AuthRefreshTokens" ("TokenHash");""",
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_AuthRefreshTokens_UserId" ON "AuthRefreshTokens" ("UserId");""",
                 ct);
             return;
         }

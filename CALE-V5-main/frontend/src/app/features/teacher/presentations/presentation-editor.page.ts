@@ -102,7 +102,10 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   readonly canRedo = signal(false);
   readonly showSignPicker = signal(false);
   readonly snapEnabled = signal(true);
+  readonly snapGuideX = signal<number | null>(null);
+  readonly snapGuideY = signal<number | null>(null);
   readonly trafficSigns = TRAFFIC_SIGN_OPTIONS;
+  private elementClipboard: SlideElement | null = null;
 
   @ViewChild('bgImageInput') bgImageInput?: ElementRef<HTMLInputElement>;
 
@@ -294,7 +297,39 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (Math.abs(elCy - SLIDE_H / 2) < threshold) {
       ny = Math.round(SLIDE_H / 2 - h / 2);
     }
+    this.snapGuideX.set(Math.abs(elCx - SLIDE_W / 2) < threshold ? Math.round(SLIDE_W / 2) : null);
+    this.snapGuideY.set(Math.abs(elCy - SLIDE_H / 2) < threshold ? Math.round(SLIDE_H / 2) : null);
     return { x: nx, y: ny };
+  }
+
+  clearSnapGuides(): void {
+    this.snapGuideX.set(null);
+    this.snapGuideY.set(null);
+  }
+
+  copySelectedElement(): void {
+    const sel = this.selected();
+    if (!sel) {
+      return;
+    }
+    this.elementClipboard = structuredClone(sel);
+  }
+
+  pasteElementClipboard(): void {
+    if (!this.elementClipboard) {
+      return;
+    }
+    this.pushHistory();
+    const copy = {
+      ...structuredClone(this.elementClipboard),
+      id: newClientId('el'),
+      x: this.elementClipboard.x + 24,
+      y: this.elementClipboard.y + 24,
+      z: this.nextZ()
+    };
+    this.pushElement(copy);
+    this.selectedId.set(copy.id);
+    this.markDirty();
   }
 
   @HostListener('window:beforeunload', ['$event'])
@@ -335,6 +370,16 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       return;
     }
     const meta = ev.ctrlKey || ev.metaKey;
+    if (meta && ev.key.toLowerCase() === 'c' && this.selectedId()) {
+      ev.preventDefault();
+      this.copySelectedElement();
+      return;
+    }
+    if (meta && ev.key.toLowerCase() === 'v') {
+      ev.preventDefault();
+      this.pasteElementClipboard();
+      return;
+    }
     if (meta && ev.key.toLowerCase() === 'z' && !ev.shiftKey) {
       ev.preventDefault();
       this.undo();
@@ -1283,6 +1328,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   endDrag(): void {
     if (this.drag) {
       this.drag = null;
+      this.clearSnapGuides();
       this.markDirty();
     }
   }

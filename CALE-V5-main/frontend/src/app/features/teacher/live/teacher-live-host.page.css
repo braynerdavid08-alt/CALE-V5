@@ -8,7 +8,21 @@
 .host { max-width: 1200px; margin: 0 auto; }
 .eyebrow { color: var(--color-primary); font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; font-size: var(--text-xs); margin: 0; }
 .top { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; margin-bottom: 1rem; }
-.top-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.pres-embed { margin-bottom: 1rem; }
+.pres-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+.pres-frame {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: #0b1f33;
+}
 .config-summary {
   margin: 0.5rem 0 0;
   padding: 0;

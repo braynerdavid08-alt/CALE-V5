@@ -22,6 +22,7 @@ using Cale.Modules.Presentation.Infrastructure;
 using Cale.Modules.Presentation.Infrastructure.Persistence;
 using Cale.Api.Hubs;
 using Cale.Api.Infrastructure;
+using Cale.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
@@ -104,6 +105,7 @@ public static class ServiceCollectionExtensions
         services.AddMemoryCache();
         services.AddScoped<Cale.Api.Services.PilotMetricsService>();
         services.AddScoped<Cale.Api.Services.HomepageService>();
+        services.AddScoped<Cale.Api.Services.AuthCookieService>();
         services.AddCaleAuth(config);
         services.AddCaleCors(config);
         return builder;
@@ -139,6 +141,14 @@ public static class ServiceCollectionExtensions
                             && path.StartsWithSegments("/hubs"))
                         {
                             context.Token = accessToken;
+                        }
+                        else if (string.IsNullOrEmpty(context.Token)
+                            && context.Request.Cookies.TryGetValue(
+                                AuthCookieNames.Access,
+                                out var cookieToken)
+                            && !string.IsNullOrWhiteSpace(cookieToken))
+                        {
+                            context.Token = cookieToken;
                         }
 
                         return Task.CompletedTask;

@@ -16,6 +16,7 @@ export interface AuthResponse {
   email: string;
   role: string;
   mustChangePassword?: boolean;
+  usesCookieAuth?: boolean;
 }
 
 export interface MeSchoolContext {
