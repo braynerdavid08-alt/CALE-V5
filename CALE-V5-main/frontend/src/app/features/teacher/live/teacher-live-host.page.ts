@@ -62,6 +62,8 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   readonly qrDataUrl = signal('');
   readonly presentationSlide = signal(0);
   readonly showPresentation = signal(false);
+  readonly projectorMode = signal(false);
+  readonly showMoreControls = signal(false);
   private readonly bankNames = signal<Record<number, string>>({});
 
   ngOnInit(): void {
@@ -400,23 +402,38 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     this.syncTimer(lobby.currentQuestion ?? null);
   }
 
+  toggleProjectorMode(): void {
+    this.projectorMode.update((v) => !v);
+  }
+
   private syncTimer(q: LiveQuestionPayloadDto | null): void {
     if (this.timerId) {
       clearInterval(this.timerId);
       this.timerId = null;
     }
-    if (!q?.closesAt) {
+    if (!q) {
       this.secondsLeft.set(null);
       this.autoCloseSent = false;
       return;
     }
-    const closesMs = new Date(q.closesAt).getTime();
-    const alreadyClosed = closesMs <= Date.now();
-    if (!alreadyClosed) {
-      this.autoCloseSent = false;
-    }
+
+    const maxSecs = Math.max(5, q.secondsPerQuestion ?? 30);
+    const closesMs = q.closesAt ? new Date(q.closesAt).getTime() : NaN;
+    const opensMs = q.opensAt ? new Date(q.opensAt).getTime() : NaN;
+
     const tick = () => {
-      const left = Math.max(0, Math.ceil((closesMs - Date.now()) / 1000));
+      let left: number;
+      if (Number.isFinite(closesMs)) {
+        left = Math.max(0, Math.ceil((closesMs - Date.now()) / 1000));
+        // Si el servidor manda un cierre absurdo, usar tiempo desde apertura
+        if (left > maxSecs + 10 && Number.isFinite(opensMs)) {
+          left = Math.max(0, maxSecs - Math.floor((Date.now() - opensMs) / 1000));
+        }
+      } else if (Number.isFinite(opensMs)) {
+        left = Math.max(0, maxSecs - Math.floor((Date.now() - opensMs) / 1000));
+      } else {
+        left = maxSecs;
+      }
       this.secondsLeft.set(left);
       if (left === 0 && !this.autoCloseSent) {
         this.autoCloseSent = true;
@@ -425,10 +442,9 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
         }
       }
     };
+
     tick();
-    if (!alreadyClosed) {
-      this.timerId = setInterval(tick, 250);
-    }
+    this.timerId = setInterval(tick, 250);
   }
 
   private connectHub(sessionId: number): void {

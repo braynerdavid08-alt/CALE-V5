@@ -1,4 +1,4 @@
-<section class="host">
+<section class="host" [class.projector-mode]="projectorMode()">
   <ui-error [message]="error()" />
   @if (lobby(); as l) {
     <header class="top">
@@ -15,16 +15,20 @@
         }
       </div>
       <div class="top-actions">
+        <button type="button" class="btn ghost" (click)="toggleProjectorMode()">
+          {{ projectorMode() ? 'Salir proyector' : 'Modo proyector' }}
+        </button>
         @if (linkedPresentationId()) {
           <button type="button" class="btn ghost" (click)="openLinkedPresentation()">
-            ▶ Presentación
+            ▶ Diapositivas
           </button>
         }
         <a routerLink="/teacher/live" class="back">Volver</a>
       </div>
     </header>
 
-    <div class="layout" [class.playing]="!!l.currentQuestion && l.status !== 'Lobby'">
+    <div class="layout" [class.playing]="!!l.currentQuestion && l.status !== 'Lobby'" [class.projector]="projectorMode()">
+      @if (!projectorMode()) {
       <aside class="lobby-panel">
         <div class="code-block">
           <p class="label">Código de sala</p>
@@ -82,8 +86,9 @@
           </ul>
         </div>
       </aside>
+      }
 
-      <main class="stage">
+      <main class="stage projector-stage">
         @if (linkedPresentationId() && showPresentation()) {
           <section class="pres-embed">
             <div class="pres-toolbar">
@@ -219,20 +224,28 @@
           @if (l.currentQuestion.explanation && l.revealCorrect) {
             <p class="explain">{{ l.currentQuestion.explanation }}</p>
           }
-          <div class="actions wrap">
+          <div class="actions wrap primary-actions">
             @if (l.status === 'Running') {
               <ui-button type="button" variant="ghost" (click)="control('pause')">Pausar</ui-button>
             }
             @if (l.status === 'Paused') {
               <ui-button type="button" (click)="control('resume')">Reanudar</ui-button>
             }
-            <ui-button type="button" variant="ghost" (click)="control('close')">Cerrar pregunta</ui-button>
+            <ui-button type="button" (click)="control('next')">Siguiente pregunta</ui-button>
             <ui-button type="button" variant="ghost" (click)="control('reveal')">Mostrar respuesta</ui-button>
-            <ui-button type="button" variant="ghost" (click)="control('surprise')">Pregunta sorpresa</ui-button>
-            <ui-button type="button" variant="ghost" (click)="toggleQuick()">Pregunta rápida</ui-button>
-            <ui-button type="button" (click)="control('next')">Siguiente</ui-button>
-            <ui-button type="button" variant="danger" (click)="control('end')">Finalizar</ui-button>
+            <ui-button type="button" variant="danger" (click)="control('end')">Terminar clase</ui-button>
+            <button type="button" class="linkish" (click)="showMoreControls.set(!showMoreControls())">
+              {{ showMoreControls() ? 'Menos opciones' : 'Más opciones' }}
+            </button>
           </div>
+
+          @if (showMoreControls()) {
+            <div class="actions wrap secondary-actions">
+              <ui-button type="button" variant="ghost" (click)="control('close')">Cerrar pregunta</ui-button>
+              <ui-button type="button" variant="ghost" (click)="control('surprise')">Pregunta sorpresa</ui-button>
+              <ui-button type="button" variant="ghost" (click)="toggleQuick()">Pregunta rápida</ui-button>
+            </div>
+          }
 
           @if (quickOpen()) {
             <form class="quick-form" (ngSubmit)="submitQuick()">

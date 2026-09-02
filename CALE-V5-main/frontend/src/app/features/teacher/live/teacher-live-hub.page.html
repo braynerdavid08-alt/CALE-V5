@@ -1,10 +1,15 @@
 <section class="page">
   <header class="hero">
-    <p class="eyebrow">CALE LIVE</p>
-    <h1>Aula en Vivo</h1>
+    <p class="eyebrow">Aula en Vivo</p>
+    <h1>Crea una clase interactiva</h1>
     <p class="lead">
-      Control total: combina bancos, define cupos, filtra temas y dificultad, y proyecta exactamente lo que necesitas.
+      Tus estudiantes responden desde el celular mientras tú proyectas las preguntas.
     </p>
+    <ol class="steps">
+      <li><strong>1.</strong> Elige el banco de preguntas</li>
+      <li><strong>2.</strong> Define cuántas preguntas y el tiempo</li>
+      <li><strong>3.</strong> Proyecta el código QR para que se unan</li>
+    </ol>
   </header>
 
   @if (accessHint(); as hint) {
@@ -18,276 +23,190 @@
 
   <ui-error [message]="error()" />
 
-  <div class="modes">
-    <article class="card active">
-      <h2>Configurar simulacro</h2>
+  <form class="card main-form" [formGroup]="form" (ngSubmit)="create()">
+    <label class="field">
+      Nombre de la clase
+      <input formControlName="title" placeholder="Ej. Repaso de señales" />
+    </label>
 
-      <form [formGroup]="form" (ngSubmit)="create()">
-        <label class="field">
-          Título de la actividad
-          <input formControlName="title" />
-        </label>
+    <div class="field">
+      <div class="field-head">
+        <span>¿Qué preguntas usar?</span>
+        <div class="field-actions">
+          <button type="button" class="linkish" (click)="selectAllBanks()">Todas</button>
+          <button type="button" class="linkish" (click)="clearBanks()">Ninguna</button>
+        </div>
+      </div>
+      @if (!banks().length) {
+        <p class="bank-empty">Cargando bancos…</p>
+      } @else {
+        <ul class="bank-list compact">
+          @for (bank of banks(); track bank.id) {
+            <li class="bank-card" [class.selected]="isBankSelected(bank.id)">
+              <label class="bank-item">
+                <input
+                  type="checkbox"
+                  [checked]="isBankSelected(bank.id)"
+                  (change)="toggleBank(bank.id)" />
+                <span class="bank-name">{{ bank.name }}</span>
+                <span class="bank-meta">{{ bank.questionCount }} preg.</span>
+              </label>
+            </li>
+          }
+        </ul>
+        <p class="pool-summary">
+          Saldrán preguntas de <strong>{{ selectedBankIds().length }}</strong> banco(s)
+          ({{ selectedQuestionTotal() }} disponibles).
+        </p>
+      }
+    </div>
 
-        <div class="field">
-          <div class="field-head">
-            <span>Bancos de preguntas</span>
-            <div class="field-actions">
-              <button type="button" class="linkish" (click)="selectAllBanks()">Todos</button>
-              <button type="button" class="linkish" (click)="clearBanks()">Ninguno</button>
-            </div>
-          </div>
-          <p class="field-hint">Marca uno o varios bancos. Puedes mezclarlos libremente o asignar cupos por banco.</p>
-          @if (!banks().length) {
-            <p class="bank-empty">Cargando bancos…</p>
-          } @else {
-            <ul class="bank-list">
-              @for (bank of banks(); track bank.id) {
-                <li class="bank-card" [class.selected]="isBankSelected(bank.id)">
-                  <label class="bank-item">
+    <div class="grid essentials">
+      <label class="field">
+        Cantidad de preguntas
+        <input
+          type="number"
+          formControlName="questionCount"
+          [attr.max]="maxQuestions()"
+          min="1" />
+      </label>
+      <label class="field">
+        Segundos por pregunta
+        <input type="number" formControlName="secondsPerQuestion" min="5" max="600" />
+      </label>
+    </div>
+
+    <div class="presets">
+      <span>Atajo:</span>
+      <button type="button" class="chip" (click)="applyPreset(10, 30)">10 × 30 s</button>
+      <button type="button" class="chip" (click)="applyPreset(25, 72)">25 × 72 s (estándar)</button>
+    </div>
+
+    <label class="field">
+      Tipo de actividad
+      <select formControlName="mode">
+        <option value="Exam">Examen — sin mostrar respuestas hasta el final</option>
+        <option value="Competitive">Competencia — ranking y puntos</option>
+        <option value="Pedagogical">Práctica — los estudiantes pueden preguntar dudas</option>
+      </select>
+    </label>
+
+    <details class="advanced-block">
+      <summary>Más opciones (temas, dificultad, presentación…)</summary>
+
+      @for (bank of banks(); track bank.id) {
+        @if (isBankSelected(bank.id) && bankThemes(bank).length) {
+          <details class="theme-details">
+            <summary>Filtrar temas de «{{ bank.name }}»</summary>
+            <ul class="theme-list">
+              @for (theme of visibleThemes(bank); track theme.name) {
+                <li>
+                  <label class="theme-item">
                     <input
                       type="checkbox"
-                      [checked]="isBankSelected(bank.id)"
-                      (change)="toggleBank(bank.id)" />
-                    <span class="bank-copy">
-                      <span class="bank-name">{{ bank.name }}</span>
-                      @if (bank.description) {
-                        <span class="bank-desc">{{ bank.description }}</span>
-                      }
-                    </span>
-                    <span class="bank-meta">{{ bank.questionCount }} preg.</span>
+                      [checked]="isThemeSelected(bank.id, theme.name)"
+                      (change)="toggleTheme(bank.id, theme.name)" />
+                    <span>{{ theme.name }}</span>
+                    <span class="bank-meta">{{ theme.questionCount }}</span>
                   </label>
-
-                  @if (isBankSelected(bank.id) && distributionMode() === 'quotas') {
-                    <div class="quota-row">
-                      <label>
-                        Cupo en esta sala
-                        <input
-                          type="number"
-                          min="0"
-                          [max]="bankSelectedCount(bank)"
-                          [value]="bankQuota(bank.id)"
-                          (input)="setBankQuota(bank.id, +$any($event.target).value)" />
-                      </label>
-                      <span class="bank-meta">máx. {{ bankSelectedCount(bank) }}</span>
-                    </div>
-                  }
-
-                  @if (isBankSelected(bank.id) && bankThemes(bank).length) {
-                    <details class="theme-details">
-                      <summary>Filtrar {{ bank.themeLabel || 'temas' }} (opcional)</summary>
-                      <div class="theme-panel">
-                        <div class="theme-toolbar">
-                          <span>{{ bank.themeLabel || 'Temas' }}</span>
-                          <div class="field-actions">
-                            <button type="button" class="linkish" (click)="selectAllThemes(bank.id); $event.preventDefault()">Todos</button>
-                            <button type="button" class="linkish" (click)="clearBankThemes(bank.id); $event.preventDefault()">Sin filtro</button>
-                          </div>
-                        </div>
-                        @if (bankThemes(bank).length > 8) {
-                          <input
-                            class="theme-search"
-                            type="search"
-                            [value]="themeQueryFor(bank.id)"
-                            (input)="setThemeQuery(bank.id, $any($event.target).value)"
-                            placeholder="Buscar…" />
-                        }
-                        <ul class="theme-list">
-                          @for (theme of visibleThemes(bank); track theme.name) {
-                            <li>
-                              <label class="theme-item">
-                                <input
-                                  type="checkbox"
-                                  [checked]="isThemeSelected(bank.id, theme.name)"
-                                  (change)="toggleTheme(bank.id, theme.name)" />
-                                <span>{{ theme.name }}</span>
-                                <span class="bank-meta">{{ theme.questionCount }}</span>
-                              </label>
-                            </li>
-                          }
-                        </ul>
-                        <p class="bank-summary">
-                          @if (bankThemeSelection(bank.id).length === 0) {
-                            Todo el banco: {{ bank.questionCount }} preguntas
-                          } @else {
-                            {{ bankThemeSelection(bank.id).length }} tema(s) · {{ bankSelectedCount(bank) }} preguntas
-                          }
-                        </p>
-                      </div>
-                    </details>
-                  }
                 </li>
               }
             </ul>
-            <p class="pool-summary">
-              <strong>{{ selectedBankIds().length }}</strong> banco(s) ·
-              <strong>{{ selectedQuestionTotal() }}</strong> preguntas en el pool
-            </p>
-          }
-        </div>
-
-        <div class="field">
-          <span>Distribución de preguntas</span>
-          <div class="toggle-row">
-            <button
-              type="button"
-              class="chip"
-              [class.on]="distributionMode() === 'mix'"
-              (click)="setDistributionMode('mix')">
-              Mezcla libre
-            </button>
-            <button
-              type="button"
-              class="chip"
-              [class.on]="distributionMode() === 'quotas'"
-              (click)="setDistributionMode('quotas')">
-              Cupos por banco
-            </button>
-          </div>
-          @if (distributionMode() === 'quotas') {
-            <p class="field-hint">
-              Define cuántas preguntas salen de cada banco. El resto se completa al azar del pool si hace falta.
-              Total cupos: {{ quotaTotal() }}.
-            </p>
-          }
-        </div>
-
-        @if (availableDifficulties().length) {
-          <div class="field">
-            <div class="field-head">
-              <span>Dificultad (opcional)</span>
-              <button type="button" class="linkish" (click)="clearDifficulties()">Todas</button>
-            </div>
-            <div class="toggle-row">
-              @for (d of availableDifficulties(); track d.name) {
-                <button
-                  type="button"
-                  class="chip"
-                  [class.on]="selectedDifficulties().includes(d.name)"
-                  (click)="toggleDifficulty(d.name)">
-                  {{ d.name }} ({{ d.questionCount }})
-                </button>
-              }
-            </div>
-          </div>
+          </details>
         }
+      }
 
-        <div class="grid">
-          <label class="field">
-            Cantidad de preguntas
-            <input
-              type="number"
-              formControlName="questionCount"
-              [attr.max]="maxQuestions()"
-              min="1" />
-            <span class="field-hint">Máximo {{ maxQuestions() }} con la selección actual</span>
-          </label>
-          <label class="field">
-            Segundos por pregunta
-            <input type="number" formControlName="secondsPerQuestion" min="5" max="600" />
-          </label>
+      @if (availableDifficulties().length) {
+        <div class="field">
+          <span>Dificultad</span>
+          <div class="toggle-row">
+            @for (d of availableDifficulties(); track d.name) {
+              <button
+                type="button"
+                class="chip"
+                [class.on]="selectedDifficulties().includes(d.name)"
+                (click)="toggleDifficulty(d.name)">
+                {{ d.name }}
+              </button>
+            }
+          </div>
         </div>
+      }
 
-        <div class="presets">
-          <span>Atajos:</span>
-          <button type="button" class="chip" (click)="applyPreset(10, 30)">10 preg · 30 s</button>
-          <button type="button" class="chip" (click)="applyPreset(25, 72)">25 preg · 72 s (CALE)</button>
-          <button type="button" class="chip" (click)="applyPreset(maxQuestions(), 60)">Usar todas ({{ maxQuestions() }})</button>
+      <div class="field">
+        <span>Distribución</span>
+        <div class="toggle-row">
+          <button type="button" class="chip" [class.on]="distributionMode() === 'mix'" (click)="setDistributionMode('mix')">Mezclar todo</button>
+          <button type="button" class="chip" [class.on]="distributionMode() === 'quotas'" (click)="setDistributionMode('quotas')">Cupos por banco</button>
         </div>
+      </div>
 
-        <div class="advanced">
-          <label class="check">
-            <input type="checkbox" formControlName="randomize" />
-            Orden aleatorio de preguntas
-          </label>
-          <label class="check">
-            <input type="checkbox" formControlName="shuffleOptions" />
-            Mezclar opciones A/B/C/D
-          </label>
-        </div>
+      <label class="field">
+        Diapositivas (opcional)
+        <select [value]="selectedPresentationId() ?? ''" (change)="onPresentationChange($event)">
+          <option value="">Sin diapositivas</option>
+          @for (p of presentations(); track p.id) {
+            <option [value]="p.id">{{ p.title }}</option>
+          }
+        </select>
+      </label>
 
-        <label class="field">
-          Modo
-          <select formControlName="mode">
-            <option value="Exam">Examen (sin revelar durante)</option>
-            <option value="Competitive">Competitivo (Top 5 + puntos)</option>
-            <option value="Pedagogical">Pedagógico (dudas + feedback)</option>
-          </select>
+      <div class="advanced">
+        <label class="check">
+          <input type="checkbox" formControlName="randomize" />
+          Preguntas en orden aleatorio
         </label>
-
-        <label class="field">
-          Presentación vinculada (opcional)
-          <select
-            [value]="selectedPresentationId() ?? ''"
-            (change)="onPresentationChange($event)">
-            <option value="">Sin presentación</option>
-            @for (p of presentations(); track p.id) {
-              <option [value]="p.id">{{ p.title }}</option>
-            }
-          </select>
-          <span class="field-hint">Abre la diapositiva desde el panel del anfitrión durante la sesión.</span>
+        <label class="check">
+          <input type="checkbox" formControlName="shuffleOptions" />
+          Mezclar opciones A / B / C / D
         </label>
+      </div>
 
-        <div class="preview">
-          <h3>Vista previa de la sala</h3>
-          <ul>
-            <li><strong>Bancos:</strong> {{ configPreview().banks.join(', ') || '—' }}</li>
-            <li><strong>Pool:</strong> {{ configPreview().pool }} preguntas disponibles</li>
-            <li><strong>Saldrán:</strong> {{ configPreview().questions }} preguntas · {{ configPreview().seconds }} s c/u</li>
-            @if (configPreview().themedBanks) {
-              <li><strong>Temas filtrados</strong> en {{ configPreview().themedBanks }} banco(s)</li>
-            }
-            @if (configPreview().difficulties.length) {
-              <li><strong>Dificultad:</strong> {{ configPreview().difficulties.join(', ') }}</li>
-            }
-            @if (configPreview().distribution === 'quotas' && configPreview().quotaTotal) {
-              <li><strong>Cupos:</strong> {{ configPreview().quotaTotal }} preguntas asignadas por banco</li>
+      <div class="saved">
+        <div class="save-row">
+          <input
+            type="text"
+            [value]="presetName()"
+            (input)="presetName.set($any($event.target).value)"
+            placeholder="Guardar esta configuración como…" />
+          <button type="button" class="chip" (click)="saveCurrentPreset()">Guardar</button>
+        </div>
+        @if (savedPresets().length) {
+          <ul class="preset-list">
+            @for (p of savedPresets(); track p.id) {
+              <li>
+                <button type="button" class="chip on" (click)="loadPreset(p)">{{ p.name }}</button>
+                <button type="button" class="linkish danger" (click)="removePreset(p.id)">×</button>
+              </li>
             }
           </ul>
-        </div>
+        }
+      </div>
+    </details>
 
-        <div class="saved">
-          <div class="field-head">
-            <span>Configuraciones guardadas</span>
-          </div>
-          <div class="save-row">
-            <input
-              type="text"
-              [value]="presetName()"
-              (input)="presetName.set($any($event.target).value)"
-              placeholder="Nombre del preset (ej. Repaso señales)" />
-            <button type="button" class="chip" (click)="saveCurrentPreset()">Guardar</button>
-          </div>
-          @if (savedPresets().length) {
-            <ul class="preset-list">
-              @for (p of savedPresets(); track p.id) {
-                <li>
-                  <button type="button" class="chip on" (click)="loadPreset(p)">{{ p.name }}</button>
-                  <button type="button" class="linkish danger" (click)="removePreset(p.id)">×</button>
-                </li>
-              }
-            </ul>
-          }
-        </div>
+    <div class="preview compact">
+      <strong>Resumen:</strong>
+      {{ configPreview().questions }} preguntas · {{ configPreview().seconds }} s cada una
+      @if (configPreview().banks.length) {
+        · {{ configPreview().banks.join(', ') }}
+      }
+    </div>
 
-        <ui-button type="submit" [loading]="loading()" [disabled]="!!accessHint()">
-          Crear sala y proyectar
-        </ui-button>
-      </form>
-    </article>
+    <ui-button type="submit" [loading]="loading()" [disabled]="!!accessHint()">
+      Crear sala y abrir proyector
+    </ui-button>
+  </form>
 
-    <article class="card tip">
-      <h2>En el proyector</h2>
-      <ul>
-        <li><strong>Combina bancos:</strong> Normas + Señales, o solo uno.</li>
-        <li><strong>Cupos:</strong> reparte preguntas por banco si quieres equilibrio.</li>
-        <li><strong>Temas y dificultad:</strong> enfoca la clase sin perder libertad.</li>
-        <li><strong>Presets:</strong> guarda tus configuraciones favoritas.</li>
-      </ul>
-    </article>
-  </div>
-
-  <p class="hint">
-    ¿Los estudiantes ya tienen el código?
-    <a routerLink="/live/join">Ir a unirse</a>
-  </p>
+  <aside class="card help-card">
+    <h2>¿Qué verán los estudiantes?</h2>
+    <ul>
+      <li>Entran con el <strong>código</strong> o escaneando el <strong>QR</strong>.</li>
+      <li>En su celular ven la pregunta y eligen A, B, C o D.</li>
+      <li>Tú ves en pantalla quién respondió y el ranking (si es competencia).</li>
+    </ul>
+    <p class="hint">
+      ¿Ya tienen el código?
+      <a routerLink="/live/join">Página para unirse</a>
+    </p>
+  </aside>
 </section>
