@@ -17,6 +17,7 @@ import {
   sanitizeLiveLobby
 } from '../../live/api/live.api';
 import { TeacherApi } from '../api/teacher.api';
+import { computeSecondsLeft } from '../../live/live-timer.util';
 
 interface QuickOptionDraft {
   text: string;
@@ -37,6 +38,8 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   private readonly sanitizer = inject(DomSanitizer);
   private hub: HubConnection | null = null;
   private timerId: ReturnType<typeof setInterval> | null = null;
+  private timerQuestionId: number | null = null;
+  private localDeadlineMs = 0;
   private autoCloseSent = false;
   private lastAnalyticsAtAnswers = -1;
   private exporting = false;
@@ -413,27 +416,28 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     }
     if (!q) {
       this.secondsLeft.set(null);
+      this.timerQuestionId = null;
+      this.localDeadlineMs = 0;
       this.autoCloseSent = false;
       return;
     }
 
-    const maxSecs = Math.max(5, q.secondsPerQuestion ?? 30);
-    const closesMs = q.closesAt ? new Date(q.closesAt).getTime() : NaN;
-    const opensMs = q.opensAt ? new Date(q.opensAt).getTime() : NaN;
+    const maxSecs = Math.max(5, q.secondsPerQuestion ?? this.lobby()?.config?.secondsPerQuestion ?? 30);
+    const isNewQuestion = q.sessionQuestionId !== this.timerQuestionId;
+    if (isNewQuestion) {
+      this.timerQuestionId = q.sessionQuestionId;
+      const synced = computeSecondsLeft(q, this.lobby()?.config?.secondsPerQuestion);
+      const startLeft = synced ?? maxSecs;
+      this.localDeadlineMs = Date.now() + startLeft * 1000;
+    }
 
     const tick = () => {
-      let left: number;
-      if (Number.isFinite(closesMs)) {
-        left = Math.max(0, Math.ceil((closesMs - Date.now()) / 1000));
-        // Si el servidor manda un cierre absurdo, usar tiempo desde apertura
-        if (left > maxSecs + 10 && Number.isFinite(opensMs)) {
-          left = Math.max(0, maxSecs - Math.floor((Date.now() - opensMs) / 1000));
-        }
-      } else if (Number.isFinite(opensMs)) {
-        left = Math.max(0, maxSecs - Math.floor((Date.now() - opensMs) / 1000));
-      } else {
-        left = maxSecs;
+      if (this.lobby()?.status === 'Paused') {
+        return;
       }
+
+      const synced = computeSecondsLeft(q, this.lobby()?.config?.secondsPerQuestion);
+      const left = synced ?? Math.max(0, Math.ceil((this.localDeadlineMs - Date.now()) / 1000));
       this.secondsLeft.set(left);
       if (left === 0 && !this.autoCloseSent) {
         this.autoCloseSent = true;

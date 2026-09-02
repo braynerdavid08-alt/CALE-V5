@@ -23,10 +23,12 @@ using Cale.Modules.Presentation.Infrastructure.Persistence;
 using Cale.Api.Hubs;
 using Cale.Api.Infrastructure;
 using Cale.Api.Services;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
@@ -49,8 +51,10 @@ public static class ServiceCollectionExtensions
             options.MultipartBodyLengthLimit = UploadLimits.PresentationImportBytes;
         });
 
-        services.AddControllers();
-        services.AddSignalR();
+        services.AddControllers()
+            .AddJsonOptions(options => ConfigureJson(options.JsonSerializerOptions));
+        services.AddSignalR()
+            .AddJsonProtocol(options => ConfigureJson(options.PayloadSerializerOptions));
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -229,6 +233,14 @@ public static class ServiceCollectionExtensions
                     .WithExposedHeaders("X-Request-Id");
             });
         });
+    }
+
+    private static void ConfigureJson(System.Text.Json.JsonSerializerOptions options)
+    {
+        options.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.Converters.Add(new UtcDateTimeConverter());
+        options.Converters.Add(new NullableUtcDateTimeConverter());
+        options.Converters.Add(new JsonStringEnumConverter());
     }
 
     private static OpenApiSecurityRequirement CreateBearerRequirement()

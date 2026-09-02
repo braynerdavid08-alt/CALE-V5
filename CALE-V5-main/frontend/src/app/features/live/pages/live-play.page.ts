@@ -13,6 +13,7 @@ import {
   LiveRankingDto,
   sanitizeLiveLobby
 } from '../api/live.api';
+import { computeSecondsLeft } from '../live-timer.util';
 import { readLiveParticipant, saveLiveParticipant } from './live-join.page';
 
 @Component({
@@ -28,6 +29,8 @@ export class LivePlayPage implements OnInit, OnDestroy {
   private readonly api = inject(LiveApi);
   private hub: HubConnection | null = null;
   private timerId: ReturnType<typeof setInterval> | null = null;
+  private timerQuestionId: number | null = null;
+  private localDeadlineMs = 0;
 
   readonly lobby = signal<LiveLobbyDto | null>(null);
   readonly ranking = signal<LiveRankingDto | null>(null);
@@ -187,12 +190,27 @@ export class LivePlayPage implements OnInit, OnDestroy {
       clearInterval(this.timerId);
       this.timerId = null;
     }
-    if (!q?.closesAt) {
+    if (!q) {
       this.secondsLeft.set(null);
+      this.timerQuestionId = null;
+      this.localDeadlineMs = 0;
       return;
     }
+
+    const maxSecs = Math.max(5, q.secondsPerQuestion ?? this.lobby()?.config?.secondsPerQuestion ?? 30);
+    if (q.sessionQuestionId !== this.timerQuestionId) {
+      this.timerQuestionId = q.sessionQuestionId;
+      const synced = computeSecondsLeft(q, this.lobby()?.config?.secondsPerQuestion);
+      const startLeft = synced ?? maxSecs;
+      this.localDeadlineMs = Date.now() + startLeft * 1000;
+    }
+
     const tick = () => {
-      const left = Math.max(0, Math.ceil((new Date(q.closesAt!).getTime() - Date.now()) / 1000));
+      if (this.lobby()?.status === 'Paused') {
+        return;
+      }
+      const synced = computeSecondsLeft(q, this.lobby()?.config?.secondsPerQuestion);
+      const left = synced ?? Math.max(0, Math.ceil((this.localDeadlineMs - Date.now()) / 1000));
       this.secondsLeft.set(left);
     };
     tick();
