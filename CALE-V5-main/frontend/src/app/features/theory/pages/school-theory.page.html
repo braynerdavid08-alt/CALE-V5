@@ -561,23 +561,54 @@
           Cada escuela puede tener reglas distintas.
         </p>
 
-        <label>Plantilla rápida
-          <select [ngModel]="bookingPreset()" (ngModelChange)="applyBookingPreset($event)">
-            <option value="standard">Estándar (1 entre semana · 4 sábados)</option>
-            <option value="strict">Estricto (1 clase/día · máx. 2 h)</option>
-            <option value="open">Abierto (sin límite de clases)</option>
-            <option value="flexible">Flexible (2 entre semana · 6 sábados · 4 h)</option>
-            <option value="custom">Personalizado</option>
-          </select>
-        </label>
+        <div class="saved-presets">
+          <label class="preset-save-row">
+            <span class="sr-only">Nombre de plantilla</span>
+            <input
+              type="text"
+              [ngModel]="bookingPresetName()"
+              (ngModelChange)="bookingPresetName.set($event)"
+              placeholder="Guardar configuración actual como plantilla…" />
+            <button type="button" class="chip-btn" (click)="saveBookingPreset()">Guardar plantilla</button>
+          </label>
+
+          @if (visibleBookingPresets().length) {
+            <ul class="preset-list">
+              @for (preset of visibleBookingPresets(); track preset.id) {
+                <li>
+                  <button type="button" class="chip-btn" (click)="applyBookingPresetItem(preset)">
+                    {{ preset.name }}
+                    @if (preset.summary) {
+                      <span class="chip-meta">· {{ preset.summary }}</span>
+                    }
+                  </button>
+                  <button
+                    type="button"
+                    class="chip-remove"
+                    [attr.aria-label]="'Eliminar plantilla ' + preset.name"
+                    (click)="removeBookingPreset(preset)">
+                    ×
+                  </button>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="muted">No hay plantillas visibles.</p>
+          }
+          @if (hiddenBuiltinPresetCount() > 0) {
+            <button type="button" class="link-btn" (click)="restoreBuiltinPresets()">
+              Restaurar plantillas predeterminadas ({{ hiddenBuiltinPresetCount() }} ocultas)
+            </button>
+          }
+        </div>
 
         <div class="policy-grid">
           <label class="check">
-            <input type="checkbox" [(ngModel)]="cfg.weekdaysEnabled" (ngModelChange)="bookingPreset.set('custom')" />
+            <input type="checkbox" [(ngModel)]="cfg.weekdaysEnabled" (ngModelChange)="onBookingFieldEdited()" />
             Grupo entre semana (lunes a viernes)
           </label>
           <label class="check">
-            <input type="checkbox" [(ngModel)]="cfg.saturdayEnabled" (ngModelChange)="bookingPreset.set('custom')" />
+            <input type="checkbox" [(ngModel)]="cfg.saturdayEnabled" (ngModelChange)="onBookingFieldEdited()" />
             Grupo sábados
           </label>
         </div>
@@ -589,7 +620,7 @@
               min="0"
               max="10"
               [(ngModel)]="cfg.maxWeekdayClassesPerDay"
-              (ngModelChange)="bookingPreset.set('custom')" />
+              (ngModelChange)="onBookingFieldEdited()" />
             <span class="hint">0 = sin límite</span>
           </label>
           <label>Máx. clases sábados / día
@@ -598,7 +629,7 @@
               min="0"
               max="12"
               [(ngModel)]="cfg.maxSaturdayClassesPerDay"
-              (ngModelChange)="bookingPreset.set('custom')" />
+              (ngModelChange)="onBookingFieldEdited()" />
             <span class="hint">0 = sin límite</span>
           </label>
           <label>Máx. minutos de teoría / día
@@ -608,7 +639,7 @@
               max="720"
               step="30"
               [(ngModel)]="cfg.maxDailyTheoryMinutes"
-              (ngModelChange)="bookingPreset.set('custom')" />
+              (ngModelChange)="onBookingFieldEdited()" />
             <span class="hint">0 = sin límite · 120 = 2 horas</span>
           </label>
         </div>
@@ -620,7 +651,7 @@
               min="0"
               max="14"
               [(ngModel)]="cfg.weekdayReservationOpenDaysBefore"
-              (ngModelChange)="bookingPreset.set('custom')" />
+              (ngModelChange)="onBookingFieldEdited()" />
           </label>
           <label>Días antes para abrir reservas (sábados)
             <input
@@ -628,7 +659,7 @@
               min="0"
               max="14"
               [(ngModel)]="cfg.saturdayReservationOpenDaysBefore"
-              (ngModelChange)="bookingPreset.set('custom')" />
+              (ngModelChange)="onBookingFieldEdited()" />
           </label>
         </div>
 
@@ -637,14 +668,14 @@
             <input
               type="time"
               [(ngModel)]="cfg.studentBookingWindowStart"
-              (ngModelChange)="bookingPreset.set('custom')" />
+              (ngModelChange)="onBookingFieldEdited()" />
             <span class="hint">Vacío = todo el día</span>
           </label>
           <label>Horario para reservar hasta
             <input
               type="time"
               [(ngModel)]="cfg.studentBookingWindowEnd"
-              (ngModelChange)="bookingPreset.set('custom')" />
+              (ngModelChange)="onBookingFieldEdited()" />
           </label>
         </div>
 

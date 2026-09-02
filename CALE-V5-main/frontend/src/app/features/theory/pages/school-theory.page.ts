@@ -18,10 +18,15 @@ import {
   TheorySettingsDto,
   TheoryTopicDto,
   TheoryWeekScheduleDto,
-  THEORY_BOOKING_PRESETS,
-  TheoryBookingPreset,
+  TheoryBookingPresetDto,
   LicenseCategoryPolicyDto
 } from '../api/theory.api';
+import {
+  applyBookingValues,
+  BookingPresetListItem,
+  listVisibleBookingPresets,
+  presetFromSettings
+} from '../theory-booking-presets';
 import { buildStudentBadges, SchoolBadge } from '../../school/utils/school-student-badges';
 
 @Component({
@@ -50,7 +55,7 @@ export class SchoolTheoryPage implements OnInit {
   readonly selectedAttendanceSessionId = signal<number | null>(null);
   readonly attendanceRows = signal<AttendanceRowDto[]>([]);
   readonly settings = signal<TheorySettingsDto | null>(null);
-  readonly bookingPreset = signal<TheoryBookingPreset>('standard');
+  readonly bookingPresetName = signal('');
   readonly examOptions = signal<Array<{ id: number; name: string }>>([]);
   readonly enrollments = signal<EnrollmentDto[]>([]);
   readonly enrollmentFilter = signal<'all' | 'weekday' | 'saturday' | 'unassigned'>('all');
@@ -668,9 +673,10 @@ export class SchoolTheoryPage implements OnInit {
       weekdaysEnabled: settings.weekdaysEnabled ?? true,
       saturdayEnabled: settings.saturdayEnabled ?? true,
       bookingPolicySummary: settings.bookingPolicySummary ?? '',
-      licenseCategoryPolicies: categoryPolicies
+      licenseCategoryPolicies: categoryPolicies,
+      savedBookingPresets: settings.savedBookingPresets ?? [],
+      hiddenBookingPresetKeys: settings.hiddenBookingPresetKeys ?? []
     };
-    this.bookingPreset.set(this.detectBookingPreset(normalized));
     return normalized;
   }
 
@@ -693,35 +699,80 @@ export class SchoolTheoryPage implements OnInit {
     return `Vacío = usa el valor general (${cfg.requiredTheoryHours} h teoría · ${cfg.requiredWorkshopHours} h taller).`;
   }
 
-  detectBookingPreset(cfg: TheorySettingsDto): TheoryBookingPreset {
-    const presets = Object.entries(THEORY_BOOKING_PRESETS) as Array<
-      [Exclude<TheoryBookingPreset, 'custom'>, (typeof THEORY_BOOKING_PRESETS)['standard']]
-    >;
-    for (const [key, preset] of presets) {
-      if (
-        cfg.maxWeekdayClassesPerDay === preset.maxWeekdayClassesPerDay
-        && cfg.maxSaturdayClassesPerDay === preset.maxSaturdayClassesPerDay
-        && cfg.maxDailyTheoryMinutes === preset.maxDailyTheoryMinutes
-        && (cfg.studentBookingWindowStart ?? null) === preset.studentBookingWindowStart
-        && (cfg.studentBookingWindowEnd ?? null) === preset.studentBookingWindowEnd
-      ) {
-        return key;
-      }
+  visibleBookingPresets(): BookingPresetListItem[] {
+    const cfg = this.settings();
+    if (!cfg) {
+      return [];
     }
-    return 'custom';
+    return listVisibleBookingPresets(cfg.hiddenBookingPresetKeys ?? [], cfg.savedBookingPresets ?? []);
   }
 
-  applyBookingPreset(preset: TheoryBookingPreset): void {
-    this.bookingPreset.set(preset);
+  applyBookingPresetItem(item: BookingPresetListItem): void {
     const cfg = this.settings();
-    if (!cfg || preset === 'custom') {
+    if (!cfg) {
       return;
     }
-    const values = THEORY_BOOKING_PRESETS[preset];
+    this.settings.set(applyBookingValues(cfg, item.values));
+    this.error.set(null);
+  }
+
+  saveBookingPreset(): void {
+    const name = this.bookingPresetName().trim();
+    const cfg = this.settings();
+    if (!name || !cfg) {
+      this.error.set('Escribe un nombre para la plantilla.');
+      return;
+    }
+    const preset = presetFromSettings(name, cfg);
     this.settings.set({
       ...cfg,
-      ...values
+      savedBookingPresets: [preset, ...(cfg.savedBookingPresets ?? [])]
     });
+    this.bookingPresetName.set('');
+    this.error.set(null);
+    this.saveSettings();
+  }
+
+  removeBookingPreset(item: BookingPresetListItem): void {
+    const cfg = this.settings();
+    if (!cfg) {
+      return;
+    }
+    if (item.builtin) {
+      const hidden = new Set(cfg.hiddenBookingPresetKeys ?? []);
+      hidden.add(item.id);
+      this.settings.set({
+        ...cfg,
+        hiddenBookingPresetKeys: [...hidden]
+      });
+    } else {
+      this.settings.set({
+        ...cfg,
+        savedBookingPresets: (cfg.savedBookingPresets ?? []).filter((p) => p.id !== item.id)
+      });
+    }
+    this.error.set(null);
+    this.saveSettings();
+  }
+
+  onBookingFieldEdited(): void {
+    /* valores personalizados; no hace falta marcar plantilla */
+  }
+
+  restoreBuiltinPresets(): void {
+    const cfg = this.settings();
+    if (!cfg) {
+      return;
+    }
+    this.settings.set({
+      ...cfg,
+      hiddenBookingPresetKeys: []
+    });
+    this.saveSettings();
+  }
+
+  hiddenBuiltinPresetCount(): number {
+    return this.settings()?.hiddenBookingPresetKeys?.length ?? 0;
   }
 
   bookingPolicyHelp(): string {
@@ -843,7 +894,9 @@ export class SchoolTheoryPage implements OnInit {
         ...p,
         requiredTheoryHours: p.requiredTheoryHours ?? null,
         requiredWorkshopHours: p.requiredWorkshopHours ?? null
-      }))
+      })),
+      savedBookingPresets: s.savedBookingPresets ?? [],
+      hiddenBookingPresetKeys: s.hiddenBookingPresetKeys ?? []
     };
     this.api.updateSettings(payload).subscribe({
       next: (updated) => {

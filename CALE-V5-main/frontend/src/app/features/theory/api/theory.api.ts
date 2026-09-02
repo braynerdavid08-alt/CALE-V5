@@ -45,54 +45,27 @@ export interface TheorySettingsDto {
   studentBookingWindowEnd?: string | null;
   bookingPolicySummary: string;
   licenseCategoryPolicies: LicenseCategoryPolicyDto[];
+  savedBookingPresets: TheoryBookingPresetDto[];
+  hiddenBookingPresetKeys: string[];
   notifyReservationOpen: boolean;
   notifyClassReminder24h: boolean;
   notifyClassReminder1h: boolean;
   notifyExamReminder24h: boolean;
 }
 
-export type TheoryBookingPreset = 'standard' | 'strict' | 'open' | 'flexible' | 'custom';
-
-export const THEORY_BOOKING_PRESETS: Record<
-  Exclude<TheoryBookingPreset, 'custom'>,
-  Pick<
-    TheorySettingsDto,
-    | 'maxWeekdayClassesPerDay'
-    | 'maxSaturdayClassesPerDay'
-    | 'maxDailyTheoryMinutes'
-    | 'studentBookingWindowStart'
-    | 'studentBookingWindowEnd'
-  >
-> = {
-  standard: {
-    maxWeekdayClassesPerDay: 1,
-    maxSaturdayClassesPerDay: 4,
-    maxDailyTheoryMinutes: 0,
-    studentBookingWindowStart: null,
-    studentBookingWindowEnd: null
-  },
-  strict: {
-    maxWeekdayClassesPerDay: 1,
-    maxSaturdayClassesPerDay: 1,
-    maxDailyTheoryMinutes: 120,
-    studentBookingWindowStart: null,
-    studentBookingWindowEnd: null
-  },
-  open: {
-    maxWeekdayClassesPerDay: 0,
-    maxSaturdayClassesPerDay: 0,
-    maxDailyTheoryMinutes: 0,
-    studentBookingWindowStart: null,
-    studentBookingWindowEnd: null
-  },
-  flexible: {
-    maxWeekdayClassesPerDay: 2,
-    maxSaturdayClassesPerDay: 6,
-    maxDailyTheoryMinutes: 240,
-    studentBookingWindowStart: null,
-    studentBookingWindowEnd: null
-  }
-};
+export interface TheoryBookingPresetDto {
+  id: string;
+  name: string;
+  weekdaysEnabled: boolean;
+  saturdayEnabled: boolean;
+  maxWeekdayClassesPerDay: number;
+  maxSaturdayClassesPerDay: number;
+  maxDailyTheoryMinutes: number;
+  weekdayReservationOpenDaysBefore: number;
+  saturdayReservationOpenDaysBefore: number;
+  studentBookingWindowStart?: string | null;
+  studentBookingWindowEnd?: string | null;
+}
 
 export interface PracticalEligibilityDto {
   canBookPractical: boolean;

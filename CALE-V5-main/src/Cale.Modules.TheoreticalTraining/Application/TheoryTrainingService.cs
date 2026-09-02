@@ -187,6 +187,10 @@ public sealed class TheoryTrainingService
         settings.StudentBookingWindowEnd = TheoryBookingPolicy.ParseOptionalTime(request.StudentBookingWindowEnd);
         settings.LicenseCategoryPoliciesJson = LicenseCategoryPolicyHelper.SerializePolicies(
             request.LicenseCategoryPolicies);
+        settings.SavedBookingPresetsJson = TheoryBookingPresetHelper.SerializeSaved(
+            request.SavedBookingPresets);
+        settings.HiddenBookingPresetKeysJson = TheoryBookingPresetHelper.SerializeHidden(
+            request.HiddenBookingPresetKeys);
         settings.NotifyReservationOpen = request.NotifyReservationOpen;
         settings.NotifyClassReminder24h = request.NotifyClassReminder24h;
         settings.NotifyClassReminder1h = request.NotifyClassReminder1h;
@@ -2308,6 +2312,8 @@ public sealed class TheoryTrainingService
             TheoryBookingPolicy.FormatOptionalTime(s.StudentBookingWindowEnd),
             TheoryBookingPolicy.Describe(s),
             LicenseCategoryPolicyHelper.BuildPolicyList(s),
+            TheoryBookingPresetHelper.DeserializeSaved(s.SavedBookingPresetsJson),
+            TheoryBookingPresetHelper.DeserializeHidden(s.HiddenBookingPresetKeysJson),
             s.NotifyReservationOpen,
             s.NotifyClassReminder24h,
             s.NotifyClassReminder1h,

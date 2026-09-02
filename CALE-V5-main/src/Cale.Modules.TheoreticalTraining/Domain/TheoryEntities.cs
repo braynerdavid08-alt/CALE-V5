@@ -55,6 +55,8 @@ public sealed class TheoryTrainingSettings
     public TimeOnly? StudentBookingWindowStart { get; set; }
     public TimeOnly? StudentBookingWindowEnd { get; set; }
     public string LicenseCategoryPoliciesJson { get; set; } = "{}";
+    public string SavedBookingPresetsJson { get; set; } = "[]";
+    public string HiddenBookingPresetKeysJson { get; set; } = "[]";
     public DateTime UpdatedAt { get; set; }
 }
 

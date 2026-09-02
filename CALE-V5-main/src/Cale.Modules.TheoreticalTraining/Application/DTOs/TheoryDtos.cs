@@ -36,6 +36,19 @@ public sealed record LicenseCategoryPolicyDto(
     int? RequiredTheoryHours,
     int? RequiredWorkshopHours);
 
+public sealed record TheoryBookingPresetDto(
+    string Id,
+    string Name,
+    bool WeekdaysEnabled,
+    bool SaturdayEnabled,
+    int MaxWeekdayClassesPerDay,
+    int MaxSaturdayClassesPerDay,
+    int MaxDailyTheoryMinutes,
+    int WeekdayReservationOpenDaysBefore,
+    int SaturdayReservationOpenDaysBefore,
+    string? StudentBookingWindowStart,
+    string? StudentBookingWindowEnd);
+
 public sealed record TheorySettingsDto(
     int DefaultDurationMinutes,
     int MinCancelHours,
@@ -54,6 +67,8 @@ public sealed record TheorySettingsDto(
     string? StudentBookingWindowEnd,
     string BookingPolicySummary,
     IReadOnlyList<LicenseCategoryPolicyDto> LicenseCategoryPolicies,
+    IReadOnlyList<TheoryBookingPresetDto> SavedBookingPresets,
+    IReadOnlyList<string> HiddenBookingPresetKeys,
     bool NotifyReservationOpen = true,
     bool NotifyClassReminder24h = true,
     bool NotifyClassReminder1h = true,

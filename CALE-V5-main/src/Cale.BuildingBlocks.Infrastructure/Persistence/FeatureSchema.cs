@@ -739,6 +739,14 @@ public static class FeatureSchema
                 db,
                 """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN "LicenseCategoryPoliciesJson" TEXT NOT NULL DEFAULT '{}';""",
                 ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN "SavedBookingPresetsJson" TEXT NOT NULL DEFAULT '[]';""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN "HiddenBookingPresetKeysJson" TEXT NOT NULL DEFAULT '[]';""",
+                ct);
             await TrySqliteAsync(
                 db,
                 """
@@ -1145,6 +1153,12 @@ public static class FeatureSchema
                 ct);
             await TryPostgresAsync(db,
                 """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "LicenseCategoryPoliciesJson" text NOT NULL DEFAULT '{}';""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "SavedBookingPresetsJson" text NOT NULL DEFAULT '[]';""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "HiddenBookingPresetKeysJson" text NOT NULL DEFAULT '[]';""",
                 ct);
             await TryPostgresAsync(db,
                 """
@@ -1856,6 +1870,18 @@ public static class FeatureSchema
             BEGIN
                 ALTER TABLE dbo.TheoryTrainingSettings
                     ADD LicenseCategoryPoliciesJson nvarchar(max) NOT NULL CONSTRAINT DF_TheoryTrainingSettings_LicenseCategoryPoliciesJson DEFAULT('{}');
+            END
+
+            IF COL_LENGTH(N'dbo.TheoryTrainingSettings', N'SavedBookingPresetsJson') IS NULL
+            BEGIN
+                ALTER TABLE dbo.TheoryTrainingSettings
+                    ADD SavedBookingPresetsJson nvarchar(max) NOT NULL CONSTRAINT DF_TheoryTrainingSettings_SavedBookingPresetsJson DEFAULT('[]');
+            END
+
+            IF COL_LENGTH(N'dbo.TheoryTrainingSettings', N'HiddenBookingPresetKeysJson') IS NULL
+            BEGIN
+                ALTER TABLE dbo.TheoryTrainingSettings
+                    ADD HiddenBookingPresetKeysJson nvarchar(max) NOT NULL CONSTRAINT DF_TheoryTrainingSettings_HiddenBookingPresetKeysJson DEFAULT('[]');
             END
 
             IF OBJECT_ID(N'dbo.EnrollmentAuthorizationEvents', N'U') IS NULL
