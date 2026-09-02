@@ -707,6 +707,34 @@ public static class FeatureSchema
                 db,
                 """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN "NotifyExamReminder24h" INTEGER NOT NULL DEFAULT 1;""",
                 ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN "MaxWeekdayClassesPerDay" INTEGER NOT NULL DEFAULT 1;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN "MaxSaturdayClassesPerDay" INTEGER NOT NULL DEFAULT 4;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN "MaxDailyTheoryMinutes" INTEGER NOT NULL DEFAULT 0;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN "WeekdayReservationOpenDaysBefore" INTEGER NOT NULL DEFAULT 1;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN "SaturdayReservationOpenDaysBefore" INTEGER NOT NULL DEFAULT 2;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN "StudentBookingWindowStart" TEXT NULL;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN "StudentBookingWindowEnd" TEXT NULL;""",
+                ct);
             await TrySqliteAsync(
                 db,
                 """
@@ -1089,6 +1117,27 @@ public static class FeatureSchema
                 ct);
             await TryPostgresAsync(db,
                 """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "NotifyExamReminder24h" boolean NOT NULL DEFAULT TRUE;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "MaxWeekdayClassesPerDay" integer NOT NULL DEFAULT 1;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "MaxSaturdayClassesPerDay" integer NOT NULL DEFAULT 4;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "MaxDailyTheoryMinutes" integer NOT NULL DEFAULT 0;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "WeekdayReservationOpenDaysBefore" integer NOT NULL DEFAULT 1;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "SaturdayReservationOpenDaysBefore" integer NOT NULL DEFAULT 2;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "StudentBookingWindowStart" time without time zone NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "StudentBookingWindowEnd" time without time zone NULL;""",
                 ct);
             await TryPostgresAsync(db,
                 """
@@ -1754,6 +1803,46 @@ public static class FeatureSchema
             BEGIN
                 ALTER TABLE dbo.TheoryTrainingSettings
                     ADD NotifyExamReminder24h bit NOT NULL CONSTRAINT DF_TheoryTrainingSettings_NotifyExamReminder24h DEFAULT(1);
+            END
+
+            IF COL_LENGTH(N'dbo.TheoryTrainingSettings', N'MaxWeekdayClassesPerDay') IS NULL
+            BEGIN
+                ALTER TABLE dbo.TheoryTrainingSettings
+                    ADD MaxWeekdayClassesPerDay int NOT NULL CONSTRAINT DF_TheoryTrainingSettings_MaxWeekdayClassesPerDay DEFAULT(1);
+            END
+
+            IF COL_LENGTH(N'dbo.TheoryTrainingSettings', N'MaxSaturdayClassesPerDay') IS NULL
+            BEGIN
+                ALTER TABLE dbo.TheoryTrainingSettings
+                    ADD MaxSaturdayClassesPerDay int NOT NULL CONSTRAINT DF_TheoryTrainingSettings_MaxSaturdayClassesPerDay DEFAULT(4);
+            END
+
+            IF COL_LENGTH(N'dbo.TheoryTrainingSettings', N'MaxDailyTheoryMinutes') IS NULL
+            BEGIN
+                ALTER TABLE dbo.TheoryTrainingSettings
+                    ADD MaxDailyTheoryMinutes int NOT NULL CONSTRAINT DF_TheoryTrainingSettings_MaxDailyTheoryMinutes DEFAULT(0);
+            END
+
+            IF COL_LENGTH(N'dbo.TheoryTrainingSettings', N'WeekdayReservationOpenDaysBefore') IS NULL
+            BEGIN
+                ALTER TABLE dbo.TheoryTrainingSettings
+                    ADD WeekdayReservationOpenDaysBefore int NOT NULL CONSTRAINT DF_TheoryTrainingSettings_WeekdayReservationOpenDaysBefore DEFAULT(1);
+            END
+
+            IF COL_LENGTH(N'dbo.TheoryTrainingSettings', N'SaturdayReservationOpenDaysBefore') IS NULL
+            BEGIN
+                ALTER TABLE dbo.TheoryTrainingSettings
+                    ADD SaturdayReservationOpenDaysBefore int NOT NULL CONSTRAINT DF_TheoryTrainingSettings_SaturdayReservationOpenDaysBefore DEFAULT(2);
+            END
+
+            IF COL_LENGTH(N'dbo.TheoryTrainingSettings', N'StudentBookingWindowStart') IS NULL
+            BEGIN
+                ALTER TABLE dbo.TheoryTrainingSettings ADD StudentBookingWindowStart time NULL;
+            END
+
+            IF COL_LENGTH(N'dbo.TheoryTrainingSettings', N'StudentBookingWindowEnd') IS NULL
+            BEGIN
+                ALTER TABLE dbo.TheoryTrainingSettings ADD StudentBookingWindowEnd time NULL;
             END
 
             IF OBJECT_ID(N'dbo.EnrollmentAuthorizationEvents', N'U') IS NULL

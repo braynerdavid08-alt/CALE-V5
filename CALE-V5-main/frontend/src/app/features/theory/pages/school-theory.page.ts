@@ -17,7 +17,9 @@ import {
   TheorySchoolDashboardDto,
   TheorySettingsDto,
   TheoryTopicDto,
-  TheoryWeekScheduleDto
+  TheoryWeekScheduleDto,
+  THEORY_BOOKING_PRESETS,
+  TheoryBookingPreset
 } from '../api/theory.api';
 import { buildStudentBadges, SchoolBadge } from '../../school/utils/school-student-badges';
 
@@ -47,6 +49,7 @@ export class SchoolTheoryPage implements OnInit {
   readonly selectedAttendanceSessionId = signal<number | null>(null);
   readonly attendanceRows = signal<AttendanceRowDto[]>([]);
   readonly settings = signal<TheorySettingsDto | null>(null);
+  readonly bookingPreset = signal<TheoryBookingPreset>('standard');
   readonly examOptions = signal<Array<{ id: number; name: string }>>([]);
   readonly enrollments = signal<EnrollmentDto[]>([]);
   readonly enrollmentFilter = signal<'all' | 'weekday' | 'saturday' | 'unassigned'>('all');
@@ -653,19 +656,91 @@ export class SchoolTheoryPage implements OnInit {
   }
 
   private normalizeSettings(settings: TheorySettingsDto): TheorySettingsDto {
-    return {
+    const normalized: TheorySettingsDto = {
       ...settings,
-      weekdaysEnabled: true,
-      saturdayEnabled: true
+      maxWeekdayClassesPerDay: settings.maxWeekdayClassesPerDay ?? 1,
+      maxSaturdayClassesPerDay: settings.maxSaturdayClassesPerDay ?? 4,
+      maxDailyTheoryMinutes: settings.maxDailyTheoryMinutes ?? 0,
+      weekdayReservationOpenDaysBefore: settings.weekdayReservationOpenDaysBefore ?? 1,
+      saturdayReservationOpenDaysBefore: settings.saturdayReservationOpenDaysBefore ?? 2,
+      weekdaysEnabled: settings.weekdaysEnabled ?? true,
+      saturdayEnabled: settings.saturdayEnabled ?? true,
+      bookingPolicySummary: settings.bookingPolicySummary ?? ''
     };
+    this.bookingPreset.set(this.detectBookingPreset(normalized));
+    return normalized;
+  }
+
+  detectBookingPreset(cfg: TheorySettingsDto): TheoryBookingPreset {
+    const presets = Object.entries(THEORY_BOOKING_PRESETS) as Array<
+      [Exclude<TheoryBookingPreset, 'custom'>, (typeof THEORY_BOOKING_PRESETS)['standard']]
+    >;
+    for (const [key, preset] of presets) {
+      if (
+        cfg.maxWeekdayClassesPerDay === preset.maxWeekdayClassesPerDay
+        && cfg.maxSaturdayClassesPerDay === preset.maxSaturdayClassesPerDay
+        && cfg.maxDailyTheoryMinutes === preset.maxDailyTheoryMinutes
+        && (cfg.studentBookingWindowStart ?? null) === preset.studentBookingWindowStart
+        && (cfg.studentBookingWindowEnd ?? null) === preset.studentBookingWindowEnd
+      ) {
+        return key;
+      }
+    }
+    return 'custom';
+  }
+
+  applyBookingPreset(preset: TheoryBookingPreset): void {
+    this.bookingPreset.set(preset);
+    const cfg = this.settings();
+    if (!cfg || preset === 'custom') {
+      return;
+    }
+    const values = THEORY_BOOKING_PRESETS[preset];
+    this.settings.set({
+      ...cfg,
+      ...values
+    });
+  }
+
+  bookingPolicyHelp(): string {
+    return this.settings()?.bookingPolicySummary
+      ?? 'Configura cuántas clases y en qué horarios pueden reservar tus estudiantes.';
+  }
+
+  unlimitedClassesLabel(value: number): string {
+    return value === 0 ? 'Sin límite' : `${value} clase(s)`;
   }
 
   isDayAllowed(dayIndex: number): boolean {
-    return dayIndex >= 0 && dayIndex <= 5;
+    const cfg = this.settings();
+    if (!cfg) {
+      return dayIndex >= 0 && dayIndex <= 5;
+    }
+    if (dayIndex >= 0 && dayIndex <= 4) {
+      return cfg.weekdaysEnabled;
+    }
+    if (dayIndex === 5) {
+      return cfg.saturdayEnabled;
+    }
+    return false;
   }
 
   schedulingDaysMessage(): string {
-    return 'Solo puedes programar clases de lunes a viernes o los sábados.';
+    const cfg = this.settings();
+    if (!cfg) {
+      return 'Programa clases de lunes a viernes o los sábados.';
+    }
+    const parts: string[] = [];
+    if (cfg.weekdaysEnabled) {
+      parts.push('lunes a viernes');
+    }
+    if (cfg.saturdayEnabled) {
+      parts.push('sábados');
+    }
+    if (!parts.length) {
+      return 'Activa al menos un grupo (semana o sábados) en Ajustes.';
+    }
+    return `Puedes programar clases: ${parts.join(' y ')}.`;
   }
 
   loadAttendanceSessions(): void {
@@ -738,7 +813,12 @@ export class SchoolTheoryPage implements OnInit {
     if (!s) {
       return;
     }
-    this.api.updateSettings(s).subscribe({
+    const payload: TheorySettingsDto = {
+      ...s,
+      studentBookingWindowStart: s.studentBookingWindowStart?.trim() || null,
+      studentBookingWindowEnd: s.studentBookingWindowEnd?.trim() || null
+    };
+    this.api.updateSettings(payload).subscribe({
       next: (updated) => {
         this.settings.set(this.normalizeSettings(updated));
         this.error.set(null);

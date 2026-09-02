@@ -43,6 +43,17 @@ public sealed class TheoryTrainingSettings
     public bool NotifyClassReminder24h { get; set; } = true;
     public bool NotifyClassReminder1h { get; set; } = true;
     public bool NotifyExamReminder24h { get; set; } = true;
+    /// <summary>0 = sin límite de clases por día entre semana.</summary>
+    public int MaxWeekdayClassesPerDay { get; set; } = TheoryAttendanceLimits.DefaultMaxWeekdayClassesPerDay;
+    /// <summary>0 = sin límite de clases por sábado.</summary>
+    public int MaxSaturdayClassesPerDay { get; set; } = TheoryAttendanceLimits.DefaultMaxSaturdayClassesPerDay;
+    /// <summary>0 = sin tope de minutos de teoría por día.</summary>
+    public int MaxDailyTheoryMinutes { get; set; }
+    public int WeekdayReservationOpenDaysBefore { get; set; } = 1;
+    public int SaturdayReservationOpenDaysBefore { get; set; } = 2;
+    /// <summary>Hora Colombia desde la cual los estudiantes pueden reservar (null = todo el día).</summary>
+    public TimeOnly? StudentBookingWindowStart { get; set; }
+    public TimeOnly? StudentBookingWindowEnd { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
 

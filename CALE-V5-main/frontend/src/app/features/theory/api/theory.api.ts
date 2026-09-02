@@ -29,11 +29,62 @@ export interface TheorySettingsDto {
   theoryExamId?: number | null;
   weekdaysEnabled: boolean;
   saturdayEnabled: boolean;
+  maxWeekdayClassesPerDay: number;
+  maxSaturdayClassesPerDay: number;
+  maxDailyTheoryMinutes: number;
+  weekdayReservationOpenDaysBefore: number;
+  saturdayReservationOpenDaysBefore: number;
+  studentBookingWindowStart?: string | null;
+  studentBookingWindowEnd?: string | null;
+  bookingPolicySummary: string;
   notifyReservationOpen: boolean;
   notifyClassReminder24h: boolean;
   notifyClassReminder1h: boolean;
   notifyExamReminder24h: boolean;
 }
+
+export type TheoryBookingPreset = 'standard' | 'strict' | 'open' | 'flexible' | 'custom';
+
+export const THEORY_BOOKING_PRESETS: Record<
+  Exclude<TheoryBookingPreset, 'custom'>,
+  Pick<
+    TheorySettingsDto,
+    | 'maxWeekdayClassesPerDay'
+    | 'maxSaturdayClassesPerDay'
+    | 'maxDailyTheoryMinutes'
+    | 'studentBookingWindowStart'
+    | 'studentBookingWindowEnd'
+  >
+> = {
+  standard: {
+    maxWeekdayClassesPerDay: 1,
+    maxSaturdayClassesPerDay: 4,
+    maxDailyTheoryMinutes: 0,
+    studentBookingWindowStart: null,
+    studentBookingWindowEnd: null
+  },
+  strict: {
+    maxWeekdayClassesPerDay: 1,
+    maxSaturdayClassesPerDay: 1,
+    maxDailyTheoryMinutes: 120,
+    studentBookingWindowStart: null,
+    studentBookingWindowEnd: null
+  },
+  open: {
+    maxWeekdayClassesPerDay: 0,
+    maxSaturdayClassesPerDay: 0,
+    maxDailyTheoryMinutes: 0,
+    studentBookingWindowStart: null,
+    studentBookingWindowEnd: null
+  },
+  flexible: {
+    maxWeekdayClassesPerDay: 2,
+    maxSaturdayClassesPerDay: 6,
+    maxDailyTheoryMinutes: 240,
+    studentBookingWindowStart: null,
+    studentBookingWindowEnd: null
+  }
+};
 
 export interface PracticalEligibilityDto {
   canBookPractical: boolean;
@@ -375,7 +426,9 @@ export function theoryBookingLabel(state?: string | null, message?: string | nul
     case 'day_taken':
       return 'Ya tienes clase este día';
     case 'day_limit':
-      return 'Máximo de clases del sábado reservadas';
+      return 'Máximo de clases del día reservadas';
+    case 'minutes_limit':
+      return 'Límite de horas diarias alcanzado';
     case 'not_authorized':
       return 'Sin autorización';
     case 'full':

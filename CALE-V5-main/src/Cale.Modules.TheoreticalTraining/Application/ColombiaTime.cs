@@ -28,14 +28,16 @@ public static class ColombiaTime
     public static (DateTime OpenUtc, DateTime CloseUtc) ComputeReservationWindow(
         DateOnly sessionDate,
         TimeOnly startTime,
-        int closeMinutesBefore = 0)
+        int closeMinutesBefore = 0,
+        int? openDaysBefore = null)
     {
-        var openDate = sessionDate.DayOfWeek switch
+        var daysBefore = openDaysBefore ?? (sessionDate.DayOfWeek switch
         {
-            DayOfWeek.Saturday => sessionDate.AddDays(-2),
-            DayOfWeek.Sunday => sessionDate.AddDays(-1),
-            _ => sessionDate.AddDays(-1)
-        };
+            DayOfWeek.Saturday => 2,
+            DayOfWeek.Sunday => 1,
+            _ => 1
+        });
+        var openDate = sessionDate.AddDays(-Math.Max(0, daysBefore));
 
         var openUtc = StartOfDayUtc(openDate);
         var startUtc = ToUtc(sessionDate, startTime);

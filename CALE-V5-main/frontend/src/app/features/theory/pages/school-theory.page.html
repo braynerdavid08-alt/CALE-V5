@@ -222,8 +222,11 @@
       <h2>Autorización de estudiantes</h2>
       <p class="muted">
         Asigna el <strong>grupo</strong> y el <strong>curso</strong> de cada estudiante. Al guardar, se mueve a su lista
-        (Semana o Sábados) y conserva el curso asignado. Semana: 1 clase por día. Sábados: hasta 4 clases el mismo día.
+        (Semana o Sábados) y conserva el curso asignado.
       </p>
+      @if (settings()?.bookingPolicySummary) {
+        <p class="policy-banner">{{ settings()!.bookingPolicySummary }}</p>
+      }
 
       <div class="enrollment-summary">
         <div>
@@ -487,6 +490,104 @@
         <label>Horas mínimas para cancelar
           <input type="number" min="0" max="72" [(ngModel)]="cfg.minCancelHours" />
         </label>
+
+        <h2>Acceso de estudiantes a clases</h2>
+        <p class="muted">
+          Define cuántas clases pueden reservar por día, cuántas horas de teoría y en qué horario del día pueden hacerlo.
+          Cada escuela puede tener reglas distintas.
+        </p>
+
+        <label>Plantilla rápida
+          <select [ngModel]="bookingPreset()" (ngModelChange)="applyBookingPreset($event)">
+            <option value="standard">Estándar (1 entre semana · 4 sábados)</option>
+            <option value="strict">Estricto (1 clase/día · máx. 2 h)</option>
+            <option value="open">Abierto (sin límite de clases)</option>
+            <option value="flexible">Flexible (2 entre semana · 6 sábados · 4 h)</option>
+            <option value="custom">Personalizado</option>
+          </select>
+        </label>
+
+        <div class="policy-grid">
+          <label class="check">
+            <input type="checkbox" [(ngModel)]="cfg.weekdaysEnabled" (ngModelChange)="bookingPreset.set('custom')" />
+            Grupo entre semana (lunes a viernes)
+          </label>
+          <label class="check">
+            <input type="checkbox" [(ngModel)]="cfg.saturdayEnabled" (ngModelChange)="bookingPreset.set('custom')" />
+            Grupo sábados
+          </label>
+        </div>
+
+        <div class="policy-grid">
+          <label>Máx. clases entre semana / día
+            <input
+              type="number"
+              min="0"
+              max="10"
+              [(ngModel)]="cfg.maxWeekdayClassesPerDay"
+              (ngModelChange)="bookingPreset.set('custom')" />
+            <span class="hint">0 = sin límite</span>
+          </label>
+          <label>Máx. clases sábados / día
+            <input
+              type="number"
+              min="0"
+              max="12"
+              [(ngModel)]="cfg.maxSaturdayClassesPerDay"
+              (ngModelChange)="bookingPreset.set('custom')" />
+            <span class="hint">0 = sin límite</span>
+          </label>
+          <label>Máx. minutos de teoría / día
+            <input
+              type="number"
+              min="0"
+              max="720"
+              step="30"
+              [(ngModel)]="cfg.maxDailyTheoryMinutes"
+              (ngModelChange)="bookingPreset.set('custom')" />
+            <span class="hint">0 = sin límite · 120 = 2 horas</span>
+          </label>
+        </div>
+
+        <div class="policy-grid">
+          <label>Días antes para abrir reservas (entre semana)
+            <input
+              type="number"
+              min="0"
+              max="14"
+              [(ngModel)]="cfg.weekdayReservationOpenDaysBefore"
+              (ngModelChange)="bookingPreset.set('custom')" />
+          </label>
+          <label>Días antes para abrir reservas (sábados)
+            <input
+              type="number"
+              min="0"
+              max="14"
+              [(ngModel)]="cfg.saturdayReservationOpenDaysBefore"
+              (ngModelChange)="bookingPreset.set('custom')" />
+          </label>
+        </div>
+
+        <div class="policy-grid">
+          <label>Horario para reservar desde
+            <input
+              type="time"
+              [(ngModel)]="cfg.studentBookingWindowStart"
+              (ngModelChange)="bookingPreset.set('custom')" />
+            <span class="hint">Vacío = todo el día</span>
+          </label>
+          <label>Horario para reservar hasta
+            <input
+              type="time"
+              [(ngModel)]="cfg.studentBookingWindowEnd"
+              (ngModelChange)="bookingPreset.set('custom')" />
+          </label>
+        </div>
+
+        @if (cfg.bookingPolicySummary) {
+          <p class="policy-banner"><strong>Resumen:</strong> {{ cfg.bookingPolicySummary }}</p>
+        }
+
         <ui-button type="button" (click)="saveSettings()">Guardar ajustes</ui-button>
       </div>
     }

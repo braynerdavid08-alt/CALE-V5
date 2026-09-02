@@ -151,7 +151,11 @@ public static class StudentLicenseCategories
 
 public static class TheoryAttendanceLimits
 {
-    public const int MaxSaturdayReservationsPerDay = 4;
+    public const int DefaultMaxWeekdayClassesPerDay = 1;
+    public const int DefaultMaxSaturdayClassesPerDay = 4;
+
+    /// <summary>Legacy alias.</summary>
+    public const int MaxSaturdayReservationsPerDay = DefaultMaxSaturdayClassesPerDay;
 }
 
 public static class StudentEnrollmentStatuses

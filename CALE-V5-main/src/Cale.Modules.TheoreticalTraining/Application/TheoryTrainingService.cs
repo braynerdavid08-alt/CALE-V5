@@ -160,7 +160,7 @@ public sealed class TheoryTrainingService
 
     public async Task<TheorySettingsDto> GetSettingsAsync(int schoolUserId, CancellationToken ct)
     {
-        var settings = await EnsureBothSchedulingGroupsAsync(schoolUserId, ct);
+        var settings = await GetOrCreateSettingsAsync(schoolUserId, ct);
         return MapSettings(settings);
     }
 
@@ -176,8 +176,15 @@ public sealed class TheoryTrainingService
         settings.RequiredTheoryHours = Math.Clamp(request.RequiredTheoryHours, 1, 200);
         settings.RequiredWorkshopHours = Math.Clamp(request.RequiredWorkshopHours, 0, 200);
         settings.TheoryExamId = request.TheoryExamId;
-        settings.WeekdaysEnabled = true;
-        settings.SaturdayEnabled = true;
+        settings.WeekdaysEnabled = request.WeekdaysEnabled;
+        settings.SaturdayEnabled = request.SaturdayEnabled;
+        settings.MaxWeekdayClassesPerDay = Math.Clamp(request.MaxWeekdayClassesPerDay, 0, 10);
+        settings.MaxSaturdayClassesPerDay = Math.Clamp(request.MaxSaturdayClassesPerDay, 0, 12);
+        settings.MaxDailyTheoryMinutes = Math.Clamp(request.MaxDailyTheoryMinutes, 0, 720);
+        settings.WeekdayReservationOpenDaysBefore = Math.Clamp(request.WeekdayReservationOpenDaysBefore, 0, 14);
+        settings.SaturdayReservationOpenDaysBefore = Math.Clamp(request.SaturdayReservationOpenDaysBefore, 0, 14);
+        settings.StudentBookingWindowStart = TheoryBookingPolicy.ParseOptionalTime(request.StudentBookingWindowStart);
+        settings.StudentBookingWindowEnd = TheoryBookingPolicy.ParseOptionalTime(request.StudentBookingWindowEnd);
         settings.NotifyReservationOpen = request.NotifyReservationOpen;
         settings.NotifyClassReminder24h = request.NotifyClassReminder24h;
         settings.NotifyClassReminder1h = request.NotifyClassReminder1h;
@@ -224,7 +231,8 @@ public sealed class TheoryTrainingService
         var (openUtc, closeUtc) = ColombiaTime.ComputeReservationWindow(
             request.SessionDate,
             start,
-            settings.ReservationCloseMinutesBefore);
+            settings.ReservationCloseMinutesBefore,
+            TheoryBookingPolicy.ReservationOpenDaysBefore(settings, request.SessionDate));
 
         var now = _clock.UtcNow;
         var session = new TheoryClassSession
@@ -309,7 +317,8 @@ public sealed class TheoryTrainingService
         var (openUtc, closeUtc) = ColombiaTime.ComputeReservationWindow(
             request.SessionDate,
             start,
-            settings.ReservationCloseMinutesBefore);
+            settings.ReservationCloseMinutesBefore,
+            TheoryBookingPolicy.ReservationOpenDaysBefore(settings, request.SessionDate));
 
         session.TopicId = topic.Id;
         session.ClassroomId = classroom.Id;
@@ -481,7 +490,9 @@ public sealed class TheoryTrainingService
         ValidateReservationWindow(session);
         var enrollment = await GetEnrollmentAsync(schoolUserId, studentUserId, ct);
         ValidateStudentSessionAccess(enrollment, session);
-        await ValidateNoScheduleConflictAsync(studentUserId, session, enrollment, null, ct);
+        var settings = await GetOrCreateSettingsAsync(schoolUserId, ct);
+        var policy = TheoryBookingPolicy.From(settings);
+        await ValidateNoScheduleConflictAsync(studentUserId, session, enrollment, null, policy, ct);
 
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
         try
@@ -529,7 +540,14 @@ public sealed class TheoryTrainingService
                 reservation.Id,
                 ct);
 
-            return await MapSessionAsync(sessionId, studentUserId, ct);
+            var weekStart = StartOfWeek(session.SessionDate);
+            var studentCtx = await BuildStudentScheduleContextAsync(
+                studentUserId,
+                schoolUserId,
+                weekStart,
+                weekStart.AddDays(6),
+                ct);
+            return await MapSessionAsync(sessionId, studentUserId, ct, studentCtx);
         }
         catch
         {
@@ -1842,7 +1860,7 @@ public sealed class TheoryTrainingService
 
         if (studentCtx is not null)
         {
-            var access = EvaluateStudentAccess(studentCtx.Enrollment, session, studentCtx);
+            var access = EvaluateStudentAccess(studentCtx.Enrollment, session, studentCtx, session);
             if (access is not null)
             {
                 return access.Value;
@@ -1879,6 +1897,7 @@ public sealed class TheoryTrainingService
         TheoryClassSession target,
         SchoolStudentEnrollment enrollment,
         int? ignoreReservationId,
+        TheoryBookingPolicy policy,
         CancellationToken ct)
     {
         var existing = await _db.Set<TheoryClassReservation>()
@@ -1890,6 +1909,7 @@ public sealed class TheoryTrainingService
 
         var saturdayGroup = enrollment.AttendanceDayType == StudentAttendanceDayTypes.Saturday;
         var targetIsSaturday = target.SessionDate.DayOfWeek == DayOfWeek.Saturday;
+        var maxClasses = policy.MaxClassesFor(saturdayGroup, targetIsSaturday);
 
         foreach (var r in existing)
         {
@@ -1904,24 +1924,51 @@ public sealed class TheoryTrainingService
                 continue;
             }
 
+            if (ColombiaTime.TimesOverlap(
+                    s.SessionDate, s.StartTime, s.EndTime,
+                    target.SessionDate, target.StartTime, target.EndTime))
+            {
+                throw new DomainException(
+                    "Ya tienes una clase que se cruza con ese horario.",
+                    400,
+                    "schedule_overlap");
+            }
+        }
+
+        var countOnDay = existing.Count(x => x.ClassSession?.SessionDate == target.SessionDate);
+        if (maxClasses > 0 && countOnDay >= maxClasses)
+        {
             if (saturdayGroup && targetIsSaturday)
             {
-                var countOnDay = existing.Count(x => x.ClassSession?.SessionDate == target.SessionDate);
-                if (countOnDay >= TheoryAttendanceLimits.MaxSaturdayReservationsPerDay)
-                {
-                    throw new DomainException(
-                        $"Ya reservaste {TheoryAttendanceLimits.MaxSaturdayReservationsPerDay} clases este sábado.",
-                        400,
-                        "saturday_day_limit");
-                }
-
-                continue;
+                throw new DomainException(
+                    $"Ya reservaste {maxClasses} clase(s) este sábado.",
+                    400,
+                    "saturday_day_limit");
             }
 
             throw new DomainException(
-                "Ya tienes una clase reservada ese día. Solo puedes reservar una por día.",
+                maxClasses == 1
+                    ? "Ya tienes una clase reservada ese día. Solo puedes reservar una por día."
+                    : $"Ya reservaste {maxClasses} clases ese día.",
                 400,
                 "day_already_reserved");
+        }
+
+        if (policy.HasDailyMinutesLimit)
+        {
+            var usedMinutes = existing
+                .Where(x => x.ClassSession?.SessionDate == target.SessionDate)
+                .Sum(x => TheoryBookingPolicy.SessionDurationMinutes(
+                    x.ClassSession!.StartTime,
+                    x.ClassSession.EndTime));
+            var targetMinutes = TheoryBookingPolicy.SessionDurationMinutes(target.StartTime, target.EndTime);
+            if (usedMinutes + targetMinutes > policy.MaxDailyTheoryMinutes)
+            {
+                throw new DomainException(
+                    $"Tu escuela permite máximo {policy.MaxDailyTheoryMinutes} minutos de teoría por día.",
+                    400,
+                    "daily_minutes_limit");
+            }
         }
     }
 
@@ -2237,6 +2284,14 @@ public sealed class TheoryTrainingService
             s.TheoryExamId,
             s.WeekdaysEnabled,
             s.SaturdayEnabled,
+            s.MaxWeekdayClassesPerDay,
+            s.MaxSaturdayClassesPerDay,
+            s.MaxDailyTheoryMinutes,
+            s.WeekdayReservationOpenDaysBefore,
+            s.SaturdayReservationOpenDaysBefore,
+            TheoryBookingPolicy.FormatOptionalTime(s.StudentBookingWindowStart),
+            TheoryBookingPolicy.FormatOptionalTime(s.StudentBookingWindowEnd),
+            TheoryBookingPolicy.Describe(s),
             s.NotifyReservationOpen,
             s.NotifyClassReminder24h,
             s.NotifyClassReminder1h,
@@ -2343,7 +2398,9 @@ public sealed class TheoryTrainingService
 
     private sealed record StudentScheduleContext(
         SchoolStudentEnrollment? Enrollment,
-        IReadOnlyDictionary<DateOnly, int> ReservationsPerDate);
+        IReadOnlyDictionary<DateOnly, int> ReservationsPerDate,
+        IReadOnlyDictionary<DateOnly, int> MinutesPerDate,
+        TheoryBookingPolicy Policy);
 
     private async Task<StudentScheduleContext> BuildStudentScheduleContextAsync(
         int studentUserId,
@@ -2356,7 +2413,10 @@ public sealed class TheoryTrainingService
             .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
                 && x.StudentUserId == studentUserId, ct);
 
-        var reservedDates = await _db.Set<TheoryClassReservation>()
+        var settings = await GetOrCreateSettingsAsync(schoolUserId, ct);
+        var policy = TheoryBookingPolicy.From(settings);
+
+        var reservedSessions = await _db.Set<TheoryClassReservation>()
             .Include(x => x.ClassSession)
             .Where(x => x.StudentUserId == studentUserId
                 && TheoryReservationStatuses.ActiveStatuses.Contains(x.Status)
@@ -2364,16 +2424,24 @@ public sealed class TheoryTrainingService
                 && x.ClassSession.SchoolUserId == schoolUserId
                 && x.ClassSession.SessionDate >= weekStart
                 && x.ClassSession.SessionDate <= weekEnd)
-            .Select(x => x.ClassSession!.SessionDate)
+            .Select(x => new
+            {
+                x.ClassSession!.SessionDate,
+                x.ClassSession.StartTime,
+                x.ClassSession.EndTime
+            })
             .ToListAsync(ct);
 
         var perDate = new Dictionary<DateOnly, int>();
-        foreach (var date in reservedDates)
+        var minutesPerDate = new Dictionary<DateOnly, int>();
+        foreach (var row in reservedSessions)
         {
-            perDate[date] = perDate.GetValueOrDefault(date) + 1;
+            perDate[row.SessionDate] = perDate.GetValueOrDefault(row.SessionDate) + 1;
+            var mins = TheoryBookingPolicy.SessionDurationMinutes(row.StartTime, row.EndTime);
+            minutesPerDate[row.SessionDate] = minutesPerDate.GetValueOrDefault(row.SessionDate) + mins;
         }
 
-        return new StudentScheduleContext(enrollment, perDate);
+        return new StudentScheduleContext(enrollment, perDate, minutesPerDate, policy);
     }
 
     private async Task<SchoolStudentEnrollment> GetEnrollmentAsync(
@@ -2464,7 +2532,8 @@ public sealed class TheoryTrainingService
     private static (string State, string Message)? EvaluateStudentAccess(
         SchoolStudentEnrollment? enrollment,
         TheoryClassSession session,
-        StudentScheduleContext ctx)
+        StudentScheduleContext ctx,
+        TheoryClassSession? targetSession = null)
     {
         if (enrollment is null)
         {
@@ -2481,7 +2550,18 @@ public sealed class TheoryTrainingService
             return ("locked", "Debes estar activo en Programación para reservar clases.");
         }
 
-        var dayLimit = EvaluateDayBookingLimit(enrollment, session, ctx);
+        if (ctx.Policy.HasBookingWindow)
+        {
+            var localTime = TimeOnly.FromDateTime(ColombiaTime.NowInColombia());
+            if (!ctx.Policy.IsWithinBookingWindow(localTime))
+            {
+                return (
+                    "locked",
+                    $"Tu escuela permite reservar de {ctx.Policy.BookingWindowStart:HH\\:mm} a {ctx.Policy.BookingWindowEnd:HH\\:mm} (hora Colombia)");
+            }
+        }
+
+        var dayLimit = EvaluateDayBookingLimit(enrollment, session, targetSession ?? session, ctx);
         if (dayLimit is not null)
         {
             return dayLimit.Value;
@@ -2499,30 +2579,47 @@ public sealed class TheoryTrainingService
     private static (string State, string Message)? EvaluateDayBookingLimit(
         SchoolStudentEnrollment enrollment,
         TheoryClassSession session,
+        TheoryClassSession targetSession,
         StudentScheduleContext ctx)
     {
+        var policy = ctx.Policy;
         var count = ctx.ReservationsPerDate.GetValueOrDefault(session.SessionDate);
-        if (count <= 0)
-        {
-            return null;
-        }
-
         var isSaturdaySession = session.SessionDate.DayOfWeek == DayOfWeek.Saturday;
         var isSaturdayStudent = enrollment.AttendanceDayType == StudentAttendanceDayTypes.Saturday;
+        var maxClasses = policy.MaxClassesFor(isSaturdayStudent, isSaturdaySession);
 
-        if (isSaturdaySession && isSaturdayStudent)
+        if (maxClasses > 0 && count >= maxClasses)
         {
-            if (count >= TheoryAttendanceLimits.MaxSaturdayReservationsPerDay)
+            if (isSaturdaySession && isSaturdayStudent)
             {
                 return (
                     "day_limit",
-                    $"Ya reservaste {TheoryAttendanceLimits.MaxSaturdayReservationsPerDay} clases este sábado");
+                    $"Ya reservaste {maxClasses} clase(s) este sábado");
             }
 
-            return null;
+            if (maxClasses == 1)
+            {
+                return ("day_taken", "Ya reservaste una clase este día");
+            }
+
+            return ("day_limit", $"Ya reservaste {maxClasses} clases este día");
         }
 
-        return ("day_taken", "Ya reservaste una clase este día");
+        if (policy.HasDailyMinutesLimit)
+        {
+            var usedMinutes = ctx.MinutesPerDate.GetValueOrDefault(session.SessionDate);
+            var addMinutes = TheoryBookingPolicy.SessionDurationMinutes(
+                targetSession.StartTime,
+                targetSession.EndTime);
+            if (usedMinutes + addMinutes > policy.MaxDailyTheoryMinutes)
+            {
+                return (
+                    "minutes_limit",
+                    $"Tu escuela permite máximo {policy.MaxDailyTheoryMinutes} min de teoría por día");
+            }
+        }
+
+        return null;
     }
 
     private static (string Code, string Message)? EvaluateStudentAccessIssue(
