@@ -501,7 +501,7 @@ internal static class PptxSlideIO
         var connector = new P.ConnectionShape(
             new P.NonVisualConnectionShapeProperties(
                 new P.NonVisualDrawingProperties { Id = shapeId++, Name = arrow ? $"Arrow {shapeId}" : $"Line {shapeId}" },
-                new P.NonVisualConnectorProperties(),
+                new P.NonVisualConnectorShapeDrawingProperties(),
                 new P.ApplicationNonVisualDrawingProperties()),
             new P.ShapeProperties(
                 transform,
@@ -1649,16 +1649,22 @@ internal static class PptxSlideIO
                 return null;
             }
 
-            return scheme switch
+            return MapSchemeColor(scheme);
+        }
+
+        private static string MapSchemeColor(object? scheme)
+        {
+            var name = scheme?.ToString() ?? "";
+            return name switch
             {
-                A.SchemeColorValues.Accent1 => "#2BB0ED",
-                A.SchemeColorValues.Accent2 => "#0B1F33",
-                A.SchemeColorValues.Accent3 => "#43A047",
-                A.SchemeColorValues.Accent4 => "#F9A825",
-                A.SchemeColorValues.Accent5 => "#E53935",
-                A.SchemeColorValues.Accent6 => "#8E24AA",
-                A.SchemeColorValues.Dark1 or A.SchemeColorValues.Text1 => "#0B1F33",
-                A.SchemeColorValues.Light1 or A.SchemeColorValues.Background1 => "#FFFFFF",
+                "Accent1" => "#2BB0ED",
+                "Accent2" => "#0B1F33",
+                "Accent3" => "#43A047",
+                "Accent4" => "#F9A825",
+                "Accent5" => "#E53935",
+                "Accent6" => "#8E24AA",
+                "Dark1" or "Dk1" or "Text1" or "Tx1" => "#0B1F33",
+                "Light1" or "Lt1" or "Background1" or "Bg1" => "#FFFFFF",
                 _ => "#2BB0ED"
             };
         }
@@ -1695,7 +1701,7 @@ internal static class PptxSlideIO
                 return "rect";
             }
 
-            var name = preset.ToString();
+            var name = preset.ToString() ?? "";
             if (name.Contains("Ellipse", StringComparison.OrdinalIgnoreCase)
                 || name.Contains("Oval", StringComparison.OrdinalIgnoreCase))
             {
@@ -1830,14 +1836,8 @@ internal static class PptxSlideIO
             var scheme = solid?.SchemeColor?.Val?.Value;
             if (scheme is not null)
             {
-                return scheme switch
-                {
-                    A.SchemeColorValues.Accent1 => "#2BB0ED",
-                    A.SchemeColorValues.Accent2 => "#0B1F33",
-                    A.SchemeColorValues.Dark1 or A.SchemeColorValues.Text1 => "#0B1F33",
-                    A.SchemeColorValues.Light1 or A.SchemeColorValues.Background1 => "#FFFFFF",
-                    _ => "#243447"
-                };
+                var mapped = MapSchemeColor(scheme);
+                return mapped == "#2BB0ED" ? "#243447" : mapped;
             }
 
             return "#243447";
