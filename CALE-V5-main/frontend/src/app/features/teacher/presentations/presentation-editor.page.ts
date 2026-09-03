@@ -97,6 +97,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   readonly lastSavedAt = signal<number | null>(null);
   readonly editingText = signal(false);
   readonly showImageModal = signal(false);
+  readonly showExportMenu = signal(false);
   readonly imageUrlInput = signal('');
   readonly imageUploading = signal(false);
   readonly imageModalReplace = signal(false);
@@ -165,7 +166,6 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
         lockAspect: boolean;
       }
     | null = null;
-  private clipboard: SlideElement | null = null;
   private skipUnload = false;
   private undoStack: EditorSnapshot[] = [];
   private redoStack: EditorSnapshot[] = [];
@@ -189,6 +189,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
         this.saveState.set('saved');
         this.lastSavedAt.set(Date.now());
         this.tryRestoreLocalDraft(id);
+        queueMicrotask(() => this.fitZoom());
       },
       error: (err) => {
         this.error.set(mapApiError(err));
@@ -349,6 +350,10 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   @HostListener('window:keydown', ['$event'])
   onKey(ev: KeyboardEvent): void {
     if (ev.key === 'Escape') {
+      if (this.showExportMenu()) {
+        this.showExportMenu.set(false);
+        return;
+      }
       if (this.showSignPicker()) {
         this.closeSignPicker();
         return;
@@ -417,15 +422,6 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (meta && ev.key.toLowerCase() === 'd') {
       ev.preventDefault();
       this.duplicateElement();
-      return;
-    }
-    if (meta && ev.key.toLowerCase() === 'c') {
-      this.copyElement();
-      return;
-    }
-    if (meta && ev.key.toLowerCase() === 'v') {
-      ev.preventDefault();
-      this.pasteElement();
       return;
     }
     if (ev.key === 'Delete' || ev.key === 'Backspace') {
@@ -698,6 +694,18 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     return labels[el.type] ?? el.type;
   }
 
+  slideThumbText(slide: EditorSlide): string | null {
+    const texts = slide.elements
+      .filter((e) => e.type === 'text')
+      .map((e) => ((e.props as TextProps).text ?? '').replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
+    if (!texts.length) {
+      return null;
+    }
+    const joined = texts.slice(0, 2).join(' · ');
+    return joined.length > 42 ? `${joined.slice(0, 42)}…` : joined;
+  }
+
   convertSelectedImageToBackground(): void {
     const sel = this.selected();
     const src = sel ? imageSrc(sel) : null;
@@ -728,21 +736,13 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (this.editingText() && this.selectedId() === el.id && el.type === 'text') {
       return;
     }
-
-    if (el.type === 'text') {
-      const inText = (ev.target as HTMLElement).closest('.el-text');
-      if (inText) {
-        ev.stopPropagation();
-        this.startEditText(el.id, ev);
-        return;
-      }
-
-      if (ev.altKey) {
-        this.startDrag(ev, el.id, 'move');
-      }
+    if ((ev.target as HTMLElement).closest('.handle, .text-drag-handle')) {
       return;
     }
 
+    ev.stopPropagation();
+    this.selectElement(el.id, ev);
+    // Clic = seleccionar y poder arrastrar. Doble clic / Enter = editar letras.
     this.startDrag(ev, el.id, 'move');
   }
 
@@ -1427,25 +1427,11 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   }
 
   copyElement(): void {
-    const sel = this.selected();
-    if (sel) {
-      this.clipboard = structuredClone(sel);
-    }
+    this.copySelectedElement();
   }
 
   pasteElement(): void {
-    if (!this.clipboard) {
-      return;
-    }
-    this.pushHistory();
-    const copy: SlideElement = {
-      ...structuredClone(this.clipboard),
-      id: newClientId('el'),
-      x: this.clipboard.x + 28,
-      y: this.clipboard.y + 28,
-      z: this.nextZ()
-    };
-    this.pushElement(copy);
+    this.pasteElementClipboard();
   }
 
   nudgeSelected(dx: number, dy: number): void {
@@ -1518,6 +1504,25 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       return { ...el, props: { ...(el.props as ShapeProps), [key]: value } };
     });
     this.markDirty();
+  }
+
+  updateLineProp<K extends keyof LineProps>(key: K, value: LineProps[K]): void {
+    const id = this.selectedId();
+    if (!id) {
+      return;
+    }
+    this.pushHistory();
+    this.patchElement(id, (el) => {
+      if (el.type !== 'line' && el.type !== 'arrow') {
+        return el;
+      }
+      return { ...el, props: { ...(el.props as LineProps), [key]: value } };
+    });
+    this.markDirty();
+  }
+
+  editableTextCount(): number {
+    return (this.activeSlide()?.elements ?? []).filter((e) => e.type === 'text').length;
   }
 
   updateBgColor(color: string): void {

@@ -23,9 +23,16 @@
       </div>
       <div class="ed-top-actions">
         <span class="save-pill" [attr.data-state]="saveState()">{{ saveLabel() }}</span>
-        <button type="button" class="btn ghost" (click)="exportDeck('pptx')">PowerPoint</button>
-        <button type="button" class="btn ghost" (click)="exportDeck('xlsx')">Excel</button>
-        <button type="button" class="btn ghost" (click)="exportDeck('docx')">Word</button>
+        <div class="export-menu">
+          <button type="button" class="btn ghost" (click)="showExportMenu.set(!showExportMenu())">Exportar ▾</button>
+          @if (showExportMenu()) {
+            <div class="export-dropdown" (click)="$event.stopPropagation()">
+              <button type="button" (click)="exportDeck('pptx'); showExportMenu.set(false)">PowerPoint (.pptx)</button>
+              <button type="button" (click)="exportDeck('xlsx'); showExportMenu.set(false)">Excel (.xlsx)</button>
+              <button type="button" (click)="exportDeck('docx'); showExportMenu.set(false)">Word (.docx)</button>
+            </div>
+          }
+        </div>
         <button type="button" class="btn ghost" (click)="saveNow()">Guardar</button>
         <button type="button" class="btn primary" (click)="present()">▶ Presentar</button>
       </div>
@@ -71,6 +78,8 @@
       <div class="group">
         <button type="button" (click)="changeLayer('forward')" title="Adelante">▴</button>
         <button type="button" (click)="changeLayer('back')" title="Atrás">▾</button>
+        <button type="button" (click)="changeLayer('front')" title="Al frente">⇈</button>
+        <button type="button" (click)="changeLayer('backmost')" title="Al fondo">⇊</button>
         <button type="button" (click)="duplicateElement()">Duplicar</button>
         <button type="button" (click)="deleteSelected()">Eliminar</button>
       </div>
@@ -106,7 +115,10 @@
               (dragover)="$event.preventDefault()"
               (drop)="onSlideDrop($event, i)">
               <div class="mini" [ngStyle]="bgStyle(s)">
-                <span>{{ i + 1 }}</span>
+                <span class="mini-num">{{ i + 1 }}</span>
+                @if (slideThumbText(s); as preview) {
+                  <span class="mini-text">{{ preview }}</span>
+                }
               </div>
               <p>{{ s.title }}</p>
             </li>
@@ -291,9 +303,10 @@
           </div>
           @if (isPhotoSlide()) {
             <p class="photo-hint">
-              @if (layerItems().length) {
-                Esta diapositiva tiene una foto de fondo. Los recuadros de texto y formas sí se pueden editar;
-                haz clic en ellos o usa la lista de capas.
+              @if (editableTextCount() > 0) {
+                Hay <strong>{{ editableTextCount() }}</strong> recuadro(s) de texto editables.
+                Haz clic para seleccionar, arrastra para mover, <strong>doble clic</strong> (o Enter) para cambiar las letras.
+                La foto de fondo no se edita letra a letra.
               } @else {
                 Esta diapositiva llegó como foto. El texto de la imagen no se edita letra a letra.
                 Pulsa <strong>Título</strong> o <strong>Texto</strong>, o haz doble clic para escribir encima.
@@ -326,6 +339,15 @@
             <span class="hint-inline">{{ sel.rotation }}°</span>
           </label>
           @if (sel.type === 'text') {
+            <p class="text-edit-hint">Doble clic en el texto (o Enter) para editar en el lienzo. También puedes cambiar las letras aquí:</p>
+            <label>
+              Contenido (texto editable)
+              <textarea
+                rows="5"
+                [ngModel]="textProps(sel).text"
+                (ngModelChange)="updateTextProp('text', $event)"
+                placeholder="Escribe aquí…"></textarea>
+            </label>
             <label>
               Tamaño
               <input
@@ -378,6 +400,33 @@
                 [ngModel]="shapeProps(sel).stroke"
                 (ngModelChange)="updateShapeProp('stroke', $event)" />
             </label>
+          }
+          @if (sel.type === 'line' || sel.type === 'arrow') {
+            <label>
+              Color
+              <input
+                type="color"
+                [ngModel]="lineProps(sel).color"
+                (ngModelChange)="updateLineProp('color', $event)" />
+            </label>
+            <label>
+              Grosor
+              <input
+                type="number"
+                min="1"
+                max="24"
+                [ngModel]="lineProps(sel).strokeWidth"
+                (ngModelChange)="updateLineProp('strokeWidth', +$event)" />
+            </label>
+            @if (sel.type === 'arrow') {
+              <label class="check">
+                <input
+                  type="checkbox"
+                  [ngModel]="lineProps(sel).arrowEnd ?? true"
+                  (ngModelChange)="updateLineProp('arrowEnd', $event)" />
+                Punta de flecha
+              </label>
+            }
           }
           @if (sel.type === 'image') {
             <label>

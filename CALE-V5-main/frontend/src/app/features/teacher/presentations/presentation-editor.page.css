@@ -217,6 +217,7 @@
 }
 
 .mini {
+  position: relative;
   aspect-ratio: 16 / 9;
   border-radius: 4px;
   border: 1px solid #34506a;
@@ -226,6 +227,7 @@
   font-size: 0.65rem;
   color: #fff;
   text-shadow: 0 1px 2px #000;
+  overflow: hidden;
 }
 
 .ed-slides p {
@@ -235,6 +237,84 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.ed-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.export-menu {
+  position: relative;
+}
+
+.export-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 50;
+  min-width: 180px;
+  background: #101820;
+  border: 1px solid #2c4258;
+  border-radius: 8px;
+  padding: 0.35rem;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.export-dropdown button {
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: #e8eef4;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.export-dropdown button:hover {
+  background: #1a2736;
+}
+
+.text-edit-hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: #9fb3c8;
+}
+
+.mini-num {
+  position: absolute;
+  left: 4px;
+  top: 2px;
+  font-size: 0.65rem;
+  opacity: 0.9;
+}
+
+.mini-text {
+  display: block;
+  width: 100%;
+  padding: 0.85rem 0.25rem 0.15rem;
+  font-size: 0.55rem;
+  line-height: 1.2;
+  color: #fff;
+  text-shadow: 0 1px 2px #000;
+  overflow: hidden;
+  max-height: 100%;
+}
+
+.el.is-text:not(.is-editing) {
+  cursor: move;
+}
+
+.el.is-text.is-editing {
+  cursor: text;
 }
 
 .ed-canvas-wrap {

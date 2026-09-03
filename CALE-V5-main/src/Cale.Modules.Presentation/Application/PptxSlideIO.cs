@@ -218,6 +218,10 @@ internal static class PptxSlideIO
                     case "shape":
                         AppendFilledShape(shapeTree, el, ref z);
                         break;
+                    case "line":
+                    case "arrow":
+                        AppendLineShape(shapeTree, el, type == "arrow", ref z);
+                        break;
                     case "video" when resolveImageBytes is not null:
                         AppendVideoPlaceholder(shapeTree, el, resolveImageBytes, ref z);
                         break;
@@ -442,6 +446,69 @@ internal static class PptxSlideIO
         }
 
         tree.Append(shape);
+    }
+
+    private static void AppendLineShape(
+        OpenXmlCompositeElement tree,
+        JsonElement el,
+        bool arrow,
+        ref uint shapeId)
+    {
+        var x = GetInt(el, "x", 64);
+        var y = GetInt(el, "y", 200);
+        var w = Math.Max(GetInt(el, "w", 200), 8);
+        var h = Math.Max(GetInt(el, "h", 8), 2);
+        var colorHex = "#0B1F33";
+        var strokeWidth = 2;
+        if (el.TryGetProperty("props", out var props))
+        {
+            if (props.TryGetProperty("color", out var c) && !string.IsNullOrWhiteSpace(c.GetString()))
+            {
+                colorHex = c.GetString()!;
+            }
+
+            if (props.TryGetProperty("strokeWidth", out var sw) && sw.TryGetInt32(out var width))
+            {
+                strokeWidth = Math.Clamp(width, 1, 24);
+            }
+        }
+
+        var cx = ToEmu(w, CanvasW, DefaultSlideCx);
+        var cy = ToEmu(Math.Max(h, strokeWidth + 2), CanvasH, DefaultSlideCy);
+        var offX = ToEmu(x, CanvasW, DefaultSlideCx);
+        var offY = ToEmu(y, CanvasH, DefaultSlideCy);
+        var rotationDeg = GetInt(el, "rotation", 0);
+
+        var transform = new A.Transform2D(
+            new A.Offset { X = offX, Y = offY },
+            new A.Extents { Cx = cx, Cy = cy });
+        if (rotationDeg != 0)
+        {
+            transform.Rotation = rotationDeg * 60000;
+        }
+
+        var outline = new A.Outline { Width = strokeWidth * 12700 };
+        if (TryParseHexColor(colorHex, out var color))
+        {
+            outline.Append(new A.SolidFill(new A.RgbColorModelHex { Val = color }));
+        }
+
+        if (arrow)
+        {
+            outline.Append(new A.HeadEnd { Type = A.LineEndValues.Triangle });
+        }
+
+        var connector = new P.ConnectionShape(
+            new P.NonVisualConnectionShapeProperties(
+                new P.NonVisualDrawingProperties { Id = shapeId++, Name = arrow ? $"Arrow {shapeId}" : $"Line {shapeId}" },
+                new P.NonVisualConnectorProperties(),
+                new P.ApplicationNonVisualDrawingProperties()),
+            new P.ShapeProperties(
+                transform,
+                new A.PresetGeometry { Preset = A.ShapeTypeValues.StraightConnector1 },
+                outline));
+
+        tree.Append(connector);
     }
 
     private static PartTypeInfo GuessImagePartType(string src, byte[] bytes)
@@ -1003,6 +1070,13 @@ internal static class PptxSlideIO
                         }
 
                         break;
+                    case P.ConnectionShape connection:
+                        if (!layoutOnly)
+                        {
+                            ProcessConnection(connection, parentX, parentY, groupScaleX, groupScaleY);
+                        }
+
+                        break;
                     case P.GraphicFrame frame:
                         ProcessGraphicFrame(frame, parentX, parentY, groupScaleX, groupScaleY);
                         break;
@@ -1137,6 +1211,40 @@ internal static class PptxSlideIO
             {
                 TextBlocks.Add(desc);
             }
+        }
+
+        private void ProcessConnection(
+            P.ConnectionShape connection,
+            long parentX,
+            long parentY,
+            double groupScaleX,
+            double groupScaleY)
+        {
+            var xfrm = connection.ShapeProperties?.GetFirstChild<A.Transform2D>();
+            var (x, y, w, h) = GetBounds(xfrm, parentX, parentY, groupScaleX, groupScaleY);
+            var outline = connection.ShapeProperties?.GetFirstChild<A.Outline>();
+            var color = outline?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val?.Value;
+            var widthEmu = outline?.Width?.Value ?? 25400;
+            var strokeWidth = Math.Clamp((int)Math.Round(widthEmu / 12700.0), 1, 24);
+            var isArrow = outline?.Descendants<A.HeadEnd>().Any() == true
+                || outline?.Descendants<A.TailEnd>().Any() == true;
+            Elements.Add(new
+            {
+                id = $"el-ln-{Guid.NewGuid():N}"[..12],
+                type = isArrow ? "arrow" : "line",
+                x,
+                y,
+                w = Math.Max(w, 24),
+                h = Math.Max(h, strokeWidth + 2),
+                rotation = GetRotationDegrees(xfrm),
+                z = _z++,
+                props = new
+                {
+                    color = string.IsNullOrWhiteSpace(color) ? "#0B1F33" : $"#{color.TrimStart('#')}",
+                    strokeWidth,
+                    arrowEnd = isArrow
+                }
+            });
         }
 
         private void ProcessGraphicFrame(
@@ -1669,9 +1777,24 @@ internal static class PptxSlideIO
             }
 
             var lines = body.Descendants<A.Paragraph>()
-                .Select(p => string.Concat(p.Descendants<A.Text>().Select(t => t.Text)).Trim())
-                .Where(l => !string.IsNullOrWhiteSpace(l));
+                .Select(p =>
+                {
+                    var parts = p.Descendants<A.Text>()
+                        .Select(t => t.Text ?? "")
+                        .Where(t => t.Length > 0);
+                    return string.Concat(parts).Trim();
+                })
+                .Where(l => !string.IsNullOrWhiteSpace(l) && !IsPlaceholderPrompt(l));
             return string.Join("\n", lines);
+        }
+
+        private static bool IsPlaceholderPrompt(string text)
+        {
+            var t = text.Trim();
+            return t.Contains("click to edit", StringComparison.OrdinalIgnoreCase)
+                || t.Contains("click to add", StringComparison.OrdinalIgnoreCase)
+                || t.Contains("haga clic para", StringComparison.OrdinalIgnoreCase)
+                || t.Contains("hacer clic para", StringComparison.OrdinalIgnoreCase);
         }
 
         private static int GetFontSize(P.TextBody? body)
@@ -1682,7 +1805,7 @@ internal static class PptxSlideIO
                 return 24;
             }
 
-            return Math.Clamp((int)Math.Round(sz.Value / 100.0), 12, 72);
+            return Math.Clamp((int)Math.Round(sz.Value / 100.0), 10, 96);
         }
 
         private static bool IsBold(P.TextBody? body) =>
@@ -1690,18 +1813,28 @@ internal static class PptxSlideIO
 
         private static string ExtractTextColor(P.TextBody? body)
         {
-            var rgb = body?
-                .Descendants<A.RunProperties>()
-                .Select(r => r.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val?.Value)
-                .FirstOrDefault(v => !string.IsNullOrWhiteSpace(v));
-
-            if (string.IsNullOrWhiteSpace(rgb))
+            var solid = body?.Descendants<A.SolidFill>().FirstOrDefault();
+            var rgb = solid?.RgbColorModelHex?.Val?.Value;
+            if (!string.IsNullOrWhiteSpace(rgb))
             {
-                return "#243447";
+                var color = $"#{rgb.TrimStart('#')}";
+                return IsLightColor(color) ? "#0B1F33" : color;
             }
 
-            var color = $"#{rgb.TrimStart('#')}";
-            return IsLightColor(color) ? "#0B1F33" : color;
+            var scheme = solid?.SchemeColor?.Val?.Value;
+            if (scheme is not null)
+            {
+                return scheme switch
+                {
+                    A.SchemeColorValues.Accent1 => "#2BB0ED",
+                    A.SchemeColorValues.Accent2 => "#0B1F33",
+                    A.SchemeColorValues.Dark1 or A.SchemeColorValues.Text1 => "#0B1F33",
+                    A.SchemeColorValues.Light1 or A.SchemeColorValues.Background1 => "#FFFFFF",
+                    _ => "#243447"
+                };
+            }
+
+            return "#243447";
         }
 
         private static bool IsLightColor(string hex)
