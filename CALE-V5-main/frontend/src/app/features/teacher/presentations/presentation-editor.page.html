@@ -243,12 +243,6 @@
                       }
                     </div>
                   }
-                  @if (el.type === 'text' && selectedId() === el.id && !editingText()) {
-                    <span
-                      class="text-drag-handle"
-                      title="Arrastrar texto"
-                      (pointerdown)="startDrag($event, el.id, 'move')">⠿</span>
-                  }
                   @if (selectedId() === el.id && !editingText()) {
                     <span
                       class="handle handle-nw"
@@ -339,7 +333,10 @@
             <span class="hint-inline">{{ sel.rotation }}°</span>
           </label>
           @if (sel.type === 'text') {
-            <p class="text-edit-hint">Doble clic en el texto (o Enter) para editar en el lienzo. También puedes cambiar las letras aquí:</p>
+            <p class="text-edit-hint">
+              Clic = marco para mover y cambiar tamaño (igual que una imagen).
+              Doble clic o Enter = escribir las letras. También puedes editarlas abajo.
+            </p>
             <label>
               Contenido (texto editable)
               <textarea

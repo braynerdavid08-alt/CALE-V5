@@ -736,13 +736,15 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (this.editingText() && this.selectedId() === el.id && el.type === 'text') {
       return;
     }
-    if ((ev.target as HTMLElement).closest('.handle, .text-drag-handle')) {
+    if ((ev.target as HTMLElement).closest('.handle')) {
       return;
     }
 
+    ev.preventDefault();
     ev.stopPropagation();
+    // Igual que imagen: un clic selecciona (marco + asas). Doble clic edita letras.
+    this.editingText.set(false);
     this.selectElement(el.id, ev);
-    // Clic = seleccionar y poder arrastrar. Doble clic / Enter = editar letras.
     this.startDrag(ev, el.id, 'move');
   }
 
