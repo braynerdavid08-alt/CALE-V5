@@ -275,17 +275,18 @@ public sealed class PresentationsController : ControllerBase
         };
         var videoExts = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            ".mp4", ".webm", ".mov", ".m4v"
+            ".mp4", ".webm", ".mov", ".m4v", ".avi"
         };
 
+        var contentTypeHint = (file.ContentType ?? "").Trim().ToLowerInvariant();
         string mediaType;
-        if (imageExts.Contains(ext))
-        {
-            mediaType = "image";
-        }
-        else if (videoExts.Contains(ext))
+        if (videoExts.Contains(ext) || contentTypeHint.StartsWith("video/", StringComparison.Ordinal))
         {
             mediaType = "video";
+        }
+        else if (imageExts.Contains(ext) || contentTypeHint.StartsWith("image/", StringComparison.Ordinal))
+        {
+            mediaType = "image";
         }
         else
         {
@@ -298,13 +299,33 @@ public sealed class PresentationsController : ControllerBase
         var contentType = file.ContentType;
         if (string.IsNullOrWhiteSpace(contentType) || contentType == "application/octet-stream")
         {
-            contentType = mediaType == "video" ? "video/mp4" : "image/jpeg";
+            contentType = mediaType == "video"
+                ? ext.ToLowerInvariant() switch
+                {
+                    ".webm" => "video/webm",
+                    ".mov" => "video/quicktime",
+                    ".m4v" => "video/x-m4v",
+                    ".avi" => "video/x-msvideo",
+                    _ => "video/mp4"
+                }
+                : ext.ToLowerInvariant() switch
+                {
+                    ".png" => "image/png",
+                    ".gif" => "image/gif",
+                    ".webp" => "image/webp",
+                    ".bmp" => "image/bmp",
+                    _ => "image/jpeg"
+                };
         }
+
+        var safeExt = string.IsNullOrWhiteSpace(ext)
+            ? (mediaType == "video" ? ".mp4" : ".jpg")
+            : ext.ToLowerInvariant();
 
         await using var stream = file.OpenReadStream();
         var url = await _media.SaveAsync(
             stream,
-            $"{Guid.NewGuid():N}{ext.ToLowerInvariant()}",
+            $"{Guid.NewGuid():N}{safeExt}",
             contentType,
             CurrentUser.GetId(User),
             ct);

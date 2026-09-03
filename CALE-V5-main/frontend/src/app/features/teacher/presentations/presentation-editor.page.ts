@@ -924,7 +924,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (this.imageModalReplace()) {
       this.uploadAndApplyToSelected(file);
     } else {
-      this.uploadAndInsertMedia(file);
+      this.uploadAndInsertMedia(file, undefined, undefined, this.isVideoFile(file) ? 'video' : 'image');
     }
   }
 
@@ -939,7 +939,11 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       this.error.set('El video debe pesar 100 MB o menos.');
       return;
     }
-    this.uploadAndInsertMedia(file);
+    if (!this.isVideoFile(file)) {
+      this.error.set('Elige un video mp4, webm o mov.');
+      return;
+    }
+    this.uploadAndInsertMedia(file, undefined, undefined, 'video');
   }
 
   addImageFromUrl(): void {
@@ -967,7 +971,12 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       return;
     }
     const pos = this.dropPosition(ev);
-    this.uploadAndInsertMedia(file, pos.x, pos.y);
+    const kind = this.isVideoFile(file) ? 'video' : this.isImageFile(file) ? 'image' : null;
+    if (!kind) {
+      this.error.set('Arrastra una imagen (jpg/png) o un video (mp4/webm/mov).');
+      return;
+    }
+    this.uploadAndInsertMedia(file, pos.x, pos.y, kind);
   }
 
   updateImageProp<K extends keyof ImageProps>(key: K, value: ImageProps[K]): void {
@@ -1104,12 +1113,19 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     return this.brokenMediaIds().has(elementId);
   }
 
-  private uploadAndInsertMedia(file: File, x?: number, y?: number): void {
+  private uploadAndInsertMedia(
+    file: File,
+    x?: number,
+    y?: number,
+    forceKind?: 'image' | 'video'
+  ): void {
     this.imageUploading.set(true);
     this.api.upload(file).subscribe({
       next: (res) => {
         this.imageUploading.set(false);
-        const isVideo = res.mediaType === 'video' || file.type.startsWith('video/');
+        const isVideo =
+          forceKind === 'video'
+          || (forceKind !== 'image' && (res.mediaType === 'video' || this.isVideoFile(file)));
         if (isVideo) {
           void this.insertVideoFromSrc(res.url, x, y).then(() => this.closeImageModal());
         } else {
@@ -1124,7 +1140,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   }
 
   private uploadAndInsertImage(file: File, x?: number, y?: number): void {
-    this.uploadAndInsertMedia(file, x, y);
+    this.uploadAndInsertMedia(file, x, y, 'image');
   }
 
   private uploadAndApplyToSelected(file: File): void {
@@ -1132,9 +1148,9 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     this.api.upload(file).subscribe({
       next: (res) => {
         this.imageUploading.set(false);
-        const isVideo = res.mediaType === 'video' || file.type.startsWith('video/');
+        const isVideo = res.mediaType === 'video' || this.isVideoFile(file);
         if (isVideo) {
-          void this.applyVideoSrcToSelected(res.url);
+          this.applyVideoSrcToSelected(res.url);
         } else {
           void this.applyImageSrcToSelected(res.url);
         }
@@ -1145,6 +1161,20 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
         this.error.set(mapApiError(err));
       }
     });
+  }
+
+  private isVideoFile(file: File): boolean {
+    if (file.type.toLowerCase().startsWith('video/')) {
+      return true;
+    }
+    return /\.(mp4|webm|mov|m4v|avi)$/i.test(file.name);
+  }
+
+  private isImageFile(file: File): boolean {
+    if (file.type.toLowerCase().startsWith('image/')) {
+      return true;
+    }
+    return /\.(jpe?g|png|gif|webp|bmp)$/i.test(file.name);
   }
 
   private async insertImageFromSrc(src: string, x?: number, y?: number): Promise<void> {
@@ -1190,12 +1220,13 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     }
     this.pushHistory();
     this.patchElement(id, (el) => {
-      if (el.type !== 'video') {
-        return el;
-      }
+      // Si había una imagen (póster), convertirla a video real.
       return {
         ...el,
-        props: { ...(el.props as VideoProps), src }
+        type: 'video',
+        w: Math.max(el.w, 320),
+        h: Math.max(el.h, 180),
+        props: { src, autoplay: false, loop: false, muted: true }
       };
     });
     this.markDirty();

@@ -1189,6 +1189,7 @@ internal static class PptxSlideIO
 
             if (!string.IsNullOrWhiteSpace(videoLink))
             {
+                var before = Elements.Count;
                 TryAddVideoFromLink(
                     videoLink,
                     picture.ShapeProperties?.GetFirstChild<A.Transform2D>(),
@@ -1196,6 +1197,11 @@ internal static class PptxSlideIO
                     parentY,
                     groupScaleX,
                     groupScaleY);
+                if (Elements.Count > before)
+                {
+                    // Video embebido OK: no agregar el póster como imagen encima.
+                    return;
+                }
             }
 
             TryAddPictureFromBlip(
