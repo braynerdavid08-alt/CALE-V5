@@ -736,7 +736,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (this.editingText() && this.selectedId() === el.id && el.type === 'text') {
       return;
     }
-    if ((ev.target as HTMLElement).closest('.handle')) {
+    if ((ev.target as HTMLElement).closest('.handle, .text-drag-handle')) {
       return;
     }
 

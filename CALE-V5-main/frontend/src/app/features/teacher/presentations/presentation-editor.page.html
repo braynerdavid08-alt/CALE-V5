@@ -243,6 +243,12 @@
                       }
                     </div>
                   }
+                  @if (el.type === 'text' && selectedId() === el.id && !editingText()) {
+                    <span
+                      class="text-drag-handle"
+                      title="Mover texto"
+                      (pointerdown)="startDrag($event, el.id, 'move')">⠿</span>
+                  }
                   @if (selectedId() === el.id && !editingText()) {
                     <span
                       class="handle handle-nw"
