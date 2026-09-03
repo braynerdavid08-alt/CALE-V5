@@ -267,9 +267,50 @@
   touch-action: none;
 }
 
-.el.selected {
-  outline: 2px solid #2bb0ed;
-  outline-offset: 1px;
+.el.photo-bleed {
+  pointer-events: none;
+}
+
+.photo-hint {
+  margin: 0 0 0.75rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #2c4258;
+  border-radius: 8px;
+  background: #1a2736;
+  color: #d5e4f0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.photo-hint strong {
+  color: #fff;
+}
+
+.layer-list {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.layer-list button {
+  width: 100%;
+  text-align: left;
+  border: 1px solid #2c4258;
+  background: #1a2736;
+  color: #d5e4f0;
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+.layer-list button.on,
+.layer-list button:hover {
+  border-color: #2bb0ed;
 }
 
 .el-text {

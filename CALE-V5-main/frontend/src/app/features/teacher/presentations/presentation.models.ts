@@ -173,18 +173,82 @@ export function parseElements(json: string): SlideElement[] {
   }
 }
 
+export function isFullBleedImage(el: SlideElement): boolean {
+  if (el.type !== 'image') {
+    return false;
+  }
+  const coversMost = el.w >= SLIDE_W * 0.82 && el.h >= SLIDE_H * 0.82;
+  const pinnedNearOrigin = el.x <= SLIDE_W * 0.12 && el.y <= SLIDE_H * 0.12;
+  return coversMost && pinnedNearOrigin;
+}
+
+export function imageSrc(el: SlideElement): string | null {
+  if (el.type !== 'image') {
+    return null;
+  }
+  const src = (el.props as ImageProps).src?.trim();
+  return src || null;
+}
+
+function isImportStubText(el: SlideElement): boolean {
+  if (el.type !== 'text') {
+    return false;
+  }
+  const text = ((el.props as TextProps).text ?? '').trim();
+  const atTitleSlot = el.x === 64 && el.y === 48 && el.w === 832;
+  const atBodySlot = el.x === 64 && el.y === 140 && el.w === 832 && el.h >= 280;
+  // Solo quitar placeholders vacíos o genéricos — nunca texto real del PPT.
+  if (!text) {
+    return atTitleSlot || atBodySlot;
+  }
+  if (atTitleSlot && /^Diapositiva\s+\d+$/i.test(text)) {
+    return true;
+  }
+  if (atBodySlot && text.length < 3) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Si una foto cubre casi toda la diapositiva, pásala a fondo para que el texto
+ * y las formas del PowerPoint queden encima y se puedan editar / conservar el orden.
+ */
+export function unlockImportedPhotoSlide(slide: EditorSlide): EditorSlide {
+  const photos = slide.elements.filter(isFullBleedImage);
+  const topPhoto = photos.length
+    ? [...photos].sort((a, b) => a.z - b.z)[0]
+    : null;
+  const src = topPhoto ? imageSrc(topPhoto) : null;
+  const background: SlideBackground = src
+    ? { type: 'image', color: slide.background.color || '#F7F9FC', imageUrl: src }
+    : slide.background;
+  const remaining = slide.elements.filter((el) => el.id !== topPhoto?.id);
+  const elements = remaining.filter((el) => !isImportStubText(el));
+  if (
+    background.type === slide.background.type
+    && background.imageUrl === slide.background.imageUrl
+    && elements.length === slide.elements.length
+  ) {
+    return slide;
+  }
+  return { ...slide, background, elements };
+}
+
 export function dtoToEditorSlides(detail: PresentationDetail): EditorSlide[] {
   return detail.slides
     .slice()
     .sort((a, b) => a.position - b.position)
-    .map((s) => ({
-      clientId: newClientId('slide'),
-      id: s.id,
-      title: s.title,
-      notes: s.notes || '',
-      background: parseBackground(s.backgroundJson),
-      elements: parseElements(s.elementsJson)
-    }));
+    .map((s) =>
+      unlockImportedPhotoSlide({
+        clientId: newClientId('slide'),
+        id: s.id,
+        title: s.title,
+        notes: s.notes || '',
+        background: parseBackground(s.backgroundJson),
+        elements: parseElements(s.elementsJson)
+      })
+    );
 }
 
 export const DEFAULT_IMAGE_CROP: ImageCrop = { x: 0, y: 0, w: 1, h: 1 };

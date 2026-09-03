@@ -124,6 +124,7 @@
             class="slide-stage"
             [style.transform]="'scale(' + zoom() + ')'"
             (click)="clearSelection()"
+            (dblclick)="onCanvasDblClick($event)"
             (dragover)="$event.preventDefault()"
             (drop)="onCanvasDrop($event)">
             @if (snapGuideX() !== null) {
@@ -139,6 +140,7 @@
                   [class.selected]="selectedId() === el.id"
                   [class.is-text]="el.type === 'text'"
                   [class.is-editing]="el.type === 'text' && editingText() && selectedId() === el.id"
+                  [class.photo-bleed]="isFullBleedImage(el) && selectedId() !== el.id"
                   [style.left.px]="el.x"
                   [style.top.px]="el.y"
                   [style.width.px]="el.w"
@@ -287,6 +289,17 @@
               <button type="button" (click)="clearBgImage()">Quitar fondo</button>
             }
           </div>
+          @if (isPhotoSlide()) {
+            <p class="photo-hint">
+              @if (layerItems().length) {
+                Esta diapositiva tiene una foto de fondo. Los recuadros de texto y formas sí se pueden editar;
+                haz clic en ellos o usa la lista de capas.
+              } @else {
+                Esta diapositiva llegó como foto. El texto de la imagen no se edita letra a letra.
+                Pulsa <strong>Título</strong> o <strong>Texto</strong>, o haz doble clic para escribir encima.
+              }
+            </p>
+          }
           <input #bgImageInput type="file" accept="image/*" hidden (change)="onBgImageSelected($event)" />
           <label>
             Notas del instructor
@@ -413,6 +426,7 @@
             </label>
             <div class="row">
               <button type="button" (click)="fitImageToSlide()">Ajustar a diapositiva</button>
+              <button type="button" (click)="convertSelectedImageToBackground()">Usar como fondo</button>
               <button type="button" (click)="openReplaceImageModal()">Cambiar imagen</button>
             </div>
             <fieldset class="crop-panel">
@@ -488,8 +502,27 @@
             </label>
           }
           <p class="meta">x {{ sel.x }} · y {{ sel.y }} · {{ sel.w }}×{{ sel.h }}</p>
+        } @else if (isPhotoSlide()) {
+          <p class="meta">No hay recuadros de texto encima. Agrega uno desde la barra para editar.</p>
         } @else {
           <p class="meta">Selecciona un elemento o agrega uno desde la barra.</p>
+        }
+
+        @if (layerItems().length) {
+          <hr />
+          <p class="sel-type">Capas</p>
+          <ul class="layer-list">
+            @for (el of layerItems(); track el.id) {
+              <li>
+                <button
+                  type="button"
+                  [class.on]="selectedId() === el.id"
+                  (click)="selectElement(el.id, $event)">
+                  {{ layerLabel(el) }}
+                </button>
+              </li>
+            }
+          </ul>
         }
 
         <hr />

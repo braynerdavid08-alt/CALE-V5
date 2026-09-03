@@ -35,8 +35,11 @@ import {
   dtoToEditorSlides,
   hasImageCrop,
   imageElementStyles,
+  imageSrc,
+  isFullBleedImage,
   newClientId,
-  normalizeImageCrop
+  normalizeImageCrop,
+  unlockImportedPhotoSlide
 } from './presentation.models';
 import { buildSlideFromTemplate, reassignElementIds } from './presentation-slide-templates';
 import {
@@ -77,6 +80,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   readonly categories = PRESENTATION_CATEGORIES;
   readonly templates = TEMPLATE_OPTIONS;
   readonly media = resolveMediaUrl;
+  readonly isFullBleedImage = isFullBleedImage;
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -666,6 +670,60 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     this.editingText.set(false);
   }
 
+  isPhotoSlide(): boolean {
+    const slide = this.activeSlide();
+    if (!slide) {
+      return false;
+    }
+    return (!!slide.background.imageUrl && slide.background.type === 'image')
+      || slide.elements.some(isFullBleedImage);
+  }
+
+  layerItems(): SlideElement[] {
+    return [...(this.activeSlide()?.elements ?? [])].sort((a, b) => b.z - a.z);
+  }
+
+  layerLabel(el: SlideElement): string {
+    if (el.type === 'text') {
+      const text = ((el.props as TextProps).text ?? '').replace(/\s+/g, ' ').trim();
+      return text ? (text.length > 32 ? `${text.slice(0, 32)}…` : text) : 'Texto';
+    }
+    const labels: Record<string, string> = {
+      image: 'Imagen',
+      video: 'Video',
+      shape: 'Figura',
+      line: 'Línea',
+      arrow: 'Flecha'
+    };
+    return labels[el.type] ?? el.type;
+  }
+
+  convertSelectedImageToBackground(): void {
+    const sel = this.selected();
+    const src = sel ? imageSrc(sel) : null;
+    if (!sel || !src) {
+      return;
+    }
+    this.pushHistory();
+    this.updateActive((s) => ({
+      ...s,
+      background: { type: 'image', color: s.background.color || '#F7F9FC', imageUrl: src },
+      elements: s.elements.filter((e) => e.id !== sel.id)
+    }));
+    this.selectedId.set(null);
+    this.markDirty();
+  }
+
+  onCanvasDblClick(ev: MouseEvent): void {
+    if ((ev.target as HTMLElement).closest('.el')) {
+      return;
+    }
+    ev.preventDefault();
+    ev.stopPropagation();
+    const pos = this.dropPosition(ev as unknown as DragEvent);
+    this.addTextAt(pos.x, pos.y);
+  }
+
   onElementPointerDown(ev: PointerEvent, el: SlideElement): void {
     if (this.editingText() && this.selectedId() === el.id && el.type === 'text') {
       return;
@@ -734,13 +792,17 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   }
 
   addText(kind: 'title' | 'subtitle' | 'body' = 'body'): void {
+    this.addTextAt(120, kind === 'title' ? 48 : 160, kind);
+  }
+
+  private addTextAt(x: number, y: number, kind: 'title' | 'subtitle' | 'body' = 'body'): void {
     this.pushHistory();
     const sizes = { title: 40, subtitle: 28, body: 20 };
     const el: SlideElement = {
       id: newClientId('el'),
       type: 'text',
-      x: 120,
-      y: 160,
+      x: Math.max(16, Math.min(SLIDE_W - 160, x)),
+      y: Math.max(16, Math.min(SLIDE_H - 80, y)),
       w: 700,
       h: kind === 'body' ? 120 : 70,
       rotation: 0,
@@ -749,7 +811,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
         text: kind === 'title' ? 'Título' : kind === 'subtitle' ? 'Subtítulo' : 'Texto',
         fontSize: sizes[kind],
         fontWeight: kind === 'body' ? 400 : 700,
-        color: '#0B1F33',
+        color: this.isPhotoSlide() ? '#FFFFFF' : '#0B1F33',
         align: 'left',
         fontFamily: 'Segoe UI, sans-serif'
       }
@@ -1753,7 +1815,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
         this.description.set(draft.description);
         this.category.set(draft.category);
         this.groupId.set(draft.groupId);
-        this.slides.set(draft.slides);
+        this.slides.set(draft.slides.map(unlockImportedPhotoSlide));
         this.markDirty();
       } else {
         this.clearLocalDraft(id);
