@@ -223,7 +223,11 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   }
 
   async changePresentationSlide(delta: number): Promise<void> {
-    const next = Math.max(0, this.presentationSlide() + delta);
+    const max = Math.max(0, this.deckSlides.length - 1);
+    const next = Math.min(max, Math.max(0, this.presentationSlide() + delta));
+    if (next === this.presentationSlide() && delta !== 0 && this.deckSlides.length > 0) {
+      return;
+    }
     this.presentationSlide.set(next);
     const iframe = document.getElementById('live-pres-iframe') as HTMLIFrameElement | null;
     iframe?.contentWindow?.postMessage(
@@ -243,6 +247,9 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
 
   private ensureDeckLoaded(presentationId: number): void {
     if (this.deckPresentationId === presentationId && this.deckSlides.length) {
+      if (this.showPresentation()) {
+        this.maybeOpenSlideQuestion(this.presentationSlide());
+      }
       return;
     }
     this.presentationApi.get(presentationId).subscribe({
@@ -250,6 +257,13 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
         this.deckPresentationId = presentationId;
         this.deckSlides = dtoToEditorSlides(detail);
         this.loadFiredSlideQuestions(this.lobby()?.sessionId);
+        const max = Math.max(0, this.deckSlides.length - 1);
+        if (this.presentationSlide() > max) {
+          this.presentationSlide.set(max);
+        }
+        if (this.showPresentation() || this.route.snapshot.queryParamMap.get('openDeck') === '1') {
+          this.maybeOpenSlideQuestion(this.presentationSlide());
+        }
       },
       error: () => {
         this.deckSlides = [];
@@ -263,6 +277,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     if (!sessionId || this.openingSlideQuestion) {
       return;
     }
+    this.loadFiredSlideQuestions(sessionId);
     const slide = this.deckSlides[slideIndex];
     const el = findAutoOpenQuestion(slide);
     if (!el || this.firedSlideQuestionIds.has(el.id)) {
@@ -293,7 +308,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
       return;
     }
     try {
-      const raw = sessionStorage.getItem(`cale-live-q-fired-${sessionId}`);
+      const raw = localStorage.getItem(`cale-live-q-fired-${sessionId}`);
       const ids = raw ? (JSON.parse(raw) as string[]) : [];
       for (const id of ids) {
         this.firedSlideQuestionIds.add(id);
@@ -305,7 +320,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
 
   private persistFiredSlideQuestions(sessionId: number): void {
     try {
-      sessionStorage.setItem(
+      localStorage.setItem(
         `cale-live-q-fired-${sessionId}`,
         JSON.stringify([...this.firedSlideQuestionIds])
       );
@@ -636,9 +651,29 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     });
     this.hub.on('RevealUpdated', (payload: LiveQuestionPayloadDto) => {
       const current = this.lobby();
-      if (current) {
-        this.applyLobby({ ...current, currentQuestion: payload, revealCorrect: true });
+      if (!current) {
+        return;
       }
+      const prevQ = current.currentQuestion;
+      const payloadHasKey = !!payload.options?.some((o) => o.isCorrect === true);
+      const mergedOptions =
+        payloadHasKey ||
+        !prevQ ||
+        prevQ.sessionQuestionId !== payload.sessionQuestionId
+          ? payload.options
+          : payload.options.map((o) => ({
+              ...o,
+              isCorrect: prevQ.options.find((p) => p.id === o.id)?.isCorrect ?? o.isCorrect
+            }));
+      this.applyLobby({
+        ...current,
+        currentQuestion: {
+          ...payload,
+          options: mergedOptions,
+          explanation: payload.explanation ?? prevQ?.explanation ?? null
+        },
+        revealCorrect: true
+      });
     });
     this.hub.on('AnswerRosterUpdated', (payload: LiveAnswerRosterDto) => {
       this.answerRoster.set(payload ?? null);

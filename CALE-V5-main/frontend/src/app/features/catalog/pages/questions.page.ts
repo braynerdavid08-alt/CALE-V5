@@ -33,7 +33,7 @@ import { TeacherApi, QuestionListDto } from '../../teacher/api/teacher.api';
         ? 'Catálogo global de Mi CALE. Solo administración crea y edita preguntas.'
         : 'Preguntas oficiales de Mi CALE. Requiere escuela con plan activo (lectura).'">
       @if (canManage()) {
-        <a routerLink="new"><ui-button type="button">Nueva pregunta</ui-button></a>
+        <a routerLink="/admin/questions/new"><ui-button type="button">Nueva pregunta</ui-button></a>
       }
     </ui-page-header>
     <ui-error [message]="error()" />
@@ -67,7 +67,7 @@ import { TeacherApi, QuestionListDto } from '../../teacher/api/teacher.api';
                 <tr>
                   <td>
                     @if (canManage()) {
-                      <a [routerLink]="[q.id]">{{ q.text }}</a>
+                      <a [routerLink]="['/admin/questions', q.id]">{{ q.text }}</a>
                     } @else {
                       {{ q.text }}
                     }

@@ -1,5 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { mapApiError } from '../../../core/http/map-api-error';
+import { SessionStore } from '../../../core/auth/session.store';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiCardComponent } from '../../../shared/ui/ui-card.component';
@@ -78,11 +80,17 @@ interface ResultRow {
 })
 export class TeacherResultsPage implements OnInit {
   private readonly api = inject(TeacherApi);
+  private readonly session = inject(SessionStore);
+  private readonly router = inject(Router);
   readonly items = signal<ResultRow[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
 
   ngOnInit(): void {
+    if (this.session.user()?.role === 'Admin') {
+      void this.router.navigate(['/admin/results']);
+      return;
+    }
     this.api.results().subscribe({
       next: (items) => {
         this.items.set(items);

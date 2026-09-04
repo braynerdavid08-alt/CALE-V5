@@ -201,7 +201,7 @@ export class PresentationListPage implements OnInit {
             bankIds: bankIds.length ? bankIds : undefined,
             config: {
               caleStandardPreset: false,
-              questionCount: bankIds.length ? 10 : 0,
+              questionCount: 0,
               secondsPerQuestion: 30,
               randomize: true,
               shuffleOptions: true,

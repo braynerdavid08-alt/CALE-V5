@@ -465,16 +465,22 @@ export function questionToLivePayload(el: SlideElement): {
     return null;
   }
   const props = el.props as QuestionProps;
-  const options = (props.options ?? [])
-    .map((t) => (t ?? '').trim())
-    .filter((t) => t.length > 0);
+  const raw = props.options ?? [];
+  const correctRaw = Math.min(Math.max(0, props.correctIndex ?? 0), Math.max(0, raw.length - 1));
+  const options = raw
+    .map((t, i) => ({ text: (t ?? '').trim(), wasCorrect: i === correctRaw }))
+    .filter((o) => o.text.length > 0);
   if ((props.text ?? '').trim().length < 3 || options.length < 2) {
     return null;
   }
-  const correct = Math.min(Math.max(0, props.correctIndex ?? 0), options.length - 1);
+  let correctIdx = options.findIndex((o) => o.wasCorrect);
+  if (correctIdx < 0) {
+    // La opción marcada estaba vacía: no inventar otra correcta.
+    return null;
+  }
   return {
     text: props.text.trim(),
-    options: options.map((text, i) => ({ text, isCorrect: i === correct })),
+    options: options.map((o, i) => ({ text: o.text, isCorrect: i === correctIdx })),
     explanation: props.explanation?.trim() || null,
     topic: props.topic?.trim() || 'Diapositiva'
   };

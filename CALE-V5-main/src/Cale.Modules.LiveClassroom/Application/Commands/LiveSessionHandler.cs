@@ -249,6 +249,22 @@ public sealed class LiveSessionHandler
         switch ((action ?? "").Trim().ToLowerInvariant())
         {
             case "start":
+                // Ya hay pregunta activa (p.ej. rápida desde diapositiva): no reabrir índice 0.
+                if (session.CurrentQuestionIndex >= 0
+                    && session.Status is LiveSessionStatuses.Running or LiveSessionStatuses.Paused)
+                {
+                    await BroadcastLobbyAsync(session, ct);
+                    if (session.IsQuestionOpen(now) || session.RevealCorrect)
+                    {
+                        await BroadcastQuestionAsync(
+                            session,
+                            includeCorrect: false,
+                            ct);
+                    }
+
+                    break;
+                }
+
                 await EnsureQuestionsPreparedAsync(session, config, ct);
                 if (session.Questions.Count == 0)
                 {
@@ -882,6 +898,28 @@ public sealed class LiveSessionHandler
             throw new DomainException("Marca exactamente una respuesta correcta.", 400, "invalid_correct");
         }
 
+        // Idempotencia: misma pregunta ya abierta (host + clicker en paralelo).
+        var nowCheck = _clock.UtcNow;
+        if (session.CurrentQuestionIndex >= 0)
+        {
+            var existingOrdered = session.Questions.OrderBy(q => q.SortOrder).ToList();
+            if (session.CurrentQuestionIndex < existingOrdered.Count)
+            {
+                var currentSnap = DeserializeSnapshot(existingOrdered[session.CurrentQuestionIndex].SnapshotJson);
+                if (IsSameQuickQuestion(currentSnap, text, options))
+                {
+                    if (!session.IsQuestionOpen(nowCheck) && session.Status != LiveSessionStatuses.Ended)
+                    {
+                        OpenAt(session, session.CurrentQuestionIndex, config, nowCheck);
+                        await _store.SaveChangesAsync(ct);
+                        await BroadcastQuestionAsync(session, includeCorrect: false, ct);
+                    }
+
+                    return;
+                }
+            }
+        }
+
         if (config.ShuffleOptions)
         {
             options = options.OrderBy(_ => Guid.NewGuid()).ToList();
@@ -1049,14 +1087,20 @@ public sealed class LiveSessionHandler
 
     private async Task BroadcastRevealAsync(LiveSession session, CancellationToken ct)
     {
-        // Exam mode: never push correct answers to students over SignalR.
-        var includeCorrect = session.Mode is not LiveSessionModes.Exam;
-        var payload = BuildCurrentQuestion(session, includeCorrect);
-        await _broadcast.RevealUpdatedAsync(session.Id, payload!, ct);
-        if (!includeCorrect)
+        // Host always needs keys when RevealCorrect; students in Exam never get them.
+        if (session.Mode is LiveSessionModes.Exam)
         {
+            var hostPayload = BuildCurrentQuestion(session, includeCorrect: session.RevealCorrect);
+            var studentPayload = BuildCurrentQuestion(session, includeCorrect: false);
+            await _broadcast.RevealUpdatedAsync(session.Id, studentPayload!, ct);
+            // Lobby refresh without keys for students; host keeps HTTP response from control.
             await BroadcastLobbyAsync(session, ct);
+            _ = hostPayload;
+            return;
         }
+
+        var payload = BuildCurrentQuestion(session, includeCorrect: session.RevealCorrect);
+        await _broadcast.RevealUpdatedAsync(session.Id, payload!, ct);
     }
 
     private async Task BroadcastAnswerRosterAsync(LiveSession session, CancellationToken ct)
@@ -1738,6 +1782,42 @@ public sealed class LiveSessionHandler
     private static QuestionSnapshot DeserializeSnapshot(string json) =>
         JsonSerializer.Deserialize<QuestionSnapshot>(json, JsonOpts)
         ?? new QuestionSnapshot(0, "", null, null, null, []);
+
+    private static bool IsSameQuickQuestion(
+        QuestionSnapshot current,
+        string text,
+        IReadOnlyList<SnapshotOption> options)
+    {
+        if (!string.Equals(current.Text.Trim(), text.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var currentTexts = current.Options
+            .Select(o => o.Text.Trim())
+            .Where(t => t.Length > 0)
+            .OrderBy(t => t, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var nextTexts = options
+            .Select(o => o.Text.Trim())
+            .Where(t => t.Length > 0)
+            .OrderBy(t => t, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (currentTexts.Count != nextTexts.Count)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < currentTexts.Count; i++)
+        {
+            if (!string.Equals(currentTexts[i], nextTexts[i], StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     private sealed record SnapshotOption(int Id, string Text, string? ImageUrl, bool IsCorrect);
 

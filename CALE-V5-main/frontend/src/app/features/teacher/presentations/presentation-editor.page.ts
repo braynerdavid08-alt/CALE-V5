@@ -1103,7 +1103,6 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (!id) {
       return;
     }
-    this.pushHistory();
     this.patchElement(id, (el) => {
       if (el.type !== 'question') {
         return el;
@@ -1118,7 +1117,6 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (!id) {
       return;
     }
-    this.pushHistory();
     this.patchElement(id, (el) => {
       if (el.type !== 'question') {
         return el;

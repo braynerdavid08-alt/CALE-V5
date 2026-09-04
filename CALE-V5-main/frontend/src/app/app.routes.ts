@@ -357,7 +357,7 @@ export const routes: Routes = [
       {
         path: 'teacher/library',
         pathMatch: 'full',
-        canActivate: [roleGuard],
+        canActivate: [roleGuard, catalogAccessGuard],
         data: { roles: ['Teacher'] },
         loadComponent: () =>
           import('./features/teacher/pages/teacher-library.page')
@@ -375,7 +375,7 @@ export const routes: Routes = [
       {
         path: 'teacher/banks',
         pathMatch: 'full',
-        canActivate: [roleGuard],
+        canActivate: [roleGuard, catalogAccessGuard],
         data: { roles: ['Teacher', 'Admin'] },
         loadComponent: () =>
           import('./features/admin/pages/admin-banks.page')

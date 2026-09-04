@@ -161,6 +161,7 @@ export function navForRole(role?: string): NavItem[] {
     { label: 'Clases de manejo', path: '/student/practical', icon: 'exam', exact: true },
     { label: 'Mis Clases', path: '/student/classes', icon: 'book', exact: true },
     { label: 'Mis Evaluaciones', path: '/student/evaluations', icon: 'exam', exact: true },
+    { label: 'Simulador', path: '/student/simulator', icon: 'exam', exact: true },
     { label: 'Mi Progreso', path: '/student/progress', icon: 'chart', exact: true },
     { label: 'Mensajes', path: '/notifications', icon: 'bell', exact: true },
     { label: 'Certificados', path: '/student/certificates', icon: 'graduate', exact: true },
