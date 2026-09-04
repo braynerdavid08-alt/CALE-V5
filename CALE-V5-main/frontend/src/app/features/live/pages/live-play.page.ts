@@ -23,6 +23,7 @@ import {
   EditorSlide,
   ImageProps,
   LineProps,
+  QuestionProps,
   SLIDE_H,
   SLIDE_W,
   ShapeKind,
@@ -289,6 +290,10 @@ export class LivePlayPage implements OnInit, OnDestroy {
 
   lineProps(el: SlideElement): LineProps {
     return el.props as LineProps;
+  }
+
+  questionProps(el: SlideElement): QuestionProps {
+    return el.props as QuestionProps;
   }
 
   imageHasCrop(el: SlideElement): boolean {

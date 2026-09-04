@@ -10,6 +10,7 @@ import {
   ShapeKind,
   ShapeProps,
   SlideElement,
+  QuestionProps,
   TextProps,
   VideoProps,
   backgroundCss,
@@ -66,6 +67,14 @@ export class SlidePreviewComponent {
 
   lineProps(el: SlideElement): LineProps {
     return el.props as LineProps;
+  }
+
+  questionProps(el: SlideElement): QuestionProps {
+    return el.props as QuestionProps;
+  }
+
+  optionLetter(index: number): string {
+    return String.fromCharCode(65 + index);
   }
 
   imageHasCrop(el: SlideElement): boolean {

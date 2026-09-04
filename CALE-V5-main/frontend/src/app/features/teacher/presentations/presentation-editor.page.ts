@@ -24,15 +24,18 @@ import {
   PRESENTATION_CATEGORIES,
   PRESENTATION_MEDIA_MAX_BYTES,
   PresentationDeckSummary,
+  QuestionProps,
   SLIDE_H,
   SLIDE_W,
   ShapeKind,
   ShapeProps,
   SlideElement,
+  SlideQuestionKind,
   TEMPLATE_OPTIONS,
   TextProps,
   VideoProps,
   backgroundCss,
+  defaultQuestionProps,
   dtoToEditorSlides,
   hasImageCrop,
   imageElementStyles,
@@ -888,7 +891,8 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       video: 'Video',
       shape: 'Figura',
       line: 'Línea',
-      arrow: 'Flecha'
+      arrow: 'Flecha',
+      question: 'Pregunta'
     };
     return labels[el.type] ?? el.type;
   }
@@ -1068,6 +1072,90 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       }
     };
     this.pushElement(el);
+  }
+
+  addQuestion(kind: SlideQuestionKind = 'mcq'): void {
+    this.pushHistory();
+    const el: SlideElement = {
+      id: newClientId('el'),
+      type: 'question',
+      x: 220,
+      y: 140,
+      w: 1480,
+      h: kind === 'vf' ? 420 : 560,
+      rotation: 0,
+      z: this.nextZ(),
+      props: defaultQuestionProps(kind)
+    };
+    this.pushElement(el);
+  }
+
+  optionLetter(index: number): string {
+    return String.fromCharCode(65 + index);
+  }
+
+  questionProps(el: SlideElement): QuestionProps {
+    return el.props as QuestionProps;
+  }
+
+  updateQuestionProp(key: keyof QuestionProps, value: unknown): void {
+    const id = this.selectedId();
+    if (!id) {
+      return;
+    }
+    this.pushHistory();
+    this.patchElement(id, (el) => {
+      if (el.type !== 'question') {
+        return el;
+      }
+      return { ...el, props: { ...(el.props as QuestionProps), [key]: value } };
+    });
+    this.markDirty();
+  }
+
+  setQuestionOption(index: number, value: string): void {
+    const id = this.selectedId();
+    if (!id) {
+      return;
+    }
+    this.pushHistory();
+    this.patchElement(id, (el) => {
+      if (el.type !== 'question') {
+        return el;
+      }
+      const props = el.props as QuestionProps;
+      const options = [...props.options];
+      options[index] = value;
+      return { ...el, props: { ...props, options } };
+    });
+    this.markDirty();
+  }
+
+  setQuestionKind(kind: SlideQuestionKind): void {
+    const id = this.selectedId();
+    if (!id) {
+      return;
+    }
+    this.pushHistory();
+    this.patchElement(id, (el) => {
+      if (el.type !== 'question') {
+        return el;
+      }
+      const current = el.props as QuestionProps;
+      const next = defaultQuestionProps(kind);
+      return {
+        ...el,
+        h: kind === 'vf' ? Math.min(el.h, 420) : Math.max(el.h, 520),
+        props: {
+          ...next,
+          text: current.text?.trim() ? current.text : next.text,
+          explanation: current.explanation,
+          topic: current.topic,
+          autoOpen: current.autoOpen
+        }
+      };
+    });
+    this.markDirty();
   }
 
   triggerImage(): void {

@@ -11,13 +11,16 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgStyle } from '@angular/common';
+import { HubConnection } from '@microsoft/signalr';
 import { resolveMediaUrl } from '../../../core/media/resolve-media-url';
 import { mapApiError } from '../../../core/http/map-api-error';
+import { LiveApi } from '../../live/api/live.api';
 import { PresentationApi } from './presentation.api';
 import {
   EditorSlide,
   ImageProps,
   LineProps,
+  QuestionProps,
   SLIDE_H,
   SLIDE_W,
   ShapeKind,
@@ -27,8 +30,10 @@ import {
   VideoProps,
   backgroundCss,
   dtoToEditorSlides,
+  findAutoOpenQuestion,
   hasImageCrop,
-  imageElementStyles
+  imageElementStyles,
+  questionToLivePayload
 } from './presentation.models';
 
 @Component({
@@ -42,8 +47,13 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
   @ViewChild('stage') stage?: ElementRef<HTMLElement>;
 
   private readonly api = inject(PresentationApi);
+  private readonly liveApi = inject(LiveApi);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private hub: HubConnection | null = null;
+  private embedMode = false;
+  private readonly firedQuestionIds = new Set<string>();
+  private openingQuestion = false;
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -55,6 +65,7 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
   readonly brokenMediaIds = signal<Set<string>>(new Set());
   readonly presentationId = signal(0);
   readonly slideScale = signal(1);
+  readonly liveSessionId = signal<number | null>(null);
 
   readonly current = computed(() => this.slides()[this.index()] ?? null);
   readonly currentNotes = computed(() => this.current()?.notes?.trim() ?? '');
@@ -65,12 +76,16 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.presentationId.set(id);
-    const embed = this.route.snapshot.queryParamMap.get('embed') === '1';
+    this.embedMode = this.route.snapshot.queryParamMap.get('embed') === '1';
     const slide = Number(this.route.snapshot.queryParamMap.get('slide') ?? 0);
+    const liveId = Number(this.route.snapshot.queryParamMap.get('liveSessionId') ?? 0);
     if (!Number.isNaN(slide) && slide >= 0) {
       this.index.set(slide);
     }
-    if (embed) {
+    if (liveId > 0) {
+      this.liveSessionId.set(liveId);
+    }
+    if (this.embedMode) {
       this.showChrome.set(false);
       this.showNotes.set(false);
       window.addEventListener('message', this.onEmbedMessage);
@@ -82,8 +97,12 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
         this.loading.set(false);
         setTimeout(() => {
           this.updateSlideScale();
-          if (!embed) {
+          if (!this.embedMode) {
             this.enterFullscreen();
+          }
+          if (this.liveSessionId()) {
+            this.connectLiveHub();
+            this.onSlideSettled();
           }
         }, 200);
       },
@@ -99,6 +118,7 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
     if (this.hideTimer) {
       clearTimeout(this.hideTimer);
     }
+    void this.hub?.stop();
     if (document.fullscreenElement) {
       void document.exitFullscreen();
     }
@@ -136,12 +156,14 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
   next(): void {
     if (this.index() < this.slides().length - 1) {
       this.index.update((i) => i + 1);
+      this.onSlideSettled();
     }
   }
 
   prev(): void {
     if (this.index() > 0) {
       this.index.update((i) => i - 1);
+      this.onSlideSettled();
     }
   }
 
@@ -194,6 +216,11 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
     if (document.fullscreenElement) {
       void document.exitFullscreen();
     }
+    const liveId = this.liveSessionId();
+    if (liveId) {
+      void this.router.navigate(['/teacher/live', liveId, 'host']);
+      return;
+    }
     void this.router.navigate(['/teacher/presentations', this.presentationId(), 'edit']);
   }
 
@@ -207,6 +234,89 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
       this.updateSlideScale();
     }
   };
+
+  private connectLiveHub(): void {
+    const sessionId = this.liveSessionId();
+    if (!sessionId || this.hub) {
+      return;
+    }
+    this.loadFiredQuestions(sessionId);
+    this.hub = this.liveApi.buildHub(true);
+    void this.hub.start().then(() => this.hub!.invoke('JoinAsHost', sessionId)).catch(() => {
+      this.error.set('No se pudo conectar la sala en vivo. Revisa que la sesión siga abierta.');
+    });
+  }
+
+  private onSlideSettled(): void {
+    void this.syncLiveSlide();
+    // Solo el clicker a pantalla completa dispara; el iframe embed lo hace el host.
+    if (!this.embedMode) {
+      this.maybeOpenSlideQuestion();
+    }
+  }
+
+  private async syncLiveSlide(): Promise<void> {
+    const sessionId = this.liveSessionId();
+    if (!sessionId || !this.hub || this.embedMode) {
+      return;
+    }
+    try {
+      await this.hub.invoke('SyncPresentationSlide', sessionId, this.index());
+    } catch {
+      /* non-fatal */
+    }
+  }
+
+  private maybeOpenSlideQuestion(): void {
+    const sessionId = this.liveSessionId();
+    if (!sessionId || this.openingQuestion) {
+      return;
+    }
+    const el = findAutoOpenQuestion(this.current());
+    if (!el || this.firedQuestionIds.has(el.id)) {
+      return;
+    }
+    const payload = questionToLivePayload(el);
+    if (!payload) {
+      return;
+    }
+    this.openingQuestion = true;
+    this.firedQuestionIds.add(el.id);
+    this.persistFiredQuestions(sessionId);
+    this.liveApi.control(sessionId, 'quick', payload).subscribe({
+      next: () => {
+        this.openingQuestion = false;
+      },
+      error: () => {
+        this.openingQuestion = false;
+        this.firedQuestionIds.delete(el.id);
+        this.persistFiredQuestions(sessionId);
+      }
+    });
+  }
+
+  private loadFiredQuestions(sessionId: number): void {
+    try {
+      const raw = sessionStorage.getItem(`cale-live-q-fired-${sessionId}`);
+      const ids = raw ? (JSON.parse(raw) as string[]) : [];
+      for (const id of ids) {
+        this.firedQuestionIds.add(id);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private persistFiredQuestions(sessionId: number): void {
+    try {
+      sessionStorage.setItem(
+        `cale-live-q-fired-${sessionId}`,
+        JSON.stringify([...this.firedQuestionIds])
+      );
+    } catch {
+      /* ignore */
+    }
+  }
 
   bgStyle(slide: EditorSlide): Record<string, string> {
     const css = backgroundCss(slide.background);
@@ -260,6 +370,14 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
 
   lineProps(el: SlideElement): LineProps {
     return el.props as LineProps;
+  }
+
+  questionProps(el: SlideElement): QuestionProps {
+    return el.props as QuestionProps;
+  }
+
+  optionLetter(index: number): string {
+    return String.fromCharCode(65 + index);
   }
 
   shapeClip(shape: ShapeKind): string | null {

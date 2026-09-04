@@ -1,6 +1,8 @@
-export type SlideElementType = 'text' | 'image' | 'video' | 'shape' | 'line' | 'arrow';
+export type SlideElementType = 'text' | 'image' | 'video' | 'shape' | 'line' | 'arrow' | 'question';
 
 export type ShapeKind = 'rect' | 'ellipse' | 'triangle' | 'octagon';
+
+export type SlideQuestionKind = 'vf' | 'mcq';
 
 export interface SlideBackground {
   type: 'solid' | 'gradient' | 'image';
@@ -55,6 +57,17 @@ export interface LineProps {
   arrowEnd?: boolean;
 }
 
+/** Interactive live question embedded on a slide. */
+export interface QuestionProps {
+  text: string;
+  options: string[];
+  correctIndex: number;
+  kind: SlideQuestionKind;
+  explanation?: string | null;
+  topic?: string | null;
+  autoOpen?: boolean;
+}
+
 export interface SlideElement {
   id: string;
   type: SlideElementType;
@@ -66,7 +79,7 @@ export interface SlideElement {
   z: number;
   /** Canvas group (not classroom GroupId). Shared id = same group. */
   groupId?: string | null;
-  props: TextProps | ImageProps | VideoProps | ShapeProps | LineProps;
+  props: TextProps | ImageProps | VideoProps | ShapeProps | LineProps | QuestionProps;
 }
 
 export interface EditorSlide {
@@ -359,6 +372,7 @@ export interface PresentationDeckSummary {
   videos: number;
   shapes: number;
   lines: number;
+  questions: number;
   photoBackgroundSlides: number;
 }
 
@@ -369,6 +383,7 @@ export function summarizePresentationSlides(slides: EditorSlide[]): Presentation
   let videos = 0;
   let shapes = 0;
   let lines = 0;
+  let questions = 0;
   let photoBackgroundSlides = 0;
   for (const slide of slides) {
     if (slide.background.type === 'image' && slide.background.imageUrl) {
@@ -385,6 +400,8 @@ export function summarizePresentationSlides(slides: EditorSlide[]): Presentation
         shapes++;
       } else if (el.type === 'line' || el.type === 'arrow') {
         lines++;
+      } else if (el.type === 'question') {
+        questions++;
       }
     }
   }
@@ -395,6 +412,70 @@ export function summarizePresentationSlides(slides: EditorSlide[]): Presentation
     videos,
     shapes,
     lines,
+    questions,
     photoBackgroundSlides
+  };
+}
+
+export function defaultQuestionProps(kind: SlideQuestionKind = 'mcq'): QuestionProps {
+  if (kind === 'vf') {
+    return {
+      text: '¿Verdadero o falso?',
+      options: ['Verdadero', 'Falso'],
+      correctIndex: 0,
+      kind: 'vf',
+      explanation: null,
+      topic: 'Diapositiva',
+      autoOpen: true
+    };
+  }
+  return {
+    text: '¿Cuál es la respuesta correcta?',
+    options: ['A', 'B', 'C', 'D'],
+    correctIndex: 0,
+    kind: 'mcq',
+    explanation: null,
+    topic: 'Diapositiva',
+    autoOpen: true
+  };
+}
+
+export function findAutoOpenQuestion(slide: EditorSlide | null | undefined): SlideElement | null {
+  if (!slide) {
+    return null;
+  }
+  return (
+    slide.elements.find((el) => {
+      if (el.type !== 'question') {
+        return false;
+      }
+      const props = el.props as QuestionProps;
+      return props.autoOpen !== false && (props.text?.trim().length ?? 0) >= 3;
+    }) ?? null
+  );
+}
+
+export function questionToLivePayload(el: SlideElement): {
+  text: string;
+  options: { text: string; isCorrect: boolean }[];
+  explanation?: string | null;
+  topic?: string | null;
+} | null {
+  if (el.type !== 'question') {
+    return null;
+  }
+  const props = el.props as QuestionProps;
+  const options = (props.options ?? [])
+    .map((t) => (t ?? '').trim())
+    .filter((t) => t.length > 0);
+  if ((props.text ?? '').trim().length < 3 || options.length < 2) {
+    return null;
+  }
+  const correct = Math.min(Math.max(0, props.correctIndex ?? 0), options.length - 1);
+  return {
+    text: props.text.trim(),
+    options: options.map((text, i) => ({ text, isCorrect: i === correct })),
+    explanation: props.explanation?.trim() || null,
+    topic: props.topic?.trim() || 'Diapositiva'
   };
 }

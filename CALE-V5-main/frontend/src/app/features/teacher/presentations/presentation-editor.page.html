@@ -60,6 +60,8 @@
         <button type="button" (click)="addLine(true)">Flecha</button>
         <button type="button" (click)="addLogo()">Logo CALE</button>
         <button type="button" (click)="openSignPicker()">Señales</button>
+        <button type="button" title="Pregunta en vivo A–D" (click)="addQuestion('mcq')">❓ A–D</button>
+        <button type="button" title="Verdadero / Falso en vivo" (click)="addQuestion('vf')">❓ V/F</button>
       </div>
       <div class="group">
         <button
@@ -102,6 +104,9 @@
             {{ summary.textBoxes }} textos ·
             {{ summary.images }} imágenes ·
             {{ summary.videos }} videos
+            @if (summary.questions) {
+              · {{ summary.questions }} preguntas en vivo
+            }
             @if (summary.photoBackgroundSlides) {
               · {{ summary.photoBackgroundSlides }} con foto de fondo
             }
@@ -265,6 +270,20 @@
                       @if (el.type === 'arrow' || lineProps(el).arrowEnd) {
                         <div class="line-head" [style.borderLeftColor]="lineProps(el).color"></div>
                       }
+                    </div>
+                  }
+                  @if (el.type === 'question') {
+                    <div class="el-question">
+                      <div class="q-badge">{{ questionProps(el).kind === 'vf' ? 'V/F' : 'A–D' }} · en vivo</div>
+                      <p class="q-text">{{ questionProps(el).text }}</p>
+                      <ul class="q-opts">
+                        @for (opt of questionProps(el).options; track $index; let i = $index) {
+                          <li [class.ok]="i === questionProps(el).correctIndex">
+                            <span>{{ optionLetter(i) }}</span>
+                            {{ opt }}
+                          </li>
+                        }
+                      </ul>
                     </div>
                   }
                   @if (el.type === 'text' && selectedId() === el.id && selectedCount() === 1 && !editingText()) {
@@ -437,6 +456,60 @@
                 type="color"
                 [ngModel]="shapeProps(sel).stroke"
                 (ngModelChange)="updateShapeProp('stroke', $event)" />
+            </label>
+          }
+          @if (sel.type === 'question') {
+            <p class="text-edit-hint">
+              En Presentar en vivo, al llegar a esta diapositiva se abre automáticamente para los estudiantes.
+            </p>
+            <div class="row">
+              <button type="button" [class.on]="questionProps(sel).kind === 'mcq'" (click)="setQuestionKind('mcq')">A–D</button>
+              <button type="button" [class.on]="questionProps(sel).kind === 'vf'" (click)="setQuestionKind('vf')">V/F</button>
+            </div>
+            <label>
+              Enunciado
+              <textarea
+                rows="3"
+                [ngModel]="questionProps(sel).text"
+                (ngModelChange)="updateQuestionProp('text', $event)"></textarea>
+            </label>
+            <fieldset class="q-edit">
+              <legend>Opciones (marca la correcta)</legend>
+              @for (opt of questionProps(sel).options; track $index; let i = $index) {
+                <div class="q-edit-row">
+                  <input
+                    type="radio"
+                    name="qCorrect"
+                    [checked]="questionProps(sel).correctIndex === i"
+                    (change)="updateQuestionProp('correctIndex', i)" />
+                  <input
+                    type="text"
+                    [ngModel]="opt"
+                    (ngModelChange)="setQuestionOption(i, $event)"
+                    [placeholder]="'Opción ' + optionLetter(i)" />
+                </div>
+              }
+            </fieldset>
+            <label>
+              Tema
+              <input
+                type="text"
+                [ngModel]="questionProps(sel).topic || ''"
+                (ngModelChange)="updateQuestionProp('topic', $event)" />
+            </label>
+            <label>
+              Explicación (opcional)
+              <textarea
+                rows="2"
+                [ngModel]="questionProps(sel).explanation || ''"
+                (ngModelChange)="updateQuestionProp('explanation', $event)"></textarea>
+            </label>
+            <label class="check">
+              <input
+                type="checkbox"
+                [ngModel]="questionProps(sel).autoOpen !== false"
+                (ngModelChange)="updateQuestionProp('autoOpen', $event)" />
+              Abrir sola en vivo al llegar a la diapositiva
             </label>
           }
           @if (sel.type === 'line' || sel.type === 'arrow') {

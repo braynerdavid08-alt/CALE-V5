@@ -19,6 +19,13 @@ import {
 } from '../../live/api/live.api';
 import { TeacherApi } from '../api/teacher.api';
 import { computeSecondsLeft } from '../../live/live-timer.util';
+import { PresentationApi } from '../presentations/presentation.api';
+import {
+  EditorSlide,
+  dtoToEditorSlides,
+  findAutoOpenQuestion,
+  questionToLivePayload
+} from '../presentations/presentation.models';
 
 interface QuickOptionDraft {
   text: string;
@@ -36,6 +43,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly api = inject(LiveApi);
   private readonly teacherApi = inject(TeacherApi);
+  private readonly presentationApi = inject(PresentationApi);
   private readonly sanitizer = inject(DomSanitizer);
   private hub: HubConnection | null = null;
   private timerId: ReturnType<typeof setInterval> | null = null;
@@ -44,6 +52,10 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   private autoCloseSent = false;
   private lastAnalyticsAtAnswers = -1;
   private exporting = false;
+  private readonly firedSlideQuestionIds = new Set<string>();
+  private openingSlideQuestion = false;
+  private deckSlides: EditorSlide[] = [];
+  private deckPresentationId: number | null = null;
 
   readonly lobby = signal<LiveLobbyDto | null>(null);
   readonly ranking = signal<LiveRankingDto | null>(null);
@@ -181,6 +193,24 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
       return;
     }
     this.showPresentation.set(true);
+    this.ensureDeckLoaded(id);
+  }
+
+  openPresentClicker(): void {
+    const presentationId = this.linkedPresentationId();
+    const sessionId = this.lobby()?.sessionId;
+    if (!presentationId || !sessionId) {
+      return;
+    }
+    const url = this.router.serializeUrl(
+      this.router.createUrlTree(['/teacher/presentations', presentationId, 'present'], {
+        queryParams: {
+          liveSessionId: sessionId,
+          slide: this.presentationSlide()
+        }
+      })
+    );
+    window.open(url, '_blank', 'noopener');
   }
 
   presentationEmbedUrl(): SafeResourceUrl {
@@ -207,6 +237,80 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
       } catch {
         /* non-fatal */
       }
+    }
+    this.maybeOpenSlideQuestion(next);
+  }
+
+  private ensureDeckLoaded(presentationId: number): void {
+    if (this.deckPresentationId === presentationId && this.deckSlides.length) {
+      return;
+    }
+    this.presentationApi.get(presentationId).subscribe({
+      next: (detail) => {
+        this.deckPresentationId = presentationId;
+        this.deckSlides = dtoToEditorSlides(detail);
+        this.loadFiredSlideQuestions(this.lobby()?.sessionId);
+      },
+      error: () => {
+        this.deckSlides = [];
+        this.deckPresentationId = null;
+      }
+    });
+  }
+
+  private maybeOpenSlideQuestion(slideIndex: number): void {
+    const sessionId = this.lobby()?.sessionId;
+    if (!sessionId || this.openingSlideQuestion) {
+      return;
+    }
+    const slide = this.deckSlides[slideIndex];
+    const el = findAutoOpenQuestion(slide);
+    if (!el || this.firedSlideQuestionIds.has(el.id)) {
+      return;
+    }
+    const payload = questionToLivePayload(el);
+    if (!payload) {
+      return;
+    }
+    this.openingSlideQuestion = true;
+    this.firedSlideQuestionIds.add(el.id);
+    this.persistFiredSlideQuestions(sessionId);
+    this.api.control(sessionId, 'quick', payload).subscribe({
+      next: (lobby) => {
+        this.openingSlideQuestion = false;
+        this.applyLobby(lobby);
+      },
+      error: () => {
+        this.openingSlideQuestion = false;
+        this.firedSlideQuestionIds.delete(el.id);
+        this.persistFiredSlideQuestions(sessionId);
+      }
+    });
+  }
+
+  private loadFiredSlideQuestions(sessionId: number | undefined): void {
+    if (!sessionId) {
+      return;
+    }
+    try {
+      const raw = sessionStorage.getItem(`cale-live-q-fired-${sessionId}`);
+      const ids = raw ? (JSON.parse(raw) as string[]) : [];
+      for (const id of ids) {
+        this.firedSlideQuestionIds.add(id);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private persistFiredSlideQuestions(sessionId: number): void {
+    try {
+      sessionStorage.setItem(
+        `cale-live-q-fired-${sessionId}`,
+        JSON.stringify([...this.firedSlideQuestionIds])
+      );
+    } catch {
+      /* ignore */
     }
   }
 
@@ -426,6 +530,10 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     }
     if (lobby.config?.presentationId && this.route.snapshot.queryParamMap.get('openDeck') === '1') {
       this.showPresentation.set(true);
+    }
+    if (lobby.config?.presentationId) {
+      this.ensureDeckLoaded(lobby.config.presentationId);
+      this.loadFiredSlideQuestions(lobby.sessionId);
     }
     this.syncTimer(lobby.currentQuestion ?? null);
   }
