@@ -79,6 +79,29 @@ public static class CatalogSeed
             await db.Set<Bank>().AddAsync(bank, ct);
             await db.SaveChangesAsync(ct);
         }
+        else if (payload.ReplaceExisting)
+        {
+            var old = await db.Set<Question>()
+                .Where(x => x.BankId == bank.Id)
+                .ToListAsync(ct);
+            if (old.Count > 0)
+            {
+                logger.LogInformation(
+                    "Replacing bank '{Name}' seed ({Count} old questions → {New}).",
+                    bank.Name,
+                    old.Count,
+                    payload.Questions.Count);
+                db.Set<Question>().RemoveRange(old);
+                await db.SaveChangesAsync(ct);
+            }
+
+            if (!string.IsNullOrWhiteSpace(payload.Description))
+            {
+                bank.Update(payload.BankName, payload.Description);
+            }
+
+            bank.SetActive(true);
+        }
         else if (bank.SeedCompleted)
         {
             var existing = await db.Set<Question>().CountAsync(x => x.BankId == bank.Id, ct);
@@ -176,6 +199,7 @@ public static class CatalogSeed
         public string BankName { get; set; } = "";
         public string? Description { get; set; }
         public string? BlockName { get; set; }
+        public bool ReplaceExisting { get; set; }
         public List<SeedQuestion> Questions { get; set; } = [];
     }
 
