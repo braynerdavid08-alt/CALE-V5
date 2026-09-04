@@ -106,6 +106,9 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   readonly editingText = signal(false);
   readonly showImageModal = signal(false);
   readonly showExportMenu = signal(false);
+  readonly toolbarMenu = signal<'shapes' | 'insert' | 'align' | 'arrange' | null>(null);
+  readonly propsTab = signal<'slide' | 'element' | 'layers' | 'deck'>('slide');
+  readonly propsDrawerOpen = signal(false);
   readonly imageUrlInput = signal('');
   readonly imageUploading = signal(false);
   readonly imageModalReplace = signal(false);
@@ -310,12 +313,70 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (!id) {
       return;
     }
+    this.pushHistory();
     this.patchElement(id, (el) => ({ ...el, rotation: degrees }));
     this.markDirty();
   }
 
   toggleSnap(): void {
     this.snapEnabled.update((v) => !v);
+  }
+
+  toggleToolbarMenu(menu: 'shapes' | 'insert' | 'align' | 'arrange', ev?: Event): void {
+    ev?.stopPropagation();
+    this.showExportMenu.set(false);
+    this.toolbarMenu.update((current) => (current === menu ? null : menu));
+  }
+
+  closeFloatingMenus(): void {
+    this.toolbarMenu.set(null);
+    this.showExportMenu.set(false);
+  }
+
+  toggleExportMenu(ev?: Event): void {
+    ev?.stopPropagation();
+    this.toolbarMenu.set(null);
+    this.showExportMenu.update((v) => !v);
+  }
+
+  setPropsTab(tab: 'slide' | 'element' | 'layers' | 'deck'): void {
+    this.propsTab.set(tab);
+  }
+
+  openPropsDrawer(tab?: 'slide' | 'element' | 'layers' | 'deck'): void {
+    if (tab) {
+      this.propsTab.set(tab);
+    }
+    this.propsDrawerOpen.set(true);
+  }
+
+  closePropsDrawer(): void {
+    this.propsDrawerOpen.set(false);
+  }
+
+  togglePropsDrawer(): void {
+    this.propsDrawerOpen.update((v) => !v);
+  }
+
+  elementTypeLabel(type: string): string {
+    switch (type) {
+      case 'text':
+        return 'Texto';
+      case 'image':
+        return 'Imagen';
+      case 'video':
+        return 'Video';
+      case 'shape':
+        return 'Forma';
+      case 'line':
+        return 'Línea';
+      case 'arrow':
+        return 'Flecha';
+      case 'question':
+        return 'Pregunta en vivo';
+      default:
+        return type;
+    }
   }
 
   private snapCoord(value: number, grid = 8): number {
@@ -414,11 +475,20 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     ev.returnValue = '';
   }
 
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    this.closeFloatingMenus();
+  }
+
   @HostListener('window:keydown', ['$event'])
   onKey(ev: KeyboardEvent): void {
     if (ev.key === 'Escape') {
-      if (this.showExportMenu()) {
-        this.showExportMenu.set(false);
+      if (this.toolbarMenu() || this.showExportMenu()) {
+        this.closeFloatingMenus();
+        return;
+      }
+      if (this.propsDrawerOpen()) {
+        this.closePropsDrawer();
         return;
       }
       if (this.showSignPicker()) {
@@ -808,6 +878,10 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       return;
     }
     this.selectedIds.set([id, ...peers.filter((x) => x !== id)]);
+    this.propsTab.set('element');
+    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 960px)').matches) {
+      this.propsDrawerOpen.set(true);
+    }
   }
 
   clearSelection(): void {
@@ -1282,15 +1356,13 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     this.markDirty();
   }
 
-  updateImageGeometry(key: 'x' | 'y' | 'w' | 'h', raw: number): void {
+  updateElementGeometry(key: 'x' | 'y' | 'w' | 'h', raw: number): void {
     const id = this.selectedId();
     if (!id || !Number.isFinite(raw)) {
       return;
     }
+    this.pushHistory();
     this.patchElement(id, (el) => {
-      if (el.type !== 'image') {
-        return el;
-      }
       if (key === 'w') {
         return { ...el, w: Math.max(24, Math.round(raw)) };
       }
@@ -1303,6 +1375,11 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       return { ...el, y: Math.round(raw) };
     });
     this.markDirty();
+  }
+
+  /** @deprecated use updateElementGeometry */
+  updateImageGeometry(key: 'x' | 'y' | 'w' | 'h', raw: number): void {
+    this.updateElementGeometry(key, raw);
   }
 
   fitImageToSlide(): void {

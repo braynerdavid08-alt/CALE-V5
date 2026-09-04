@@ -74,6 +74,7 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
   );
 
   private hideTimer?: ReturnType<typeof setTimeout>;
+  private embedRo: ResizeObserver | null = null;
   readonly media = resolveMediaUrl;
 
   ngOnInit(): void {
@@ -99,6 +100,7 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
         this.slides.set(dtoToEditorSlides(detail));
         this.loading.set(false);
         setTimeout(() => {
+          this.attachEmbedObserver();
           this.updateSlideScale();
           if (!this.embedMode()) {
             this.enterFullscreen();
@@ -118,11 +120,13 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     window.removeEventListener('message', this.onEmbedMessage);
+    this.embedRo?.disconnect();
+    this.embedRo = null;
     if (this.hideTimer) {
       clearTimeout(this.hideTimer);
     }
     void this.hub?.stop();
-    if (document.fullscreenElement) {
+    if (!this.embedMode() && document.fullscreenElement) {
       void document.exitFullscreen();
     }
   }
@@ -139,6 +143,9 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
 
   @HostListener('window:keydown', ['$event'])
   onKey(ev: KeyboardEvent): void {
+    if (this.embedMode()) {
+      return;
+    }
     if (ev.key === 'ArrowRight' || ev.key === ' ' || ev.key === 'PageDown') {
       ev.preventDefault();
       this.next();
@@ -146,6 +153,12 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
       ev.preventDefault();
       this.prev();
     } else if (ev.key === 'Escape') {
+      // First Esc only leaves browser fullscreen; second Esc exits present mode.
+      if (document.fullscreenElement) {
+        ev.preventDefault();
+        void document.exitFullscreen();
+        return;
+      }
       this.exit();
     } else if (ev.key.toLowerCase() === 'f') {
       this.enterFullscreen();
@@ -192,14 +205,35 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
   }
 
   updateSlideScale(): void {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
+    const stage = this.stage?.nativeElement;
+    const w = this.embedMode()
+      ? stage?.clientWidth || stage?.parentElement?.clientWidth || window.innerWidth
+      : window.innerWidth;
+    const h = this.embedMode()
+      ? stage?.clientHeight || stage?.parentElement?.clientHeight || window.innerHeight
+      : window.innerHeight;
     if (w <= 0 || h <= 0) {
       return;
     }
 
-    // Cover: fill the viewport (may crop edges on non-16:9 screens).
-    this.slideScale.set(Math.max(w / SLIDE_W, h / SLIDE_H));
+    // Embed: fit whole slide in the iframe. Clicker: cover the projector screen.
+    const scale = this.embedMode()
+      ? Math.min(w / SLIDE_W, h / SLIDE_H)
+      : Math.max(w / SLIDE_W, h / SLIDE_H);
+    this.slideScale.set(scale);
+  }
+
+  private attachEmbedObserver(): void {
+    if (!this.embedMode() || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    this.embedRo?.disconnect();
+    const el = this.stage?.nativeElement;
+    if (!el) {
+      return;
+    }
+    this.embedRo = new ResizeObserver(() => this.updateSlideScale());
+    this.embedRo.observe(el);
   }
 
   slidePresentStyle(slide: EditorSlide): Record<string, string> {
@@ -210,13 +244,21 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
   }
 
   enterFullscreen(): void {
+    if (this.embedMode()) {
+      return;
+    }
     const el = this.stage?.nativeElement ?? document.documentElement;
     if (!document.fullscreenElement) {
-      void el.requestFullscreen?.();
+      void el.requestFullscreen?.().catch(() => {
+        /* browsers may block without a fresh user gesture */
+      });
     }
   }
 
   exit(): void {
+    if (this.embedMode()) {
+      return;
+    }
     if (document.fullscreenElement) {
       void document.exitFullscreen();
     }
@@ -229,6 +271,9 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
   }
 
   private readonly onEmbedMessage = (ev: MessageEvent): void => {
+    if (ev.origin !== window.location.origin) {
+      return;
+    }
     if (ev.data?.type !== 'cale-presentation-slide') {
       return;
     }

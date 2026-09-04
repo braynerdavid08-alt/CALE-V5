@@ -81,6 +81,8 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   readonly showPresentation = signal(false);
   readonly projectorMode = signal(false);
   readonly showMoreControls = signal(false);
+  readonly presentationEmbedSrc = signal<SafeResourceUrl | null>(null);
+  private lastEmbedPresentationId: number | null = null;
   private readonly bankNames = signal<Record<number, string>>({});
 
   ngOnInit(): void {
@@ -193,6 +195,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
       return;
     }
     this.showPresentation.set(true);
+    this.syncPresentationEmbedSrc();
     this.ensureDeckLoaded(id);
   }
 
@@ -213,13 +216,30 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     window.open(url, '_blank', 'noopener');
   }
 
-  presentationEmbedUrl(): SafeResourceUrl {
+  /** Stable iframe URL — never include slide index (that reloads and flickers). */
+  private syncPresentationEmbedSrc(): void {
     const id = this.linkedPresentationId();
-    if (!id) {
-      return this.sanitizer.bypassSecurityTrustResourceUrl('about:blank');
+    if (!id || !this.showPresentation()) {
+      return;
     }
-    const path = `/teacher/presentations/${id}/present?embed=1&slide=${this.presentationSlide()}`;
-    return this.sanitizer.bypassSecurityTrustResourceUrl(path);
+    if (this.lastEmbedPresentationId === id && this.presentationEmbedSrc()) {
+      return;
+    }
+    this.lastEmbedPresentationId = id;
+    const path = `/teacher/presentations/${id}/present?embed=1`;
+    this.presentationEmbedSrc.set(this.sanitizer.bypassSecurityTrustResourceUrl(path));
+  }
+
+  onPresentationFrameLoad(): void {
+    this.postSlideToEmbed(this.presentationSlide());
+  }
+
+  private postSlideToEmbed(slideIndex: number): void {
+    const iframe = document.getElementById('live-pres-iframe') as HTMLIFrameElement | null;
+    iframe?.contentWindow?.postMessage(
+      { type: 'cale-presentation-slide', slideIndex },
+      window.location.origin
+    );
   }
 
   async changePresentationSlide(delta: number): Promise<void> {
@@ -229,11 +249,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
       return;
     }
     this.presentationSlide.set(next);
-    const iframe = document.getElementById('live-pres-iframe') as HTMLIFrameElement | null;
-    iframe?.contentWindow?.postMessage(
-      { type: 'cale-presentation-slide', slideIndex: next },
-      '*'
-    );
+    this.postSlideToEmbed(next);
     const sessionId = this.lobby()?.sessionId;
     if (sessionId && this.hub) {
       try {
@@ -549,6 +565,9 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     if (lobby.config?.presentationId) {
       this.ensureDeckLoaded(lobby.config.presentationId);
       this.loadFiredSlideQuestions(lobby.sessionId);
+    }
+    if (this.showPresentation()) {
+      this.syncPresentationEmbedSrc();
     }
     this.syncTimer(lobby.currentQuestion ?? null);
   }

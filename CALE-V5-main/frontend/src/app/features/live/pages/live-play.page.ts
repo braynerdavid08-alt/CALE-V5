@@ -208,8 +208,11 @@ export class LivePlayPage implements OnInit, OnDestroy {
     if (w < 8 || h < 8) {
       return;
     }
-    const scale = Math.max(0.05, Math.min(w / SLIDE_W, h / SLIDE_H));
-    this.deckScale.set(scale);
+    // Fullscreen: cover the stage (fill width on landscape phones). Inline: contain.
+    const scale = this.deckFullscreen()
+      ? Math.max(w / SLIDE_W, h / SLIDE_H)
+      : Math.min(w / SLIDE_W, h / SLIDE_H);
+    this.deckScale.set(Math.max(0.05, scale));
     this.deckOffsetX.set(Math.round((w - SLIDE_W * scale) / 2));
     this.deckOffsetY.set(Math.round((h - SLIDE_H * scale) / 2));
   }
