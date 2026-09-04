@@ -15,17 +15,6 @@
         }
       </div>
       <div class="top-actions">
-        <button type="button" class="btn ghost" (click)="toggleProjectorMode()">
-          {{ projectorMode() ? 'Salir proyector' : 'Modo proyector' }}
-        </button>
-        @if (linkedPresentationId()) {
-          <button type="button" class="btn ghost" (click)="openLinkedPresentation()">
-            ▶ Diapositivas
-          </button>
-          <button type="button" class="btn ghost" (click)="openPresentClicker()">
-            Presentar (clicker)
-          </button>
-        }
         <a routerLink="/teacher/live" class="back">Volver</a>
       </div>
     </header>
@@ -93,13 +82,10 @@
 
       <main class="stage projector-stage">
         @if (linkedPresentationId() && showPresentation()) {
-          <section class="pres-embed">
-            <div class="pres-toolbar">
-              <button type="button" class="btn ghost" (click)="changePresentationSlide(-1)">← Diapositiva</button>
-              <span>Diapositiva {{ presentationSlide() + 1 }}</span>
-              <button type="button" class="btn ghost" (click)="changePresentationSlide(1)">Diapositiva →</button>
-              <button type="button" class="btn ghost" (click)="showPresentation.set(false)">Ocultar</button>
-            </div>
+          <section
+            class="pres-embed"
+            #presEmbed
+            [class.is-fullscreen]="presFullscreen()">
             @if (presentationEmbedSrc(); as embedSrc) {
               <iframe
                 id="live-pres-iframe"
@@ -108,7 +94,34 @@
                 class="pres-frame"
                 (load)="onPresentationFrameLoad()"></iframe>
             }
+            <div class="pres-bar">
+              <button type="button" class="btn ghost" (click)="changePresentationSlide(-1)" title="Anterior">
+                ←
+              </button>
+              <span class="pres-slide-label">
+                {{ presentationSlide() + 1 }} / {{ deckSlideCount() || '…' }}
+              </span>
+              <button type="button" class="btn ghost" (click)="changePresentationSlide(1)" title="Siguiente">
+                →
+              </button>
+              <button type="button" class="btn ghost" (click)="togglePresFullscreen()">
+                {{ presFullscreen() ? 'Salir pantalla' : 'Pantalla completa' }}
+              </button>
+              <button type="button" class="btn ghost" (click)="toggleProjectorMode()">
+                {{ projectorMode() ? 'Salir proyector' : 'Proyector' }}
+              </button>
+              <button type="button" class="btn ghost" (click)="openPresentClicker()">Clicker</button>
+              <button type="button" class="btn ghost" (click)="hidePresentation()">Ocultar</button>
+            </div>
           </section>
+        } @else if (linkedPresentationId()) {
+          <div class="pres-bar alone">
+            <button type="button" class="btn primary" (click)="openLinkedPresentation()">Mostrar diapositivas</button>
+            <button type="button" class="btn ghost" (click)="openPresentClicker()">Clicker</button>
+            <button type="button" class="btn ghost" (click)="toggleProjectorMode()">
+              {{ projectorMode() ? 'Salir proyector' : 'Proyector' }}
+            </button>
+          </div>
         }
         @if (l.status === 'Ended') {
           <div class="waiting end">

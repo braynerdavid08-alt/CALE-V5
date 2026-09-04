@@ -195,18 +195,24 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
     this.bumpChrome();
   }
 
-  onStageClick(): void {
-    this.next();
-    this.bumpChrome();
-  }
-
   bumpChrome(): void {
+    if (this.embedMode()) {
+      return;
+    }
     this.showChrome.set(true);
     if (this.hideTimer) {
       clearTimeout(this.hideTimer);
     }
     this.hideTimer = setTimeout(() => this.showChrome.set(false), 2500);
     this.updateSlideScale();
+  }
+
+  onStageClick(): void {
+    if (this.embedMode()) {
+      return;
+    }
+    this.next();
+    this.bumpChrome();
   }
 
   updateSlideScale(): void {
