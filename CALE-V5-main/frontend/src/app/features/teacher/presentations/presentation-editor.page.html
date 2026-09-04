@@ -135,12 +135,16 @@
       <main class="ed-canvas-wrap" #canvasHost>
         @if (activeSlide(); as slide) {
           <div
-            class="slide-stage"
-            [style.transform]="'scale(' + zoom() + ')'"
-            (click)="clearSelection()"
-            (dblclick)="onCanvasDblClick($event)"
-            (dragover)="$event.preventDefault()"
-            (drop)="onCanvasDrop($event)">
+            class="slide-stage-shell"
+            [style.width.px]="slideW * zoom()"
+            [style.height.px]="slideH * zoom()">
+            <div
+              class="slide-stage"
+              [style.transform]="'scale(' + zoom() + ')'"
+              (click)="clearSelection()"
+              (dblclick)="onCanvasDblClick($event)"
+              (dragover)="$event.preventDefault()"
+              (drop)="onCanvasDrop($event)">
             @if (snapGuideX() !== null) {
               <div class="snap-guide v" [style.left.px]="snapGuideX()!"></div>
             }
@@ -279,6 +283,7 @@
                 </div>
               }
             </div>
+          </div>
           </div>
         }
       </main>
