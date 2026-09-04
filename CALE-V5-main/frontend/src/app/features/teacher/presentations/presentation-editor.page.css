@@ -139,9 +139,47 @@
   font-size: 0.85rem;
 }
 
+.ed-import-banner {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 0.65rem 0.9rem;
+  background: #143049;
+  border-bottom: 1px solid #2a5f86;
+  color: #d7eaf8;
+}
+
+.ed-import-banner strong {
+  display: block;
+  margin-bottom: 0.15rem;
+  color: #fff;
+}
+
+.ed-import-banner span {
+  font-size: 0.82rem;
+  color: #b7d4ea;
+}
+
+.ed-import-banner p {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  color: #9bb8cd;
+}
+
+.ed-import-banner button {
+  flex-shrink: 0;
+  border: 1px solid #3d7eae;
+  background: #1a4a6d;
+  color: #fff;
+  border-radius: 8px;
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+}
+
 .ed-body {
   display: grid;
-  grid-template-columns: 200px 1fr 260px;
+  grid-template-columns: 196px 1fr 260px;
   min-height: 0;
   overflow: hidden;
 }
@@ -162,12 +200,12 @@
   padding: 0.55rem 0.65rem;
   border-bottom: 1px solid #243447;
   font-size: 0.8rem;
+  gap: 0.35rem;
 }
 
 .slides-foot {
   border-bottom: none;
   border-top: 1px solid #243447;
-  gap: 0.35rem;
 }
 
 .slides-head button,
@@ -183,7 +221,7 @@
 .tpl-select {
   flex: 1;
   min-width: 0;
-  max-width: 130px;
+  max-width: 110px;
   font-size: 0.7rem;
   background: #1a2736;
   color: #e8eef4;
@@ -195,20 +233,20 @@
 .ed-slides ul {
   list-style: none;
   margin: 0;
-  padding: 0.5rem;
+  padding: 0.55rem;
   overflow: auto;
   flex: 1;
 }
 
 .ed-slides li {
-  display: grid;
-  grid-template-columns: 72px 1fr;
-  gap: 0.45rem;
-  align-items: center;
-  padding: 0.35rem;
-  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.4rem;
+  border-radius: 10px;
   cursor: pointer;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.45rem;
+  border: 1px solid transparent;
 }
 
 .ed-slides li.active,
@@ -216,23 +254,37 @@
   background: #1a2736;
 }
 
+.ed-slides li.active {
+  border-color: #2bb0ed;
+}
+
 .mini {
   position: relative;
-  aspect-ratio: 16 / 9;
-  border-radius: 4px;
-  border: 1px solid #34506a;
-  display: flex;
-  align-items: flex-end;
-  padding: 0.2rem;
-  font-size: 0.65rem;
-  color: #fff;
-  text-shadow: 0 1px 2px #000;
+  width: 100%;
+  border-radius: 6px;
   overflow: hidden;
+}
+
+.mini-num {
+  position: absolute;
+  left: 0.3rem;
+  top: 0.3rem;
+  z-index: 2;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.25rem;
+  border-radius: 4px;
+  background: rgba(11, 18, 28, 0.78);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  display: inline-grid;
+  place-items: center;
 }
 
 .ed-slides p {
   margin: 0;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: #b7c7d8;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -287,26 +339,6 @@
   font-size: 0.75rem;
   line-height: 1.35;
   color: #9fb3c8;
-}
-
-.mini-num {
-  position: absolute;
-  left: 4px;
-  top: 2px;
-  font-size: 0.65rem;
-  opacity: 0.9;
-}
-
-.mini-text {
-  display: block;
-  width: 100%;
-  padding: 0.85rem 0.25rem 0.15rem;
-  font-size: 0.55rem;
-  line-height: 1.2;
-  color: #fff;
-  text-shadow: 0 1px 2px #000;
-  overflow: hidden;
-  max-height: 100%;
 }
 
 .el.is-text:not(.is-editing) {
@@ -815,7 +847,7 @@
 
 @media (max-width: 960px) {
   .ed-body {
-    grid-template-columns: 140px 1fr;
+    grid-template-columns: 156px 1fr;
   }
 
   .ed-props {

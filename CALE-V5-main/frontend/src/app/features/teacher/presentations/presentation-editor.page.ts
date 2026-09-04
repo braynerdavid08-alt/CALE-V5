@@ -23,6 +23,7 @@ import {
   LineProps,
   PRESENTATION_CATEGORIES,
   PRESENTATION_MEDIA_MAX_BYTES,
+  PresentationDeckSummary,
   SLIDE_H,
   SLIDE_W,
   ShapeKind,
@@ -39,6 +40,8 @@ import {
   newClientId,
   normalizeImageCrop,
   scaleElementsFromLegacy,
+  shapeClipPath,
+  summarizePresentationSlides,
   unlockImportedPhotoSlide
 } from './presentation.models';
 import { buildSlideFromTemplate, reassignElementIds } from './presentation-slide-templates';
@@ -46,6 +49,7 @@ import {
   TRAFFIC_SIGN_OPTIONS,
   buildTrafficSignElements
 } from './presentation-traffic-signs';
+import { SlidePreviewComponent } from './slide-preview.component';
 
 type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'offline' | 'error';
 
@@ -61,7 +65,7 @@ interface EditorSnapshot {
 @Component({
   selector: 'app-presentation-editor-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, NgStyle, DecimalPipe],
+  imports: [FormsModule, RouterLink, NgStyle, DecimalPipe, SlidePreviewComponent],
   templateUrl: './presentation-editor.page.html',
   styleUrl: './presentation-editor.page.css'
 })
@@ -110,6 +114,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   readonly snapEnabled = signal(true);
   readonly snapGuideX = signal<number | null>(null);
   readonly snapGuideY = signal<number | null>(null);
+  readonly importBanner = signal<PresentationDeckSummary | null>(null);
   readonly trafficSigns = TRAFFIC_SIGN_OPTIONS;
   private elementClipboard: SlideElement[] = [];
 
@@ -205,6 +210,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
         this.saveState.set('saved');
         this.lastSavedAt.set(Date.now());
         this.tryRestoreLocalDraft(id);
+        this.maybeShowImportBanner();
         this.scheduleFitZoom();
       },
       error: (err) => {
@@ -508,6 +514,27 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       const dx = ev.key === 'ArrowLeft' ? -4 : ev.key === 'ArrowRight' ? 4 : 0;
       const dy = ev.key === 'ArrowUp' ? -4 : ev.key === 'ArrowDown' ? 4 : 0;
       this.nudgeSelected(dx, dy);
+    }
+  }
+
+  dismissImportBanner(): void {
+    this.importBanner.set(null);
+  }
+
+  private maybeShowImportBanner(): void {
+    const state = (typeof history !== 'undefined' ? history.state : null) as {
+      importSummary?: boolean;
+    } | null;
+    if (!state?.importSummary) {
+      return;
+    }
+    this.importBanner.set(summarizePresentationSlides(this.slides()));
+    try {
+      const next = { ...state };
+      delete next.importSummary;
+      history.replaceState(next, '');
+    } catch {
+      /* ignore */
     }
   }
 
@@ -864,18 +891,6 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       arrow: 'Flecha'
     };
     return labels[el.type] ?? el.type;
-  }
-
-  slideThumbText(slide: EditorSlide): string | null {
-    const texts = slide.elements
-      .filter((e) => e.type === 'text')
-      .map((e) => ((e.props as TextProps).text ?? '').replace(/\s+/g, ' ').trim())
-      .filter(Boolean);
-    if (!texts.length) {
-      return null;
-    }
-    const joined = texts.slice(0, 2).join(' · ');
-    return joined.length > 42 ? `${joined.slice(0, 42)}…` : joined;
   }
 
   convertSelectedImageToBackground(): void {
@@ -1815,10 +1830,6 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     this.markDirty();
   }
 
-  editableTextCount(): number {
-    return (this.activeSlide()?.elements ?? []).filter((e) => e.type === 'text').length;
-  }
-
   updateBgColor(color: string): void {
     this.pushHistory();
     this.updateActive((s) => ({
@@ -2022,13 +2033,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   }
 
   shapeClip(shape: ShapeKind): string | null {
-    if (shape === 'triangle') {
-      return 'polygon(50% 0%, 0% 100%, 100% 100%)';
-    }
-    if (shape === 'octagon') {
-      return 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)';
-    }
-    return null;
+    return shapeClipPath(shape);
   }
 
   private pushElement(el: SlideElement): void {

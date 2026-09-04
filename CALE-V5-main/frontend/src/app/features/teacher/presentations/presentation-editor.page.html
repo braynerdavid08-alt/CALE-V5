@@ -92,6 +92,26 @@
     @if (error()) {
       <div class="ed-error">{{ error() }}</div>
     }
+    @if (importBanner(); as summary) {
+      <div class="ed-import-banner">
+        <div>
+          <strong>Importación lista</strong>
+          <span>
+            {{ summary.slideCount }} diapositivas ·
+            {{ summary.textBoxes }} textos ·
+            {{ summary.images }} imágenes ·
+            {{ summary.videos }} videos
+            @if (summary.photoBackgroundSlides) {
+              · {{ summary.photoBackgroundSlides }} con foto de fondo
+            }
+          </span>
+          <p>
+            El texto dentro de una foto no se edita letra a letra; agrega un recuadro de texto encima si lo necesitas.
+          </p>
+        </div>
+        <button type="button" (click)="dismissImportBanner()">Entendido</button>
+      </div>
+    }
 
     <div class="ed-body">
       <aside class="ed-slides">
@@ -116,13 +136,11 @@
               (dragstart)="onSlideDragStart($event, i)"
               (dragover)="$event.preventDefault()"
               (drop)="onSlideDrop($event, i)">
-              <div class="mini" [ngStyle]="bgStyle(s)">
+              <div class="mini">
+                <app-slide-preview [slide]="s" [width]="168" />
                 <span class="mini-num">{{ i + 1 }}</span>
-                @if (slideThumbText(s); as preview) {
-                  <span class="mini-text">{{ preview }}</span>
-                }
               </div>
-              <p>{{ s.title }}</p>
+              <p>{{ s.title || 'Sin título' }}</p>
             </li>
           }
         </ul>
@@ -309,14 +327,8 @@
           </div>
           @if (isPhotoSlide()) {
             <p class="photo-hint">
-              @if (editableTextCount() > 0) {
-                Hay <strong>{{ editableTextCount() }}</strong> recuadro(s) de texto editables.
-                Haz clic para seleccionar, arrastra para mover, <strong>doble clic</strong> (o Enter) para cambiar las letras.
-                La foto de fondo no se edita letra a letra.
-              } @else {
-                Esta diapositiva llegó como foto. El texto de la imagen no se edita letra a letra.
-                Pulsa <strong>Título</strong> o <strong>Texto</strong>, o haz doble clic para escribir encima.
-              }
+              Foto de fondo: el texto de la imagen no se edita letra a letra.
+              Usa <strong>Texto</strong> o doble clic en el lienzo para escribir encima.
             </p>
           }
           <input #bgImageInput type="file" accept="image/*" hidden (change)="onBgImageSelected($event)" />

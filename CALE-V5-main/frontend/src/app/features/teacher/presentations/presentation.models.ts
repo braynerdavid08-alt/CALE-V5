@@ -341,3 +341,60 @@ export function backgroundCss(bg: SlideBackground): Record<string, string> {
   }
   return { background: bg.color || '#ffffff' };
 }
+
+export function shapeClipPath(shape: ShapeKind): string | null {
+  if (shape === 'triangle') {
+    return 'polygon(50% 0%, 0% 100%, 100% 100%)';
+  }
+  if (shape === 'octagon') {
+    return 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)';
+  }
+  return null;
+}
+
+export interface PresentationDeckSummary {
+  slideCount: number;
+  textBoxes: number;
+  images: number;
+  videos: number;
+  shapes: number;
+  lines: number;
+  photoBackgroundSlides: number;
+}
+
+/** Resumen para banner post-import / estado del deck. */
+export function summarizePresentationSlides(slides: EditorSlide[]): PresentationDeckSummary {
+  let textBoxes = 0;
+  let images = 0;
+  let videos = 0;
+  let shapes = 0;
+  let lines = 0;
+  let photoBackgroundSlides = 0;
+  for (const slide of slides) {
+    if (slide.background.type === 'image' && slide.background.imageUrl) {
+      photoBackgroundSlides++;
+    }
+    for (const el of slide.elements) {
+      if (el.type === 'text') {
+        textBoxes++;
+      } else if (el.type === 'image') {
+        images++;
+      } else if (el.type === 'video') {
+        videos++;
+      } else if (el.type === 'shape') {
+        shapes++;
+      } else if (el.type === 'line' || el.type === 'arrow') {
+        lines++;
+      }
+    }
+  }
+  return {
+    slideCount: slides.length,
+    textBoxes,
+    images,
+    videos,
+    shapes,
+    lines,
+    photoBackgroundSlides
+  };
+}
