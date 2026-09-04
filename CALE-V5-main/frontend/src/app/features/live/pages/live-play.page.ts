@@ -67,6 +67,13 @@ export class LivePlayPage implements OnInit, OnDestroy {
   private localDeadlineMs = 0;
   private stageEl: HTMLElement | null = null;
   private stageRo: ResizeObserver | null = null;
+  private deckRootEl: HTMLElement | null = null;
+  private chromeHideTimer: ReturnType<typeof setTimeout> | null = null;
+
+  @ViewChild('deckRoot')
+  set deckRootRef(ref: ElementRef<HTMLElement> | undefined) {
+    this.deckRootEl = ref?.nativeElement ?? null;
+  }
 
   @ViewChild('deckStage')
   set deckStageRef(ref: ElementRef<HTMLElement> | undefined) {
@@ -102,6 +109,7 @@ export class LivePlayPage implements OnInit, OnDestroy {
   readonly deckOffsetX = signal(0);
   readonly deckOffsetY = signal(0);
   readonly deckFullscreen = signal(false);
+  readonly deckChromeVisible = signal(true);
 
   readonly currentPresentationSlide = computed(
     () => this.presentationSlides()[this.presentationSlide()] ?? null
@@ -143,6 +151,9 @@ export class LivePlayPage implements OnInit, OnDestroy {
     if (this.timerId) {
       clearInterval(this.timerId);
     }
+    if (this.chromeHideTimer) {
+      clearTimeout(this.chromeHideTimer);
+    }
     this.setDeckFullscreen(false);
     this.detachStageObserver();
     void this.hub?.stop();
@@ -152,6 +163,20 @@ export class LivePlayPage implements OnInit, OnDestroy {
   onEscape(): void {
     if (this.deckFullscreen()) {
       this.setDeckFullscreen(false);
+    }
+  }
+
+  @HostListener('document:fullscreenchange')
+  @HostListener('document:webkitfullscreenchange')
+  onFsChange(): void {
+    const active = !!(document.fullscreenElement || (document as Document & { webkitFullscreenElement?: Element }).webkitFullscreenElement);
+    if (!active && this.deckFullscreen()) {
+      this.deckFullscreen.set(false);
+      document.body.style.overflow = '';
+      this.clearChromeHideTimer();
+      requestAnimationFrame(() => this.fitDeck());
+    } else if (active) {
+      requestAnimationFrame(() => this.fitDeck());
     }
   }
 
@@ -187,10 +212,87 @@ export class LivePlayPage implements OnInit, OnDestroy {
     this.setDeckFullscreen(!this.deckFullscreen());
   }
 
+  bumpDeckChrome(ev?: Event): void {
+    if (!this.deckFullscreen()) {
+      return;
+    }
+    ev?.stopPropagation();
+    this.deckChromeVisible.set(true);
+    this.scheduleChromeHide();
+  }
+
+  onFullscreenStageTap(): void {
+    if (!this.deckFullscreen()) {
+      return;
+    }
+    this.deckChromeVisible.update((v) => !v);
+    if (this.deckChromeVisible()) {
+      this.scheduleChromeHide();
+    } else {
+      this.clearChromeHideTimer();
+    }
+  }
+
   setDeckFullscreen(on: boolean): void {
     this.deckFullscreen.set(on);
     document.body.style.overflow = on ? 'hidden' : '';
+    this.clearChromeHideTimer();
+    if (on) {
+      this.deckChromeVisible.set(true);
+      this.scheduleChromeHide();
+      void this.enterBrowserFullscreen();
+    } else {
+      this.deckChromeVisible.set(true);
+      void this.exitBrowserFullscreen();
+    }
     requestAnimationFrame(() => this.fitDeck());
+  }
+
+  private scheduleChromeHide(): void {
+    this.clearChromeHideTimer();
+    this.chromeHideTimer = setTimeout(() => {
+      if (this.deckFullscreen()) {
+        this.deckChromeVisible.set(false);
+      }
+    }, 2200);
+  }
+
+  private clearChromeHideTimer(): void {
+    if (this.chromeHideTimer) {
+      clearTimeout(this.chromeHideTimer);
+      this.chromeHideTimer = null;
+    }
+  }
+
+  private async enterBrowserFullscreen(): Promise<void> {
+    const el = this.deckRootEl as HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void> | void;
+    };
+    if (!el) {
+      return;
+    }
+    try {
+      if (!document.fullscreenElement && el.requestFullscreen) {
+        await el.requestFullscreen();
+      } else if (el.webkitRequestFullscreen) {
+        await el.webkitRequestFullscreen();
+      }
+    } catch {
+      /* iOS Safari often blocks; CSS fullscreen still works */
+    }
+  }
+
+  private async exitBrowserFullscreen(): Promise<void> {
+    const doc = document as Document & { webkitExitFullscreen?: () => Promise<void> | void };
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else if (doc.webkitExitFullscreen) {
+        await doc.webkitExitFullscreen();
+      }
+    } catch {
+      /* ignore */
+    }
   }
 
   private detachStageObserver(): void {
@@ -208,11 +310,9 @@ export class LivePlayPage implements OnInit, OnDestroy {
     if (w < 8 || h < 8) {
       return;
     }
-    // Fullscreen: cover the stage (fill width on landscape phones). Inline: contain.
-    const scale = this.deckFullscreen()
-      ? Math.max(w / SLIDE_W, h / SLIDE_H)
-      : Math.min(w / SLIDE_W, h / SLIDE_H);
-    this.deckScale.set(Math.max(0.05, scale));
+    // Always contain the full slide (no crop). Cleaner on phones; black bars only if needed.
+    const scale = Math.max(0.05, Math.min(w / SLIDE_W, h / SLIDE_H));
+    this.deckScale.set(scale);
     this.deckOffsetX.set(Math.round((w - SLIDE_W * scale) / 2));
     this.deckOffsetY.set(Math.round((h - SLIDE_H * scale) / 2));
   }

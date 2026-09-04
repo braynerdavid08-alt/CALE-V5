@@ -146,23 +146,45 @@ a { color: #2bb0ed; }
 }
 .deck.is-fullscreen .deck-head {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: max(0.35rem, env(safe-area-inset-top));
+  right: max(0.35rem, env(safe-area-inset-right));
+  left: auto;
   z-index: 3;
   margin: 0;
-  padding: max(0.4rem, env(safe-area-inset-top)) max(0.55rem, env(safe-area-inset-right))
-    0.4rem max(0.55rem, env(safe-area-inset-left));
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.72) 0%, rgba(0, 0, 0, 0) 100%);
+  padding: 0;
+  width: auto;
+  max-width: calc(100% - 1rem);
+  background: transparent;
+  pointer-events: none;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  opacity: 1;
+  transition: opacity 0.25s ease;
+}
+.deck.is-fullscreen.chrome-hidden .deck-head {
+  opacity: 0;
   pointer-events: none;
 }
-.deck.is-fullscreen .deck-head-actions,
-.deck.is-fullscreen .fs-btn {
+.deck.is-fullscreen .deck-head-actions {
   pointer-events: auto;
+  background: rgba(8, 12, 18, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  padding: 0.2rem 0.25rem 0.2rem 0.55rem;
+  backdrop-filter: blur(8px);
 }
-.deck.is-fullscreen .deck-head h2 {
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
-  font-size: 0.85rem;
+.deck.is-fullscreen .slide-pill {
+  color: #e8eef7;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.deck.is-fullscreen .fs-btn {
+  border: none;
+  background: #2bb0ed;
+  color: #062033;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.75rem;
 }
 .deck.is-fullscreen .deck-stage {
   position: absolute;
