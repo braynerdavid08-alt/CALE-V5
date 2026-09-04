@@ -18,21 +18,25 @@
 
     @if (showPresentationPanel()) {
       <div
+        #deckRoot
         class="panel deck"
         [class.compact]="presentationCompact()"
-        [class.is-fullscreen]="deckFullscreen()">
-        <div class="deck-head">
-          <h2>{{ presentationTitle() || 'Presentación' }}</h2>
+        [class.is-fullscreen]="deckFullscreen()"
+        [class.chrome-hidden]="deckFullscreen() && !deckChromeVisible()">
+        <div class="deck-head" (pointerdown)="bumpDeckChrome($event)">
+          @if (!deckFullscreen()) {
+            <h2>{{ presentationTitle() || 'Presentación' }}</h2>
+          }
           <div class="deck-head-actions">
-            <span>
-              Diapositiva {{ presentationSlide() + 1 }}/{{ presentationSlides().length || 1 }}
+            <span class="slide-pill">
+              {{ presentationSlide() + 1 }}/{{ presentationSlides().length || 1 }}
             </span>
             <button type="button" class="fs-btn" (click)="toggleDeckFullscreen()">
               {{ deckFullscreen() ? 'Salir' : 'Pantalla completa' }}
             </button>
           </div>
         </div>
-        <div class="deck-stage" #deckStage>
+        <div class="deck-stage" #deckStage (click)="onFullscreenStageTap()">
           @if (currentPresentationSlide(); as slide) {
             <div
               class="deck-slide"
