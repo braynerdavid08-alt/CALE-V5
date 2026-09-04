@@ -105,7 +105,7 @@
       </div>
     }
 
-    <div class="chrome" [class.visible]="showChrome()">
+    <div class="chrome" [class.visible]="showChrome() && !embedMode()">
       <div class="left">
         <strong>{{ title() }}</strong>
         <span>{{ index() + 1 }} / {{ slides().length }}</span>
@@ -124,7 +124,7 @@
       </div>
     </div>
 
-    @if (showNotes() && currentNotes()) {
+    @if (!embedMode() && showNotes() && currentNotes()) {
       <aside class="speaker-notes" (click)="$event.stopPropagation()">
         <h4>Notas del instructor</h4>
         <p>{{ currentNotes() }}</p>

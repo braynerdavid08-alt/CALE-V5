@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -39,6 +39,8 @@ interface QuickOptionDraft {
   styleUrl: './teacher-live-host.page.css'
 })
 export class TeacherLiveHostPage implements OnInit, OnDestroy {
+  @ViewChild('presEmbed') presEmbedRef?: ElementRef<HTMLElement>;
+
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly api = inject(LiveApi);
@@ -80,6 +82,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   readonly presentationSlide = signal(0);
   readonly showPresentation = signal(false);
   readonly projectorMode = signal(false);
+  readonly presFullscreen = signal(false);
   readonly showMoreControls = signal(false);
   readonly presentationEmbedSrc = signal<SafeResourceUrl | null>(null);
   private lastEmbedPresentationId: number | null = null;
@@ -130,7 +133,56 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     if (this.timerId) {
       clearInterval(this.timerId);
     }
+    void this.exitPresFullscreen();
     void this.hub?.stop();
+  }
+
+  @HostListener('document:fullscreenchange')
+  onDocumentFullscreenChange(): void {
+    const active = !!document.fullscreenElement;
+    this.presFullscreen.set(active);
+  }
+
+  deckSlideCount(): number {
+    return this.deckSlides.length;
+  }
+
+  hidePresentation(): void {
+    this.showPresentation.set(false);
+    void this.exitPresFullscreen();
+  }
+
+  togglePresFullscreen(): void {
+    if (this.presFullscreen()) {
+      void this.exitPresFullscreen();
+    } else {
+      void this.enterPresFullscreen();
+    }
+  }
+
+  private async enterPresFullscreen(): Promise<void> {
+    const el = this.presEmbedRef?.nativeElement;
+    if (!el?.requestFullscreen) {
+      this.presFullscreen.set(true);
+      return;
+    }
+    try {
+      await el.requestFullscreen();
+      this.presFullscreen.set(true);
+    } catch {
+      this.presFullscreen.set(true);
+    }
+  }
+
+  private async exitPresFullscreen(): Promise<void> {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      }
+    } catch {
+      /* ignore */
+    }
+    this.presFullscreen.set(false);
   }
 
   qrUrl(): string {
