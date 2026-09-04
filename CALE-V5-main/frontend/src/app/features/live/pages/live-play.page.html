@@ -81,6 +81,20 @@
                         [style.height.px]="lineProps(el).strokeWidth"></div>
                     </div>
                   }
+                  @if (el.type === 'question') {
+                    <div class="el-question">
+                      <div class="q-badge">{{ questionProps(el).kind === 'vf' ? 'V/F' : 'A–D' }} · responde abajo</div>
+                      <p class="q-text">{{ questionProps(el).text }}</p>
+                      <ul class="q-opts">
+                        @for (opt of questionProps(el).options; track $index; let i = $index) {
+                          <li>
+                            <span>{{ optionLetter(i) }}</span>
+                            {{ opt }}
+                          </li>
+                        }
+                      </ul>
+                    </div>
+                  }
                 </div>
               }
             </div>
