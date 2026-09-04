@@ -91,6 +91,21 @@ export interface LiveLobbyDto {
   ranking?: LiveRankingDto | null;
 }
 
+export interface LivePresentationSlideDto {
+  position: number;
+  title: string;
+  backgroundJson: string;
+  elementsJson: string;
+}
+
+export interface LivePresentationDto {
+  presentationId: number;
+  title: string;
+  slideIndex: number;
+  slideCount: number;
+  slides: LivePresentationSlideDto[];
+}
+
 export interface JoinLiveSessionResponse {
   sessionId: number;
   participantToken: string;
@@ -186,6 +201,12 @@ export class LiveApi {
 
   getPlay(sessionId: number, token: string) {
     return this.http.get<LiveLobbyDto>(`${this.base}/sessions/${sessionId}/play`, {
+      params: { token }
+    });
+  }
+
+  getPresentation(sessionId: number, token: string) {
+    return this.http.get<LivePresentationDto>(`${this.base}/sessions/${sessionId}/presentation`, {
       params: { token }
     });
   }

@@ -80,6 +80,8 @@
         <button type="button" (click)="changeLayer('back')" title="Atrás">▾</button>
         <button type="button" (click)="changeLayer('front')" title="Al frente">⇈</button>
         <button type="button" (click)="changeLayer('backmost')" title="Al fondo">⇊</button>
+        <button type="button" (click)="groupSelected()" [disabled]="!canGroup()" title="Agrupar (Ctrl+G)">Agrupar</button>
+        <button type="button" (click)="ungroupSelected()" [disabled]="!canUngroup()" title="Desagrupar (Ctrl+Shift+G)">Desagrupar</button>
         <button type="button" (click)="duplicateElement()">Duplicar</button>
         <button type="button" (click)="deleteSelected()">Eliminar</button>
       </div>
@@ -149,10 +151,10 @@
               @for (el of slide.elements; track el.id) {
                 <div
                   class="el"
-                  [class.selected]="selectedId() === el.id"
+                  [class.selected]="isSelected(el.id)"
                   [class.is-text]="el.type === 'text'"
                   [class.is-editing]="el.type === 'text' && editingText() && selectedId() === el.id"
-                  [class.photo-bleed]="isFullBleedImage(el) && selectedId() !== el.id"
+                  [class.photo-bleed]="isFullBleedImage(el) && !isSelected(el.id)"
                   [style.left.px]="el.x"
                   [style.top.px]="el.y"
                   [style.width.px]="el.w"
@@ -243,13 +245,13 @@
                       }
                     </div>
                   }
-                  @if (el.type === 'text' && selectedId() === el.id && !editingText()) {
+                  @if (el.type === 'text' && selectedId() === el.id && selectedCount() === 1 && !editingText()) {
                     <span
                       class="text-drag-handle"
                       title="Mover texto"
                       (pointerdown)="startDrag($event, el.id, 'move')">⠿</span>
                   }
-                  @if (selectedId() === el.id && !editingText()) {
+                  @if (selectedId() === el.id && selectedCount() === 1 && !editingText()) {
                     <span
                       class="handle handle-nw"
                       (pointerdown)="startDrag($event, el.id, 'resize', 'nw')"></span>
@@ -324,9 +326,25 @@
           </label>
         }
 
-        @if (selected(); as sel) {
+        @if (selectedCount() > 1) {
           <hr />
-          <p class="sel-type">{{ sel.type }}</p>
+          <p class="sel-type">{{ selectedCount() }} seleccionados</p>
+          <p class="meta">Shift o Ctrl + clic para sumar. Ctrl+G agrupa · Ctrl+Shift+G desagrupa.</p>
+          <div class="row">
+            <button type="button" (click)="groupSelected()" [disabled]="!canGroup()">Agrupar</button>
+            <button type="button" (click)="ungroupSelected()" [disabled]="!canUngroup()">Desagrupar</button>
+            <button type="button" (click)="duplicateElement()">Duplicar</button>
+            <button type="button" (click)="deleteSelected()">Eliminar</button>
+          </div>
+        } @else {
+          @if (selected(); as sel) {
+          <hr />
+          <p class="sel-type">
+            {{ sel.type }}
+            @if (sel.groupId) {
+              <span> · grupo</span>
+            }
+          </p>
           <label>
             Rotación (°)
             <input
@@ -554,10 +572,11 @@
             </label>
           }
           <p class="meta">x {{ sel.x }} · y {{ sel.y }} · {{ sel.w }}×{{ sel.h }}</p>
-        } @else if (isPhotoSlide()) {
+          } @else if (isPhotoSlide()) {
           <p class="meta">No hay recuadros de texto encima. Agrega uno desde la barra para editar.</p>
-        } @else {
+          } @else {
           <p class="meta">Selecciona un elemento o agrega uno desde la barra.</p>
+          }
         }
 
         @if (layerItems().length) {
@@ -568,9 +587,9 @@
               <li>
                 <button
                   type="button"
-                  [class.on]="selectedId() === el.id"
+                  [class.on]="isSelected(el.id)"
                   (click)="selectElement(el.id, $event)">
-                  {{ layerLabel(el) }}
+                  {{ layerLabel(el) }}@if (el.groupId) {<span> ·</span>}
                 </button>
               </li>
             }

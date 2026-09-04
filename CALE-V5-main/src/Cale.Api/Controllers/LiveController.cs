@@ -1,7 +1,9 @@
 using Cale.Api.Extensions;
 using Cale.BuildingBlocks.Domain.Auth;
+using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.Modules.LiveClassroom.Application.Commands;
 using Cale.Modules.LiveClassroom.Application.DTOs;
+using Cale.Modules.Presentation.Application.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,8 +15,13 @@ namespace Cale.Api.Controllers;
 public sealed class LiveController : ControllerBase
 {
     private readonly LiveSessionHandler _handler;
+    private readonly IPresentationStore _presentations;
 
-    public LiveController(LiveSessionHandler handler) => _handler = handler;
+    public LiveController(LiveSessionHandler handler, IPresentationStore presentations)
+    {
+        _handler = handler;
+        _presentations = presentations;
+    }
 
     [HttpPost("sessions")]
     [Authorize(Policy = "TeacherOrAdmin")]
@@ -50,6 +57,38 @@ public sealed class LiveController : ControllerBase
         [FromQuery] Guid token,
         CancellationToken ct) =>
         Ok(await _handler.GetParticipantViewAsync(id, token, PublicBaseUrl(), ct));
+
+    [HttpGet("sessions/{id:int}/presentation")]
+    [Authorize]
+    public async Task<ActionResult<LivePresentationDto>> GetPresentation(
+        int id,
+        [FromQuery] Guid token,
+        CancellationToken ct)
+    {
+        var (presentationId, slideIndex) = await _handler.ResolveLinkedPresentationAsync(id, token, ct);
+        var deck = await _presentations.GetWithSlidesAsync(presentationId, ct)
+            ?? throw new NotFoundException("Presentación no encontrada.");
+        if (!deck.IsActive)
+        {
+            throw new NotFoundException("Presentación no encontrada.");
+        }
+
+        var slides = deck.Slides
+            .OrderBy(s => s.Position)
+            .Select(s => new LivePresentationSlideDto(
+                s.Position,
+                s.Title,
+                s.BackgroundJson,
+                s.ElementsJson))
+            .ToList();
+
+        return Ok(new LivePresentationDto(
+            deck.Id,
+            deck.Title,
+            Math.Clamp(slideIndex, 0, Math.Max(0, slides.Count - 1)),
+            slides.Count,
+            slides));
+    }
 
     [HttpPost("sessions/join")]
     [Authorize]

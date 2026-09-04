@@ -1,25 +1,47 @@
-import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { NgStyle } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HubConnection } from '@microsoft/signalr';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { mapApiError } from '../../../core/http/map-api-error';
+import { resolveMediaUrl } from '../../../core/media/resolve-media-url';
 import {
   LiveApi,
   LiveDoubtDto,
   LiveLobbyDto,
+  LivePresentationDto,
   LiveQuestionPayloadDto,
   LiveRankingDto,
   sanitizeLiveLobby
 } from '../api/live.api';
 import { computeSecondsLeft } from '../live-timer.util';
 import { readLiveParticipant, saveLiveParticipant } from './live-join.page';
+import {
+  EditorSlide,
+  ImageProps,
+  LineProps,
+  SLIDE_H,
+  SLIDE_W,
+  ShapeKind,
+  ShapeProps,
+  SlideElement,
+  TextProps,
+  VideoProps,
+  backgroundCss,
+  hasImageCrop,
+  imageElementStyles,
+  newClientId,
+  parseBackground,
+  parseElements,
+  unlockImportedPhotoSlide
+} from '../../teacher/presentations/presentation.models';
 
 @Component({
   selector: 'app-live-play-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, UiButtonComponent, UiErrorComponent],
+  imports: [FormsModule, RouterLink, UiButtonComponent, UiErrorComponent, NgStyle],
   templateUrl: './live-play.page.html',
   styleUrl: './live-play.page.css'
 })
@@ -45,6 +67,19 @@ export class LivePlayPage implements OnInit, OnDestroy {
   readonly lastPoints = signal<number | null>(null);
   readonly rematchCode = signal<string | null>(null);
 
+  readonly presentationSlides = signal<EditorSlide[]>([]);
+  readonly presentationTitle = signal('');
+  readonly presentationSlide = signal(0);
+  readonly presentationLoaded = signal(false);
+
+  readonly currentPresentationSlide = computed(
+    () => this.presentationSlides()[this.presentationSlide()] ?? null
+  );
+
+  readonly media = resolveMediaUrl;
+  readonly slideW = SLIDE_W;
+  readonly slideH = SLIDE_H;
+
   private sessionId = 0;
   private token = '';
 
@@ -65,6 +100,8 @@ export class LivePlayPage implements OnInit, OnDestroy {
       this.token = saved.participantToken;
       this.displayName.set(saved.displayName);
       this.rematchCode.set(null);
+      this.presentationSlides.set([]);
+      this.presentationLoaded.set(false);
       this.reload();
       this.connectHub();
       this.loadDoubts();
@@ -84,6 +121,19 @@ export class LivePlayPage implements OnInit, OnDestroy {
       return false;
     }
     return !!(l.config?.showRanking || l.mode === 'Competitive' || l.status === 'Ended');
+  }
+
+  hasLinkedPresentation(): boolean {
+    return !!(this.lobby()?.config?.presentationId && this.presentationLoaded());
+  }
+
+  showPresentationPanel(): boolean {
+    const l = this.lobby();
+    if (!l || !this.hasLinkedPresentation() || l.status === 'Ended') {
+      return false;
+    }
+    // Show slides while waiting or between questions; hide during active question to focus answers.
+    return !l.currentQuestion || l.status === 'Lobby' || l.status === 'Paused';
   }
 
   select(optionId: number): void {
@@ -156,11 +206,108 @@ export class LivePlayPage implements OnInit, OnDestroy {
     });
   }
 
+  bgStyle(slide: EditorSlide): Record<string, string> {
+    return {
+      width: `${SLIDE_W}px`,
+      height: `${SLIDE_H}px`,
+      ...backgroundCss(slide.background)
+    };
+  }
+
+  textProps(el: SlideElement): TextProps {
+    return el.props as TextProps;
+  }
+
+  imageProps(el: SlideElement): ImageProps {
+    return el.props as ImageProps;
+  }
+
+  videoProps(el: SlideElement): VideoProps {
+    return el.props as VideoProps;
+  }
+
+  shapeProps(el: SlideElement): ShapeProps {
+    return el.props as ShapeProps;
+  }
+
+  lineProps(el: SlideElement): LineProps {
+    return el.props as LineProps;
+  }
+
+  imageHasCrop(el: SlideElement): boolean {
+    return el.type === 'image' && hasImageCrop((el.props as ImageProps).crop);
+  }
+
+  imageStyles(el: SlideElement): Record<string, string> {
+    if (el.type !== 'image') {
+      return {};
+    }
+    return imageElementStyles(el.props as ImageProps);
+  }
+
+  shapeClip(shape: ShapeKind): string | null {
+    if (shape === 'triangle') {
+      return 'polygon(50% 0%, 0% 100%, 100% 100%)';
+    }
+    if (shape === 'octagon') {
+      return 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)';
+    }
+    return null;
+  }
+
   private reload(): void {
     this.api.getPlay(this.sessionId, this.token).subscribe({
-      next: (lobby) => this.applyLobby(lobby),
+      next: (lobby) => {
+        this.applyLobby(lobby);
+        this.loadPresentationIfNeeded(lobby);
+      },
       error: (err) => this.error.set(mapApiError(err))
     });
+  }
+
+  private loadPresentationIfNeeded(lobby: LiveLobbyDto): void {
+    const presentationId = lobby.config?.presentationId;
+    if (!presentationId) {
+      this.presentationLoaded.set(false);
+      this.presentationSlides.set([]);
+      return;
+    }
+    if (this.presentationLoaded() && this.presentationSlides().length) {
+      return;
+    }
+    this.api.getPresentation(this.sessionId, this.token).subscribe({
+      next: (deck) => this.applyPresentation(deck),
+      error: () => {
+        this.presentationLoaded.set(false);
+        this.presentationSlides.set([]);
+      }
+    });
+  }
+
+  private applyPresentation(deck: LivePresentationDto): void {
+    const slides = deck.slides
+      .slice()
+      .sort((a, b) => a.position - b.position)
+      .map((s) =>
+        unlockImportedPhotoSlide({
+          clientId: newClientId('live-slide'),
+          title: s.title,
+          notes: '',
+          background: parseBackground(s.backgroundJson),
+          elements: parseElements(s.elementsJson)
+        })
+      );
+    this.presentationTitle.set(deck.title);
+    this.presentationSlides.set(slides);
+    this.presentationSlide.set(
+      Math.max(0, Math.min(deck.slideIndex, Math.max(0, slides.length - 1)))
+    );
+    this.presentationLoaded.set(true);
+  }
+
+  private setPresentationSlide(index: number): void {
+    const max = Math.max(0, this.presentationSlides().length - 1);
+    this.presentationSlide.set(Math.max(0, Math.min(index, max)));
   }
 
   private loadDoubts(): void {
@@ -183,6 +330,7 @@ export class LivePlayPage implements OnInit, OnDestroy {
       this.lastPoints.set(null);
     }
     this.syncTimer(lobby.currentQuestion ?? null);
+    this.loadPresentationIfNeeded(lobby);
   }
 
   private syncTimer(q: LiveQuestionPayloadDto | null): void {
@@ -256,6 +404,11 @@ export class LivePlayPage implements OnInit, OnDestroy {
       const current = this.lobby();
       if (current) {
         this.applyLobby({ ...current, status: 'Ended', currentQuestion: null });
+      }
+    });
+    this.hub.on('PresentationSlideChanged', (payload: { slideIndex?: number }) => {
+      if (typeof payload?.slideIndex === 'number') {
+        this.setPresentationSlide(payload.slideIndex);
       }
     });
     void this.hub.start().then(() =>

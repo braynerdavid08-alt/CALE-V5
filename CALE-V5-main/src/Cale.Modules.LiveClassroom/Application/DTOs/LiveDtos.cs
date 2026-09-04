@@ -166,3 +166,16 @@ public sealed record LiveRematchResponse(
     string JoinCode,
     string JoinUrl,
     LiveLobbyDto Lobby);
+
+public sealed record LivePresentationSlideDto(
+    int Position,
+    string Title,
+    string BackgroundJson,
+    string ElementsJson);
+
+public sealed record LivePresentationDto(
+    int PresentationId,
+    string Title,
+    int SlideIndex,
+    int SlideCount,
+    IReadOnlyList<LivePresentationSlideDto> Slides);

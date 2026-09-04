@@ -21,6 +21,7 @@ public sealed class LiveSessionHandler
     private readonly ICatalogStore _catalog;
     private readonly ICatalogAccessGuard _access;
     private readonly ILiveSessionBroadcaster _broadcast;
+    private readonly ILivePresentationSlideState _presentationSlides;
     private readonly IClock _clock;
 
     public LiveSessionHandler(
@@ -28,12 +29,14 @@ public sealed class LiveSessionHandler
         ICatalogStore catalog,
         ICatalogAccessGuard access,
         ILiveSessionBroadcaster broadcast,
+        ILivePresentationSlideState presentationSlides,
         IClock clock)
     {
         _store = store;
         _catalog = catalog;
         _access = access;
         _broadcast = broadcast;
+        _presentationSlides = presentationSlides;
         _clock = clock;
     }
 
@@ -77,6 +80,28 @@ public sealed class LiveSessionHandler
         var session = await RequireSessionAsync(sessionId, ct);
         EnsureHost(session, hostUserId, isAdmin);
         return await ToLobbyAsync(session, publicBaseUrl, includeCorrect: session.RevealCorrect, ct);
+    }
+
+    public async Task<(int PresentationId, int SlideIndex)> ResolveLinkedPresentationAsync(
+        int sessionId,
+        Guid participantToken,
+        CancellationToken ct)
+    {
+        var session = await RequireSessionAsync(sessionId, ct);
+        var participant = await _store.GetParticipantByTokenAsync(participantToken, ct)
+            ?? throw new ForbiddenException("Invalid participant.", "invalid_participant");
+        if (participant.SessionId != sessionId)
+        {
+            throw new ForbiddenException("Participant not in session.", "invalid_participant");
+        }
+
+        var presentationId = ReadConfig(session).PresentationId;
+        if (presentationId is not > 0)
+        {
+            throw new NotFoundException("Esta sala no tiene presentación vinculada.", "presentation_not_linked");
+        }
+
+        return (presentationId.Value, _presentationSlides.GetSlideIndex(sessionId));
     }
 
     public async Task<LiveLobbyDto> GetParticipantViewAsync(

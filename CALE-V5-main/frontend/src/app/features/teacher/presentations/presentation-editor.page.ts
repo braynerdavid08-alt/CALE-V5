@@ -55,7 +55,7 @@ interface EditorSnapshot {
   description: string;
   category: string;
   activeIndex: number;
-  selectedId: string | null;
+  selectedIds: string[];
 }
 
 @Component({
@@ -91,7 +91,8 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   readonly groupId = signal<number | null>(null);
   readonly slides = signal<EditorSlide[]>([]);
   readonly activeIndex = signal(0);
-  readonly selectedId = signal<string | null>(null);
+  readonly selectedIds = signal<string[]>([]);
+  readonly selectedId = computed(() => this.selectedIds()[0] ?? null);
   readonly zoom = signal(1);
   readonly saveState = signal<SaveState>('idle');
   readonly lastSavedAt = signal<number | null>(null);
@@ -110,7 +111,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   readonly snapGuideX = signal<number | null>(null);
   readonly snapGuideY = signal<number | null>(null);
   readonly trafficSigns = TRAFFIC_SIGN_OPTIONS;
-  private elementClipboard: SlideElement | null = null;
+  private elementClipboard: SlideElement[] = [];
 
   @ViewChild('bgImageInput') bgImageInput?: ElementRef<HTMLInputElement>;
 
@@ -122,6 +123,18 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       return null;
     }
     return slide.elements.find((e) => e.id === id) ?? null;
+  });
+  readonly selectedCount = computed(() => this.selectedIds().length);
+  readonly canGroup = computed(() => this.selectedIds().length >= 2);
+  readonly canUngroup = computed(() => {
+    const slide = this.activeSlide();
+    if (!slide) {
+      return false;
+    }
+    return this.selectedIds().some((id) => {
+      const el = slide.elements.find((e) => e.id === id);
+      return !!el?.groupId;
+    });
   });
 
   readonly saveLabel = computed(() => {
@@ -154,6 +167,8 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   private drag:
     | {
         id: string;
+        ids: string[];
+        origins: Record<string, { x: number; y: number; w: number; h: number }>;
         mode: 'move' | 'resize';
         resizeDir?: 'se' | 'sw' | 'ne' | 'nw' | 'e' | 'w' | 'n' | 's';
         startX: number;
@@ -265,7 +280,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     for (let i = 0; i < built.length; i++) {
       this.pushElement({ ...built[i], z: baseZ + i });
     }
-    this.selectedId.set(built[0].id);
+    this.setSelectedId(built[0].id);
     this.closeSignPicker();
     this.markDirty();
   }
@@ -313,27 +328,40 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   }
 
   copySelectedElement(): void {
-    const sel = this.selected();
-    if (!sel) {
+    const slide = this.activeSlide();
+    const ids = this.selectedIds();
+    if (!slide || !ids.length) {
       return;
     }
-    this.elementClipboard = structuredClone(sel);
+    this.elementClipboard = ids
+      .map((id) => slide.elements.find((e) => e.id === id))
+      .filter((e): e is SlideElement => !!e)
+      .map((e) => structuredClone(e));
   }
 
   pasteElementClipboard(): void {
-    if (!this.elementClipboard) {
+    if (!this.elementClipboard.length) {
       return;
     }
     this.pushHistory();
-    const copy = {
-      ...structuredClone(this.elementClipboard),
-      id: newClientId('el'),
-      x: this.elementClipboard.x + 24,
-      y: this.elementClipboard.y + 24,
-      z: this.nextZ()
-    };
-    this.pushElement(copy);
-    this.selectedId.set(copy.id);
+    const pastedIds: string[] = [];
+    let z = this.nextZ();
+    for (const item of this.elementClipboard) {
+      const copy: SlideElement = {
+        ...structuredClone(item),
+        id: newClientId('el'),
+        x: item.x + 24,
+        y: item.y + 24,
+        z: z++,
+        groupId: null
+      };
+      this.updateActive((slide) => ({
+        ...slide,
+        elements: [...slide.elements, copy]
+      }));
+      pastedIds.push(copy.id);
+    }
+    this.selectedIds.set(pastedIds);
     this.markDirty();
   }
 
@@ -419,6 +447,20 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       this.saveNow();
       return;
     }
+    if (meta && ev.key.toLowerCase() === 'g') {
+      ev.preventDefault();
+      if (ev.shiftKey) {
+        this.ungroupSelected();
+      } else {
+        this.groupSelected();
+      }
+      return;
+    }
+    if (meta && ev.key.toLowerCase() === 'a') {
+      ev.preventDefault();
+      this.selectAllOnSlide();
+      return;
+    }
     if (meta && ev.key.toLowerCase() === 'd') {
       ev.preventDefault();
       this.duplicateElement();
@@ -471,7 +513,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       description: this.description(),
       category: this.category(),
       activeIndex: this.activeIndex(),
-      selectedId: this.selectedId()
+      selectedIds: [...this.selectedIds()]
     };
   }
 
@@ -517,7 +559,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     this.description.set(snap.description);
     this.category.set(snap.category);
     this.activeIndex.set(snap.activeIndex);
-    this.selectedId.set(snap.selectedId);
+    this.selectedIds.set([...(snap.selectedIds ?? [])]);
     this.editingText.set(false);
   }
 
@@ -575,7 +617,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
 
   selectSlide(i: number): void {
     this.activeIndex.set(i);
-    this.selectedId.set(null);
+    this.setSelectedId(null);
     this.editingText.set(false);
   }
 
@@ -587,7 +629,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     slides.splice(this.activeIndex() + 1, 0, built);
     this.slides.set(slides);
     this.activeIndex.set(this.activeIndex() + 1);
-    this.selectedId.set(null);
+    this.setSelectedId(null);
     this.markDirty();
   }
 
@@ -624,7 +666,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     slides.splice(this.activeIndex(), 1);
     this.slides.set(slides);
     this.activeIndex.set(Math.max(0, this.activeIndex() - 1));
-    this.selectedId.set(null);
+    this.setSelectedId(null);
     this.markDirty();
   }
 
@@ -655,15 +697,99 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
 
   selectElement(id: string, ev?: Event): void {
     ev?.stopPropagation();
-    if (this.selectedId() !== id) {
-      this.editingText.set(false);
+    const slide = this.activeSlide();
+    if (!slide) {
+      return;
     }
-    this.selectedId.set(id);
+    const el = slide.elements.find((e) => e.id === id);
+    if (!el) {
+      return;
+    }
+    const peers = el.groupId
+      ? slide.elements.filter((e) => e.groupId === el.groupId).map((e) => e.id)
+      : [id];
+    const multi = !!(ev && ((ev as MouseEvent).shiftKey || (ev as MouseEvent).ctrlKey || (ev as MouseEvent).metaKey));
+    this.editingText.set(false);
+    if (multi) {
+      const cur = new Set(this.selectedIds());
+      const allSelected = peers.every((pid) => cur.has(pid));
+      if (allSelected) {
+        for (const pid of peers) {
+          cur.delete(pid);
+        }
+      } else {
+        for (const pid of peers) {
+          cur.add(pid);
+        }
+      }
+      const next = [...cur];
+      if (next.includes(id)) {
+        this.selectedIds.set([id, ...next.filter((x) => x !== id)]);
+      } else {
+        this.selectedIds.set(next);
+      }
+      return;
+    }
+    this.selectedIds.set([id, ...peers.filter((x) => x !== id)]);
   }
 
   clearSelection(): void {
-    this.selectedId.set(null);
+    this.selectedIds.set([]);
     this.editingText.set(false);
+  }
+
+  isSelected(id: string): boolean {
+    return this.selectedIds().includes(id);
+  }
+
+  private setSelectedId(id: string | null): void {
+    this.selectedIds.set(id ? [id] : []);
+  }
+
+  selectAllOnSlide(): void {
+    const ids = (this.activeSlide()?.elements ?? []).map((e) => e.id);
+    this.selectedIds.set(ids);
+    this.editingText.set(false);
+  }
+
+  groupSelected(): void {
+    const ids = this.selectedIds();
+    if (ids.length < 2) {
+      return;
+    }
+    this.pushHistory();
+    const gid = newClientId('grp');
+    this.updateActive((slide) => ({
+      ...slide,
+      elements: slide.elements.map((e) =>
+        ids.includes(e.id) ? { ...e, groupId: gid } : e
+      )
+    }));
+    this.markDirty();
+  }
+
+  ungroupSelected(): void {
+    const ids = this.selectedIds();
+    const slide = this.activeSlide();
+    if (!ids.length || !slide) {
+      return;
+    }
+    const groupIds = new Set(
+      ids
+        .map((id) => slide.elements.find((e) => e.id === id)?.groupId)
+        .filter((g): g is string => !!g)
+    );
+    if (!groupIds.size) {
+      return;
+    }
+    this.pushHistory();
+    this.updateActive((s) => ({
+      ...s,
+      elements: s.elements.map((e) =>
+        e.groupId && groupIds.has(e.groupId) ? { ...e, groupId: null } : e
+      )
+    }));
+    this.markDirty();
   }
 
   isPhotoSlide(): boolean {
@@ -718,7 +844,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       background: { type: 'image', color: s.background.color || '#F7F9FC', imageUrl: src },
       elements: s.elements.filter((e) => e.id !== sel.id)
     }));
-    this.selectedId.set(null);
+    this.setSelectedId(null);
     this.markDirty();
   }
 
@@ -758,7 +884,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       this.pushHistory();
     }
     const initialText = (slideEl.props as TextProps).text;
-    this.selectedId.set(id);
+    this.setSelectedId(id);
     this.editingText.set(true);
 
     queueMicrotask(() => {
@@ -1326,13 +1452,30 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     ev.preventDefault();
     ev.stopPropagation();
     this.pushHistory();
-    const el = this.activeSlide()?.elements.find((e) => e.id === id);
-    if (!el) {
+    const slide = this.activeSlide();
+    const el = slide?.elements.find((e) => e.id === id);
+    if (!el || !slide) {
       return;
     }
-    this.selectedId.set(id);
+    if (!this.selectedIds().includes(id)) {
+      this.selectElement(id, ev);
+    }
+    const moveIds =
+      mode === 'move'
+        ? (this.selectedIds().length ? this.selectedIds() : [id])
+        : [id];
+    const origins: Record<string, { x: number; y: number; w: number; h: number }> = {};
+    for (const mid of moveIds) {
+      const item = slide.elements.find((e) => e.id === mid);
+      if (item) {
+        origins[mid] = { x: item.x, y: item.y, w: item.w, h: item.h };
+      }
+    }
+    this.selectedIds.set([id, ...moveIds.filter((x) => x !== id)]);
     this.drag = {
       id,
+      ids: moveIds,
+      origins,
       mode,
       resizeDir,
       startX: ev.clientX,
@@ -1355,14 +1498,17 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     const dx = (ev.clientX - this.drag.startX) / z;
     const dy = (ev.clientY - this.drag.startY) / z;
     if (this.drag.mode === 'move') {
-      const el = this.activeSlide()?.elements.find((e) => e.id === this.drag!.id);
-      const w = el?.w ?? this.drag.origW;
-      const h = el?.h ?? this.drag.origH;
-      const pos = this.snapBox(this.drag.origX + dx, this.drag.origY + dy, w, h);
-      this.patchElement(this.drag.id, (el) => ({
-        ...el,
-        x: pos.x,
-        y: pos.y
+      const ids = this.drag.ids;
+      this.updateActive((slide) => ({
+        ...slide,
+        elements: slide.elements.map((el) => {
+          const orig = this.drag!.origins[el.id];
+          if (!orig || !ids.includes(el.id)) {
+            return el;
+          }
+          const pos = this.snapBox(orig.x + dx, orig.y + dy, orig.w, orig.h);
+          return { ...el, x: pos.x, y: pos.y };
+        })
       }));
       return;
     }
@@ -1429,34 +1575,52 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   }
 
   deleteSelected(): void {
-    const id = this.selectedId();
-    if (!id) {
+    const ids = new Set(this.selectedIds());
+    if (!ids.size) {
       return;
     }
     this.pushHistory();
     this.updateActive((slide) => ({
       ...slide,
-      elements: slide.elements.filter((e) => e.id !== id)
+      elements: slide.elements.filter((e) => !ids.has(e.id))
     }));
-    this.selectedId.set(null);
+    this.selectedIds.set([]);
     this.markDirty();
   }
 
   duplicateElement(): void {
-    const sel = this.selected();
-    if (!sel) {
+    const slide = this.activeSlide();
+    const ids = this.selectedIds();
+    if (!slide || !ids.length) {
       return;
     }
     this.pushHistory();
-    const copy: SlideElement = {
-      ...sel,
-      id: newClientId('el'),
-      x: sel.x + 24,
-      y: sel.y + 24,
-      z: this.nextZ(),
-      props: { ...sel.props } as SlideElement['props']
-    };
-    this.pushElement(copy);
+    const copies: SlideElement[] = [];
+    let z = this.nextZ();
+    for (const id of ids) {
+      const sel = slide.elements.find((e) => e.id === id);
+      if (!sel) {
+        continue;
+      }
+      copies.push({
+        ...sel,
+        id: newClientId('el'),
+        x: sel.x + 24,
+        y: sel.y + 24,
+        z: z++,
+        groupId: null,
+        props: { ...sel.props } as SlideElement['props']
+      });
+    }
+    if (!copies.length) {
+      return;
+    }
+    this.updateActive((s) => ({
+      ...s,
+      elements: [...s.elements, ...copies]
+    }));
+    this.selectedIds.set(copies.map((c) => c.id));
+    this.markDirty();
   }
 
   copyElement(): void {
@@ -1468,22 +1632,35 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   }
 
   nudgeSelected(dx: number, dy: number): void {
-    const id = this.selectedId();
-    if (!id) {
+    const ids = new Set(this.selectedIds());
+    if (!ids.size) {
       return;
     }
     this.pushHistory();
-    this.patchElement(id, (el) => ({ ...el, x: el.x + dx, y: el.y + dy }));
+    this.updateActive((slide) => ({
+      ...slide,
+      elements: slide.elements.map((el) =>
+        ids.has(el.id) ? { ...el, x: el.x + dx, y: el.y + dy } : el
+      )
+    }));
     this.markDirty();
   }
 
   align(kind: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom'): void {
-    const id = this.selectedId();
-    if (!id) {
+    const ids = this.selectedIds();
+    const slide = this.activeSlide();
+    if (!ids.length || !slide) {
+      return;
+    }
+    const selected = ids
+      .map((id) => slide.elements.find((e) => e.id === id))
+      .filter((e): e is SlideElement => !!e);
+    if (!selected.length) {
       return;
     }
     this.pushHistory();
-    this.patchElement(id, (el) => {
+    if (selected.length === 1) {
+      const el = selected[0];
       let x = el.x;
       let y = el.y;
       if (kind === 'left') {
@@ -1504,8 +1681,45 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       if (kind === 'bottom') {
         y = SLIDE_H - el.h - 40;
       }
-      return { ...el, x, y };
-    });
+      this.patchElement(el.id, (e) => ({ ...e, x, y }));
+      this.markDirty();
+      return;
+    }
+
+    const minX = Math.min(...selected.map((e) => e.x));
+    const minY = Math.min(...selected.map((e) => e.y));
+    const maxX = Math.max(...selected.map((e) => e.x + e.w));
+    const maxY = Math.max(...selected.map((e) => e.y + e.h));
+    const idSet = new Set(ids);
+    this.updateActive((s) => ({
+      ...s,
+      elements: s.elements.map((el) => {
+        if (!idSet.has(el.id)) {
+          return el;
+        }
+        let x = el.x;
+        let y = el.y;
+        if (kind === 'left') {
+          x = minX;
+        }
+        if (kind === 'center') {
+          x = Math.round(minX + (maxX - minX - el.w) / 2);
+        }
+        if (kind === 'right') {
+          x = maxX - el.w;
+        }
+        if (kind === 'top') {
+          y = minY;
+        }
+        if (kind === 'middle') {
+          y = Math.round(minY + (maxY - minY - el.h) / 2);
+        }
+        if (kind === 'bottom') {
+          y = maxY - el.h;
+        }
+        return { ...el, x, y };
+      })
+    }));
     this.markDirty();
   }
 
@@ -1775,7 +1989,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       ...slide,
       elements: [...slide.elements, el]
     }));
-    this.selectedId.set(el.id);
+    this.setSelectedId(el.id);
     this.markDirty();
   }
 
