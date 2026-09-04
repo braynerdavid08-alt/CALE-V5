@@ -252,22 +252,42 @@ public sealed class ApprenticeRegistryService
             {
                 SchoolUserId = schoolUserId,
                 StudentUserId = studentUserId,
-                Status = StudentEnrollmentStatuses.Active,
+                Status = StudentEnrollmentStatuses.Pending,
                 CreatedAt = now,
-                UpdatedAt = now,
-                AcceptedAt = now
+                UpdatedAt = now
             };
             await _db.Set<SchoolStudentEnrollment>().AddAsync(enrollment, ct);
         }
 
         if (!string.IsNullOrWhiteSpace(request.LicenseCategories))
         {
-            enrollment.LicenseCategories = request.LicenseCategories.Trim().ToUpperInvariant();
+            var categories = request.LicenseCategories.Trim();
+            if (!StudentLicenseCategories.IsValid(categories))
+            {
+                throw new DomainException("Categoría de licencia no válida.", 400, "invalid_license_category");
+            }
+
+            enrollment.LicenseCategories = StudentLicenseCategories.Presets
+                .First(p => p.Equals(categories, StringComparison.OrdinalIgnoreCase));
         }
 
         if (!string.IsNullOrWhiteSpace(request.AttendanceDayType))
         {
-            enrollment.AttendanceDayType = request.AttendanceDayType;
+            var dayType = request.AttendanceDayType.Trim();
+            if (!StudentAttendanceDayTypes.IsValid(dayType))
+            {
+                throw new DomainException("Tipo de día no válido.", 400, "invalid_day_type");
+            }
+
+            enrollment.AttendanceDayType = dayType;
+        }
+
+        if (enrollment.Status is StudentEnrollmentStatuses.Pending or StudentEnrollmentStatuses.Accepted
+            && !string.IsNullOrWhiteSpace(enrollment.AttendanceDayType)
+            && !string.IsNullOrWhiteSpace(enrollment.LicenseCategories))
+        {
+            enrollment.Status = StudentEnrollmentStatuses.Active;
+            enrollment.AcceptedAt ??= now;
         }
 
         enrollment.UpdatedAt = now;

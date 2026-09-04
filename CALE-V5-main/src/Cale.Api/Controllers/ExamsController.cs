@@ -1,4 +1,5 @@
 using Cale.Api.Extensions;
+using Cale.BuildingBlocks.Domain.Abstractions;
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Time;
 using Cale.Modules.Catalog.Application.Commands;
@@ -19,6 +20,7 @@ public sealed class ExamsController : ControllerBase
     private readonly SaveExamHandler _save;
     private readonly AssignExamToGroupHandler _assign;
     private readonly IClassroomStore _classroom;
+    private readonly ITrainingEligibilityService _trainingEligibility;
     private readonly IClock _clock;
 
     public ExamsController(
@@ -26,12 +28,14 @@ public sealed class ExamsController : ControllerBase
         SaveExamHandler save,
         AssignExamToGroupHandler assign,
         IClassroomStore classroom,
+        ITrainingEligibilityService trainingEligibility,
         IClock clock)
     {
         _list = list;
         _save = save;
         _assign = assign;
         _classroom = classroom;
+        _trainingEligibility = trainingEligibility;
         _clock = clock;
     }
 
@@ -56,9 +60,13 @@ public sealed class ExamsController : ControllerBase
             CurrentUser.GetId(User),
             ct);
         var groupIds = memberships.Select(x => x.GroupId).ToList();
+        var officialTheoryExamId = await _trainingEligibility.GetSchoolOfficialTheoryExamIdAsync(
+            CurrentUser.GetId(User),
+            ct);
         return Ok(await _list.PublishedForStudentAsync(
             groupIds,
             _clock.UtcNow,
+            officialTheoryExamId,
             ct));
     }
 

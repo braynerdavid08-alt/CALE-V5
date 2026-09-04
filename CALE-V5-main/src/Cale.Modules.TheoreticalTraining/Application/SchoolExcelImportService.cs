@@ -351,25 +351,36 @@ public sealed class SchoolExcelImportService
             {
                 SchoolUserId = schoolUserId,
                 StudentUserId = user.Id,
-                Status = StudentEnrollmentStatuses.Active,
+                Status = StudentEnrollmentStatuses.Pending,
                 CreatedAt = now,
-                UpdatedAt = now,
-                AcceptedAt = now
+                UpdatedAt = now
             };
             await _db.Set<SchoolStudentEnrollment>().AddAsync(enrollment, ct);
         }
 
         if (!string.IsNullOrWhiteSpace(payload.LicenseCategory))
         {
-            enrollment.LicenseCategories = payload.LicenseCategory.Trim().ToUpperInvariant();
+            var categories = payload.LicenseCategory.Trim();
+            if (StudentLicenseCategories.IsValid(categories))
+            {
+                enrollment.LicenseCategories = StudentLicenseCategories.Presets
+                    .First(p => p.Equals(categories, StringComparison.OrdinalIgnoreCase));
+            }
+            else
+            {
+                enrollment.LicenseCategories = categories.ToUpperInvariant();
+            }
         }
 
-        if (!string.IsNullOrWhiteSpace(payload.AttendanceDayType))
+        if (!string.IsNullOrWhiteSpace(payload.AttendanceDayType)
+            && StudentAttendanceDayTypes.IsValid(payload.AttendanceDayType.Trim()))
         {
-            enrollment.AttendanceDayType = payload.AttendanceDayType;
+            enrollment.AttendanceDayType = payload.AttendanceDayType.Trim();
         }
 
-        if (enrollment.Status is StudentEnrollmentStatuses.Pending or StudentEnrollmentStatuses.Accepted)
+        if (enrollment.Status is StudentEnrollmentStatuses.Pending or StudentEnrollmentStatuses.Accepted
+            && !string.IsNullOrWhiteSpace(enrollment.AttendanceDayType)
+            && !string.IsNullOrWhiteSpace(enrollment.LicenseCategories))
         {
             enrollment.Status = StudentEnrollmentStatuses.Active;
             enrollment.AcceptedAt ??= now;

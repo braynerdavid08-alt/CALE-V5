@@ -1,3 +1,4 @@
+using Cale.BuildingBlocks.Domain.Abstractions;
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Security;
@@ -83,19 +84,22 @@ public sealed class CreateSchoolMemberHandler
     private readonly IMembershipEventStore _events;
     private readonly IPasswordHasher _hasher;
     private readonly IClock _clock;
+    private readonly ISchoolStudentEnrollmentBootstrap _enrollmentBootstrap;
 
     public CreateSchoolMemberHandler(
         IUserStore users,
         ISchoolProfileStore profiles,
         IMembershipEventStore events,
         IPasswordHasher hasher,
-        IClock clock)
+        IClock clock,
+        ISchoolStudentEnrollmentBootstrap enrollmentBootstrap)
     {
         _users = users;
         _profiles = profiles;
         _events = events;
         _hasher = hasher;
         _clock = clock;
+        _enrollmentBootstrap = enrollmentBootstrap;
     }
 
     public async Task<UserListItemDto> HandleAsync(
@@ -137,6 +141,11 @@ public sealed class CreateSchoolMemberHandler
 
         await _users.AddAsync(user, ct);
         await _users.SaveChangesAsync(ct);
+
+        if (role == Roles.Student)
+        {
+            await _enrollmentBootstrap.EnsurePendingAsync(schoolId, user.Id, ct);
+        }
 
         await _events.AddAsync(
             MembershipEvent.Create(
@@ -180,17 +189,20 @@ public sealed class AttachSchoolMemberHandler
     private readonly ISchoolProfileStore _profiles;
     private readonly IMembershipEventStore _events;
     private readonly IClock _clock;
+    private readonly ISchoolStudentEnrollmentBootstrap _enrollmentBootstrap;
 
     public AttachSchoolMemberHandler(
         IUserStore users,
         ISchoolProfileStore profiles,
         IMembershipEventStore events,
-        IClock clock)
+        IClock clock,
+        ISchoolStudentEnrollmentBootstrap enrollmentBootstrap)
     {
         _users = users;
         _profiles = profiles;
         _events = events;
         _clock = clock;
+        _enrollmentBootstrap = enrollmentBootstrap;
     }
 
     public async Task<UserListItemDto> HandleAsync(
@@ -256,6 +268,11 @@ public sealed class AttachSchoolMemberHandler
 
         user.AssignSchool(schoolId);
         await _users.SaveChangesAsync(ct);
+
+        if (role == Roles.Student)
+        {
+            await _enrollmentBootstrap.EnsurePendingAsync(schoolId, user.Id, ct);
+        }
 
         await _events.AddAsync(
             MembershipEvent.Create(

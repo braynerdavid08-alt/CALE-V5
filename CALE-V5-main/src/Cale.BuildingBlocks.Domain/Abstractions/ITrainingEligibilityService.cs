@@ -23,6 +23,13 @@ public interface ITrainingEligibilityService
         int examId,
         CancellationToken ct = default);
 
+    /// <summary>
+    /// Official theory exam id for the student's school, if configured.
+    /// </summary>
+    Task<int?> GetSchoolOfficialTheoryExamIdAsync(
+        int studentUserId,
+        CancellationToken ct = default);
+
     Task EnsureTheoryExamConfiguredAsync(
         int schoolUserId,
         CancellationToken ct = default);
