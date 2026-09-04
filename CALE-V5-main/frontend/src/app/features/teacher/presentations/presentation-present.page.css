@@ -1,5 +1,9 @@
 .present-boot {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
   background: #000;
@@ -16,6 +20,12 @@
   background: #000;
   color: #fff;
   overflow: hidden;
+}
+
+.present.embed {
+  position: absolute;
+  height: 100%;
+  min-height: 100%;
 }
 
 .viewport {

@@ -24,12 +24,12 @@
       <div class="ed-top-actions">
         <span class="save-pill" [attr.data-state]="saveState()">{{ saveLabel() }}</span>
         <div class="export-menu">
-          <button type="button" class="btn ghost" (click)="showExportMenu.set(!showExportMenu())">Exportar ▾</button>
+          <button type="button" class="btn ghost" (click)="toggleExportMenu($event)">Exportar ▾</button>
           @if (showExportMenu()) {
             <div class="export-dropdown" (click)="$event.stopPropagation()">
-              <button type="button" (click)="exportDeck('pptx'); showExportMenu.set(false)">PowerPoint (.pptx)</button>
-              <button type="button" (click)="exportDeck('xlsx'); showExportMenu.set(false)">Excel (.xlsx)</button>
-              <button type="button" (click)="exportDeck('docx'); showExportMenu.set(false)">Word (.docx)</button>
+              <button type="button" (click)="exportDeck('pptx'); closeFloatingMenus()">PowerPoint (.pptx)</button>
+              <button type="button" (click)="exportDeck('xlsx'); closeFloatingMenus()">Excel (.xlsx)</button>
+              <button type="button" (click)="exportDeck('docx'); closeFloatingMenus()">Word (.docx)</button>
             </div>
           }
         </div>
@@ -39,7 +39,7 @@
       </div>
     </header>
 
-    <div class="ed-toolbar">
+    <div class="ed-toolbar" (click)="$event.stopPropagation()">
       <div class="group">
         <button type="button" (click)="undo()" [disabled]="!canUndo()" title="Deshacer (Ctrl+Z)">↶</button>
         <button type="button" (click)="redo()" [disabled]="!canRedo()" title="Rehacer (Ctrl+Y)">↷</button>
@@ -52,16 +52,42 @@
       <div class="group">
         <button type="button" (click)="triggerImage()">Imagen</button>
         <button type="button" (click)="triggerVideo()">Video</button>
-        <button type="button" (click)="addShape('rect')">Rectángulo</button>
-        <button type="button" (click)="addShape('ellipse')">Círculo</button>
-        <button type="button" (click)="addShape('triangle')">Triángulo</button>
-        <button type="button" (click)="addShape('octagon')">Señal</button>
-        <button type="button" (click)="addLine(false)">Línea</button>
-        <button type="button" (click)="addLine(true)">Flecha</button>
-        <button type="button" (click)="addLogo()">Logo CALE</button>
-        <button type="button" (click)="openSignPicker()">Señales</button>
-        <button type="button" title="Pregunta en vivo A–D" (click)="addQuestion('mcq')">❓ A–D</button>
-        <button type="button" title="Verdadero / Falso en vivo" (click)="addQuestion('vf')">❓ V/F</button>
+        <div class="tb-menu">
+          <button
+            type="button"
+            class="tb-trigger"
+            [class.on]="toolbarMenu() === 'shapes'"
+            (click)="toggleToolbarMenu('shapes', $event)">
+            Formas ▾
+          </button>
+          @if (toolbarMenu() === 'shapes') {
+            <div class="tb-dropdown" (click)="$event.stopPropagation()">
+              <button type="button" (click)="addShape('rect'); closeFloatingMenus()">Rectángulo</button>
+              <button type="button" (click)="addShape('ellipse'); closeFloatingMenus()">Círculo</button>
+              <button type="button" (click)="addShape('triangle'); closeFloatingMenus()">Triángulo</button>
+              <button type="button" (click)="addShape('octagon'); closeFloatingMenus()">Señal (octágono)</button>
+              <button type="button" (click)="addLine(false); closeFloatingMenus()">Línea</button>
+              <button type="button" (click)="addLine(true); closeFloatingMenus()">Flecha</button>
+            </div>
+          }
+        </div>
+        <div class="tb-menu">
+          <button
+            type="button"
+            class="tb-trigger"
+            [class.on]="toolbarMenu() === 'insert'"
+            (click)="toggleToolbarMenu('insert', $event)">
+            Insertar ▾
+          </button>
+          @if (toolbarMenu() === 'insert') {
+            <div class="tb-dropdown" (click)="$event.stopPropagation()">
+              <button type="button" (click)="addLogo(); closeFloatingMenus()">Logo CALE</button>
+              <button type="button" (click)="openSignPicker(); closeFloatingMenus()">Biblioteca de señales</button>
+              <button type="button" (click)="addQuestion('mcq'); closeFloatingMenus()">Pregunta A–D</button>
+              <button type="button" (click)="addQuestion('vf'); closeFloatingMenus()">Verdadero / Falso</button>
+            </div>
+          }
+        </div>
       </div>
       <div class="group">
         <button
@@ -69,24 +95,57 @@
           [class.on]="snapEnabled()"
           (click)="toggleSnap()"
           title="Ajustar a cuadrícula y centro">
-          ⊞ Snap
+          Snap
         </button>
-        <button type="button" (click)="align('left')" title="Alinear izquierda">⟸</button>
-        <button type="button" (click)="align('center')" title="Centrar horizontal">⇔</button>
-        <button type="button" (click)="align('right')" title="Alinear derecha">⟹</button>
-        <button type="button" (click)="align('top')" title="Arriba">↑</button>
-        <button type="button" (click)="align('middle')" title="Centro vertical">↕</button>
-        <button type="button" (click)="align('bottom')" title="Abajo">↓</button>
+        <div class="tb-menu">
+          <button
+            type="button"
+            class="tb-trigger"
+            [class.on]="toolbarMenu() === 'align'"
+            (click)="toggleToolbarMenu('align', $event)">
+            Alinear ▾
+          </button>
+          @if (toolbarMenu() === 'align') {
+            <div class="tb-dropdown" (click)="$event.stopPropagation()">
+              <button type="button" (click)="align('left'); closeFloatingMenus()">Izquierda</button>
+              <button type="button" (click)="align('center'); closeFloatingMenus()">Centro horizontal</button>
+              <button type="button" (click)="align('right'); closeFloatingMenus()">Derecha</button>
+              <button type="button" (click)="align('top'); closeFloatingMenus()">Arriba</button>
+              <button type="button" (click)="align('middle'); closeFloatingMenus()">Centro vertical</button>
+              <button type="button" (click)="align('bottom'); closeFloatingMenus()">Abajo</button>
+            </div>
+          }
+        </div>
+        <div class="tb-menu">
+          <button
+            type="button"
+            class="tb-trigger"
+            [class.on]="toolbarMenu() === 'arrange'"
+            (click)="toggleToolbarMenu('arrange', $event)">
+            Organizar ▾
+          </button>
+          @if (toolbarMenu() === 'arrange') {
+            <div class="tb-dropdown" (click)="$event.stopPropagation()">
+              <button type="button" (click)="changeLayer('forward'); closeFloatingMenus()">Traer adelante</button>
+              <button type="button" (click)="changeLayer('back'); closeFloatingMenus()">Enviar atrás</button>
+              <button type="button" (click)="changeLayer('front'); closeFloatingMenus()">Al frente</button>
+              <button type="button" (click)="changeLayer('backmost'); closeFloatingMenus()">Al fondo</button>
+              <button type="button" (click)="groupSelected(); closeFloatingMenus()" [disabled]="!canGroup()">
+                Agrupar
+              </button>
+              <button type="button" (click)="ungroupSelected(); closeFloatingMenus()" [disabled]="!canUngroup()">
+                Desagrupar
+              </button>
+              <button type="button" (click)="duplicateElement(); closeFloatingMenus()">Duplicar</button>
+              <button type="button" (click)="deleteSelected(); closeFloatingMenus()">Eliminar</button>
+            </div>
+          }
+        </div>
       </div>
-      <div class="group">
-        <button type="button" (click)="changeLayer('forward')" title="Adelante">▴</button>
-        <button type="button" (click)="changeLayer('back')" title="Atrás">▾</button>
-        <button type="button" (click)="changeLayer('front')" title="Al frente">⇈</button>
-        <button type="button" (click)="changeLayer('backmost')" title="Al fondo">⇊</button>
-        <button type="button" (click)="groupSelected()" [disabled]="!canGroup()" title="Agrupar (Ctrl+G)">Agrupar</button>
-        <button type="button" (click)="ungroupSelected()" [disabled]="!canUngroup()" title="Desagrupar (Ctrl+Shift+G)">Desagrupar</button>
-        <button type="button" (click)="duplicateElement()">Duplicar</button>
-        <button type="button" (click)="deleteSelected()">Eliminar</button>
+      <div class="group props-trigger-group">
+        <button type="button" class="props-open-btn" (click)="togglePropsDrawer()" title="Propiedades">
+          Propiedades
+        </button>
       </div>
       <input #fileInput type="file" accept="image/*" hidden (change)="onImageSelected($event)" />
       <input #videoInput type="file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" hidden (change)="onVideoSelected($event)" />
@@ -326,404 +385,498 @@
         }
       </main>
 
-      <aside class="ed-props">
-        <h3>Propiedades</h3>
-        @if (activeSlide(); as slide) {
-          <label>
-            Nombre diapositiva
-            <input [ngModel]="slide.title" (ngModelChange)="updateSlideTitle($event)" />
-          </label>
-          <label>
-            Fondo
-            <input type="color" [ngModel]="slide.background.color" (ngModelChange)="updateBgColor($event)" />
-          </label>
-          <div class="row">
-            <button type="button" (click)="updateBgGradient('#0B1F33', '#2BB0ED')">Gradiente CALE</button>
-            <button type="button" (click)="updateBgColor('#F7F9FC')">Claro</button>
-            <button type="button" (click)="triggerBgImage()">Imagen fondo</button>
-            @if (slide.background.type === 'image') {
-              <button type="button" (click)="clearBgImage()">Quitar fondo</button>
-            }
+      <aside class="ed-props" [class.drawer-open]="propsDrawerOpen()">
+        <div class="props-drawer-scrim" (click)="closePropsDrawer()"></div>
+        <div class="props-panel">
+          <div class="props-drawer-head">
+            <h3>Propiedades</h3>
+            <button type="button" class="props-close" (click)="closePropsDrawer()" aria-label="Cerrar">✕</button>
           </div>
-          @if (isPhotoSlide()) {
-            <p class="photo-hint">
-              Foto de fondo: el texto de la imagen no se edita letra a letra.
-              Usa <strong>Texto</strong> o doble clic en el lienzo para escribir encima.
-            </p>
-          }
-          <input #bgImageInput type="file" accept="image/*" hidden (change)="onBgImageSelected($event)" />
-          <label>
-            Notas del instructor
-            <textarea
-              rows="5"
-              [ngModel]="slide.notes"
-              (ngModelChange)="updateNotes($event)"
-              placeholder="No se muestran al proyectar"></textarea>
-          </label>
-        }
 
-        @if (selectedCount() > 1) {
-          <hr />
-          <p class="sel-type">{{ selectedCount() }} seleccionados</p>
-          <p class="meta">Shift o Ctrl + clic para sumar. Ctrl+G agrupa · Ctrl+Shift+G desagrupa.</p>
-          <div class="row">
-            <button type="button" (click)="groupSelected()" [disabled]="!canGroup()">Agrupar</button>
-            <button type="button" (click)="ungroupSelected()" [disabled]="!canUngroup()">Desagrupar</button>
-            <button type="button" (click)="duplicateElement()">Duplicar</button>
-            <button type="button" (click)="deleteSelected()">Eliminar</button>
-          </div>
-        } @else {
-          @if (selected(); as sel) {
-          <hr />
-          <p class="sel-type">
-            {{ sel.type }}
-            @if (sel.groupId) {
-              <span> · grupo</span>
+          <nav class="props-tabs" aria-label="Secciones de propiedades">
+            <button type="button" [class.on]="propsTab() === 'slide'" (click)="setPropsTab('slide')">Diapositiva</button>
+            <button type="button" [class.on]="propsTab() === 'element'" (click)="setPropsTab('element')">Elemento</button>
+            <button type="button" [class.on]="propsTab() === 'layers'" (click)="setPropsTab('layers')">Capas</button>
+            <button type="button" [class.on]="propsTab() === 'deck'" (click)="setPropsTab('deck')">Presentación</button>
+          </nav>
+
+          @if (propsTab() === 'slide') {
+            @if (activeSlide(); as slide) {
+              <label>
+                Nombre diapositiva
+                <input [ngModel]="slide.title" (ngModelChange)="updateSlideTitle($event)" />
+              </label>
+              <label>
+                Fondo
+                <input type="color" [ngModel]="slide.background.color" (ngModelChange)="updateBgColor($event)" />
+              </label>
+              <div class="row">
+                <button type="button" (click)="updateBgGradient('#0B1F33', '#2BB0ED')">Gradiente CALE</button>
+                <button type="button" (click)="updateBgColor('#F7F9FC')">Claro</button>
+                <button type="button" (click)="triggerBgImage()">Imagen fondo</button>
+                @if (slide.background.type === 'image') {
+                  <button type="button" (click)="clearBgImage()">Quitar fondo</button>
+                }
+              </div>
+              @if (isPhotoSlide()) {
+                <p class="photo-hint">
+                  Foto de fondo: el texto de la imagen no se edita letra a letra.
+                  Usa <strong>Texto</strong> o doble clic en el lienzo para escribir encima.
+                </p>
+              }
+              <label>
+                Notas del instructor
+                <textarea
+                  rows="4"
+                  [ngModel]="slide.notes"
+                  (ngModelChange)="updateNotes($event)"
+                  placeholder="No se muestran al proyectar"></textarea>
+              </label>
             }
-          </p>
-          <label>
-            Rotación (°)
-            <input
-              type="range"
-              min="-180"
-              max="180"
-              step="1"
-              [ngModel]="sel.rotation"
-              (ngModelChange)="updateRotation(+$event)" />
-            <span class="hint-inline">{{ sel.rotation }}°</span>
-          </label>
-          @if (sel.type === 'text') {
-            <p class="text-edit-hint">
-              Clic = marco para mover y cambiar tamaño (igual que una imagen).
-              Doble clic o Enter = escribir las letras. También puedes editarlas abajo.
-            </p>
-            <label>
-              Contenido (texto editable)
-              <textarea
-                rows="5"
-                [ngModel]="textProps(sel).text"
-                (ngModelChange)="updateTextProp('text', $event)"
-                placeholder="Escribe aquí…"></textarea>
-            </label>
-            <label>
-              Tamaño
-              <input
-                type="number"
-                [ngModel]="textProps(sel).fontSize"
-                (ngModelChange)="updateTextProp('fontSize', +$event)" />
-            </label>
-            <label>
-              Color
-              <input
-                type="color"
-                [ngModel]="textProps(sel).color"
-                (ngModelChange)="updateTextProp('color', $event)" />
-            </label>
-            <div class="row">
-              <button type="button" (click)="updateTextProp('fontWeight', textProps(sel).fontWeight >= 700 ? 400 : 700)">
-                B
-              </button>
-              <button type="button" (click)="toggleTextStyle('italic')"><em>I</em></button>
-              <button type="button" (click)="toggleTextStyle('underline')"><u>U</u></button>
-              <button type="button" (click)="toggleBullets()" title="Viñetas">•</button>
-              <button type="button" (click)="updateTextProp('align', 'left')">Izq</button>
-              <button type="button" (click)="updateTextProp('align', 'center')">Cen</button>
-              <button type="button" (click)="updateTextProp('align', 'right')">Der</button>
-            </div>
-            <label>
-              Fuente
-              <select
-                [ngModel]="textProps(sel).fontFamily"
-                (ngModelChange)="updateTextProp('fontFamily', $event)">
-                <option value="Segoe UI, sans-serif">Segoe UI</option>
-                <option value="Arial, sans-serif">Arial</option>
-                <option value="Georgia, serif">Georgia</option>
-                <option value="Courier New, monospace">Courier</option>
-              </select>
-            </label>
           }
-          @if (sel.type === 'shape') {
-            <label>
-              Relleno
-              <input
-                type="color"
-                [ngModel]="shapeProps(sel).fill"
-                (ngModelChange)="updateShapeProp('fill', $event)" />
-            </label>
-            <label>
-              Borde
-              <input
-                type="color"
-                [ngModel]="shapeProps(sel).stroke"
-                (ngModelChange)="updateShapeProp('stroke', $event)" />
-            </label>
-          }
-          @if (sel.type === 'question') {
-            <p class="text-edit-hint">
-              En Presentar en vivo, al llegar a esta diapositiva se abre automáticamente para los estudiantes.
-            </p>
-            <div class="row">
-              <button type="button" [class.on]="questionProps(sel).kind === 'mcq'" (click)="setQuestionKind('mcq')">A–D</button>
-              <button type="button" [class.on]="questionProps(sel).kind === 'vf'" (click)="setQuestionKind('vf')">V/F</button>
-            </div>
-            <label>
-              Enunciado
-              <textarea
-                rows="3"
-                [ngModel]="questionProps(sel).text"
-                (ngModelChange)="updateQuestionProp('text', $event)"></textarea>
-            </label>
-            <fieldset class="q-edit">
-              <legend>Opciones (marca la correcta)</legend>
-              @for (opt of questionProps(sel).options; track $index; let i = $index) {
-                <div class="q-edit-row">
+
+          <input #bgImageInput type="file" accept="image/*" hidden (change)="onBgImageSelected($event)" />
+
+          @if (propsTab() === 'element') {
+            @if (selectedCount() > 1) {
+              <p class="sel-type">{{ selectedCount() }} seleccionados</p>
+              <p class="meta">Shift o Ctrl + clic para sumar. Ctrl+G agrupa · Ctrl+Shift+G desagrupa.</p>
+              <div class="row">
+                <button type="button" (click)="groupSelected()" [disabled]="!canGroup()">Agrupar</button>
+                <button type="button" (click)="ungroupSelected()" [disabled]="!canUngroup()">Desagrupar</button>
+                <button type="button" (click)="duplicateElement()">Duplicar</button>
+                <button type="button" (click)="deleteSelected()">Eliminar</button>
+              </div>
+            } @else {
+              @if (selected(); as sel) {
+              <p class="sel-type">
+                {{ elementTypeLabel(sel.type) }}
+                @if (sel.groupId) {
+                  <span> · grupo</span>
+                }
+              </p>
+
+              <div class="row geom">
+                <label>
+                  X
+                  <input type="number" [ngModel]="sel.x" (ngModelChange)="updateElementGeometry('x', +$event)" />
+                </label>
+                <label>
+                  Y
+                  <input type="number" [ngModel]="sel.y" (ngModelChange)="updateElementGeometry('y', +$event)" />
+                </label>
+                <label>
+                  Ancho
+                  <input type="number" [ngModel]="sel.w" (ngModelChange)="updateElementGeometry('w', +$event)" />
+                </label>
+                <label>
+                  Alto
+                  <input type="number" [ngModel]="sel.h" (ngModelChange)="updateElementGeometry('h', +$event)" />
+                </label>
+              </div>
+
+              <label>
+                Rotación (°)
+                <input
+                  type="range"
+                  min="-180"
+                  max="180"
+                  step="1"
+                  [ngModel]="sel.rotation"
+                  (ngModelChange)="updateRotation(+$event)" />
+                <span class="hint-inline">{{ sel.rotation }}°</span>
+              </label>
+
+              @if (sel.type === 'text') {
+                <p class="text-edit-hint">
+                  Clic = mover/redimensionar. Doble clic o Enter = editar texto.
+                </p>
+                <label>
+                  Contenido
+                  <textarea
+                    rows="4"
+                    [ngModel]="textProps(sel).text"
+                    (ngModelChange)="updateTextProp('text', $event)"
+                    placeholder="Escribe aquí…"></textarea>
+                </label>
+                <div class="row twin">
+                  <label>
+                    Tamaño
+                    <input
+                      type="number"
+                      [ngModel]="textProps(sel).fontSize"
+                      (ngModelChange)="updateTextProp('fontSize', +$event)" />
+                  </label>
+                  <label>
+                    Color
+                    <input
+                      type="color"
+                      [ngModel]="textProps(sel).color"
+                      (ngModelChange)="updateTextProp('color', $event)" />
+                  </label>
+                </div>
+                <div class="row">
+                  <button
+                    type="button"
+                    [class.on]="textProps(sel).fontWeight >= 700"
+                    (click)="updateTextProp('fontWeight', textProps(sel).fontWeight >= 700 ? 400 : 700)">
+                    B
+                  </button>
+                  <button type="button" [class.on]="!!textProps(sel).italic" (click)="toggleTextStyle('italic')">
+                    <em>I</em>
+                  </button>
+                  <button type="button" [class.on]="!!textProps(sel).underline" (click)="toggleTextStyle('underline')">
+                    <u>U</u>
+                  </button>
+                  <button type="button" (click)="toggleBullets()" title="Viñetas">•</button>
+                  <button type="button" [class.on]="textProps(sel).align === 'left'" (click)="updateTextProp('align', 'left')">
+                    Izq
+                  </button>
+                  <button
+                    type="button"
+                    [class.on]="textProps(sel).align === 'center'"
+                    (click)="updateTextProp('align', 'center')">
+                    Cen
+                  </button>
+                  <button
+                    type="button"
+                    [class.on]="textProps(sel).align === 'right'"
+                    (click)="updateTextProp('align', 'right')">
+                    Der
+                  </button>
+                </div>
+                <label>
+                  Fuente
+                  <select
+                    [ngModel]="textProps(sel).fontFamily"
+                    (ngModelChange)="updateTextProp('fontFamily', $event)">
+                    <option value="Segoe UI, sans-serif">Segoe UI</option>
+                    <option value="Arial, sans-serif">Arial</option>
+                    <option value="Georgia, serif">Georgia</option>
+                    <option value="Courier New, monospace">Courier</option>
+                  </select>
+                </label>
+              }
+
+              @if (sel.type === 'shape') {
+                <div class="row twin">
+                  <label>
+                    Relleno
+                    <input
+                      type="color"
+                      [ngModel]="shapeProps(sel).fill"
+                      (ngModelChange)="updateShapeProp('fill', $event)" />
+                  </label>
+                  <label>
+                    Borde
+                    <input
+                      type="color"
+                      [ngModel]="shapeProps(sel).stroke"
+                      (ngModelChange)="updateShapeProp('stroke', $event)" />
+                  </label>
+                </div>
+                <label>
+                  Grosor del borde
                   <input
-                    type="radio"
-                    name="qCorrect"
-                    [checked]="questionProps(sel).correctIndex === i"
-                    (change)="updateQuestionProp('correctIndex', i)" />
+                    type="number"
+                    min="0"
+                    max="40"
+                    [ngModel]="shapeProps(sel).strokeWidth"
+                    (ngModelChange)="updateShapeProp('strokeWidth', +$event)" />
+                </label>
+                <label>
+                  Opacidad
+                  <input
+                    type="range"
+                    min="0.05"
+                    max="1"
+                    step="0.05"
+                    [ngModel]="shapeProps(sel).opacity"
+                    (ngModelChange)="updateShapeProp('opacity', +$event)" />
+                  <span class="hint-inline">{{ shapeProps(sel).opacity }}</span>
+                </label>
+              }
+
+              @if (sel.type === 'question') {
+                <p class="text-edit-hint">
+                  En Presentar en vivo, al llegar a esta diapositiva se abre automáticamente para los estudiantes.
+                </p>
+                <div class="row">
+                  <button
+                    type="button"
+                    [class.on]="questionProps(sel).kind === 'mcq'"
+                    (click)="setQuestionKind('mcq')">
+                    A–D
+                  </button>
+                  <button type="button" [class.on]="questionProps(sel).kind === 'vf'" (click)="setQuestionKind('vf')">
+                    V/F
+                  </button>
+                </div>
+                <label>
+                  Enunciado
+                  <textarea
+                    rows="3"
+                    [ngModel]="questionProps(sel).text"
+                    (ngModelChange)="updateQuestionProp('text', $event)"></textarea>
+                </label>
+                <fieldset class="q-edit">
+                  <legend>Opciones (marca la correcta)</legend>
+                  @for (opt of questionProps(sel).options; track $index; let i = $index) {
+                    <div class="q-edit-row">
+                      <input
+                        type="radio"
+                        name="qCorrect"
+                        [checked]="questionProps(sel).correctIndex === i"
+                        (change)="updateQuestionProp('correctIndex', i)" />
+                      <input
+                        type="text"
+                        [ngModel]="opt"
+                        (ngModelChange)="setQuestionOption(i, $event)"
+                        [placeholder]="'Opción ' + optionLetter(i)" />
+                    </div>
+                  }
+                </fieldset>
+                <label>
+                  Tema
                   <input
                     type="text"
-                    [ngModel]="opt"
-                    (ngModelChange)="setQuestionOption(i, $event)"
-                    [placeholder]="'Opción ' + optionLetter(i)" />
-                </div>
+                    [ngModel]="questionProps(sel).topic || ''"
+                    (ngModelChange)="updateQuestionProp('topic', $event)" />
+                </label>
+                <label>
+                  Explicación (opcional)
+                  <textarea
+                    rows="2"
+                    [ngModel]="questionProps(sel).explanation || ''"
+                    (ngModelChange)="updateQuestionProp('explanation', $event)"></textarea>
+                </label>
+                <label class="check">
+                  <input
+                    type="checkbox"
+                    [ngModel]="questionProps(sel).autoOpen !== false"
+                    (ngModelChange)="updateQuestionProp('autoOpen', $event)" />
+                  Abrir sola en vivo al llegar a la diapositiva
+                </label>
               }
-            </fieldset>
-            <label>
-              Tema
-              <input
-                type="text"
-                [ngModel]="questionProps(sel).topic || ''"
-                (ngModelChange)="updateQuestionProp('topic', $event)" />
-            </label>
-            <label>
-              Explicación (opcional)
-              <textarea
-                rows="2"
-                [ngModel]="questionProps(sel).explanation || ''"
-                (ngModelChange)="updateQuestionProp('explanation', $event)"></textarea>
-            </label>
-            <label class="check">
-              <input
-                type="checkbox"
-                [ngModel]="questionProps(sel).autoOpen !== false"
-                (ngModelChange)="updateQuestionProp('autoOpen', $event)" />
-              Abrir sola en vivo al llegar a la diapositiva
-            </label>
-          }
-          @if (sel.type === 'line' || sel.type === 'arrow') {
-            <label>
-              Color
-              <input
-                type="color"
-                [ngModel]="lineProps(sel).color"
-                (ngModelChange)="updateLineProp('color', $event)" />
-            </label>
-            <label>
-              Grosor
-              <input
-                type="number"
-                min="1"
-                max="24"
-                [ngModel]="lineProps(sel).strokeWidth"
-                (ngModelChange)="updateLineProp('strokeWidth', +$event)" />
-            </label>
-            @if (sel.type === 'arrow') {
-              <label class="check">
-                <input
-                  type="checkbox"
-                  [ngModel]="lineProps(sel).arrowEnd ?? true"
-                  (ngModelChange)="updateLineProp('arrowEnd', $event)" />
-                Punta de flecha
-              </label>
+
+              @if (sel.type === 'line' || sel.type === 'arrow') {
+                <label>
+                  Color
+                  <input
+                    type="color"
+                    [ngModel]="lineProps(sel).color"
+                    (ngModelChange)="updateLineProp('color', $event)" />
+                </label>
+                <label>
+                  Grosor
+                  <input
+                    type="number"
+                    min="1"
+                    max="24"
+                    [ngModel]="lineProps(sel).strokeWidth"
+                    (ngModelChange)="updateLineProp('strokeWidth', +$event)" />
+                </label>
+                @if (sel.type === 'arrow') {
+                  <label class="check">
+                    <input
+                      type="checkbox"
+                      [ngModel]="lineProps(sel).arrowEnd ?? true"
+                      (ngModelChange)="updateLineProp('arrowEnd', $event)" />
+                    Punta de flecha
+                  </label>
+                }
+              }
+
+              @if (sel.type === 'image') {
+                <label>
+                  URL de imagen
+                  <input
+                    [ngModel]="imageProps(sel).src"
+                    (ngModelChange)="updateImageProp('src', $event)"
+                    placeholder="https://... o /uploads/..." />
+                </label>
+                <label>
+                  Opacidad
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="1"
+                    step="0.05"
+                    [ngModel]="imageProps(sel).opacity ?? 1"
+                    (ngModelChange)="updateImageProp('opacity', +$event)" />
+                </label>
+                <label>
+                  Ajuste de imagen
+                  <select
+                    [ngModel]="imageProps(sel).objectFit ?? 'contain'"
+                    (ngModelChange)="setImageObjectFit($event)">
+                    <option value="contain">Contener (ver completa)</option>
+                    <option value="cover">Rellenar marco</option>
+                  </select>
+                </label>
+                <div class="row">
+                  <button type="button" (click)="fitImageToSlide()">Ajustar a diapositiva</button>
+                  <button type="button" (click)="convertSelectedImageToBackground()">Usar como fondo</button>
+                  <button type="button" (click)="openReplaceImageModal()">Cambiar imagen</button>
+                </div>
+                <fieldset class="crop-panel">
+                  <legend>Recorte</legend>
+                  <label>
+                    Margen izquierdo (%)
+                    <input
+                      type="range"
+                      min="0"
+                      max="90"
+                      [ngModel]="imageCropPercent('x')"
+                      (ngModelChange)="updateImageCrop('x', +$event)" />
+                  </label>
+                  <label>
+                    Margen superior (%)
+                    <input
+                      type="range"
+                      min="0"
+                      max="90"
+                      [ngModel]="imageCropPercent('y')"
+                      (ngModelChange)="updateImageCrop('y', +$event)" />
+                  </label>
+                  <label>
+                    Ancho visible (%)
+                    <input
+                      type="range"
+                      min="10"
+                      max="100"
+                      [ngModel]="imageCropPercent('w')"
+                      (ngModelChange)="updateImageCrop('w', +$event)" />
+                  </label>
+                  <label>
+                    Alto visible (%)
+                    <input
+                      type="range"
+                      min="10"
+                      max="100"
+                      [ngModel]="imageCropPercent('h')"
+                      (ngModelChange)="updateImageCrop('h', +$event)" />
+                  </label>
+                  <button type="button" (click)="resetImageCrop()">Quitar recorte</button>
+                </fieldset>
+                <p class="meta hint">Arrastra para mover · esquinas/bordes para redimensionar · Alt libera proporción</p>
+              }
+
+              @if (sel.type === 'video') {
+                <label>
+                  URL del video
+                  <input
+                    [ngModel]="videoProps(sel).src"
+                    (ngModelChange)="updateVideoProp('src', $event)"
+                    placeholder="https://... o /uploads/..." />
+                </label>
+                <label class="check">
+                  <input
+                    type="checkbox"
+                    [ngModel]="videoProps(sel).autoplay ?? false"
+                    (ngModelChange)="updateVideoProp('autoplay', $event)" />
+                  Reproducir automáticamente
+                </label>
+                <label class="check">
+                  <input
+                    type="checkbox"
+                    [ngModel]="videoProps(sel).loop ?? false"
+                    (ngModelChange)="updateVideoProp('loop', $event)" />
+                  Repetir en bucle
+                </label>
+                <label class="check">
+                  <input
+                    type="checkbox"
+                    [ngModel]="videoProps(sel).muted ?? true"
+                    (ngModelChange)="updateVideoProp('muted', $event)" />
+                  Silenciado por defecto
+                </label>
+              }
+              } @else if (isPhotoSlide()) {
+                <p class="meta">No hay recuadros de texto encima. Agrega uno desde la barra para editar.</p>
+              } @else {
+                <p class="meta">Selecciona un elemento o agrégalo desde la barra.</p>
+              }
             }
           }
-          @if (sel.type === 'image') {
+
+          @if (propsTab() === 'layers') {
+            @if (layerItems().length) {
+              <ul class="layer-list">
+                @for (el of layerItems(); track el.id) {
+                  <li>
+                    <button
+                      type="button"
+                      [class.on]="isSelected(el.id)"
+                      (click)="selectElement(el.id, $event)">
+                      {{ layerLabel(el) }}@if (el.groupId) {
+                        <span> ·</span>
+                      }
+                    </button>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="meta">Esta diapositiva aún no tiene elementos.</p>
+            }
+          }
+
+          @if (propsTab() === 'deck') {
             <label>
-              URL de imagen
-              <input
-                [ngModel]="imageProps(sel).src"
-                (ngModelChange)="updateImageProp('src', $event)"
-                placeholder="https://... o /uploads/..." />
+              Descripción
+              <textarea
+                rows="3"
+                [ngModel]="description()"
+                (ngModelChange)="updateDescription($event)"
+                placeholder="Resumen breve de la presentación"></textarea>
             </label>
             <label>
-              Opacidad
-              <input
-                type="range"
-                min="0.1"
-                max="1"
-                step="0.05"
-                [ngModel]="imageProps(sel).opacity ?? 1"
-                (ngModelChange)="updateImageProp('opacity', +$event)" />
-            </label>
-            <div class="row geom">
-              <label>
-                X
-                <input type="number" [ngModel]="sel.x" (ngModelChange)="updateImageGeometry('x', +$event)" />
-              </label>
-              <label>
-                Y
-                <input type="number" [ngModel]="sel.y" (ngModelChange)="updateImageGeometry('y', +$event)" />
-              </label>
-              <label>
-                Ancho
-                <input type="number" [ngModel]="sel.w" (ngModelChange)="updateImageGeometry('w', +$event)" />
-              </label>
-              <label>
-                Alto
-                <input type="number" [ngModel]="sel.h" (ngModelChange)="updateImageGeometry('h', +$event)" />
-              </label>
-            </div>
-            <label>
-              Ajuste de imagen
-              <select
-                [ngModel]="imageProps(sel).objectFit ?? 'contain'"
-                (ngModelChange)="setImageObjectFit($event)">
-                <option value="contain">Contener (ver completa)</option>
-                <option value="cover">Rellenar marco</option>
+              Categoría
+              <select [ngModel]="category()" (ngModelChange)="category.set($event); markDirty()">
+                @for (c of categories; track c) {
+                  <option [value]="c">{{ c }}</option>
+                }
               </select>
             </label>
-            <div class="row">
-              <button type="button" (click)="fitImageToSlide()">Ajustar a diapositiva</button>
-              <button type="button" (click)="convertSelectedImageToBackground()">Usar como fondo</button>
-              <button type="button" (click)="openReplaceImageModal()">Cambiar imagen</button>
-            </div>
-            <fieldset class="crop-panel">
-              <legend>Recorte</legend>
-              <label>
-                Margen izquierdo (%)
-                <input
-                  type="range"
-                  min="0"
-                  max="90"
-                  [ngModel]="imageCropPercent('x')"
-                  (ngModelChange)="updateImageCrop('x', +$event)" />
-              </label>
-              <label>
-                Margen superior (%)
-                <input
-                  type="range"
-                  min="0"
-                  max="90"
-                  [ngModel]="imageCropPercent('y')"
-                  (ngModelChange)="updateImageCrop('y', +$event)" />
-              </label>
-              <label>
-                Ancho visible (%)
-                <input
-                  type="range"
-                  min="10"
-                  max="100"
-                  [ngModel]="imageCropPercent('w')"
-                  (ngModelChange)="updateImageCrop('w', +$event)" />
-              </label>
-              <label>
-                Alto visible (%)
-                <input
-                  type="range"
-                  min="10"
-                  max="100"
-                  [ngModel]="imageCropPercent('h')"
-                  (ngModelChange)="updateImageCrop('h', +$event)" />
-              </label>
-              <button type="button" (click)="resetImageCrop()">Quitar recorte</button>
-            </fieldset>
-            <p class="meta hint">Arrastra para mover · esquinas/bordes para redimensionar · Alt libera proporción</p>
           }
-          @if (sel.type === 'video') {
-            <label>
-              URL del video
-              <input
-                [ngModel]="videoProps(sel).src"
-                (ngModelChange)="updateVideoProp('src', $event)"
-                placeholder="https://... o /uploads/..." />
-            </label>
-            <label class="check">
-              <input
-                type="checkbox"
-                [ngModel]="videoProps(sel).autoplay ?? false"
-                (ngModelChange)="updateVideoProp('autoplay', $event)" />
-              Reproducir automáticamente
-            </label>
-            <label class="check">
-              <input
-                type="checkbox"
-                [ngModel]="videoProps(sel).loop ?? false"
-                (ngModelChange)="updateVideoProp('loop', $event)" />
-              Repetir en bucle
-            </label>
-            <label class="check">
-              <input
-                type="checkbox"
-                [ngModel]="videoProps(sel).muted ?? true"
-                (ngModelChange)="updateVideoProp('muted', $event)" />
-              Silenciado por defecto
-            </label>
-          }
-          <p class="meta">x {{ sel.x }} · y {{ sel.y }} · {{ sel.w }}×{{ sel.h }}</p>
-          } @else if (isPhotoSlide()) {
-          <p class="meta">No hay recuadros de texto encima. Agrega uno desde la barra para editar.</p>
-          } @else {
-          <p class="meta">Selecciona un elemento o agrega uno desde la barra.</p>
-          }
-        }
-
-        @if (layerItems().length) {
-          <hr />
-          <p class="sel-type">Capas</p>
-          <ul class="layer-list">
-            @for (el of layerItems(); track el.id) {
-              <li>
-                <button
-                  type="button"
-                  [class.on]="isSelected(el.id)"
-                  (click)="selectElement(el.id, $event)">
-                  {{ layerLabel(el) }}@if (el.groupId) {<span> ·</span>}
-                </button>
-              </li>
-            }
-          </ul>
-        }
-
-        <hr />
-        <label>
-          Descripción
-          <textarea
-            rows="2"
-            [ngModel]="description()"
-            (ngModelChange)="updateDescription($event)"
-            placeholder="Resumen breve de la presentación"></textarea>
-        </label>
-        <label>
-          Categoría
-          <select [ngModel]="category()" (ngModelChange)="category.set($event); markDirty()">
-            @for (c of categories; track c) {
-              <option [value]="c">{{ c }}</option>
-            }
-          </select>
-        </label>
+        </div>
       </aside>
+
     </div>
 
     <footer class="ed-bottom">
-      <div class="zoom">
-        <button type="button" (click)="setZoom(zoom() - 0.1)">−</button>
-        <span>{{ (zoom() * 100) | number: '1.0-0' }}%</span>
-        <button type="button" (click)="setZoom(zoom() + 0.1)">+</button>
-        <button type="button" (click)="fitZoom()">Ajustar</button>
+      <div class="ed-filmstrip" aria-label="Diapositivas">
+        @for (s of slides(); track s.clientId; let i = $index) {
+          <button
+            type="button"
+            class="film-item"
+            [class.active]="i === activeIndex()"
+            (click)="selectSlide(i)">
+            <span class="film-num">{{ i + 1 }}</span>
+            <app-slide-preview [slide]="s" [width]="96" />
+          </button>
+        }
+        <button type="button" class="film-add" (click)="addSlide()" title="Agregar diapositiva">+</button>
       </div>
-      <div class="nav">
-        <button type="button" [disabled]="activeIndex() === 0" (click)="selectSlide(activeIndex() - 1)">
-          ← Anterior
-        </button>
-        <span>{{ activeIndex() + 1 }} / {{ slides().length }}</span>
-        <button
-          type="button"
-          [disabled]="activeIndex() >= slides().length - 1"
-          (click)="selectSlide(activeIndex() + 1)">
-          Siguiente →
-        </button>
+      <div class="ed-bottom-bar">
+        <div class="zoom">
+          <button type="button" (click)="setZoom(zoom() - 0.1)">−</button>
+          <span>{{ (zoom() * 100) | number: '1.0-0' }}%</span>
+          <button type="button" (click)="setZoom(zoom() + 0.1)">+</button>
+          <button type="button" (click)="fitZoom()">Ajustar</button>
+        </div>
+        <div class="nav">
+          <button type="button" [disabled]="activeIndex() === 0" (click)="selectSlide(activeIndex() - 1)">
+            ← Anterior
+          </button>
+          <span>{{ activeIndex() + 1 }} / {{ slides().length }}</span>
+          <button
+            type="button"
+            [disabled]="activeIndex() >= slides().length - 1"
+            (click)="selectSlide(activeIndex() + 1)">
+            Siguiente →
+          </button>
+        </div>
       </div>
     </footer>
 

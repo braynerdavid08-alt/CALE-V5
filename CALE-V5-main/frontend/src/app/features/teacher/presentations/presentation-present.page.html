@@ -9,6 +9,7 @@
   <div
     #stage
     class="present"
+    [class.embed]="embedMode()"
     (mousemove)="bumpChrome()"
     (click)="onStageClick()">
     @if (current(); as slide) {

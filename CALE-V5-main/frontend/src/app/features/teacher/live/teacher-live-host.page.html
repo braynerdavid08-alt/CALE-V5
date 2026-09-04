@@ -100,11 +100,14 @@
               <button type="button" class="btn ghost" (click)="changePresentationSlide(1)">Diapositiva →</button>
               <button type="button" class="btn ghost" (click)="showPresentation.set(false)">Ocultar</button>
             </div>
-            <iframe
-              id="live-pres-iframe"
-              [src]="presentationEmbedUrl()"
-              title="Presentación en vivo"
-              class="pres-frame"></iframe>
+            @if (presentationEmbedSrc(); as embedSrc) {
+              <iframe
+                id="live-pres-iframe"
+                [src]="embedSrc"
+                title="Presentación en vivo"
+                class="pres-frame"
+                (load)="onPresentationFrameLoad()"></iframe>
+            }
           </section>
         }
         @if (l.status === 'Ended') {
