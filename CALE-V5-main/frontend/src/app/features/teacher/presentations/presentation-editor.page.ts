@@ -36,9 +36,9 @@ import {
   hasImageCrop,
   imageElementStyles,
   imageSrc,
-  isFullBleedImage,
   newClientId,
   normalizeImageCrop,
+  scaleElementsFromLegacy,
   unlockImportedPhotoSlide
 } from './presentation.models';
 import { buildSlideFromTemplate, reassignElementIds } from './presentation-slide-templates';
@@ -80,7 +80,6 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   readonly categories = PRESENTATION_CATEGORIES;
   readonly templates = TEMPLATE_OPTIONS;
   readonly media = resolveMediaUrl;
-  readonly isFullBleedImage = isFullBleedImage;
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -271,7 +270,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   }
 
   insertTrafficSign(key: string): void {
-    const built = buildTrafficSignElements(key, 180, 120);
+    const built = scaleElementsFromLegacy(buildTrafficSignElements(key, 180, 120));
     if (!built.length) {
       return;
     }
@@ -305,7 +304,12 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     return Math.round(value / grid) * grid;
   }
 
-  private snapBox(x: number, y: number, w: number, h: number): { x: number; y: number } {
+  private snapBox(
+    x: number,
+    y: number,
+    w: number,
+    h: number
+  ): { x: number; y: number; w: number; h: number } {
     let nx = this.snapCoord(x);
     let ny = this.snapCoord(y);
     const threshold = 8;
@@ -319,7 +323,21 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     }
     this.snapGuideX.set(Math.abs(elCx - SLIDE_W / 2) < threshold ? Math.round(SLIDE_W / 2) : null);
     this.snapGuideY.set(Math.abs(elCy - SLIDE_H / 2) < threshold ? Math.round(SLIDE_H / 2) : null);
-    return { x: nx, y: ny };
+    return this.clampBoxToCanvas(nx, ny, w, h);
+  }
+
+  /** Mantiene el elemento dentro del lienzo fijo 1920×1080. */
+  private clampBoxToCanvas(
+    x: number,
+    y: number,
+    w: number,
+    h: number
+  ): { x: number; y: number; w: number; h: number } {
+    const maxW = Math.max(40, Math.min(Math.round(w), SLIDE_W));
+    const maxH = Math.max(24, Math.min(Math.round(h), SLIDE_H));
+    const nx = Math.max(0, Math.min(Math.round(x), SLIDE_W - maxW));
+    const ny = Math.max(0, Math.min(Math.round(y), SLIDE_H - maxH));
+    return { x: nx, y: ny, w: maxW, h: maxH };
   }
 
   clearSnapGuides(): void {
@@ -797,8 +815,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (!slide) {
       return false;
     }
-    return (!!slide.background.imageUrl && slide.background.type === 'image')
-      || slide.elements.some(isFullBleedImage);
+    return !!slide.background.imageUrl && slide.background.type === 'image';
   }
 
   layerItems(): SlideElement[] {
@@ -1507,7 +1524,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
             return el;
           }
           const pos = this.snapBox(orig.x + dx, orig.y + dy, orig.w, orig.h);
-          return { ...el, x: pos.x, y: pos.y };
+          return { ...el, x: pos.x, y: pos.y, w: pos.w, h: pos.h };
         })
       }));
       return;
@@ -1557,12 +1574,13 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       }
     }
 
+    const boxed = this.clampBoxToCanvas(x, y, w, h);
     this.patchElement(this.drag.id, (el) => ({
       ...el,
-      x: Math.round(x),
-      y: Math.round(y),
-      w,
-      h
+      x: boxed.x,
+      y: boxed.y,
+      w: boxed.w,
+      h: boxed.h
     }));
   }
 

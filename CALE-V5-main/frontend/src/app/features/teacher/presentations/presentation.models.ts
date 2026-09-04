@@ -121,8 +121,12 @@ export interface PresentationDetail {
 
 export const PRESENTATION_IMPORT_MAX_BYTES = 200 * 1024 * 1024;
 export const PRESENTATION_MEDIA_MAX_BYTES = 100 * 1024 * 1024;
-export const SLIDE_W = 960;
-export const SLIDE_H = 540;
+/** Lienzo fijo 16:9 Full HD. */
+export const SLIDE_W = 1920;
+export const SLIDE_H = 1080;
+/** Coordenadas de presentaciones creadas antes del lienzo HD. */
+export const LEGACY_SLIDE_W = 960;
+export const LEGACY_SLIDE_H = 540;
 
 export const PRESENTATION_CATEGORIES = [
   'Normas de tránsito',
@@ -197,8 +201,14 @@ function isImportStubText(el: SlideElement): boolean {
     return false;
   }
   const text = ((el.props as TextProps).text ?? '').trim();
-  const atTitleSlot = el.x === 64 && el.y === 48 && el.w === 832;
-  const atBodySlot = el.x === 64 && el.y === 140 && el.w === 832 && el.h >= 280;
+  const slots = [
+    { x: 64, y: 48, w: 832, bodyY: 140, bodyH: 280 },
+    { x: 128, y: 96, w: 1664, bodyY: 280, bodyH: 560 }
+  ];
+  const atTitleSlot = slots.some((s) => el.x === s.x && el.y === s.y && el.w === s.w);
+  const atBodySlot = slots.some(
+    (s) => el.x === s.x && el.y === s.bodyY && el.w === s.w && el.h >= s.bodyH
+  );
   // Solo quitar placeholders vacíos o genéricos — nunca texto real del PPT.
   if (!text) {
     return atTitleSlot || atBodySlot;
@@ -212,29 +222,56 @@ function isImportStubText(el: SlideElement): boolean {
   return false;
 }
 
+/** Escala elementos diseñados en 960×540 al lienzo 1920×1080. */
+export function scaleElementsFromLegacy(elements: SlideElement[]): SlideElement[] {
+  const sx = SLIDE_W / LEGACY_SLIDE_W;
+  const sy = SLIDE_H / LEGACY_SLIDE_H;
+  return elements.map((e) => {
+    const next: SlideElement = {
+      ...e,
+      x: Math.round(e.x * sx),
+      y: Math.round(e.y * sy),
+      w: Math.round(e.w * sx),
+      h: Math.round(e.h * sy)
+    };
+    if (e.type === 'text') {
+      const props = e.props as TextProps;
+      next.props = {
+        ...props,
+        fontSize: Math.max(10, Math.round(props.fontSize * sx))
+      };
+    }
+    return next;
+  });
+}
+
 /**
- * Si una foto cubre casi toda la diapositiva, pásala a fondo para que el texto
- * y las formas del PowerPoint queden encima y se puedan editar / conservar el orden.
+ * Si el contenido cabe en el lienzo legacy 960×540, lo escala a Full HD.
+ * No convierte imágenes grandes en fondo: eso solo lo hace el botón manual.
  */
-export function unlockImportedPhotoSlide(slide: EditorSlide): EditorSlide {
-  const photos = slide.elements.filter(isFullBleedImage);
-  const topPhoto = photos.length
-    ? [...photos].sort((a, b) => a.z - b.z)[0]
-    : null;
-  const src = topPhoto ? imageSrc(topPhoto) : null;
-  const background: SlideBackground = src
-    ? { type: 'image', color: slide.background.color || '#F7F9FC', imageUrl: src }
-    : slide.background;
-  const remaining = slide.elements.filter((el) => el.id !== topPhoto?.id);
-  const elements = remaining.filter((el) => !isImportStubText(el));
-  if (
-    background.type === slide.background.type
-    && background.imageUrl === slide.background.imageUrl
-    && elements.length === slide.elements.length
-  ) {
+export function migrateLegacySlideToHd(slide: EditorSlide): EditorSlide {
+  const els = slide.elements;
+  if (!els.length) {
     return slide;
   }
-  return { ...slide, background, elements };
+  const maxRight = Math.max(...els.map((e) => e.x + e.w));
+  const maxBottom = Math.max(...els.map((e) => e.y + e.h));
+  const looksLegacy = maxRight <= LEGACY_SLIDE_W + 80 && maxBottom <= LEGACY_SLIDE_H + 80;
+  if (!looksLegacy) {
+    return slide;
+  }
+  return { ...slide, elements: scaleElementsFromLegacy(els) };
+}
+
+/**
+ * Limpia stubs de import. Las imágenes grandes siguen siendo elementos editables
+ * (no se pasan a fondo automáticamente).
+ */
+export function unlockImportedPhotoSlide(slide: EditorSlide): EditorSlide {
+  const elements = slide.elements.filter((el) => !isImportStubText(el));
+  const cleaned =
+    elements.length === slide.elements.length ? slide : { ...slide, elements };
+  return migrateLegacySlideToHd(cleaned);
 }
 
 export function dtoToEditorSlides(detail: PresentationDetail): EditorSlide[] {

@@ -332,12 +332,13 @@
 }
 
 .slide {
-  width: 960px;
-  height: 540px;
+  width: 1920px;
+  height: 1080px;
   position: relative;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
   overflow: hidden;
   border-radius: 2px;
+  background: #ffffff;
 }
 
 .el {

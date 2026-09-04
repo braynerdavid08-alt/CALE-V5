@@ -154,7 +154,6 @@
                   [class.selected]="isSelected(el.id)"
                   [class.is-text]="el.type === 'text'"
                   [class.is-editing]="el.type === 'text' && editingText() && selectedId() === el.id"
-                  [class.photo-bleed]="isFullBleedImage(el) && !isSelected(el.id)"
                   [style.left.px]="el.x"
                   [style.top.px]="el.y"
                   [style.width.px]="el.w"
