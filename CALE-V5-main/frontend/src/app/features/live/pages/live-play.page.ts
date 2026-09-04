@@ -539,11 +539,40 @@ export class LivePlayPage implements OnInit, OnDestroy {
       Math.max(0, Math.min(deck.slideIndex, Math.max(0, slides.length - 1)))
     );
     this.presentationLoaded.set(true);
+    requestAnimationFrame(() => {
+      this.fitDeck();
+      this.tryPlaySlideVideos();
+    });
   }
 
   private setPresentationSlide(index: number): void {
     const max = Math.max(0, this.presentationSlides().length - 1);
     this.presentationSlide.set(Math.max(0, Math.min(index, max)));
+    requestAnimationFrame(() => this.tryPlaySlideVideos());
+  }
+
+  tryPlaySlideVideos(): void {
+    const root = this.stageEl;
+    if (!root) {
+      return;
+    }
+    const videos = root.querySelectorAll('video');
+    videos.forEach((node) => {
+      const video = node as HTMLVideoElement;
+      video.muted = true;
+      video.setAttribute('playsinline', '');
+      video.setAttribute('webkit-playsinline', '');
+      const play = video.play();
+      if (play && typeof play.catch === 'function') {
+        play.catch(() => {
+          /* controls remain for manual play */
+        });
+      }
+    });
+  }
+
+  onSlideVideoError(_ev: Event): void {
+    /* keep controls so student can retry */
   }
 
   private loadDoubts(): void {

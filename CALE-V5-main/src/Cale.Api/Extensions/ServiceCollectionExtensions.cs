@@ -106,7 +106,11 @@ public static class ServiceCollectionExtensions
         services.AddPresentationModule();
         services.AddSingleton<UploadStorage>();
         services.AddScoped<ILiveSessionBroadcaster, LiveSessionBroadcaster>();
-        services.AddMemoryCache();
+        services.AddMemoryCache(options =>
+        {
+            // Presentation media cache entries set Size = byte length.
+            options.SizeLimit = 400L * 1024 * 1024;
+        });
         services.AddScoped<Cale.Api.Services.PilotMetricsService>();
         services.AddScoped<Cale.Api.Services.HomepageService>();
         services.AddScoped<Cale.Api.Services.AuthCookieService>();
@@ -222,7 +226,7 @@ public static class ServiceCollectionExtensions
                     policy.AllowAnyOrigin()
                         .AllowAnyHeader()
                         .AllowAnyMethod()
-                        .WithExposedHeaders("X-Request-Id");
+                        .WithExposedHeaders("X-Request-Id", "Accept-Ranges", "Content-Range", "Content-Length");
                     return;
                 }
 
@@ -230,7 +234,7 @@ public static class ServiceCollectionExtensions
                     .AllowAnyHeader()
                     .AllowAnyMethod()
                     .AllowCredentials()
-                    .WithExposedHeaders("X-Request-Id");
+                    .WithExposedHeaders("X-Request-Id", "Accept-Ranges", "Content-Range", "Content-Length");
             });
         });
     }
