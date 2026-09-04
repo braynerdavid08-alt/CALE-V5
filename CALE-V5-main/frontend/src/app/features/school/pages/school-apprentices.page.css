@@ -1,4 +1,5 @@
 .warn { color: var(--color-warning); font-weight: 700; }
+.ok { color: var(--color-success, #1a7f4b); font-weight: 600; }
 .muted { color: var(--color-text-secondary); }
 .login-hint { margin: 0.25rem 0 0.75rem; font-size: var(--text-sm); }
 .detail-warn {

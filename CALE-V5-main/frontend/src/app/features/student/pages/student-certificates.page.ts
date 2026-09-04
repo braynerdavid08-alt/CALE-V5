@@ -157,10 +157,10 @@ export class StudentCertificatesPage implements OnInit {
             });
           }
 
-          if (theory.practicalEligibility?.canStart) {
+          if (theory.practicalEligibility?.canBookPractical) {
             certs.push({
               title: 'Habilitado para práctica en vía',
-              detail: theory.practicalEligibility.reason ?? 'Cumples los requisitos teóricos.',
+              detail: 'Cumples los requisitos teóricos.',
               earnedAt: null,
               tone: 'success'
             });

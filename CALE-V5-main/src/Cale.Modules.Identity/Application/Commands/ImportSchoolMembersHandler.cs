@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
+using Cale.BuildingBlocks.Domain.Abstractions;
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Security;
@@ -68,6 +69,7 @@ public sealed class ImportSchoolMembersHandler
     private readonly IPasswordHasher _hasher;
     private readonly IClock _clock;
     private readonly SchoolMemberImportPreviewCache _cache;
+    private readonly ISchoolStudentEnrollmentBootstrap _enrollmentBootstrap;
 
     public ImportSchoolMembersHandler(
         IUserStore users,
@@ -75,7 +77,8 @@ public sealed class ImportSchoolMembersHandler
         IMembershipEventStore events,
         IPasswordHasher hasher,
         IClock clock,
-        SchoolMemberImportPreviewCache cache)
+        SchoolMemberImportPreviewCache cache,
+        ISchoolStudentEnrollmentBootstrap enrollmentBootstrap)
     {
         _users = users;
         _profiles = profiles;
@@ -83,6 +86,7 @@ public sealed class ImportSchoolMembersHandler
         _hasher = hasher;
         _clock = clock;
         _cache = cache;
+        _enrollmentBootstrap = enrollmentBootstrap;
     }
 
     public async Task<ImportPreviewDto> PreviewAsync(
@@ -237,6 +241,7 @@ public sealed class ImportSchoolMembersHandler
 
         var credentials = new List<ImportCredentialDto>();
         var results = new List<ParsedImportRow>();
+        var studentsNeedingEnrollment = new List<User>();
         var created = 0;
         var attached = 0;
         var skipped = 0;
@@ -276,6 +281,11 @@ public sealed class ImportSchoolMembersHandler
                     }
                     user.RequirePasswordChange();
                     await _users.AddAsync(user, ct);
+                    if (row.Role == Roles.Student)
+                    {
+                        studentsNeedingEnrollment.Add(user);
+                    }
+
                     credentials.Add(new ImportCredentialDto(row.Name, row.Email, row.Role, temp));
                     created++;
                     results.Add(row with
@@ -299,6 +309,11 @@ public sealed class ImportSchoolMembersHandler
                         user.AssignSchool(schoolUserId);
                     }
 
+                    if (row.Role == Roles.Student)
+                    {
+                        studentsNeedingEnrollment.Add(user);
+                    }
+
                     attached++;
                     results.Add(row with { Message = "Cuenta vinculada a la escuela." });
                 }
@@ -317,6 +332,11 @@ public sealed class ImportSchoolMembersHandler
         }
 
         await _users.SaveChangesAsync(ct);
+
+        foreach (var student in studentsNeedingEnrollment)
+        {
+            await _enrollmentBootstrap.EnsurePendingAsync(schoolUserId, student.Id, ct);
+        }
 
         if (created > 0 || attached > 0)
         {

@@ -10,6 +10,7 @@ public static class DependencyInjection
         this IServiceCollection services)
     {
         services.AddScoped<ITrainingEligibilityService, TrainingEligibilityService>();
+        services.AddScoped<ISchoolStudentEnrollmentBootstrap, SchoolStudentEnrollmentBootstrap>();
         services.AddScoped<TheoryTrainingService>();
         services.AddScoped<PracticalTrainingService>();
         services.AddScoped<ApprenticeRegistryService>();

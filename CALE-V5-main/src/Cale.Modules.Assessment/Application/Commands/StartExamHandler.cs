@@ -305,6 +305,18 @@ public sealed class StartExamHandler
                 throw new ForbiddenException("Exam window expired.", "exam_closed");
             }
         }
+        else
+        {
+            var officialId = await _trainingEligibility.GetSchoolOfficialTheoryExamIdAsync(
+                userId,
+                ct);
+            if (officialId != exam.Id)
+            {
+                throw new ForbiddenException(
+                    "This exam is not assigned to your group.",
+                    "exam_not_assigned");
+            }
+        }
 
         await _trainingEligibility.EnsureCanStartSchoolTheoryExamAsync(
             userId,

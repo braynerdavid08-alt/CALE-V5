@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
@@ -13,7 +14,7 @@ import {
   ApprenticeDto,
   EnrollmentAuthorizationEvent
 } from '../api/apprentice.api';
-import { TheoryApi } from '../../theory/api/theory.api';
+import { EnrollmentDto, PracticalEligibilityDto, TheoryApi } from '../../theory/api/theory.api';
 import { buildStudentBadges, SchoolBadge, StudentBadgeInput } from '../utils/school-student-badges';
 
 @Component({
@@ -40,6 +41,7 @@ export class SchoolApprenticesPage implements OnInit {
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
   readonly rows = signal<ApprenticeDto[]>([]);
+  readonly progressByStudent = signal<Record<number, PracticalEligibilityDto>>({});
   readonly selected = signal<ApprenticeDto | null>(null);
   readonly detail = signal<ApprenticeDetail | null>(null);
   readonly detailLoading = signal(false);
@@ -58,9 +60,13 @@ export class SchoolApprenticesPage implements OnInit {
   reload(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.api.list(this.search || undefined, undefined, this.onlyBalance || undefined).subscribe({
-      next: (rows) => {
+    forkJoin({
+      rows: this.api.list(this.search || undefined, undefined, this.onlyBalance || undefined),
+      enrollments: this.theoryApi.listEnrollments()
+    }).subscribe({
+      next: ({ rows, enrollments }) => {
         this.rows.set(rows);
+        this.progressByStudent.set(this.mapEnrollmentProgress(enrollments));
         this.loading.set(false);
       },
       error: (err) => {
@@ -68,6 +74,20 @@ export class SchoolApprenticesPage implements OnInit {
         this.error.set(mapApiError(err));
       }
     });
+  }
+
+  private mapEnrollmentProgress(enrollments: EnrollmentDto[]): Record<number, PracticalEligibilityDto> {
+    const map: Record<number, PracticalEligibilityDto> = {};
+    for (const e of enrollments) {
+      if (e.practicalEligibility) {
+        map[e.studentUserId] = e.practicalEligibility;
+      }
+    }
+    return map;
+  }
+
+  progressOf(row: ApprenticeDto): PracticalEligibilityDto | undefined {
+    return this.progressByStudent()[row.studentUserId];
   }
 
   select(row: ApprenticeDto): void {
@@ -153,7 +173,26 @@ export class SchoolApprenticesPage implements OnInit {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value);
   }
 
-  studentBadges(row: ApprenticeDto, training?: ApprenticeDetail['training']): SchoolBadge[] {
+  formatHours(p?: PracticalEligibilityDto): string {
+    if (!p) return '—';
+    return `${p.theoryHoursCompleted}/${p.theoryHoursRequired}h`;
+  }
+
+  formatExamStatus(p?: PracticalEligibilityDto): string {
+    if (!p) return '—';
+    if (p.theoryExamPassed) return 'Aprobado';
+    if (p.theoryExamAuthorized) return 'Autorizado';
+    if (p.theoryHoursComplete && p.workshopHoursComplete) return 'Listo';
+    return 'Pendiente';
+  }
+
+  formatPracticalStatus(row: ApprenticeDto, p?: PracticalEligibilityDto): string {
+    if (row.practicalAuthorized || p?.canBookPractical) return 'Sí';
+    if (p?.theoryExamPassed) return 'Examen OK';
+    return 'No';
+  }
+
+  studentBadges(row: ApprenticeDto, training?: ApprenticeDetail['training'] | PracticalEligibilityDto): SchoolBadge[] {
     const input: StudentBadgeInput = {
       status: row.enrollmentStatus,
       balanceDue: row.balanceDue,

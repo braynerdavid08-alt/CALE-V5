@@ -27,6 +27,7 @@ public sealed class ListExamsHandler
     public async Task<IReadOnlyList<ExamDto>> PublishedForStudentAsync(
         IReadOnlyList<int> groupIds,
         DateTime utcNow,
+        int? officialTheoryExamId,
         CancellationToken ct)
     {
         var exams = await _store.ListPublishedExamsAsync(ct);
@@ -49,10 +50,16 @@ public sealed class ListExamsHandler
                     return false;
                 }
 
+                if (officialTheoryExamId is int oid && oid == exam.Id)
+                {
+                    return true;
+                }
+
                 var hasAnyAssignment = allLinks.Contains(exam.Id);
                 if (!hasAnyAssignment)
                 {
-                    return true;
+                    // Unassigned published exams are not public to all students.
+                    return false;
                 }
 
                 return linkedExamIds.Contains(exam.Id);

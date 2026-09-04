@@ -134,7 +134,7 @@ export function navForRole(role?: string): NavItem[] {
         ]
       },
       {
-        label: 'Evaluaciones',
+        label: 'Biblioteca',
         icon: 'book',
         children: [
           { label: 'Preguntas', path: '/school/questions', exact: true },
@@ -161,6 +161,7 @@ export function navForRole(role?: string): NavItem[] {
     { label: 'Clases de manejo', path: '/student/practical', icon: 'exam', exact: true },
     { label: 'Mis Clases', path: '/student/classes', icon: 'book', exact: true },
     { label: 'Mis Evaluaciones', path: '/student/evaluations', icon: 'exam', exact: true },
+    { label: 'Aula en Vivo', path: '/live/join', icon: 'exam', exact: true },
     { label: 'Simulador', path: '/student/simulator', icon: 'exam', exact: true },
     { label: 'Mi Progreso', path: '/student/progress', icon: 'chart', exact: true },
     { label: 'Mensajes', path: '/notifications', icon: 'bell', exact: true },

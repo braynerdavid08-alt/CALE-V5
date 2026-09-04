@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { env } from '../../../core/config/env';
+import { PracticalEligibilityDto } from '../../theory/api/theory.api';
 
 export interface TheoryStudentDashboardDto {
   progressPercent: number;
@@ -13,7 +14,7 @@ export interface TheoryStudentDashboardDto {
   checkedInToday: boolean;
   nextAction?: string | null;
   platformExam?: { id: number; name: string } | null;
-  practicalEligibility?: { canStart: boolean; reason?: string | null } | null;
+  practicalEligibility?: PracticalEligibilityDto | null;
 }
 
 @Injectable({ providedIn: 'root' })

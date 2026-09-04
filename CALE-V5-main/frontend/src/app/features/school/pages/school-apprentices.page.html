@@ -2,7 +2,7 @@
   <ui-page-header
     eyebrow="Escuela"
     title="Aprendices"
-    subtitle="Expediente, pagos, autorizaciones y datos de matrícula." />
+    subtitle="Expediente, progreso de formación, pagos y autorizaciones." />
 
   <ui-error [message]="error()" />
 
@@ -35,32 +35,35 @@
               <tr>
                 <th>Nombre</th>
                 <th>Documento</th>
-                <th>Categoría</th>
-                <th>Horario</th>
+                <th>Teoría</th>
+                <th>Examen</th>
+                <th>Manejo</th>
                 <th>Saldo</th>
               </tr>
             </thead>
             <tbody>
               @for (r of rows(); track r.studentUserId) {
+                @let p = progressOf(r);
                 <tr
                   [class.is-selected]="selected()?.studentUserId === r.studentUserId"
                   (click)="select(r)">
                   <td>
                     <strong>{{ r.studentName }}</strong>
                     <div class="school-badge-row">
-                      @for (badge of studentBadges(r); track badge.label) {
+                      @for (badge of studentBadges(r, p); track badge.label) {
                         <span class="school-pill" [class.ok]="badge.tone === 'ok'" [class.warn]="badge.tone === 'warn'" [class.info]="badge.tone === 'info'" [class.danger]="badge.tone === 'danger'">{{ badge.label }}</span>
                       }
                     </div>
                   </td>
                   <td>{{ r.documentNumber || '—' }}</td>
-                  <td>{{ r.licenseCategories || '—' }}</td>
-                  <td>{{ r.scheduleSlot || '—' }}</td>
+                  <td [class.ok]="p?.theoryHoursComplete">{{ formatHours(p) }}</td>
+                  <td [class.ok]="p?.theoryExamPassed">{{ formatExamStatus(p) }}</td>
+                  <td [class.ok]="r.practicalAuthorized || p?.canBookPractical">{{ formatPracticalStatus(r, p) }}</td>
                   <td [class.warn]="r.balanceDue > 0">{{ formatMoney(r.balanceDue) }}</td>
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="5" class="muted">
+                  <td colspan="6" class="muted">
                     Sin aprendices. Importa tu Excel o autoriza estudiantes en Programación.
                   </td>
                 </tr>
