@@ -1,3 +1,16 @@
 .dash-hero .row {
   flex-shrink: 0;
 }
+.dash-kicker {
+  margin: 0 0 0.2rem;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.dash-sub {
+  margin: 0.35rem 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}

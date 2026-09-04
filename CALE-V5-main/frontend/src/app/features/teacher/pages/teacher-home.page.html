@@ -6,11 +6,14 @@
       <p class="dash-sub">{{ schoolLine() }}</p>
     </div>
     <div class="dash-hero-actions">
+      <a routerLink="/teacher/live">
+        <ui-button type="button">Aula en Vivo</ui-button>
+      </a>
       <a routerLink="/teacher/presentations">
-        <ui-button type="button">Crear presentación</ui-button>
+        <ui-button type="button" variant="secondary">Presentaciones</ui-button>
       </a>
       <a routerLink="/teacher/groups">
-        <ui-button type="button" variant="secondary">Mis grupos</ui-button>
+        <ui-button type="button" variant="secondary">Grupos</ui-button>
       </a>
     </div>
   </header>

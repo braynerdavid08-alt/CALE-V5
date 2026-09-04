@@ -87,7 +87,10 @@ export class AppShellComponent implements OnInit, OnDestroy {
   }
 
   get items() {
-    return navForRole(this.role);
+    const user = this.session.user();
+    return navForRole(this.role, {
+      hasSchool: !!user?.schoolId || user?.role === 'School'
+    });
   }
 
   get libraryItems() {

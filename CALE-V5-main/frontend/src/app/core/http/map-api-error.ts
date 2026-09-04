@@ -109,6 +109,7 @@ const messages: Record<string, string> = {
   exam_not_authorized: 'Tu escuela debe autorizarte para presentar el examen teórico.',
   exam_not_assigned: 'Este examen no está asignado a tu grupo.',
   no_school: 'Debes estar vinculado a una escuela para continuar. Ve a Perfil → Tu escuela.',
+  group_wrong_school: 'Este grupo pertenece a otra escuela.',
   theory_hours_incomplete: 'El estudiante debe completar las horas de teoría y taller.',
   balance_due_pending: 'Hay saldo pendiente. Registra el pago en Aprendices antes de continuar.',
   practical_not_authorized: 'El estudiante no está autorizado para clases de manejo.',

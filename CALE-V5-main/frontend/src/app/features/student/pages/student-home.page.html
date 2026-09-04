@@ -1,15 +1,29 @@
 <section class="dash">
   <header class="dash-hero">
     <div class="dash-hero-copy">
+      <p class="dash-kicker">Panel del estudiante</p>
       <h1>Hola, {{ session.user()?.name }}</h1>
-      <p class="dash-sub">Tu panel de estudiante</p>
+      <p class="dash-sub">{{ schoolLine() }}</p>
     </div>
     <div class="dash-hero-actions">
+      <a routerLink="/live/join">
+        <ui-button type="button">Aula en Vivo</ui-button>
+      </a>
       <a routerLink="/student/simulator">
-        <ui-button type="button">Ir al simulador</ui-button>
+        <ui-button type="button" variant="secondary">Simulador</ui-button>
       </a>
     </div>
   </header>
+
+  @if (!session.user()?.schoolId) {
+    <section class="school-banner">
+      <div>
+        <strong>Vincula tu escuela</strong>
+        <p>Para formación, manejo y grupos de clase necesitas estar registrado en un CEA.</p>
+      </div>
+      <a routerLink="/profile"><ui-button type="button" variant="secondary">Ir a Perfil</ui-button></a>
+    </section>
+  }
 
   <ui-onboarding role="Student" />
 

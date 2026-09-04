@@ -34,33 +34,40 @@ interface CertificateItem {
   template: `
     <ui-page-header
       eyebrow="Estudiante"
-      title="Certificados"
-      subtitle="Constancias de aprobación registradas en la plataforma." />
+      title="Mis avances"
+      subtitle="Resumen informativo de tu progreso en la plataforma. No son certificados oficiales ni tienen validez legal." />
 
     <ui-error [message]="error()" />
 
     @if (loading()) {
       <ui-loading />
     } @else {
+      <ui-card class="notice">
+        <p class="lead">
+          Estos registros son solo para tu seguimiento en Mi CALE.
+          Tu escuela es quien acredita horas, exámenes RUNT y habilitaciones.
+        </p>
+        <a routerLink="/student/progress">
+          <ui-button type="button" variant="secondary">Ver mi progreso</ui-button>
+        </a>
+      </ui-card>
+
       @if (items().length === 0) {
         <ui-card>
           <p class="lead">
-            Aún no tienes certificados emitidos. Cuando apruebes evaluaciones del simulador,
-            aparecerán aquí como constancia de tu avance.
+            Aún no hay avances registrados. Practica en el simulador o presenta evaluaciones
+            para ver tu historial aquí.
           </p>
           <a routerLink="/student/simulator">
             <ui-button type="button">Ir al simulador</ui-button>
           </a>
         </ui-card>
       } @else {
-        <div class="cert-actions">
-          <ui-button type="button" (click)="printCertificates()">Imprimir / guardar PDF</ui-button>
-        </div>
-        <div class="grid" id="certificates-print">
+        <div class="grid">
           @for (item of items(); track item.title) {
             <ui-card>
               <p class="badge" [class.muted]="item.tone === 'muted'">
-                {{ item.tone === 'success' ? 'Aprobado' : 'Registro' }}
+                {{ item.tone === 'success' ? 'Logrado' : 'Registro' }}
               </p>
               <h2>{{ item.title }}</h2>
               <p class="detail">{{ item.detail }}</p>
@@ -74,7 +81,8 @@ interface CertificateItem {
     }
   `,
   styles: [`
-    .lead { margin: 0; color: var(--color-text-secondary); line-height: 1.5; }
+    .lead { margin: 0 0 0.85rem; color: var(--color-text-secondary); line-height: 1.5; }
+    .notice { margin-bottom: 1rem; display: block; }
     .grid {
       display: grid;
       gap: 1rem;
@@ -97,13 +105,6 @@ interface CertificateItem {
     h2 { margin: 0 0 0.35rem; font-size: 1.05rem; }
     .detail { margin: 0; color: var(--color-text-secondary); line-height: 1.45; }
     .date { margin: 0.65rem 0 0; font-size: 0.85rem; color: var(--color-text-muted, var(--color-text-secondary)); }
-    .cert-actions { margin-bottom: 1rem; }
-    @media print {
-      .cert-actions { display: none; }
-      ui-page-header, ui-error { display: none; }
-      .grid { display: block; }
-      ui-card { break-inside: avoid; margin-bottom: 1rem; box-shadow: none; border: 1px solid #ccc; }
-    }
   `]
 })
 export class StudentCertificatesPage implements OnInit {
@@ -184,9 +185,5 @@ export class StudentCertificatesPage implements OnInit {
         this.error.set(mapApiError(err));
       }
     });
-  }
-
-  printCertificates(): void {
-    window.print();
   }
 }

@@ -1,3 +1,37 @@
+.dash-kicker {
+  margin: 0 0 0.2rem;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.dash-sub {
+  margin: 0.25rem 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.school-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  margin: 0 0 1rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 40%, var(--color-border));
+  background: color-mix(in srgb, var(--color-warning) 8%, var(--color-surface));
+}
+
+.school-banner p {
+  margin: 0.2rem 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
 .join {
   display: grid;
   gap: 0.55rem;
@@ -13,10 +47,4 @@
 
 .join .input {
   width: 100%;
-}
-
-.dash-sub {
-  margin: 0.25rem 0 0;
-  color: var(--color-text-secondary);
-  font-size: var(--text-sm);
 }

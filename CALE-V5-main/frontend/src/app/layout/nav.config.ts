@@ -15,6 +15,8 @@ export interface NavItem {
   queryParams?: Record<string, string>;
   /** Inline expandable submenu (admin-style). */
   children?: NavChild[];
+  /** Hide when student is not linked to a school. */
+  requiresSchool?: boolean;
 }
 
 export interface LibraryNavItem {
@@ -23,14 +25,18 @@ export interface LibraryNavItem {
   exact?: boolean;
 }
 
-/** Primary rail for instructors (CALE — no Descubre / Kahootopia). */
+export interface NavOptions {
+  hasSchool?: boolean;
+}
+
+/** Primary rail for instructors. */
 export const TEACHER_PRIMARY_NAV: NavItem[] = [
-  { label: 'Dashboard', path: '/teacher', icon: 'home', exact: true },
+  { label: 'Inicio', path: '/teacher', icon: 'home', exact: true },
   { label: 'Aula en Vivo', path: '/teacher/live', icon: 'exam', exact: true },
-  { label: 'Biblioteca', path: '/teacher/library', icon: 'book', hub: 'library' },
   { label: 'Presentaciones', path: '/teacher/presentations', icon: 'book', exact: true },
-  { label: 'Informes', path: '/teacher/results', icon: 'chart', exact: true },
-  { label: 'Grupos', path: '/teacher/groups', icon: 'group', exact: true }
+  { label: 'Grupos', path: '/teacher/groups', icon: 'group', exact: true },
+  { label: 'Biblioteca', path: '/teacher/library', icon: 'book', hub: 'library' },
+  { label: 'Informes', path: '/teacher/results', icon: 'chart', exact: true }
 ];
 
 /** Secondary panel when Biblioteca is open. */
@@ -69,28 +75,29 @@ export function navChildActive(url: string, child: NavChild): boolean {
   );
 }
 
-/** Admin dashboard — full IA mockup menu (stubs allowed for future work). */
-export function navForRole(role?: string): NavItem[] {
+/** Role navigation — ordered by daily workflow. */
+export function navForRole(role?: string, options?: NavOptions): NavItem[] {
   if (role === 'Admin') {
     return [
-      { label: 'Dashboard', path: '/admin', icon: 'home', exact: true },
-      { label: 'Usuarios', path: '/admin/users', icon: 'users', exact: true },
+      { label: 'Inicio', path: '/admin', icon: 'home', exact: true },
       {
-        label: 'Escuelas de Manejo',
-        path: '/admin/schools/queue',
+        label: 'Escuelas',
         icon: 'building',
-        exact: true
+        children: [
+          { label: 'Solicitudes', path: '/admin/schools/queue', exact: true },
+          { label: 'Usuarios', path: '/admin/users', exact: true },
+          { label: 'Instructores', path: '/admin/instructors', exact: true },
+          { label: 'Estudiantes', path: '/admin/students', exact: true }
+        ]
       },
-      { label: 'Instructores', path: '/admin/instructors', icon: 'instructor', exact: true },
-      { label: 'Estudiantes', path: '/admin/students', icon: 'graduate', exact: true },
-      { label: 'Cursos / Clases', path: '/admin/courses', icon: 'book', exact: true },
       {
-        label: 'Evaluaciones',
+        label: 'Contenido',
         icon: 'exam',
         children: [
           { label: 'Preguntas', path: '/admin/questions', exact: true },
           { label: 'Bancos', path: '/admin/banks', exact: true },
-          { label: 'Exámenes', path: '/admin/exams', exact: true }
+          { label: 'Exámenes', path: '/admin/exams', exact: true },
+          { label: 'Cursos / Clases', path: '/admin/courses', exact: true }
         ]
       },
       {
@@ -113,14 +120,16 @@ export function navForRole(role?: string): NavItem[] {
       }
     ];
   }
-    if (role === 'School') {
+
+  if (role === 'School') {
     return [
-      { label: 'Dashboard', path: '/school', icon: 'home', exact: true },
+      { label: 'Inicio', path: '/school', icon: 'home', exact: true },
       {
         label: 'Operaciones',
         icon: 'graduate',
         children: [
           { label: 'Aprendices', path: '/school/apprentices', exact: true },
+          { label: 'Resultados', path: '/school/results', exact: true },
           { label: 'Importar datos', path: '/school/import', exact: true }
         ]
       },
@@ -151,21 +160,24 @@ export function navForRole(role?: string): NavItem[] {
       }
     ];
   }
+
   if (role === 'Teacher') {
     return TEACHER_PRIMARY_NAV;
   }
-  // Student — mockup panel (without Pagos/Suscripciones: private / school-side).
-  return [
-    { label: 'Dashboard', path: '/student', icon: 'home', exact: true },
-    { label: 'Mi formación', path: '/student/training', icon: 'exam', exact: true },
-    { label: 'Clases de manejo', path: '/student/practical', icon: 'exam', exact: true },
-    { label: 'Mis Clases', path: '/student/classes', icon: 'book', exact: true },
-    { label: 'Mis Evaluaciones', path: '/student/evaluations', icon: 'exam', exact: true },
+
+  const hasSchool = !!options?.hasSchool;
+  const studentNav: NavItem[] = [
+    { label: 'Inicio', path: '/student', icon: 'home', exact: true },
     { label: 'Aula en Vivo', path: '/live/join', icon: 'exam', exact: true },
+    { label: 'Mis Evaluaciones', path: '/student/evaluations', icon: 'exam', exact: true },
     { label: 'Simulador', path: '/student/simulator', icon: 'exam', exact: true },
+    { label: 'Mis Clases', path: '/student/classes', icon: 'book', exact: true },
+    { label: 'Mi formación', path: '/student/training', icon: 'exam', exact: true, requiresSchool: true },
+    { label: 'Clases de manejo', path: '/student/practical', icon: 'exam', exact: true, requiresSchool: true },
     { label: 'Mi Progreso', path: '/student/progress', icon: 'chart', exact: true },
     { label: 'Mensajes', path: '/notifications', icon: 'bell', exact: true },
-    { label: 'Certificados', path: '/student/certificates', icon: 'graduate', exact: true },
     { label: 'Perfil', path: '/profile', icon: 'users', exact: true }
   ];
+
+  return studentNav.filter((item) => !item.requiresSchool || hasSchool);
 }
