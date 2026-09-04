@@ -1,4 +1,14 @@
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  HostListener,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+  computed,
+  inject,
+  signal
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgStyle } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -55,6 +65,20 @@ export class LivePlayPage implements OnInit, OnDestroy {
   private timerId: ReturnType<typeof setInterval> | null = null;
   private timerQuestionId: number | null = null;
   private localDeadlineMs = 0;
+  private stageEl: HTMLElement | null = null;
+  private stageRo: ResizeObserver | null = null;
+
+  @ViewChild('deckStage')
+  set deckStageRef(ref: ElementRef<HTMLElement> | undefined) {
+    this.detachStageObserver();
+    this.stageEl = ref?.nativeElement ?? null;
+    if (!this.stageEl || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    this.stageRo = new ResizeObserver(() => this.fitDeck());
+    this.stageRo.observe(this.stageEl);
+    this.fitDeck();
+  }
 
   readonly lobby = signal<LiveLobbyDto | null>(null);
   readonly ranking = signal<LiveRankingDto | null>(null);
@@ -74,6 +98,10 @@ export class LivePlayPage implements OnInit, OnDestroy {
   readonly presentationTitle = signal('');
   readonly presentationSlide = signal(0);
   readonly presentationLoaded = signal(false);
+  readonly deckScale = signal(0.2);
+  readonly deckOffsetX = signal(0);
+  readonly deckOffsetY = signal(0);
+  readonly deckFullscreen = signal(false);
 
   readonly currentPresentationSlide = computed(
     () => this.presentationSlides()[this.presentationSlide()] ?? null
@@ -115,7 +143,16 @@ export class LivePlayPage implements OnInit, OnDestroy {
     if (this.timerId) {
       clearInterval(this.timerId);
     }
+    this.setDeckFullscreen(false);
+    this.detachStageObserver();
     void this.hub?.stop();
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.deckFullscreen()) {
+      this.setDeckFullscreen(false);
+    }
   }
 
   showRanking(): boolean {
@@ -139,8 +176,42 @@ export class LivePlayPage implements OnInit, OnDestroy {
   }
 
   presentationCompact(): boolean {
+    if (this.deckFullscreen()) {
+      return false;
+    }
     const l = this.lobby();
     return !!(l?.currentQuestion && l.status !== 'Lobby' && l.status !== 'Paused');
+  }
+
+  toggleDeckFullscreen(): void {
+    this.setDeckFullscreen(!this.deckFullscreen());
+  }
+
+  setDeckFullscreen(on: boolean): void {
+    this.deckFullscreen.set(on);
+    document.body.style.overflow = on ? 'hidden' : '';
+    requestAnimationFrame(() => this.fitDeck());
+  }
+
+  private detachStageObserver(): void {
+    this.stageRo?.disconnect();
+    this.stageRo = null;
+  }
+
+  private fitDeck(): void {
+    const el = this.stageEl;
+    if (!el) {
+      return;
+    }
+    const w = el.clientWidth;
+    const h = el.clientHeight;
+    if (w < 8 || h < 8) {
+      return;
+    }
+    const scale = Math.max(0.05, Math.min(w / SLIDE_W, h / SLIDE_H));
+    this.deckScale.set(scale);
+    this.deckOffsetX.set(Math.round((w - SLIDE_W * scale) / 2));
+    this.deckOffsetY.set(Math.round((h - SLIDE_H * scale) / 2));
   }
 
   optionLetter(index: number): string {

@@ -17,16 +17,29 @@
     </header>
 
     @if (showPresentationPanel()) {
-      <div class="panel deck" [class.compact]="presentationCompact()">
+      <div
+        class="panel deck"
+        [class.compact]="presentationCompact()"
+        [class.is-fullscreen]="deckFullscreen()">
         <div class="deck-head">
           <h2>{{ presentationTitle() || 'Presentación' }}</h2>
-          <span>
-            Diapositiva {{ presentationSlide() + 1 }}/{{ presentationSlides().length || 1 }}
-          </span>
+          <div class="deck-head-actions">
+            <span>
+              Diapositiva {{ presentationSlide() + 1 }}/{{ presentationSlides().length || 1 }}
+            </span>
+            <button type="button" class="fs-btn" (click)="toggleDeckFullscreen()">
+              {{ deckFullscreen() ? 'Salir' : 'Pantalla completa' }}
+            </button>
+          </div>
         </div>
-        <div class="deck-stage">
+        <div class="deck-stage" #deckStage>
           @if (currentPresentationSlide(); as slide) {
-            <div class="deck-slide" [ngStyle]="bgStyle(slide)">
+            <div
+              class="deck-slide"
+              [style.transform]="
+                'translate(' + deckOffsetX() + 'px,' + deckOffsetY() + 'px) scale(' + deckScale() + ')'
+              "
+              [ngStyle]="bgStyle(slide)">
               @for (el of slide.elements; track el.id) {
                 <div
                   class="el"
@@ -100,7 +113,9 @@
             </div>
           }
         </div>
-        <p class="deck-hint">Sigue la diapositiva del instructor automáticamente.</p>
+        @if (!deckFullscreen()) {
+          <p class="deck-hint">Sigue la diapositiva del instructor. Usa pantalla completa en el celular.</p>
+        }
       </div>
     }
 
