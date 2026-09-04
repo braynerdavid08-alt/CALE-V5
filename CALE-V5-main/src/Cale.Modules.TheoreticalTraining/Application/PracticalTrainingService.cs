@@ -16,6 +16,7 @@ public sealed class PracticalTrainingService
     private readonly IUserStore _users;
     private readonly TheoryTrainingService _theory;
     private readonly ITrainingEligibilityService _eligibility;
+    private readonly ISchoolMembershipGuard _membership;
     private readonly IClock _clock;
 
     public PracticalTrainingService(
@@ -23,12 +24,14 @@ public sealed class PracticalTrainingService
         IUserStore users,
         TheoryTrainingService theory,
         ITrainingEligibilityService eligibility,
+        ISchoolMembershipGuard membership,
         IClock clock)
     {
         _db = db;
         _users = users;
         _theory = theory;
         _eligibility = eligibility;
+        _membership = membership;
         _clock = clock;
     }
 
@@ -55,6 +58,7 @@ public sealed class PracticalTrainingService
         SavePracticalVehicleRequest request,
         CancellationToken ct)
     {
+        await _membership.EnsureActiveAsync(schoolUserId, ct);
         var now = _clock.UtcNow;
         PracticalVehicle entity;
         if (id is > 0)
@@ -161,6 +165,7 @@ public sealed class PracticalTrainingService
         QuickAssignPracticalRequest request,
         CancellationToken ct)
     {
+        await _membership.EnsureActiveAsync(schoolUserId, ct);
         if (request.SessionDate.DayOfWeek == DayOfWeek.Sunday)
         {
             throw new DomainException("No se programan clases los domingos.", 400, "sunday_disabled");
@@ -291,6 +296,7 @@ public sealed class PracticalTrainingService
 
     public async Task UnassignStudentAsync(int schoolUserId, int lessonId, CancellationToken ct)
     {
+        await _membership.EnsureActiveAsync(schoolUserId, ct);
         await RequireLessonAsync(schoolUserId, lessonId, ct);
         var reservations = await _db.Set<PracticalLessonReservation>()
             .Where(x => x.LessonSessionId == lessonId
@@ -313,6 +319,7 @@ public sealed class PracticalTrainingService
         DuplicatePracticalWeekRequest request,
         CancellationToken ct)
     {
+        await _membership.EnsureActiveAsync(schoolUserId, ct);
         var targetStart = StartOfWeek(request.WeekStart);
         var sourceStart = targetStart.AddDays(-7);
         var sourceEnd = sourceStart.AddDays(6);
@@ -375,6 +382,7 @@ public sealed class PracticalTrainingService
         CreatePracticalLessonRequest request,
         CancellationToken ct)
     {
+        await _membership.EnsureActiveAsync(schoolUserId, ct);
         if (request.SessionDate.DayOfWeek == DayOfWeek.Sunday)
         {
             throw new DomainException("No se programan clases los domingos.", 400, "sunday_disabled");
@@ -403,6 +411,7 @@ public sealed class PracticalTrainingService
 
     public async Task CancelLessonAsync(int schoolUserId, int lessonId, CancellationToken ct)
     {
+        await _membership.EnsureActiveAsync(schoolUserId, ct);
         var session = await RequireLessonAsync(schoolUserId, lessonId, ct);
         session.Status = PracticalLessonStatuses.Cancelled;
         session.UpdatedAt = _clock.UtcNow;
@@ -537,6 +546,7 @@ public sealed class PracticalTrainingService
         CancellationToken ct)
     {
         var (schoolUserId, _) = await _theory.ResolveStudentSchoolPublicAsync(studentUserId, ct);
+        await _membership.EnsureActiveAsync(schoolUserId, ct);
         await _eligibility.EnsureStudentCanBookAsync(schoolUserId, studentUserId, ct);
         await _eligibility.EnsureNoBalanceDueAsync(schoolUserId, studentUserId, ct);
 
@@ -691,6 +701,7 @@ public sealed class PracticalTrainingService
         MarkAttendanceRequest request,
         CancellationToken ct)
     {
+        await _membership.EnsureActiveAsync(schoolUserId, ct);
         await RequireLessonAsync(schoolUserId, lessonId, ct);
         var reservation = await _db.Set<PracticalLessonReservation>()
             .FirstOrDefaultAsync(x => x.LessonSessionId == lessonId

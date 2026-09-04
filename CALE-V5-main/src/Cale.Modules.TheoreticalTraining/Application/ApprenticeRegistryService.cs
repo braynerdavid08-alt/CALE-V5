@@ -21,6 +21,7 @@ public sealed class ApprenticeRegistryService
     private readonly PracticalTrainingService _practical;
     private readonly INotificationPublisher _notifications;
     private readonly ITrainingEligibilityService _eligibility;
+    private readonly ISchoolMembershipGuard _membership;
 
     public ApprenticeRegistryService(
         CaleDbContext db,
@@ -29,7 +30,8 @@ public sealed class ApprenticeRegistryService
         TheoryTrainingService theory,
         PracticalTrainingService practical,
         INotificationPublisher notifications,
-        ITrainingEligibilityService eligibility)
+        ITrainingEligibilityService eligibility,
+        ISchoolMembershipGuard membership)
     {
         _db = db;
         _users = users;
@@ -38,6 +40,7 @@ public sealed class ApprenticeRegistryService
         _practical = practical;
         _notifications = notifications;
         _eligibility = eligibility;
+        _membership = membership;
     }
 
     public async Task<IReadOnlyList<ApprenticeDto>> ListAsync(
@@ -236,6 +239,7 @@ public sealed class ApprenticeRegistryService
         SaveApprenticeRequest request,
         CancellationToken ct)
     {
+        await _membership.EnsureActiveAsync(schoolUserId, ct);
         var user = await _users.GetByIdAsync(studentUserId, ct)
             ?? throw new NotFoundException("Estudiante no encontrado.", "student_not_found");
         if (!await BelongsToSchoolAsync(schoolUserId, studentUserId, user, ct))
@@ -416,6 +420,7 @@ public sealed class ApprenticeRegistryService
         SaveTheoryExamSlotRequest request,
         CancellationToken ct)
     {
+        await _membership.EnsureActiveAsync(schoolUserId, ct);
         var now = _clock.UtcNow;
         var start = ParseTime(request.SlotTime);
 
@@ -544,6 +549,7 @@ public sealed class ApprenticeRegistryService
 
     public async Task DeleteExamSlotAsync(int schoolUserId, int id, CancellationToken ct)
     {
+        await _membership.EnsureActiveAsync(schoolUserId, ct);
         var entity = await _db.Set<TheoryExamAppointment>()
             .FirstOrDefaultAsync(x => x.Id == id && x.SchoolUserId == schoolUserId, ct)
             ?? throw new NotFoundException("Cita no encontrada.", "slot_not_found");

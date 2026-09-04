@@ -107,6 +107,7 @@ public sealed class SchoolExcelImportService
     private readonly TheoryTrainingService _theory;
     private readonly INotificationPublisher _notifications;
     private readonly ITrainingEligibilityService _eligibility;
+    private readonly ISchoolMembershipGuard _membership;
 
     public SchoolExcelImportService(
         CaleDbContext db,
@@ -117,7 +118,8 @@ public sealed class SchoolExcelImportService
         SchoolExcelImportPreviewCache cache,
         TheoryTrainingService theory,
         INotificationPublisher notifications,
-        ITrainingEligibilityService eligibility)
+        ITrainingEligibilityService eligibility,
+        ISchoolMembershipGuard membership)
     {
         _db = db;
         _users = users;
@@ -128,6 +130,7 @@ public sealed class SchoolExcelImportService
         _theory = theory;
         _notifications = notifications;
         _eligibility = eligibility;
+        _membership = membership;
     }
 
     public async Task<ExcelImportPreviewDto> PreviewAsync(
@@ -137,6 +140,7 @@ public sealed class SchoolExcelImportService
         Stream stream,
         CancellationToken ct)
     {
+        await _membership.EnsureActiveAsync(schoolUserId, ct);
         var schoolDomain = await ResolveSchoolEmailDomainAsync(schoolUserId, ct);
         var rows = importType switch
         {
@@ -195,6 +199,7 @@ public sealed class SchoolExcelImportService
         Guid previewId,
         CancellationToken ct)
     {
+        await _membership.EnsureActiveAsync(schoolUserId, ct);
         var cached = _cache.Take(previewId, schoolUserId)
             ?? throw new NotFoundException("La vista previa expiró. Vuelve a subir el archivo.", "preview_expired");
 

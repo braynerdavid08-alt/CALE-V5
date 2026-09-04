@@ -19,28 +19,28 @@ public sealed class TheoryTrainingService
 {
     private readonly CaleDbContext _db;
     private readonly IUserStore _users;
-    private readonly ISchoolProfileStore _schoolProfiles;
     private readonly ICatalogStore _catalog;
     private readonly IClock _clock;
     private readonly INotificationPublisher _notifications;
     private readonly ITrainingEligibilityService _eligibility;
+    private readonly ISchoolMembershipGuard _membership;
 
     public TheoryTrainingService(
         CaleDbContext db,
         IUserStore users,
-        ISchoolProfileStore schoolProfiles,
         ICatalogStore catalog,
         IClock clock,
         INotificationPublisher notifications,
-        ITrainingEligibilityService eligibility)
+        ITrainingEligibilityService eligibility,
+        ISchoolMembershipGuard membership)
     {
         _db = db;
         _users = users;
-        _schoolProfiles = schoolProfiles;
         _catalog = catalog;
         _clock = clock;
         _notifications = notifications;
         _eligibility = eligibility;
+        _membership = membership;
     }
 
     // ── Topics ──────────────────────────────────────────────────────────
@@ -68,6 +68,7 @@ public sealed class TheoryTrainingService
         SaveTheoryTopicRequest request,
         CancellationToken ct)
     {
+        await EnsureSchoolMembershipActiveAsync(schoolUserId, ct);
         var now = _clock.UtcNow;
         TheoryTopic entity;
         if (id is > 0)
@@ -122,6 +123,7 @@ public sealed class TheoryTrainingService
         SaveTheoryClassroomRequest request,
         CancellationToken ct)
     {
+        await EnsureSchoolMembershipActiveAsync(schoolUserId, ct);
         if (request.Capacity < 1)
         {
             throw new DomainException("La capacidad debe ser al menos 1.", 400, "invalid_capacity");
@@ -169,6 +171,7 @@ public sealed class TheoryTrainingService
         TheorySettingsDto request,
         CancellationToken ct)
     {
+        await EnsureSchoolMembershipActiveAsync(schoolUserId, ct);
         var settings = await GetOrCreateSettingsAsync(schoolUserId, ct);
         settings.DefaultDurationMinutes = Math.Clamp(request.DefaultDurationMinutes, 30, 240);
         settings.MinCancelHours = Math.Clamp(request.MinCancelHours, 0, 72);
@@ -434,6 +437,7 @@ public sealed class TheoryTrainingService
         string? reason,
         CancellationToken ct)
     {
+        await EnsureSchoolMembershipActiveAsync(schoolUserId, ct);
         var session = await RequireSessionAsync(schoolUserId, sessionId, ct);
 
         var reservations = await _db.Set<TheoryClassReservation>()
@@ -633,6 +637,7 @@ public sealed class TheoryTrainingService
         MarkAttendanceRequest request,
         CancellationToken ct)
     {
+        await EnsureSchoolMembershipActiveAsync(schoolUserId, ct);
         await RequireSessionAsync(schoolUserId, sessionId, ct);
         var now = _clock.UtcNow;
         var record = await _db.Set<TheoryAttendanceRecord>()
@@ -1374,6 +1379,7 @@ public sealed class TheoryTrainingService
         int? actorUserId,
         CancellationToken ct)
     {
+        await EnsureSchoolMembershipActiveAsync(schoolUserId, ct);
         var student = (await _users.ListBySchoolAsync(schoolUserId, ct))
             .FirstOrDefault(x => x.Id == studentUserId && x.Role == Roles.Student)
             ?? throw new NotFoundException("Estudiante no encontrado.", "student_not_found");
@@ -1600,6 +1606,7 @@ public sealed class TheoryTrainingService
         int? actorUserId,
         CancellationToken ct)
     {
+        await EnsureSchoolMembershipActiveAsync(schoolUserId, ct);
         if (!request.TheoryExam && !request.Practical)
         {
             throw new DomainException("Indica qué autorización aplicar.", 400, "invalid_request");
@@ -2079,17 +2086,8 @@ public sealed class TheoryTrainingService
         return settings;
     }
 
-    private async Task EnsureSchoolMembershipActiveAsync(int schoolUserId, CancellationToken ct)
-    {
-        var profile = await _schoolProfiles.GetByUserIdAsync(schoolUserId, ct);
-        if (profile is null || !profile.IsCommerciallyActive(_clock.UtcNow))
-        {
-            throw new DomainException(
-                "La membresía de la escuela no está activa.",
-                400,
-                "membership_inactive");
-        }
-    }
+    private async Task EnsureSchoolMembershipActiveAsync(int schoolUserId, CancellationToken ct) =>
+        await _membership.EnsureActiveAsync(schoolUserId, ct);
 
     private async Task<(decimal TheoryHours, decimal WorkshopHours, int Absences)> ComputeHoursBreakdownAsync(
         int studentUserId,
