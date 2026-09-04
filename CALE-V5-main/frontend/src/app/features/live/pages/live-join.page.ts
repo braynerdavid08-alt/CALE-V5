@@ -117,6 +117,12 @@ export class LiveJoinPage implements OnInit {
     if (this.route.snapshot.queryParamMap.get('scan') === '1') {
       this.mode.set('scan');
     }
+
+    // After login (or opening QR already authenticated), enter the room automatically.
+    const pending = (code || this.form.controls.code.value || '').trim().toUpperCase();
+    if (pending.length >= 4 && this.session.isAuthenticated()) {
+      this.joinWithCode(pending);
+    }
   }
 
   accountName(): string {
