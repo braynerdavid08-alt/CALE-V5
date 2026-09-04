@@ -44,6 +44,14 @@ public static class CatalogSeed
             createdById,
             Path.Combine(seedDirectory, "banco-senales-reconocimiento.json"),
             ct);
+
+        await ImportBankFileAsync(
+            db,
+            clock,
+            logger,
+            createdById,
+            Path.Combine(seedDirectory, "banco-senales-accion.json"),
+            ct);
     }
 
     private static async Task ImportBankFileAsync(

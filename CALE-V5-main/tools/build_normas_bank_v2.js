@@ -17,6 +17,8 @@ const OUT = path.join(
   'banco-normas-transito.json'
 );
 
+const EXTRA = require('./normas_extra_v21.js');
+
 /** @type {Array<{topic:string, difficulty:string, text:string, correct:string, wrong:[string,string,string], explanation:string, source?:string}>} */
 const RAW = [
   // Circulación
@@ -256,7 +258,8 @@ function shuffle(arr, rand) {
 }
 
 function build() {
-  const questions = RAW.map((q, index) => {
+  const all = [...RAW, ...EXTRA];
+  const questions = all.map((q, index) => {
     const rand = mulberry32(1000 + index * 97);
     // A veces alargar una incorrecta para que la correcta no sea la más larga.
     const wrongs = q.wrong.map((w, wi) => {
@@ -307,7 +310,7 @@ function build() {
   const payload = {
     bankName: 'Normas de tránsito (Colombia)',
     description:
-      'Banco CEA v2: preguntas originales de normas (Ley 769). Respuesta correcta con posición y longitud variables.',
+      'Banco CEA v2.1: preguntas originales de normas (Ley 769). Respuesta correcta con posición y longitud variables.',
     blockName: 'Normas de tránsito',
     replaceExisting: true,
     questions
@@ -315,7 +318,7 @@ function build() {
 
   fs.writeFileSync(OUT, JSON.stringify(payload, null, 2), 'utf8');
   console.log('Wrote', OUT);
-  console.log('Questions:', questions.length);
+  console.log('Questions:', questions.length, `(base ${RAW.length} + extra ${EXTRA.length})`);
   console.log('Correct position counts [A,B,C,D]:', pos);
   console.log('Correct is longest:', correctLongest, '/', questions.length);
 }

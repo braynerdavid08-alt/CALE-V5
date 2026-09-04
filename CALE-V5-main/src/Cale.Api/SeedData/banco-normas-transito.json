@@ -1,6 +1,6 @@
 {
   "bankName": "Normas de tránsito (Colombia)",
-  "description": "Banco CEA v2: preguntas originales de normas (Ley 769). Respuesta correcta con posición y longitud variables.",
+  "description": "Banco CEA v2.1: preguntas originales de normas (Ley 769). Respuesta correcta con posición y longitud variables.",
   "blockName": "Normas de tránsito",
   "replaceExisting": true,
   "questions": [
@@ -4900,6 +4900,2358 @@
         },
         {
           "text": "Al fabricante del vehículo nada más.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Circulación",
+      "subtopic": "Circulación",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Si necesita detenerse en vía urbana por una emergencia menor, ¿qué debe priorizar?",
+      "explanation": "Toda detención debe minimizar riesgo y obstrucción.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Bajar a discutir en medio de la calzada.",
+          "isCorrect": false
+        },
+        {
+          "text": "Quedarse en el segundo carril con balizas “un rato”.",
+          "isCorrect": false
+        },
+        {
+          "text": "Apagar el motor en plena intersección. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Hacerlo fuera del flujo, señalizar y no obstruir más de lo necesario.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Circulación",
+      "subtopic": "Circulación",
+      "difficulty": "Alta",
+      "type": "Seleccion multiple",
+      "text": "Circular por la berma como carril de avance es:",
+      "explanation": "La berma es para emergencias/uso autorizado, no para adelantar el tranque.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Incorrecto en condiciones normales: la berma no es carril de circulación.",
+          "isCorrect": true
+        },
+        {
+          "text": "Obligatorio en congestión.",
+          "isCorrect": false
+        },
+        {
+          "text": "Correcto solo para buses. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Permitido si va tarde.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Circulación",
+      "subtopic": "Circulación",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "Antes de salir de un parqueadero hacia la calle usted debe:",
+      "explanation": "Quien se incorpora cede el paso.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Cruzar en reversa a alta velocidad.",
+          "isCorrect": false
+        },
+        {
+          "text": "Detenerse/ceder y comprobar peatones y vehículos.",
+          "isCorrect": true
+        },
+        {
+          "text": "Salir acelerando porque “tiene preferencia el que sale”. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Usar solo el claxon.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Circulación",
+      "subtopic": "Circulación",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "En un embotellamiento, bloquear una intersección “aunque el semáforo esté en verde” es:",
+      "explanation": "No se debe “encerrar” la intersección.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Permitido si toca el claxon.",
+          "isCorrect": false
+        },
+        {
+          "text": "Correcto porque el verde lo autoriza siempre.",
+          "isCorrect": false
+        },
+        {
+          "text": "Incorrecto: no debe entrar si no puede desalojar el cruce.",
+          "isCorrect": true
+        },
+        {
+          "text": "Obligatorio para no perder el ciclo. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Velocidad",
+      "subtopic": "Velocidad",
+      "difficulty": "Alta",
+      "type": "Seleccion multiple",
+      "text": "En un tramo con obras y obreros, aunque el límite general sea 60, usted debe:",
+      "explanation": "La señalización de obra manda y la prudencia puede exigir menos velocidad.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Acelerar para salir rápido de la zona.",
+          "isCorrect": false
+        },
+        {
+          "text": "Mantener 60 porque “es el máximo urbano”.",
+          "isCorrect": false
+        },
+        {
+          "text": "Ignorar conos si no hay policía. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Respetar la señalización temporal y reducir aún más si la seguridad lo exige.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Velocidad",
+      "subtopic": "Velocidad",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Comparar su velocidad solo con “la del resto del tráfico” es un error porque:",
+      "explanation": "Cumplir la norma no depende de lo que hagan los demás.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "El grupo puede ir excedido; el límite legal y las condiciones mandan.",
+          "isCorrect": true
+        },
+        {
+          "text": "La manada siempre tiene razón jurídica. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Si todos van rápido, no hay sanción posible.",
+          "isCorrect": false
+        },
+        {
+          "text": "El límite solo aplica al primer vehículo de la fila.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Velocidad",
+      "subtopic": "Velocidad",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "Una razón para no “ir al límite siempre” es:",
+      "explanation": "Máximo legal ≠ velocidad adecuada en todo momento.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "El máximo es siempre la velocidad ideal.",
+          "isCorrect": false
+        },
+        {
+          "text": "Peatones, clima o densidades pueden exigir menos velocidad que el máximo.",
+          "isCorrect": true
+        },
+        {
+          "text": "El motor se daña bajo el máximo.",
+          "isCorrect": false
+        },
+        {
+          "text": "Ir más lento está prohibido. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Prioridad e intersecciones",
+      "subtopic": "Prioridad e intersecciones",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Cuando un bus se detiene en bahía y usted circula por el carril contiguo, al rebasarlo debe:",
+      "explanation": "Los peatones pueden aparecer de súbito frente a un bus detenido.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Pasar a máxima velocidad rozando el bus.",
+          "isCorrect": false
+        },
+        {
+          "text": "Tocar el claxon continuo. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Pasar con precaución, atento a peatones que puedan cruzar por delante del bus.",
+          "isCorrect": true
+        },
+        {
+          "text": "Detenerse detrás del bus aunque vaya en otro carril libre.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Prioridad e intersecciones",
+      "subtopic": "Prioridad e intersecciones",
+      "difficulty": "Alta",
+      "type": "Seleccion multiple",
+      "text": "En un cruce con “PARE” en su vía y sin señal en la transversal, usted:",
+      "explanation": "PARE implica alto y cesión a la circulación prioritaria.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Cruza sin parar porque “ellos también deben ceder”. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Pasa si llega primero por milésimas.",
+          "isCorrect": false
+        },
+        {
+          "text": "Se detiene sobre el cruce peatonal bloqueándolo.",
+          "isCorrect": false
+        },
+        {
+          "text": "Se detiene y cede a quienes circulan por la vía preferente.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Prioridad e intersecciones",
+      "subtopic": "Prioridad e intersecciones",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "Hacer un “cruce a la fuerza” en una intersección congestionada es:",
+      "explanation": "Forzar el cruce genera choques laterales y bloqueos.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Peligroso e incorrecto.",
+          "isCorrect": true
+        },
+        {
+          "text": "Permitido con balizas. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Recomendado por GPS.",
+          "isCorrect": false
+        },
+        {
+          "text": "La forma eficiente de enseñar a los demás.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Semáforos",
+      "subtopic": "Semáforos",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Si el semáforo peatonal está en verde para peatones y usted quiere girar, debe:",
+      "explanation": "No se invade el cruce peatonal ocupado.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Girar igual porque su semáforo vehicular también puede estar en verde.",
+          "isCorrect": false
+        },
+        {
+          "text": "Esperar a que los peatones terminen de cruzar.",
+          "isCorrect": true
+        },
+        {
+          "text": "Usar el claxon para abrir paso. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Acelerar entre los peatones.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Semáforos",
+      "subtopic": "Semáforos",
+      "difficulty": "Alta",
+      "type": "Seleccion multiple",
+      "text": "Una cámara de fotomulta no “crea” la norma: usted debe respetar el semáforo porque:",
+      "explanation": "La norma es independiente de la vigilancia electrónica.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Sin cámara el rojo es opcional.",
+          "isCorrect": false
+        },
+        {
+          "text": "Solo importa si hay cámara visible. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "La obligación existe con o sin cámara; la cámara solo evidencia la infracción.",
+          "isCorrect": true
+        },
+        {
+          "text": "Las cámaras reemplazan al Código.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Semáforos",
+      "subtopic": "Semáforos",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "Detenerse ante la línea blanca antes del semáforo sirve para:",
+      "explanation": "La línea de detención organiza el cruce.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Estacionar mientras espera.",
+          "isCorrect": false
+        },
+        {
+          "text": "Bloquear motos a propósito.",
+          "isCorrect": false
+        },
+        {
+          "text": "Tomar impulso para el verde. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "No invadir el cruce peatonal y ver mejor el conflicto.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Peatones y actores vulnerables",
+      "subtopic": "Peatones y actores vulnerables",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Un patinador o usuario de micromovilidad en la calzada debe tratarse con:",
+      "explanation": "La vulnerabilidad exige margen de seguridad.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Cautela y distancia, como actor vulnerable.",
+          "isCorrect": true
+        },
+        {
+          "text": "Hostigamiento para que se suba al andén siempre.",
+          "isCorrect": false
+        },
+        {
+          "text": "La misma agresividad que a un tráiler.",
+          "isCorrect": false
+        },
+        {
+          "text": "Ignorarlo por completo. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Peatones y actores vulnerables",
+      "subtopic": "Peatones y actores vulnerables",
+      "difficulty": "Alta",
+      "type": "Seleccion multiple",
+      "text": "En lluvia, los peatones con paraguas pueden:",
+      "explanation": "Condiciones adversas aumentan el riesgo peatonal.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "No requerir ninguna precaución extra.",
+          "isCorrect": false
+        },
+        {
+          "text": "Tener menos visibilidad y reaccionar tarde; reduzca velocidad cerca de cruces.",
+          "isCorrect": true
+        },
+        {
+          "text": "Perder prioridad legal automáticamente.",
+          "isCorrect": false
+        },
+        {
+          "text": "Verse mejor que nunca. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Peatones y actores vulnerables",
+      "subtopic": "Peatones y actores vulnerables",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "Si un peatón está a mitad de la cebra y su luz ya cambió a verde, usted:",
+      "explanation": "Nunca se atropella por un cambio de luz.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Toca ráfagas hasta que corra.",
+          "isCorrect": false
+        },
+        {
+          "text": "Lo rodea por el carril contrario. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Espera a que termine de cruzar.",
+          "isCorrect": true
+        },
+        {
+          "text": "Arranca para “educarlo”.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Adelantamiento",
+      "subtopic": "Adelantamiento",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Adelantar en un paso a nivel (cerca de rieles) sin visibilidad plena es:",
+      "explanation": "Los pasos a nivel exigen máxima precaución; no se adelanta a ciegas.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Obligatorio si el de adelante va lento.",
+          "isCorrect": false
+        },
+        {
+          "text": "Correcto si no se oye el tren.",
+          "isCorrect": false
+        },
+        {
+          "text": "Permitido con luces altas.",
+          "isCorrect": false
+        },
+        {
+          "text": "Incorrecto y peligroso.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Adelantamiento",
+      "subtopic": "Adelantamiento",
+      "difficulty": "Alta",
+      "type": "Seleccion multiple",
+      "text": "Si inicia un adelantamiento y aparece tráfico de frente, debe:",
+      "explanation": "La seguridad manda: mejor abortar a tiempo.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Abortar la maniobra y volver a su carril si aún es seguro.",
+          "isCorrect": true
+        },
+        {
+          "text": "Acelerar “a como dé lugar”. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Frenar en seco en el carril contrario.",
+          "isCorrect": false
+        },
+        {
+          "text": "Quedarse en el medio en sentido contrario.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Adelantamiento",
+      "subtopic": "Adelantamiento",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "Mirar por el espejo antes de adelantar sirve para:",
+      "explanation": "El adelantamiento se planifica 360°.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Evitar usar la direccional. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Comprobar que nadie lo esté adelantando a usted.",
+          "isCorrect": true
+        },
+        {
+          "text": "Ver solo el paisaje.",
+          "isCorrect": false
+        },
+        {
+          "text": "Cumplir un ritual sin utilidad.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Estacionamiento",
+      "subtopic": "Estacionamiento",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Estacionar ocupando parte de una ciclorruta es:",
+      "explanation": "La ciclorruta no es bahía improvisada.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Correcto con balizas.",
+          "isCorrect": false
+        },
+        {
+          "text": "Obligatorio en zonas escolares. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Incorrecto: invade un espacio de usuarios vulnerables.",
+          "isCorrect": true
+        },
+        {
+          "text": "Permitido “un minuto”.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Estacionamiento",
+      "subtopic": "Estacionamiento",
+      "difficulty": "Alta",
+      "type": "Seleccion multiple",
+      "text": "Dejar las llaves puestas y el vehículo solo “mientras baja a una tienda”:",
+      "explanation": "Nunca abandone el vehículo en condiciones inseguras.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Es lo más seguro. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Está recomendado por aseguradoras siempre.",
+          "isCorrect": false
+        },
+        {
+          "text": "Es obligatorio en clima frío.",
+          "isCorrect": false
+        },
+        {
+          "text": "Facilita hurto y puede constituir una mala práctica/infracción según el caso.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Estacionamiento",
+      "subtopic": "Estacionamiento",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "Al estacionar en paralelo, una buena práctica final es:",
+      "explanation": "El estacionamiento termina cuando el vehículo queda seguro y legal.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Verificar que no quede sobresaliendo de forma peligrosa ni bloqueando.",
+          "isCorrect": true
+        },
+        {
+          "text": "Dejar la puerta abierta sobre el carril.",
+          "isCorrect": false
+        },
+        {
+          "text": "Quedarse a 45 cm del vehículo de atrás rozándolo. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Apagar luces y salir sin mirar ciclistas.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Documentos y requisitos",
+      "subtopic": "Documentos y requisitos",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Circular con la licencia de otro conductor “parecido” es:",
+      "explanation": "La licencia es personal e intransferible.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Aceptable entre hermanos.",
+          "isCorrect": false
+        },
+        {
+          "text": "Ilegal y fraudulento.",
+          "isCorrect": true
+        },
+        {
+          "text": "Permitido si ambos tienen la misma categoría.",
+          "isCorrect": false
+        },
+        {
+          "text": "Solo falta si lo detecta un radar.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Documentos y requisitos",
+      "subtopic": "Documentos y requisitos",
+      "difficulty": "Alta",
+      "type": "Seleccion multiple",
+      "text": "Si el vehículo no pasa la técnico-mecánica y aun así circula cuando le corresponde tenerla:",
+      "explanation": "La revisión vigente es condición de circulación cuando aplica.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Se arregla con una carta del CEA.",
+          "isCorrect": false
+        },
+        {
+          "text": "No pasa nada hasta el próximo año calendario. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Puede ser inmovilizado y sancionado.",
+          "isCorrect": true
+        },
+        {
+          "text": "Solo importa en otros departamentos.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Documentos y requisitos",
+      "subtopic": "Documentos y requisitos",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "Guardar fotos/PDF vigentes de documentos (según reglas permitidas) ayuda a:",
+      "explanation": "La digitalización ayuda, pero cumple lo que la autoridad exija en el momento.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Evitar el SOAT. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Ignorar comparendos.",
+          "isCorrect": false
+        },
+        {
+          "text": "Manejar sin licencia física siempre en todos los casos.",
+          "isCorrect": false
+        },
+        {
+          "text": "Atender un control con respaldo, sin reemplazar la obligación de portar lo exigido.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Alcohol y sustancias",
+      "subtopic": "Alcohol y sustancias",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Un “traguito de confianza” antes de un examen práctico es:",
+      "explanation": "Cero alcohol al conducir, incluido el contexto de aprendizaje.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Inaceptable: pone en riesgo la prueba y la seguridad.",
+          "isCorrect": true
+        },
+        {
+          "text": "Permitido bajo 1 trago.",
+          "isCorrect": false
+        },
+        {
+          "text": "Recomendable para los nervios.",
+          "isCorrect": false
+        },
+        {
+          "text": "Solo malo si es cerveza. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Alcohol y sustancias",
+      "subtopic": "Alcohol y sustancias",
+      "difficulty": "Alta",
+      "type": "Seleccion multiple",
+      "text": "Si su copiloto está ebrio y quiere pelear con otro conductor, usted debe:",
+      "explanation": "La agresividad vial se corta, no se alimenta.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Bajar a pelear “para defenderlo”. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "No involucrarse en agresiones; priorizar salir de la situación con seguridad.",
+          "isCorrect": true
+        },
+        {
+          "text": "Entregarle el volante para que se calme manejando.",
+          "isCorrect": false
+        },
+        {
+          "text": "Perseguir al otro vehículo.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Alcohol y sustancias",
+      "subtopic": "Alcohol y sustancias",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "El alcohol afecta más cuando:",
+      "explanation": "El contexto fisiológico potencia el deterioro.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Nunca afecta si es “de buena marca”.",
+          "isCorrect": false
+        },
+        {
+          "text": "Se toma solo en días festivos.",
+          "isCorrect": false
+        },
+        {
+          "text": "Se combina con cansancio, ayuno o falta de sueño.",
+          "isCorrect": true
+        },
+        {
+          "text": "Se toma con el aire acondicionado. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Cinturón y seguridad pasiva",
+      "subtopic": "Cinturón y seguridad pasiva",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Un acompañante adulto sin cinturón en el asiento trasero:",
+      "explanation": "Los asientos traseros también requieren retención.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Solo debe abrocharse en carretera.",
+          "isCorrect": false
+        },
+        {
+          "text": "Está seguro porque “atrás no pasa nada”.",
+          "isCorrect": false
+        },
+        {
+          "text": "El cinturón trasero es decorativo. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "También se pone en riesgo y puede lesionar a quienes van adelante en un choque.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Cinturón y seguridad pasiva",
+      "subtopic": "Cinturón y seguridad pasiva",
+      "difficulty": "Alta",
+      "type": "Seleccion multiple",
+      "text": "Colocar la silla infantil en sentido contrario a la marcha (cuando corresponde a la edad/talla) busca:",
+      "explanation": "La orientación de la silla sigue criterios técnicos de retención.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Mejor protección de cabeza y cuello en bebés/niños pequeños.",
+          "isCorrect": true
+        },
+        {
+          "text": "Que el niño vea el paisaje sí o sí. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Cumplir una moda europea sin utilidad.",
+          "isCorrect": false
+        },
+        {
+          "text": "Evitar el uso de cinturón del adulto.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Cinturón y seguridad pasiva",
+      "subtopic": "Cinturón y seguridad pasiva",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "Ajustar el apoyacabezas a la altura correcta ayuda a:",
+      "explanation": "El apoyacabezas es elemento de seguridad pasiva.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Mejorar la potencia del motor.",
+          "isCorrect": false
+        },
+        {
+          "text": "Reducir el riesgo de latigazo cervical.",
+          "isCorrect": true
+        },
+        {
+          "text": "Circular sin espejos.",
+          "isCorrect": false
+        },
+        {
+          "text": "Evitar usar el cinturón. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Luces y visibilidad",
+      "subtopic": "Luces y visibilidad",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Usar exploradoras/neblineros delanteros en ciudad despejada de noche puede:",
+      "explanation": "La iluminación excesiva o mal usada también es riesgo.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Mejorar la relación con otros conductores siempre. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Reemplazar las luces bajas.",
+          "isCorrect": false
+        },
+        {
+          "text": "Encandilar y molestar; úselos solo cuando la condición lo amerite.",
+          "isCorrect": true
+        },
+        {
+          "text": "Ser siempre obligatorio.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Luces y visibilidad",
+      "subtopic": "Luces y visibilidad",
+      "difficulty": "Alta",
+      "type": "Seleccion multiple",
+      "text": "Si le encandilan de frente, una reacción segura es:",
+      "explanation": "Evitar el deslumbramiento directo mantiene referencia lateral.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Acelerar hacia el otro carril.",
+          "isCorrect": false
+        },
+        {
+          "text": "Mirar fijo a las luces del otro. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Apagar sus propias luces por completo.",
+          "isCorrect": false
+        },
+        {
+          "text": "Mirar hacia la marca derecha de la calzada y reducir un poco la velocidad.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Luces y visibilidad",
+      "subtopic": "Luces y visibilidad",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "Una direccional fundida debe:",
+      "explanation": "Sin señalización, las maniobras sorprenden a terceros.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Repararse; mientras tanto señalice con gestos/cuidado extremo y evite maniobras dudosas.",
+          "isCorrect": true
+        },
+        {
+          "text": "Obligar a circular en sentido contrario.",
+          "isCorrect": false
+        },
+        {
+          "text": "Compensarse solo con el claxon. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Ignorarse indefinidamente.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Motocicletas",
+      "subtopic": "Motocicletas",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Llevar un paquete suelto entre las piernas en moto es riesgoso porque:",
+      "explanation": "La carga en moto debe ir asegurada y sin estorbar mandos.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Solo importa en carretera. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Puede interferir con el control y el frenado.",
+          "isCorrect": true
+        },
+        {
+          "text": "Mejora el equilibrio siempre.",
+          "isCorrect": false
+        },
+        {
+          "text": "Está recomendado por la norma.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Motocicletas",
+      "subtopic": "Motocicletas",
+      "difficulty": "Alta",
+      "type": "Seleccion multiple",
+      "text": "En una curva, frenar bruscamente solo con la rueda delantera puede:",
+      "explanation": "El frenado en curva exige dosificación y técnica.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Ser siempre la técnica perfecta sin riesgo. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Estar prohibido usar el freno trasero nunca.",
+          "isCorrect": false
+        },
+        {
+          "text": "Provocar pérdida de adherencia/caída si se hace mal.",
+          "isCorrect": true
+        },
+        {
+          "text": "Aumentar la estabilidad mágicamente.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Motocicletas",
+      "subtopic": "Motocicletas",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "Mantener luces encendidas de día en moto ayuda a:",
+      "explanation": "La visibilidad reduce choques “no te vi”.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Gastar inútilmente la batería sin beneficio de seguridad.",
+          "isCorrect": false
+        },
+        {
+          "text": "Evitar el casco. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Circular por el andén.",
+          "isCorrect": false
+        },
+        {
+          "text": "Ser más visible entre el tráfico.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Distancia y frenado",
+      "subtopic": "Distancia y frenado",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Si un vehículo se le “pega” demasiado por detrás, una respuesta segura es:",
+      "explanation": "No se responde la agresividad creando un choque.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Aumentar un poco la distancia con el de adelante y evitar frenadas secas innecesarias.",
+          "isCorrect": true
+        },
+        {
+          "text": "Frenar a propósito para “enseñarle”.",
+          "isCorrect": false
+        },
+        {
+          "text": "Salirse al andén.",
+          "isCorrect": false
+        },
+        {
+          "text": "Bajar la velocidad a 10 km/h en vía rápida de golpe. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Distancia y frenado",
+      "subtopic": "Distancia y frenado",
+      "difficulty": "Alta",
+      "type": "Seleccion multiple",
+      "text": "El espacio de escape lateral (no pegarse a vehículos estacionados) sirve para:",
+      "explanation": "El margen lateral evita el “efecto puerta” y sorpresas.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Cumplir solo en examen.",
+          "isCorrect": false
+        },
+        {
+          "text": "Tener margen si alguien abre una puerta o sale un peatón.",
+          "isCorrect": true
+        },
+        {
+          "text": "Decorar la trayectoria. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Nada: hay que rozar para “medir”.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Distancia y frenado",
+      "subtopic": "Distancia y frenado",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "En fila india bajo lluvia, si el de adelante salpica mucho, usted:",
+      "explanation": "Más distancia = más tiempo de reacción en piso mojado.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Se pega más para taparse con su carrocería.",
+          "isCorrect": false
+        },
+        {
+          "text": "Adelanta por la berma. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Abre distancia; no se pegue buscando “menos agua”.",
+          "isCorrect": true
+        },
+        {
+          "text": "Cierra los ojos al pasar el charco.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Señales y marcas viales",
+      "subtopic": "Señales y marcas viales",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Una flecha pintada en el carril que indica solo giro significa que usted:",
+      "explanation": "Las flechas de selección de carril son de cumplimiento.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Puede seguir de frente igual.",
+          "isCorrect": false
+        },
+        {
+          "text": "Puede usarla para U siempre. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Puede estacionar sobre la flecha.",
+          "isCorrect": false
+        },
+        {
+          "text": "Debe seguir esa trayectoria desde ese carril.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Señales y marcas viales",
+      "subtopic": "Señales y marcas viales",
+      "difficulty": "Alta",
+      "type": "Seleccion multiple",
+      "text": "Tachar o ignorar una señal temporal de obra porque “no es metálica permanente” es:",
+      "explanation": "Las obras usan señalización provisional con fuerza normativa.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Incorrecto: la señalización temporal también obliga.",
+          "isCorrect": true
+        },
+        {
+          "text": "Correcto: solo valen señales fijas. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Válido si es de plástico.",
+          "isCorrect": false
+        },
+        {
+          "text": "Permitido de noche.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Señales y marcas viales",
+      "subtopic": "Señales y marcas viales",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "Una marca amarilla de borde puede indicar:",
+      "explanation": "Las marcas complementan señales; hay que interpretarlas en contexto.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Inicio de zona escolar siempre. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Restricciones de estacionamiento/detención según el tramo y la norma local.",
+          "isCorrect": true
+        },
+        {
+          "text": "Carril libre para cualquier maniobra.",
+          "isCorrect": false
+        },
+        {
+          "text": "Permiso de circular en contraflujo.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Accidentes e incidentes",
+      "subtopic": "Accidentes e incidentes",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Si su vehículo se incendia el motor con humo denso, lo primero razonable es:",
+      "explanation": "Primero vidas; luego control profesional del fuego.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Quedarse filmando dentro del habitáculo. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Seguir hasta casa sí o sí.",
+          "isCorrect": false
+        },
+        {
+          "text": "Detenerse en lugar seguro, evacuar personas y pedir ayuda; no abrir el capó de golpe si hay llamas evidentes sin saber.",
+          "isCorrect": true
+        },
+        {
+          "text": "Echar agua con el motor a full sin criterio.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Accidentes e incidentes",
+      "subtopic": "Accidentes e incidentes",
+      "difficulty": "Alta",
+      "type": "Seleccion multiple",
+      "text": "Mover a un herido con posible lesión de columna sin criterio ni necesidad urgente puede:",
+      "explanation": "Solo se mueve si hay peligro inminente (fuego, atropello ulterior) y con cuidado.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Siempre ser lo más seguro. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Ser obligatorio antes de llamar emergencias.",
+          "isCorrect": false
+        },
+        {
+          "text": "No tener ningún riesgo.",
+          "isCorrect": false
+        },
+        {
+          "text": "Agravar la lesión.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Accidentes e incidentes",
+      "subtopic": "Accidentes e incidentes",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "Llevar chaleco reflectivo en el kit ayuda a:",
+      "explanation": "La visibilidad del peatón-conductor en berma salva vidas.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Ser visible si debe bajarse en la vía.",
+          "isCorrect": true
+        },
+        {
+          "text": "Pagar menos impuestos.",
+          "isCorrect": false
+        },
+        {
+          "text": "Evitar el SOAT. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Aumentar la velocidad máxima.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Comportamiento vial",
+      "subtopic": "Comportamiento vial",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Revisar el celular en un semáforo en rojo, aunque esté detenido, es riesgoso porque:",
+      "explanation": "La distracción no “se apaga” solo porque el carro esté quieto unos segundos.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Es obligatorio para el GPS siempre con la mano. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Retrasa la reacción al verde y mantiene el hábito de distracción.",
+          "isCorrect": true
+        },
+        {
+          "text": "Mejora la atención al tráfico.",
+          "isCorrect": false
+        },
+        {
+          "text": "Está totalmente permitido y sin riesgo.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Comportamiento vial",
+      "subtopic": "Comportamiento vial",
+      "difficulty": "Alta",
+      "type": "Seleccion multiple",
+      "text": "Ceder el paso de forma cortés cuando no le corresponde, de modo que confunde a todos, puede:",
+      "explanation": "La cortesía no debe romper la predictibilidad del cruce.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Ser siempre lo más seguro sin excepción. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Reemplazar las señales.",
+          "isCorrect": false
+        },
+        {
+          "text": "Generar choques por mensajes ambiguos; sea predecible y legal.",
+          "isCorrect": true
+        },
+        {
+          "text": "Obligar a los demás a adivinar.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Comportamiento vial",
+      "subtopic": "Comportamiento vial",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "Agradecer con un gesto breve cuando alguien le cede el paso:",
+      "explanation": "La cultura vial también se construye con respeto.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Obliga a detenerse en el carril. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Es una infracción.",
+          "isCorrect": false
+        },
+        {
+          "text": "Reemplaza la direccional.",
+          "isCorrect": false
+        },
+        {
+          "text": "Fomenta convivencia, sin sustituir la norma.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Carga y ocupantes",
+      "subtopic": "Carga y ocupantes",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Llevar una escalera sin amarrar que sobresale sin bandera/luz cuando se requiere es:",
+      "explanation": "La carga saliente debe señalizarse y asegurarse.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Irregular y peligroso para motos y peatones.",
+          "isCorrect": true
+        },
+        {
+          "text": "Permitido de día sin marcas.",
+          "isCorrect": false
+        },
+        {
+          "text": "Correcto si va a menos de 30 km/h.",
+          "isCorrect": false
+        },
+        {
+          "text": "Obligatorio en camionetas. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Carga y ocupantes",
+      "subtopic": "Carga y ocupantes",
+      "difficulty": "Alta",
+      "type": "Seleccion multiple",
+      "text": "Un pasajero en estado de ebriedad que intenta abrir la puerta en marcha requiere que usted:",
+      "explanation": "La seguridad de ocupantes puede exigir detenerse.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Ignore y siga a 80 km/h.",
+          "isCorrect": false
+        },
+        {
+          "text": "Priorice detenerse seguro y controlar la situación sin seguir la marcha en riesgo.",
+          "isCorrect": true
+        },
+        {
+          "text": "Acelere para “asustarlo”. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Le entregue el volante.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Carga y ocupantes",
+      "subtopic": "Carga y ocupantes",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "Distribuir maletas pesadas de forma baja y centrada ayuda a:",
+      "explanation": "El centro de gravedad importa.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Solo la estética del maletero. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Nada dinámicamente.",
+          "isCorrect": false
+        },
+        {
+          "text": "Mejor estabilidad del vehículo.",
+          "isCorrect": true
+        },
+        {
+          "text": "Evitar el cinturón.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Condiciones especiales",
+      "subtopic": "Condiciones especiales",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "En una tormenta eléctrica fuerte con árboles cayendo, lo más prudente puede ser:",
+      "explanation": "Hay condiciones donde no conducir es la decisión correcta.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Bajarse a filmar el rayo en la calzada. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Estacionarse bajo un árbol alto aislado a propósito.",
+          "isCorrect": false
+        },
+        {
+          "text": "Seguir a máxima velocidad.",
+          "isCorrect": false
+        },
+        {
+          "text": "Buscar refugio seguro fuera de zonas expuestas y no insistir en “llegar a como dé lugar”.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Condiciones especiales",
+      "subtopic": "Condiciones especiales",
+      "difficulty": "Alta",
+      "type": "Seleccion multiple",
+      "text": "Si hay humo denso de incendio forestal sobre la vía, usted debe:",
+      "explanation": "Sin visibilidad no hay velocidad segura.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Reducir, aumentar distancia y considerar detenerse fuera del peligro si no ve.",
+          "isCorrect": true
+        },
+        {
+          "text": "Seguir las luces del de adelante a 50 cm.",
+          "isCorrect": false
+        },
+        {
+          "text": "Entrar a ciegas a 80 km/h. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Usar solo parking.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Condiciones especiales",
+      "subtopic": "Condiciones especiales",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "El viento lateral fuerte en puente puede:",
+      "explanation": "El viento cambia la trayectoria.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Apagar luces.",
+          "isCorrect": false
+        },
+        {
+          "text": "Desviar vehículos livianos/motos; reduzca y sujete el volante con firmeza.",
+          "isCorrect": true
+        },
+        {
+          "text": "Obligar a acelerar. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "No afectar nunca a los carros.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Revisión del vehículo",
+      "subtopic": "Revisión del vehículo",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Un limpiaparabrisas que deja “rayones” de goma indica:",
+      "explanation": "Cambie escobillas; la visión no se negocia.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Que el vidrio está perfecto.",
+          "isCorrect": false
+        },
+        {
+          "text": "Que debe echar aceite al cristal. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Que las escobillas están gastadas y restan visión.",
+          "isCorrect": true
+        },
+        {
+          "text": "Un problema solo estético.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Revisión del vehículo",
+      "subtopic": "Revisión del vehículo",
+      "difficulty": "Alta",
+      "type": "Seleccion multiple",
+      "text": "Si al frenar el auto se va solo hacia un lado, sospeche de:",
+      "explanation": "La desviación al frenar es síntoma serio.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Que el ABS “elige” el lado. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Una mejora de sport.",
+          "isCorrect": false
+        },
+        {
+          "text": "Nada importante.",
+          "isCorrect": false
+        },
+        {
+          "text": "Desbalance de frenos o problema de suspensión/llantas; revise antes de un viaje largo.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Revisión del vehículo",
+      "subtopic": "Revisión del vehículo",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "Revisar el estado de correas/ruidos raros al arrancar ayuda a:",
+      "explanation": "El oído también diagnostica.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Detectar fallas tempranas antes de quedar varado.",
+          "isCorrect": true
+        },
+        {
+          "text": "Solo entretenerse.",
+          "isCorrect": false
+        },
+        {
+          "text": "Subir la velocidad máxima legal.",
+          "isCorrect": false
+        },
+        {
+          "text": "Evitar la licencia. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Examen y responsabilidad",
+      "subtopic": "Examen y responsabilidad",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Comprar un “pase” o hacer trampa en el examen es:",
+      "explanation": "La licencia es un permiso de riesgo social, no un papel.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Recomendado si tiene prisa laboral. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Fraude y pone en la vía a alguien no competente.",
+          "isCorrect": true
+        },
+        {
+          "text": "Un atajo aceptable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Solo falta administrativa sin riesgo social.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Examen y responsabilidad",
+      "subtopic": "Examen y responsabilidad",
+      "difficulty": "Alta",
+      "type": "Seleccion multiple",
+      "text": "Después de un comparendo, lo responsable es:",
+      "explanation": "La sanción busca cambio de comportamiento.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Repetir la infracción “porque igual pagué”. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Insultar al agente en redes mientras maneja.",
+          "isCorrect": false
+        },
+        {
+          "text": "Asumir el proceso legal y corregir la conducta.",
+          "isCorrect": true
+        },
+        {
+          "text": "Ocultar placas.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Examen y responsabilidad",
+      "subtopic": "Examen y responsabilidad",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "Preguntar dudas al instructor sobre una norma confusa es:",
+      "explanation": "Mejor aclarar antes que improvisar en la vía.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Inútil porque “en la calle es distinto y punto”.",
+          "isCorrect": false
+        },
+        {
+          "text": "Señal de debilidad.",
+          "isCorrect": false
+        },
+        {
+          "text": "Prohibido en el CEA. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Una buena práctica de aprendizaje.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Circulación",
+      "subtopic": "Circulación",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "En una glorieta de varios carriles, cambiar de carril dentro de la curva sin mirar es:",
+      "explanation": "Los cambios en glorieta requieren señalizar y verificar.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Peligroso: puede cerrar a otro vehículo.",
+          "isCorrect": true
+        },
+        {
+          "text": "La forma normal de “atajar”.",
+          "isCorrect": false
+        },
+        {
+          "text": "Seguro con claxon. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Obligatorio.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Velocidad",
+      "subtopic": "Velocidad",
+      "difficulty": "Alta",
+      "type": "Seleccion multiple",
+      "text": "Bajar una pendiente larga “en neutro” para ahorrar combustible es:",
+      "explanation": "Mantenga control con marcha engranada.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Recomendada por el Código.",
+          "isCorrect": false
+        },
+        {
+          "text": "Inseguro: reduce control y freno motor.",
+          "isCorrect": true
+        },
+        {
+          "text": "La técnica más profesional. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Obligatoria en camiones livianos.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Prioridad e intersecciones",
+      "subtopic": "Prioridad e intersecciones",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Un vehículo de tracción animal o lento en vía compartida exige:",
+      "explanation": "La diversidad de actores exige tolerancia activa.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Empujarlo con el paragolpes.",
+          "isCorrect": false
+        },
+        {
+          "text": "Tocar el claxon pegado sin parar. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Paciencia, distancia y adelantamiento solo cuando sea legal y seguro.",
+          "isCorrect": true
+        },
+        {
+          "text": "Adelantar en curva ciega.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Peatones y actores vulnerables",
+      "subtopic": "Peatones y actores vulnerables",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Las zonas de frenado ante colegios al entrada/salida requieren:",
+      "explanation": "Los picos de peatones escolares son críticos.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "La misma velocidad que en autopista.",
+          "isCorrect": false
+        },
+        {
+          "text": "Solo cuidado si hay policía.",
+          "isCorrect": false
+        },
+        {
+          "text": "Adelantar buses escolares por la derecha rozando.",
+          "isCorrect": false
+        },
+        {
+          "text": "Velocidad muy baja y atención total.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Semáforos",
+      "subtopic": "Semáforos",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Si su vehículo queda “atrapado” en el cruce cuando cambia a rojo, debe:",
+      "explanation": "Prevenga quedarse enclavado; si ocurre, priorice despejar sin crear peor riesgo.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Desalojar el cruce con cuidado si ya está dentro y es la opción menos mala; lo ideal es no entrar sin espacio.",
+          "isCorrect": true
+        },
+        {
+          "text": "Quedarse detenido bloqueando peatones “para grabar”. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Hacer reversa contra el flujo a ciegas.",
+          "isCorrect": false
+        },
+        {
+          "text": "Apagar el carro en el centro.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Documentos y requisitos",
+      "subtopic": "Documentos y requisitos",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Conducir un vehículo de empresa sin autorización/pólizas en regla puede:",
+      "explanation": "La legalidad del vehículo y del permiso de uso importan.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Anular las normas de velocidad.",
+          "isCorrect": false
+        },
+        {
+          "text": "Generar problemas legales y de cobertura ante un siniestro.",
+          "isCorrect": true
+        },
+        {
+          "text": "Ser mejor que usar carro propio. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "No tener ninguna implicación.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Comportamiento vial",
+      "subtopic": "Comportamiento vial",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Usar audífonos en ambos oídos al manejar:",
+      "explanation": "Necesita oír el entorno.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Mejora la concentración musicalmente.",
+          "isCorrect": false
+        },
+        {
+          "text": "Está recomendado en examen.",
+          "isCorrect": false
+        },
+        {
+          "text": "Reduce la percepción de sirenas y riesgos; evítelo.",
+          "isCorrect": true
+        },
+        {
+          "text": "Es obligatorio en motos. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Luces y visibilidad",
+      "subtopic": "Luces y visibilidad",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Las luces de emergencia (balizas) se usan para:",
+      "explanation": "Balizas = alerta, no permiso universal.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Circular de noche en vez de bajas.",
+          "isCorrect": false
+        },
+        {
+          "text": "Estacionar en doble fila legalmente siempre. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Reemplazar direccionales en cada giro cotidiano.",
+          "isCorrect": false
+        },
+        {
+          "text": "Advertir peligro o detención imprevista, no para estacionar “donde sea”.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Adelantamiento",
+      "subtopic": "Adelantamiento",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Si el de adelante señala que va a girar a la izquierda, adelantarlo por la izquierda suele ser:",
+      "explanation": "No se adelanta por el lado hacia el que el otro gira.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Incorrecto: puede atravesar su trayectoria.",
+          "isCorrect": true
+        },
+        {
+          "text": "Obligatorio. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Permitido sin mirar.",
+          "isCorrect": false
+        },
+        {
+          "text": "Lo más rápido y seguro siempre.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Estacionamiento",
+      "subtopic": "Estacionamiento",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "En zona de carga/descarga señalizada, un particular que “solo deja a alguien”:",
+      "explanation": "Respete usos exclusivos.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Anula la señal. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Puede estar infringiendo el uso exclusivo del espacio.",
+          "isCorrect": true
+        },
+        {
+          "text": "Tiene prioridad sobre la carga comercial siempre.",
+          "isCorrect": false
+        },
+        {
+          "text": "Puede quedarse con balizas todo el día.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Motocicletas",
+      "subtopic": "Motocicletas",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Compartir carril con un carro “a la par” en el mismo espacio estrecho:",
+      "explanation": "El espacio compartido exige disciplina, no improvisación.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Obliga al carro a ceder medio carril siempre sin señal.",
+          "isCorrect": false
+        },
+        {
+          "text": "Es la norma ideal en toda avenida. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Puede ser riesgoso; mantenga margen y predictibilidad.",
+          "isCorrect": true
+        },
+        {
+          "text": "Elimina puntos ciegos.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Distancia y frenado",
+      "subtopic": "Distancia y frenado",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Cuando un semáforo está en verde desde lejos y usted llega a alta velocidad, lo prudente es:",
+      "explanation": "La anticipación evita frenadas de pánico.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Cambiar de carril sin señal en el último metro.",
+          "isCorrect": false
+        },
+        {
+          "text": "Acelerar para “ganar” el amarillo siempre.",
+          "isCorrect": false
+        },
+        {
+          "text": "Mirar el celular hasta llegar. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Modular anticipadamente por si cambia; no “jugar al amarillo”.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Accidentes e incidentes",
+      "subtopic": "Accidentes e incidentes",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Si choca un animal en carretera de noche, además de controlar el vehículo debe:",
+      "explanation": "Tras el impacto, la escena sigue siendo riesgosa.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Señalizar, evaluar daños/seguridad y actuar según procedimiento; no dejar un peligro sin aviso si aplica.",
+          "isCorrect": true
+        },
+        {
+          "text": "Bajarse en plena oscuridad sin chaleco ni luz. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Seguir como si nada aunque el auto no frene bien.",
+          "isCorrect": false
+        },
+        {
+          "text": "Abandonar el carro cruzado sin más.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Revisión del vehículo",
+      "subtopic": "Revisión del vehículo",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Llevar el tanque siempre en reserva extrema “por costumbre” es mala idea porque:",
+      "explanation": "Combustible suficiente es parte de la prevención.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Ahorra siempre mantenimiento. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Puede quedar varado en zona insegura o dañar la bomba en algunos vehículos.",
+          "isCorrect": true
+        },
+        {
+          "text": "Mejora la potencia.",
+          "isCorrect": false
+        },
+        {
+          "text": "Es obligatorio ecológico.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Examen y responsabilidad",
+      "subtopic": "Examen y responsabilidad",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "La mejor evidencia de que un CEA formó bien no es el número de aprobados, sino:",
+      "explanation": "El resultado real se ve en la vía.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Alumnos que memorizan trucos para fotomultas.",
+          "isCorrect": false
+        },
+        {
+          "text": "Quienes nunca usan direccional.",
+          "isCorrect": false
+        },
+        {
+          "text": "Conductores que respetan normas y cuidan vidas en la calle.",
+          "isCorrect": true
+        },
+        {
+          "text": "Quienes manejan más rápido. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Cinturón y seguridad pasiva",
+      "subtopic": "Cinturón y seguridad pasiva",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Viajar con el respaldo demasiado reclinado y el cinturón holgado:",
+      "explanation": "La geometría del cinturón importa.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Solo importa en buses. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Está recomendada en norma.",
+          "isCorrect": false
+        },
+        {
+          "text": "Es la postura de mayor seguridad.",
+          "isCorrect": false
+        },
+        {
+          "text": "Reduce la eficacia de la retención en un choque.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Condiciones especiales",
+      "subtopic": "Condiciones especiales",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Tras cruzar un charco profundo, es prudente:",
+      "explanation": "El agua puede mojar discos/tambores temporalmente.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Probar los frenos suavemente en zona segura (secar/verificar).",
+          "isCorrect": true
+        },
+        {
+          "text": "Apagar el ABS.",
+          "isCorrect": false
+        },
+        {
+          "text": "Asumir que los frenos mejoraron. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Hacer un trompo de prueba.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Alcohol y sustancias",
+      "subtopic": "Alcohol y sustancias",
+      "difficulty": "Media",
+      "type": "Seleccion multiple",
+      "text": "Un conductor “habituado” a beber y manejar cree que lo controla; eso es peligroso porque:",
+      "explanation": "La sensación de control engaña.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "La ley exceptúa a habituados. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "La tolerancia subjetiva no elimina el deterioro real ni el riesgo legal.",
+          "isCorrect": true
+        },
+        {
+          "text": "La costumbre anula el alcohol en sangre.",
+          "isCorrect": false
+        },
+        {
+          "text": "Solo afecta a novatos.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Circulación",
+      "subtopic": "Circulación",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "Mantener el campo visual lejos (mirar adelante, no solo el capo) ayuda a:",
+      "explanation": "La mirada lejana es técnica básica de anticipación.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Evitar espejos. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Marearse más.",
+          "isCorrect": false
+        },
+        {
+          "text": "Anticipar frenadas y cambios de tráfico.",
+          "isCorrect": true
+        },
+        {
+          "text": "Violar la norma de luces.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Velocidad",
+      "subtopic": "Velocidad",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "El velocímetro debe consultarse porque:",
+      "explanation": "Calibre su sensación con el instrumento.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Reemplaza a las señales.",
+          "isCorrect": false
+        },
+        {
+          "text": "Solo sirve en el examen.",
+          "isCorrect": false
+        },
+        {
+          "text": "Es solo decorativo. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "La percepción subjetiva de velocidad engaña, sobre todo tras tramos rápidos.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Peatones y actores vulnerables",
+      "subtopic": "Peatones y actores vulnerables",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "Un perro suelto en la calzada exige:",
+      "explanation": "Evitar el animal sin crear un choque peor.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Reducir y maniobrar sin invadir riesgosamente el sentido contrario.",
+          "isCorrect": true
+        },
+        {
+          "text": "Atropellarlo a propósito.",
+          "isCorrect": false
+        },
+        {
+          "text": "Perseguirlo con el carro.",
+          "isCorrect": false
+        },
+        {
+          "text": "Seguir igual. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Semáforos",
+      "subtopic": "Semáforos",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "Si duda si alcanzó a frenar ante el amarillo, la decisión segura suele ser:",
+      "explanation": "Ante la duda en amarillo, no convierta el cruce en ruleta.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Cambiar al carril del andén. Además, esa idea no está respaldada por la norma aplicable.",
+          "isCorrect": false
+        },
+        {
+          "text": "Frenar si aún puede con seguridad.",
+          "isCorrect": true
+        },
+        {
+          "text": "Cerrar los ojos.",
+          "isCorrect": false
+        },
+        {
+          "text": "Acelerar siempre.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "subject": "Normas de tránsito",
+      "topic": "Documentos y requisitos",
+      "subtopic": "Documentos y requisitos",
+      "difficulty": "Baja",
+      "type": "Seleccion multiple",
+      "text": "Enseñar a un menor de edad sin cupo/reglas a “practicar” en vía pública es:",
+      "explanation": "El aprendizaje se hace en los espacios y con los requisitos legales.",
+      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "options": [
+        {
+          "text": "Correcto en parqueaderos ajenos sin permiso.",
+          "isCorrect": false
+        },
+        {
+          "text": "Permitido de madrugada.",
+          "isCorrect": false
+        },
+        {
+          "text": "Irresponsable e ilegal según las reglas de aprendizaje vigentes.",
+          "isCorrect": true
+        },
+        {
+          "text": "La mejor escuela callejera. Además, esa idea no está respaldada por la norma aplicable.",
           "isCorrect": false
         }
       ]
