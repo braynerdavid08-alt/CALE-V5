@@ -300,12 +300,14 @@
                       <div class="media-missing">Video no encontrado. Vuelve a importar o subir el archivo.</div>
                     } @else {
                       <video
+                        class="el-video"
                         [src]="media(videoProps(el).src)"
                         [attr.autoplay]="videoProps(el).autoplay ? '' : null"
                         [attr.loop]="videoProps(el).loop ? '' : null"
                         [muted]="videoProps(el).muted ?? true"
                         controls
                         playsinline
+                        [attr.webkit-playsinline]="''"
                         preload="metadata"
                         draggable="false"
                         (error)="onMediaError(el.id)"></video>

@@ -248,10 +248,36 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
   }
 
   slidePresentStyle(slide: EditorSlide): Record<string, string> {
+    const css = this.bgStyle(slide);
+    if (this.embedMode()) {
+      // zoom avoids Safari black-video bug with CSS transform on ancestors
+      return {
+        ...css,
+        zoom: String(this.slideScale())
+      };
+    }
     return {
-      ...this.bgStyle(slide),
+      ...css,
       transform: `scale(${this.slideScale()})`
     };
+  }
+
+  onVideoLoaded(): void {
+    if (!this.embedMode()) {
+      return;
+    }
+    const stage = this.stage?.nativeElement;
+    if (!stage) {
+      return;
+    }
+    stage.querySelectorAll('video').forEach((node) => {
+      const video = node as HTMLVideoElement;
+      video.muted = true;
+      const play = video.play();
+      if (play && typeof play.catch === 'function') {
+        play.catch(() => undefined);
+      }
+    });
   }
 
   enterFullscreen(): void {

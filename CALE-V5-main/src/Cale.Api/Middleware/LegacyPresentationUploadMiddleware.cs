@@ -25,7 +25,9 @@ public sealed class LegacyPresentationUploadMiddleware
                 if (blob is not null)
                 {
                     context.Response.ContentType = blob.Value.ContentType;
-                    context.Response.Headers.CacheControl = "public,max-age=86400";
+                    context.Response.Headers.CacheControl = "public,max-age=86400,immutable";
+                    context.Response.Headers.Append("Accept-Ranges", "bytes");
+                    context.Response.ContentLength = blob.Value.Data.LongLength;
                     await context.Response.Body.WriteAsync(blob.Value.Data, context.RequestAborted);
                     return;
                 }

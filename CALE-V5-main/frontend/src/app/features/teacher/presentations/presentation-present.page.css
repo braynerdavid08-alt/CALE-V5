@@ -72,11 +72,13 @@
 }
 
 .el img,
-.el video {
+.el video,
+.el-video {
   width: 100%;
   height: 100%;
   object-fit: contain;
   display: block;
+  background: #000;
 }
 
 .media-missing {

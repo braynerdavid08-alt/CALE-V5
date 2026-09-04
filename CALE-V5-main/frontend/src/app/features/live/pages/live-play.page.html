@@ -39,11 +39,11 @@
         <div class="deck-stage" #deckStage (click)="onFullscreenStageTap()">
           @if (currentPresentationSlide(); as slide) {
             <div
-              class="deck-slide"
-              [style.transform]="
-                'translate(' + deckOffsetX() + 'px,' + deckOffsetY() + 'px) scale(' + deckScale() + ')'
-              "
-              [ngStyle]="bgStyle(slide)">
+              class="deck-offset"
+              [style.left.px]="deckOffsetX()"
+              [style.top.px]="deckOffsetY()"
+              [style.zoom]="deckScale()">
+              <div class="deck-slide" [ngStyle]="bgStyle(slide)">
               @for (el of slide.elements; track el.id) {
                 <div
                   class="el"
@@ -76,10 +76,18 @@
                   }
                   @if (el.type === 'video') {
                     <video
+                      class="el-video"
                       [src]="media(videoProps(el).src)"
                       [muted]="videoProps(el).muted ?? true"
-                      playsinline
-                      preload="metadata"></video>
+                      [attr.autoplay]="''"
+                      [attr.loop]="videoProps(el).loop ? '' : null"
+                      [attr.playsinline]="''"
+                      [attr.webkit-playsinline]="''"
+                      controls
+                      preload="auto"
+                      (click)="$event.stopPropagation()"
+                      (loadeddata)="tryPlaySlideVideos()"
+                      (error)="onSlideVideoError($event)"></video>
                   }
                   @if (el.type === 'shape') {
                     <div
@@ -114,6 +122,7 @@
                   }
                 </div>
               }
+            </div>
             </div>
           }
         </div>

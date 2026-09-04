@@ -334,6 +334,7 @@ public sealed class PresentationsController : ControllerBase
 
     [HttpGet("media/{id:guid}")]
     [AllowAnonymous]
+    [ResponseCache(Duration = 86400, Location = ResponseCacheLocation.Any, NoStore = false)]
     public async Task<IActionResult> GetMedia(Guid id, CancellationToken ct)
     {
         var blob = await _media.ReadAsync(id, ct);
@@ -342,11 +343,14 @@ public sealed class PresentationsController : ControllerBase
             return NotFound();
         }
 
+        Response.Headers.CacheControl = "public,max-age=86400,immutable";
+        Response.Headers.Append("Accept-Ranges", "bytes");
         return File(blob.Value.Data, blob.Value.ContentType, enableRangeProcessing: true);
     }
 
     [HttpGet("legacy/{fileName}")]
     [AllowAnonymous]
+    [ResponseCache(Duration = 86400, Location = ResponseCacheLocation.Any, NoStore = false)]
     public async Task<IActionResult> GetLegacyMedia(string fileName, CancellationToken ct)
     {
         var blob = await _media.TryReadLegacyDiskAsync(fileName, ct);
@@ -355,6 +359,8 @@ public sealed class PresentationsController : ControllerBase
             return NotFound();
         }
 
+        Response.Headers.CacheControl = "public,max-age=86400,immutable";
+        Response.Headers.Append("Accept-Ranges", "bytes");
         return File(blob.Value.Data, blob.Value.ContentType, enableRangeProcessing: true);
     }
 

@@ -125,12 +125,25 @@ a { color: #2bb0ed; }
   background: #0a1018;
   aspect-ratio: 16 / 9;
 }
-.deck-slide {
-  transform-origin: top left;
+.deck-offset {
   position: absolute;
   left: 0;
   top: 0;
+  transform-origin: top left;
+}
+.deck-slide {
+  width: 1920px;
+  height: 1080px;
+  position: relative;
   overflow: hidden;
+  transform-origin: top left;
+}
+.deck-slide .el-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+  display: block;
 }
 .deck.is-fullscreen {
   position: fixed;

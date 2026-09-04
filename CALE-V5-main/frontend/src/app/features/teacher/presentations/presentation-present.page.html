@@ -50,21 +50,24 @@
                   }
                 </div>
               }
-              @if (el.type === 'video') {
-                @if (isMediaBroken(el.id)) {
-                  <div class="media-missing">Video no disponible</div>
-                } @else {
-                  <video
-                    [src]="media(videoProps(el).src)"
-                    [attr.autoplay]="videoProps(el).autoplay ? '' : null"
-                    [attr.loop]="videoProps(el).loop ? '' : null"
-                    [muted]="videoProps(el).muted ?? true"
-                    controls
-                    playsinline
-                    preload="metadata"
-                    (error)="onMediaError(el.id)"></video>
-                }
-              }
+                  @if (el.type === 'video') {
+                    @if (isMediaBroken(el.id)) {
+                      <div class="media-missing">Video no disponible</div>
+                    } @else {
+                      <video
+                        class="el-video"
+                        [src]="media(videoProps(el).src)"
+                        [attr.autoplay]="videoProps(el).autoplay || embedMode() ? '' : null"
+                        [attr.loop]="videoProps(el).loop ? '' : null"
+                        [muted]="videoProps(el).muted ?? true"
+                        controls
+                        playsinline
+                        [attr.webkit-playsinline]="''"
+                        preload="auto"
+                        (error)="onMediaError(el.id)"
+                        (loadeddata)="onVideoLoaded()"></video>
+                    }
+                  }
               @if (el.type === 'shape') {
                 <div
                   class="el-shape"
