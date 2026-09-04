@@ -327,8 +327,17 @@
     #0a1118;
 }
 
+.slide-stage-shell {
+  position: relative;
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+
 .slide-stage {
-  transform-origin: center center;
+  position: relative;
+  transform-origin: top left;
+  width: 1920px;
+  height: 1080px;
 }
 
 .slide {
@@ -759,7 +768,6 @@
   color: #9fb3c8;
 }
 
-.slide-stage { position: relative; }
 .snap-guide {
   position: absolute;
   pointer-events: none;

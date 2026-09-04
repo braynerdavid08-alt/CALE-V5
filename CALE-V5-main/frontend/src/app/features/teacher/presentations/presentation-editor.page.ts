@@ -92,7 +92,8 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   readonly activeIndex = signal(0);
   readonly selectedIds = signal<string[]>([]);
   readonly selectedId = computed(() => this.selectedIds()[0] ?? null);
-  readonly zoom = signal(1);
+  readonly zoom = signal(0.35);
+  readonly autoFitZoom = signal(true);
   readonly saveState = signal<SaveState>('idle');
   readonly lastSavedAt = signal<number | null>(null);
   readonly editingText = signal(false);
@@ -163,6 +164,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
 
   private autosaveTimer?: ReturnType<typeof setTimeout>;
   private labelTimer?: ReturnType<typeof setInterval>;
+  private fitZoomTimer?: ReturnType<typeof setTimeout>;
   private drag:
     | {
         id: string;
@@ -203,7 +205,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
         this.saveState.set('saved');
         this.lastSavedAt.set(Date.now());
         this.tryRestoreLocalDraft(id);
-        queueMicrotask(() => this.fitZoom());
+        this.scheduleFitZoom();
       },
       error: (err) => {
         this.error.set(mapApiError(err));
@@ -223,6 +225,16 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     }
     if (this.labelTimer) {
       clearInterval(this.labelTimer);
+    }
+    if (this.fitZoomTimer) {
+      clearTimeout(this.fitZoomTimer);
+    }
+  }
+
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    if (this.autoFitZoom()) {
+      this.scheduleFitZoom();
     }
   }
 
@@ -499,20 +511,37 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     }
   }
 
+  private scheduleFitZoom(): void {
+    if (this.fitZoomTimer) {
+      clearTimeout(this.fitZoomTimer);
+    }
+    // Esperar a que Angular pinte el canvas (#canvasHost) tras quitar el loading.
+    this.fitZoomTimer = setTimeout(() => this.fitZoom(), 50);
+    setTimeout(() => this.fitZoom(), 200);
+  }
+
   fitZoom(): void {
+    this.autoFitZoom.set(true);
     const host = this.canvasHost?.nativeElement;
-    if (!host) {
-      this.zoom.set(0.85);
+    if (!host || host.clientWidth < 40 || host.clientHeight < 40) {
+      const approx = Math.min(
+        (window.innerWidth - 420) / SLIDE_W,
+        (window.innerHeight - 220) / SLIDE_H
+      );
+      this.zoom.set(Math.max(0.12, Math.min(1, approx || 0.35)));
       return;
     }
-    const pad = 48;
+    const pad = 32;
     const zx = (host.clientWidth - pad) / SLIDE_W;
     const zy = (host.clientHeight - pad) / SLIDE_H;
-    this.zoom.set(Math.max(0.35, Math.min(1.25, Math.min(zx, zy))));
+    this.zoom.set(Math.max(0.12, Math.min(1, Math.min(zx, zy))));
+    host.scrollTop = 0;
+    host.scrollLeft = 0;
   }
 
   setZoom(v: number): void {
-    this.zoom.set(Math.max(0.35, Math.min(1.5, v)));
+    this.autoFitZoom.set(false);
+    this.zoom.set(Math.max(0.12, Math.min(1.5, v)));
   }
 
   markDirty(): void {
