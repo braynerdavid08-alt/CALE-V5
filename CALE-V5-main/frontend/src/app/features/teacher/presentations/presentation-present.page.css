@@ -31,8 +31,8 @@
 }
 
 .viewport .slide {
-  width: 960px;
-  height: 540px;
+  width: 1920px;
+  height: 1080px;
   position: relative;
   overflow: hidden;
   background: #fff;

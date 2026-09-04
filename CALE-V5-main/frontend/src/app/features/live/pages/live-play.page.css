@@ -87,8 +87,8 @@ a { color: #2bb0ed; }
   transform-origin: top left;
   position: relative;
   overflow: hidden;
-  /* Scale 960x540 slide into the stage (~560px wide panel). */
-  transform: scale(calc((min(560px, 100vw) - 2rem) / 960));
+  /* Scale 1920x1080 slide into the stage (~560px wide panel). */
+  transform: scale(calc((min(560px, 100vw) - 2rem) / 1920));
 }
 .deck-slide .el { position: absolute; box-sizing: border-box; overflow: hidden; }
 .deck-slide .el-text {

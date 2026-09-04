@@ -11,8 +11,8 @@ namespace Cale.Modules.Presentation.Application;
 
 internal static class PptxSlideIO
 {
-    private const int CanvasW = 960;
-    private const int CanvasH = 540;
+    private const int CanvasW = 1920;
+    private const int CanvasH = 1080;
     private const long DefaultSlideCx = 12_192_000L;
     private const long DefaultSlideCy = 6_858_000L;
 
@@ -719,8 +719,9 @@ internal static class PptxSlideIO
             return (null, null);
         }
 
-        var (backgroundJson, remaining) = PeelFullBleedImages(clamped);
-        // Foto a pantalla completa → fondo. Conservar texto/formas reales.
+        // Mantener imágenes a pantalla completa como elementos editables (no fondo automático).
+        var backgroundJson = (string?)null;
+        var remaining = clamped;
         // Solo crear cajas de texto auxiliares si hay contenido útil (no "Diapositiva N").
         if (backgroundJson is null && !remaining.Any(HasReadableText))
         {
@@ -746,48 +747,9 @@ internal static class PptxSlideIO
     private static (string? BackgroundJson, List<JsonElement> Elements) PeelFullBleedImages(
         List<JsonElement> elements)
     {
-        // Solo la imagen de fondo más atrasada (menor z). El resto conserva orden.
-        JsonElement? photo = null;
-        var photoZ = int.MaxValue;
-        foreach (var el in elements)
-        {
-            if (!IsFullBleedImage(el))
-            {
-                continue;
-            }
-
-            var z = GetInt(el, "z", 0);
-            if (z <= photoZ)
-            {
-                photo = el;
-                photoZ = z;
-            }
-        }
-
-        if (photo is null
-            || !photo.Value.TryGetProperty("props", out var props)
-            || !props.TryGetProperty("src", out var srcProp))
-        {
-            return (null, elements);
-        }
-
-        var src = srcProp.GetString();
-        if (string.IsNullOrWhiteSpace(src))
-        {
-            return (null, elements);
-        }
-
-        var photoId = photo.Value.TryGetProperty("id", out var idProp) ? idProp.GetString() : null;
-        var remaining = elements
-            .Where(el =>
-                !el.TryGetProperty("id", out var id)
-                || !string.Equals(id.GetString(), photoId, StringComparison.Ordinal))
-            .ToList();
-
-        var backgroundJson = JsonSerializer.Serialize(
-            new { type = "image", color = "#F7F9FC", imageUrl = src },
-            JsonOptions);
-        return (backgroundJson, remaining);
+        // Desactivado: las imágenes grandes permanecen como elementos editables.
+        // El fondo de imagen solo se asigna de forma explícita desde el editor.
+        return (null, elements);
     }
 
     private static bool IsFullBleedImage(JsonElement el)

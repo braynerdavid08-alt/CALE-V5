@@ -4,7 +4,8 @@ import {
   SlideElement,
   newClientId,
   parseBackground,
-  parseElements
+  parseElements,
+  scaleElementsFromLegacy
 } from './presentation.models';
 
 function slide(
@@ -18,7 +19,7 @@ function slide(
     title,
     notes,
     background,
-    elements: parseElements(elementsJson)
+    elements: scaleElementsFromLegacy(parseElements(elementsJson))
   };
 }
 
