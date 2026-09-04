@@ -14,15 +14,18 @@ public sealed class LiveClassroomHub : Hub
 
     private readonly LiveSessionHandler _handler;
     private readonly ILiveSessionStore _sessions;
+    private readonly ILivePresentationSlideState _presentationSlides;
     private readonly ILogger<LiveClassroomHub> _logger;
 
     public LiveClassroomHub(
         LiveSessionHandler handler,
         ILiveSessionStore sessions,
+        ILivePresentationSlideState presentationSlides,
         ILogger<LiveClassroomHub> logger)
     {
         _handler = handler;
         _sessions = sessions;
+        _presentationSlides = presentationSlides;
         _logger = logger;
     }
 
@@ -63,6 +66,11 @@ public sealed class LiveClassroomHub : Hub
             connected: true,
             Context.ConnectionAborted);
         await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(sessionId));
+        var slideIndex = _presentationSlides.GetSlideIndex(sessionId);
+        await Clients.Caller.SendAsync(
+            "PresentationSlideChanged",
+            new { slideIndex },
+            Context.ConnectionAborted);
         _logger.LogInformation(
             "Live participant connected {ConnectionId} session {SessionId}",
             Context.ConnectionId,
@@ -87,6 +95,8 @@ public sealed class LiveClassroomHub : Hub
         {
             slideIndex = 0;
         }
+
+        _presentationSlides.SetSlideIndex(sessionId, slideIndex);
 
         var broadcaster = Context.GetHttpContext()?.RequestServices
             .GetRequiredService<ILiveSessionBroadcaster>();

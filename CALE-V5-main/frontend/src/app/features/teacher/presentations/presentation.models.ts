@@ -64,6 +64,8 @@ export interface SlideElement {
   h: number;
   rotation: number;
   z: number;
+  /** Canvas group (not classroom GroupId). Shared id = same group. */
+  groupId?: string | null;
   props: TextProps | ImageProps | VideoProps | ShapeProps | LineProps;
 }
 

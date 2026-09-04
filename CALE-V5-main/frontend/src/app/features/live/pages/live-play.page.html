@@ -16,6 +16,80 @@
       }
     </header>
 
+    @if (showPresentationPanel()) {
+      <div class="panel deck">
+        <div class="deck-head">
+          <h2>{{ presentationTitle() || 'Presentación' }}</h2>
+          <span>
+            Diapositiva {{ presentationSlide() + 1 }}/{{ presentationSlides().length || 1 }}
+          </span>
+        </div>
+        <div class="deck-stage">
+          @if (currentPresentationSlide(); as slide) {
+            <div class="deck-slide" [ngStyle]="bgStyle(slide)">
+              @for (el of slide.elements; track el.id) {
+                <div
+                  class="el"
+                  [style.left.px]="el.x"
+                  [style.top.px]="el.y"
+                  [style.width.px]="el.w"
+                  [style.height.px]="el.h"
+                  [style.zIndex]="el.z"
+                  [style.transform]="'rotate(' + el.rotation + 'deg)'">
+                  @if (el.type === 'text') {
+                    <div
+                      class="el-text"
+                      [style.fontSize.px]="textProps(el).fontSize"
+                      [style.fontWeight]="textProps(el).fontWeight"
+                      [style.color]="textProps(el).color"
+                      [style.textAlign]="textProps(el).align"
+                      [style.fontFamily]="textProps(el).fontFamily"
+                      [style.fontStyle]="textProps(el).italic ? 'italic' : 'normal'"
+                      [style.textDecoration]="textProps(el).underline ? 'underline' : 'none'"
+                      >{{ textProps(el).text }}</div>
+                  }
+                  @if (el.type === 'image') {
+                    <div class="el-image-frame" [class.cropped]="imageHasCrop(el)">
+                      <img
+                        [src]="media(imageProps(el).src)"
+                        [ngStyle]="imageStyles(el)"
+                        [style.opacity]="imageProps(el).opacity ?? 1"
+                        alt="" />
+                    </div>
+                  }
+                  @if (el.type === 'video') {
+                    <video
+                      [src]="media(videoProps(el).src)"
+                      [muted]="videoProps(el).muted ?? true"
+                      playsinline
+                      preload="metadata"></video>
+                  }
+                  @if (el.type === 'shape') {
+                    <div
+                      class="el-shape"
+                      [style.background]="shapeProps(el).fill"
+                      [style.border]="shapeProps(el).strokeWidth + 'px solid ' + shapeProps(el).stroke"
+                      [style.opacity]="shapeProps(el).opacity"
+                      [style.borderRadius]="shapeProps(el).shape === 'ellipse' ? '50%' : '4px'"
+                      [style.clipPath]="shapeClip(shapeProps(el).shape)"></div>
+                  }
+                  @if (el.type === 'line' || el.type === 'arrow') {
+                    <div class="el-line">
+                      <div
+                        class="line-bar"
+                        [style.background]="lineProps(el).color"
+                        [style.height.px]="lineProps(el).strokeWidth"></div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+        <p class="deck-hint">Sigue la diapositiva del instructor automáticamente.</p>
+      </div>
+    }
+
     @if (l.status === 'Ended') {
       <div class="panel">
         <h2>Actividad finalizada</h2>
@@ -41,7 +115,11 @@
       <div class="panel wait">
         <div class="pulse"></div>
         <h2>Esperando al instructor…</h2>
-        <p>Mantén esta pantalla abierta. La pregunta aparecerá automáticamente.</p>
+        @if (hasLinkedPresentation()) {
+          <p>La presentación de arriba sigue las diapositivas del anfitrión.</p>
+        } @else {
+          <p>Mantén esta pantalla abierta. La pregunta aparecerá automáticamente.</p>
+        }
         <p class="count">{{ l.participantCount }} en la sala</p>
       </div>
     } @else {

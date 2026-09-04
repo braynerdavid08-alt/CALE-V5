@@ -12,6 +12,7 @@ public static class DependencyInjection
     {
         services.AddScoped<ILiveSessionStore, LiveSessionStore>();
         services.AddScoped<LiveSessionHandler>();
+        services.AddSingleton<ILivePresentationSlideState, LivePresentationSlideState>();
         services.AddHostedService<LiveQuestionTimerService>();
         return services;
     }
