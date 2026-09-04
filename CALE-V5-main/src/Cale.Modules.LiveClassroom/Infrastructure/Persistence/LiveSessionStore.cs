@@ -50,6 +50,13 @@ public sealed class LiveSessionStore : ILiveSessionStore
     public Task<int> CountAnswersAsync(int sessionQuestionId, CancellationToken ct = default) =>
         _db.Set<LiveAnswer>().CountAsync(x => x.SessionQuestionId == sessionQuestionId, ct);
 
+    public async Task<IReadOnlyList<LiveAnswer>> ListAnswersForQuestionAsync(
+        int sessionQuestionId,
+        CancellationToken ct = default) =>
+        await _db.Set<LiveAnswer>()
+            .Where(a => a.SessionQuestionId == sessionQuestionId)
+            .ToListAsync(ct);
+
     public async Task<IReadOnlyList<LiveAnswer>> ListAnswersForSessionAsync(
         int sessionId,
         CancellationToken ct = default)

@@ -9,6 +9,7 @@ import { mapApiError } from '../../../core/http/map-api-error';
 import { resolveMediaUrl } from '../../../core/media/resolve-media-url';
 import {
   LiveApi,
+  LiveAnswerRosterDto,
   LiveDoubtDto,
   LiveLobbyDto,
   LivePresentationDto,
@@ -66,6 +67,7 @@ export class LivePlayPage implements OnInit, OnDestroy {
   readonly doubtText = signal('');
   readonly lastPoints = signal<number | null>(null);
   readonly rematchCode = signal<string | null>(null);
+  readonly answerRoster = signal<LiveAnswerRosterDto | null>(null);
 
   readonly presentationSlides = signal<EditorSlide[]>([]);
   readonly presentationTitle = signal('');
@@ -132,8 +134,63 @@ export class LivePlayPage implements OnInit, OnDestroy {
     if (!l || !this.hasLinkedPresentation() || l.status === 'Ended') {
       return false;
     }
-    // Show slides while waiting or between questions; hide during active question to focus answers.
-    return !l.currentQuestion || l.status === 'Lobby' || l.status === 'Paused';
+    return true;
+  }
+
+  presentationCompact(): boolean {
+    const l = this.lobby();
+    return !!(l?.currentQuestion && l.status !== 'Lobby' && l.status !== 'Paused');
+  }
+
+  optionLetter(index: number): string {
+    return String.fromCharCode(65 + index);
+  }
+
+  isWrongSelected(optId: number): boolean {
+    const l = this.lobby();
+    const q = l?.currentQuestion;
+    if (!l?.revealCorrect || !q || this.selectedOptionId() !== optId) {
+      return false;
+    }
+    const opt = q.options.find((o) => o.id === optId);
+    return opt?.isCorrect === false;
+  }
+
+  myRosterResult(): 'correct' | 'incorrect' | 'unanswered' | null {
+    const roster = this.answerRoster();
+    const q = this.lobby()?.currentQuestion;
+    if (!roster || !q || roster.sessionQuestionId !== q.sessionQuestionId || !roster.revealCorrectness) {
+      return null;
+    }
+    const id =
+      readLiveParticipant(this.sessionId)?.participantId
+      ?? this.ranking()?.myParticipantId
+      ?? null;
+    if (id == null) {
+      // Fallback: infer from selected option vs reveal
+      const selected = this.selectedOptionId();
+      if (selected == null) {
+        return this.submitted() ? 'unanswered' : null;
+      }
+      const opt = q.options.find((o) => o.id === selected);
+      if (opt?.isCorrect === true) {
+        return 'correct';
+      }
+      if (opt?.isCorrect === false) {
+        return 'incorrect';
+      }
+      return null;
+    }
+    if (roster.correct.some((r) => r.participantId === id)) {
+      return 'correct';
+    }
+    if (roster.incorrect.some((r) => r.participantId === id)) {
+      return 'incorrect';
+    }
+    if (roster.unanswered.some((r) => r.participantId === id)) {
+      return 'unanswered';
+    }
+    return null;
   }
 
   select(optionId: number): void {
@@ -383,6 +440,7 @@ export class LivePlayPage implements OnInit, OnDestroy {
       this.selectedOptionId.set(null);
       this.submitted.set(false);
       this.lastPoints.set(null);
+      this.answerRoster.set(null);
       this.syncTimer(payload);
     });
     this.hub.on('QuestionClosed', () => this.submitted.set(true));
@@ -391,6 +449,9 @@ export class LivePlayPage implements OnInit, OnDestroy {
       if (current) {
         this.applyLobby({ ...current, currentQuestion: payload, revealCorrect: true });
       }
+    });
+    this.hub.on('AnswerRosterUpdated', (payload: LiveAnswerRosterDto) => {
+      this.answerRoster.set(payload ?? null);
     });
     this.hub.on('AnswerReceived', () => { /* counts handled on host */ });
     this.hub.on('RankingUpdated', (payload: LiveRankingDto) => this.ranking.set(payload));

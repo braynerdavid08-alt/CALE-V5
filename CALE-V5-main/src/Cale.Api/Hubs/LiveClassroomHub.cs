@@ -175,6 +175,10 @@ public sealed class LiveSessionBroadcaster : Cale.Modules.LiveClassroom.Applicat
         _hub.Clients.Group(LiveClassroomHub.GroupName(sessionId))
             .SendAsync("RevealUpdated", payload, ct);
 
+    public Task AnswerRosterUpdatedAsync(int sessionId, object payload, CancellationToken ct = default) =>
+        _hub.Clients.Group(LiveClassroomHub.GroupName(sessionId))
+            .SendAsync("AnswerRosterUpdated", payload, ct);
+
     public Task RankingUpdatedAsync(int sessionId, object payload, CancellationToken ct = default) =>
         _hub.Clients.Group(LiveClassroomHub.GroupName(sessionId))
             .SendAsync("RankingUpdated", payload, ct);

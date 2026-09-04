@@ -1,6 +1,6 @@
 import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { mapApiError } from '../../../core/http/map-api-error';
@@ -36,6 +36,7 @@ export class TeacherLiveHubPage implements OnInit {
   private readonly authApi = inject(AuthApi);
   private readonly session = inject(SessionStore);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
@@ -51,6 +52,7 @@ export class TeacherLiveHubPage implements OnInit {
   readonly presetName = signal('');
   readonly presentations = signal<PresentationListItem[]>([]);
   readonly selectedPresentationId = signal<number | null>(null);
+  private pendingAutoCreate = false;
 
   readonly form = this.fb.nonNullable.group({
     title: ['CALE Aula en Vivo'],
@@ -165,6 +167,7 @@ export class TeacherLiveHubPage implements OnInit {
 
   ngOnInit(): void {
     this.restoreDraft();
+    this.applyPresentationQuery();
     this.loadBanks();
     this.presentationApi.list().subscribe({
       next: (items) => this.presentations.set(items),
@@ -468,7 +471,9 @@ export class TeacherLiveHubPage implements OnInit {
     }).subscribe({
       next: (lobby) => {
         this.loading.set(false);
-        void this.router.navigate(['/teacher/live', lobby.sessionId, 'host']);
+        void this.router.navigate(['/teacher/live', lobby.sessionId, 'host'], {
+          queryParams: this.selectedPresentationId() ? { openDeck: 1 } : undefined
+        });
       },
       error: (err) => {
         this.loading.set(false);
@@ -520,9 +525,36 @@ export class TeacherLiveHubPage implements OnInit {
         } else {
           this.syncQuotasForSelection(this.selectedBankIds());
         }
+        if (this.pendingAutoCreate) {
+          this.pendingAutoCreate = false;
+          this.create();
+        }
       },
-      error: () => this.banks.set([])
+      error: () => {
+        this.banks.set([]);
+        if (this.pendingAutoCreate) {
+          this.pendingAutoCreate = false;
+          this.create();
+        }
+      }
     });
+  }
+
+  private applyPresentationQuery(): void {
+    const q = this.route.snapshot.queryParamMap;
+    const presentationId = Number(q.get('presentationId') ?? 0);
+    const title = (q.get('title') ?? '').trim();
+    const autoCreate = q.get('autoCreate') === '1';
+    if (presentationId > 0) {
+      this.selectedPresentationId.set(presentationId);
+      this.form.patchValue({
+        mode: 'Pedagogical',
+        ...(title ? { title } : {})
+      });
+    }
+    if (autoCreate && presentationId > 0) {
+      this.pendingAutoCreate = true;
+    }
   }
 
   private syncQuotasForSelection(ids: number[]): void {

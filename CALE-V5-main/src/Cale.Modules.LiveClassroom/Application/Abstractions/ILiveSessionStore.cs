@@ -12,6 +12,7 @@ public interface ILiveSessionStore
     Task<LiveAnswer?> FindAnswerAsync(int sessionQuestionId, int participantId, CancellationToken ct = default);
     Task AddAnswerAsync(LiveAnswer answer, CancellationToken ct = default);
     Task<int> CountAnswersAsync(int sessionQuestionId, CancellationToken ct = default);
+    Task<IReadOnlyList<LiveAnswer>> ListAnswersForQuestionAsync(int sessionQuestionId, CancellationToken ct = default);
     Task<IReadOnlyList<LiveAnswer>> ListAnswersForSessionAsync(int sessionId, CancellationToken ct = default);
     Task<IReadOnlyList<int>> ListExpiredOpenSessionIdsAsync(DateTime utcNow, CancellationToken ct = default);
     Task<LiveParticipant?> GetParticipantByConnectionIdAsync(string connectionId, CancellationToken ct = default);
@@ -31,6 +32,7 @@ public interface ILiveSessionBroadcaster
     Task AnswerReceivedAsync(int sessionId, object payload, CancellationToken ct = default);
     Task SessionEndedAsync(int sessionId, object payload, CancellationToken ct = default);
     Task RevealUpdatedAsync(int sessionId, object payload, CancellationToken ct = default);
+    Task AnswerRosterUpdatedAsync(int sessionId, object payload, CancellationToken ct = default);
     Task RankingUpdatedAsync(int sessionId, object payload, CancellationToken ct = default);
     Task DoubtsUpdatedAsync(int sessionId, object payload, CancellationToken ct = default);
     Task RematchReadyAsync(int sessionId, object payload, CancellationToken ct = default);
