@@ -84,8 +84,17 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   readonly presentationEmbedSrc = signal<SafeResourceUrl | null>(null);
   private lastEmbedPresentationId: number | null = null;
   private readonly bankNames = signal<Record<number, string>>({});
+  private readonly onEmbedReady = (ev: MessageEvent): void => {
+    if (ev.origin !== window.location.origin) {
+      return;
+    }
+    if (ev.data?.type === 'cale-presentation-ready') {
+      this.postSlideToEmbed(this.presentationSlide());
+    }
+  };
 
   ngOnInit(): void {
+    window.addEventListener('message', this.onEmbedReady);
     this.teacherApi.banks(true, false).subscribe({
       next: (banks) => {
         const map: Record<number, string> = {};
@@ -117,6 +126,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    window.removeEventListener('message', this.onEmbedReady);
     if (this.timerId) {
       clearInterval(this.timerId);
     }
@@ -232,6 +242,9 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
 
   onPresentationFrameLoad(): void {
     this.postSlideToEmbed(this.presentationSlide());
+    // Angular inside the iframe may still be bootstrapping when load fires.
+    window.setTimeout(() => this.postSlideToEmbed(this.presentationSlide()), 500);
+    window.setTimeout(() => this.postSlideToEmbed(this.presentationSlide()), 1500);
   }
 
   private postSlideToEmbed(slideIndex: number): void {

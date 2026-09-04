@@ -75,6 +75,7 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
 
   private hideTimer?: ReturnType<typeof setTimeout>;
   private embedRo: ResizeObserver | null = null;
+  private pendingEmbedSlide: number | null = null;
   readonly media = resolveMediaUrl;
 
   ngOnInit(): void {
@@ -99,6 +100,10 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
         this.title.set(detail.title);
         this.slides.set(dtoToEditorSlides(detail));
         this.loading.set(false);
+        this.applyPendingEmbedSlide();
+        if (this.embedMode()) {
+          window.parent?.postMessage({ type: 'cale-presentation-ready' }, window.location.origin);
+        }
         setTimeout(() => {
           this.attachEmbedObserver();
           this.updateSlideScale();
@@ -278,11 +283,28 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
       return;
     }
     const idx = Number(ev.data.slideIndex);
-    if (!Number.isNaN(idx) && idx >= 0 && idx < this.slides().length) {
+    if (Number.isNaN(idx) || idx < 0) {
+      return;
+    }
+    if (!this.slides().length || idx >= this.slides().length) {
+      this.pendingEmbedSlide = idx;
+      return;
+    }
+    this.index.set(idx);
+    this.updateSlideScale();
+  };
+
+  private applyPendingEmbedSlide(): void {
+    const idx = this.pendingEmbedSlide;
+    if (idx == null) {
+      return;
+    }
+    if (idx >= 0 && idx < this.slides().length) {
       this.index.set(idx);
+      this.pendingEmbedSlide = null;
       this.updateSlideScale();
     }
-  };
+  }
 
   private connectLiveHub(): void {
     const sessionId = this.liveSessionId();
