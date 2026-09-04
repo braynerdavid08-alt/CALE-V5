@@ -29,5 +29,11 @@ public sealed class UserLookupService : IUserLookup
         return user?.Role;
     }
 
+    public async Task<int?> GetSchoolIdAsync(int userId, CancellationToken ct)
+    {
+        var user = await _users.GetByIdAsync(userId, ct);
+        return user?.SchoolId;
+    }
+
     public Task<int> CountAsync(CancellationToken ct) => _users.CountAsync(ct);
 }

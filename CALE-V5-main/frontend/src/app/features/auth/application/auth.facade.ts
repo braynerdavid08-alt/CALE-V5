@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { MotivationService } from '../../../core/motivation/motivation.service';
 import { SessionStore } from '../../../core/auth/session.store';
+import { stashReturnUrl, takeReturnUrl } from '../../../core/auth/return-url';
 import { AuthApi } from '../api/auth.api';
 
 @Injectable({ providedIn: 'root' })
@@ -18,6 +19,9 @@ export class AuthFacade {
   readonly success = signal<string | null>(null);
 
   login(email: string, password: string, returnUrl?: string | null): void {
+    if (returnUrl) {
+      stashReturnUrl(returnUrl);
+    }
     this.run(() => this.api.login(email, password).subscribe({
       next: (res) => this.enter(res, returnUrl),
       error: (err) => this.failLogin(err, email)
@@ -131,10 +135,12 @@ export class AuthFacade {
     this.motivation.ensureSessionTip(res.role);
     this.loading.set(false);
     if (res.mustChangePassword) {
+      // Keep destination so profile can send the user back after the password change.
+      stashReturnUrl(returnUrl);
       void this.router.navigateByUrl('/profile');
       return;
     }
-    const target = returnUrl && returnUrl.startsWith('/') ? returnUrl : this.session.homeRoute();
+    const target = takeReturnUrl(returnUrl) ?? this.session.homeRoute();
     void this.router.navigateByUrl(target);
   }
 

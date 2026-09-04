@@ -1,6 +1,8 @@
 using Cale.Api.Extensions;
+using Cale.BuildingBlocks.Domain.Auth;
 using Cale.Modules.Assessment.Application.Queries;
 using Cale.Modules.Classroom.Application.Queries;
+using Cale.Modules.Identity.Application.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,13 +15,16 @@ public sealed class DashboardsController : ControllerBase
 {
     private readonly ClassroomQueryHandler _classroom;
     private readonly ListResultsHandler _results;
+    private readonly IUserStore _users;
 
     public DashboardsController(
         ClassroomQueryHandler classroom,
-        ListResultsHandler results)
+        ListResultsHandler results,
+        IUserStore users)
     {
         _classroom = classroom;
         _results = results;
+        _users = users;
     }
 
     [HttpGet("student/dashboard")]
@@ -47,6 +52,19 @@ public sealed class DashboardsController : ControllerBase
     [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> AllResults(CancellationToken ct) =>
         Ok(await _results.HandleAsync(null, null, ct));
+
+    [HttpGet("school/results")]
+    [Authorize(Policy = "SchoolOnly")]
+    public async Task<IActionResult> SchoolResults(CancellationToken ct)
+    {
+        var schoolId = CurrentUser.GetId(User);
+        var members = await _users.ListBySchoolAsync(schoolId, ct);
+        var studentIds = members
+            .Where(x => Roles.Normalize(x.Role) == Roles.Student)
+            .Select(x => x.Id)
+            .ToList();
+        return Ok(await _results.HandleAsync(null, studentIds, ct));
+    }
 
     [HttpGet("teacher/results")]
     [Authorize(Policy = "TeacherOrAdmin")]

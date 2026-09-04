@@ -1,11 +1,14 @@
 <section class="dash">
   <header class="dash-hero">
     <div class="dash-hero-copy">
+      <p class="dash-kicker">Operaciones de la escuela</p>
       <h1>{{ profile()?.legalName || 'Tu escuela' }}</h1>
+      <p class="dash-sub">Aprendices, formación y resultados en un solo lugar.</p>
     </div>
     <div class="dash-hero-actions">
-      <a routerLink="/school/import"><ui-button type="button">Importar Excel</ui-button></a>
-      <a routerLink="/school/apprentices"><ui-button type="button" variant="secondary">Aprendices</ui-button></a>
+      <a routerLink="/school/apprentices"><ui-button type="button">Aprendices</ui-button></a>
+      <a routerLink="/school/results"><ui-button type="button" variant="secondary">Resultados</ui-button></a>
+      <a routerLink="/school/import"><ui-button type="button" variant="secondary">Importar</ui-button></a>
     </div>
   </header>
 

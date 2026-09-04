@@ -2,9 +2,10 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MeResponse } from '../../../core/auth/session.models';
 import { SessionStore } from '../../../core/auth/session.store';
+import { peekReturnUrl, takeReturnUrl } from '../../../core/auth/return-url';
 import { ThemeService } from '../../../core/theme/theme.service';
 import { env } from '../../../core/config/env';
 import { mapApiError } from '../../../core/http/map-api-error';
@@ -58,6 +59,7 @@ export class ProfilePage implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(AuthApi);
   private readonly http = inject(HttpClient);
+  private readonly router = inject(Router);
   readonly session = inject(SessionStore);
   readonly auth = inject(AuthFacade);
   readonly theme = inject(ThemeService);
@@ -241,10 +243,17 @@ export class ProfilePage implements OnInit {
     this.auth.success.set(null);
     this.api.changePassword(currentPassword, newPassword).subscribe({
       next: () => {
+        const hadForcedChange = !!this.session.user()?.mustChangePassword
+          || !!peekReturnUrl();
         this.session.patchUser({ mustChangePassword: false });
         this.passwordForm.reset();
         this.auth.loading.set(false);
         this.success.set('Contraseña actualizada. Usa la nueva clave en el próximo inicio de sesión.');
+        const dest = takeReturnUrl();
+        if (hadForcedChange && dest) {
+          void this.router.navigateByUrl(dest);
+          return;
+        }
         this.reload();
       },
       error: (err) => {

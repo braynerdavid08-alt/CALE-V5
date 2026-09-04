@@ -128,6 +128,10 @@ export class StudentHomePage implements OnInit {
   }
 
   join(): void {
+    if (!this.session.user()?.schoolId) {
+      this.error.set('Debes estar vinculado a una escuela para unirte a un grupo.');
+      return;
+    }
     if (!this.code.trim()) {
       return;
     }
@@ -138,6 +142,16 @@ export class StudentHomePage implements OnInit {
       },
       error: (err) => this.error.set(mapApiError(err))
     });
+  }
+
+  schoolLine(): string {
+    const u = this.session.user();
+    if (!u?.schoolId) {
+      return 'Aún no estás vinculado a una escuela.';
+    }
+    return u.planLabel
+      ? `Escuela activa · ${u.planLabel}`
+      : 'Estudiante vinculado a tu CEA';
   }
 
   openNotif(n: NotificationDto): void {

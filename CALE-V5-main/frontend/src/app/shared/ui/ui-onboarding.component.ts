@@ -34,42 +34,42 @@ const TIPS: Record<OnboardingRole, OnboardingTip[]> = {
   ],
   Student: [
     {
-      title: 'Unirse a un grupo',
-      text: 'Pide el código a tu instructor e ingresa desde el panel o Mis clases.',
+      title: 'Aula en Vivo',
+      text: 'Únete con el código o QR de tu instructor para participar en clase.',
+      link: '/live/join',
+      linkLabel: 'Entrar en vivo'
+    },
+    {
+      title: 'Grupos de tu escuela',
+      text: 'Solo puedes unirte a grupos si estás vinculado a un CEA. Pide el código a tu instructor.',
       link: '/student/classes',
       linkLabel: 'Mis clases'
     },
     {
-      title: 'Simulacro',
-      text: 'Practica con el simulador y revisa tu progreso por temas.',
+      title: 'Simulador',
+      text: 'Practica con bancos de preguntas y mide tu avance.',
       link: '/student/simulator',
-      linkLabel: 'Ir al simulador'
-    },
-    {
-      title: 'Unirse en vivo',
-      text: 'Inicia sesión, escanea el QR del instructor o ingresa el código de sala.',
-      link: '/live/join',
-      linkLabel: 'Entrar a Live'
+      linkLabel: 'Abrir simulador'
     }
   ],
   School: [
     {
-      title: 'Membresía',
-      text: 'Solicita el plan, paga y sube el comprobante para activar cupos.',
-      link: '/school/membership',
-      linkLabel: 'Membresía'
+      title: 'Aprendices',
+      text: 'Revisa progreso, saldos y autorizaciones de tus estudiantes.',
+      link: '/school/apprentices',
+      linkLabel: 'Aprendices'
     },
     {
-      title: 'Usuarios',
-      text: 'Crea instructores y estudiantes, y administra sus accesos.',
-      link: '/school/users',
-      linkLabel: 'Usuarios'
+      title: 'Resultados',
+      text: 'Consulta los intentos de evaluaciones y simulador de tu escuela.',
+      link: '/school/results',
+      linkLabel: 'Ver resultados'
     },
     {
-      title: 'Importar CSV',
-      text: 'Carga listas de usuarios en bloque desde un archivo CSV.',
-      link: '/school/import',
-      linkLabel: 'Importar'
+      title: 'Formación',
+      text: 'Programa teoría, citas de examen y clases de manejo.',
+      link: '/school/training',
+      linkLabel: 'Programación'
     }
   ]
 };

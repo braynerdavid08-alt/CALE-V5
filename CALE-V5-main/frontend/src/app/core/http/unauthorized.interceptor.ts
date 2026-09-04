@@ -34,9 +34,18 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
       }
 
       if (!session.cookieAuth()) {
+        const here = router.url;
         session.clear();
-        void router.navigateByUrl('/login', {
+        if (here && here !== '/login') {
+          try {
+            sessionStorage.setItem('cale.auth.returnUrl', here);
+          } catch { /* ignore */ }
+        }
+        void router.navigate(['/login'], {
           replaceUrl: true,
+          queryParams: here && here.startsWith('/') && here !== '/login'
+            ? { returnUrl: here }
+            : undefined,
           state: { reason: 'session_expired' }
         });
         return throwError(() => err);
@@ -54,9 +63,18 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
         }),
         catchError((refreshErr) => {
           refreshInFlight = null;
+          const here = router.url;
           session.clear();
-          void router.navigateByUrl('/login', {
+          if (here && here !== '/login') {
+            try {
+              sessionStorage.setItem('cale.auth.returnUrl', here);
+            } catch { /* ignore */ }
+          }
+          void router.navigate(['/login'], {
             replaceUrl: true,
+            queryParams: here && here.startsWith('/') && here !== '/login'
+              ? { returnUrl: here }
+              : undefined,
             state: { reason: 'session_expired' }
           });
           return throwError(() => refreshErr);

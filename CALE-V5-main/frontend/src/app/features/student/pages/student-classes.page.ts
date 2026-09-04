@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { mapApiError } from '../../../core/http/map-api-error';
+import { SessionStore } from '../../../core/auth/session.store';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiEmptyComponent } from '../../../shared/ui/ui-empty.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
@@ -26,30 +27,42 @@ import { ActivityDto, GroupDto, StudentApi } from '../api/student.api';
     <ui-page-header
       eyebrow="Estudiante"
       title="Mis clases"
-      subtitle="Grupos a los que perteneces y actividades pendientes del aula." />
+      subtitle="Grupos de tu escuela y actividades pendientes del aula." />
 
     <ui-error [message]="error()" />
 
     @if (loading()) {
       <ui-loading />
     } @else {
-      <section class="panel join-panel">
-        <h2>Unirme a un grupo</h2>
-        <form class="join" (ngSubmit)="join()">
-          <label>
-            Código del grupo
-            <input class="input" [(ngModel)]="code" name="code" placeholder="CALE-XXXXXXXX" />
-          </label>
-          <ui-button type="submit">Unirme</ui-button>
-        </form>
-      </section>
+      @if (!hasSchool()) {
+        <section class="panel warn-panel">
+          <h2>Necesitas una escuela</h2>
+          <p class="lead">
+            Solo los estudiantes vinculados a una escuela pueden unirse a grupos.
+            Ve a tu perfil y solicita unirte con el NIT o correo de tu CEA.
+          </p>
+          <a routerLink="/profile"><ui-button type="button">Ir a Perfil</ui-button></a>
+        </section>
+      } @else {
+        <section class="panel join-panel">
+          <h2>Unirme a un grupo</h2>
+          <p class="lead">Usa el código que te dio tu instructor. Debe ser de tu misma escuela.</p>
+          <form class="join" (ngSubmit)="join()">
+            <label>
+              Código del grupo
+              <input class="input" [(ngModel)]="code" name="code" placeholder="CALE-XXXXXXXX" />
+            </label>
+            <ui-button type="submit">Unirme</ui-button>
+          </form>
+        </section>
+      }
 
       <section class="panel">
         <h2>Mis grupos</h2>
         @if (!groups().length) {
           <ui-empty
             title="Sin grupos"
-            message="Pide el código a tu instructor o escuela e introdúcelo arriba." />
+            message="Cuando te unas con un código de tu escuela, aparecerán aquí." />
         } @else {
           <ul class="list">
             @for (g of groups(); track g.id) {
@@ -97,7 +110,18 @@ import { ActivityDto, GroupDto, StudentApi } from '../api/student.api';
       padding: 1.1rem 1.25rem;
       margin-bottom: 1rem;
     }
-    .panel h2 { margin: 0 0 0.85rem; font-size: 1.05rem; }
+    .warn-panel {
+      border-color: color-mix(in srgb, var(--color-warning) 45%, var(--color-border));
+      background: color-mix(in srgb, var(--color-warning) 8%, var(--color-surface));
+    }
+    .panel h2 { margin: 0 0 0.5rem; font-size: 1.05rem; }
+    .lead {
+      margin: 0 0 0.85rem;
+      color: var(--color-text-secondary);
+      font-size: var(--text-sm);
+      line-height: 1.45;
+      max-width: 36rem;
+    }
     .join {
       display: flex;
       flex-wrap: wrap;
@@ -129,15 +153,18 @@ import { ActivityDto, GroupDto, StudentApi } from '../api/student.api';
 })
 export class StudentClassesPage implements OnInit {
   private readonly api = inject(StudentApi);
+  private readonly session = inject(SessionStore);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly groups = signal<GroupDto[]>([]);
   readonly pending = signal<ActivityDto[]>([]);
+  readonly hasSchool = signal(false);
   readonly statusLabel = itemStatusLabel;
   code = '';
 
   ngOnInit(): void {
+    this.hasSchool.set(!!this.session.user()?.schoolId);
     this.reload();
   }
 
@@ -158,6 +185,10 @@ export class StudentClassesPage implements OnInit {
   }
 
   join(): void {
+    if (!this.hasSchool()) {
+      this.error.set('Debes estar vinculado a una escuela para unirte a un grupo.');
+      return;
+    }
     if (!this.code.trim()) return;
     this.api.joinGroup(this.code.trim()).subscribe({
       next: () => {
