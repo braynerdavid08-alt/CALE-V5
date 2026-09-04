@@ -207,6 +207,11 @@
   color: #c62828;
 }
 
+.actions .live {
+  color: #0b7a4b;
+  font-weight: 700;
+}
+
 @media (max-width: 640px) {
   .plist-hero {
     flex-direction: column;

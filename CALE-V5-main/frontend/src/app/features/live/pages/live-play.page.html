@@ -17,7 +17,7 @@
     </header>
 
     @if (showPresentationPanel()) {
-      <div class="panel deck">
+      <div class="panel deck" [class.compact]="presentationCompact()">
         <div class="deck-head">
           <h2>{{ presentationTitle() || 'Presentación' }}</h2>
           <span>
@@ -140,15 +140,17 @@
           <img [src]="l.currentQuestion.imageUrl" alt="" />
         }
         <div class="opts">
-          @for (opt of l.currentQuestion.options; track opt.id) {
+          @for (opt of l.currentQuestion.options; track opt.id; let i = $index) {
             <button
               type="button"
               class="opt"
               [class.selected]="selectedOptionId() === opt.id"
               [class.correct]="l.revealCorrect && opt.isCorrect === true"
+              [class.incorrect]="isWrongSelected(opt.id)"
               [disabled]="submitted()"
               (click)="select(opt.id)">
-              {{ opt.text }}
+              <span class="letter">{{ optionLetter(i) }}</span>
+              <span>{{ opt.text }}</span>
             </button>
           }
         </div>
@@ -164,6 +166,24 @@
             }
             Espera la siguiente pregunta.
           </p>
+        }
+        @if (myRosterResult(); as mine) {
+          <p class="result" [attr.data-result]="mine">
+            @if (mine === 'correct') {
+              ¡Correcto!
+            } @else if (mine === 'incorrect') {
+              Incorrecto.
+            } @else {
+              No respondiste a tiempo.
+            }
+          </p>
+        }
+        @if (answerRoster(); as roster) {
+          @if (roster.revealCorrectness && roster.sessionQuestionId === l.currentQuestion.sessionQuestionId) {
+            <div class="mini-roster">
+              <p><strong>{{ roster.correctCount }}</strong> bien · <strong>{{ roster.incorrectCount }}</strong> mal · <strong>{{ roster.unansweredCount }}</strong> sin respuesta</p>
+            </div>
+          }
         }
         @if (l.currentQuestion.explanation && l.revealCorrect) {
           <p class="explain">{{ l.currentQuestion.explanation }}</p>

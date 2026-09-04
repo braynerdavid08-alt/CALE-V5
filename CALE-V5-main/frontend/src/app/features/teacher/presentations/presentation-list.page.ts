@@ -7,6 +7,8 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiEmptyComponent } from '../../../shared/ui/ui-empty.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
+import { LiveApi } from '../../live/api/live.api';
+import { TeacherApi } from '../api/teacher.api';
 import { PresentationApi } from './presentation.api';
 import {
   PRESENTATION_CATEGORIES,
@@ -31,6 +33,8 @@ import {
 })
 export class PresentationListPage implements OnInit {
   private readonly api = inject(PresentationApi);
+  private readonly liveApi = inject(LiveApi);
+  private readonly teacherApi = inject(TeacherApi);
   private readonly router = inject(Router);
   readonly session = inject(SessionStore);
 
@@ -39,6 +43,7 @@ export class PresentationListPage implements OnInit {
   readonly items = signal<PresentationListItem[]>([]);
   readonly creating = signal(false);
   readonly importing = signal(false);
+  readonly liveStarting = signal(false);
   readonly showCreate = signal(false);
 
   title = '';
@@ -175,6 +180,55 @@ export class PresentationListPage implements OnInit {
     this.api.duplicate(item.id).subscribe({
       next: () => this.reload(),
       error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  presentLive(item: PresentationListItem, ev: Event): void {
+    ev.preventDefault();
+    ev.stopPropagation();
+    if (this.liveStarting()) {
+      return;
+    }
+    this.liveStarting.set(true);
+    this.error.set(null);
+    this.teacherApi.banks(true, false).subscribe({
+      next: (banks) => {
+        const bankIds = banks.filter((b) => b.isActive && b.questionCount > 0).map((b) => b.id);
+        this.liveApi
+          .create({
+            title: item.title,
+            mode: 'Pedagogical',
+            bankIds: bankIds.length ? bankIds : undefined,
+            config: {
+              caleStandardPreset: false,
+              questionCount: bankIds.length ? 10 : 0,
+              secondsPerQuestion: 30,
+              randomize: true,
+              shuffleOptions: true,
+              showRanking: true,
+              anonymousNames: false,
+              feedbackTiming: 'immediate',
+              bankIds: bankIds.length ? bankIds : undefined,
+              presentationId: item.id
+            }
+          })
+          .subscribe({
+            next: (lobby) => {
+              this.liveStarting.set(false);
+              void this.router.navigate(['/teacher/live', lobby.sessionId, 'host'], {
+                queryParams: { openDeck: 1 }
+              });
+            },
+            error: (err) => {
+              this.liveStarting.set(false);
+              this.error.set(mapApiError(err));
+            }
+          });
+      },
+      error: (err) => {
+        this.liveStarting.set(false);
+        this.error.set(mapApiError(err));
+      }
     });
   }
 

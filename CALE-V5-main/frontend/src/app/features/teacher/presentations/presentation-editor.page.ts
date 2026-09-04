@@ -1983,6 +1983,18 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     void this.router.navigate(['/teacher/presentations', this.presentationId(), 'present']);
   }
 
+  presentLive(): void {
+    this.saveNow();
+    this.skipUnload = true;
+    void this.router.navigate(['/teacher/live'], {
+      queryParams: {
+        presentationId: this.presentationId(),
+        title: this.title().trim() || undefined,
+        autoCreate: 1
+      }
+    });
+  }
+
   exportDeck(format: 'xlsx' | 'docx' | 'pptx'): void {
     const id = this.presentationId();
     if (!id) return;

@@ -169,16 +169,76 @@
           </div>
         } @else if (!l.currentQuestion || l.status === 'Lobby') {
           <div class="waiting">
-            <h2>Sala lista</h2>
-            <p>Proyecta el QR. Cuando todos estén listos, inicia el simulacro.</p>
-            <div class="actions">
-              <ui-button type="button" [loading]="loading()" (click)="control('start')">
-                Iniciar actividad
-              </ui-button>
-              <ui-button type="button" variant="ghost" [loading]="loading()" (click)="control('end')">
-                Cerrar sala
-              </ui-button>
+            <h2>{{ linkedPresentationId() ? 'Presentación lista' : 'Sala lista' }}</h2>
+            <p>
+              @if (linkedPresentationId()) {
+                Proyecta el QR. Avanza diapositivas y, cuando quieras, inicia o lanza una pregunta rápida (V/F o A–D).
+              } @else {
+                Proyecta el QR. Cuando todos estén listos, inicia el simulacro.
+              }
+            </p>
+            <div class="actions wrap">
+              @if (l.status === 'Lobby') {
+                <ui-button type="button" [loading]="loading()" (click)="control('start')">
+                  {{ linkedPresentationId() && l.questionCount === 0 ? 'Iniciar clase (diapositivas)' : 'Iniciar actividad' }}
+                </ui-button>
+              }
+              <ui-button type="button" variant="secondary" (click)="toggleQuick()">Pregunta rápida</ui-button>
+              @if (l.status === 'Running' || l.status === 'Paused') {
+                <ui-button type="button" variant="ghost" (click)="control('end')">Terminar clase</ui-button>
+              } @else {
+                <ui-button type="button" variant="ghost" [loading]="loading()" (click)="control('end')">
+                  Cerrar sala
+                </ui-button>
+              }
             </div>
+            @if (quickOpen()) {
+              <form class="quick-form" (ngSubmit)="submitQuick()">
+                <h3>Pregunta rápida</h3>
+                <div class="preset-row">
+                  <button type="button" class="linkish" (click)="applyQuickPreset('vf')">Verdadero / Falso</button>
+                  <button type="button" class="linkish" (click)="applyQuickPreset('abcd')">A / B / C / D</button>
+                </div>
+                <label>
+                  Enunciado
+                  <textarea
+                    rows="2"
+                    [ngModel]="quickText()"
+                    (ngModelChange)="quickText.set($event)"
+                    name="quickTextLobby"
+                    required></textarea>
+                </label>
+                <fieldset>
+                  <legend>Opciones (marca la correcta)</legend>
+                  @for (opt of quickOptions(); track $index; let i = $index) {
+                    <div class="quick-opt">
+                      <input
+                        type="radio"
+                        name="quickCorrectLobby"
+                        [checked]="quickCorrectIndex() === i"
+                        (change)="quickCorrectIndex.set(i)" />
+                      <input
+                        type="text"
+                        [ngModel]="opt.text"
+                        (ngModelChange)="setQuickOptionText(i, $event)"
+                        [name]="'quickOptLobby' + i"
+                        placeholder="Opción {{ i + 1 }}"
+                        required />
+                      @if (quickOptions().length > 2) {
+                        <button type="button" class="linkish" (click)="removeQuickOption(i)">Quitar</button>
+                      }
+                    </div>
+                  }
+                </fieldset>
+                @if (quickOptions().length < 4) {
+                  <button type="button" class="linkish" (click)="addQuickOption()">+ Añadir opción</button>
+                }
+                <div class="actions">
+                  <ui-button type="submit" [loading]="loading()">Enviar ahora</ui-button>
+                  <ui-button type="button" variant="ghost" (click)="toggleQuick()">Cerrar</ui-button>
+                </div>
+              </form>
+            }
           </div>
         } @else {
           @if ((l.status === 'Running' || l.status === 'Paused') && analytics(); as liveA) {
@@ -224,6 +284,57 @@
           @if (l.currentQuestion.explanation && l.revealCorrect) {
             <p class="explain">{{ l.currentQuestion.explanation }}</p>
           }
+
+          @if (answerRoster(); as roster) {
+            @if (roster.sessionQuestionId === l.currentQuestion.sessionQuestionId) {
+              <div class="roster">
+                @if (roster.revealCorrectness) {
+                  <div class="roster-col ok">
+                    <h3>Correctos ({{ roster.correctCount }})</h3>
+                    <ul>
+                      @for (row of roster.correct; track row.participantId) {
+                        <li>{{ row.displayName }}</li>
+                      } @empty {
+                        <li class="empty">Nadie aún</li>
+                      }
+                    </ul>
+                  </div>
+                  <div class="roster-col bad">
+                    <h3>Incorrectos ({{ roster.incorrectCount }})</h3>
+                    <ul>
+                      @for (row of roster.incorrect; track row.participantId) {
+                        <li>{{ row.displayName }}</li>
+                      } @empty {
+                        <li class="empty">Nadie</li>
+                      }
+                    </ul>
+                  </div>
+                } @else {
+                  <div class="roster-col">
+                    <h3>Respondieron ({{ roster.incorrect.length }})</h3>
+                    <ul>
+                      @for (row of roster.incorrect; track row.participantId) {
+                        <li>{{ row.displayName }}</li>
+                      } @empty {
+                        <li class="empty">Nadie</li>
+                      }
+                    </ul>
+                  </div>
+                }
+                <div class="roster-col mute">
+                  <h3>Sin respuesta ({{ roster.unansweredCount }})</h3>
+                  <ul>
+                    @for (row of roster.unanswered; track row.participantId) {
+                      <li>{{ row.displayName }}</li>
+                    } @empty {
+                      <li class="empty">Todos respondieron</li>
+                    }
+                  </ul>
+                </div>
+              </div>
+            }
+          }
+
           <div class="actions wrap primary-actions">
             @if (l.status === 'Running') {
               <ui-button type="button" variant="ghost" (click)="control('pause')">Pausar</ui-button>
@@ -250,6 +361,10 @@
           @if (quickOpen()) {
             <form class="quick-form" (ngSubmit)="submitQuick()">
               <h3>Pregunta rápida</h3>
+              <div class="preset-row">
+                <button type="button" class="linkish" (click)="applyQuickPreset('vf')">Verdadero / Falso</button>
+                <button type="button" class="linkish" (click)="applyQuickPreset('abcd')">A / B / C / D</button>
+              </div>
               <label>
                 Enunciado
                 <textarea

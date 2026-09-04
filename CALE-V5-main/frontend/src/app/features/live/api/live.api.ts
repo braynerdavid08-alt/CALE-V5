@@ -71,6 +71,26 @@ export interface LiveRankingDto {
   myScore?: number | null;
 }
 
+export interface LiveAnswerRosterEntryDto {
+  participantId: number;
+  displayName: string;
+  answered: boolean;
+  isCorrect?: boolean | null;
+  optionId?: number | null;
+}
+
+export interface LiveAnswerRosterDto {
+  sessionQuestionId: number;
+  questionIndex: number;
+  revealCorrectness: boolean;
+  correctCount: number;
+  incorrectCount: number;
+  unansweredCount: number;
+  correct: LiveAnswerRosterEntryDto[];
+  incorrect: LiveAnswerRosterEntryDto[];
+  unanswered: LiveAnswerRosterEntryDto[];
+}
+
 export interface LiveLobbyDto {
   sessionId: number;
   title: string;

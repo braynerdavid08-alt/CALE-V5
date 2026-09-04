@@ -102,6 +102,50 @@
   color: #ffffff;
 }
 
+.roster {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0 0;
+  text-align: left;
+}
+.roster-col {
+  border: 1px solid #d7e0ea;
+  border-radius: 12px;
+  padding: 0.75rem;
+  background: #f8fbff;
+}
+.roster-col h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.roster-col ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 160px;
+  overflow: auto;
+}
+.roster-col li {
+  padding: 0.25rem 0;
+  font-size: 0.92rem;
+  border-bottom: 1px solid #e8eef5;
+}
+.roster-col .empty { color: #7a8b9c; font-style: italic; border: 0; }
+.roster-col.ok { border-color: #a5d6a7; background: #f1faf3; }
+.roster-col.ok h3 { color: #1b5e20; }
+.roster-col.bad { border-color: #ef9a9a; background: #fff5f5; }
+.roster-col.bad h3 { color: #b71c1c; }
+.roster-col.mute h3 { color: #5a6f82; }
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
 .explain {
   margin-top: 1rem;
   padding: 0.85rem 1rem;

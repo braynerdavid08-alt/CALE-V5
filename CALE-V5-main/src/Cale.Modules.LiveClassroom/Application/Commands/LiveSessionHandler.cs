@@ -252,11 +252,21 @@ public sealed class LiveSessionHandler
                 await EnsureQuestionsPreparedAsync(session, config, ct);
                 if (session.Questions.Count == 0)
                 {
-                    throw new DomainException(
-                        "No hay preguntas en el banco con esos filtros.",
-                        400,
-                        "no_questions");
+                    if (config.PresentationId is not > 0)
+                    {
+                        throw new DomainException(
+                            "No hay preguntas en el banco con esos filtros.",
+                            400,
+                            "no_questions");
+                    }
+
+                    // Presentación en vivo sin banco: sala Running; el host lanza preguntas rápidas.
+                    session.MarkRunning(now);
+                    await _store.SaveChangesAsync(ct);
+                    await BroadcastLobbyAsync(session, ct);
+                    break;
                 }
+
                 session.MarkRunning(now);
                 OpenAt(session, 0, config, now);
                 await _store.SaveChangesAsync(ct);
@@ -279,6 +289,14 @@ public sealed class LiveSessionHandler
             case "next":
                 await EnsureQuestionsPreparedAsync(session, config, ct);
                 var next = session.CurrentQuestionIndex + 1;
+                if (session.Questions.Count == 0)
+                {
+                    throw new DomainException(
+                        "No hay más preguntas. Usa una pregunta rápida o termina la clase.",
+                        400,
+                        "no_more_questions");
+                }
+
                 if (next >= session.Questions.Count)
                 {
                     session.End(now);
@@ -301,6 +319,7 @@ public sealed class LiveSessionHandler
                 session.SetReveal(true);
                 await _store.SaveChangesAsync(ct);
                 await BroadcastRevealAsync(session, ct);
+                await BroadcastAnswerRosterAsync(session, ct);
                 await BroadcastRankingAsync(session, ct);
                 break;
 
@@ -367,6 +386,7 @@ public sealed class LiveSessionHandler
             await BroadcastRevealAsync(session, ct);
         }
 
+        await BroadcastAnswerRosterAsync(session, ct);
         await BroadcastRankingAsync(session, ct);
     }
 
@@ -889,6 +909,24 @@ public sealed class LiveSessionHandler
         session.InsertQuestionAfterCurrent(quick);
         await _store.SaveChangesAsync(ct);
 
+        var ordered = session.Questions.OrderBy(q => q.SortOrder).ToList();
+        var quickIndex = ordered.FindIndex(q => ReferenceEquals(q, quick));
+        if (quickIndex < 0)
+        {
+            quickIndex = ordered.FindIndex(q =>
+                q.IsSurprise && q.QuestionId == 0 && q.Difficulty == "quick");
+        }
+
+        var now = _clock.UtcNow;
+        if (quickIndex >= 0 && !session.IsQuestionOpen(now))
+        {
+            OpenAt(session, quickIndex, config, now);
+            await _store.SaveChangesAsync(ct);
+            await BroadcastQuestionAsync(session, includeCorrect: false, ct);
+            await BroadcastRankingAsync(session, ct);
+            return;
+        }
+
         await _broadcast.SurpriseQueuedAsync(
             session.Id,
             new
@@ -911,9 +949,19 @@ public sealed class LiveSessionHandler
         }
 
         var list = await LoadQuestionPoolAsync(session, config, ct);
-        var take = Math.Clamp(config.QuestionCount, 1, 100);
+        var take = Math.Clamp(config.QuestionCount, 0, 100);
+        if (take == 0)
+        {
+            return;
+        }
+
         if (list.Count == 0)
         {
+            if (config.PresentationId is > 0)
+            {
+                return;
+            }
+
             throw new DomainException(
                 "No hay preguntas en los bancos o temas seleccionados.",
                 400,
@@ -923,6 +971,11 @@ public sealed class LiveSessionHandler
         list = PickQuestions(list, config, take);
         if (list.Count < take)
         {
+            if (config.PresentationId is > 0 && list.Count == 0)
+            {
+                return;
+            }
+
             throw new DomainException(
                 $"Hay {list.Count} preguntas con esos bancos/temas; necesitas al menos {take}.",
                 400,
@@ -1004,6 +1057,88 @@ public sealed class LiveSessionHandler
         {
             await BroadcastLobbyAsync(session, ct);
         }
+    }
+
+    private async Task BroadcastAnswerRosterAsync(LiveSession session, CancellationToken ct)
+    {
+        var roster = await BuildAnswerRosterAsync(session, ct);
+        if (roster is null)
+        {
+            return;
+        }
+
+        await _broadcast.AnswerRosterUpdatedAsync(session.Id, roster, ct);
+    }
+
+    private async Task<LiveAnswerRosterDto?> BuildAnswerRosterAsync(
+        LiveSession session,
+        CancellationToken ct)
+    {
+        if (session.CurrentQuestionIndex < 0 || session.Questions.Count == 0)
+        {
+            return null;
+        }
+
+        var ordered = session.Questions.OrderBy(q => q.SortOrder).ToList();
+        if (session.CurrentQuestionIndex >= ordered.Count)
+        {
+            return null;
+        }
+
+        var current = ordered[session.CurrentQuestionIndex];
+        var answers = await _store.ListAnswersForQuestionAsync(current.Id, ct);
+        var byParticipant = answers.ToDictionary(a => a.ParticipantId);
+        var config = ReadConfig(session);
+        var revealCorrectness = session.RevealCorrect
+            && session.Mode is not LiveSessionModes.Exam;
+
+        var correct = new List<LiveAnswerRosterEntryDto>();
+        var incorrect = new List<LiveAnswerRosterEntryDto>();
+        var unanswered = new List<LiveAnswerRosterEntryDto>();
+
+        foreach (var p in session.Participants.OrderBy(x => x.JoinedAt))
+        {
+            var name = config.AnonymousNames ? $"Jugador {p.Id}" : p.DisplayName;
+            if (!byParticipant.TryGetValue(p.Id, out var answer))
+            {
+                unanswered.Add(new LiveAnswerRosterEntryDto(p.Id, name, false, null, null));
+                continue;
+            }
+
+            bool? isCorrect = revealCorrectness ? answer.IsCorrect : null;
+            var entry = new LiveAnswerRosterEntryDto(
+                p.Id,
+                name,
+                true,
+                isCorrect,
+                answer.OptionId);
+
+            if (!revealCorrectness)
+            {
+                // Sin revelar: solo “respondió”; lo listamos en incorrect como “respondidos”
+                // y el front usa RevealCorrectness=false para UI de participación.
+                incorrect.Add(entry);
+            }
+            else if (answer.IsCorrect)
+            {
+                correct.Add(entry);
+            }
+            else
+            {
+                incorrect.Add(entry);
+            }
+        }
+
+        return new LiveAnswerRosterDto(
+            current.Id,
+            session.CurrentQuestionIndex,
+            revealCorrectness,
+            correct.Count,
+            revealCorrectness ? incorrect.Count : 0,
+            unanswered.Count,
+            correct,
+            incorrect,
+            unanswered);
     }
 
     private async Task BroadcastRankingAsync(LiveSession session, CancellationToken ct)
@@ -1489,7 +1624,7 @@ public sealed class LiveSessionHandler
 
         LiveSessionConfig config = new()
         {
-            QuestionCount = Math.Clamp(dto.QuestionCount, 1, 100),
+            QuestionCount = Math.Clamp(dto.QuestionCount, 0, 100),
             SecondsPerQuestion = Math.Clamp(dto.SecondsPerQuestion, 5, 600),
             Randomize = dto.Randomize,
             ShuffleOptions = dto.ShuffleOptions,

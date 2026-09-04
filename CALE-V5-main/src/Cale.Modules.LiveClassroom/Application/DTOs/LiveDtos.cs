@@ -75,6 +75,24 @@ public sealed record LiveRankingDto(
     int? MyRank,
     int? MyScore);
 
+public sealed record LiveAnswerRosterEntryDto(
+    int ParticipantId,
+    string DisplayName,
+    bool Answered,
+    bool? IsCorrect,
+    int? OptionId);
+
+public sealed record LiveAnswerRosterDto(
+    int SessionQuestionId,
+    int QuestionIndex,
+    bool RevealCorrectness,
+    int CorrectCount,
+    int IncorrectCount,
+    int UnansweredCount,
+    IReadOnlyList<LiveAnswerRosterEntryDto> Correct,
+    IReadOnlyList<LiveAnswerRosterEntryDto> Incorrect,
+    IReadOnlyList<LiveAnswerRosterEntryDto> Unanswered);
+
 public sealed record LiveLobbyDto(
     int SessionId,
     string Title,

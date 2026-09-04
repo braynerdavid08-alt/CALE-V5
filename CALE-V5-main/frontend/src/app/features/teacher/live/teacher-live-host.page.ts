@@ -8,6 +8,7 @@ import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { mapApiError } from '../../../core/http/map-api-error';
 import {
   LiveAnalyticsDto,
+  LiveAnswerRosterDto,
   LiveApi,
   LiveDoubtDto,
   LiveLobbyDto,
@@ -53,6 +54,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   readonly loading = signal(false);
   readonly secondsLeft = signal<number | null>(null);
   readonly answersReceived = signal(0);
+  readonly answerRoster = signal<LiveAnswerRosterDto | null>(null);
   readonly quickOpen = signal(false);
   readonly quickText = signal('');
   readonly quickExplanation = signal('');
@@ -88,11 +90,15 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
       this.hub = null;
       this.analytics.set(null);
       this.surpriseNotice.set(null);
+      this.answerRoster.set(null);
       this.autoCloseSent = false;
       this.lastAnalyticsAtAnswers = -1;
       this.reload(id);
       this.connectHub(id);
       this.loadDoubts(id);
+      if (this.route.snapshot.queryParamMap.get('openDeck') === '1') {
+        this.showPresentation.set(true);
+      }
     });
   }
 
@@ -236,6 +242,22 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
 
   toggleQuick(): void {
     this.quickOpen.update((v) => !v);
+  }
+
+  applyQuickPreset(kind: 'vf' | 'abcd'): void {
+    this.quickOpen.set(true);
+    if (kind === 'vf') {
+      this.quickOptions.set([{ text: 'Verdadero' }, { text: 'Falso' }]);
+      this.quickCorrectIndex.set(0);
+      return;
+    }
+    this.quickOptions.set([
+      { text: 'A' },
+      { text: 'B' },
+      { text: 'C' },
+      { text: 'D' }
+    ]);
+    this.quickCorrectIndex.set(0);
   }
 
   addQuickOption(): void {
@@ -402,6 +424,9 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     if (lobby.ranking) {
       this.ranking.set(lobby.ranking);
     }
+    if (lobby.config?.presentationId && this.route.snapshot.queryParamMap.get('openDeck') === '1') {
+      this.showPresentation.set(true);
+    }
     this.syncTimer(lobby.currentQuestion ?? null);
   }
 
@@ -484,6 +509,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
         });
       }
       this.answersReceived.set(0);
+      this.answerRoster.set(null);
       this.autoCloseSent = false;
       this.surpriseNotice.set(payload.isSurprise ? '¡Pregunta sorpresa!' : null);
       this.syncTimer(payload);
@@ -505,6 +531,9 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
       if (current) {
         this.applyLobby({ ...current, currentQuestion: payload, revealCorrect: true });
       }
+    });
+    this.hub.on('AnswerRosterUpdated', (payload: LiveAnswerRosterDto) => {
+      this.answerRoster.set(payload ?? null);
     });
     this.hub.on('RankingUpdated', (payload: LiveRankingDto) => this.ranking.set(payload));
     this.hub.on('DoubtsUpdated', (payload: LiveDoubtDto[]) => this.doubts.set(payload ?? []));
