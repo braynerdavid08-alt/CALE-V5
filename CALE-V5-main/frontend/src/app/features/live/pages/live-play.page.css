@@ -86,7 +86,7 @@ a { color: #2bb0ed; }
 .rank li span:nth-child(2) { flex: 1; }
 .surprise { color: #f0b429; font-style: normal; margin-left: 0.35rem; font-weight: 800; font-size: 0.75rem; text-transform: uppercase; }
 .deck { padding: 0.85rem; }
-.deck.compact .deck-stage { max-height: 28vw; }
+.deck.compact .deck-stage { max-height: min(48vw, 260px); }
 .deck.compact .deck-hint { display: none; }
 .deck.compact .deck-head h2 { font-size: 0.9rem; }
 .deck-head {

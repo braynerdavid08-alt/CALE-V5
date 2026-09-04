@@ -90,7 +90,7 @@
                   <p class="q-text">{{ questionProps(el).text }}</p>
                   <ul class="q-opts">
                     @for (opt of questionProps(el).options; track $index; let i = $index) {
-                      <li [class.ok]="i === questionProps(el).correctIndex">
+                      <li [class.ok]="showQuestionKey() && i === questionProps(el).correctIndex">
                         <span>{{ optionLetter(i) }}</span>
                         {{ opt }}
                       </li>

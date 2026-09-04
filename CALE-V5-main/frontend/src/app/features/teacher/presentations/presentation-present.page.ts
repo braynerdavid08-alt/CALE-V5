@@ -51,7 +51,6 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private hub: HubConnection | null = null;
-  private embedMode = false;
   private readonly firedQuestionIds = new Set<string>();
   private openingQuestion = false;
 
@@ -66,9 +65,13 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
   readonly presentationId = signal(0);
   readonly slideScale = signal(1);
   readonly liveSessionId = signal<number | null>(null);
+  readonly embedMode = signal(false);
 
   readonly current = computed(() => this.slides()[this.index()] ?? null);
   readonly currentNotes = computed(() => this.current()?.notes?.trim() ?? '');
+  readonly showQuestionKey = computed(
+    () => !this.embedMode() && this.liveSessionId() == null
+  );
 
   private hideTimer?: ReturnType<typeof setTimeout>;
   readonly media = resolveMediaUrl;
@@ -76,7 +79,7 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.presentationId.set(id);
-    this.embedMode = this.route.snapshot.queryParamMap.get('embed') === '1';
+    this.embedMode.set(this.route.snapshot.queryParamMap.get('embed') === '1');
     const slide = Number(this.route.snapshot.queryParamMap.get('slide') ?? 0);
     const liveId = Number(this.route.snapshot.queryParamMap.get('liveSessionId') ?? 0);
     if (!Number.isNaN(slide) && slide >= 0) {
@@ -85,7 +88,7 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
     if (liveId > 0) {
       this.liveSessionId.set(liveId);
     }
-    if (this.embedMode) {
+    if (this.embedMode()) {
       this.showChrome.set(false);
       this.showNotes.set(false);
       window.addEventListener('message', this.onEmbedMessage);
@@ -97,7 +100,7 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
         this.loading.set(false);
         setTimeout(() => {
           this.updateSlideScale();
-          if (!this.embedMode) {
+          if (!this.embedMode()) {
             this.enterFullscreen();
           }
           if (this.liveSessionId()) {
@@ -154,7 +157,8 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
   }
 
   next(): void {
-    if (this.index() < this.slides().length - 1) {
+    const max = this.slides().length - 1;
+    if (this.index() < max) {
       this.index.update((i) => i + 1);
       this.onSlideSettled();
     }
@@ -162,7 +166,7 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
 
   prev(): void {
     if (this.index() > 0) {
-      this.index.update((i) => i - 1);
+      this.index.update((i) => Math.max(0, i - 1));
       this.onSlideSettled();
     }
   }
@@ -242,6 +246,22 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
     }
     this.loadFiredQuestions(sessionId);
     this.hub = this.liveApi.buildHub(true);
+    this.hub.on('PresentationSlideChanged', (payload: { slideIndex?: number }) => {
+      if (this.embedMode()) {
+        return;
+      }
+      const idx = Number(payload?.slideIndex);
+      if (Number.isNaN(idx) || idx < 0 || idx >= this.slides().length) {
+        return;
+      }
+      if (idx === this.index()) {
+        return;
+      }
+      this.index.set(idx);
+      this.updateSlideScale();
+      // Host already fired the question; only follow the slide.
+      this.loadFiredQuestions(sessionId);
+    });
     void this.hub.start().then(() => this.hub!.invoke('JoinAsHost', sessionId)).catch(() => {
       this.error.set('No se pudo conectar la sala en vivo. Revisa que la sesión siga abierta.');
     });
@@ -250,14 +270,14 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
   private onSlideSettled(): void {
     void this.syncLiveSlide();
     // Solo el clicker a pantalla completa dispara; el iframe embed lo hace el host.
-    if (!this.embedMode) {
+    if (!this.embedMode()) {
       this.maybeOpenSlideQuestion();
     }
   }
 
   private async syncLiveSlide(): Promise<void> {
     const sessionId = this.liveSessionId();
-    if (!sessionId || !this.hub || this.embedMode) {
+    if (!sessionId || !this.hub || this.embedMode()) {
       return;
     }
     try {
@@ -272,6 +292,7 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
     if (!sessionId || this.openingQuestion) {
       return;
     }
+    this.loadFiredQuestions(sessionId);
     const el = findAutoOpenQuestion(this.current());
     if (!el || this.firedQuestionIds.has(el.id)) {
       return;
@@ -297,7 +318,7 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
 
   private loadFiredQuestions(sessionId: number): void {
     try {
-      const raw = sessionStorage.getItem(`cale-live-q-fired-${sessionId}`);
+      const raw = localStorage.getItem(`cale-live-q-fired-${sessionId}`);
       const ids = raw ? (JSON.parse(raw) as string[]) : [];
       for (const id of ids) {
         this.firedQuestionIds.add(id);
@@ -309,7 +330,7 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
 
   private persistFiredQuestions(sessionId: number): void {
     try {
-      sessionStorage.setItem(
+      localStorage.setItem(
         `cale-live-q-fired-${sessionId}`,
         JSON.stringify([...this.firedQuestionIds])
       );

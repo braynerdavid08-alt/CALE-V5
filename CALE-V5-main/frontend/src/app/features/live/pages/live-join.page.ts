@@ -166,15 +166,14 @@ export function saveLiveParticipant(res: {
   displayName: string;
   participantId?: number;
 }): void {
-  sessionStorage.setItem(
-    TOKEN_KEY,
-    JSON.stringify({
-      sessionId: res.sessionId,
-      participantToken: res.participantToken,
-      displayName: res.displayName,
-      participantId: res.participantId ?? null
-    })
-  );
+  const payload = JSON.stringify({
+    sessionId: res.sessionId,
+    participantToken: res.participantToken,
+    displayName: res.displayName,
+    participantId: res.participantId ?? null
+  });
+  sessionStorage.setItem(`${TOKEN_KEY}:${res.sessionId}`, payload);
+  sessionStorage.setItem(TOKEN_KEY, payload);
 }
 
 export function readLiveParticipant(sessionId: number): {
@@ -183,7 +182,9 @@ export function readLiveParticipant(sessionId: number): {
   participantId?: number | null;
 } | null {
   try {
-    const raw = sessionStorage.getItem(TOKEN_KEY);
+    const raw =
+      sessionStorage.getItem(`${TOKEN_KEY}:${sessionId}`)
+      ?? sessionStorage.getItem(TOKEN_KEY);
     if (!raw) {
       return null;
     }
