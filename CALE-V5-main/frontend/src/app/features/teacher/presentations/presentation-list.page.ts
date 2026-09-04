@@ -139,7 +139,9 @@ export class PresentationListPage implements OnInit {
     }).subscribe({
       next: (detail) => {
         this.importing.set(false);
-        void this.router.navigate(['/teacher/presentations', detail.id, 'edit']);
+        void this.router.navigate(['/teacher/presentations', detail.id, 'edit'], {
+          state: { importSummary: true }
+        });
       },
       error: (err) => {
         this.importing.set(false);

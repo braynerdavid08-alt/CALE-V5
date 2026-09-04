@@ -1,0 +1,61 @@
+<div
+  class="preview-shell"
+  [style.width.px]="width()"
+  [style.height.px]="shellH()">
+  <div class="preview-stage" [style.transform]="'scale(' + scale() + ')'">
+    <div class="preview-slide" [ngStyle]="bgStyle(slide())">
+      @for (el of slide().elements; track el.id) {
+        <div
+          class="el"
+          [style.left.px]="el.x"
+          [style.top.px]="el.y"
+          [style.width.px]="el.w"
+          [style.height.px]="el.h"
+          [style.zIndex]="el.z"
+          [style.transform]="'rotate(' + el.rotation + 'deg)'">
+          @if (el.type === 'text') {
+            <div
+              class="el-text"
+              [style.fontSize.px]="textProps(el).fontSize"
+              [style.fontWeight]="textProps(el).fontWeight"
+              [style.color]="textProps(el).color"
+              [style.textAlign]="textProps(el).align"
+              [style.fontFamily]="textProps(el).fontFamily"
+              [style.fontStyle]="textProps(el).italic ? 'italic' : 'normal'"
+              [style.textDecoration]="textProps(el).underline ? 'underline' : 'none'"
+              >{{ textProps(el).text }}</div>
+          }
+          @if (el.type === 'image') {
+            <div class="el-image-frame" [class.cropped]="imageHasCrop(el)">
+              <img
+                [src]="media(imageProps(el).src)"
+                [ngStyle]="imageStyles(el)"
+                [style.opacity]="imageProps(el).opacity ?? 1"
+                alt="" />
+            </div>
+          }
+          @if (el.type === 'video') {
+            <div class="el-video-stub">▶</div>
+          }
+          @if (el.type === 'shape') {
+            <div
+              class="el-shape"
+              [style.background]="shapeProps(el).fill"
+              [style.border]="shapeProps(el).strokeWidth + 'px solid ' + shapeProps(el).stroke"
+              [style.opacity]="shapeProps(el).opacity"
+              [style.borderRadius]="shapeProps(el).shape === 'ellipse' ? '50%' : '4px'"
+              [style.clipPath]="shapeClip(shapeProps(el).shape)"></div>
+          }
+          @if (el.type === 'line' || el.type === 'arrow') {
+            <div class="el-line">
+              <div
+                class="line-bar"
+                [style.background]="lineProps(el).color"
+                [style.height.px]="lineProps(el).strokeWidth"></div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</div>
