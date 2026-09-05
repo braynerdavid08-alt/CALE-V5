@@ -152,14 +152,23 @@ export class TeacherLibraryPage implements OnInit {
         this.importTitle = '';
         this.reload();
         this.api.banks(true).subscribe({ next: (items) => this.banks.set(items) });
-        const review =
-          result.needsCorrectReview > 0
-            ? ` ${result.needsCorrectReview} sin clave (*letra o RESPUESTAS): revísalas antes de publicar.`
-            : '';
         const skipped =
           result.skippedCount > 0 ? ` Se omitieron ${result.skippedCount}.` : '';
+        if (result.needsCorrectReview > 0) {
+          this.ok.set(
+            `Importado “${result.name}”: ${result.importedQuestions} preguntas.${skipped} Abriendo revisión de ${result.needsCorrectReview} sin clave…`
+          );
+          void this.router.navigate(['/teacher/exam-review'], {
+            queryParams: {
+              bankId: result.bankId,
+              examId: result.examId,
+              name: result.name
+            }
+          });
+          return;
+        }
         this.ok.set(
-          `Importado “${result.name}”: ${result.importedQuestions} preguntas.${review}${skipped}`
+          `Importado “${result.name}”: ${result.importedQuestions} preguntas.${skipped}`
         );
       },
       error: (err) => {
@@ -247,6 +256,21 @@ export class TeacherLibraryPage implements OnInit {
         this.ok.set(`Exportado “${exam.name}”.`);
       },
       error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  reviewKeys(exam: ExamDto): void {
+    this.menuFor.set(null);
+    if (!exam.bankId) {
+      this.error.set('Este examen no tiene banco para revisar.');
+      return;
+    }
+    void this.router.navigate(['/teacher/exam-review'], {
+      queryParams: {
+        bankId: exam.bankId,
+        examId: exam.id,
+        name: exam.name
+      }
     });
   }
 

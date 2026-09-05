@@ -15,6 +15,7 @@ public static class DependencyInjection
         services.AddScoped<ListBanksHandler>();
         services.AddScoped<ListBlocksHandler>();
         services.AddScoped<ListQuestionsHandler>();
+        services.AddScoped<ListQuestionsForReviewHandler>();
         services.AddScoped<GetQuestionHandler>();
         services.AddScoped<SaveBankHandler>();
         services.AddScoped<SaveQuestionHandler>();

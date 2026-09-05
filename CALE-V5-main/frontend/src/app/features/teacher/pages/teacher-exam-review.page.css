@@ -1,0 +1,127 @@
+.review {
+  display: grid;
+  gap: 1rem;
+}
+
+.review-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.count {
+  margin-left: auto;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.muted {
+  color: var(--color-text-secondary);
+}
+
+.review-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.review-card {
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 1rem 1.05rem;
+  background: var(--color-surface);
+  display: grid;
+  gap: 0.65rem;
+}
+
+.review-card.busy {
+  opacity: 0.72;
+}
+
+.review-card header {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+}
+
+.num {
+  flex-shrink: 0;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  background: color-mix(in srgb, var(--color-primary) 16%, transparent);
+  color: var(--color-primary);
+}
+
+.review-card h3 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.35;
+  font-weight: 750;
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.opts {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 0.65rem 0.75rem;
+  background: var(--color-background, #f7f8fa);
+  font: inherit;
+  cursor: pointer;
+}
+
+.opt:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary) 8%, white);
+}
+
+.opt:disabled {
+  cursor: wait;
+}
+
+.letter {
+  flex-shrink: 0;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 0.85rem;
+  background: var(--color-primary);
+  color: var(--color-on-primary, #fff);
+}
+
+.opt-text {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+@media (min-width: 820px) {
+  .opts {
+    grid-template-columns: 1fr 1fr;
+  }
+}

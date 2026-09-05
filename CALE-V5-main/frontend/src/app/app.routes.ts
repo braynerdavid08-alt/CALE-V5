@@ -350,6 +350,15 @@ export const routes: Routes = [
             .then((m) => m.TeacherGroupsPage)
       },
       {
+        path: 'teacher/exam-review',
+        pathMatch: 'full',
+        canActivate: [roleGuard, catalogAccessGuard],
+        data: { roles: ['Teacher', 'Admin'] },
+        loadComponent: () =>
+          import('./features/teacher/pages/teacher-exam-review.page')
+            .then((m) => m.TeacherExamReviewPage)
+      },
+      {
         path: 'teacher/questions',
         pathMatch: 'full',
         canActivate: [roleGuard, catalogAccessGuard],
