@@ -79,19 +79,49 @@ public sealed class HomepageService
         catch
         {
             // Never touch the DbContext again here — it may be poisoned after a failed SQL.
-            var fallback = BuildStaticFallback();
+            var fallback = EmergencyHome();
             _cache.Set(PublicCacheKey, fallback, TimeSpan.FromSeconds(20));
             return fallback;
         }
     }
 
     /// <summary>Hard-coded marketing home used when CMS/DB is unavailable.</summary>
-    public PublicHomeDto BuildStaticFallback() =>
-        MapPublic(
-            CreateDefaultSettings(),
+    public PublicHomeDto BuildStaticFallback() => EmergencyHome();
+
+    /// <summary>Static fallback that does not touch instance state (safe from any catch).</summary>
+    public static PublicHomeDto EmergencyHome() =>
+        new(
+            new PublicHeroDto(
+                true,
+                "PLATAFORMA #1 EN FORMACIÓN VIAL",
+                "Aprende a conducir de",
+                "manera segura y responsable",
+                "Mi CALE te acompaña en tu CEA: estudia, practica y aprueba con las mejores escuelas e instructores.",
+                "Comenzar ahora",
+                "/register",
+                "Ver escuelas",
+                null,
+                null,
+                null,
+                "Mi CALE — formación vial",
+                false),
+            Array.Empty<HomepageBenefitItem>(),
+            false,
+            "¿Cómo funciona Mi CALE?",
+            "Cuatro pasos claros para completar tu formación vial.",
+            Array.Empty<HomepageStepItem>(),
             Array.Empty<ResolvedStatDto>(),
+            false,
             Array.Empty<PublicSchoolCardDto>(),
-            Array.Empty<PublicInstructorCardDto>());
+            false,
+            Array.Empty<PublicInstructorCardDto>(),
+            "Mi CALE — tu CALE, en tu CEA",
+            "Mi CALE: tu CALE, en tu CEA. Formación vial con tu centro de enseñanza automovilística.",
+            "<p><strong>Mi CALE</strong> — tu CALE, en tu CEA.</p>",
+            "Pronto publicaremos artículos sobre formación vial.",
+            "contacto@cale.local",
+            "",
+            DateTime.UtcNow);
 
     public async Task<AdminHomepageDto> GetAdminAsync(CancellationToken ct)
     {

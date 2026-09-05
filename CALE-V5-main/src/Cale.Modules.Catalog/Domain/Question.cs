@@ -102,7 +102,8 @@ public sealed class Question
 
     public void SetActive(bool active) => IsActive = active;
 
-    public bool CanEdit(int userId, bool isAdmin) => isAdmin;
+    public bool CanEdit(int userId, bool isAdmin) =>
+        isAdmin || (CreatedById is int owner && owner == userId);
 
     private static void Validate(
         string text,

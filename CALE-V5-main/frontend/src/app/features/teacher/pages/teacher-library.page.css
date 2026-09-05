@@ -3,6 +3,55 @@
   gap: 1.15rem;
 }
 
+.import-panel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 14px);
+  padding: 1rem 1.1rem 1.15rem;
+  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-surface, #fff));
+  display: grid;
+  gap: 0.75rem;
+}
+.import-panel h2 {
+  margin: 0;
+  font-size: var(--text-lg, 1.1rem);
+}
+.import-meta {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+.import-meta code {
+  font-size: 0.9em;
+}
+.import-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 0.75rem;
+}
+.import-grid label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.import-grid input {
+  font: inherit;
+  font-weight: 500;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface, #fff);
+}
+.import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+@media (max-width: 720px) {
+  .import-grid { grid-template-columns: 1fr; }
+}
+
 .library-toolbar {
   display: flex;
   flex-wrap: wrap;

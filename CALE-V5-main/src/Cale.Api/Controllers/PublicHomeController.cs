@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json;
 using Cale.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,21 +11,37 @@ namespace Cale.Api.Controllers;
 [AllowAnonymous]
 public sealed class PublicHomeController : ControllerBase
 {
+    private static readonly JsonSerializerOptions JsonOpts = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
     private readonly HomepageService _home;
 
     public PublicHomeController(HomepageService home) => _home = home;
 
     [HttpGet("home")]
-    public async Task<ActionResult<PublicHomeDto>> Home(CancellationToken ct)
+    public async Task<IActionResult> Home(CancellationToken ct)
     {
+        PublicHomeDto dto;
         try
         {
-            return Ok(await _home.GetPublicHomeAsync(ct));
+            dto = await _home.GetPublicHomeAsync(ct);
         }
         catch
         {
-            // Absolute last line of defense if the service itself throws unexpectedly.
-            return Ok(_home.BuildStaticFallback());
+            dto = HomepageService.EmergencyHome();
+        }
+
+        try
+        {
+            var json = JsonSerializer.Serialize(dto, JsonOpts);
+            return Content(json, "application/json; charset=utf-8");
+        }
+        catch
+        {
+            var json = JsonSerializer.Serialize(HomepageService.EmergencyHome(), JsonOpts);
+            return Content(json, "application/json; charset=utf-8");
         }
     }
 

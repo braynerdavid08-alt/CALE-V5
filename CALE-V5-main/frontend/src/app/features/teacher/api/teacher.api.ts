@@ -123,6 +123,16 @@ export interface BankAdminDto {
   difficulties?: BankThemeDto[] | null;
 }
 
+export interface ImportExamResultDto {
+  examId: number;
+  bankId: number;
+  name: string;
+  importedQuestions: number;
+  needsCorrectReview: number;
+  skippedCount: number;
+  skippedSamples: string[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class TeacherApi {
   private readonly http = inject(HttpClient);
@@ -284,6 +294,21 @@ export class TeacherApi {
     endsAt?: string | null;
   }) {
     return this.http.post<ExamDto>(`${this.base}/api/exams`, body);
+  }
+
+  importExamFromWord(file: File, title?: string) {
+    const data = new FormData();
+    data.append('file', file);
+    if (title?.trim()) {
+      data.append('title', title.trim());
+    }
+    return this.http.post<ImportExamResultDto>(`${this.base}/api/exams/import`, data);
+  }
+
+  downloadExamImportTemplate() {
+    return this.http.get(`${this.base}/api/exams/import/template`, {
+      responseType: 'blob'
+    });
   }
 
   publishExam(id: number, published: boolean) {

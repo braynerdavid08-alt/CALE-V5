@@ -49,6 +49,7 @@ export class TeacherLibraryPage implements OnInit {
   readonly query = signal('');
   readonly showCreate = signal(false);
   readonly menuFor = signal<number | null>(null);
+  readonly importing = signal(false);
 
   name = '';
   bankId: number | null = null;
@@ -58,6 +59,8 @@ export class TeacherLibraryPage implements OnInit {
   randomize = true;
   startsAt = '';
   endsAt = '';
+  importTitle = '';
+  importFile: File | null = null;
   assignTo: Record<number, number | null> = {};
 
   readonly filtered = computed(() => {
@@ -121,6 +124,56 @@ export class TeacherLibraryPage implements OnInit {
 
   openCreate(): void {
     this.showCreate.set(true);
+  }
+
+  onImportFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.importFile = input.files?.[0] ?? null;
+  }
+
+  importExam(): void {
+    if (!this.importFile) {
+      this.error.set('Elige un archivo Word (.docx).');
+      return;
+    }
+    this.importing.set(true);
+    this.error.set(null);
+    this.api.importExamFromWord(this.importFile, this.importTitle || undefined).subscribe({
+      next: (result) => {
+        this.importing.set(false);
+        this.importFile = null;
+        this.importTitle = '';
+        this.reload();
+        this.api.banks(true).subscribe({ next: (items) => this.banks.set(items) });
+        const review =
+          result.needsCorrectReview > 0
+            ? ` ${result.needsCorrectReview} sin clave (*letra o RESPUESTAS): revísalas antes de publicar.`
+            : '';
+        const skipped =
+          result.skippedCount > 0 ? ` Se omitieron ${result.skippedCount}.` : '';
+        this.ok.set(
+          `Importado “${result.name}”: ${result.importedQuestions} preguntas.${review}${skipped}`
+        );
+      },
+      error: (err) => {
+        this.importing.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  downloadExamTemplate(): void {
+    this.api.downloadExamImportTemplate().subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'cale-plantilla-examen.docx';
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: (err) => this.error.set(mapApiError(err))
+    });
   }
 
   closeCreate(): void {
