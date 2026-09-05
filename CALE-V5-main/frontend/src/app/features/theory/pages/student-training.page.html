@@ -9,7 +9,7 @@
 
   @if (loading()) {
     <ui-loading />
-  } @else {
+  } @else if (dashboard()) {
     @let dash = dashboard()!;
     <div class="grid-top">
       <article class="card highlight">

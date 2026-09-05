@@ -945,6 +945,42 @@ public sealed class TheoryTrainingService
         CancellationToken ct)
     {
         var (schoolUserId, _) = await ResolveStudentSchoolAsync(studentUserId, ct);
+        try
+        {
+            return await BuildStudentDashboardAsync(schoolUserId, studentUserId, ct);
+        }
+        catch
+        {
+            // Theory tables may be mid-migration on older Postgres DBs.
+            return new TheoryStudentDashboardDto(
+                null,
+                Array.Empty<TheoryClassSessionDto>(),
+                0,
+                0,
+                20,
+                0,
+                10,
+                0,
+                0,
+                0,
+                0,
+                "Estamos preparando tu formación. Recarga en unos minutos.",
+                null,
+                null,
+                false,
+                Array.Empty<TheoryDailyTaskDto>(),
+                null,
+                null,
+                null,
+                null);
+        }
+    }
+
+    private async Task<TheoryStudentDashboardDto> BuildStudentDashboardAsync(
+        int schoolUserId,
+        int studentUserId,
+        CancellationToken ct)
+    {
         var settings = await GetOrCreateSettingsAsync(schoolUserId, ct);
         var today = ColombiaTime.TodayInColombia();
         var nowUtc = _clock.UtcNow;

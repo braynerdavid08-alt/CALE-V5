@@ -53,52 +53,60 @@ public sealed class RefreshTokenStore : IRefreshTokenStore
         var hash = Hash(rawToken);
         var now = DateTime.UtcNow;
 
-        await using var conn = _db.Database.GetDbConnection();
-        if (conn.State != System.Data.ConnectionState.Open)
+        try
         {
-            await conn.OpenAsync(ct);
-        }
+            await using var conn = _db.Database.GetDbConnection();
+            if (conn.State != System.Data.ConnectionState.Open)
+            {
+                await conn.OpenAsync(ct);
+            }
 
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = """
-            SELECT "Id", "UserId", "ExpiresAt", "RevokedAt"
-            FROM "AuthRefreshTokens"
-            WHERE "TokenHash" = @hash
-            LIMIT 1;
-            """;
-        var p = cmd.CreateParameter();
-        p.ParameterName = "@hash";
-        p.Value = hash;
-        cmd.Parameters.Add(p);
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = """
+                SELECT "Id", "UserId", "ExpiresAt", "RevokedAt"
+                FROM "AuthRefreshTokens"
+                WHERE "TokenHash" = @hash
+                LIMIT 1;
+                """;
+            var p = cmd.CreateParameter();
+            p.ParameterName = "@hash";
+            p.Value = hash;
+            cmd.Parameters.Add(p);
 
-        int? tokenId = null;
-        int? userId = null;
-        DateTime? expiresAt = null;
-        DateTime? revokedAt = null;
+            int? tokenId = null;
+            int? userId = null;
+            DateTime? expiresAt = null;
+            DateTime? revokedAt = null;
 
-        await using (var reader = await cmd.ExecuteReaderAsync(ct))
-        {
-            if (!await reader.ReadAsync(ct))
+            await using (var reader = await cmd.ExecuteReaderAsync(ct))
+            {
+                if (!await reader.ReadAsync(ct))
+                {
+                    return null;
+                }
+
+                tokenId = reader.GetInt32(0);
+                userId = reader.GetInt32(1);
+                expiresAt = reader.GetDateTime(2);
+                revokedAt = reader.IsDBNull(3) ? null : reader.GetDateTime(3);
+            }
+
+            if (tokenId is null || userId is null || revokedAt is not null || expiresAt <= now)
             {
                 return null;
             }
 
-            tokenId = reader.GetInt32(0);
-            userId = reader.GetInt32(1);
-            expiresAt = reader.GetDateTime(2);
-            revokedAt = reader.IsDBNull(3) ? null : reader.GetDateTime(3);
-        }
+            await _db.Database.ExecuteSqlInterpolatedAsync(
+                $"""UPDATE "AuthRefreshTokens" SET "RevokedAt" = {now} WHERE "Id" = {tokenId};""",
+                ct);
 
-        if (tokenId is null || userId is null || revokedAt is not null || expiresAt <= now)
+            return userId;
+        }
+        catch
         {
+            // Missing table / schema race: treat as invalid refresh so client can re-login.
             return null;
         }
-
-        await _db.Database.ExecuteSqlInterpolatedAsync(
-            $"""UPDATE "AuthRefreshTokens" SET "RevokedAt" = {now} WHERE "Id" = {tokenId};""",
-            ct);
-
-        return userId;
     }
 
     public async Task RevokeAsync(string rawToken, CancellationToken ct = default)
