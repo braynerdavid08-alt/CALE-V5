@@ -320,6 +320,23 @@ export class TeacherApi {
     return this.http.post<ExamDto>(`${this.base}/api/exams`, body);
   }
 
+  updateExam(
+    id: number,
+    body: {
+      name: string;
+      description?: string | null;
+      bankId?: number | null;
+      questionCount: number;
+      timeMinutes: number;
+      allowedAttempts: number;
+      randomize: boolean;
+      startsAt?: string | null;
+      endsAt?: string | null;
+    }
+  ) {
+    return this.http.put<ExamDto>(`${this.base}/api/exams/${id}`, body);
+  }
+
   importExamFromWord(file: File, title?: string) {
     const data = new FormData();
     data.append('file', file);

@@ -48,10 +48,13 @@ export class TeacherLibraryPage implements OnInit {
   readonly view = signal<ViewMode>('grid');
   readonly query = signal('');
   readonly showCreate = signal(false);
+  readonly editingId = signal<number | null>(null);
   readonly menuFor = signal<number | null>(null);
   readonly importing = signal(false);
+  readonly saving = signal(false);
 
   name = '';
+  description = '';
   bankId: number | null = null;
   questionCount = 20;
   timeMinutes = 30;
@@ -123,10 +126,26 @@ export class TeacherLibraryPage implements OnInit {
   }
 
   openCreate(): void {
+    this.resetForm();
+    this.editingId.set(null);
     this.showCreate.set(true);
-    queueMicrotask(() => {
-      document.querySelector('.create-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+    this.scrollToForm();
+  }
+
+  openEdit(exam: ExamDto): void {
+    this.menuFor.set(null);
+    this.editingId.set(exam.id);
+    this.name = exam.name;
+    this.description = exam.description ?? '';
+    this.bankId = exam.bankId ?? null;
+    this.questionCount = exam.questionCount;
+    this.timeMinutes = exam.timeMinutes;
+    this.allowedAttempts = exam.allowedAttempts;
+    this.randomize = exam.randomize !== false;
+    this.startsAt = this.toLocalInput(exam.startsAt);
+    this.endsAt = this.toLocalInput(exam.endsAt);
+    this.showCreate.set(true);
+    this.scrollToForm();
   }
 
   focusImport(): void {
@@ -194,6 +213,8 @@ export class TeacherLibraryPage implements OnInit {
 
   closeCreate(): void {
     this.showCreate.set(false);
+    this.editingId.set(null);
+    this.resetForm();
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { crear: null },
@@ -201,12 +222,14 @@ export class TeacherLibraryPage implements OnInit {
     });
   }
 
-  create(): void {
+  saveExam(): void {
     if (!this.name.trim()) {
+      this.error.set('Escribe el nombre del examen.');
       return;
     }
-    this.api.createExam({
+    const body = {
       name: this.name.trim(),
+      description: this.description.trim() || null,
       bankId: this.bankId,
       questionCount: this.questionCount,
       timeMinutes: this.timeMinutes,
@@ -214,16 +237,22 @@ export class TeacherLibraryPage implements OnInit {
       randomize: this.randomize,
       startsAt: this.startsAt ? new Date(this.startsAt).toISOString() : null,
       endsAt: this.endsAt ? new Date(this.endsAt).toISOString() : null
-    }).subscribe({
+    };
+    const id = this.editingId();
+    this.saving.set(true);
+    this.error.set(null);
+    const req = id ? this.api.updateExam(id, body) : this.api.createExam(body);
+    req.subscribe({
       next: () => {
-        this.name = '';
-        this.startsAt = '';
-        this.endsAt = '';
+        this.saving.set(false);
         this.closeCreate();
         this.reload();
-        this.ok.set('Examen creado.');
+        this.ok.set(id ? 'Examen actualizado.' : 'Examen creado.');
       },
-      error: (err) => this.error.set(mapApiError(err))
+      error: (err) => {
+        this.saving.set(false);
+        this.error.set(mapApiError(err));
+      }
     });
   }
 
@@ -293,5 +322,35 @@ export class TeacherLibraryPage implements OnInit {
   thumbTone(exam: ExamDto): string {
     const n = exam.id % 4;
     return `tone-${n}`;
+  }
+
+  private resetForm(): void {
+    this.name = '';
+    this.description = '';
+    this.bankId = null;
+    this.questionCount = 20;
+    this.timeMinutes = 30;
+    this.allowedAttempts = 1;
+    this.randomize = true;
+    this.startsAt = '';
+    this.endsAt = '';
+  }
+
+  private scrollToForm(): void {
+    queueMicrotask(() => {
+      document.querySelector('.create-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  private toLocalInput(iso: string | null | undefined): string {
+    if (!iso) {
+      return '';
+    }
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) {
+      return '';
+    }
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 }

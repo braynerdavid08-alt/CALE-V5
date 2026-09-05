@@ -28,14 +28,17 @@
   </section>
 
   @if (showCreate()) {
-    <section class="create-panel" role="dialog" aria-label="Crear examen">
+    <section class="create-panel" role="dialog" [attr.aria-label]="editingId() ? 'Editar examen' : 'Crear examen'">
       <header class="create-head">
-        <h2>Crear examen</h2>
+        <h2>{{ editingId() ? 'Editar examen' : 'Crear examen' }}</h2>
         <button type="button" class="icon-close" (click)="closeCreate()" aria-label="Cerrar">×</button>
       </header>
-      <form class="create-form" (ngSubmit)="create()">
+      <form class="create-form" (ngSubmit)="saveExam()">
         <label class="field span2">Nombre
           <input [(ngModel)]="name" name="name" required maxlength="180" />
+        </label>
+        <label class="field span2">Descripción (opcional)
+          <input [(ngModel)]="description" name="description" maxlength="400" placeholder="Notas para ti o para el grupo" />
         </label>
         <label class="field span2">Banco (opcional)
           <select [(ngModel)]="bankId" name="bankId">
@@ -66,7 +69,9 @@
         </label>
         <div class="create-actions span2">
           <ui-button type="button" variant="ghost" (click)="closeCreate()">Cancelar</ui-button>
-          <ui-button type="submit">Crear</ui-button>
+          <ui-button type="submit" [disabled]="saving()">
+            {{ saving() ? 'Guardando…' : (editingId() ? 'Guardar cambios' : 'Crear') }}
+          </ui-button>
         </div>
       </form>
     </section>
@@ -139,6 +144,7 @@
                 </button>
                 @if (menuFor() === exam.id) {
                   <div class="menu" role="menu">
+                    <button type="button" (click)="openEdit(exam)">Editar</button>
                     <button type="button" (click)="togglePublish(exam)">
                       {{ exam.published ? 'Despublicar' : 'Publicar' }}
                     </button>
@@ -183,6 +189,7 @@
           <ui-badge [tone]="exam.published ? 'success' : 'warning'">
             {{ exam.published ? 'Publicado' : 'Borrador' }}
           </ui-badge>
+          <ui-button type="button" variant="ghost" (click)="openEdit(exam)">Editar</ui-button>
           <ui-button type="button" variant="ghost" (click)="exportExam(exam)">Word</ui-button>
           <ui-button type="button" variant="ghost" (click)="togglePublish(exam)">
             {{ exam.published ? 'Despublicar' : 'Publicar' }}
