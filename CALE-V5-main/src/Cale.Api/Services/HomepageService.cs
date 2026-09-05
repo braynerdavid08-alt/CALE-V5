@@ -50,16 +50,27 @@ public sealed class HomepageService
             }
             catch
             {
-                // Stats are nice-to-have; never blank the public landing for them.
                 stats = Array.Empty<ResolvedStatDto>();
             }
 
-            var schools = settings.SchoolsSectionVisible
-                ? await ListPublicSchoolsAsync(8, ct)
-                : Array.Empty<PublicSchoolCardDto>();
-            var instructors = settings.InstructorsSectionVisible
-                ? await ListPublicInstructorsAsync(8, ct)
-                : Array.Empty<PublicInstructorCardDto>();
+            IReadOnlyList<PublicSchoolCardDto> schools = Array.Empty<PublicSchoolCardDto>();
+            IReadOnlyList<PublicInstructorCardDto> instructors = Array.Empty<PublicInstructorCardDto>();
+            try
+            {
+                if (settings.SchoolsSectionVisible)
+                {
+                    schools = await ListPublicSchoolsAsync(8, ct);
+                }
+
+                if (settings.InstructorsSectionVisible)
+                {
+                    instructors = await ListPublicInstructorsAsync(8, ct);
+                }
+            }
+            catch
+            {
+                // Keep CMS content even if school/instructor cards fail.
+            }
 
             var dto = MapPublic(settings, stats, schools, instructors);
             _cache.Set(PublicCacheKey, dto, CacheTtl);
@@ -67,40 +78,20 @@ public sealed class HomepageService
         }
         catch
         {
-            // Last resort so the marketing site stays up if CMS tables are mid-migration.
-            var fallback = MapPublic(
-                CreateDefaultSettings(),
-                Array.Empty<ResolvedStatDto>(),
-                await SafeListSchoolsAsync(ct),
-                await SafeListInstructorsAsync(ct));
-            _cache.Set(PublicCacheKey, fallback, TimeSpan.FromSeconds(15));
+            // Never touch the DbContext again here — it may be poisoned after a failed SQL.
+            var fallback = BuildStaticFallback();
+            _cache.Set(PublicCacheKey, fallback, TimeSpan.FromSeconds(20));
             return fallback;
         }
     }
 
-    private async Task<IReadOnlyList<PublicSchoolCardDto>> SafeListSchoolsAsync(CancellationToken ct)
-    {
-        try
-        {
-            return await ListPublicSchoolsAsync(8, ct);
-        }
-        catch
-        {
-            return Array.Empty<PublicSchoolCardDto>();
-        }
-    }
-
-    private async Task<IReadOnlyList<PublicInstructorCardDto>> SafeListInstructorsAsync(CancellationToken ct)
-    {
-        try
-        {
-            return await ListPublicInstructorsAsync(8, ct);
-        }
-        catch
-        {
-            return Array.Empty<PublicInstructorCardDto>();
-        }
-    }
+    /// <summary>Hard-coded marketing home used when CMS/DB is unavailable.</summary>
+    public PublicHomeDto BuildStaticFallback() =>
+        MapPublic(
+            CreateDefaultSettings(),
+            Array.Empty<ResolvedStatDto>(),
+            Array.Empty<PublicSchoolCardDto>(),
+            Array.Empty<PublicInstructorCardDto>());
 
     public async Task<AdminHomepageDto> GetAdminAsync(CancellationToken ct)
     {

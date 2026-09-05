@@ -3,7 +3,6 @@ import { Meta, Title } from '@angular/platform-browser';
 import { RouterLink } from '@angular/router';
 import { resolveMediaUrl } from '../../core/media/resolve-media-url';
 import { BRAND } from '../../core/brand';
-import { mapApiError } from '../../core/http/map-api-error';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../shared/ui/ui-error.component';
 import { UiIconComponent } from '../../shared/ui/ui-icon.component';
@@ -240,8 +239,12 @@ export class LandingPage implements OnInit {
         this.applySeo(data);
         this.loading.set(false);
       },
-      error: (err) => {
-        this.error.set(mapApiError(err));
+      error: () => {
+        // Keep the landing usable even if CMS/API is down.
+        const fallback = this.buildLocalFallback();
+        this.home.set(fallback);
+        this.applySeo(fallback);
+        this.error.set(null);
         this.loading.set(false);
       }
     });
@@ -266,5 +269,43 @@ export class LandingPage implements OnInit {
     const d = data.seoDescription?.trim() || BRAND.seoDescription;
     this.title.setTitle(t);
     this.meta.updateTag({ name: 'description', content: d });
+  }
+
+  private buildLocalFallback(): PublicHomeDto {
+    return {
+      hero: {
+        visible: true,
+        badge: 'PLATAFORMA #1 EN FORMACIÓN VIAL',
+        title: 'Aprende a conducir de',
+        titleHighlight: 'manera segura y responsable',
+        description:
+          'Mi CALE te acompaña en tu CEA: estudia, practica y aprueba con las mejores escuelas e instructores.',
+        ctaPrimaryLabel: 'Comenzar ahora',
+        ctaPrimaryPath: '/register',
+        ctaSecondaryLabel: 'Ver escuelas',
+        videoUrl: null,
+        imageUrl: null,
+        imageUrlMobile: null,
+        imageAlt: BRAND.name,
+        imageEnabled: false
+      },
+      benefits: [],
+      stepsVisible: false,
+      stepsTitle: '',
+      stepsSubtitle: '',
+      steps: [],
+      stats: [],
+      schoolsVisible: false,
+      schools: [],
+      instructorsVisible: false,
+      instructors: [],
+      seoTitle: BRAND.seoTitle,
+      seoDescription: BRAND.seoDescription,
+      aboutHtml: '',
+      blogIntro: '',
+      contactEmail: '',
+      contactPhone: '',
+      updatedAt: new Date().toISOString()
+    };
   }
 }
