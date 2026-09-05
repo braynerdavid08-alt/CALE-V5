@@ -311,6 +311,12 @@ export class TeacherApi {
     });
   }
 
+  exportExamToWord(examId: number) {
+    return this.http.get(`${this.base}/api/exams/${examId}/export`, {
+      responseType: 'blob'
+    });
+  }
+
   publishExam(id: number, published: boolean) {
     return this.http.post<void>(
       `${this.base}/api/exams/${id}/publish?published=${published}`,

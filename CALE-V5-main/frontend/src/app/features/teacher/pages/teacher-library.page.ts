@@ -124,6 +124,13 @@ export class TeacherLibraryPage implements OnInit {
 
   openCreate(): void {
     this.showCreate.set(true);
+    queueMicrotask(() => {
+      document.querySelector('.create-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  focusImport(): void {
+    document.getElementById('exam-import')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   onImportFile(event: Event): void {
@@ -222,6 +229,22 @@ export class TeacherLibraryPage implements OnInit {
       next: () => {
         this.ok.set(exam.published ? 'Pasó a borrador.' : 'Examen publicado.');
         this.reload();
+      },
+      error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  exportExam(exam: ExamDto): void {
+    this.menuFor.set(null);
+    this.api.exportExamToWord(exam.id).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${exam.name || 'examen'}.docx`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.ok.set(`Exportado “${exam.name}”.`);
       },
       error: (err) => this.error.set(mapApiError(err))
     });
