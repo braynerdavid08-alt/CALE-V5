@@ -7,3 +7,23 @@ table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
 th, td { text-align: left; padding: 0.45rem 0.5rem; border-bottom: 1px solid var(--color-border); vertical-align: top; }
 tr[data-sev='error'] td { color: var(--color-danger); }
 code { font-size: 0.9em; }
+.onboard {
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 10px);
+  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
+}
+.onboard h3 {
+  margin: 0 0 0.45rem;
+  font-size: var(--text-md, 1rem);
+}
+.onboard ol {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+.onboard li + li { margin-top: 0.35rem; }
+.onboard a { font-weight: 700; }

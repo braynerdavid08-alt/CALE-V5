@@ -92,6 +92,7 @@ export class LivePlayPage implements OnInit, OnDestroy {
   readonly doubts = signal<LiveDoubtDto[]>([]);
   readonly error = signal<string | null>(null);
   readonly loading = signal(false);
+  readonly connectionNotice = signal<string | null>(null);
   readonly secondsLeft = signal<number | null>(null);
   readonly selectedOptionId = signal<number | null>(null);
   readonly submitted = signal(false);
@@ -632,6 +633,22 @@ export class LivePlayPage implements OnInit, OnDestroy {
 
   private connectHub(): void {
     this.hub = this.api.buildHub(false);
+    this.hub.onreconnecting(() => {
+      this.connectionNotice.set('Reconectando… espera un momento.');
+    });
+    this.hub.onreconnected(() => {
+      this.connectionNotice.set('Conexión restablecida.');
+      void this.hub!.invoke('JoinAsParticipant', this.sessionId, this.token).finally(() => {
+        window.setTimeout(() => {
+          if (this.connectionNotice() === 'Conexión restablecida.') {
+            this.connectionNotice.set(null);
+          }
+        }, 2500);
+      });
+    });
+    this.hub.onclose(() => {
+      this.connectionNotice.set('Sin conexión. Revisa tu red.');
+    });
     this.hub.on('LobbyUpdated', (payload: LiveLobbyDto) => this.applyLobby(payload));
     this.hub.on('QuestionStarted', (payload: LiveQuestionPayloadDto) => {
       const current = this.lobby();

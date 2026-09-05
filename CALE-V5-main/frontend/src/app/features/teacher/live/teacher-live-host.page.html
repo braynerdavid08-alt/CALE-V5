@@ -1,5 +1,8 @@
 <section class="host" [class.projector-mode]="projectorMode()">
   <ui-error [message]="error()" />
+  @if (connectionNotice(); as notice) {
+    <p class="conn-banner" role="status">{{ notice }}</p>
+  }
   @if (lobby(); as l) {
     <header class="top">
       <div>

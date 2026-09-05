@@ -66,6 +66,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   readonly surpriseNotice = signal<string | null>(null);
   readonly error = signal<string | null>(null);
   readonly loading = signal(false);
+  readonly connectionNotice = signal<string | null>(null);
   readonly secondsLeft = signal<number | null>(null);
   readonly answersReceived = signal(0);
   readonly answerRoster = signal<LiveAnswerRosterDto | null>(null);
@@ -685,6 +686,22 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
 
   private connectHub(sessionId: number): void {
     this.hub = this.api.buildHub(true);
+    this.hub.onreconnecting(() => {
+      this.connectionNotice.set('Reconectando con la sala…');
+    });
+    this.hub.onreconnected(() => {
+      this.connectionNotice.set('Conexión restablecida.');
+      void this.hub!.invoke('JoinAsHost', sessionId).finally(() => {
+        window.setTimeout(() => {
+          if (this.connectionNotice() === 'Conexión restablecida.') {
+            this.connectionNotice.set(null);
+          }
+        }, 2500);
+      });
+    });
+    this.hub.onclose(() => {
+      this.connectionNotice.set('Sin conexión. Revisa tu red o recarga.');
+    });
     this.hub.on('LobbyUpdated', (payload: LiveLobbyDto) => {
       const prev = this.lobby();
       if (prev?.revealCorrect && prev.currentQuestion && payload.currentQuestion
