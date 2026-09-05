@@ -18,6 +18,7 @@ export interface ExamDto {
   questionCount: number;
   timeMinutes: number;
   allowedAttempts: number;
+  randomize?: boolean;
   published: boolean;
   startsAt?: string | null;
   endsAt?: string | null;
