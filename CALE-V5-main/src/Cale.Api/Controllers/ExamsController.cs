@@ -176,6 +176,18 @@ public sealed class ExamsController : ControllerBase
         return NoContent();
     }
 
+    [HttpDelete("{id:int}")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    {
+        await _save.DeleteAsync(
+            id,
+            CurrentUser.GetId(User),
+            CurrentUser.IsAdmin(User),
+            ct);
+        return NoContent();
+    }
+
     [HttpPost("{id:int}/assign")]
     [Authorize(Policy = "TeacherOrAdmin")]
     public async Task<IActionResult> Assign(

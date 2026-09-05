@@ -52,6 +52,8 @@ export class TeacherLibraryPage implements OnInit {
   readonly menuFor = signal<number | null>(null);
   readonly importing = signal(false);
   readonly saving = signal(false);
+  readonly followUpExam = signal<ExamDto | null>(null);
+  followUpGroupId: number | null = null;
 
   name = '';
   description = '';
@@ -189,6 +191,14 @@ export class TeacherLibraryPage implements OnInit {
         this.ok.set(
           `Importado “${result.name}”: ${result.importedQuestions} preguntas.${skipped}`
         );
+        this.api.exams().subscribe({
+          next: (items) => {
+            this.exams.set(items);
+            const exam = items.find((e) => e.id === result.examId) ?? null;
+            this.followUpExam.set(exam);
+            this.followUpGroupId = null;
+          }
+        });
       },
       error: (err) => {
         this.importing.set(false);
@@ -300,6 +310,58 @@ export class TeacherLibraryPage implements OnInit {
         examId: exam.id,
         name: exam.name
       }
+    });
+  }
+
+  deleteExam(exam: ExamDto): void {
+    this.menuFor.set(null);
+    const ok = window.confirm(`¿Eliminar el examen “${exam.name}”? No se podrá deshacer.`);
+    if (!ok) {
+      return;
+    }
+    this.api.deleteExam(exam.id).subscribe({
+      next: () => {
+        if (this.followUpExam()?.id === exam.id) {
+          this.followUpExam.set(null);
+        }
+        this.ok.set('Examen eliminado.');
+        this.reload();
+      },
+      error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  dismissFollowUp(): void {
+    this.followUpExam.set(null);
+    this.followUpGroupId = null;
+  }
+
+  followUpAssign(): void {
+    const exam = this.followUpExam();
+    if (!exam || !this.followUpGroupId) {
+      this.error.set('Elige un grupo.');
+      return;
+    }
+    this.api.assignExam(exam.id, this.followUpGroupId).subscribe({
+      next: () => {
+        this.ok.set(`“${exam.name}” asignado al grupo.`);
+      },
+      error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  followUpPublish(): void {
+    const exam = this.followUpExam();
+    if (!exam) {
+      return;
+    }
+    this.api.publishExam(exam.id, true).subscribe({
+      next: () => {
+        this.ok.set(`“${exam.name}” publicado.`);
+        this.followUpExam.set(null);
+        this.reload();
+      },
+      error: (err) => this.error.set(mapApiError(err))
     });
   }
 

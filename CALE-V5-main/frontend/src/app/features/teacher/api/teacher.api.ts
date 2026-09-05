@@ -365,6 +365,10 @@ export class TeacherApi {
     );
   }
 
+  deleteExam(id: number) {
+    return this.http.delete<void>(`${this.base}/api/exams/${id}`);
+  }
+
   assignExam(
     examId: number,
     groupId: number,

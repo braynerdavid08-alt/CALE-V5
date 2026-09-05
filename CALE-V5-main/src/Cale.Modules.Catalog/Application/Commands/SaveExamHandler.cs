@@ -70,8 +70,42 @@ public sealed class SaveExamHandler
         CancellationToken ct)
     {
         var exam = await Owned(id, userId, isAdmin, ct);
+        if (published)
+        {
+            await EnsureReadyToPublishAsync(exam, ct);
+        }
+
         exam.SetPublished(published, _clock.UtcNow);
         await _store.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteAsync(
+        int id,
+        int userId,
+        bool isAdmin,
+        CancellationToken ct)
+    {
+        var exam = await Owned(id, userId, isAdmin, ct);
+        exam.SetPublished(false, _clock.UtcNow);
+        exam.SetActive(false);
+        await _store.SaveChangesAsync(ct);
+    }
+
+    private async Task EnsureReadyToPublishAsync(Exam exam, CancellationToken ct)
+    {
+        if (exam.BankId is null)
+        {
+            return;
+        }
+
+        var pending = await _store.CountQuestionsNeedingReviewAsync(exam.BankId.Value, ct);
+        if (pending > 0)
+        {
+            throw new DomainException(
+                $"Hay {pending} pregunta(s) sin clave revisada. Márcalas antes de publicar.",
+                400,
+                "exam_needs_answer_review");
+        }
     }
 
     private async Task<Exam> Owned(

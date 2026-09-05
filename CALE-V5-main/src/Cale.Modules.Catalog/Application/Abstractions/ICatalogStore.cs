@@ -62,6 +62,8 @@ public interface ICatalogStore
         int bankId,
         CancellationToken ct);
 
+    Task<int> CountQuestionsNeedingReviewAsync(int bankId, CancellationToken ct);
+
     Task<IReadOnlyList<int>> ListExamQuestionIdsAsync(
         int examId,
         CancellationToken ct);

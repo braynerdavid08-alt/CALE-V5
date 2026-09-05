@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
@@ -6,12 +7,14 @@ import { UiEmptyComponent } from '../../../shared/ui/ui-empty.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
 import { UiSuccessComponent } from '../../../shared/ui/ui-success.component';
+import { GroupDto } from '../../student/api/student.api';
 import { QuestionReviewDto, TeacherApi } from '../../teacher/api/teacher.api';
 
 @Component({
   selector: 'app-teacher-exam-review-page',
   standalone: true,
   imports: [
+    FormsModule,
     UiButtonComponent,
     UiEmptyComponent,
     UiErrorComponent,
@@ -27,15 +30,21 @@ export class TeacherExamReviewPage implements OnInit {
   private readonly router = inject(Router);
 
   readonly items = signal<QuestionReviewDto[]>([]);
+  readonly groups = signal<GroupDto[]>([]);
   readonly error = signal<string | null>(null);
   readonly ok = signal<string | null>(null);
   readonly loading = signal(true);
   readonly savingId = signal<number | null>(null);
+  readonly busy = signal(false);
   bankId = 0;
   examId: number | null = null;
   bankName = '';
+  assignGroupId: number | null = null;
+
+  readonly allReviewed = computed(() => !this.loading() && this.items().length === 0 && this.bankId > 0);
 
   ngOnInit(): void {
+    this.api.groups().subscribe({ next: (items) => this.groups.set(items) });
     this.route.queryParamMap.subscribe((params) => {
       this.bankId = Number(params.get('bankId') || 0);
       const exam = Number(params.get('examId') || 0);
@@ -62,7 +71,7 @@ export class TeacherExamReviewPage implements OnInit {
         this.items.set(items);
         this.loading.set(false);
         if (items.length === 0) {
-          this.ok.set('No quedan preguntas pendientes de clave en este banco.');
+          this.ok.set('No quedan preguntas pendientes de clave. Puedes asignar o publicar.');
         }
       },
       error: (err) => {
@@ -110,7 +119,7 @@ export class TeacherExamReviewPage implements OnInit {
           const left = this.items().length;
           this.ok.set(
             left === 0
-              ? 'Todas las claves revisadas. Ya puedes publicar el examen.'
+              ? 'Todas las claves revisadas. Asigna a un grupo o publica.'
               : `Clave guardada. Quedan ${left}.`
           );
         },
@@ -119,6 +128,46 @@ export class TeacherExamReviewPage implements OnInit {
           this.error.set(mapApiError(err));
         }
       });
+  }
+
+  assignAndGo(): void {
+    if (!this.examId) {
+      this.error.set('No hay examen asociado para asignar.');
+      return;
+    }
+    if (!this.assignGroupId) {
+      this.error.set('Elige un grupo.');
+      return;
+    }
+    this.busy.set(true);
+    this.api.assignExam(this.examId, this.assignGroupId).subscribe({
+      next: () => {
+        this.busy.set(false);
+        this.ok.set('Examen asignado al grupo.');
+      },
+      error: (err) => {
+        this.busy.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  publishExam(): void {
+    if (!this.examId) {
+      this.error.set('No hay examen para publicar.');
+      return;
+    }
+    this.busy.set(true);
+    this.api.publishExam(this.examId, true).subscribe({
+      next: () => {
+        this.busy.set(false);
+        this.ok.set('Examen publicado.');
+      },
+      error: (err) => {
+        this.busy.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
   }
 
   backToLibrary(): void {
