@@ -95,7 +95,19 @@ public sealed class SaveExamHandler
     {
         if (exam.BankId is null)
         {
-            return;
+            throw new DomainException(
+                "Asigna un banco de preguntas antes de publicar el examen.",
+                400,
+                "exam_without_bank");
+        }
+
+        var activeQuestions = await _store.CountQuestionsInBankAsync(exam.BankId.Value, ct);
+        if (activeQuestions < 1)
+        {
+            throw new DomainException(
+                "El banco del examen no tiene preguntas activas.",
+                400,
+                "exam_empty_bank");
         }
 
         var pending = await _store.CountQuestionsNeedingReviewAsync(exam.BankId.Value, ct);
@@ -116,6 +128,11 @@ public sealed class SaveExamHandler
     {
         var exam = await _store.GetExamAsync(id, ct)
             ?? throw new NotFoundException("Exam not found.", "exam_not_found");
+        if (!exam.IsActive)
+        {
+            throw new NotFoundException("Exam not found.", "exam_not_found");
+        }
+
         if (!exam.CanEdit(userId, isAdmin))
         {
             throw new ForbiddenException("You cannot edit this exam.");

@@ -49,7 +49,20 @@ public sealed class AuthCookieService
 
     public void Clear(HttpResponse response)
     {
-        response.Cookies.Delete(AuthCookieNames.Access, new CookieOptions { Path = "/" });
-        response.Cookies.Delete(AuthCookieNames.Refresh, new CookieOptions { Path = "/api/auth" });
+        var secure = !_env.IsDevelopment();
+        response.Cookies.Delete(AuthCookieNames.Access, new CookieOptions
+        {
+            Path = "/",
+            Secure = secure,
+            SameSite = SameSiteMode.Lax,
+            HttpOnly = true
+        });
+        response.Cookies.Delete(AuthCookieNames.Refresh, new CookieOptions
+        {
+            Path = "/api/auth",
+            Secure = secure,
+            SameSite = SameSiteMode.Strict,
+            HttpOnly = true
+        });
     }
 }

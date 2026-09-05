@@ -36,9 +36,21 @@ public sealed class AssignExamToGroupHandler
     {
         var exam = await _store.GetExamAsync(examId, ct)
             ?? throw new NotFoundException("Exam not found.", "exam_not_found");
+        if (!exam.IsActive)
+        {
+            throw new NotFoundException("Exam not found.", "exam_not_found");
+        }
+
         if (!exam.CanEdit(userId, isAdmin))
         {
             throw new ForbiddenException("You cannot assign this exam.");
+        }
+
+        if (!await _groups.CanManageGroupAsync(request.GroupId, userId, isAdmin, ct))
+        {
+            throw new ForbiddenException(
+                "Solo puedes asignar exámenes a tus propios grupos.",
+                "group_forbidden");
         }
 
         if (await _store.FindExamGroupAsync(examId, request.GroupId, ct) is not null)
