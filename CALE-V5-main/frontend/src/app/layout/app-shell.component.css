@@ -128,6 +128,7 @@
 .sidebar-collapsed .brand-text,
 .sidebar-collapsed .brand-tag,
 .sidebar-collapsed .nav-label,
+.sidebar-collapsed .nav-hint,
 .sidebar-collapsed .nav-chevron,
 .sidebar-collapsed .nav-sub {
   display: none;
@@ -207,6 +208,14 @@
   background: var(--color-primary);
   color: var(--color-on-primary);
   box-shadow: 0 8px 18px color-mix(in srgb, var(--color-primary) 35%, transparent);
+}
+
+.nav-hint {
+  margin: 0.35rem 0.35rem 0;
+  padding: 0 0.25rem;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: color-mix(in srgb, var(--color-sidebar-text) 72%, transparent);
 }
 
 .nav-group-btn .nav-chevron {

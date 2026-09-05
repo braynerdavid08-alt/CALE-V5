@@ -1,5 +1,8 @@
 <section class="play">
   <ui-error [message]="error()" />
+  @if (connectionNotice(); as notice) {
+    <p class="conn-banner" role="status">{{ notice }}</p>
+  }
   @if (lobby(); as l) {
     <header>
       <p class="eyebrow">CALE LIVE</p>
@@ -32,7 +35,7 @@
               {{ presentationSlide() + 1 }}/{{ presentationSlides().length || 1 }}
             </span>
             <button type="button" class="fs-btn" (click)="toggleDeckFullscreen()">
-              {{ deckFullscreen() ? 'Salir' : 'Pantalla completa' }}
+              {{ deckFullscreen() ? '✕' : 'Pantalla completa' }}
             </button>
           </div>
         </div>

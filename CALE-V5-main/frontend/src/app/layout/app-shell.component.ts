@@ -82,6 +82,10 @@ export class AppShellComponent implements OnInit, OnDestroy {
     return this.session.user()?.role;
   }
 
+  get mustChangePassword(): boolean {
+    return !!this.session.user()?.mustChangePassword;
+  }
+
   get isTeacherStudio(): boolean {
     return this.role === 'Teacher';
   }

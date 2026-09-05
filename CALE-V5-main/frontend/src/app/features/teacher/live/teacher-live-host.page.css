@@ -10,6 +10,16 @@
 .host.projector-mode { max-width: none; }
 
 .eyebrow { color: #1565c0; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; font-size: var(--text-xs); margin: 0; }
+.conn-banner {
+  margin: 0 0 0.85rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius-md, 10px);
+  background: #e8f4fc;
+  border: 1px solid #9ec9e8;
+  color: #0b3a57;
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
 .top { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; margin-bottom: 1rem; }
 .top-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 .config-summary {

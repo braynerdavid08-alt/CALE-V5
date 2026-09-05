@@ -105,6 +105,14 @@
     <p>Creados {{ result.created }}, vinculados {{ result.attached }}, fallidos {{ result.failed }}.</p>
     @if (result.credentials.length) {
       <ui-button type="button" (click)="downloadCredentials()">Descargar contraseñas CSV</ui-button>
+      <div class="onboard">
+        <h3>Siguiente paso</h3>
+        <ol>
+          <li>Descarga el CSV y reparte cada correo + clave temporal a la persona.</li>
+          <li>Pídeles entrar a Mi CALE y cambiar la contraseña en <strong>Mi perfil → Seguridad</strong>.</li>
+          <li>Confirma que aparecen en <a routerLink="/school/users">Usuarios</a> o en la lista de aprendices.</li>
+        </ol>
+      </div>
     }
   </ui-card>
 }
@@ -116,6 +124,15 @@
     @if (result.credentials.length) {
       <p class="muted">Descarga las contraseñas de los aprendices nuevos y entrégalas a cada uno.</p>
       <ui-button type="button" (click)="downloadExcelCredentials()">Descargar contraseñas CSV</ui-button>
+      <div class="onboard">
+        <h3>Cómo entregar accesos</h3>
+        <ol>
+          <li>Descarga el CSV de credenciales (una fila por aprendiz nuevo).</li>
+          <li>Entrega correo y clave temporal de forma privada (no publiques el archivo).</li>
+          <li>Indícales que al entrar deben cambiar la clave en perfil antes de usar el resto.</li>
+          <li>Revisa el listado en <a routerLink="/school/apprentices">Aprendices</a>.</li>
+        </ol>
+      </div>
     }
     <a routerLink="/school/apprentices"><ui-button type="button">Ver aprendices</ui-button></a>
   </ui-card>
