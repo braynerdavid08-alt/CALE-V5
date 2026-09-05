@@ -136,13 +136,13 @@ public sealed class CatalogStore : ICatalogStore
         int? ownerId,
         CancellationToken ct)
     {
-        var query = _db.Set<Exam>().AsQueryable();
+        var query = _db.Set<Exam>().Where(x => x.IsActive);
         if (ownerId is not null)
         {
             query = query.Where(x => x.CreatedById == ownerId);
         }
 
-        return await query.OrderBy(x => x.Name).ToListAsync(ct);
+        return await query.OrderByDescending(x => x.UpdatedAt).ToListAsync(ct);
     }
 
     public Task<Exam?> GetExamAsync(int id, CancellationToken ct) =>
@@ -214,6 +214,15 @@ public sealed class CatalogStore : ICatalogStore
                 && x.Explanation.Contains("Importada sin clave"))
             .OrderBy(x => x.Id)
             .ToListAsync(ct);
+
+    public Task<int> CountQuestionsNeedingReviewAsync(int bankId, CancellationToken ct) =>
+        _db.Set<Question>()
+            .Where(x =>
+                x.BankId == bankId
+                && x.IsActive
+                && x.Explanation != null
+                && x.Explanation.Contains("Importada sin clave"))
+            .CountAsync(ct);
 
     public async Task<IReadOnlyList<int>> ListExamQuestionIdsAsync(
         int examId,

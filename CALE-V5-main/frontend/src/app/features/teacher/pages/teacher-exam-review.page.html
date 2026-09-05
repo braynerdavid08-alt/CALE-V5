@@ -20,6 +20,32 @@
     <ui-empty
       title="Sin pendientes"
       message="Este banco no tiene preguntas importadas sin clave, o ya las marcaste todas." />
+
+    @if (allReviewed() && examId) {
+      <section class="next-steps">
+        <h3>Siguiente paso</h3>
+        <p>Asigna el examen a un grupo y/o publícalo para los estudiantes.</p>
+        <div class="next-grid">
+          <label>
+            Grupo
+            <select [(ngModel)]="assignGroupId" name="assignGroup">
+              <option [ngValue]="null">Elegir grupo…</option>
+              @for (group of groups(); track group.id) {
+                <option [ngValue]="group.id">{{ group.name }}</option>
+              }
+            </select>
+          </label>
+          <div class="next-actions">
+            <ui-button type="button" [disabled]="busy() || !assignGroupId" (click)="assignAndGo()">
+              Asignar a grupo
+            </ui-button>
+            <ui-button type="button" variant="secondary" [disabled]="busy()" (click)="publishExam()">
+              Publicar examen
+            </ui-button>
+          </div>
+        </div>
+      </section>
+    }
   } @else {
     <div class="review-list">
       @for (q of items(); track q.id; let i = $index) {

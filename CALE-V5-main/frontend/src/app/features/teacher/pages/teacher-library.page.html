@@ -2,6 +2,31 @@
   <ui-error [message]="error()" />
   <ui-success [message]="ok()" />
 
+  @if (followUpExam(); as follow) {
+    <section class="follow-up">
+      <div>
+        <h2>Examen listo: {{ follow.name }}</h2>
+        <p>Asígnalo a un grupo y/o publícalo para los estudiantes.</p>
+      </div>
+      <div class="follow-grid">
+        <label>
+          Grupo
+          <select [(ngModel)]="followUpGroupId" name="followGroup">
+            <option [ngValue]="null">Elegir grupo…</option>
+            @for (group of groups(); track group.id) {
+              <option [ngValue]="group.id">{{ group.name }}</option>
+            }
+          </select>
+        </label>
+        <div class="follow-actions">
+          <ui-button type="button" [disabled]="!followUpGroupId" (click)="followUpAssign()">Asignar</ui-button>
+          <ui-button type="button" variant="secondary" (click)="followUpPublish()">Publicar</ui-button>
+          <ui-button type="button" variant="ghost" (click)="dismissFollowUp()">Cerrar</ui-button>
+        </div>
+      </div>
+    </section>
+  }
+
   <section class="import-panel" id="exam-import">
     <h2>Importar / exportar examen</h2>
     <p class="import-meta">
@@ -152,6 +177,7 @@
                     @if (exam.bankId) {
                       <button type="button" (click)="reviewKeys(exam)">Revisar claves</button>
                     }
+                    <button type="button" class="danger" (click)="deleteExam(exam)">Eliminar</button>
                     <div class="menu-assign">
                       <select [(ngModel)]="assignTo[exam.id]" [name]="'g' + exam.id">
                         <option [ngValue]="null">Asignar a grupo…</option>
