@@ -10,51 +10,15 @@ export interface NavItem {
   path?: string;
   icon: string;
   exact?: boolean;
-  /** Nested hubs: secondary panel for related routes. */
-  hub?: 'library';
   queryParams?: Record<string, string>;
-  /** Inline expandable submenu (admin-style). */
+  /** Inline expandable submenu (admin/school-style). */
   children?: NavChild[];
   /** Hide when student is not linked to a school. */
   requiresSchool?: boolean;
 }
 
-export interface LibraryNavItem {
-  label: string;
-  path: string;
-  exact?: boolean;
-}
-
 export interface NavOptions {
   hasSchool?: boolean;
-}
-
-/** Primary rail for instructors. */
-export const TEACHER_PRIMARY_NAV: NavItem[] = [
-  { label: 'Inicio', path: '/teacher', icon: 'home', exact: true },
-  { label: 'Aula en Vivo', path: '/teacher/live', icon: 'exam', exact: true },
-  { label: 'Presentaciones', path: '/teacher/presentations', icon: 'book', exact: true },
-  { label: 'Grupos', path: '/teacher/groups', icon: 'group', exact: true },
-  { label: 'Biblioteca', path: '/teacher/library', icon: 'book', hub: 'library' },
-  { label: 'Informes', path: '/teacher/results', icon: 'chart', exact: true }
-];
-
-/** Secondary panel when Biblioteca is open. */
-export const TEACHER_LIBRARY_NAV: LibraryNavItem[] = [
-  { label: 'Exámenes', path: '/teacher/library', exact: true },
-  { label: 'Bancos', path: '/teacher/banks', exact: true },
-  { label: 'Preguntas', path: '/teacher/questions', exact: true },
-  { label: 'Presentaciones', path: '/teacher/presentations', exact: true }
-];
-
-export function isTeacherLibraryPath(url: string): boolean {
-  const path = url.split('?')[0];
-  return (
-    path === '/teacher/library'
-    || path === '/teacher/exams'
-    || path === '/teacher/banks'
-    || path === '/teacher/questions'
-  );
 }
 
 export function navChildActive(url: string, child: NavChild): boolean {
@@ -162,7 +126,28 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
   }
 
   if (role === 'Teacher') {
-    return TEACHER_PRIMARY_NAV;
+    return [
+      { label: 'Inicio', path: '/teacher', icon: 'home', exact: true },
+      {
+        label: 'Clase',
+        icon: 'exam',
+        children: [
+          { label: 'Aula en vivo', path: '/teacher/live', exact: true },
+          { label: 'Presentaciones', path: '/teacher/presentations', exact: true },
+          { label: 'Grupos', path: '/teacher/groups', exact: true }
+        ]
+      },
+      {
+        label: 'Biblioteca',
+        icon: 'book',
+        children: [
+          { label: 'Exámenes', path: '/teacher/library', exact: true },
+          { label: 'Bancos', path: '/teacher/banks', exact: true },
+          { label: 'Preguntas', path: '/teacher/questions', exact: true }
+        ]
+      },
+      { label: 'Informes', path: '/teacher/results', icon: 'chart', exact: true }
+    ];
   }
 
   const hasSchool = !!options?.hasSchool;

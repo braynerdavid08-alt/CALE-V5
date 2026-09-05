@@ -7,12 +7,10 @@ import {
   inject,
   signal
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import {
   NavigationEnd,
   Router,
   RouterLink,
-  RouterLinkActive,
   RouterOutlet
 } from '@angular/router';
 import { filter } from 'rxjs';
@@ -33,8 +31,6 @@ import { UiThemeToggleComponent } from '../shared/ui/ui-theme-toggle.component';
 import {
   NavChild,
   NavItem,
-  TEACHER_LIBRARY_NAV,
-  isTeacherLibraryPath,
   navChildActive,
   navForRole
 } from './nav.config';
@@ -45,10 +41,8 @@ const SIDEBAR_COLLAPSED_KEY = 'cale.sidebar.collapsed';
   selector: 'app-shell',
   standalone: true,
   imports: [
-    FormsModule,
     RouterOutlet,
     RouterLink,
-    RouterLinkActive,
     UiBadgeComponent,
     UiButtonComponent,
     UiIconComponent,
@@ -74,7 +68,6 @@ export class AppShellComponent implements OnInit, OnDestroy {
   readonly url = signal(this.router.url);
   readonly sidebarCollapsed = signal(this.readCollapsedPref());
   readonly openGroups = signal<Record<string, boolean>>({});
-  headerSearch = '';
 
   private poll?: ReturnType<typeof setInterval>;
 
@@ -86,35 +79,11 @@ export class AppShellComponent implements OnInit, OnDestroy {
     return !!this.session.user()?.mustChangePassword;
   }
 
-  get isTeacherStudio(): boolean {
-    return this.role === 'Teacher';
-  }
-
   get items() {
     const user = this.session.user();
     return navForRole(this.role, {
       hasSchool: !!user?.schoolId || user?.role === 'School'
     });
-  }
-
-  get libraryItems() {
-    return TEACHER_LIBRARY_NAV;
-  }
-
-  get showLibraryPanel(): boolean {
-    return this.isTeacherStudio && isTeacherLibraryPath(this.url());
-  }
-
-  get showSidePanel(): boolean {
-    return this.showLibraryPanel;
-  }
-
-  get sidePanelTitle(): string {
-    return 'Biblioteca';
-  }
-
-  get sidePanelFoot(): string {
-    return 'Solo contenido de tu escuela';
   }
 
   get initials(): string {
@@ -150,9 +119,6 @@ export class AppShellComponent implements OnInit, OnDestroy {
 
   isNavOn(item: NavItem): boolean {
     const path = this.url().split('?')[0];
-    if (item.hub === 'library') {
-      return isTeacherLibraryPath(path);
-    }
     if (item.children?.length) {
       return item.children.some((c) => this.isChildOn(c));
     }
@@ -219,20 +185,6 @@ export class AppShellComponent implements OnInit, OnDestroy {
 
   closeMenu(): void {
     this.menuOpen.set(false);
-  }
-
-  goCreate(): void {
-    void this.router.navigateByUrl('/teacher/library?crear=1');
-  }
-
-  onHeaderSearch(): void {
-    if (!this.isTeacherStudio) {
-      return;
-    }
-    const q = this.headerSearch.trim();
-    void this.router.navigate(['/teacher/library'], {
-      queryParams: q ? { q } : {}
-    });
   }
 
   refreshUnread(): void {
