@@ -15,8 +15,18 @@ public sealed class PublicHomeController : ControllerBase
     public PublicHomeController(HomepageService home) => _home = home;
 
     [HttpGet("home")]
-    public Task<PublicHomeDto> Home(CancellationToken ct) =>
-        _home.GetPublicHomeAsync(ct);
+    public async Task<ActionResult<PublicHomeDto>> Home(CancellationToken ct)
+    {
+        try
+        {
+            return Ok(await _home.GetPublicHomeAsync(ct));
+        }
+        catch
+        {
+            // Absolute last line of defense if the service itself throws unexpectedly.
+            return Ok(_home.BuildStaticFallback());
+        }
+    }
 
     [HttpGet("schools")]
     public Task<IReadOnlyList<PublicSchoolCardDto>> Schools(
