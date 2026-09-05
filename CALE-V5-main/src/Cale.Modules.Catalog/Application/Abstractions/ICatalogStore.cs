@@ -6,7 +6,12 @@ namespace Cale.Modules.Catalog.Application.Abstractions;
 
 public interface ICatalogStore
 {
-    Task<IReadOnlyList<Bank>> ListBanksAsync(bool activeOnly, CancellationToken ct);
+    Task<IReadOnlyList<Bank>> ListBanksAsync(
+        bool activeOnly,
+        CancellationToken ct,
+        int? viewerUserId = null,
+        bool isAdmin = false);
+
     Task<Bank?> GetBankAsync(int id, CancellationToken ct);
     Task AddBankAsync(Bank bank, CancellationToken ct);
     Task<int> CountQuestionsInBankAsync(int bankId, CancellationToken ct);

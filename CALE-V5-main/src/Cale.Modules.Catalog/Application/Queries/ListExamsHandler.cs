@@ -18,9 +18,16 @@ public sealed class ListExamsHandler
         return exams.Select(Map).ToList();
     }
 
-    public async Task<IReadOnlyList<ExamDto>> PublishedAsync(CancellationToken ct)
+    public async Task<IReadOnlyList<ExamDto>> PublishedAsync(
+        int? ownerId,
+        CancellationToken ct)
     {
         var exams = await _store.ListPublishedExamsAsync(ct);
+        if (ownerId is int oid)
+        {
+            exams = exams.Where(e => e.CreatedById == oid).ToList();
+        }
+
         return exams.Select(Map).ToList();
     }
 

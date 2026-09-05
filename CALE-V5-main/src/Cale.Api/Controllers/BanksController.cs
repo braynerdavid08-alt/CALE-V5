@@ -45,7 +45,12 @@ public sealed class BanksController : ControllerBase
             await _access.EnsureSimulacroAsync(userId, role, ct);
         }
 
-        return Ok(await _list.HandleAsync(activeOnly, ct, includeThemes));
+        return Ok(await _list.HandleAsync(
+            activeOnly,
+            ct,
+            includeThemes,
+            userId,
+            role == Roles.Admin));
     }
 
     [HttpPost]

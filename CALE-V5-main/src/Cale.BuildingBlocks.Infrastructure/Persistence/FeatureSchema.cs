@@ -50,6 +50,10 @@ public static class FeatureSchema
                 ct);
             await TryAddSqliteColumnAsync(
                 db,
+                """ALTER TABLE "Bancos" ADD COLUMN "CreadoPorId" INTEGER NULL;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
                 """ALTER TABLE "Usuarios" ADD COLUMN "EmailConfirmado" INTEGER NOT NULL DEFAULT 1;""",
                 ct);
             await TryAddSqliteColumnAsync(
@@ -806,6 +810,25 @@ public static class FeatureSchema
                 ct);
             await TryPostgresAsync(db,
                 """ALTER TABLE "Usuarios" ADD COLUMN IF NOT EXISTS "DebeCambiarClave" boolean NOT NULL DEFAULT FALSE;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "Bancos" ADD COLUMN IF NOT EXISTS "CreadoPorId" integer NULL;""",
+                ct);
+            // Backfill owner for banks created by Word import (from any question author).
+            await TryPostgresAsync(db,
+                """
+                UPDATE "Bancos" b
+                SET "CreadoPorId" = sub."CreadoPorId"
+                FROM (
+                    SELECT "BancoId", MIN("CreadoPorId") AS "CreadoPorId"
+                    FROM "Preguntas"
+                    WHERE "CreadoPorId" IS NOT NULL
+                    GROUP BY "BancoId"
+                ) sub
+                WHERE b."Id" = sub."BancoId"
+                  AND b."CreadoPorId" IS NULL
+                  AND b."Descripcion" ILIKE '%importar%Word%';
+                """,
                 ct);
 
             await TryPostgresAsync(db,

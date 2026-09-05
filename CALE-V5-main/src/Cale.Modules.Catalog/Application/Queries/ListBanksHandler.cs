@@ -12,9 +12,11 @@ public sealed class ListBanksHandler
     public async Task<IReadOnlyList<BankDto>> HandleAsync(
         bool activeOnly,
         CancellationToken ct,
-        bool includeThemes = false)
+        bool includeThemes = false,
+        int? viewerUserId = null,
+        bool isAdmin = false)
     {
-        var banks = await _store.ListBanksAsync(activeOnly, ct);
+        var banks = await _store.ListBanksAsync(activeOnly, ct, viewerUserId, isAdmin);
         var themesByBank = includeThemes
             ? await LoadThemesByBankAsync(ct)
             : new Dictionary<int, (string Label, IReadOnlyList<BankThemeDto> Themes)>();

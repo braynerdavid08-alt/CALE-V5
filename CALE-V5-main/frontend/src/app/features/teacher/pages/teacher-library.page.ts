@@ -91,8 +91,14 @@ export class TeacherLibraryPage implements OnInit {
 
   ngOnInit(): void {
     this.reload();
-    this.api.banks(true).subscribe({ next: (items) => this.banks.set(items) });
-    this.api.groups().subscribe({ next: (items) => this.groups.set(items) });
+    this.api.banks(true).subscribe({
+      next: (items) => this.banks.set(items),
+      error: (err) => this.error.set(mapApiError(err))
+    });
+    this.api.groups().subscribe({
+      next: (items) => this.groups.set(items),
+      error: (err) => this.error.set(mapApiError(err))
+    });
 
     this.route.queryParamMap.subscribe((params) => {
       const q = params.get('q') ?? '';

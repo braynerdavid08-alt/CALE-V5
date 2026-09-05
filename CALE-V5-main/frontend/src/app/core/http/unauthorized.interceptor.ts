@@ -17,6 +17,19 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((err: unknown) => {
+      if (
+        err instanceof HttpErrorResponse
+        && err.status === 403
+        && err.error?.detail === 'password_change_required'
+      ) {
+        session.patchUser({ mustChangePassword: true });
+        void router.navigate(['/profile'], {
+          queryParams: { mustChange: 1 },
+          replaceUrl: true
+        });
+        return throwError(() => err);
+      }
+
       if (!(err instanceof HttpErrorResponse) || err.status !== 401) {
         return throwError(() => err);
       }

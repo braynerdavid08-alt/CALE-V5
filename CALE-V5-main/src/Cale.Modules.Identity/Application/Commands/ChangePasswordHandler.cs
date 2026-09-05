@@ -9,11 +9,16 @@ public sealed class ChangePasswordHandler
 {
     private readonly IUserStore _users;
     private readonly IPasswordHasher _hasher;
+    private readonly IRefreshTokenStore _refreshTokens;
 
-    public ChangePasswordHandler(IUserStore users, IPasswordHasher hasher)
+    public ChangePasswordHandler(
+        IUserStore users,
+        IPasswordHasher hasher,
+        IRefreshTokenStore refreshTokens)
     {
         _users = users;
         _hasher = hasher;
+        _refreshTokens = refreshTokens;
     }
 
     public async Task HandleAsync(
@@ -42,5 +47,6 @@ public sealed class ChangePasswordHandler
 
         user.ChangePassword(_hasher.Hash(request.NewPassword));
         await _users.SaveChangesAsync(ct);
+        await _refreshTokens.RevokeAllForUserAsync(userId, ct);
     }
 }

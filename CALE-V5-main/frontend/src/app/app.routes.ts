@@ -376,7 +376,7 @@ export const routes: Routes = [
         path: 'teacher/library',
         pathMatch: 'full',
         canActivate: [roleGuard, catalogAccessGuard],
-        data: { roles: ['Teacher'] },
+        data: { roles: ['Teacher', 'Admin'] },
         loadComponent: () =>
           import('./features/teacher/pages/teacher-library.page')
             .then((m) => m.TeacherLibraryPage)

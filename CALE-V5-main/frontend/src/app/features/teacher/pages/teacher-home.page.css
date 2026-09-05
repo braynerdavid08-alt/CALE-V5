@@ -5,6 +5,28 @@
   line-height: 1.35;
 }
 
+.membership-banner {
+  border: 1px solid color-mix(in srgb, var(--color-warning, #b54708) 35%, var(--color-border));
+  background: color-mix(in srgb, var(--color-warning, #b54708) 10%, var(--color-surface));
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  display: grid;
+  gap: 0.35rem;
+}
+.membership-banner strong {
+  font-size: 1rem;
+}
+.membership-banner p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+.membership-banner a {
+  font-weight: 700;
+  width: fit-content;
+}
+
 .feature-card {
   background:
     linear-gradient(

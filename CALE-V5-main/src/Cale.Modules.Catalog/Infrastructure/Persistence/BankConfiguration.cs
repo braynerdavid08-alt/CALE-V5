@@ -16,6 +16,8 @@ public sealed class BankConfiguration : IEntityTypeConfiguration<Bank>
         builder.Property(x => x.SeedCompleted).HasColumnName("SeedInicialCompletado");
         builder.Property(x => x.DistributionApplied)
             .HasColumnName("DistribucionRespuestasInicialAplicada");
+        builder.Property(x => x.CreatedById).HasColumnName("CreadoPorId");
         builder.Property(x => x.CreatedAt).HasColumnName("CreadoEn");
+        builder.HasIndex(x => x.CreatedById);
     }
 }

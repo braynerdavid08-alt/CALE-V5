@@ -24,7 +24,7 @@
     @if (allReviewed() && examId) {
       <section class="next-steps">
         <h3>Siguiente paso</h3>
-        <p>Asigna el examen a un grupo y/o publícalo para los estudiantes.</p>
+        <p>Publica el examen y luego asígnalo a un grupo.</p>
         <div class="next-grid">
           <label>
             Grupo
@@ -36,11 +36,11 @@
             </select>
           </label>
           <div class="next-actions">
-            <ui-button type="button" [disabled]="busy() || !assignGroupId" (click)="assignAndGo()">
-              Asignar a grupo
-            </ui-button>
             <ui-button type="button" variant="secondary" [disabled]="busy()" (click)="publishExam()">
               Publicar examen
+            </ui-button>
+            <ui-button type="button" [disabled]="busy() || !assignGroupId" (click)="assignAndGo()">
+              Asignar a grupo
             </ui-button>
           </div>
         </div>

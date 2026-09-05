@@ -6,7 +6,7 @@
     <section class="follow-up">
       <div>
         <h2>Examen listo: {{ follow.name }}</h2>
-        <p>Asígnalo a un grupo y/o publícalo para los estudiantes.</p>
+        <p>Primero publícalo; luego asígnalo a un grupo para que los estudiantes lo vean.</p>
       </div>
       <div class="follow-grid">
         <label>
@@ -19,8 +19,8 @@
           </select>
         </label>
         <div class="follow-actions">
-          <ui-button type="button" [disabled]="!followUpGroupId" (click)="followUpAssign()">Asignar</ui-button>
           <ui-button type="button" variant="secondary" (click)="followUpPublish()">Publicar</ui-button>
+          <ui-button type="button" [disabled]="!followUpGroupId" (click)="followUpAssign()">Asignar</ui-button>
           <ui-button type="button" variant="ghost" (click)="dismissFollowUp()">Cerrar</ui-button>
         </div>
       </div>

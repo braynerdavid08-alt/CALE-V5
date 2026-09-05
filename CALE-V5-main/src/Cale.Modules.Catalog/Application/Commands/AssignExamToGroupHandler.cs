@@ -53,6 +53,14 @@ public sealed class AssignExamToGroupHandler
                 "group_forbidden");
         }
 
+        if (!exam.Published)
+        {
+            throw new DomainException(
+                "Publica el examen antes de asignarlo a un grupo.",
+                400,
+                "exam_not_published");
+        }
+
         if (await _store.FindExamGroupAsync(examId, request.GroupId, ct) is not null)
         {
             throw new ConflictException(
