@@ -40,18 +40,66 @@ public sealed class HomepageService
             return cached;
         }
 
-        var settings = await EnsureSettingsAsync(ct);
-        var stats = await ResolveStatsAsync(persistComputed: true, ct);
-        var schools = settings.SchoolsSectionVisible
-            ? await ListPublicSchoolsAsync(8, ct)
-            : Array.Empty<PublicSchoolCardDto>();
-        var instructors = settings.InstructorsSectionVisible
-            ? await ListPublicInstructorsAsync(8, ct)
-            : Array.Empty<PublicInstructorCardDto>();
+        try
+        {
+            var settings = await EnsureSettingsAsync(ct);
+            IReadOnlyList<ResolvedStatDto> stats;
+            try
+            {
+                stats = await ResolveStatsAsync(persistComputed: true, ct);
+            }
+            catch
+            {
+                // Stats are nice-to-have; never blank the public landing for them.
+                stats = Array.Empty<ResolvedStatDto>();
+            }
 
-        var dto = MapPublic(settings, stats, schools, instructors);
-        _cache.Set(PublicCacheKey, dto, CacheTtl);
-        return dto;
+            var schools = settings.SchoolsSectionVisible
+                ? await ListPublicSchoolsAsync(8, ct)
+                : Array.Empty<PublicSchoolCardDto>();
+            var instructors = settings.InstructorsSectionVisible
+                ? await ListPublicInstructorsAsync(8, ct)
+                : Array.Empty<PublicInstructorCardDto>();
+
+            var dto = MapPublic(settings, stats, schools, instructors);
+            _cache.Set(PublicCacheKey, dto, CacheTtl);
+            return dto;
+        }
+        catch
+        {
+            // Last resort so the marketing site stays up if CMS tables are mid-migration.
+            var fallback = MapPublic(
+                CreateDefaultSettings(),
+                Array.Empty<ResolvedStatDto>(),
+                await SafeListSchoolsAsync(ct),
+                await SafeListInstructorsAsync(ct));
+            _cache.Set(PublicCacheKey, fallback, TimeSpan.FromSeconds(15));
+            return fallback;
+        }
+    }
+
+    private async Task<IReadOnlyList<PublicSchoolCardDto>> SafeListSchoolsAsync(CancellationToken ct)
+    {
+        try
+        {
+            return await ListPublicSchoolsAsync(8, ct);
+        }
+        catch
+        {
+            return Array.Empty<PublicSchoolCardDto>();
+        }
+    }
+
+    private async Task<IReadOnlyList<PublicInstructorCardDto>> SafeListInstructorsAsync(CancellationToken ct)
+    {
+        try
+        {
+            return await ListPublicInstructorsAsync(8, ct);
+        }
+        catch
+        {
+            return Array.Empty<PublicInstructorCardDto>();
+        }
     }
 
     public async Task<AdminHomepageDto> GetAdminAsync(CancellationToken ct)
@@ -304,10 +352,18 @@ public sealed class HomepageService
         var profiles = await _db.Set<SchoolProfile>().AsNoTracking().ToListAsync(ct);
         var schools = profiles.Count(p => p.IsCommerciallyActive(now));
 
-        var ratings = await _db.Set<AttemptRating>().AsNoTracking()
-            .Where(r => !r.Hidden)
-            .Select(r => r.Stars)
-            .ToListAsync(ct);
+        var ratings = new List<int>();
+        try
+        {
+            ratings = await _db.Set<AttemptRating>().AsNoTracking()
+                .Where(r => !r.Hidden)
+                .Select(r => r.Stars)
+                .ToListAsync(ct);
+        }
+        catch
+        {
+            // Valoraciones table may be missing on older DBs; rating stat becomes unavailable.
+        }
 
         var map = new Dictionary<string, ComputedRaw>(StringComparer.OrdinalIgnoreCase)
         {

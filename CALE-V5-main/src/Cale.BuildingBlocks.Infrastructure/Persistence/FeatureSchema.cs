@@ -1006,6 +1006,10 @@ public static class FeatureSchema
                     "CreatedAt" timestamp with time zone NOT NULL,
                     "UpdatedAt" timestamp with time zone NOT NULL
                 );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """
                 CREATE TABLE IF NOT EXISTS "PracticalLessonSessions" (
                     "Id" serial PRIMARY KEY,
                     "SchoolUserId" integer NOT NULL,
@@ -1020,6 +1024,13 @@ public static class FeatureSchema
                     "CreatedAt" timestamp with time zone NOT NULL,
                     "UpdatedAt" timestamp with time zone NOT NULL
                 );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_PracticalLessonSessions_SchoolUserId_SessionDate" ON "PracticalLessonSessions" ("SchoolUserId", "SessionDate");""",
+                ct);
+            await TryPostgresAsync(db,
+                """
                 CREATE TABLE IF NOT EXISTS "PracticalLessonReservations" (
                     "Id" serial PRIMARY KEY,
                     "LessonSessionId" integer NOT NULL,
@@ -1030,6 +1041,13 @@ public static class FeatureSchema
                     "CreatedAt" timestamp with time zone NOT NULL,
                     "UpdatedAt" timestamp with time zone NOT NULL
                 );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_PracticalLessonReservations_LessonSessionId_StudentUserId" ON "PracticalLessonReservations" ("LessonSessionId", "StudentUserId");""",
+                ct);
+            await TryPostgresAsync(db,
+                """
                 CREATE TABLE IF NOT EXISTS "SchoolApprenticeProfiles" (
                     "Id" serial PRIMARY KEY,
                     "SchoolUserId" integer NOT NULL,
@@ -1060,8 +1078,13 @@ public static class FeatureSchema
                     "CreatedAt" timestamp with time zone NOT NULL,
                     "UpdatedAt" timestamp with time zone NOT NULL
                 );
-                CREATE UNIQUE INDEX IF NOT EXISTS "IX_SchoolApprenticeProfiles_SchoolUserId_StudentUserId"
-                    ON "SchoolApprenticeProfiles" ("SchoolUserId", "StudentUserId");
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE UNIQUE INDEX IF NOT EXISTS "IX_SchoolApprenticeProfiles_SchoolUserId_StudentUserId" ON "SchoolApprenticeProfiles" ("SchoolUserId", "StudentUserId");""",
+                ct);
+            await TryPostgresAsync(db,
+                """
                 CREATE TABLE IF NOT EXISTS "TheoryExamAppointments" (
                     "Id" serial PRIMARY KEY,
                     "SchoolUserId" integer NOT NULL,
@@ -1073,9 +1096,10 @@ public static class FeatureSchema
                     "CreatedAt" timestamp with time zone NOT NULL,
                     "UpdatedAt" timestamp with time zone NOT NULL
                 );
-                CREATE INDEX IF NOT EXISTS "IX_TheoryExamAppointments_SchoolUserId_ExamDate_SlotTime"
-                    ON "TheoryExamAppointments" ("SchoolUserId", "ExamDate", "SlotTime");
                 """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_TheoryExamAppointments_SchoolUserId_ExamDate_SlotTime" ON "TheoryExamAppointments" ("SchoolUserId", "ExamDate", "SlotTime");""",
                 ct);
             await TryPostgresAsync(db,
                 """
@@ -1171,9 +1195,10 @@ public static class FeatureSchema
                     "PerformedByUserId" integer NULL,
                     "CreatedAt" timestamp with time zone NOT NULL
                 );
-                CREATE INDEX IF NOT EXISTS "IX_EnrollmentAuthorizationEvents_School_Student_Created"
-                    ON "EnrollmentAuthorizationEvents" ("SchoolUserId", "StudentUserId", "CreatedAt");
                 """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_EnrollmentAuthorizationEvents_School_Student_Created" ON "EnrollmentAuthorizationEvents" ("SchoolUserId", "StudentUserId", "CreatedAt");""",
                 ct);
             await TryPostgresAsync(db,
                 """
@@ -1183,10 +1208,15 @@ public static class FeatureSchema
                     "Name" varchar(120) NOT NULL,
                     "Description" varchar(500) NULL,
                     "Color" varchar(16) NOT NULL,
+                    "Category" varchar(16) NOT NULL DEFAULT 'Theory',
                     "IsActive" boolean NOT NULL DEFAULT TRUE,
                     "CreatedAt" timestamp with time zone NOT NULL,
                     "UpdatedAt" timestamp with time zone NOT NULL
                 );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """
                 CREATE TABLE IF NOT EXISTS "TheoryClassrooms" (
                     "Id" serial PRIMARY KEY,
                     "SchoolUserId" integer NOT NULL,
@@ -1198,6 +1228,10 @@ public static class FeatureSchema
                     "CreatedAt" timestamp with time zone NOT NULL,
                     "UpdatedAt" timestamp with time zone NOT NULL
                 );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """
                 CREATE TABLE IF NOT EXISTS "TheoryTrainingSettings" (
                     "Id" serial PRIMARY KEY,
                     "SchoolUserId" integer NOT NULL UNIQUE,
@@ -1205,12 +1239,30 @@ public static class FeatureSchema
                     "MinCancelHours" integer NOT NULL DEFAULT 2,
                     "ReservationCloseMinutesBefore" integer NOT NULL DEFAULT 0,
                     "RequiredTheoryHours" integer NOT NULL DEFAULT 20,
+                    "RequiredWorkshopHours" integer NOT NULL DEFAULT 10,
+                    "TheoryExamId" integer NULL,
+                    "WeekdaysEnabled" boolean NOT NULL DEFAULT TRUE,
                     "SaturdayEnabled" boolean NOT NULL DEFAULT TRUE,
                     "NotifyReservationOpen" boolean NOT NULL DEFAULT TRUE,
                     "NotifyClassReminder24h" boolean NOT NULL DEFAULT TRUE,
                     "NotifyClassReminder1h" boolean NOT NULL DEFAULT TRUE,
+                    "NotifyExamReminder24h" boolean NOT NULL DEFAULT TRUE,
+                    "MaxWeekdayClassesPerDay" integer NOT NULL DEFAULT 1,
+                    "MaxSaturdayClassesPerDay" integer NOT NULL DEFAULT 4,
+                    "MaxDailyTheoryMinutes" integer NOT NULL DEFAULT 0,
+                    "WeekdayReservationOpenDaysBefore" integer NOT NULL DEFAULT 1,
+                    "SaturdayReservationOpenDaysBefore" integer NOT NULL DEFAULT 2,
+                    "StudentBookingWindowStart" time without time zone NULL,
+                    "StudentBookingWindowEnd" time without time zone NULL,
+                    "LicenseCategoryPoliciesJson" text NOT NULL DEFAULT '{}',
+                    "SavedBookingPresetsJson" text NOT NULL DEFAULT '[]',
+                    "HiddenBookingPresetKeysJson" text NOT NULL DEFAULT '[]',
                     "UpdatedAt" timestamp with time zone NOT NULL
                 );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """
                 CREATE TABLE IF NOT EXISTS "TheoryClassSessions" (
                     "Id" serial PRIMARY KEY,
                     "SchoolUserId" integer NOT NULL,
@@ -1231,6 +1283,10 @@ public static class FeatureSchema
                     "CreatedAt" timestamp with time zone NOT NULL,
                     "UpdatedAt" timestamp with time zone NOT NULL
                 );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """
                 CREATE TABLE IF NOT EXISTS "TheoryClassReservations" (
                     "Id" serial PRIMARY KEY,
                     "ClassSessionId" integer NOT NULL,
@@ -1242,6 +1298,10 @@ public static class FeatureSchema
                     "CreatedAt" timestamp with time zone NOT NULL,
                     "UpdatedAt" timestamp with time zone NOT NULL
                 );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """
                 CREATE TABLE IF NOT EXISTS "TheoryAttendanceRecords" (
                     "Id" serial PRIMARY KEY,
                     "ClassSessionId" integer NOT NULL,
@@ -1253,6 +1313,10 @@ public static class FeatureSchema
                     "CreatedAt" timestamp with time zone NOT NULL,
                     "UpdatedAt" timestamp with time zone NOT NULL
                 );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """
                 CREATE TABLE IF NOT EXISTS "SchoolStudentEnrollments" (
                     "Id" serial PRIMARY KEY,
                     "SchoolUserId" integer NOT NULL,
@@ -1260,24 +1324,122 @@ public static class FeatureSchema
                     "Status" varchar(32) NOT NULL,
                     "AttendanceDayType" varchar(16) NULL,
                     "AllowedStartTime" time NULL,
+                    "LicenseCategories" varchar(32) NULL,
+                    "TheoryExamAuthorized" boolean NOT NULL DEFAULT FALSE,
+                    "TheoryExamAuthorizedAt" timestamp with time zone NULL,
+                    "PracticalAuthorized" boolean NOT NULL DEFAULT FALSE,
+                    "PracticalAuthorizedAt" timestamp with time zone NULL,
                     "CreatedAt" timestamp with time zone NOT NULL,
                     "AcceptedAt" timestamp with time zone NULL,
                     "SuspendedAt" timestamp with time zone NULL,
                     "UpdatedAt" timestamp with time zone NOT NULL
                 );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """
                 CREATE TABLE IF NOT EXISTS "StudentDailyCheckIns" (
                     "Id" serial PRIMARY KEY,
                     "StudentUserId" integer NOT NULL,
                     "CheckInDate" date NOT NULL,
                     "CheckInAt" timestamp with time zone NOT NULL
                 );
-                CREATE INDEX IF NOT EXISTS "IX_TheoryClassSessions_SchoolUserId_SessionDate" ON "TheoryClassSessions" ("SchoolUserId", "SessionDate");
-                CREATE INDEX IF NOT EXISTS "IX_TheoryClassReservations_ClassSessionId" ON "TheoryClassReservations" ("ClassSessionId");
-                CREATE INDEX IF NOT EXISTS "IX_TheoryClassReservations_StudentUserId" ON "TheoryClassReservations" ("StudentUserId");
-                CREATE UNIQUE INDEX IF NOT EXISTS "IX_TheoryAttendanceRecords_ClassSessionId_StudentUserId" ON "TheoryAttendanceRecords" ("ClassSessionId", "StudentUserId");
-                CREATE UNIQUE INDEX IF NOT EXISTS "IX_SchoolStudentEnrollments_SchoolUserId_StudentUserId" ON "SchoolStudentEnrollments" ("SchoolUserId", "StudentUserId");
-                CREATE UNIQUE INDEX IF NOT EXISTS "IX_StudentDailyCheckIns_StudentUserId_CheckInDate" ON "StudentDailyCheckIns" ("StudentUserId", "CheckInDate");
                 """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_TheoryClassSessions_SchoolUserId_SessionDate" ON "TheoryClassSessions" ("SchoolUserId", "SessionDate");""",
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_TheoryClassReservations_ClassSessionId" ON "TheoryClassReservations" ("ClassSessionId");""",
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_TheoryClassReservations_StudentUserId" ON "TheoryClassReservations" ("StudentUserId");""",
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE UNIQUE INDEX IF NOT EXISTS "IX_TheoryAttendanceRecords_ClassSessionId_StudentUserId" ON "TheoryAttendanceRecords" ("ClassSessionId", "StudentUserId");""",
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE UNIQUE INDEX IF NOT EXISTS "IX_SchoolStudentEnrollments_SchoolUserId_StudentUserId" ON "SchoolStudentEnrollments" ("SchoolUserId", "StudentUserId");""",
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE UNIQUE INDEX IF NOT EXISTS "IX_StudentDailyCheckIns_StudentUserId_CheckInDate" ON "StudentDailyCheckIns" ("StudentUserId", "CheckInDate");""",
+                ct);
+
+            // Re-apply ALTERs after CREATE so older incomplete tables get missing columns.
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTopics" ADD COLUMN IF NOT EXISTS "Category" varchar(16) NOT NULL DEFAULT 'Theory';""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "RequiredWorkshopHours" integer NOT NULL DEFAULT 10;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "TheoryExamId" integer NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "WeekdaysEnabled" boolean NOT NULL DEFAULT TRUE;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "NotifyReservationOpen" boolean NOT NULL DEFAULT TRUE;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "NotifyClassReminder24h" boolean NOT NULL DEFAULT TRUE;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "NotifyClassReminder1h" boolean NOT NULL DEFAULT TRUE;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "NotifyExamReminder24h" boolean NOT NULL DEFAULT TRUE;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "MaxWeekdayClassesPerDay" integer NOT NULL DEFAULT 1;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "MaxSaturdayClassesPerDay" integer NOT NULL DEFAULT 4;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "MaxDailyTheoryMinutes" integer NOT NULL DEFAULT 0;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "WeekdayReservationOpenDaysBefore" integer NOT NULL DEFAULT 1;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "SaturdayReservationOpenDaysBefore" integer NOT NULL DEFAULT 2;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "StudentBookingWindowStart" time without time zone NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "StudentBookingWindowEnd" time without time zone NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "LicenseCategoryPoliciesJson" text NOT NULL DEFAULT '{}';""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "SavedBookingPresetsJson" text NOT NULL DEFAULT '[]';""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "HiddenBookingPresetKeysJson" text NOT NULL DEFAULT '[]';""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "AttendanceDayType" varchar(16) NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "AllowedStartTime" time NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "LicenseCategories" varchar(32) NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "TheoryExamAuthorized" boolean NOT NULL DEFAULT FALSE;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "TheoryExamAuthorizedAt" timestamp with time zone NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "PracticalAuthorized" boolean NOT NULL DEFAULT FALSE;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "PracticalAuthorizedAt" timestamp with time zone NULL;""",
                 ct);
             await TryPostgresAsync(db,
                 """
@@ -1296,6 +1458,84 @@ public static class FeatureSchema
                 ct);
             await TryPostgresAsync(db,
                 """CREATE INDEX IF NOT EXISTS "IX_AuthRefreshTokens_UserId" ON "AuthRefreshTokens" ("UserId");""",
+                ct);
+
+            // Homepage CMS tables are not created by EnsureCreated on existing DBs.
+            await TryPostgresAsync(db,
+                """
+                CREATE TABLE IF NOT EXISTS "HomepageSettings" (
+                    "Id" integer NOT NULL PRIMARY KEY,
+                    "HeroBadge" varchar(120) NOT NULL,
+                    "HeroTitle" varchar(200) NOT NULL,
+                    "HeroTitleHighlight" varchar(200) NOT NULL,
+                    "HeroDescription" varchar(2000) NOT NULL,
+                    "HeroCtaPrimaryLabel" varchar(80) NOT NULL,
+                    "HeroCtaPrimaryPath" varchar(200) NOT NULL,
+                    "HeroCtaSecondaryLabel" varchar(80) NOT NULL,
+                    "HeroVideoUrl" varchar(500) NULL,
+                    "HeroImageUrl" varchar(500) NULL,
+                    "HeroImageUrlMobile" varchar(500) NULL,
+                    "HeroImageAlt" varchar(200) NOT NULL,
+                    "HeroImageEnabled" boolean NOT NULL,
+                    "HeroVisible" boolean NOT NULL,
+                    "BenefitsJson" text NOT NULL,
+                    "StepsJson" text NOT NULL,
+                    "StepsSectionTitle" varchar(200) NOT NULL,
+                    "StepsSectionSubtitle" varchar(500) NOT NULL,
+                    "SchoolsSectionVisible" boolean NOT NULL,
+                    "InstructorsSectionVisible" boolean NOT NULL,
+                    "StatsSectionVisible" boolean NOT NULL,
+                    "BenefitsSectionVisible" boolean NOT NULL,
+                    "StepsSectionVisible" boolean NOT NULL,
+                    "SeoTitle" varchar(200) NOT NULL,
+                    "SeoDescription" varchar(500) NOT NULL,
+                    "ContactEmail" varchar(200) NOT NULL,
+                    "ContactPhone" varchar(80) NOT NULL,
+                    "AboutHtml" varchar(8000) NOT NULL,
+                    "BlogIntro" varchar(2000) NOT NULL,
+                    "UpdatedAt" timestamp with time zone NOT NULL,
+                    "UpdatedByUserId" integer NULL
+                );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """
+                CREATE TABLE IF NOT EXISTS "HomepageStatSettings" (
+                    "Id" serial PRIMARY KEY,
+                    "Key" varchar(40) NOT NULL,
+                    "Label" varchar(120) NOT NULL,
+                    "SubLabel" varchar(120) NOT NULL,
+                    "Icon" varchar(40) NOT NULL,
+                    "Mode" varchar(20) NOT NULL,
+                    "ManualValue" varchar(80) NULL,
+                    "LastComputedValue" varchar(80) NULL,
+                    "LastComputedDisplay" varchar(80) NULL,
+                    "Visible" boolean NOT NULL,
+                    "SortOrder" integer NOT NULL,
+                    "LastComputedAt" timestamp with time zone NULL,
+                    "UpdatedAt" timestamp with time zone NOT NULL
+                );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE UNIQUE INDEX IF NOT EXISTS "IX_HomepageStatSettings_Key" ON "HomepageStatSettings" ("Key");""",
+                ct);
+            await TryPostgresAsync(db,
+                """
+                CREATE TABLE IF NOT EXISTS "HomepageAudits" (
+                    "Id" bigserial PRIMARY KEY,
+                    "ActorUserId" integer NOT NULL,
+                    "Area" varchar(80) NOT NULL,
+                    "StatKey" varchar(40) NULL,
+                    "PreviousValue" varchar(200) NULL,
+                    "NewValue" varchar(200) NULL,
+                    "Note" varchar(500) NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL
+                );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_HomepageAudits_CreatedAt" ON "HomepageAudits" ("CreatedAt");""",
                 ct);
             return;
         }
