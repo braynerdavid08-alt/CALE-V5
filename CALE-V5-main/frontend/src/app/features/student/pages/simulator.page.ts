@@ -1,6 +1,7 @@
-import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, computed, HostListener, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import { SessionStore } from '../../../core/auth/session.store';
 import { resolveMediaUrl } from '../../../core/media/resolve-media-url';
 import { mapApiError } from '../../../core/http/map-api-error';
@@ -110,6 +111,8 @@ export class SimulatorPage implements OnInit, OnDestroy {
   readonly presetId = signal<string>('estandar');
   readonly customMode = signal(false);
   readonly answeredCount = signal(0);
+  readonly resumed = signal(false);
+  readonly finishing = signal(false);
 
   private timer: ReturnType<typeof setInterval> | null = null;
   private readonly answers: Record<number, number> = {};
@@ -136,6 +139,14 @@ export class SimulatorPage implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.clearTimer();
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  onBeforeUnload(event: BeforeUnloadEvent): void {
+    if (this.step() === 'take') {
+      event.preventDefault();
+      event.returnValue = '';
+    }
   }
 
   ngOnInit(): void {
@@ -287,16 +298,28 @@ export class SimulatorPage implements OnInit, OnDestroy {
 
   finish(): void {
     const attemptId = this.session()?.attemptId;
-    if (!attemptId) {
+    if (!attemptId || this.finishing()) {
       return;
     }
+    this.finishing.set(true);
     this.clearTimer();
     this.api.finish(attemptId).subscribe({
       next: (result) => {
+        this.finishing.set(false);
         this.result.set(result);
         this.step.set('result');
       },
-      error: (err) => this.error.set(mapApiError(err))
+      error: (err) => {
+        this.finishing.set(false);
+        if (
+          err instanceof HttpErrorResponse
+          && err.error?.detail === 'attempt_finished'
+        ) {
+          this.openReview();
+          return;
+        }
+        this.error.set(mapApiError(err));
+      }
     });
   }
 
@@ -321,6 +344,8 @@ export class SimulatorPage implements OnInit, OnDestroy {
     this.result.set(null);
     this.review.set(null);
     this.ok.set(null);
+    this.resumed.set(false);
+    this.finishing.set(false);
   }
 
   openReview(): void {
@@ -363,10 +388,17 @@ export class SimulatorPage implements OnInit, OnDestroy {
       next: (session) => {
         this.session.set(session);
         this.current.set(0);
-        this.selected.set(null);
         Object.keys(this.answers).forEach((k) => delete this.answers[Number(k)]);
-        this.answeredCount.set(0);
+        for (const a of session.answers ?? []) {
+          if (a.questionId && a.optionId) {
+            this.answers[a.questionId] = a.optionId;
+          }
+        }
+        this.answeredCount.set(Object.keys(this.answers).length);
+        this.resumed.set(!!session.resumed);
+        this.finishing.set(false);
         this.step.set('take');
+        this.restoreSelected();
         this.startTimer(session.expiresAt);
       },
       error: (err) => this.error.set(mapApiError(err))

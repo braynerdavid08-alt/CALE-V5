@@ -37,9 +37,12 @@
           </label>
           <div class="next-actions">
             <ui-button type="button" variant="secondary" [disabled]="busy()" (click)="publishExam()">
-              Publicar examen
+              {{ published() ? 'Publicado' : 'Publicar examen' }}
             </ui-button>
-            <ui-button type="button" [disabled]="busy() || !assignGroupId" (click)="assignAndGo()">
+            <ui-button
+              type="button"
+              [disabled]="busy() || !assignGroupId || !published()"
+              (click)="assignAndGo()">
               Asignar a grupo
             </ui-button>
           </div>

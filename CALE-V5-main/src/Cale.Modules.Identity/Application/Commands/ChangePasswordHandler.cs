@@ -42,7 +42,7 @@ public sealed class ChangePasswordHandler
         {
             throw new UnauthorizedException(
                 "Current password is incorrect.",
-                "invalid_credentials");
+                "wrong_current_password");
         }
 
         user.ChangePassword(_hasher.Hash(request.NewPassword));

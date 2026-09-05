@@ -408,6 +408,11 @@
   padding: 0.25rem;
 }
 
+.menu-hint {
+  margin: 0.15rem 0.35rem 0.45rem;
+  font-size: var(--text-xs, 0.8rem);
+}
+
 .menu-assign select {
   width: 100%;
   min-height: 2.2rem;

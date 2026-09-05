@@ -348,6 +348,10 @@ export class TeacherLibraryPage implements OnInit {
       this.error.set('Elige un grupo.');
       return;
     }
+    if (!exam.published) {
+      this.error.set('Publica el examen antes de asignarlo a un grupo.');
+      return;
+    }
     this.api.assignExam(exam.id, this.followUpGroupId).subscribe({
       next: () => {
         this.ok.set(`“${exam.name}” asignado al grupo.`);
@@ -363,8 +367,8 @@ export class TeacherLibraryPage implements OnInit {
     }
     this.api.publishExam(exam.id, true).subscribe({
       next: () => {
-        this.ok.set(`“${exam.name}” publicado.`);
-        this.followUpExam.set(null);
+        this.ok.set(`“${exam.name}” publicado. Ahora puedes asignarlo a un grupo.`);
+        this.followUpExam.set({ ...exam, published: true });
         this.reload();
       },
       error: (err) => this.error.set(mapApiError(err))
