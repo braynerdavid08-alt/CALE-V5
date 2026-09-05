@@ -434,6 +434,29 @@ public sealed class PracticalTrainingService
     {
         var (schoolUserId, _) = await _theory.ResolveStudentSchoolPublicAsync(studentUserId, ct);
         var eligibility = await _theory.GetPracticalEligibilityAsync(schoolUserId, studentUserId, ct);
+
+        try
+        {
+            return await BuildStudentDashboardAsync(schoolUserId, studentUserId, eligibility, ct);
+        }
+        catch
+        {
+            // Practical tables may be mid-migration on older Postgres DBs.
+            return new PracticalStudentDashboardDto(
+                eligibility,
+                null,
+                Array.Empty<PracticalLessonSessionDto>(),
+                Array.Empty<PracticalLessonSessionDto>(),
+                Array.Empty<PracticalInstructorOptionDto>());
+        }
+    }
+
+    private async Task<PracticalStudentDashboardDto> BuildStudentDashboardAsync(
+        int schoolUserId,
+        int studentUserId,
+        PracticalEligibilityDto eligibility,
+        CancellationToken ct)
+    {
         var nowUtc = _clock.UtcNow;
         var today = ColombiaTime.TodayInColombia();
 

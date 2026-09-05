@@ -1006,6 +1006,10 @@ public static class FeatureSchema
                     "CreatedAt" timestamp with time zone NOT NULL,
                     "UpdatedAt" timestamp with time zone NOT NULL
                 );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """
                 CREATE TABLE IF NOT EXISTS "PracticalLessonSessions" (
                     "Id" serial PRIMARY KEY,
                     "SchoolUserId" integer NOT NULL,
@@ -1020,6 +1024,13 @@ public static class FeatureSchema
                     "CreatedAt" timestamp with time zone NOT NULL,
                     "UpdatedAt" timestamp with time zone NOT NULL
                 );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_PracticalLessonSessions_SchoolUserId_SessionDate" ON "PracticalLessonSessions" ("SchoolUserId", "SessionDate");""",
+                ct);
+            await TryPostgresAsync(db,
+                """
                 CREATE TABLE IF NOT EXISTS "PracticalLessonReservations" (
                     "Id" serial PRIMARY KEY,
                     "LessonSessionId" integer NOT NULL,
@@ -1030,6 +1041,13 @@ public static class FeatureSchema
                     "CreatedAt" timestamp with time zone NOT NULL,
                     "UpdatedAt" timestamp with time zone NOT NULL
                 );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_PracticalLessonReservations_LessonSessionId_StudentUserId" ON "PracticalLessonReservations" ("LessonSessionId", "StudentUserId");""",
+                ct);
+            await TryPostgresAsync(db,
+                """
                 CREATE TABLE IF NOT EXISTS "SchoolApprenticeProfiles" (
                     "Id" serial PRIMARY KEY,
                     "SchoolUserId" integer NOT NULL,
@@ -1060,8 +1078,13 @@ public static class FeatureSchema
                     "CreatedAt" timestamp with time zone NOT NULL,
                     "UpdatedAt" timestamp with time zone NOT NULL
                 );
-                CREATE UNIQUE INDEX IF NOT EXISTS "IX_SchoolApprenticeProfiles_SchoolUserId_StudentUserId"
-                    ON "SchoolApprenticeProfiles" ("SchoolUserId", "StudentUserId");
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE UNIQUE INDEX IF NOT EXISTS "IX_SchoolApprenticeProfiles_SchoolUserId_StudentUserId" ON "SchoolApprenticeProfiles" ("SchoolUserId", "StudentUserId");""",
+                ct);
+            await TryPostgresAsync(db,
+                """
                 CREATE TABLE IF NOT EXISTS "TheoryExamAppointments" (
                     "Id" serial PRIMARY KEY,
                     "SchoolUserId" integer NOT NULL,
@@ -1073,9 +1096,10 @@ public static class FeatureSchema
                     "CreatedAt" timestamp with time zone NOT NULL,
                     "UpdatedAt" timestamp with time zone NOT NULL
                 );
-                CREATE INDEX IF NOT EXISTS "IX_TheoryExamAppointments_SchoolUserId_ExamDate_SlotTime"
-                    ON "TheoryExamAppointments" ("SchoolUserId", "ExamDate", "SlotTime");
                 """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_TheoryExamAppointments_SchoolUserId_ExamDate_SlotTime" ON "TheoryExamAppointments" ("SchoolUserId", "ExamDate", "SlotTime");""",
                 ct);
             await TryPostgresAsync(db,
                 """
