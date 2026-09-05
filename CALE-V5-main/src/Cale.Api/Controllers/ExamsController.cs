@@ -72,6 +72,12 @@ public sealed class ExamsController : ControllerBase
             return Ok(await _list.PublishedAsync(CurrentUser.GetId(User), ct));
         }
 
+        if (role == Roles.School)
+        {
+            // School browses catalog read-only; published take-list is for students/teachers.
+            return Ok(Array.Empty<ExamDto>());
+        }
+
         var memberships = await _classroom.ListMembershipsAsync(
             CurrentUser.GetId(User),
             ct);

@@ -24,10 +24,14 @@ public sealed class ListBanksHandler
             ? await LoadDifficultiesByBankAsync(ct)
             : new Dictionary<int, IReadOnlyList<BankThemeDto>>();
 
+        var counts = await _store.CountActiveQuestionsByBankIdsAsync(
+            banks.Select(b => b.Id).ToList(),
+            ct);
+
         var result = new List<BankDto>(banks.Count);
         foreach (var bank in banks)
         {
-            var count = await _store.CountQuestionsInBankAsync(bank.Id, ct);
+            counts.TryGetValue(bank.Id, out var count);
             themesByBank.TryGetValue(bank.Id, out var themePack);
             difficultiesByBank.TryGetValue(bank.Id, out var difficulties);
             result.Add(new BankDto(

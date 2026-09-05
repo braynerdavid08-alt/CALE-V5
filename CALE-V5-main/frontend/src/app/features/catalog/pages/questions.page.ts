@@ -31,7 +31,7 @@ import { TeacherApi, QuestionListDto } from '../../teacher/api/teacher.api';
       [title]="canManage() ? 'Preguntas' : 'Catálogo de preguntas'"
       [subtitle]="canManage()
         ? 'Catálogo global de Mi CALE. Solo administración crea y edita preguntas.'
-        : 'Preguntas oficiales de Mi CALE. Requiere escuela con plan activo (lectura).'">
+        : 'Solo lectura. Los instructores crean y asignan exámenes en su Biblioteca.'">
       @if (canManage()) {
         <a routerLink="/admin/questions/new"><ui-button type="button">Nueva pregunta</ui-button></a>
       }

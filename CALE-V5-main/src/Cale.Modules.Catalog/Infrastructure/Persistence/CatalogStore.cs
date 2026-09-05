@@ -43,6 +43,25 @@ public sealed class CatalogStore : ICatalogStore
     public Task<int> CountQuestionsInBankAsync(int bankId, CancellationToken ct) =>
         _db.Set<Question>().CountAsync(x => x.BankId == bankId && x.IsActive, ct);
 
+    public async Task<IReadOnlyDictionary<int, int>> CountActiveQuestionsByBankIdsAsync(
+        IReadOnlyList<int> bankIds,
+        CancellationToken ct)
+    {
+        if (bankIds.Count == 0)
+        {
+            return new Dictionary<int, int>();
+        }
+
+        var ids = bankIds.Distinct().ToList();
+        var rows = await _db.Set<Question>()
+            .Where(x => x.IsActive && ids.Contains(x.BankId))
+            .GroupBy(x => x.BankId)
+            .Select(g => new { BankId = g.Key, Count = g.Count() })
+            .ToListAsync(ct);
+
+        return rows.ToDictionary(x => x.BankId, x => x.Count);
+    }
+
     public async Task<IReadOnlyList<QuestionThemeRow>> ListActiveThemeRowsAsync(
         CancellationToken ct) =>
         await _db.Set<Question>()
@@ -130,6 +149,22 @@ public sealed class CatalogStore : ICatalogStore
         _db.Set<Question>()
             .Include(x => x.Options)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
+
+    public async Task<IReadOnlyList<Question>> ListQuestionsByIdsAsync(
+        IReadOnlyList<int> ids,
+        CancellationToken ct)
+    {
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        var distinct = ids.Distinct().ToList();
+        return await _db.Set<Question>()
+            .Include(x => x.Options)
+            .Where(x => distinct.Contains(x.Id))
+            .ToListAsync(ct);
+    }
 
     public async Task AddQuestionAsync(Question question, CancellationToken ct) =>
         await _db.Set<Question>().AddAsync(question, ct);

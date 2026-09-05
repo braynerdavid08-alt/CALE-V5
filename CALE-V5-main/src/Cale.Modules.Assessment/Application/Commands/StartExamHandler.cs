@@ -183,11 +183,16 @@ public sealed class StartExamHandler
         CancellationToken ct)
     {
         var snapshot = await _attempts.ListQuestionsAsync(open.Id, ct);
+        var ordered = snapshot.OrderBy(x => x.Order).ToList();
+        var loaded = await _catalog.ListQuestionsByIdsAsync(
+            ordered.Select(x => x.QuestionId).ToList(),
+            ct);
+        var byId = loaded.ToDictionary(q => q.Id);
+
         var questions = new List<TakeQuestionDto>();
-        foreach (var item in snapshot.OrderBy(x => x.Order))
+        foreach (var item in ordered)
         {
-            var q = await _catalog.GetQuestionAsync(item.QuestionId, ct);
-            if (q is null)
+            if (!byId.TryGetValue(item.QuestionId, out var q))
             {
                 continue;
             }

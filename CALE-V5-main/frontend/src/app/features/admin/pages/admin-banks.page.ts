@@ -29,7 +29,7 @@ import { BankAdminDto, TeacherApi } from '../../teacher/api/teacher.api';
       [title]="canManage() ? 'Bancos' : 'Bancos del catálogo'"
       [subtitle]="canManage()
         ? 'Organiza las preguntas por banco (solo administración).'
-        : 'Bancos heredados desde administración. Solo lectura.'" />
+        : 'Solo lectura. Los instructores crean y asignan exámenes en su Biblioteca.'" />
     <ui-error [message]="error()" />
     <ui-success [message]="ok()" />
     @if (canManage()) {

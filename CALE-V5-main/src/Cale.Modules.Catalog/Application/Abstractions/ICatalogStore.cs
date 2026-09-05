@@ -16,6 +16,11 @@ public interface ICatalogStore
     Task AddBankAsync(Bank bank, CancellationToken ct);
     Task<int> CountQuestionsInBankAsync(int bankId, CancellationToken ct);
 
+    /// <summary>Active question counts keyed by bank id (missing keys = 0).</summary>
+    Task<IReadOnlyDictionary<int, int>> CountActiveQuestionsByBankIdsAsync(
+        IReadOnlyList<int> bankIds,
+        CancellationToken ct);
+
     Task<IReadOnlyList<QuestionThemeRow>> ListActiveThemeRowsAsync(CancellationToken ct);
     Task<IReadOnlyList<QuestionDifficultyRow>> ListActiveDifficultyRowsAsync(CancellationToken ct);
 
@@ -35,6 +40,12 @@ public interface ICatalogStore
         CancellationToken ct);
 
     Task<Question?> GetQuestionAsync(int id, CancellationToken ct);
+
+    /// <summary>Loads questions with options for the given ids (order not guaranteed).</summary>
+    Task<IReadOnlyList<Question>> ListQuestionsByIdsAsync(
+        IReadOnlyList<int> ids,
+        CancellationToken ct);
+
     Task AddQuestionAsync(Question question, CancellationToken ct);
     Task RemoveOptionsAsync(Question question, CancellationToken ct);
 
