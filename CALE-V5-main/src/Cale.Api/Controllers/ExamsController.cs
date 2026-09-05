@@ -20,6 +20,7 @@ public sealed class ExamsController : ControllerBase
     private readonly ListExamsHandler _list;
     private readonly SaveExamHandler _save;
     private readonly ImportExamFromWordHandler _importWord;
+    private readonly ExportExamToWordHandler _exportWord;
     private readonly AssignExamToGroupHandler _assign;
     private readonly IClassroomStore _classroom;
     private readonly ITrainingEligibilityService _trainingEligibility;
@@ -29,6 +30,7 @@ public sealed class ExamsController : ControllerBase
         ListExamsHandler list,
         SaveExamHandler save,
         ImportExamFromWordHandler importWord,
+        ExportExamToWordHandler exportWord,
         AssignExamToGroupHandler assign,
         IClassroomStore classroom,
         ITrainingEligibilityService trainingEligibility,
@@ -37,6 +39,7 @@ public sealed class ExamsController : ControllerBase
         _list = list;
         _save = save;
         _importWord = importWord;
+        _exportWord = exportWord;
         _assign = assign;
         _classroom = classroom;
         _trainingEligibility = trainingEligibility;
@@ -127,6 +130,21 @@ public sealed class ExamsController : ControllerBase
             : title;
         var result = await _importWord.HandleAsync(stream, name, CurrentUser.GetId(User), ct);
         return Ok(result);
+    }
+
+    [HttpGet("{id:int}/export")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> Export(int id, CancellationToken ct)
+    {
+        var (bytes, fileName) = await _exportWord.HandleAsync(
+            id,
+            CurrentUser.GetId(User),
+            CurrentUser.IsAdmin(User),
+            ct);
+        return File(
+            bytes,
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            fileName);
     }
 
     [HttpPut("{id:int}")]

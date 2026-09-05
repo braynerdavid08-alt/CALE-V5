@@ -18,6 +18,13 @@ public sealed record ParsedExamDocument(
     IReadOnlyList<string> Skipped,
     int MarkedCorrectCount);
 
+public sealed record ExamWordExportOption(char Letter, string Text, bool IsCorrect);
+
+public sealed record ExamWordExportQuestion(
+    int Number,
+    string Text,
+    IReadOnlyList<ExamWordExportOption> Options);
+
 /// <summary>
 /// Parses VIP-style theory exams from Word (.docx):
 /// numbered stems (1. …) and A–D options, often concatenated on one line.
@@ -210,8 +217,56 @@ public static class ExamWordImportParser
         return ms.ToArray();
     }
 
+    public static byte[] BuildExportDocx(
+        string title,
+        IReadOnlyList<ExamWordExportQuestion> questions)
+    {
+        using var ms = new MemoryStream();
+        using (var doc = WordprocessingDocument.Create(
+                   ms,
+                   DocumentFormat.OpenXml.WordprocessingDocumentType.Document,
+                   true))
+        {
+            var body = new Body();
+            body.AppendChild(P(string.IsNullOrWhiteSpace(title) ? "Examen Mi CALE" : title.Trim()));
+            body.AppendChild(P(""));
+
+            var keyParts = new List<string>();
+            foreach (var q in questions)
+            {
+                body.AppendChild(P($"{q.Number}. {q.Text}"));
+                var letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                for (var i = 0; i < q.Options.Count; i++)
+                {
+                    var opt = q.Options[i];
+                    var letter = i < letters.Length ? letters[i] : '?';
+                    var mark = opt.IsCorrect ? "*" : "";
+                    body.AppendChild(P($"{mark}{letter}. {opt.Text}"));
+                    if (opt.IsCorrect)
+                    {
+                        keyParts.Add($"{q.Number}{letter}");
+                    }
+                }
+
+                body.AppendChild(P(""));
+            }
+
+            if (keyParts.Count > 0)
+            {
+                body.AppendChild(P($"RESPUESTAS: {string.Join(" ", keyParts)}"));
+            }
+
+            var main = doc.AddMainDocumentPart();
+            main.Document = new Document(body);
+            main.Document.Save();
+        }
+
+        return ms.ToArray();
+    }
+
     private static Paragraph P(string text) =>
         new(new Run(new Text(text)));
+
 
     private static string Normalize(string? text)
     {

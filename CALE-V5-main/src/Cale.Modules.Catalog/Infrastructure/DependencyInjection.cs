@@ -20,6 +20,7 @@ public static class DependencyInjection
         services.AddScoped<SaveQuestionHandler>();
         services.AddScoped<SaveExamHandler>();
         services.AddScoped<ImportExamFromWordHandler>();
+        services.AddScoped<ExportExamToWordHandler>();
         services.AddScoped<AssignExamToGroupHandler>();
         services.AddScoped<ListExamsHandler>();
         return services;

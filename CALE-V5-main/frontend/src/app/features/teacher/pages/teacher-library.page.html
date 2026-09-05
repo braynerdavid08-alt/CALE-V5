@@ -2,12 +2,12 @@
   <ui-error [message]="error()" />
   <ui-success [message]="ok()" />
 
-  <section class="import-panel">
-    <h2>Importar examen desde Word</h2>
+  <section class="import-panel" id="exam-import">
+    <h2>Importar / exportar examen</h2>
     <p class="import-meta">
-      Sube un <strong>.docx</strong> con preguntas numeradas (1. …) y opciones A–D, igual que tus exámenes VIP.
+      Sube un <strong>.docx</strong> con preguntas numeradas (1. …) y opciones A–D.
       Marca la correcta con <code>*B.</code> o agrega al final <code>RESPUESTAS: 1B 2C …</code>.
-      Se crea un banco + examen borrador, como al importar diapositivas.
+      Se crea un banco + examen borrador. También puedes exportar un examen a Word desde el menú ⋮.
     </p>
     <div class="import-grid">
       <label>
@@ -26,6 +26,51 @@
       <ui-button type="button" variant="secondary" (click)="downloadExamTemplate()">Plantilla Word</ui-button>
     </div>
   </section>
+
+  @if (showCreate()) {
+    <section class="create-panel" role="dialog" aria-label="Crear examen">
+      <header class="create-head">
+        <h2>Crear examen</h2>
+        <button type="button" class="icon-close" (click)="closeCreate()" aria-label="Cerrar">×</button>
+      </header>
+      <form class="create-form" (ngSubmit)="create()">
+        <label class="field span2">Nombre
+          <input [(ngModel)]="name" name="name" required maxlength="180" />
+        </label>
+        <label class="field span2">Banco (opcional)
+          <select [(ngModel)]="bankId" name="bankId">
+            <option [ngValue]="null">Sin banco fijo</option>
+            @for (bank of banks(); track bank.id) {
+              <option [ngValue]="bank.id">{{ bank.name }}</option>
+            }
+          </select>
+        </label>
+        <label class="field">Preguntas
+          <input type="number" [(ngModel)]="questionCount" name="qc" min="1" />
+        </label>
+        <label class="field">Minutos
+          <input type="number" [(ngModel)]="timeMinutes" name="tm" min="1" />
+        </label>
+        <label class="field">Intentos
+          <input type="number" [(ngModel)]="allowedAttempts" name="aa" min="1" />
+        </label>
+        <label class="field">Inicio
+          <input type="datetime-local" [(ngModel)]="startsAt" name="sa" />
+        </label>
+        <label class="field">Fin
+          <input type="datetime-local" [(ngModel)]="endsAt" name="ea" />
+        </label>
+        <label class="check span2">
+          <input type="checkbox" [(ngModel)]="randomize" name="rnd" />
+          Orden aleatorio
+        </label>
+        <div class="create-actions span2">
+          <ui-button type="button" variant="ghost" (click)="closeCreate()">Cancelar</ui-button>
+          <ui-button type="submit">Crear</ui-button>
+        </div>
+      </form>
+    </section>
+  }
 
   <div class="library-toolbar">
     <div class="tabs" role="tablist">
@@ -58,6 +103,7 @@
           <ui-icon name="list" />
         </button>
       </div>
+      <ui-button type="button" variant="secondary" (click)="focusImport()">Importar</ui-button>
       <ui-button type="button" (click)="openCreate()">
         <ui-icon name="plus" />
         Nuevo
@@ -68,7 +114,7 @@
   @if (!filtered().length) {
     <ui-empty
       title="Sin exámenes aquí"
-      message="Crea un examen o cambia de pestaña para ver borradores y publicados." />
+      message="Importa un Word, crea un examen o cambia de pestaña para ver borradores y publicados." />
   } @else if (view() === 'grid') {
     <div class="exam-grid">
       @for (exam of filtered(); track exam.id) {
@@ -96,6 +142,7 @@
                     <button type="button" (click)="togglePublish(exam)">
                       {{ exam.published ? 'Despublicar' : 'Publicar' }}
                     </button>
+                    <button type="button" (click)="exportExam(exam)">Exportar Word</button>
                     <div class="menu-assign">
                       <select [(ngModel)]="assignTo[exam.id]" [name]="'g' + exam.id">
                         <option [ngValue]="null">Asignar a grupo…</option>
@@ -133,6 +180,7 @@
           <ui-badge [tone]="exam.published ? 'success' : 'warning'">
             {{ exam.published ? 'Publicado' : 'Borrador' }}
           </ui-badge>
+          <ui-button type="button" variant="ghost" (click)="exportExam(exam)">Word</ui-button>
           <ui-button type="button" variant="ghost" (click)="togglePublish(exam)">
             {{ exam.published ? 'Despublicar' : 'Publicar' }}
           </ui-button>
@@ -141,53 +189,3 @@
     </div>
   }
 </section>
-
-@if (showCreate()) {
-  <div class="sheet-scrim" (click)="closeCreate()"></div>
-  <aside class="create-sheet" role="dialog" aria-label="Crear examen">
-    <header class="sheet-head">
-      <h2>Crear examen</h2>
-      <button type="button" class="icon-close" (click)="closeCreate()" aria-label="Cerrar">×</button>
-    </header>
-    <form class="stack" (ngSubmit)="create()">
-      <label class="field">Nombre
-        <input [(ngModel)]="name" name="name" required />
-      </label>
-      <label class="field">Banco (opcional)
-        <select [(ngModel)]="bankId" name="bankId">
-          <option [ngValue]="null">Sin banco fijo</option>
-          @for (bank of banks(); track bank.id) {
-            <option [ngValue]="bank.id">{{ bank.name }}</option>
-          }
-        </select>
-      </label>
-      <div class="grid-3">
-        <label class="field">Preguntas
-          <input type="number" [(ngModel)]="questionCount" name="qc" min="1" />
-        </label>
-        <label class="field">Minutos
-          <input type="number" [(ngModel)]="timeMinutes" name="tm" min="1" />
-        </label>
-        <label class="field">Intentos
-          <input type="number" [(ngModel)]="allowedAttempts" name="aa" min="1" />
-        </label>
-      </div>
-      <div class="grid-2">
-        <label class="field">Inicio
-          <input type="datetime-local" [(ngModel)]="startsAt" name="sa" />
-        </label>
-        <label class="field">Fin
-          <input type="datetime-local" [(ngModel)]="endsAt" name="ea" />
-        </label>
-      </div>
-      <label class="row check">
-        <input type="checkbox" [(ngModel)]="randomize" name="rnd" />
-        Orden aleatorio
-      </label>
-      <div class="sheet-actions">
-        <ui-button type="button" variant="ghost" (click)="closeCreate()">Cancelar</ui-button>
-        <ui-button type="submit">Crear</ui-button>
-      </div>
-    </form>
-  </aside>
-}
