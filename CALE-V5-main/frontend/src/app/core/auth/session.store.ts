@@ -52,14 +52,17 @@ export class SessionStore {
   }
 
   async bootstrap(): Promise<void> {
-    if (this.user()) {
-      try {
-        const me = await firstValueFrom(this.authApi.me());
-        this.applyMe(me);
-        return;
-      } catch {
-        /* try refresh below */
-      }
+    // Anonymous visitors have no session cookie — do not POST /refresh (avoids noisy 401).
+    if (!this.user()) {
+      return;
+    }
+
+    try {
+      const me = await firstValueFrom(this.authApi.me());
+      this.applyMe(me);
+      return;
+    } catch {
+      /* access expired — try refresh cookie below */
     }
 
     try {
@@ -68,9 +71,8 @@ export class SessionStore {
       const me = await firstValueFrom(this.authApi.me());
       this.applyMe(me);
     } catch {
-      if (!this.user()) {
-        this.clear();
-      }
+      // Stale localStorage without a valid refresh cookie → clear ghost session.
+      this.clear();
     }
   }
 
