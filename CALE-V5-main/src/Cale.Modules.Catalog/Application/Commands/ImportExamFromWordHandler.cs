@@ -56,7 +56,8 @@ public sealed class ImportExamFromWordHandler
         var bank = Bank.Create(
             bankName,
             "Banco creado al importar un examen Word desde el perfil del instructor.",
-            _clock.UtcNow);
+            _clock.UtcNow,
+            userId);
         await _store.AddBankAsync(bank, ct);
         await _store.SaveChangesAsync(ct);
 

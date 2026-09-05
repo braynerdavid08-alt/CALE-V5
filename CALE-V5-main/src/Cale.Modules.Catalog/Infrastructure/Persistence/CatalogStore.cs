@@ -15,12 +15,20 @@ public sealed class CatalogStore : ICatalogStore
 
     public async Task<IReadOnlyList<Bank>> ListBanksAsync(
         bool activeOnly,
-        CancellationToken ct)
+        CancellationToken ct,
+        int? viewerUserId = null,
+        bool isAdmin = false)
     {
         var query = _db.Set<Bank>().AsQueryable();
         if (activeOnly)
         {
             query = query.Where(x => x.IsActive);
+        }
+
+        if (!isAdmin && viewerUserId is int uid)
+        {
+            // Official (null owner) + own imports.
+            query = query.Where(x => x.CreatedById == null || x.CreatedById == uid);
         }
 
         return await query.OrderBy(x => x.Name).ToListAsync(ct);

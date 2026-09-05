@@ -18,7 +18,9 @@ export const catalogAccessGuard: CanActivateFn = () => {
     return router.parseUrl('/school/membership');
   }
   if (user.role === 'Teacher') {
-    return router.parseUrl('/teacher');
+    return router.createUrlTree(['/teacher'], {
+      queryParams: { membresia: 1 }
+    });
   }
   return router.parseUrl(session.homeRoute());
 };

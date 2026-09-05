@@ -49,6 +49,7 @@ public static class WebApplicationExtensions
         app.UseStaticFiles();
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseMiddleware<MustChangePasswordMiddleware>();
         app.MapControllers();
         app.MapHub<Cale.Api.Hubs.LiveClassroomHub>("/hubs/live");
 

@@ -1,5 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { SessionStore } from '../../../core/auth/session.store';
@@ -42,10 +42,12 @@ export class TeacherHomePage implements OnInit {
   private readonly presentationsApi = inject(PresentationApi);
   private readonly notificationsApi = inject(NotificationsApi);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   readonly session = inject(SessionStore);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
+  readonly membershipHint = signal(false);
   readonly data = signal<TeacherDashboardDto | null>(null);
   readonly notifs = signal<NotificationDto[]>([]);
   readonly presentationSummary = signal<PresentationSummary | null>(null);
@@ -95,6 +97,10 @@ export class TeacherHomePage implements OnInit {
   });
 
   ngOnInit(): void {
+    this.route.queryParamMap.subscribe((params) => {
+      this.membershipHint.set(params.get('membresia') === '1');
+    });
+
     forkJoin({
       dash: this.api.dashboard(),
       notifs: this.notificationsApi.list({ take: 6 }).pipe(

@@ -18,32 +18,33 @@
 - Bloqueo publicar sin claves / sin banco
 - Asignar/publicar post-import
 - Eliminar examen (soft-delete)
-- **Hoy (parcial):** IDOR asignar grupo, soft-delete respetado en update/publish/assign, cookies logout correctas, publicar exige banco con preguntas
+- IDOR asignar grupo, soft-delete respetado, cookies logout, publicar exige banco con preguntas
+- **Hoy:** bancos por dueño, mustChangePassword API, published scoped, catalog en exams, errores UI, Admin↔Biblioteca, banner membresía, asignar solo si publicado
 
 ---
 
-## P0 — Seguridad / multi-tenant (hacer primero esta noche)
+## P0 — Seguridad / multi-tenant
 
-1. **Bancos por dueño/escuela** — Import crea bancos globales; todos los instructors los ven. Scope por `CreatedById` / escuela + bancos oficiales CALE.
-2. **Review/export por ownership** — `GET /api/questions/review` y export no deben leer bancos ajenos.
-3. **`mustChangePassword` en API** — Hoy solo el front bloquea; JWT sigue válido. Middleware/policy + await `bootstrap()` antes de rutas.
-4. **Revocar refresh al cambiar contraseña** — Evitar sesión vieja tras cambio forzado.
+1. [x] **Bancos por dueño** — `Bank.CreatedById`; listado = oficiales (null) + propios; admin ve todos; import marca dueño.
+2. [x] **Review/export por ownership** — review filtrado; export exige dueño (sesión previa).
+3. [x] **`mustChangePassword` en API** — middleware 403 + `APP_INITIALIZER` await bootstrap + FE redirect en 403.
+4. [x] **Revocar refresh al cambiar contraseña**.
 
 ## P1 — Correctitud producto
 
-5. **`GET /api/exams/published` scoped** — Teacher/Admin no deben ver todos los publicados del sistema.
-6. **CatalogAccess en ExamsController** — Alinear UI (`catalogAccessGuard`) con API.
-7. **Errores visibles** — Banks/groups en library/live: mostrar error, no lista vacía silenciosa.
-8. **Admin ↔ Biblioteca unificada** — Admin hoy no entra a `/teacher/library`.
-9. **Membresía inactiva** — Mensaje claro (no redirect silencioso a `/teacher`).
-10. **Asignar solo si publicado** (o marcar assignment draft) — Evitar notificar examen no abierto.
+5. [x] **`GET /api/exams/published` scoped** — teacher solo propios.
+6. [x] **CatalogAccess en ExamsController**.
+7. [x] **Errores visibles** — banks/groups en library.
+8. [x] **Admin ↔ Biblioteca** — `/teacher/library` con roles Teacher+Admin.
+9. [x] **Membresía inactiva** — `?membresia=1` + banner en home instructor.
+10. [x] **Asignar solo si publicado**.
 
-## P2 — UX / rendimiento
+## P2 — UX / rendimiento (pendiente)
 
 11. Contar preguntas de bancos en un solo SQL (no N+1).
 12. `StartExamHandler.ResumeAsync` sin loop N+1.
 13. Flujo Escuela: crear/asignar exámenes o aclarar Biblioteca read-only.
-14. CI GitHub Actions estable (`.github/workflows` aún sin subir bien).
+14. CI GitHub Actions estable.
 15. Tests e2e críticos: login, import Word, publish, assign, student take.
 
 ---
@@ -53,29 +54,27 @@
 ### Auth
 - [ ] Login → reload mantiene sesión
 - [ ] Logout → sin cookies /me 401
-- [ ] Usuario mustChangePassword: no entra a teacher hasta cambiar clave
+- [ ] Usuario mustChangePassword: API 403 hasta cambiar clave
 
 ### Instructor Biblioteca
 - [ ] Import Word → revisar claves → publicar → asignar **grupo propio**
+- [ ] Solo ves bancos oficiales + tuyos
 - [ ] Intentar asignar grupo ajeno → 403
 - [ ] Publicar sin banco / sin claves → error claro
+- [ ] Asignar sin publicar → error `exam_not_published`
 - [ ] Eliminar → desaparece; no se puede editar
-- [ ] Editar nombre/minutos → guarda
 
 ### Roles
-- [ ] Teacher sin membresía: mensaje claro
-- [ ] School: catálogo lectura
+- [ ] Teacher sin membresía: banner claro
+- [ ] Admin entra a Biblioteca
 - [ ] Student: ve examen asignado publicado
 
 ### Público
 - [ ] Landing con `/api/public/home` ok
-- [ ] (si se puede) home caído → fallback SPA
 
 ---
 
-## Orden sugerido esta noche
+## Orden sugerido resto de noche
 
-1. Terminar P0 bancos/ownership + mustChangePassword API  
-2. P1 published scoped + errores UI  
-3. Smoke checklist completo en `micale.onrender.com`  
-4. Commit/PR solo cuando cada bloque esté verde  
+1. Smoke checklist en `micale.onrender.com` tras deploy
+2. P2 N+1 / CI / e2e cuando toque

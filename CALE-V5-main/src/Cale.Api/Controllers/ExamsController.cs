@@ -24,6 +24,7 @@ public sealed class ExamsController : ControllerBase
     private readonly AssignExamToGroupHandler _assign;
     private readonly IClassroomStore _classroom;
     private readonly ITrainingEligibilityService _trainingEligibility;
+    private readonly ICatalogAccessGuard _access;
     private readonly IClock _clock;
 
     public ExamsController(
@@ -34,6 +35,7 @@ public sealed class ExamsController : ControllerBase
         AssignExamToGroupHandler assign,
         IClassroomStore classroom,
         ITrainingEligibilityService trainingEligibility,
+        ICatalogAccessGuard access,
         IClock clock)
     {
         _list = list;
@@ -43,6 +45,7 @@ public sealed class ExamsController : ControllerBase
         _assign = assign;
         _classroom = classroom;
         _trainingEligibility = trainingEligibility;
+        _access = access;
         _clock = clock;
     }
 
@@ -50,6 +53,7 @@ public sealed class ExamsController : ControllerBase
     [Authorize(Policy = "TeacherOrAdmin")]
     public async Task<IActionResult> List(CancellationToken ct)
     {
+        await EnsureCatalogAsync(ct);
         int? owner = CurrentUser.IsAdmin(User) ? null : CurrentUser.GetId(User);
         return Ok(await _list.HandleAsync(owner, ct));
     }
@@ -58,9 +62,14 @@ public sealed class ExamsController : ControllerBase
     public async Task<IActionResult> Published(CancellationToken ct)
     {
         var role = CurrentUser.GetRole(User);
-        if (role is Roles.Admin or Roles.Teacher)
+        if (role == Roles.Admin)
         {
-            return Ok(await _list.PublishedAsync(ct));
+            return Ok(await _list.PublishedAsync(ownerId: null, ct));
+        }
+
+        if (role == Roles.Teacher)
+        {
+            return Ok(await _list.PublishedAsync(CurrentUser.GetId(User), ct));
         }
 
         var memberships = await _classroom.ListMembershipsAsync(
@@ -81,13 +90,17 @@ public sealed class ExamsController : ControllerBase
     [Authorize(Policy = "TeacherOrAdmin")]
     public async Task<IActionResult> Create(
         SaveExamRequest request,
-        CancellationToken ct) =>
-        Ok(await _save.CreateAsync(request, CurrentUser.GetId(User), ct));
+        CancellationToken ct)
+    {
+        await EnsureCatalogAsync(ct);
+        return Ok(await _save.CreateAsync(request, CurrentUser.GetId(User), ct));
+    }
 
     [HttpGet("import/template")]
     [Authorize(Policy = "TeacherOrAdmin")]
-    public IActionResult ImportTemplate()
+    public async Task<IActionResult> ImportTemplate(CancellationToken ct)
     {
+        await EnsureCatalogAsync(ct);
         var bytes = ExamWordImportParser.BuildTemplateDocx();
         return File(
             bytes,
@@ -103,6 +116,7 @@ public sealed class ExamsController : ControllerBase
         [FromForm] string? title,
         CancellationToken ct)
     {
+        await EnsureCatalogAsync(ct);
         if (file is null || file.Length == 0)
         {
             return BadRequest(new ProblemDetails
@@ -136,6 +150,7 @@ public sealed class ExamsController : ControllerBase
     [Authorize(Policy = "TeacherOrAdmin")]
     public async Task<IActionResult> Export(int id, CancellationToken ct)
     {
+        await EnsureCatalogAsync(ct);
         var (bytes, fileName) = await _exportWord.HandleAsync(
             id,
             CurrentUser.GetId(User),
@@ -152,13 +167,16 @@ public sealed class ExamsController : ControllerBase
     public async Task<IActionResult> Update(
         int id,
         SaveExamRequest request,
-        CancellationToken ct) =>
-        Ok(await _save.UpdateAsync(
+        CancellationToken ct)
+    {
+        await EnsureCatalogAsync(ct);
+        return Ok(await _save.UpdateAsync(
             id,
             request,
             CurrentUser.GetId(User),
             CurrentUser.IsAdmin(User),
             ct));
+    }
 
     [HttpPost("{id:int}/publish")]
     [Authorize(Policy = "TeacherOrAdmin")]
@@ -167,6 +185,7 @@ public sealed class ExamsController : ControllerBase
         [FromQuery] bool published = true,
         CancellationToken ct = default)
     {
+        await EnsureCatalogAsync(ct);
         await _save.PublishAsync(
             id,
             published,
@@ -180,6 +199,7 @@ public sealed class ExamsController : ControllerBase
     [Authorize(Policy = "TeacherOrAdmin")]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
+        await EnsureCatalogAsync(ct);
         await _save.DeleteAsync(
             id,
             CurrentUser.GetId(User),
@@ -195,6 +215,7 @@ public sealed class ExamsController : ControllerBase
         AssignExamToGroupRequest request,
         CancellationToken ct)
     {
+        await EnsureCatalogAsync(ct);
         await _assign.HandleAsync(
             id,
             request,
@@ -203,4 +224,10 @@ public sealed class ExamsController : ControllerBase
             ct);
         return NoContent();
     }
+
+    private Task EnsureCatalogAsync(CancellationToken ct) =>
+        _access.EnsureCatalogReadAsync(
+            CurrentUser.GetId(User),
+            CurrentUser.GetRole(User),
+            ct);
 }

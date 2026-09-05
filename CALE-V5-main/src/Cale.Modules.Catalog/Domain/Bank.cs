@@ -10,13 +10,19 @@ public sealed class Bank
     public bool IsActive { get; private set; } = true;
     public bool SeedCompleted { get; private set; }
     public bool DistributionApplied { get; private set; }
+    /// <summary>Null = banco oficial/global CALE; set = banco del instructor.</summary>
+    public int? CreatedById { get; private set; }
     public DateTime CreatedAt { get; private set; }
 
     private Bank()
     {
     }
 
-    public static Bank Create(string name, string? description, DateTime utcNow)
+    public static Bank Create(
+        string name,
+        string? description,
+        DateTime utcNow,
+        int? createdById = null)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -28,9 +34,13 @@ public sealed class Bank
             Name = name.Trim(),
             Description = description?.Trim(),
             IsActive = true,
+            CreatedById = createdById,
             CreatedAt = utcNow
         };
     }
+
+    public bool IsVisibleTo(int userId, bool isAdmin) =>
+        isAdmin || CreatedById is null || CreatedById == userId;
 
     public void Update(string name, string? description)
     {

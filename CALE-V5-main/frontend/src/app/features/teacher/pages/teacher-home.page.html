@@ -20,6 +20,17 @@
 
   <ui-onboarding role="Teacher" />
 
+  @if (membershipHint()) {
+    <div class="membership-banner" role="status">
+      <strong>Necesitas membresía activa</strong>
+      <p>
+        Para usar Biblioteca, bancos y exámenes debes estar vinculado a una escuela con plan activo.
+        Pide a tu escuela que te agregue o revise el pago de la membresía.
+      </p>
+      <a routerLink="/profile">Ir a mi perfil</a>
+    </div>
+  }
+
   <ui-error [message]="error()" />
 
   @if (loading()) {
