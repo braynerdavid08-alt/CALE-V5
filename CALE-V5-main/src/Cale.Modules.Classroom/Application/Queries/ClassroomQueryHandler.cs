@@ -312,11 +312,10 @@ public sealed class ClassroomQueryHandler
     public async Task<AdminDashboardDto> AdminDashboardAsync(CancellationToken ct)
     {
         var banks = await _catalog.ListBanksAsync(false, ct);
-        var questionCount = 0;
-        foreach (var bank in banks)
-        {
-            questionCount += await _catalog.CountQuestionsInBankAsync(bank.Id, ct);
-        }
+        var counts = await _catalog.CountActiveQuestionsByBankIdsAsync(
+            banks.Select(b => b.Id).ToList(),
+            ct);
+        var questionCount = counts.Values.Sum();
 
         return new AdminDashboardDto(
             await _users.CountAsync(ct),

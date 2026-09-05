@@ -39,42 +39,17 @@
 9. [x] **Membresía inactiva** — `?membresia=1` + banner en home instructor.
 10. [x] **Asignar solo si publicado**.
 
-## P2 — UX / rendimiento (pendiente)
+## P2 — UX / rendimiento
 
-11. Contar preguntas de bancos en un solo SQL (no N+1).
-12. `StartExamHandler.ResumeAsync` sin loop N+1.
-13. Flujo Escuela: crear/asignar exámenes o aclarar Biblioteca read-only.
+11. [x] Contar preguntas de bancos en un solo SQL (no N+1).
+12. [x] `StartExamHandler.ResumeAsync` (+ finish/review) sin loop N+1.
+13. [x] Flujo Escuela: Catálogo solo lectura aclarado en nav/UI; published no trata School como estudiante.
 14. CI GitHub Actions estable.
 15. Tests e2e críticos: login, import Word, publish, assign, student take.
-
----
-
-## Checklist smoke esta noche (manual)
-
-### Auth
-- [ ] Login → reload mantiene sesión
-- [ ] Logout → sin cookies /me 401
-- [ ] Usuario mustChangePassword: API 403 hasta cambiar clave
-
-### Instructor Biblioteca
-- [ ] Import Word → revisar claves → publicar → asignar **grupo propio**
-- [ ] Solo ves bancos oficiales + tuyos
-- [ ] Intentar asignar grupo ajeno → 403
-- [ ] Publicar sin banco / sin claves → error claro
-- [ ] Asignar sin publicar → error `exam_not_published`
-- [ ] Eliminar → desaparece; no se puede editar
-
-### Roles
-- [ ] Teacher sin membresía: banner claro
-- [ ] Admin entra a Biblioteca
-- [ ] Student: ve examen asignado publicado
-
-### Público
-- [ ] Landing con `/api/public/home` ok
 
 ---
 
 ## Orden sugerido resto de noche
 
 1. Smoke checklist en `micale.onrender.com` tras deploy
-2. P2 N+1 / CI / e2e cuando toque
+2. CI / e2e cuando toque

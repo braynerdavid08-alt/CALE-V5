@@ -107,11 +107,11 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
         ]
       },
       {
-        label: 'Biblioteca',
+        label: 'Catálogo',
         icon: 'book',
         children: [
-          { label: 'Preguntas', path: '/school/questions', exact: true },
-          { label: 'Bancos', path: '/school/banks', exact: true }
+          { label: 'Preguntas (lectura)', path: '/school/questions', exact: true },
+          { label: 'Bancos (lectura)', path: '/school/banks', exact: true }
         ]
       },
       {

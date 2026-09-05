@@ -39,13 +39,20 @@ public sealed class ReviewAttemptHandler
 
         var snapshot = await _attempts.ListQuestionsAsync(attemptId, ct);
         var answers = await _attempts.ListAnswersAsync(attemptId, ct);
+        var loaded = await _catalog.ListQuestionsByIdsAsync(
+            snapshot.Select(x => x.QuestionId).ToList(),
+            ct);
+        var byId = loaded.ToDictionary(q => q.Id);
         var questions = new List<ReviewQuestionDto>();
         foreach (var item in snapshot.OrderBy(x => x.Order))
         {
-            var question = await _catalog.GetQuestionAsync(item.QuestionId, ct)
-                ?? throw new NotFoundException(
+            if (!byId.TryGetValue(item.QuestionId, out var question))
+            {
+                throw new NotFoundException(
                     "Question not found.",
                     "question_not_found");
+            }
+
             var answer = answers.FirstOrDefault(x => x.QuestionId == item.QuestionId);
             questions.Add(new ReviewQuestionDto(
                 question.Id,

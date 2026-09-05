@@ -64,6 +64,13 @@ public sealed class FinishExamHandler
 
             var snapshot = await _attempts.ListQuestionsAsync(attemptId, ct);
             var answers = (await _attempts.ListAnswersAsync(attemptId, ct)).ToList();
+            var questionsById = (await _catalog.ListQuestionsByIdsAsync(
+                    snapshot.Select(x => x.QuestionId).ToList(),
+                    ct))
+                .ToDictionary(q => q.Id);
+            var blocksById = (await _catalog.ListBlocksAsync(ct))
+                .ToDictionary(b => b.Id);
+
             var correct = 0;
             foreach (var item in snapshot)
             {
@@ -78,7 +85,7 @@ public sealed class FinishExamHandler
                     continue;
                 }
 
-                var question = await _catalog.GetQuestionAsync(item.QuestionId, ct);
+                questionsById.TryGetValue(item.QuestionId, out var question);
                 var right = question?.Options.FirstOrDefault(x => x.IsCorrect);
                 var blank = Domain.AttemptAnswer.Create(
                     attemptId,
@@ -150,14 +157,15 @@ public sealed class FinishExamHandler
 
             foreach (var item in snapshot)
             {
-                var question = await _catalog.GetQuestionAsync(item.QuestionId, ct);
+                questionsById.TryGetValue(item.QuestionId, out var question);
                 var topic = string.IsNullOrWhiteSpace(question?.Topic)
                     ? "Sin tema"
                     : question!.Topic!;
                 var block = question is null
                     ? "Sin bloque"
-                    : (await _catalog.GetBlockAsync(question.BlockId, ct))?.Name
-                        ?? $"Bloque {question.BlockId}";
+                    : blocksById.TryGetValue(question.BlockId, out var blk)
+                        ? blk.Name
+                        : $"Bloque {question.BlockId}";
 
                 var isCorrect = answerMap.TryGetValue(item.QuestionId, out var ans)
                     && ans.IsCorrect;
