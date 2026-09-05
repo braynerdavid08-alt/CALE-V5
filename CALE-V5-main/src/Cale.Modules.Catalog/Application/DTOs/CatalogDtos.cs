@@ -84,6 +84,15 @@ public sealed record SaveExamRequest(
     DateTime? StartsAt,
     DateTime? EndsAt);
 
+public sealed record ImportExamResultDto(
+    int ExamId,
+    int BankId,
+    string Name,
+    int ImportedQuestions,
+    int NeedsCorrectReview,
+    int SkippedCount,
+    IReadOnlyList<string> SkippedSamples);
+
 public sealed record AssignExamToGroupRequest(
     int GroupId,
     DateTime? StartsAt,

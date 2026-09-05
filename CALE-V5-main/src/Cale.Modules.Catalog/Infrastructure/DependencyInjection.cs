@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<SaveBankHandler>();
         services.AddScoped<SaveQuestionHandler>();
         services.AddScoped<SaveExamHandler>();
+        services.AddScoped<ImportExamFromWordHandler>();
         services.AddScoped<AssignExamToGroupHandler>();
         services.AddScoped<ListExamsHandler>();
         return services;

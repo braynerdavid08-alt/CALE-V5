@@ -85,7 +85,7 @@ public sealed class QuestionsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Policy = "TeacherOrAdmin")]
     public async Task<IActionResult> Update(
         int id,
         SaveQuestionRequest request,
@@ -95,7 +95,7 @@ public sealed class QuestionsController : ControllerBase
             id,
             request,
             CurrentUser.GetId(User),
-            isAdmin: true,
+            CurrentUser.IsAdmin(User),
             ct);
         return NoContent();
     }

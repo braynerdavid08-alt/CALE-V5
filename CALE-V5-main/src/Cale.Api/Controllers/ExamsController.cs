@@ -2,6 +2,7 @@ using Cale.Api.Extensions;
 using Cale.BuildingBlocks.Domain.Abstractions;
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Time;
+using Cale.Modules.Catalog.Application;
 using Cale.Modules.Catalog.Application.Commands;
 using Cale.Modules.Catalog.Application.DTOs;
 using Cale.Modules.Catalog.Application.Queries;
@@ -18,6 +19,7 @@ public sealed class ExamsController : ControllerBase
 {
     private readonly ListExamsHandler _list;
     private readonly SaveExamHandler _save;
+    private readonly ImportExamFromWordHandler _importWord;
     private readonly AssignExamToGroupHandler _assign;
     private readonly IClassroomStore _classroom;
     private readonly ITrainingEligibilityService _trainingEligibility;
@@ -26,6 +28,7 @@ public sealed class ExamsController : ControllerBase
     public ExamsController(
         ListExamsHandler list,
         SaveExamHandler save,
+        ImportExamFromWordHandler importWord,
         AssignExamToGroupHandler assign,
         IClassroomStore classroom,
         ITrainingEligibilityService trainingEligibility,
@@ -33,6 +36,7 @@ public sealed class ExamsController : ControllerBase
     {
         _list = list;
         _save = save;
+        _importWord = importWord;
         _assign = assign;
         _classroom = classroom;
         _trainingEligibility = trainingEligibility;
@@ -76,6 +80,54 @@ public sealed class ExamsController : ControllerBase
         SaveExamRequest request,
         CancellationToken ct) =>
         Ok(await _save.CreateAsync(request, CurrentUser.GetId(User), ct));
+
+    [HttpGet("import/template")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public IActionResult ImportTemplate()
+    {
+        var bytes = ExamWordImportParser.BuildTemplateDocx();
+        return File(
+            bytes,
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "cale-plantilla-examen.docx");
+    }
+
+    [HttpPost("import")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    [RequestSizeLimit(52_428_800)]
+    public async Task<IActionResult> Import(
+        IFormFile file,
+        [FromForm] string? title,
+        CancellationToken ct)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Falta el archivo Word.",
+                Detail = "missing_file",
+                Status = 400
+            });
+        }
+
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (ext != ".docx")
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Solo se admiten archivos .docx",
+                Detail = "invalid_exam_format",
+                Status = 400
+            });
+        }
+
+        await using var stream = file.OpenReadStream();
+        var name = string.IsNullOrWhiteSpace(title)
+            ? Path.GetFileNameWithoutExtension(file.FileName)
+            : title;
+        var result = await _importWord.HandleAsync(stream, name, CurrentUser.GetId(User), ct);
+        return Ok(result);
+    }
 
     [HttpPut("{id:int}")]
     [Authorize(Policy = "TeacherOrAdmin")]

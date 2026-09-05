@@ -2,6 +2,31 @@
   <ui-error [message]="error()" />
   <ui-success [message]="ok()" />
 
+  <section class="import-panel">
+    <h2>Importar examen desde Word</h2>
+    <p class="import-meta">
+      Sube un <strong>.docx</strong> con preguntas numeradas (1. …) y opciones A–D, igual que tus exámenes VIP.
+      Marca la correcta con <code>*B.</code> o agrega al final <code>RESPUESTAS: 1B 2C …</code>.
+      Se crea un banco + examen borrador, como al importar diapositivas.
+    </p>
+    <div class="import-grid">
+      <label>
+        Nombre del examen (opcional)
+        <input [(ngModel)]="importTitle" maxlength="180" placeholder="Se usa el nombre del archivo si lo dejas vacío" />
+      </label>
+      <label>
+        Archivo .docx
+        <input type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" (change)="onImportFile($event)" />
+      </label>
+    </div>
+    <div class="import-actions">
+      <ui-button type="button" [disabled]="!importFile || importing()" (click)="importExam()">
+        {{ importing() ? 'Importando…' : 'Importar examen' }}
+      </ui-button>
+      <ui-button type="button" variant="secondary" (click)="downloadExamTemplate()">Plantilla Word</ui-button>
+    </div>
+  </section>
+
   <div class="library-toolbar">
     <div class="tabs" role="tablist">
       <button type="button" role="tab" [class.on]="tab() === 'recent'" (click)="setTab('recent')">
