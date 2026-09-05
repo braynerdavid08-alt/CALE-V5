@@ -45,6 +45,18 @@ public sealed record QuestionDetailDto(
     int? CreatedById,
     IReadOnlyList<OptionDto> Options);
 
+public sealed record QuestionReviewDto(
+    int Id,
+    string Text,
+    string Type,
+    int BankId,
+    int BlockId,
+    string? Topic,
+    string? Explanation,
+    bool NeedsCorrectReview,
+    bool IsActive,
+    IReadOnlyList<OptionDto> Options);
+
 public sealed record SaveQuestionRequest(
     int BankId,
     int BlockId,

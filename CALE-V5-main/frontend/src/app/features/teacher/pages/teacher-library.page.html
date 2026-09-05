@@ -143,6 +143,9 @@
                       {{ exam.published ? 'Despublicar' : 'Publicar' }}
                     </button>
                     <button type="button" (click)="exportExam(exam)">Exportar Word</button>
+                    @if (exam.bankId) {
+                      <button type="button" (click)="reviewKeys(exam)">Revisar claves</button>
+                    }
                     <div class="menu-assign">
                       <select [(ngModel)]="assignTo[exam.id]" [name]="'g' + exam.id">
                         <option [ngValue]="null">Asignar a grupo…</option>

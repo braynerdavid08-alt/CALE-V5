@@ -18,6 +18,7 @@ namespace Cale.Api.Controllers;
 public sealed class QuestionsController : ControllerBase
 {
     private readonly ListQuestionsHandler _list;
+    private readonly ListQuestionsForReviewHandler _listReview;
     private readonly GetQuestionHandler _get;
     private readonly SaveQuestionHandler _save;
     private readonly ListBlocksHandler _blocks;
@@ -25,12 +26,14 @@ public sealed class QuestionsController : ControllerBase
 
     public QuestionsController(
         ListQuestionsHandler list,
+        ListQuestionsForReviewHandler listReview,
         GetQuestionHandler get,
         SaveQuestionHandler save,
         ListBlocksHandler blocks,
         ICatalogAccessGuard access)
     {
         _list = list;
+        _listReview = listReview;
         _get = get;
         _save = save;
         _blocks = blocks;
@@ -52,6 +55,29 @@ public sealed class QuestionsController : ControllerBase
             ct);
         return Ok(await _list.HandleAsync(
             page, pageSize, bankId, search, active, ownerId: null, ct));
+    }
+
+    [HttpGet("review")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> Review(
+        [FromQuery] int bankId,
+        CancellationToken ct)
+    {
+        if (bankId <= 0)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Indica el banco a revisar.",
+                Detail = "bank_required",
+                Status = 400
+            });
+        }
+
+        await _access.EnsureCatalogReadAsync(
+            CurrentUser.GetId(User),
+            CurrentUser.GetRole(User),
+            ct);
+        return Ok(await _listReview.HandleAsync(bankId, ct));
     }
 
     [HttpGet("blocks")]

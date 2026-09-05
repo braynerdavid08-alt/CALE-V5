@@ -202,6 +202,19 @@ public sealed class CatalogStore : ICatalogStore
             .Where(x => x.BankId == bankId && x.IsActive)
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<Question>> ListQuestionsForReviewAsync(
+        int bankId,
+        CancellationToken ct) =>
+        await _db.Set<Question>()
+            .Include(x => x.Options)
+            .Where(x =>
+                x.BankId == bankId
+                && x.IsActive
+                && x.Explanation != null
+                && x.Explanation.Contains("Importada sin clave"))
+            .OrderBy(x => x.Id)
+            .ToListAsync(ct);
+
     public async Task<IReadOnlyList<int>> ListExamQuestionIdsAsync(
         int examId,
         CancellationToken ct) =>

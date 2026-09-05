@@ -84,7 +84,7 @@ public sealed class ImportExamFromWordHandler
                 topic: $"Pregunta {item.Number}",
                 imageUrl: null,
                 explanation: item.NeedsCorrectReview
-                    ? "Importada sin clave: revisa y marca la respuesta correcta antes de publicar."
+                    ? ExamImportMarkers.NeedsReviewExplanation
                     : null,
                 options,
                 _clock.UtcNow);

@@ -76,6 +76,24 @@ export interface QuestionDetailDto {
   }>;
 }
 
+export interface QuestionReviewDto {
+  id: number;
+  text: string;
+  type: string;
+  bankId: number;
+  blockId: number;
+  topic?: string | null;
+  explanation?: string | null;
+  needsCorrectReview: boolean;
+  isActive: boolean;
+  options: Array<{
+    id: number;
+    text: string;
+    isCorrect: boolean;
+    imageUrl?: string | null;
+  }>;
+}
+
 export interface MemberDto {
   userId: number;
   name: string;
@@ -219,6 +237,12 @@ export class TeacherApi {
   question(id: number) {
     return this.http.get<QuestionDetailDto>(
       `${this.base}/api/questions/${id}`
+    );
+  }
+
+  questionsForReview(bankId: number) {
+    return this.http.get<QuestionReviewDto[]>(
+      `${this.base}/api/questions/review?bankId=${bankId}`
     );
   }
 

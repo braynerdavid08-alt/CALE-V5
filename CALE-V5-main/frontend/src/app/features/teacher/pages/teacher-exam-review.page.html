@@ -1,0 +1,48 @@
+<section class="review">
+  <ui-page-header
+    [title]="bankName || 'Revisar claves del examen'"
+    subtitle="Toca la letra correcta en cada pregunta. Al guardar se quita el aviso de revisión." />
+
+  <ui-error [message]="error()" />
+  <ui-success [message]="ok()" />
+
+  <div class="review-toolbar">
+    <ui-button type="button" variant="secondary" (click)="backToLibrary()">Volver a Biblioteca</ui-button>
+    <ui-button type="button" variant="ghost" (click)="reload()" [disabled]="loading()">Actualizar</ui-button>
+    @if (items().length) {
+      <span class="count">{{ items().length }} pendientes</span>
+    }
+  </div>
+
+  @if (loading()) {
+    <p class="muted">Cargando preguntas…</p>
+  } @else if (!items().length) {
+    <ui-empty
+      title="Sin pendientes"
+      message="Este banco no tiene preguntas importadas sin clave, o ya las marcaste todas." />
+  } @else {
+    <div class="review-list">
+      @for (q of items(); track q.id; let i = $index) {
+        <article class="review-card" [class.busy]="savingId() === q.id">
+          <header>
+            <span class="num">{{ i + 1 }}</span>
+            <h3>{{ q.text }}</h3>
+          </header>
+          <p class="hint">Elige la respuesta correcta:</p>
+          <div class="opts" role="group" [attr.aria-label]="'Opciones pregunta ' + (i + 1)">
+            @for (opt of q.options; track opt.id; let oi = $index) {
+              <button
+                type="button"
+                class="opt"
+                [disabled]="savingId() === q.id"
+                (click)="markCorrect(q, oi)">
+                <span class="letter">{{ letter(oi) }}</span>
+                <span class="opt-text">{{ opt.text }}</span>
+              </button>
+            }
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>
