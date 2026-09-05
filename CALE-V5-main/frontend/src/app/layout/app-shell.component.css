@@ -10,16 +10,6 @@
   --sidebar-width: 5.35rem;
 }
 
-.shell.teacher-studio {
-  --sidebar-width: 6.35rem;
-  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
-}
-
-.shell.teacher-studio.with-library,
-.shell.with-library {
-  grid-template-columns: var(--sidebar-width) 13.5rem minmax(0, 1fr);
-}
-
 .sidebar {
   position: sticky;
   top: 0;
@@ -33,11 +23,6 @@
   z-index: var(--z-sidebar);
   overflow: hidden auto;
   border-right: 1px solid color-mix(in srgb, #fff 6%, transparent);
-}
-
-.teacher-studio .sidebar {
-  padding: var(--spacing-md) 0.55rem;
-  align-items: stretch;
 }
 
 .brand-row {
@@ -55,11 +40,6 @@
   flex: 1;
   color: var(--color-sidebar-active);
   text-decoration: none;
-}
-
-.teacher-studio .brand {
-  justify-content: center;
-  padding: 0;
 }
 
 .brand-text {
@@ -157,10 +137,6 @@
   gap: 0.2rem;
 }
 
-.teacher-studio .sidebar nav {
-  gap: 0.35rem;
-}
-
 .nav-link {
   display: flex;
   align-items: center;
@@ -184,19 +160,6 @@
 .nav-link ui-icon {
   flex-shrink: 0;
   opacity: 0.92;
-}
-
-.teacher-studio .sidebar .nav-link {
-  flex-direction: column;
-  justify-content: center;
-  gap: 0.28rem;
-  min-height: 4.35rem;
-  padding: 0.5rem 0.3rem;
-  text-align: center;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  line-height: 1.15;
 }
 
 .nav-link:hover {
@@ -264,78 +227,6 @@
   background: color-mix(in srgb, var(--color-primary) 22%, transparent);
 }
 
-.teacher-studio .sidebar nav a .nav-label,
-.teacher-studio .nav-label {
-  line-height: 1.15;
-  max-width: 100%;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  white-space: normal;
-  word-break: break-word;
-}
-
-.teacher-studio .collapse-btn,
-.teacher-studio .brand-tag {
-  display: none;
-}
-
-.teacher-studio .brand-text {
-  display: none;
-}
-
-.library-panel {
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  background: var(--color-surface);
-  border-right: 1px solid var(--color-border);
-  padding: 1.15rem 0.85rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  z-index: calc(var(--z-sidebar) - 1);
-}
-
-.library-title {
-  margin: 0;
-  padding: 0 0.55rem;
-  font-size: 1.15rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.library-nav {
-  display: grid;
-  gap: 0.2rem;
-}
-
-.library-nav a {
-  display: block;
-  padding: 0.65rem 0.75rem;
-  border-radius: 999px;
-  font-size: var(--text-sm);
-  font-weight: 650;
-  color: var(--color-text-secondary);
-}
-
-.library-nav a:hover {
-  background: var(--color-chip);
-  color: var(--color-text);
-}
-
-.library-nav a.on {
-  background: color-mix(in srgb, var(--color-primary) 18%, var(--color-surface));
-  color: var(--color-primary);
-}
-
-.library-foot {
-  margin-top: auto;
-  padding: 0.5rem 0.65rem;
-  font-size: var(--text-xs);
-}
-
 .main {
   min-width: 0;
   display: flex;
@@ -360,29 +251,6 @@
 }
 
 .spacer { flex: 1; min-width: 0.5rem; }
-
-.top-search {
-  flex: 1 1 18rem;
-  max-width: 34rem;
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  min-height: 2.55rem;
-  padding: 0 0.9rem;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: var(--color-surface-raised);
-}
-
-.top-search input {
-  flex: 1;
-  border: 0;
-  background: transparent;
-  outline: none;
-  font: inherit;
-  color: var(--color-text);
-  min-width: 0;
-}
 
 .top-motivation {
   flex: 0 1 28rem;
@@ -423,39 +291,11 @@
   flex: 1;
 }
 
-.content-wide {
-  width: 100%;
-  max-width: none;
-}
-
 .scrim { display: none; }
-
-@media (max-width: 980px) {
-  .shell.teacher-studio.with-library,
-  .shell.with-library {
-    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
-  }
-
-  .library-panel {
-    display: none;
-  }
-
-  .shell.open .library-panel {
-    display: flex;
-    position: fixed;
-    left: var(--sidebar-width);
-    top: 0;
-    width: min(240px, 70vw);
-    box-shadow: var(--shadow-md);
-  }
-}
 
 @media (max-width: 900px) {
   .shell,
-  .shell.sidebar-collapsed,
-  .shell.teacher-studio,
-  .shell.teacher-studio.with-library,
-  .shell.with-library {
+  .shell.sidebar-collapsed {
     grid-template-columns: 1fr;
   }
 
@@ -497,25 +337,7 @@
     padding: 0.55rem 0.85rem;
   }
 
-  .teacher-studio .sidebar {
-    width: min(220px, 80vw);
-  }
-
-  .teacher-studio .sidebar .nav-link {
-    flex-direction: row;
-    justify-content: flex-start;
-    gap: 0.7rem;
-    min-height: var(--control-height);
-    padding: 0 0.8rem;
-    text-align: left;
-    font-size: var(--text-sm);
-  }
-
   .shell.open .sidebar { transform: translateX(0); }
-
-  .library-panel {
-    display: none;
-  }
 
   .scrim {
     display: block;
@@ -528,12 +350,6 @@
 
   .topbar {
     flex-wrap: wrap;
-  }
-
-  .top-search {
-    order: 5;
-    flex: 1 1 100%;
-    max-width: none;
   }
 
   .top-motivation {
