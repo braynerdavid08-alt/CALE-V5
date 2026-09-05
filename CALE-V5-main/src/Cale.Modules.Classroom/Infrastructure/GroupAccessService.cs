@@ -33,4 +33,19 @@ public sealed class GroupAccessService : IGroupAccess
         var memberships = await _store.ListMembershipsAsync(userId, ct);
         return memberships.Where(x => x.IsActive).Select(x => x.GroupId).ToList();
     }
+
+    public async Task<bool> CanManageGroupAsync(
+        int groupId,
+        int userId,
+        bool isAdmin,
+        CancellationToken ct)
+    {
+        if (isAdmin)
+        {
+            return true;
+        }
+
+        var group = await _store.GetGroupAsync(groupId, ct);
+        return group is not null && group.CanManage(userId, isAdmin: false);
+    }
 }

@@ -77,7 +77,11 @@ public sealed class QuestionsController : ControllerBase
             CurrentUser.GetId(User),
             CurrentUser.GetRole(User),
             ct);
-        return Ok(await _listReview.HandleAsync(bankId, ct));
+        return Ok(await _listReview.HandleAsync(
+            bankId,
+            CurrentUser.GetId(User),
+            CurrentUser.IsAdmin(User),
+            ct));
     }
 
     [HttpGet("blocks")]

@@ -12,12 +12,19 @@ public sealed class ListQuestionsForReviewHandler
 
     public async Task<IReadOnlyList<QuestionReviewDto>> HandleAsync(
         int bankId,
+        int userId,
+        bool isAdmin,
         CancellationToken ct)
     {
         _ = await _store.GetBankAsync(bankId, ct)
             ?? throw new NotFoundException("Bank not found.", "bank_not_found");
 
         var questions = await _store.ListQuestionsForReviewAsync(bankId, ct);
+        if (!isAdmin)
+        {
+            questions = questions.Where(q => q.CreatedById == userId).ToList();
+        }
+
         return questions
             .Select(q => new QuestionReviewDto(
                 q.Id,
