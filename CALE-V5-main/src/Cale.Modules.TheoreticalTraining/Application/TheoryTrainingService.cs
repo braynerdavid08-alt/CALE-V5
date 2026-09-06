@@ -2189,6 +2189,28 @@ public sealed class TheoryTrainingService
                 ex,
                 "Theory settings schema mismatch for school {SchoolUserId}; repairing columns",
                 schoolUserId);
+            _db.ChangeTracker.Clear();
+            try
+            {
+                if (_db.Database.CurrentTransaction is not null)
+                {
+                    await _db.Database.RollbackTransactionAsync(ct);
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
+            try
+            {
+                await _db.Database.CloseConnectionAsync();
+            }
+            catch
+            {
+                // ignore
+            }
+
             await FeatureSchema.EnsureTheoryTrainingColumnsAsync(_db, ct);
             _db.ChangeTracker.Clear();
             return await GetOrCreateSettingsCoreAsync(schoolUserId, ct);
