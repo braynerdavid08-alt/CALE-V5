@@ -166,8 +166,26 @@ public sealed class TheoryTrainingService
 
     public async Task<TheorySettingsDto> GetSettingsAsync(int schoolUserId, CancellationToken ct)
     {
-        var settings = await GetOrCreateSettingsAsync(schoolUserId, ct);
-        return MapSettings(settings);
+        try
+        {
+            var settings = await GetOrCreateSettingsAsync(schoolUserId, ct);
+            return MapSettings(settings);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GetSettings failed for school {SchoolUserId}; repairing", schoolUserId);
+            await FeatureSchema.EnsureTheoryTrainingColumnsAsync(_db, ct);
+            _db.ChangeTracker.Clear();
+            try
+            {
+                return MapSettings(await GetOrCreateSettingsAsync(schoolUserId, ct));
+            }
+            catch (Exception retryEx)
+            {
+                _logger.LogError(retryEx, "GetSettings retry failed; returning defaults");
+                return MapSettings(new TheoryTrainingSettings { SchoolUserId = schoolUserId });
+            }
+        }
     }
 
     public async Task<TheorySettingsDto> UpdateSettingsAsync(
@@ -1383,15 +1401,23 @@ public sealed class TheoryTrainingService
         {
             return await ListEnrollmentsCoreAsync(schoolUserId, ct);
         }
-        catch (Exception ex) when (IsLikelyMissingColumn(ex))
+        catch (Exception ex)
         {
-            _logger.LogWarning(
+            _logger.LogError(
                 ex,
-                "Enrollment list schema mismatch for school {SchoolUserId}; repairing",
+                "Enrollment list failed for school {SchoolUserId}; repairing and retrying",
                 schoolUserId);
             await FeatureSchema.EnsureTheoryTrainingColumnsAsync(_db, ct);
             _db.ChangeTracker.Clear();
-            return await ListEnrollmentsCoreAsync(schoolUserId, ct);
+            try
+            {
+                return await ListEnrollmentsCoreAsync(schoolUserId, ct);
+            }
+            catch (Exception retryEx)
+            {
+                _logger.LogError(retryEx, "Enrollment list retry failed; returning empty");
+                return [];
+            }
         }
     }
 
@@ -1489,7 +1515,6 @@ public sealed class TheoryTrainingService
 
         enrollment.Status = request.Status;
         enrollment.UpdatedAt = now;
-        enrollment.AllowedStartTime = null;
 
         if (!string.IsNullOrWhiteSpace(request.AttendanceDayType))
         {
@@ -2472,7 +2497,7 @@ public sealed class TheoryTrainingService
             studentEmail,
             enrollment.Status,
             enrollment.AttendanceDayType,
-            enrollment.AllowedStartTime?.ToString("HH:mm"),
+            null,
             enrollment.LicenseCategories,
             enrollment.TheoryExamAuthorized,
             enrollment.PracticalAuthorized,

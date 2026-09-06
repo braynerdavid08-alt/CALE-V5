@@ -87,6 +87,9 @@ public sealed class SchoolStudentEnrollmentConfiguration : IEntityTypeConfigurat
         builder.Property(x => x.Status).HasMaxLength(32).IsRequired();
         builder.Property(x => x.AttendanceDayType).HasMaxLength(16);
         builder.Property(x => x.LicenseCategories).HasMaxLength(32);
+        // Legacy column; product no longer uses fixed start times. Ignoring avoids
+        // Postgres type-mismatch 500s when the column is text/invalid on older DBs.
+        builder.Ignore(x => x.AllowedStartTime);
         builder.HasIndex(x => new { x.SchoolUserId, x.StudentUserId }).IsUnique();
         builder.HasIndex(x => x.StudentUserId);
     }

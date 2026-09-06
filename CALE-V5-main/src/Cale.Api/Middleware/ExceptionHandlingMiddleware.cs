@@ -159,9 +159,12 @@ public sealed class ExceptionHandlingMiddleware
             return (499, "Request canceled.", "request_canceled");
         }
 
-        var title = _env.IsDevelopment()
-            ? ex.Message
-            : "Unexpected error.";
+        var title = TruncateForClient(ex.GetBaseException().Message);
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            title = "Unexpected error.";
+        }
+
         return (500, title, "internal_error");
     }
 
@@ -180,5 +183,16 @@ public sealed class ExceptionHandlingMiddleware
         }
 
         return false;
+    }
+
+    private static string TruncateForClient(string? message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return "Unexpected error.";
+        }
+
+        var cleaned = message.Replace('\r', ' ').Replace('\n', ' ').Trim();
+        return cleaned.Length <= 240 ? cleaned : cleaned[..240] + "…";
     }
 }
