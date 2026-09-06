@@ -19,13 +19,41 @@
     </label>
     <div class="school-toolbar-actions">
       <ui-button type="button" variant="secondary" (click)="reload()">Buscar</ui-button>
-      <a routerLink="/school/import"><ui-button type="button" variant="secondary">Importar</ui-button></a>
+      <a routerLink="/school/users"><ui-button type="button" variant="secondary">Crear / vincular</ui-button></a>
+      <a routerLink="/school/import"><ui-button type="button">Importar Excel</ui-button></a>
     </div>
   </div>
 
   @if (loading()) {
     <ui-loading />
   } @else {
+    @if (!error() && rows().length === 0) {
+      <section class="empty-guide school-card" role="status">
+        <h2>Aún no hay aprendices en tu escuela</h2>
+        <p>
+          Esta pantalla solo muestra cuentas con rol <strong>Estudiante</strong> vinculadas a tu escuela.
+          Si la base está vacía, primero créalos o impórtalos:
+        </p>
+        <ol>
+          <li>
+            <a routerLink="/school/users"><strong>Usuarios</strong></a>
+            — crea una cuenta nueva (tipo Estudiante) o vincula un correo ya registrado.
+          </li>
+          <li>
+            <a routerLink="/school/import"><strong>Importar datos</strong></a>
+            — sube el Excel de aprendices o el CSV de usuarios.
+          </li>
+          <li>
+            Vuelve aquí para ver expediente, saldos y autorizaciones.
+          </li>
+        </ol>
+        <p class="muted tip">
+          Nota: “Programación teórica” solo autoriza a quienes ya son estudiantes de la escuela;
+          no da de alta aprendices nuevos.
+        </p>
+      </section>
+    }
+
     <div class="school-split">
       <section class="school-card">
         <p class="school-card-title">{{ rows().length }} aprendices registrados</p>
@@ -64,7 +92,8 @@
               } @empty {
                 <tr>
                   <td colspan="6" class="muted">
-                    Sin aprendices. Importa tu Excel o autoriza estudiantes en Programación.
+                    Sin aprendices vinculados. Usa <a routerLink="/school/users">Usuarios</a>
+                    o <a routerLink="/school/import">Importar</a>.
                   </td>
                 </tr>
               }
