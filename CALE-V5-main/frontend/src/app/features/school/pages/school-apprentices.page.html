@@ -5,6 +5,7 @@
     subtitle="Expediente, progreso de formación, pagos y autorizaciones." />
 
   <ui-error [message]="error()" />
+  <ui-success [message]="saveOk()" />
 
   <div class="school-toolbar">
     <input
@@ -66,6 +67,7 @@
                 <th>Teoría</th>
                 <th>Examen</th>
                 <th>Manejo</th>
+                <th>Pagado</th>
                 <th>Saldo</th>
               </tr>
             </thead>
@@ -87,11 +89,12 @@
                   <td [class.ok]="p?.theoryHoursComplete">{{ formatHours(p) }}</td>
                   <td [class.ok]="p?.theoryExamPassed">{{ formatExamStatus(p) }}</td>
                   <td [class.ok]="r.practicalAuthorized || p?.canBookPractical">{{ formatPracticalStatus(r, p) }}</td>
+                  <td>{{ formatMoney(r.amountPaid) }}</td>
                   <td [class.warn]="r.balanceDue > 0">{{ formatMoney(r.balanceDue) }}</td>
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="6" class="muted">
+                  <td colspan="7" class="muted">
                     Sin aprendices vinculados. Usa <a routerLink="/school/users">Usuarios</a>
                     o <a routerLink="/school/import">Importar</a>.
                   </td>

@@ -8,6 +8,7 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
+import { UiSuccessComponent } from '../../../shared/ui/ui-success.component';
 import { mapApiError } from '../../../core/http/map-api-error';
 import {
   ApprenticeApi,
@@ -29,7 +30,8 @@ import { buildStudentBadges, SchoolBadge, StudentBadgeInput } from '../utils/sch
     UiButtonComponent,
     UiErrorComponent,
     UiLoadingComponent,
-    UiPageHeaderComponent
+    UiPageHeaderComponent,
+    UiSuccessComponent
   ],
   templateUrl: './school-apprentices.page.html',
   styleUrl: './school-apprentices.page.css'
@@ -42,6 +44,7 @@ export class SchoolApprenticesPage implements OnInit {
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
+  readonly saveOk = signal<string | null>(null);
   readonly rows = signal<ApprenticeDto[]>([]);
   readonly progressByStudent = signal<Record<number, PracticalEligibilityDto>>({});
   readonly selected = signal<ApprenticeDto | null>(null);
@@ -147,12 +150,43 @@ export class SchoolApprenticesPage implements OnInit {
     const row = this.selected();
     if (!row) return;
     this.saving.set(true);
-    this.api.update(row.studentUserId, row).subscribe({
+    this.error.set(null);
+    this.saveOk.set(null);
+    const body = {
+      documentType: row.documentType,
+      documentNumber: row.documentNumber,
+      phone: row.phone,
+      address: row.address,
+      contactEmail: row.contactEmail,
+      enrollmentMonth: row.enrollmentMonth,
+      enrollmentDate: row.enrollmentDate,
+      orderNumber: row.orderNumber,
+      licenseCategories: row.licenseCategories,
+      attendanceDayType: row.attendanceDayType,
+      scheduleSlot: row.scheduleSlot,
+      receiptNumber: row.receiptNumber,
+      amountDue: Number(row.amountDue) || 0,
+      amountPaid: Number(row.amountPaid) || 0,
+      paymentMethod: row.paymentMethod,
+      balancePaymentAmount: row.balancePaymentAmount,
+      accountsReceivable: Number(row.accountsReceivable) || 0,
+      balancePaymentDate: row.balancePaymentDate,
+      balancePaymentMethod: row.balancePaymentMethod,
+      balanceReceiptNumber: row.balanceReceiptNumber,
+      enrollmentPin: row.enrollmentPin,
+      runtRegistered: !!row.runtRegistered,
+      isEnrolled: !!row.isEnrolled,
+      notes: row.notes
+    };
+    this.api.update(row.studentUserId, body).subscribe({
       next: (updated) => {
         this.saving.set(false);
         this.rows.update((list) => list.map((r) => (r.studentUserId === updated.studentUserId ? updated : r)));
         this.selected.set(updated);
         this.detail.update((d) => d ? { ...d, profile: updated } : d);
+        this.saveOk.set(
+          `Pagos guardados: pagado ${this.formatMoney(updated.amountPaid)}, saldo ${this.formatMoney(updated.balanceDue)}.`
+        );
       },
       error: (err) => {
         this.saving.set(false);

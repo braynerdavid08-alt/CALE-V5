@@ -144,7 +144,11 @@ public sealed class CreateSchoolMemberHandler
 
         if (role == Roles.Student)
         {
-            await _enrollmentBootstrap.EnsurePendingAsync(schoolId, user.Id, ct);
+            await _enrollmentBootstrap.EnsurePendingAsync(
+                schoolId,
+                user.Id,
+                ct,
+                ToOnboardingSeed(request));
         }
 
         await _events.AddAsync(
@@ -160,6 +164,50 @@ public sealed class CreateSchoolMemberHandler
         await _profiles.SaveChangesAsync(ct);
 
         return Map(user, role);
+    }
+
+    private static StudentOnboardingSeed? ToOnboardingSeed(CreateSchoolMemberRequest request)
+    {
+        var hasAny =
+            !string.IsNullOrWhiteSpace(request.DocumentType)
+            || !string.IsNullOrWhiteSpace(request.DocumentNumber)
+            || !string.IsNullOrWhiteSpace(request.Phone)
+            || !string.IsNullOrWhiteSpace(request.Address)
+            || !string.IsNullOrWhiteSpace(request.ContactEmail)
+            || !string.IsNullOrWhiteSpace(request.LicenseCategories)
+            || !string.IsNullOrWhiteSpace(request.AttendanceDayType)
+            || !string.IsNullOrWhiteSpace(request.ScheduleSlot)
+            || !string.IsNullOrWhiteSpace(request.EnrollmentPin)
+            || request.AmountDue is > 0
+            || request.AmountPaid is > 0
+            || !string.IsNullOrWhiteSpace(request.PaymentMethod)
+            || !string.IsNullOrWhiteSpace(request.ReceiptNumber)
+            || request.RuntRegistered
+            || request.IsEnrolled
+            || !string.IsNullOrWhiteSpace(request.Notes);
+
+        if (!hasAny)
+        {
+            return null;
+        }
+
+        return new StudentOnboardingSeed(
+            request.DocumentType,
+            request.DocumentNumber,
+            request.Phone,
+            request.Address,
+            request.ContactEmail,
+            request.LicenseCategories,
+            request.AttendanceDayType,
+            request.ScheduleSlot,
+            request.EnrollmentPin,
+            request.AmountDue,
+            request.AmountPaid,
+            request.PaymentMethod,
+            request.ReceiptNumber,
+            request.RuntRegistered,
+            request.IsEnrolled,
+            request.Notes);
     }
 
     private static void Validate(CreateSchoolMemberRequest request)
