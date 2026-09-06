@@ -2212,6 +2212,31 @@ public static class FeatureSchema
             return;
         }
 
+        // A prior failed SELECT often leaves the Npgsql connection in an aborted
+        // transaction; ALTERs then fail silently inside TryPostgresAsync.
+        db.ChangeTracker.Clear();
+        try
+        {
+            if (db.Database.CurrentTransaction is not null)
+            {
+                await db.Database.RollbackTransactionAsync(ct);
+            }
+        }
+        catch
+        {
+            // No ambient transaction or already rolled back.
+        }
+
+        try
+        {
+            await db.Database.CloseConnectionAsync();
+        }
+        catch
+        {
+            // Connection may already be closed.
+        }
+
+        // Nullable ADD first, then backfill — more compatible than NOT NULL DEFAULT in one step.
         string[] statements =
         [
             """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "RequiredWorkshopHours" integer NOT NULL DEFAULT 10;""",
@@ -2228,9 +2253,12 @@ public static class FeatureSchema
             """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "SaturdayReservationOpenDaysBefore" integer NOT NULL DEFAULT 2;""",
             """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "StudentBookingWindowStart" time without time zone NULL;""",
             """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "StudentBookingWindowEnd" time without time zone NULL;""",
-            """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "LicenseCategoryPoliciesJson" text NOT NULL DEFAULT '{}';""",
-            """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "SavedBookingPresetsJson" text NOT NULL DEFAULT '[]';""",
-            """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "HiddenBookingPresetKeysJson" text NOT NULL DEFAULT '[]';""",
+            """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "LicenseCategoryPoliciesJson" text;""",
+            """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "SavedBookingPresetsJson" text;""",
+            """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "HiddenBookingPresetKeysJson" text;""",
+            """UPDATE "TheoryTrainingSettings" SET "LicenseCategoryPoliciesJson" = '{}' WHERE "LicenseCategoryPoliciesJson" IS NULL;""",
+            """UPDATE "TheoryTrainingSettings" SET "SavedBookingPresetsJson" = '[]' WHERE "SavedBookingPresetsJson" IS NULL;""",
+            """UPDATE "TheoryTrainingSettings" SET "HiddenBookingPresetKeysJson" = '[]' WHERE "HiddenBookingPresetKeysJson" IS NULL;""",
             """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "AttendanceDayType" varchar(16) NULL;""",
             """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "AllowedStartTime" time NULL;""",
             """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "LicenseCategories" varchar(32) NULL;""",
@@ -2250,15 +2278,29 @@ public static class FeatureSchema
                 "CreatedAt" timestamp with time zone NOT NULL,
                 "UpdatedAt" timestamp with time zone NOT NULL
             );
-            """,
-            """UPDATE "TheoryTrainingSettings" SET "LicenseCategoryPoliciesJson" = '{}' WHERE "LicenseCategoryPoliciesJson" IS NULL;""",
-            """UPDATE "TheoryTrainingSettings" SET "SavedBookingPresetsJson" = '[]' WHERE "SavedBookingPresetsJson" IS NULL;""",
-            """UPDATE "TheoryTrainingSettings" SET "HiddenBookingPresetKeysJson" = '[]' WHERE "HiddenBookingPresetKeysJson" IS NULL;"""
+            """
         ];
 
         foreach (var sql in statements)
         {
-            await TryPostgresAsync(db, sql, ct);
+            await TryPostgresRepairAsync(db, sql, ct);
+        }
+    }
+
+    private static async Task TryPostgresRepairAsync(
+        CaleDbContext db,
+        string sql,
+        CancellationToken ct)
+    {
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(sql, ct);
+        }
+        catch (Exception ex)
+        {
+            var preview = sql.Length <= 140 ? sql : sql[..140] + "…";
+            Console.Error.WriteLine(
+                $"[FeatureSchema] Theory column repair skipped/failed: {ex.GetType().Name}: {ex.Message} | {preview}");
         }
     }
 
