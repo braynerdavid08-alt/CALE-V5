@@ -123,8 +123,36 @@ public sealed class ApprenticeRegistryService
         var enrollment = await _db.Set<SchoolStudentEnrollment>()
             .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId && x.StudentUserId == studentUserId, ct);
         var apprentice = MapDto(studentUserId, user.Name, user.Email ?? "", profile, enrollment);
-        var training = await _theory.GetPracticalEligibilityAsync(schoolUserId, studentUserId, ct);
-        var practical = await _practical.GetApprenticePracticalSummaryAsync(schoolUserId, studentUserId, ct);
+        PracticalEligibilityDto training;
+        try
+        {
+            training = await _theory.GetPracticalEligibilityAsync(schoolUserId, studentUserId, ct);
+        }
+        catch (Exception)
+        {
+            training = new PracticalEligibilityDto(
+                false,
+                false,
+                false,
+                false,
+                0,
+                0,
+                0,
+                0,
+                enrollment?.TheoryExamAuthorized ?? false,
+                enrollment?.PracticalAuthorized ?? false,
+                "No se pudo calcular el progreso. Revisa Programación teórica.");
+        }
+
+        ApprenticePracticalSummaryDto practical;
+        try
+        {
+            practical = await _practical.GetApprenticePracticalSummaryAsync(schoolUserId, studentUserId, ct);
+        }
+        catch (Exception)
+        {
+            practical = new ApprenticePracticalSummaryDto(0, 0, 0, null, null);
+        }
 
         var today = DateOnly.FromDateTime(_clock.UtcNow.Date);
         var exam = await _db.Set<TheoryExamAppointment>()
@@ -142,11 +170,19 @@ public sealed class ApprenticeRegistryService
                 exam.ExamDate.ToString("yyyy-MM-dd"),
                 exam.SlotTime.ToString("HH:mm"));
 
-        var authHistory = await _theory.ListAuthorizationHistoryAsync(
-            schoolUserId,
-            studentUserId,
-            15,
-            ct);
+        IReadOnlyList<EnrollmentAuthorizationEventDto> authHistory;
+        try
+        {
+            authHistory = await _theory.ListAuthorizationHistoryAsync(
+                schoolUserId,
+                studentUserId,
+                15,
+                ct);
+        }
+        catch (Exception)
+        {
+            authHistory = [];
+        }
 
         return new ApprenticeDetailDto(apprentice, training, practical, nextExam, authHistory);
     }

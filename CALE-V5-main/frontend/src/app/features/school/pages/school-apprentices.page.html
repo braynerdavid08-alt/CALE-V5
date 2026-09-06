@@ -170,22 +170,7 @@
                   (change)="toggleTheoryExamAuth($any($event.target).checked)" />
                 <span>
                   <strong>Examen teórico</strong>
-                  <small>
-                    @if (s.theoryExamAuthorized) {
-                      Autorizado para agendar cita de examen.
-                    } @else if (hasBalanceDue()) {
-                      Tiene saldo pendiente — registra el pago antes de autorizar.
-                    } @else if (canAuthorizeTheoryExam()) {
-                      Completa teoría y taller — listo para autorizar.
-                    } @else if (d && d.training.theoryExamPassed) {
-                      Ya aprobó el examen teórico.
-                    } @else if (d) {
-                      Pendiente: {{ d.training.theoryHoursCompleted }}/{{ d.training.theoryHoursRequired }} h teoría,
-                      {{ d.training.workshopHoursCompleted }}/{{ d.training.workshopHoursRequired }} h taller.
-                    } @else {
-                      Cargando progreso…
-                    }
-                  </small>
+                  <small>{{ theoryAuthHint() }}</small>
                 </span>
               </label>
               <label class="school-flag-field">
@@ -196,17 +181,7 @@
                   (change)="togglePracticalAuth($any($event.target).checked)" />
                 <span>
                   <strong>Clases de manejo</strong>
-                  <small>
-                    @if (s.practicalAuthorized) {
-                      Autorizado para programar y reservar práctica.
-                    } @else if (hasBalanceDue()) {
-                      Tiene saldo pendiente — registra el pago antes de autorizar.
-                    } @else if (canAuthorizePractical()) {
-                      Aprobó el examen — listo para autorizar manejo.
-                    } @else {
-                      Debe aprobar el examen teórico primero.
-                    }
-                  </small>
+                  <small>{{ practicalAuthHint() }}</small>
                 </span>
               </label>
             </div>

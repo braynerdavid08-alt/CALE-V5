@@ -13,7 +13,8 @@ import {
   ApprenticeApi,
   ApprenticeDetail,
   ApprenticeDto,
-  EnrollmentAuthorizationEvent
+  EnrollmentAuthorizationEvent,
+  PracticalEligibility
 } from '../api/apprentice.api';
 import { EnrollmentDto, PracticalEligibilityDto, TheoryApi } from '../../theory/api/theory.api';
 import { buildStudentBadges, SchoolBadge, StudentBadgeInput } from '../utils/school-student-badges';
@@ -104,6 +105,17 @@ export class SchoolApprenticesPage implements OnInit {
     return this.progressByStudent()[row.studentUserId];
   }
 
+  /** Progress from detail, or from the enrollments list while detail loads/fails. */
+  trainingOf(row?: ApprenticeDto | null): PracticalEligibilityDto | PracticalEligibility | undefined {
+    const selected = row ?? this.selected();
+    if (!selected) return undefined;
+    const d = this.detail();
+    if (d && d.profile.studentUserId === selected.studentUserId) {
+      return d.training;
+    }
+    return this.progressOf(selected);
+  }
+
   select(row: ApprenticeDto): void {
     this.selected.set({ ...row });
     this.detail.set(null);
@@ -150,19 +162,65 @@ export class SchoolApprenticesPage implements OnInit {
   }
 
   canAuthorizeTheoryExam(): boolean {
-    const d = this.detail();
+    const t = this.trainingOf();
     const row = this.selected();
-    return !!d
-      && d.training.theoryHoursComplete
-      && d.training.workshopHoursComplete
-      && !d.training.theoryExamPassed
+    return !!t
+      && t.theoryHoursComplete
+      && t.workshopHoursComplete
+      && !t.theoryExamPassed
       && (row?.balanceDue ?? 0) <= 0;
   }
 
   canAuthorizePractical(): boolean {
     const row = this.selected();
-    return !!this.detail()?.training.theoryExamPassed
+    return !!this.trainingOf()?.theoryExamPassed
       && (row?.balanceDue ?? 0) <= 0;
+  }
+
+  theoryAuthHint(): string {
+    const row = this.selected();
+    if (!row) return '';
+    if (row.theoryExamAuthorized) {
+      return 'Autorizado para agendar cita de examen.';
+    }
+    if (this.hasBalanceDue()) {
+      return 'Tiene saldo pendiente — registra el pago antes de autorizar.';
+    }
+    if (this.detailLoading() && !this.trainingOf(row)) {
+      return 'Cargando progreso…';
+    }
+    if (this.detailError() && !this.trainingOf(row)) {
+      return `No se pudo cargar el progreso: ${this.detailError()}`;
+    }
+    const t = this.trainingOf(row);
+    if (!t) {
+      return 'Sin datos de progreso. Revisa Programación teórica o recarga la página.';
+    }
+    if (t.theoryExamPassed) {
+      return 'Ya aprobó el examen teórico.';
+    }
+    if (this.canAuthorizeTheoryExam()) {
+      return 'Completó teoría y taller — listo para autorizar.';
+    }
+    return `Pendiente: ${t.theoryHoursCompleted}/${t.theoryHoursRequired} h teoría, ${t.workshopHoursCompleted}/${t.workshopHoursRequired} h taller. Marca asistencia en Programación para acumular horas.`;
+  }
+
+  practicalAuthHint(): string {
+    const row = this.selected();
+    if (!row) return '';
+    if (row.practicalAuthorized) {
+      return 'Autorizado para programar y reservar práctica.';
+    }
+    if (this.hasBalanceDue()) {
+      return 'Tiene saldo pendiente — registra el pago antes de autorizar.';
+    }
+    if (this.detailLoading() && !this.trainingOf(row)) {
+      return 'Cargando progreso…';
+    }
+    if (this.canAuthorizePractical()) {
+      return 'Aprobó el examen — listo para autorizar manejo.';
+    }
+    return 'Debe aprobar el examen teórico primero.';
   }
 
   hasBalanceDue(): boolean {
