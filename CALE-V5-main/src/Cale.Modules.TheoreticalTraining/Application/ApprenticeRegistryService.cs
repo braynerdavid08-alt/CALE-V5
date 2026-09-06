@@ -51,15 +51,22 @@ public sealed class ApprenticeRegistryService
         CancellationToken ct)
     {
         var students = await _users.ListBySchoolAsync(schoolUserId, ct);
-        var studentMap = students.Where(x => x.Role == Roles.Student).ToDictionary(x => x.Id);
+        var studentMap = students
+            .Where(x => x.Role == Roles.Student)
+            .GroupBy(x => x.Id)
+            .ToDictionary(g => g.Key, g => g.First());
         var enrollments = await _db.Set<SchoolStudentEnrollment>()
             .Where(x => x.SchoolUserId == schoolUserId)
             .ToListAsync(ct);
-        var enrollmentMap = enrollments.ToDictionary(x => x.StudentUserId);
+        var enrollmentMap = enrollments
+            .GroupBy(x => x.StudentUserId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.Id).First());
         var profiles = await _db.Set<SchoolApprenticeProfile>()
             .Where(x => x.SchoolUserId == schoolUserId)
             .ToListAsync(ct);
-        var profileMap = profiles.ToDictionary(x => x.StudentUserId);
+        var profileMap = profiles
+            .GroupBy(x => x.StudentUserId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.Id).First());
 
         var ids = studentMap.Keys.Union(profileMap.Keys).Distinct();
         var rows = new List<ApprenticeDto>();
@@ -157,7 +164,19 @@ public sealed class ApprenticeRegistryService
             // Schema drift mid-deploy: repair theory columns and retry once.
             await FeatureSchema.EnsureTheoryTrainingColumnsAsync(_db, ct);
             _db.ChangeTracker.Clear();
-            return await GetDashboardCoreAsync(schoolUserId, ct);
+            try
+            {
+                return await GetDashboardCoreAsync(schoolUserId, ct);
+            }
+            catch
+            {
+                return new SchoolOperationsDashboardDto(
+                    0, 0, 0, 0, 0, 0, 0, 0,
+                    Array.Empty<SchoolDashboardBalanceRowDto>(),
+                    Array.Empty<SchoolDashboardStudentRowDto>(),
+                    Array.Empty<SchoolDashboardStudentRowDto>(),
+                    Array.Empty<TheoryExamSlotDto>());
+            }
         }
     }
 
