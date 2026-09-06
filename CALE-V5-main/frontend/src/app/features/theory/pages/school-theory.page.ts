@@ -403,6 +403,11 @@ export class SchoolTheoryPage implements OnInit {
   }
 
   toggleTheoryExamAuth(row: EnrollmentDto, authorized: boolean): void {
+    if (authorized && !this.canAuthorizeTheoryExam(row)) {
+      if (!confirm('El aprendiz no cumple requisitos automáticos (horas/saldo). ¿Autorizar examen de todas formas?')) {
+        return;
+      }
+    }
     this.api.updateEnrollment(row.studentUserId, {
       status: row.status,
       attendanceDayType: row.attendanceDayType,
@@ -419,6 +424,11 @@ export class SchoolTheoryPage implements OnInit {
   }
 
   togglePracticalAuth(row: EnrollmentDto, authorized: boolean): void {
+    if (authorized && !this.canAuthorizePractical(row)) {
+      if (!confirm('El aprendiz no cumple requisitos automáticos (examen/saldo). ¿Autorizar manejo de todas formas?')) {
+        return;
+      }
+    }
     this.api.updateEnrollment(row.studentUserId, {
       status: row.status,
       attendanceDayType: row.attendanceDayType,
@@ -770,7 +780,41 @@ export class SchoolTheoryPage implements OnInit {
   }
 
   onBookingFieldEdited(): void {
-    /* valores personalizados; no hace falta marcar plantilla */
+    const cfg = this.settings();
+    if (!cfg) {
+      return;
+    }
+    const suggested = this.suggestedMinutesCap(cfg);
+    // Keep minutes aligned with class×2h so the second limit doesn't silently block.
+    if (cfg.maxDailyTheoryMinutes > 0 && suggested > 0 && cfg.maxDailyTheoryMinutes < suggested) {
+      this.settings.set({ ...cfg, maxDailyTheoryMinutes: suggested });
+    }
+  }
+
+  /** Minutes needed so N classes of ~2h (defaultDuration) are allowed. */
+  suggestedMinutesCap(cfg: TheorySettingsDto): number {
+    const duration = cfg.defaultDurationMinutes > 0 ? cfg.defaultDurationMinutes : 120;
+    const weekday = cfg.maxWeekdayClassesPerDay;
+    const saturday = cfg.maxSaturdayClassesPerDay;
+    if (weekday === 0 || saturday === 0) {
+      return 0;
+    }
+    return Math.max(weekday, saturday) * duration;
+  }
+
+  classLimitConflict(cfg: TheorySettingsDto): string | null {
+    if (cfg.maxDailyTheoryMinutes <= 0) {
+      return null;
+    }
+    const duration = cfg.defaultDurationMinutes > 0 ? cfg.defaultDurationMinutes : 120;
+    const weekdayOk = cfg.maxWeekdayClassesPerDay === 0
+      || cfg.maxDailyTheoryMinutes >= cfg.maxWeekdayClassesPerDay * duration;
+    const saturdayOk = cfg.maxSaturdayClassesPerDay === 0
+      || cfg.maxDailyTheoryMinutes >= cfg.maxSaturdayClassesPerDay * duration;
+    if (weekdayOk && saturdayOk) {
+      return null;
+    }
+    return `El tope de ${cfg.maxDailyTheoryMinutes} min es menor que las clases permitidas × ${duration} min. Sube los minutos o baja las clases.`;
   }
 
   restoreBuiltinPresets(): void {

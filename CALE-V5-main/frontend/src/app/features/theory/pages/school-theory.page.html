@@ -362,12 +362,17 @@
                     @if (row.status === 'Active' || row.status === 'Accepted') {
                       @if (row.theoryExamAuthorized) {
                         <button type="button" class="link-btn ok" (click)="toggleTheoryExamAuth(row, false)">Autorizado ✓</button>
-                      } @else if (hasBalanceDue(row)) {
-                        <small class="muted warn">Saldo pendiente</small>
-                      } @else if (canAuthorizeTheoryExam(row)) {
-                        <ui-button type="button" variant="secondary" (click)="toggleTheoryExamAuth(row, true)">Autorizar examen</ui-button>
+                      } @else if (row.practicalEligibility?.theoryExamPassed) {
+                        <small class="muted">Ya aprobado</small>
                       } @else {
-                        <small class="muted" title="{{ row.practicalEligibility?.blockReason ?? '' }}">Horas pendientes</small>
+                        <ui-button type="button" variant="secondary" (click)="toggleTheoryExamAuth(row, true)">
+                          {{ canAuthorizeTheoryExam(row) ? 'Autorizar examen' : 'Autorizar (manual)' }}
+                        </ui-button>
+                        @if (!canAuthorizeTheoryExam(row)) {
+                          <small class="muted" title="{{ row.practicalEligibility?.blockReason ?? '' }}">
+                            {{ hasBalanceDue(row) ? 'Saldo / horas pendientes' : 'Horas pendientes' }}
+                          </small>
+                        }
                       }
                     } @else {
                       <small class="muted">—</small>
@@ -377,14 +382,17 @@
                     @if (row.status === 'Active' || row.status === 'Accepted') {
                       @if (row.practicalAuthorized) {
                         <button type="button" class="link-btn ok" (click)="togglePracticalAuth(row, false)">Autorizado ✓</button>
-                      } @else if (canAuthorizePractical(row)) {
-                        <ui-button type="button" variant="secondary" (click)="togglePracticalAuth(row, true)">Autorizar manejo</ui-button>
-                      } @else if (hasBalanceDue(row) && row.practicalEligibility?.theoryExamPassed) {
-                        <small class="muted warn">Saldo pendiente</small>
-                      } @else if (row.practicalEligibility?.theoryExamPassed) {
-                        <small class="muted">Pendiente autorización</small>
                       } @else {
-                        <small class="muted">Sin examen</small>
+                        <ui-button type="button" variant="secondary" (click)="togglePracticalAuth(row, true)">
+                          {{ canAuthorizePractical(row) ? 'Autorizar manejo' : 'Autorizar (manual)' }}
+                        </ui-button>
+                        @if (!canAuthorizePractical(row)) {
+                          <small class="muted">
+                            {{ row.practicalEligibility?.theoryExamPassed
+                              ? (hasBalanceDue(row) ? 'Saldo pendiente' : 'Pendiente')
+                              : 'Sin examen en contador' }}
+                          </small>
+                        }
                       }
                     } @else {
                       <small class="muted">—</small>
@@ -617,27 +625,31 @@
             }
           </div>
 
-          <h3 class="settings-subhead">Límites por día</h3>
+          <h3 class="settings-subhead">Clases permitidas por día</h3>
+          <p class="muted">
+            Cada «clase» es <strong>una programación del horario</strong> (bloqueo típico de 2 horas).
+            Semana y sábados se configuran por separado. El contador usa el número de reservas ese día.
+          </p>
           <div class="policy-grid">
-            <label>Clases máx. entre semana / día
+            <label>Entre semana — clases / día
               <input
                 type="number"
                 min="0"
                 max="10"
                 [(ngModel)]="cfg.maxWeekdayClassesPerDay"
                 (ngModelChange)="onBookingFieldEdited()" />
-              <span class="hint">0 = sin límite</span>
+              <span class="hint">Ej. 1 = una sesión de ~2 h · 0 = sin límite</span>
             </label>
-            <label>Clases máx. sábados / día
+            <label>Sábados — clases / día
               <input
                 type="number"
                 min="0"
                 max="12"
                 [(ngModel)]="cfg.maxSaturdayClassesPerDay"
                 (ngModelChange)="onBookingFieldEdited()" />
-              <span class="hint">0 = sin límite</span>
+              <span class="hint">Ej. 4 = hasta cuatro sesiones ese sábado · 0 = sin límite</span>
             </label>
-            <label>Minutos máx. de teoría / día
+            <label>Tope extra de minutos / día (opcional)
               <input
                 type="number"
                 min="0"
@@ -645,9 +657,15 @@
                 step="30"
                 [(ngModel)]="cfg.maxDailyTheoryMinutes"
                 (ngModelChange)="onBookingFieldEdited()" />
-              <span class="hint">0 = sin límite · 120 = 2 horas</span>
+              <span class="hint">
+                0 = solo cuenta clases. Si pones 120 con 2 clases permitidas, bloqueará la 2.ª.
+                Al cambiar clases se sugiere {{ suggestedMinutesCap(cfg) }} min.
+              </span>
             </label>
           </div>
+          @if (classLimitConflict(cfg); as conflict) {
+            <p class="warn-banner">{{ conflict }}</p>
+          }
 
           <h3 class="settings-subhead">Cuándo pueden reservar</h3>
           <div class="policy-grid">

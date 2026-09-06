@@ -1596,6 +1596,8 @@ public sealed class TheoryTrainingService
             {
                 await _eligibility.EnsureTheoryExamConfiguredAsync(schoolUserId, ct);
 
+                // School may override hours/balance when the counter is wrong;
+                // only block if the student already passed the official exam.
                 var hoursCheck = await GetPracticalEligibilityAsync(
                     schoolUserId,
                     studentUserId,
@@ -1606,14 +1608,6 @@ public sealed class TheoryTrainingService
                     enrollment.PracticalAuthorized,
                     enrollment.LicenseCategories,
                     ct);
-                if (!hoursCheck.TheoryHoursComplete || !hoursCheck.WorkshopHoursComplete)
-                {
-                    throw new DomainException(
-                        "El estudiante debe completar las horas de teoría y taller antes de autorizar el examen.",
-                        400,
-                        "theory_hours_incomplete");
-                }
-
                 if (hoursCheck.TheoryExamPassed)
                 {
                     throw new DomainException(
@@ -1622,7 +1616,6 @@ public sealed class TheoryTrainingService
                         "theory_exam_already_passed");
                 }
 
-                await _eligibility.EnsureNoBalanceDueAsync(schoolUserId, studentUserId, ct);
                 notifyTheoryExam = true;
             }
 
@@ -1635,26 +1628,7 @@ public sealed class TheoryTrainingService
             if (practicalAuthorized && !enrollment.PracticalAuthorized)
             {
                 await _eligibility.EnsureTheoryExamConfiguredAsync(schoolUserId, ct);
-
-                var examCheck = await GetPracticalEligibilityAsync(
-                    schoolUserId,
-                    studentUserId,
-                    settings,
-                    theoryHours,
-                    workshopHours,
-                    true,
-                    false,
-                    enrollment.LicenseCategories,
-                    ct);
-                if (!examCheck.TheoryExamPassed)
-                {
-                    throw new DomainException(
-                        "El estudiante debe aprobar el examen teórico antes de autorizar manejo.",
-                        400,
-                        "theory_exam_required");
-                }
-
-                await _eligibility.EnsureNoBalanceDueAsync(schoolUserId, studentUserId, ct);
+                // Manual override allowed: school confirms even if hours/exam gate disagree.
                 notifyPractical = true;
             }
 
