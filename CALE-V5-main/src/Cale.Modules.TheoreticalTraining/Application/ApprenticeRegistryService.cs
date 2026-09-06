@@ -320,6 +320,21 @@ public sealed class ApprenticeRegistryService
             }
 
             enrollment.AttendanceDayType = dayType;
+            var settings = await _db.Set<TheoryTrainingSettings>()
+                .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId, ct);
+            if (settings is not null)
+            {
+                if (dayType == StudentAttendanceDayTypes.Weekday)
+                {
+                    settings.WeekdaysEnabled = true;
+                }
+                else if (dayType == StudentAttendanceDayTypes.Saturday)
+                {
+                    settings.SaturdayEnabled = true;
+                }
+
+                settings.UpdatedAt = now;
+            }
         }
 
         if (enrollment.Status is StudentEnrollmentStatuses.Pending or StudentEnrollmentStatuses.Accepted

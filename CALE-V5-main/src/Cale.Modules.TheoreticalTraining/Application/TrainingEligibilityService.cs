@@ -126,6 +126,33 @@ public sealed class TrainingEligibilityService : ITrainingEligibilityService
             .FirstOrDefaultAsync(ct);
     }
 
+    public async Task<int?> GetAuthorizedSchoolOfficialTheoryExamIdAsync(
+        int studentUserId,
+        CancellationToken ct)
+    {
+        var user = await _users.GetByIdAsync(studentUserId, ct);
+        if (user?.SchoolId is not int schoolUserId)
+        {
+            return null;
+        }
+
+        var authorized = await _db.Set<SchoolStudentEnrollment>()
+            .AsNoTracking()
+            .Where(x => x.SchoolUserId == schoolUserId && x.StudentUserId == studentUserId)
+            .Select(x => x.TheoryExamAuthorized)
+            .FirstOrDefaultAsync(ct);
+        if (!authorized)
+        {
+            return null;
+        }
+
+        return await _db.Set<TheoryTrainingSettings>()
+            .AsNoTracking()
+            .Where(x => x.SchoolUserId == schoolUserId)
+            .Select(x => x.TheoryExamId)
+            .FirstOrDefaultAsync(ct);
+    }
+
     public async Task EnsureTheoryExamConfiguredAsync(
         int schoolUserId,
         CancellationToken ct)

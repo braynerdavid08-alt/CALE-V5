@@ -1778,42 +1778,41 @@ public sealed class TheoryTrainingService
                 {
                     skipped++;
                     skippedTheoryExamNotConfigured++;
-                    continue;
                 }
-
-                if (enrollment.TheoryExamAuthorized)
+                else if (enrollment.TheoryExamAuthorized)
                 {
                     skipped++;
                     skippedAlreadyAuthorized++;
-                    continue;
                 }
-
-                if (!eligibility.TheoryHoursComplete || !eligibility.WorkshopHoursComplete)
+                else if (!eligibility.TheoryHoursComplete || !eligibility.WorkshopHoursComplete)
                 {
                     skipped++;
                     skippedHoursIncomplete++;
-                    continue;
                 }
-
-                if (eligibility.TheoryExamPassed)
+                else if (eligibility.TheoryExamPassed)
                 {
                     skipped++;
                     skippedExamPassed++;
-                    continue;
                 }
+                else
+                {
+                    enrollment.TheoryExamAuthorized = true;
+                    enrollment.TheoryExamAuthorizedAt = now;
+                    enrollment.UpdatedAt = now;
+                    await LogAuthorizationEventAsync(
+                        schoolUserId,
+                        enrollment.StudentUserId,
+                        EnrollmentAuthorizationTypes.TheoryExam,
+                        EnrollmentAuthorizationActions.Granted,
+                        actorUserId,
+                        ct);
+                    theoryExamNotified.Add((enrollment.StudentUserId, enrollment.Id));
+                    authorized++;
+                }
+            }
 
-                enrollment.TheoryExamAuthorized = true;
-                enrollment.TheoryExamAuthorizedAt = now;
-                enrollment.UpdatedAt = now;
-                await LogAuthorizationEventAsync(
-                    schoolUserId,
-                    enrollment.StudentUserId,
-                    EnrollmentAuthorizationTypes.TheoryExam,
-                    EnrollmentAuthorizationActions.Granted,
-                    actorUserId,
-                    ct);
-                theoryExamNotified.Add((enrollment.StudentUserId, enrollment.Id));
-                authorized++;
+            if (!request.Practical)
+            {
                 continue;
             }
 
