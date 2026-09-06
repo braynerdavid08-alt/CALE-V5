@@ -140,6 +140,16 @@
                 @if (!d.training.canBookPractical && d.training.blockReason) {
                   <li class="warn">{{ d.training.blockReason }}</li>
                 }
+                @if (
+                  (s.enrollmentStatus === 'Active' || s.enrollmentStatus === 'Accepted')
+                  && d.training.theoryHoursCompleted === 0
+                  && d.training.workshopHoursCompleted === 0
+                ) {
+                  <li class="warn">
+                    Sin horas registradas. Marca asistencia (Presente/Tarde) en Programación teórica;
+                    reservar sola no suma horas.
+                  </li>
+                }
               </ul>
               <div class="school-quick-links">
                 <a routerLink="/school/training"><ui-button type="button" variant="secondary">Programación</ui-button></a>
@@ -255,7 +265,12 @@
             <div class="school-form-grid">
               <label class="school-field">
                 <span class="school-field-label">Categoría de licencia</span>
-                <input [(ngModel)]="s.licenseCategories" placeholder="A2, B1, C1" />
+                <select [(ngModel)]="s.licenseCategories">
+                  <option [ngValue]="null">Sin asignar</option>
+                  @for (opt of licenseCategoryOptions; track opt.value) {
+                    <option [ngValue]="opt.value">{{ opt.label }}</option>
+                  }
+                </select>
               </label>
               <label class="school-field">
                 <span class="school-field-label">Horario asignado</span>

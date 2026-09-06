@@ -51,6 +51,14 @@ export class SchoolApprenticesPage implements OnInit {
   search = '';
   onlyBalance = false;
 
+  readonly licenseCategoryOptions = [
+    { value: 'A2', label: 'A2' },
+    { value: 'B1', label: 'B1' },
+    { value: 'C1', label: 'C1' },
+    { value: 'A2,B1', label: 'A2 + B1' },
+    { value: 'A2,C1', label: 'A2 + C1' }
+  ];
+
   ngOnInit(): void {
     this.route.queryParamMap.subscribe((params) => {
       this.onlyBalance = params.get('withBalance') === 'true';
@@ -104,6 +112,16 @@ export class SchoolApprenticesPage implements OnInit {
     this.api.getDetail(row.studentUserId).subscribe({
       next: (detail) => {
         this.detail.set(detail);
+        this.selected.set({ ...detail.profile });
+        this.rows.update((list) =>
+          list.map((r) =>
+            r.studentUserId === detail.profile.studentUserId ? detail.profile : r
+          )
+        );
+        this.progressByStudent.update((map) => ({
+          ...map,
+          [detail.profile.studentUserId]: detail.training
+        }));
         this.detailLoading.set(false);
       },
       error: (err) => {
@@ -154,11 +172,12 @@ export class SchoolApprenticesPage implements OnInit {
   toggleTheoryExamAuth(authorized: boolean): void {
     const row = this.selected();
     if (!row) return;
+    this.detailError.set(null);
     this.theoryApi.updateEnrollment(row.studentUserId, {
       status: row.enrollmentStatus,
       theoryExamAuthorized: authorized
     }).subscribe({
-      next: () => this.select(row),
+      next: (enrollment) => this.applyEnrollmentPatch(row, enrollment),
       error: (err) => this.detailError.set(mapApiError(err))
     });
   }
@@ -166,13 +185,35 @@ export class SchoolApprenticesPage implements OnInit {
   togglePracticalAuth(authorized: boolean): void {
     const row = this.selected();
     if (!row) return;
+    this.detailError.set(null);
     this.theoryApi.updateEnrollment(row.studentUserId, {
       status: row.enrollmentStatus,
       practicalAuthorized: authorized
     }).subscribe({
-      next: () => this.select(row),
+      next: (enrollment) => this.applyEnrollmentPatch(row, enrollment),
       error: (err) => this.detailError.set(mapApiError(err))
     });
+  }
+
+  private applyEnrollmentPatch(row: ApprenticeDto, enrollment: EnrollmentDto): void {
+    const patched: ApprenticeDto = {
+      ...row,
+      enrollmentStatus: enrollment.status,
+      theoryExamAuthorized: enrollment.theoryExamAuthorized,
+      practicalAuthorized: enrollment.practicalAuthorized,
+      attendanceDayType: enrollment.attendanceDayType ?? row.attendanceDayType,
+      licenseCategories: enrollment.licenseCategories ?? row.licenseCategories
+    };
+    this.rows.update((list) =>
+      list.map((r) => (r.studentUserId === patched.studentUserId ? patched : r))
+    );
+    if (enrollment.practicalEligibility) {
+      this.progressByStudent.update((map) => ({
+        ...map,
+        [patched.studentUserId]: enrollment.practicalEligibility!
+      }));
+    }
+    this.select(patched);
   }
 
   formatMoney(value: number): string {

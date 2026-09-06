@@ -58,9 +58,9 @@
           <p class="when">{{ exam.examDate | date:'EEEE d MMM':'':'es' }} · {{ exam.slotTime }}</p>
           @if (dash.platformExam && !dash.practicalEligibility?.theoryExamPassed) {
             <p class="meta">
-              También debes aprobar <strong>{{ dash.platformExam.name }}</strong> en Evaluaciones.
+              También debes aprobar <strong>{{ dash.platformExam.name }}</strong> en el Simulador.
             </p>
-            <a routerLink="/student/evaluations"><ui-button type="button">Ir a evaluaciones</ui-button></a>
+            <a routerLink="/student/simulator"><ui-button type="button">Ir al simulador</ui-button></a>
           } @else if (dash.practicalEligibility?.theoryExamPassed) {
             <p class="ok">✅ Ya aprobaste el examen teórico.</p>
           }
@@ -68,8 +68,8 @@
       } @else if (dash.practicalEligibility?.theoryExamAuthorized && dash.platformExam && !dash.practicalEligibility?.theoryExamPassed) {
         <article class="card exam-card">
           <h2>Examen teórico pendiente</h2>
-          <p class="meta">Tu escuela te autorizó. Presenta <strong>{{ dash.platformExam.name }}</strong> en Evaluaciones.</p>
-          <a routerLink="/student/evaluations"><ui-button type="button">Ir a evaluaciones</ui-button></a>
+          <p class="meta">Tu escuela te autorizó. Presenta <strong>{{ dash.platformExam.name }}</strong> en el Simulador.</p>
+          <a routerLink="/student/simulator"><ui-button type="button">Ir al simulador</ui-button></a>
         </article>
       }
 
@@ -109,8 +109,8 @@
                 <strong>Examen teórico aprobado</strong>
                 <small>
                   @if (pe.theoryExamPassed) { Requisito cumplido. }
-                  @else if (dash.platformExam) { Presenta «{{ dash.platformExam.name }}» en Evaluaciones. }
-                  @else { Aprueba el examen teórico en la plataforma. }
+                  @else if (dash.platformExam) { Presenta «{{ dash.platformExam.name }}» en el Simulador. }
+                  @else { Aprueba el examen teórico en el Simulador. }
                 </small>
               </span>
             </li>

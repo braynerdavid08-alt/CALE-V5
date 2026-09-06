@@ -82,7 +82,7 @@ public sealed class ExamsController : ControllerBase
             CurrentUser.GetId(User),
             ct);
         var groupIds = memberships.Select(x => x.GroupId).ToList();
-        var officialTheoryExamId = await _trainingEligibility.GetSchoolOfficialTheoryExamIdAsync(
+        var officialTheoryExamId = await _trainingEligibility.GetAuthorizedSchoolOfficialTheoryExamIdAsync(
             CurrentUser.GetId(User),
             ct);
         return Ok(await _list.PublishedForStudentAsync(
