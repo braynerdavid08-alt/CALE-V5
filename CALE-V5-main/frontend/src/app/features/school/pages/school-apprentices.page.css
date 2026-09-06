@@ -2,6 +2,29 @@
 .ok { color: var(--color-success, #1a7f4b); font-weight: 600; }
 .muted { color: var(--color-text-secondary); }
 .login-hint { margin: 0.25rem 0 0.75rem; font-size: var(--text-sm); }
+.empty-guide {
+  margin-bottom: 1rem;
+  display: grid;
+  gap: 0.55rem;
+}
+.empty-guide h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+.empty-guide p,
+.empty-guide ol {
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.45;
+}
+.empty-guide ol {
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.35rem;
+}
+.empty-guide .tip {
+  font-size: var(--text-sm);
+}
 .detail-warn {
   margin: 0.5rem 0 0.75rem;
   padding: 0.65rem 0.75rem;
