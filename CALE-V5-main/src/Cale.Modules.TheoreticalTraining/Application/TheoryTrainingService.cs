@@ -12,6 +12,7 @@ using Cale.Modules.TheoreticalTraining.Application.DTOs;
 using Cale.Modules.TheoreticalTraining.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Logging;
 
 namespace Cale.Modules.TheoreticalTraining.Application;
 
@@ -24,6 +25,7 @@ public sealed class TheoryTrainingService
     private readonly INotificationPublisher _notifications;
     private readonly ITrainingEligibilityService _eligibility;
     private readonly ISchoolMembershipGuard _membership;
+    private readonly ILogger<TheoryTrainingService> _logger;
 
     public TheoryTrainingService(
         CaleDbContext db,
@@ -32,7 +34,8 @@ public sealed class TheoryTrainingService
         IClock clock,
         INotificationPublisher notifications,
         ITrainingEligibilityService eligibility,
-        ISchoolMembershipGuard membership)
+        ISchoolMembershipGuard membership,
+        ILogger<TheoryTrainingService> logger)
     {
         _db = db;
         _users = users;
@@ -41,6 +44,7 @@ public sealed class TheoryTrainingService
         _notifications = notifications;
         _eligibility = eligibility;
         _membership = membership;
+        _logger = logger;
     }
 
     // ── Topics ──────────────────────────────────────────────────────────
@@ -1181,6 +1185,25 @@ public sealed class TheoryTrainingService
         int schoolUserId,
         CancellationToken ct)
     {
+        try
+        {
+            return await GetEnrollmentPipelineStatsCoreAsync(schoolUserId, ct);
+        }
+        catch (Exception ex) when (IsLikelyMissingColumn(ex))
+        {
+            _logger.LogWarning(ex, "Pipeline stats schema mismatch; repairing");
+            await FeatureSchema.EnsureTheoryTrainingColumnsAsync(_db, ct);
+            _db.ChangeTracker.Clear();
+            return await GetEnrollmentPipelineStatsCoreAsync(schoolUserId, ct);
+        }
+    }
+
+    private async Task<(int ReadyForExamCount, int ReadyForPracticalCount, int NoExamAppointmentCount,
+        IReadOnlyList<SchoolDashboardStudentRowDto> TopReadyForExam,
+        IReadOnlyList<SchoolDashboardStudentRowDto> TopNoExamAppointment)> GetEnrollmentPipelineStatsCoreAsync(
+        int schoolUserId,
+        CancellationToken ct)
+    {
         var settings = await GetOrCreateSettingsAsync(schoolUserId, ct);
         var students = (await _users.ListBySchoolAsync(schoolUserId, ct))
             .Where(x => x.Role == Roles.Student)
@@ -1193,7 +1216,10 @@ public sealed class TheoryTrainingService
 
         var balances = await _db.Set<SchoolApprenticeProfile>()
             .Where(x => x.SchoolUserId == schoolUserId)
-            .ToDictionaryAsync(x => x.StudentUserId, x => x.BalanceDue, ct);
+            .ToListAsync(ct);
+        var balanceByStudent = balances
+            .GroupBy(x => x.StudentUserId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.Id).First().BalanceDue);
 
         var today = DateOnly.FromDateTime(_clock.UtcNow.Date);
         var studentsWithAppointment = await _db.Set<TheoryExamAppointment>()
@@ -1216,7 +1242,7 @@ public sealed class TheoryTrainingService
                 continue;
             }
 
-            balances.TryGetValue(enrollment.StudentUserId, out var balanceDue);
+            balanceByStudent.TryGetValue(enrollment.StudentUserId, out var balanceDue);
             var (theoryHours, workshopHours, _) = await ComputeHoursBreakdownAsync(
                 enrollment.StudentUserId,
                 ct);
@@ -1353,17 +1379,41 @@ public sealed class TheoryTrainingService
         int schoolUserId,
         CancellationToken ct)
     {
+        try
+        {
+            return await ListEnrollmentsCoreAsync(schoolUserId, ct);
+        }
+        catch (Exception ex) when (IsLikelyMissingColumn(ex))
+        {
+            _logger.LogWarning(
+                ex,
+                "Enrollment list schema mismatch for school {SchoolUserId}; repairing",
+                schoolUserId);
+            await FeatureSchema.EnsureTheoryTrainingColumnsAsync(_db, ct);
+            _db.ChangeTracker.Clear();
+            return await ListEnrollmentsCoreAsync(schoolUserId, ct);
+        }
+    }
+
+    private async Task<IReadOnlyList<EnrollmentDto>> ListEnrollmentsCoreAsync(
+        int schoolUserId,
+        CancellationToken ct)
+    {
         var settings = await GetOrCreateSettingsAsync(schoolUserId, ct);
         var students = (await _users.ListBySchoolAsync(schoolUserId, ct))
             .Where(x => x.Role == Roles.Student)
             .OrderBy(x => x.Name)
             .ToList();
-        var items = await _db.Set<SchoolStudentEnrollment>()
-            .Where(x => x.SchoolUserId == schoolUserId)
-            .ToDictionaryAsync(x => x.StudentUserId, ct);
-        var balances = await _db.Set<SchoolApprenticeProfile>()
-            .Where(x => x.SchoolUserId == schoolUserId)
-            .ToDictionaryAsync(x => x.StudentUserId, x => x.BalanceDue, ct);
+        var items = (await _db.Set<SchoolStudentEnrollment>()
+                .Where(x => x.SchoolUserId == schoolUserId)
+                .ToListAsync(ct))
+            .GroupBy(x => x.StudentUserId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.Id).First());
+        var balances = (await _db.Set<SchoolApprenticeProfile>()
+                .Where(x => x.SchoolUserId == schoolUserId)
+                .ToListAsync(ct))
+            .GroupBy(x => x.StudentUserId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.Id).First().BalanceDue);
 
         var result = new List<EnrollmentDto>();
         foreach (var student in students)
@@ -2105,6 +2155,26 @@ public sealed class TheoryTrainingService
         int schoolUserId,
         CancellationToken ct)
     {
+        try
+        {
+            return await GetOrCreateSettingsCoreAsync(schoolUserId, ct);
+        }
+        catch (Exception ex) when (IsLikelyMissingColumn(ex))
+        {
+            _logger.LogWarning(
+                ex,
+                "Theory settings schema mismatch for school {SchoolUserId}; repairing columns",
+                schoolUserId);
+            await FeatureSchema.EnsureTheoryTrainingColumnsAsync(_db, ct);
+            _db.ChangeTracker.Clear();
+            return await GetOrCreateSettingsCoreAsync(schoolUserId, ct);
+        }
+    }
+
+    private async Task<TheoryTrainingSettings> GetOrCreateSettingsCoreAsync(
+        int schoolUserId,
+        CancellationToken ct)
+    {
         var settings = await _db.Set<TheoryTrainingSettings>()
             .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId, ct);
         if (settings is not null)
@@ -2120,6 +2190,23 @@ public sealed class TheoryTrainingService
         await _db.Set<TheoryTrainingSettings>().AddAsync(settings, ct);
         await _db.SaveChangesAsync(ct);
         return settings;
+    }
+
+    private static bool IsLikelyMissingColumn(Exception ex)
+    {
+        for (var current = ex; current is not null; current = current.InnerException)
+        {
+            var msg = current.Message;
+            if (msg.Contains("42703", StringComparison.Ordinal)
+                || msg.Contains("does not exist", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("Undefined column", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("Invalid column name", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private async Task EnsureSchoolMembershipActiveAsync(int schoolUserId, CancellationToken ct) =>

@@ -148,6 +148,23 @@ public sealed class ApprenticeRegistryService
         int schoolUserId,
         CancellationToken ct)
     {
+        try
+        {
+            return await GetDashboardCoreAsync(schoolUserId, ct);
+        }
+        catch (Exception)
+        {
+            // Schema drift mid-deploy: repair theory columns and retry once.
+            await FeatureSchema.EnsureTheoryTrainingColumnsAsync(_db, ct);
+            _db.ChangeTracker.Clear();
+            return await GetDashboardCoreAsync(schoolUserId, ct);
+        }
+    }
+
+    private async Task<SchoolOperationsDashboardDto> GetDashboardCoreAsync(
+        int schoolUserId,
+        CancellationToken ct)
+    {
         var students = await _users.ListBySchoolAsync(schoolUserId, ct);
         var studentMap = students
             .Where(x => x.Role == Roles.Student)
