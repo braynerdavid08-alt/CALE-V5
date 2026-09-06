@@ -945,8 +945,19 @@ public static class FeatureSchema
             await TryPostgresAsync(db,
                 """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "WeekdaysEnabled" boolean NOT NULL DEFAULT TRUE;""",
                 ct);
+            // Legacy AllowedStartTime values are ignored by product rules; clear safely if column exists.
             await TryPostgresAsync(db,
-                """UPDATE "SchoolStudentEnrollments" SET "AllowedStartTime" = NULL WHERE "AllowedStartTime" IS NOT NULL;""",
+                """
+                DO $$
+                BEGIN
+                  IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'SchoolStudentEnrollments' AND column_name = 'AllowedStartTime'
+                  ) THEN
+                    UPDATE "SchoolStudentEnrollments" SET "AllowedStartTime" = NULL WHERE "AllowedStartTime" IS NOT NULL;
+                  END IF;
+                END $$;
+                """,
                 ct);
             await TryPostgresAsync(db,
                 """ALTER TABLE "TheoryTopics" ADD COLUMN IF NOT EXISTS "Category" varchar(16) NOT NULL DEFAULT 'Theory';""",
@@ -1560,6 +1571,8 @@ public static class FeatureSchema
             await TryPostgresAsync(db,
                 """CREATE INDEX IF NOT EXISTS "IX_HomepageAudits_CreatedAt" ON "HomepageAudits" ("CreatedAt");""",
                 ct);
+
+            await EnsureTheoryTrainingColumnsAsync(db, ct);
             return;
         }
 
@@ -2183,6 +2196,69 @@ public static class FeatureSchema
         catch
         {
             // Table not ready yet or column already exists.
+        }
+    }
+
+    /// <summary>
+    /// Idempotent column repair for theory/apprentice tables on older Postgres DBs.
+    /// Called at end of EnsureAsync and on demand after a missing-column failure.
+    /// </summary>
+    public static async Task EnsureTheoryTrainingColumnsAsync(
+        CaleDbContext db,
+        CancellationToken ct = default)
+    {
+        if (!db.Database.IsNpgsql())
+        {
+            return;
+        }
+
+        string[] statements =
+        [
+            """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "RequiredWorkshopHours" integer NOT NULL DEFAULT 10;""",
+            """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "TheoryExamId" integer NULL;""",
+            """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "WeekdaysEnabled" boolean NOT NULL DEFAULT TRUE;""",
+            """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "NotifyReservationOpen" boolean NOT NULL DEFAULT TRUE;""",
+            """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "NotifyClassReminder24h" boolean NOT NULL DEFAULT TRUE;""",
+            """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "NotifyClassReminder1h" boolean NOT NULL DEFAULT TRUE;""",
+            """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "NotifyExamReminder24h" boolean NOT NULL DEFAULT TRUE;""",
+            """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "MaxWeekdayClassesPerDay" integer NOT NULL DEFAULT 1;""",
+            """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "MaxSaturdayClassesPerDay" integer NOT NULL DEFAULT 4;""",
+            """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "MaxDailyTheoryMinutes" integer NOT NULL DEFAULT 0;""",
+            """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "WeekdayReservationOpenDaysBefore" integer NOT NULL DEFAULT 1;""",
+            """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "SaturdayReservationOpenDaysBefore" integer NOT NULL DEFAULT 2;""",
+            """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "StudentBookingWindowStart" time without time zone NULL;""",
+            """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "StudentBookingWindowEnd" time without time zone NULL;""",
+            """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "LicenseCategoryPoliciesJson" text NOT NULL DEFAULT '{}';""",
+            """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "SavedBookingPresetsJson" text NOT NULL DEFAULT '[]';""",
+            """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "HiddenBookingPresetKeysJson" text NOT NULL DEFAULT '[]';""",
+            """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "AttendanceDayType" varchar(16) NULL;""",
+            """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "AllowedStartTime" time NULL;""",
+            """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "LicenseCategories" varchar(32) NULL;""",
+            """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "TheoryExamAuthorized" boolean NOT NULL DEFAULT FALSE;""",
+            """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "TheoryExamAuthorizedAt" timestamp with time zone NULL;""",
+            """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "PracticalAuthorized" boolean NOT NULL DEFAULT FALSE;""",
+            """ALTER TABLE "SchoolStudentEnrollments" ADD COLUMN IF NOT EXISTS "PracticalAuthorizedAt" timestamp with time zone NULL;""",
+            """
+            CREATE TABLE IF NOT EXISTS "TheoryExamAppointments" (
+                "Id" serial PRIMARY KEY,
+                "SchoolUserId" integer NOT NULL,
+                "ExamDate" date NOT NULL,
+                "SlotTime" time NOT NULL,
+                "StudentUserId" integer NULL,
+                "StudentLabel" varchar(160) NULL,
+                "Notes" varchar(256) NULL,
+                "CreatedAt" timestamp with time zone NOT NULL,
+                "UpdatedAt" timestamp with time zone NOT NULL
+            );
+            """,
+            """UPDATE "TheoryTrainingSettings" SET "LicenseCategoryPoliciesJson" = '{}' WHERE "LicenseCategoryPoliciesJson" IS NULL;""",
+            """UPDATE "TheoryTrainingSettings" SET "SavedBookingPresetsJson" = '[]' WHERE "SavedBookingPresetsJson" IS NULL;""",
+            """UPDATE "TheoryTrainingSettings" SET "HiddenBookingPresetKeysJson" = '[]' WHERE "HiddenBookingPresetKeysJson" IS NULL;"""
+        ];
+
+        foreach (var sql in statements)
+        {
+            await TryPostgresAsync(db, sql, ct);
         }
     }
 

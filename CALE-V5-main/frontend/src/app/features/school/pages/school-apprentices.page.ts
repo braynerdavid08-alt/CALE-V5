@@ -2,7 +2,8 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
@@ -62,7 +63,12 @@ export class SchoolApprenticesPage implements OnInit {
     this.error.set(null);
     forkJoin({
       rows: this.api.list(this.search || undefined, undefined, this.onlyBalance || undefined),
-      enrollments: this.theoryApi.listEnrollments()
+      enrollments: this.theoryApi.listEnrollments().pipe(
+        catchError((err) => {
+          this.error.set(mapApiError(err));
+          return of([] as EnrollmentDto[]);
+        })
+      )
     }).subscribe({
       next: ({ rows, enrollments }) => {
         this.rows.set(rows);

@@ -141,6 +141,14 @@ public sealed class ExceptionHandlingMiddleware
                 "db_error");
         }
 
+        if (LooksLikeMissingDbColumn(ex))
+        {
+            return (
+                500,
+                "La base de datos se está actualizando. Recarga en unos segundos.",
+                "db_error");
+        }
+
         if (ex is TimeoutException)
         {
             return (504, "Operation timed out.", "timeout");
@@ -155,5 +163,22 @@ public sealed class ExceptionHandlingMiddleware
             ? ex.Message
             : "Unexpected error.";
         return (500, title, "internal_error");
+    }
+
+    private static bool LooksLikeMissingDbColumn(Exception ex)
+    {
+        for (var current = ex; current is not null; current = current.InnerException)
+        {
+            var msg = current.Message;
+            if (msg.Contains("42703", StringComparison.Ordinal)
+                || msg.Contains("does not exist", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("Undefined column", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("Invalid column name", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
