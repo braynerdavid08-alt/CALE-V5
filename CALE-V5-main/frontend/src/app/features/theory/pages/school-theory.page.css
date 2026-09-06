@@ -163,6 +163,75 @@
 }
 .settings-card .check { display: flex; align-items: center; gap: 0.5rem; }
 .settings-card .radio { display: flex; align-items: center; gap: 0.5rem; margin: 0.35rem 0; }
+.settings-layout {
+  display: grid;
+  gap: 1.25rem;
+  padding-bottom: 4.5rem;
+}
+.settings-section {
+  display: grid;
+  gap: 0.65rem;
+}
+.settings-section h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.settings-step {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+.settings-lead {
+  margin: 0 0 0.35rem;
+}
+.settings-subhead {
+  margin: 0.85rem 0 0;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-text);
+}
+.settings-disclosure {
+  justify-self: start;
+  margin: 0.35rem 0;
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  color: var(--color-text);
+  border-radius: var(--radius-md);
+  padding: 0.45rem 0.75rem;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.settings-disclosure:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.settings-section .check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.settings-section .hint {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+.settings-save-bar {
+  position: sticky;
+  bottom: 0.75rem;
+  z-index: 5;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 -4px 20px color-mix(in srgb, #000 18%, transparent);
+}
 .warn-banner {
   margin: 0.5rem 0 0.75rem;
   padding: 0.65rem 0.85rem;

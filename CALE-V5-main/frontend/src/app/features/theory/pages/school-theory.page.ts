@@ -56,6 +56,8 @@ export class SchoolTheoryPage implements OnInit {
   readonly attendanceRows = signal<AttendanceRowDto[]>([]);
   readonly settings = signal<TheorySettingsDto | null>(null);
   readonly bookingPresetName = signal('');
+  readonly showCategoryPolicies = signal(false);
+  readonly showNotifications = signal(false);
   readonly examOptions = signal<Array<{ id: number; name: string }>>([]);
   readonly enrollments = signal<EnrollmentDto[]>([]);
   readonly enrollmentFilter = signal<'all' | 'weekday' | 'saturday' | 'unassigned'>('all');
@@ -123,7 +125,11 @@ export class SchoolTheoryPage implements OnInit {
     });
     this.loadScheduleData();
     this.api.getSettings().subscribe({
-      next: (s) => this.settings.set(this.normalizeSettings(s)),
+      next: (s) => {
+        const normalized = this.normalizeSettings(s);
+        this.settings.set(normalized);
+        this.showCategoryPolicies.set(this.hasCustomCategoryPolicies(normalized));
+      },
       error: () => this.settings.set(null)
     });
     this.api.listExamOptions().subscribe({
@@ -699,6 +705,14 @@ export class SchoolTheoryPage implements OnInit {
     return `Vacío = usa el valor general (${cfg.requiredTheoryHours} h teoría · ${cfg.requiredWorkshopHours} h taller).`;
   }
 
+  hasCustomCategoryPolicies(cfg: TheorySettingsDto): boolean {
+    return (cfg.licenseCategoryPolicies ?? []).some(
+      (p) =>
+        (p.requiredTheoryHours != null && p.requiredTheoryHours !== cfg.requiredTheoryHours)
+        || (p.requiredWorkshopHours != null && p.requiredWorkshopHours !== cfg.requiredWorkshopHours)
+    );
+  }
+
   visibleBookingPresets(): BookingPresetListItem[] {
     const cfg = this.settings();
     if (!cfg) {
@@ -900,7 +914,11 @@ export class SchoolTheoryPage implements OnInit {
     };
     this.api.updateSettings(payload).subscribe({
       next: (updated) => {
-        this.settings.set(this.normalizeSettings(updated));
+        const normalized = this.normalizeSettings(updated);
+        this.settings.set(normalized);
+        this.showCategoryPolicies.set(
+          this.showCategoryPolicies() || this.hasCustomCategoryPolicies(normalized)
+        );
         this.error.set(null);
       },
       error: (err) => this.error.set(mapApiError(err))

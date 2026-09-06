@@ -467,223 +467,260 @@
     </ul>
   } @else if (tab() === 'settings') {
     @if (settings(); as cfg) {
-      <div class="form-card settings-card">
-        <h2>Notificaciones automáticas</h2>
-        <p class="muted">Los estudiantes reciben avisos en la campana de notificaciones.</p>
-        <label class="check">
-          <input type="checkbox" [(ngModel)]="cfg.notifyReservationOpen" />
-          Avisar cuando abren las reservas
-        </label>
-        <label class="check">
-          <input type="checkbox" [(ngModel)]="cfg.notifyClassReminder24h" />
-          Recordatorio 24 horas antes de la clase
-        </label>
-        <label class="check">
-          <input type="checkbox" [(ngModel)]="cfg.notifyClassReminder1h" />
-          Recordatorio 1 hora antes de la clase
-        </label>
-        <label class="check">
-          <input type="checkbox" [(ngModel)]="cfg.notifyExamReminder24h" />
-          Recordatorio 24 horas antes del examen teórico
-        </label>
-
-        <h2>Políticas</h2>
-        <label>Horas teóricas requeridas
-          <input type="number" min="1" max="200" [(ngModel)]="cfg.requiredTheoryHours" />
-        </label>
-        <label>Horas de taller requeridas
-          <input type="number" min="0" max="200" [(ngModel)]="cfg.requiredWorkshopHours" />
-        </label>
-        <label>Examen teórico oficial
-          <select [(ngModel)]="cfg.theoryExamId">
-            <option [ngValue]="null">— Seleccionar examen —</option>
-            @for (exam of examOptions(); track exam.id) {
-              <option [ngValue]="exam.id">{{ exam.name }} (#{{ exam.id }})</option>
-            }
-          </select>
-        </label>
-        @if (!cfg.theoryExamId) {
-          <p class="warn-banner">
-            Debes seleccionar el examen teórico oficial para autorizar exámenes y avanzar estudiantes a manejo.
+      <div class="settings-layout">
+        <section class="form-card settings-section">
+          <p class="settings-step">Paso 1</p>
+          <h2>Requisitos para avanzar</h2>
+          <p class="muted settings-lead">
+            Define qué debe completar el aprendiz antes del examen y del manejo.
           </p>
-        }
-        <p class="muted">
-          <strong>Importante:</strong> la cita en el calendario (Exámenes teóricos) es la fecha física en tu escuela.
-          El examen en la plataforma (arriba) es el que el estudiante debe aprobar en Evaluaciones para continuar a manejo.
-        </p>
-        @if (!examOptions().length) {
-          <p class="muted">Publica un examen desde la biblioteca de instructores para seleccionarlo aquí.</p>
-        }
-        <label>Horas mínimas para cancelar
-          <input type="number" min="0" max="72" [(ngModel)]="cfg.minCancelHours" />
-        </label>
 
-        <h3>Requisitos por categoría de licencia</h3>
-        <p class="muted">{{ categoryPolicyHint(cfg) }}</p>
-        <div class="category-policy-table-wrap">
-          <table class="category-policy-table">
-            <thead>
-              <tr>
-                <th>Categoría</th>
-                <th>Horas teoría</th>
-                <th>Horas taller</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (policy of cfg.licenseCategoryPolicies; track policy.code) {
-                <tr>
-                  <td><strong>{{ policy.label }}</strong></td>
-                  <td>
-                    <input
-                      type="number"
-                      min="0"
-                      max="200"
-                      [placeholder]="cfg.requiredTheoryHours"
-                      [(ngModel)]="policy.requiredTheoryHours" />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      min="0"
-                      max="200"
-                      [placeholder]="cfg.requiredWorkshopHours"
-                      [(ngModel)]="policy.requiredWorkshopHours" />
-                  </td>
-                </tr>
+          <label>Examen teórico oficial
+            <select [(ngModel)]="cfg.theoryExamId">
+              <option [ngValue]="null">— Seleccionar examen —</option>
+              @for (exam of examOptions(); track exam.id) {
+                <option [ngValue]="exam.id">{{ exam.name }} (#{{ exam.id }})</option>
               }
-            </tbody>
-          </table>
-        </div>
-
-        <h2>Acceso de estudiantes a clases</h2>
-        <p class="muted">
-          Define cuántas clases pueden reservar por día, cuántas horas de teoría y en qué horario del día pueden hacerlo.
-          Cada escuela puede tener reglas distintas.
-        </p>
-
-        <div class="saved-presets">
-          <label class="preset-save-row">
-            <span class="sr-only">Nombre de plantilla</span>
-            <input
-              type="text"
-              [ngModel]="bookingPresetName()"
-              (ngModelChange)="bookingPresetName.set($event)"
-              placeholder="Guardar configuración actual como plantilla…" />
-            <button type="button" class="chip-btn" (click)="saveBookingPreset()">Guardar plantilla</button>
+            </select>
           </label>
-
-          @if (visibleBookingPresets().length) {
-            <ul class="preset-list">
-              @for (preset of visibleBookingPresets(); track preset.id) {
-                <li>
-                  <button type="button" class="chip-btn" (click)="applyBookingPresetItem(preset)">
-                    {{ preset.name }}
-                    @if (preset.summary) {
-                      <span class="chip-meta">· {{ preset.summary }}</span>
-                    }
-                  </button>
-                  <button
-                    type="button"
-                    class="chip-remove"
-                    [attr.aria-label]="'Eliminar plantilla ' + preset.name"
-                    (click)="removeBookingPreset(preset)">
-                    ×
-                  </button>
-                </li>
-              }
-            </ul>
-          } @else {
-            <p class="muted">No hay plantillas visibles.</p>
+          @if (!cfg.theoryExamId) {
+            <p class="warn-banner">
+              Debes seleccionar el examen teórico oficial para autorizar exámenes y avanzar estudiantes a manejo.
+            </p>
           }
-          @if (hiddenBuiltinPresetCount() > 0) {
-            <button type="button" class="link-btn" (click)="restoreBuiltinPresets()">
-              Restaurar plantillas predeterminadas ({{ hiddenBuiltinPresetCount() }} ocultas)
-            </button>
+          <p class="muted">
+            La cita en el calendario (Exámenes teóricos) es la fecha en tu escuela.
+            Este examen es el que el estudiante aprueba en la plataforma para pasar a manejo.
+          </p>
+          @if (!examOptions().length) {
+            <p class="muted">Publica un examen desde la biblioteca de instructores para seleccionarlo aquí.</p>
           }
+
+          <h3 class="settings-subhead">Horas por defecto</h3>
+          <p class="muted">Aplican a todos, salvo que personalices por licencia abajo.</p>
+          <div class="policy-grid">
+            <label>Horas de teoría
+              <input type="number" min="1" max="200" [(ngModel)]="cfg.requiredTheoryHours" />
+            </label>
+            <label>Horas de taller
+              <input type="number" min="0" max="200" [(ngModel)]="cfg.requiredWorkshopHours" />
+            </label>
+          </div>
+
+          <button
+            type="button"
+            class="settings-disclosure"
+            [attr.aria-expanded]="showCategoryPolicies()"
+            (click)="showCategoryPolicies.set(!showCategoryPolicies())">
+            {{ showCategoryPolicies() ? 'Ocultar' : 'Personalizar' }} por licencia (A2, B1…)
+          </button>
+          @if (showCategoryPolicies()) {
+            <p class="muted">{{ categoryPolicyHint(cfg) }}</p>
+            <div class="category-policy-table-wrap">
+              <table class="category-policy-table">
+                <thead>
+                  <tr>
+                    <th>Categoría</th>
+                    <th>Horas teoría</th>
+                    <th>Horas taller</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (policy of cfg.licenseCategoryPolicies; track policy.code) {
+                    <tr>
+                      <td><strong>{{ policy.label }}</strong></td>
+                      <td>
+                        <input
+                          type="number"
+                          min="0"
+                          max="200"
+                          [placeholder]="cfg.requiredTheoryHours"
+                          [(ngModel)]="policy.requiredTheoryHours" />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min="0"
+                          max="200"
+                          [placeholder]="cfg.requiredWorkshopHours"
+                          [(ngModel)]="policy.requiredWorkshopHours" />
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+
+          <label>Antelación mínima para cancelar una reserva (horas)
+            <input type="number" min="0" max="72" [(ngModel)]="cfg.minCancelHours" />
+          </label>
+        </section>
+
+        <section class="form-card settings-section">
+          <p class="settings-step">Paso 2</p>
+          <h2>Cómo reservan las clases</h2>
+          <p class="muted settings-lead">Quién puede reservar y con qué límites.</p>
+
+          <h3 class="settings-subhead">Grupos activos</h3>
+          <div class="policy-grid">
+            <label class="check">
+              <input type="checkbox" [(ngModel)]="cfg.weekdaysEnabled" (ngModelChange)="onBookingFieldEdited()" />
+              Grupo entre semana (lunes a viernes)
+            </label>
+            <label class="check">
+              <input type="checkbox" [(ngModel)]="cfg.saturdayEnabled" (ngModelChange)="onBookingFieldEdited()" />
+              Grupo sábados
+            </label>
+          </div>
+
+          <h3 class="settings-subhead">Atajos</h3>
+          <p class="muted">Elige una plantilla para rellenar los límites de abajo de una vez.</p>
+          <div class="saved-presets">
+            <label class="preset-save-row">
+              <span class="sr-only">Nombre de plantilla</span>
+              <input
+                type="text"
+                [ngModel]="bookingPresetName()"
+                (ngModelChange)="bookingPresetName.set($event)"
+                placeholder="Guardar configuración actual como plantilla…" />
+              <button type="button" class="chip-btn" (click)="saveBookingPreset()">Guardar plantilla</button>
+            </label>
+
+            @if (visibleBookingPresets().length) {
+              <ul class="preset-list">
+                @for (preset of visibleBookingPresets(); track preset.id) {
+                  <li>
+                    <button type="button" class="chip-btn" (click)="applyBookingPresetItem(preset)">
+                      {{ preset.name }}
+                      @if (preset.summary) {
+                        <span class="chip-meta">· {{ preset.summary }}</span>
+                      }
+                    </button>
+                    <button
+                      type="button"
+                      class="chip-remove"
+                      [attr.aria-label]="'Eliminar plantilla ' + preset.name"
+                      (click)="removeBookingPreset(preset)">
+                      ×
+                    </button>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="muted">No hay plantillas visibles.</p>
+            }
+            @if (hiddenBuiltinPresetCount() > 0) {
+              <button type="button" class="link-btn" (click)="restoreBuiltinPresets()">
+                Restaurar plantillas predeterminadas ({{ hiddenBuiltinPresetCount() }} ocultas)
+              </button>
+            }
+          </div>
+
+          <h3 class="settings-subhead">Límites por día</h3>
+          <div class="policy-grid">
+            <label>Clases máx. entre semana / día
+              <input
+                type="number"
+                min="0"
+                max="10"
+                [(ngModel)]="cfg.maxWeekdayClassesPerDay"
+                (ngModelChange)="onBookingFieldEdited()" />
+              <span class="hint">0 = sin límite</span>
+            </label>
+            <label>Clases máx. sábados / día
+              <input
+                type="number"
+                min="0"
+                max="12"
+                [(ngModel)]="cfg.maxSaturdayClassesPerDay"
+                (ngModelChange)="onBookingFieldEdited()" />
+              <span class="hint">0 = sin límite</span>
+            </label>
+            <label>Minutos máx. de teoría / día
+              <input
+                type="number"
+                min="0"
+                max="720"
+                step="30"
+                [(ngModel)]="cfg.maxDailyTheoryMinutes"
+                (ngModelChange)="onBookingFieldEdited()" />
+              <span class="hint">0 = sin límite · 120 = 2 horas</span>
+            </label>
+          </div>
+
+          <h3 class="settings-subhead">Cuándo pueden reservar</h3>
+          <div class="policy-grid">
+            <label>Abrir reservas (días antes, entre semana)
+              <input
+                type="number"
+                min="0"
+                max="14"
+                [(ngModel)]="cfg.weekdayReservationOpenDaysBefore"
+                (ngModelChange)="onBookingFieldEdited()" />
+            </label>
+            <label>Abrir reservas (días antes, sábados)
+              <input
+                type="number"
+                min="0"
+                max="14"
+                [(ngModel)]="cfg.saturdayReservationOpenDaysBefore"
+                (ngModelChange)="onBookingFieldEdited()" />
+            </label>
+            <label>Reservar desde (hora)
+              <input
+                type="time"
+                [(ngModel)]="cfg.studentBookingWindowStart"
+                (ngModelChange)="onBookingFieldEdited()" />
+              <span class="hint">Vacío = todo el día</span>
+            </label>
+            <label>Reservar hasta (hora)
+              <input
+                type="time"
+                [(ngModel)]="cfg.studentBookingWindowEnd"
+                (ngModelChange)="onBookingFieldEdited()" />
+            </label>
+          </div>
+
+          @if (cfg.bookingPolicySummary) {
+            <p class="policy-banner"><strong>Resumen:</strong> {{ cfg.bookingPolicySummary }}</p>
+          }
+        </section>
+
+        <section class="form-card settings-section">
+          <p class="settings-step">Paso 3</p>
+          <h2>Avisos a estudiantes</h2>
+          <button
+            type="button"
+            class="settings-disclosure"
+            [attr.aria-expanded]="showNotifications()"
+            (click)="showNotifications.set(!showNotifications())">
+            {{ showNotifications() ? 'Ocultar' : 'Mostrar' }} notificaciones automáticas
+          </button>
+          @if (showNotifications()) {
+            <p class="muted">Los estudiantes reciben avisos en la campana de notificaciones.</p>
+            <label class="check">
+              <input type="checkbox" [(ngModel)]="cfg.notifyReservationOpen" />
+              Avisar cuando abren las reservas
+            </label>
+            <label class="check">
+              <input type="checkbox" [(ngModel)]="cfg.notifyClassReminder24h" />
+              Recordatorio 24 horas antes de la clase
+            </label>
+            <label class="check">
+              <input type="checkbox" [(ngModel)]="cfg.notifyClassReminder1h" />
+              Recordatorio 1 hora antes de la clase
+            </label>
+            <label class="check">
+              <input type="checkbox" [(ngModel)]="cfg.notifyExamReminder24h" />
+              Recordatorio 24 horas antes del examen teórico
+            </label>
+          }
+        </section>
+
+        <div class="settings-save-bar">
+          <ui-button type="button" (click)="saveSettings()">Guardar ajustes</ui-button>
         </div>
-
-        <div class="policy-grid">
-          <label class="check">
-            <input type="checkbox" [(ngModel)]="cfg.weekdaysEnabled" (ngModelChange)="onBookingFieldEdited()" />
-            Grupo entre semana (lunes a viernes)
-          </label>
-          <label class="check">
-            <input type="checkbox" [(ngModel)]="cfg.saturdayEnabled" (ngModelChange)="onBookingFieldEdited()" />
-            Grupo sábados
-          </label>
-        </div>
-
-        <div class="policy-grid">
-          <label>Máx. clases entre semana / día
-            <input
-              type="number"
-              min="0"
-              max="10"
-              [(ngModel)]="cfg.maxWeekdayClassesPerDay"
-              (ngModelChange)="onBookingFieldEdited()" />
-            <span class="hint">0 = sin límite</span>
-          </label>
-          <label>Máx. clases sábados / día
-            <input
-              type="number"
-              min="0"
-              max="12"
-              [(ngModel)]="cfg.maxSaturdayClassesPerDay"
-              (ngModelChange)="onBookingFieldEdited()" />
-            <span class="hint">0 = sin límite</span>
-          </label>
-          <label>Máx. minutos de teoría / día
-            <input
-              type="number"
-              min="0"
-              max="720"
-              step="30"
-              [(ngModel)]="cfg.maxDailyTheoryMinutes"
-              (ngModelChange)="onBookingFieldEdited()" />
-            <span class="hint">0 = sin límite · 120 = 2 horas</span>
-          </label>
-        </div>
-
-        <div class="policy-grid">
-          <label>Días antes para abrir reservas (entre semana)
-            <input
-              type="number"
-              min="0"
-              max="14"
-              [(ngModel)]="cfg.weekdayReservationOpenDaysBefore"
-              (ngModelChange)="onBookingFieldEdited()" />
-          </label>
-          <label>Días antes para abrir reservas (sábados)
-            <input
-              type="number"
-              min="0"
-              max="14"
-              [(ngModel)]="cfg.saturdayReservationOpenDaysBefore"
-              (ngModelChange)="onBookingFieldEdited()" />
-          </label>
-        </div>
-
-        <div class="policy-grid">
-          <label>Horario para reservar desde
-            <input
-              type="time"
-              [(ngModel)]="cfg.studentBookingWindowStart"
-              (ngModelChange)="onBookingFieldEdited()" />
-            <span class="hint">Vacío = todo el día</span>
-          </label>
-          <label>Horario para reservar hasta
-            <input
-              type="time"
-              [(ngModel)]="cfg.studentBookingWindowEnd"
-              (ngModelChange)="onBookingFieldEdited()" />
-          </label>
-        </div>
-
-        @if (cfg.bookingPolicySummary) {
-          <p class="policy-banner"><strong>Resumen:</strong> {{ cfg.bookingPolicySummary }}</p>
-        }
-
-        <ui-button type="button" (click)="saveSettings()">Guardar ajustes</ui-button>
       </div>
     }
   } @else {
