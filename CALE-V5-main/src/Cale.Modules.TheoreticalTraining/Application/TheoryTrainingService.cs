@@ -198,8 +198,9 @@ public sealed class TheoryTrainingService
         settings.DefaultDurationMinutes = Math.Clamp(request.DefaultDurationMinutes, 30, 240);
         settings.MinCancelHours = Math.Clamp(request.MinCancelHours, 0, 72);
         settings.ReservationCloseMinutesBefore = Math.Clamp(request.ReservationCloseMinutesBefore, 0, 180);
-        settings.RequiredTheoryHours = Math.Clamp(request.RequiredTheoryHours, 1, 200);
-        settings.RequiredWorkshopHours = Math.Clamp(request.RequiredWorkshopHours, 0, 200);
+        // Hour requirements are platform constants — never accept client overrides.
+        settings.RequiredTheoryHours = TheoryHourStandards.DefaultTheoryHours;
+        settings.RequiredWorkshopHours = TheoryHourStandards.DefaultWorkshopHours;
         settings.TheoryExamId = request.TheoryExamId;
         settings.WeekdaysEnabled = request.WeekdaysEnabled;
         settings.SaturdayEnabled = request.SaturdayEnabled;
@@ -210,8 +211,7 @@ public sealed class TheoryTrainingService
         settings.SaturdayReservationOpenDaysBefore = Math.Clamp(request.SaturdayReservationOpenDaysBefore, 0, 14);
         settings.StudentBookingWindowStart = TheoryBookingPolicy.ParseOptionalTime(request.StudentBookingWindowStart);
         settings.StudentBookingWindowEnd = TheoryBookingPolicy.ParseOptionalTime(request.StudentBookingWindowEnd);
-        settings.LicenseCategoryPoliciesJson = LicenseCategoryPolicyHelper.SerializePolicies(
-            request.LicenseCategoryPolicies);
+        settings.LicenseCategoryPoliciesJson = "{}";
         settings.SavedBookingPresetsJson = TheoryBookingPresetHelper.SerializeSaved(
             request.SavedBookingPresets);
         settings.HiddenBookingPresetKeysJson = TheoryBookingPresetHelper.SerializeHidden(
@@ -2231,6 +2231,9 @@ public sealed class TheoryTrainingService
         settings = new TheoryTrainingSettings
         {
             SchoolUserId = schoolUserId,
+            RequiredTheoryHours = TheoryHourStandards.DefaultTheoryHours,
+            RequiredWorkshopHours = TheoryHourStandards.DefaultWorkshopHours,
+            LicenseCategoryPoliciesJson = "{}",
             UpdatedAt = _clock.UtcNow
         };
         await _db.Set<TheoryTrainingSettings>().AddAsync(settings, ct);
@@ -2465,8 +2468,8 @@ public sealed class TheoryTrainingService
             s.DefaultDurationMinutes,
             s.MinCancelHours,
             s.ReservationCloseMinutesBefore,
-            s.RequiredTheoryHours,
-            s.RequiredWorkshopHours,
+            TheoryHourStandards.DefaultTheoryHours,
+            TheoryHourStandards.DefaultWorkshopHours,
             s.TheoryExamId,
             s.WeekdaysEnabled,
             s.SaturdayEnabled,

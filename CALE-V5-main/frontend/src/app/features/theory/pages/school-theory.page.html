@@ -496,61 +496,42 @@
             <p class="muted">Publica un examen desde la biblioteca de instructores para seleccionarlo aquí.</p>
           }
 
-          <h3 class="settings-subhead">Horas por defecto</h3>
-          <p class="muted">Aplican a todos, salvo que personalices por licencia abajo.</p>
+          <h3 class="settings-subhead">Horas requeridas (estándar fijo)</h3>
+          <p class="muted">
+            Estas horas son constantes de Mi CALE: no se pueden cambiar. Valen para todas las escuelas.
+          </p>
           <div class="policy-grid">
-            <label>Horas de teoría
-              <input type="number" min="1" max="200" [(ngModel)]="cfg.requiredTheoryHours" />
-            </label>
-            <label>Horas de taller
-              <input type="number" min="0" max="200" [(ngModel)]="cfg.requiredWorkshopHours" />
-            </label>
+            <div class="settings-readonly">
+              <span class="muted">Horas de teoría (por defecto)</span>
+              <strong>{{ cfg.requiredTheoryHours }}</strong>
+            </div>
+            <div class="settings-readonly">
+              <span class="muted">Horas de taller (por defecto)</span>
+              <strong>{{ cfg.requiredWorkshopHours }}</strong>
+            </div>
           </div>
 
-          <button
-            type="button"
-            class="settings-disclosure"
-            [attr.aria-expanded]="showCategoryPolicies()"
-            (click)="showCategoryPolicies.set(!showCategoryPolicies())">
-            {{ showCategoryPolicies() ? 'Ocultar' : 'Personalizar' }} por licencia (A2, B1…)
-          </button>
-          @if (showCategoryPolicies()) {
-            <p class="muted">{{ categoryPolicyHint(cfg) }}</p>
-            <div class="category-policy-table-wrap">
-              <table class="category-policy-table">
-                <thead>
+          <h3 class="settings-subhead">Por categoría de licencia</h3>
+          <div class="category-policy-table-wrap">
+            <table class="category-policy-table">
+              <thead>
+                <tr>
+                  <th>Categoría</th>
+                  <th>Horas teoría</th>
+                  <th>Horas taller</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (policy of cfg.licenseCategoryPolicies; track policy.code) {
                   <tr>
-                    <th>Categoría</th>
-                    <th>Horas teoría</th>
-                    <th>Horas taller</th>
+                    <td><strong>{{ policy.label }}</strong></td>
+                    <td>{{ policy.requiredTheoryHours }}</td>
+                    <td>{{ policy.requiredWorkshopHours }}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  @for (policy of cfg.licenseCategoryPolicies; track policy.code) {
-                    <tr>
-                      <td><strong>{{ policy.label }}</strong></td>
-                      <td>
-                        <input
-                          type="number"
-                          min="0"
-                          max="200"
-                          [placeholder]="cfg.requiredTheoryHours"
-                          [(ngModel)]="policy.requiredTheoryHours" />
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          min="0"
-                          max="200"
-                          [placeholder]="cfg.requiredWorkshopHours"
-                          [(ngModel)]="policy.requiredWorkshopHours" />
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          }
+                }
+              </tbody>
+            </table>
+          </div>
 
           <label>Antelación mínima para cancelar una reserva (horas)
             <input type="number" min="0" max="72" [(ngModel)]="cfg.minCancelHours" />
