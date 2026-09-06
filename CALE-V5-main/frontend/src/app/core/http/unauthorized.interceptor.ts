@@ -23,10 +23,13 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
         && err.error?.detail === 'password_change_required'
       ) {
         session.patchUser({ mustChangePassword: true });
-        void router.navigate(['/profile'], {
-          queryParams: { mustChange: 1 },
-          replaceUrl: true
-        });
+        const here = router.url.split('?')[0];
+        if (here !== '/profile') {
+          void router.navigate(['/profile'], {
+            queryParams: { mustChange: 1 },
+            replaceUrl: true
+          });
+        }
         return throwError(() => err);
       }
 

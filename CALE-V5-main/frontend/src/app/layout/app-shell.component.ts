@@ -188,6 +188,9 @@ export class AppShellComponent implements OnInit, OnDestroy {
   }
 
   refreshUnread(): void {
+    if (this.mustChangePassword) {
+      return;
+    }
     this.notificationsApi.unreadCount().subscribe({
       next: (count) => this.unread.set(count),
       error: () => this.unread.set(0)

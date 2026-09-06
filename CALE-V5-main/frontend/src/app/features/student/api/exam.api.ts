@@ -45,6 +45,8 @@ export interface StartExamResponse {
   expiresAt?: string | null;
   timeMinutes: number;
   questions: TakeQuestionDto[];
+  resumed?: boolean;
+  answers?: { questionId: number; optionId: number }[] | null;
 }
 
 export interface FinishResponse {

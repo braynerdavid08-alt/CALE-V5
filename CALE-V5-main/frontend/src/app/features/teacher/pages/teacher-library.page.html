@@ -20,7 +20,12 @@
         </label>
         <div class="follow-actions">
           <ui-button type="button" variant="secondary" (click)="followUpPublish()">Publicar</ui-button>
-          <ui-button type="button" [disabled]="!followUpGroupId" (click)="followUpAssign()">Asignar</ui-button>
+          <ui-button
+            type="button"
+            [disabled]="!followUpGroupId || !follow.published"
+            (click)="followUpAssign()">
+            Asignar
+          </ui-button>
           <ui-button type="button" variant="ghost" (click)="dismissFollowUp()">Cerrar</ui-button>
         </div>
       </div>
@@ -178,15 +183,19 @@
                       <button type="button" (click)="reviewKeys(exam)">Revisar claves</button>
                     }
                     <button type="button" class="danger" (click)="deleteExam(exam)">Eliminar</button>
-                    <div class="menu-assign">
-                      <select [(ngModel)]="assignTo[exam.id]" [name]="'g' + exam.id">
-                        <option [ngValue]="null">Asignar a grupo…</option>
-                        @for (group of groups(); track group.id) {
-                          <option [ngValue]="group.id">{{ group.name }}</option>
-                        }
-                      </select>
-                      <button type="button" (click)="assign(exam.id)">Asignar</button>
-                    </div>
+                    @if (exam.published) {
+                      <div class="menu-assign">
+                        <select [(ngModel)]="assignTo[exam.id]" [name]="'g' + exam.id">
+                          <option [ngValue]="null">Asignar a grupo…</option>
+                          @for (group of groups(); track group.id) {
+                            <option [ngValue]="group.id">{{ group.name }}</option>
+                          }
+                        </select>
+                        <button type="button" (click)="assign(exam.id)">Asignar</button>
+                      </div>
+                    } @else {
+                      <p class="muted tiny menu-hint">Publica el examen para poder asignarlo.</p>
+                    }
                   </div>
                 }
               </div>

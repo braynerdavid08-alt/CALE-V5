@@ -17,12 +17,16 @@ public sealed record TakeQuestionDto(
     string? ImageUrl,
     IReadOnlyList<TakeOptionDto> Options);
 
+public sealed record SavedAnswerDto(int QuestionId, int OptionId);
+
 public sealed record StartExamResponse(
     int AttemptId,
     DateTime StartedAt,
     DateTime? ExpiresAt,
     int TimeMinutes,
-    IReadOnlyList<TakeQuestionDto> Questions);
+    IReadOnlyList<TakeQuestionDto> Questions,
+    bool Resumed = false,
+    IReadOnlyList<SavedAnswerDto>? Answers = null);
 
 public sealed record AnswerRequest(int QuestionId, int OptionId);
 

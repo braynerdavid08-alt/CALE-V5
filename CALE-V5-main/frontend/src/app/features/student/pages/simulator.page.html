@@ -155,6 +155,9 @@
 }
 
 @if (step() === 'take') {
+  @if (resumed()) {
+    <ui-success message="Continuando tu intento anterior. Tus respuestas guardadas se restauraron." />
+  }
   @if (question(); as q) {
     <section class="exam-focus">
       <header class="exam-bar">
@@ -345,7 +348,7 @@
 <ui-dialog
   [open]="confirmExit()"
   title="Salir del examen"
-  message="¿Seguro que quieres salir sin terminar? El intento puede quedar incompleto."
+  message="Si sales ahora, el tiempo sigue corriendo. Al volver a Presentar continuarás el mismo intento con tus respuestas."
   confirmLabel="Salir"
   [danger]="true"
   (confirm)="confirmAbort()"

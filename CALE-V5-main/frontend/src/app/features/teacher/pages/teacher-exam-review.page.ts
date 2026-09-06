@@ -36,6 +36,7 @@ export class TeacherExamReviewPage implements OnInit {
   readonly loading = signal(true);
   readonly savingId = signal<number | null>(null);
   readonly busy = signal(false);
+  readonly published = signal(false);
   bankId = 0;
   examId: number | null = null;
   bankName = '';
@@ -135,6 +136,10 @@ export class TeacherExamReviewPage implements OnInit {
       this.error.set('No hay examen asociado para asignar.');
       return;
     }
+    if (!this.published()) {
+      this.error.set('Publica el examen antes de asignarlo a un grupo.');
+      return;
+    }
     if (!this.assignGroupId) {
       this.error.set('Elige un grupo.');
       return;
@@ -161,7 +166,8 @@ export class TeacherExamReviewPage implements OnInit {
     this.api.publishExam(this.examId, true).subscribe({
       next: () => {
         this.busy.set(false);
-        this.ok.set('Examen publicado.');
+        this.published.set(true);
+        this.ok.set('Examen publicado. Ahora puedes asignarlo a un grupo.');
       },
       error: (err) => {
         this.busy.set(false);

@@ -206,12 +206,20 @@ public sealed class StartExamHandler
                 MapShuffledOptions(q)));
         }
 
+        var prior = await _attempts.ListAnswersAsync(open.Id, ct);
+        var saved = prior
+            .Where(a => a.OptionId is > 0)
+            .Select(a => new SavedAnswerDto(a.QuestionId, a.OptionId!.Value))
+            .ToList();
+
         return new StartExamResponse(
             open.Id,
             open.StartedAt,
             open.ExpiresAt,
             timeMinutes,
-            questions);
+            questions,
+            Resumed: true,
+            Answers: saved);
     }
 
     /// <summary>
