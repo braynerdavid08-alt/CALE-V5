@@ -187,6 +187,84 @@ interface SchoolJoinRequestDto {
               Contraseña temporal
               <input type="password" formControlName="password" autocomplete="new-password" />
             </label>
+
+            @if (form.controls.role.value === 'Student') {
+              <p class="hint">Expediente del aprendiz (queda listo en Aprendices):</p>
+              <label class="field">
+                Tipo de documento
+                <select formControlName="documentType">
+                  <option value="">—</option>
+                  <option value="cc">CC</option>
+                  <option value="ti">TI</option>
+                  <option value="ce">CE</option>
+                  <option value="pa">Pasaporte</option>
+                </select>
+              </label>
+              <label class="field">
+                Número de documento
+                <input formControlName="documentNumber" />
+              </label>
+              <label class="field">
+                Celular
+                <input formControlName="phone" />
+              </label>
+              <label class="field">
+                Correo de contacto
+                <input type="email" formControlName="contactEmail" />
+              </label>
+              <label class="field">
+                Dirección
+                <input formControlName="address" />
+              </label>
+              <label class="field">
+                Categoría de licencia
+                <select formControlName="licenseCategories">
+                  <option value="">Sin asignar</option>
+                  <option value="A2">A2</option>
+                  <option value="B1">B1</option>
+                  <option value="C1">C1</option>
+                  <option value="A2,B1">A2 + B1</option>
+                  <option value="A2,C1">A2 + C1</option>
+                </select>
+              </label>
+              <label class="field">
+                Grupo de asistencia
+                <select formControlName="attendanceDayType">
+                  <option value="">Sin asignar</option>
+                  <option value="Weekday">Semana (lun–vie)</option>
+                  <option value="Saturday">Sábados</option>
+                </select>
+              </label>
+              <label class="field">
+                Horario asignado
+                <input formControlName="scheduleSlot" placeholder="8am/4pm" />
+              </label>
+              <label class="field">
+                Valor a pagar (COP)
+                <input type="number" formControlName="amountDue" min="0" />
+              </label>
+              <label class="field">
+                Valor pagado (COP)
+                <input type="number" formControlName="amountPaid" min="0" />
+              </label>
+              <label class="field">
+                Método de pago
+                <input formControlName="paymentMethod" placeholder="Efectivo…" />
+              </label>
+              <label class="field">
+                Número de recibo
+                <input formControlName="receiptNumber" />
+              </label>
+              <label class="field" style="flex-direction: row; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" formControlName="runtRegistered" />
+                Inscrito en RUNT
+              </label>
+              <label class="field" style="flex-direction: row; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" formControlName="isEnrolled" />
+                Enrolado en la escuela
+              </label>
+            }
+
             <ui-button type="submit" [loading]="saving()">Crear</ui-button>
           </form>
         </ui-card>
@@ -336,7 +414,21 @@ export class SchoolUsersPage implements OnInit {
     role: ['Teacher', Validators.required],
     name: ['', [Validators.required, Validators.maxLength(200)]],
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(8)]]
+    password: ['', [Validators.required, Validators.minLength(8)]],
+    documentType: [''],
+    documentNumber: [''],
+    phone: [''],
+    address: [''],
+    contactEmail: [''],
+    licenseCategories: [''],
+    attendanceDayType: [''],
+    scheduleSlot: [''],
+    amountDue: [0 as number],
+    amountPaid: [0 as number],
+    paymentMethod: [''],
+    receiptNumber: [''],
+    runtRegistered: [false],
+    isEnrolled: [false]
   });
 
   readonly attachForm = this.fb.nonNullable.group({
@@ -430,13 +522,64 @@ export class SchoolUsersPage implements OnInit {
     this.saving.set(true);
     this.error.set(null);
     this.ok.set(null);
-    this.http.post<UserRow>(`${env.apiUrl}/api/school/members`, this.form.getRawValue())
+    const raw = this.form.getRawValue();
+    const body =
+      raw.role === 'Student'
+        ? {
+            role: raw.role,
+            name: raw.name,
+            email: raw.email,
+            password: raw.password,
+            documentType: raw.documentType.trim() || null,
+            documentNumber: raw.documentNumber.trim() || null,
+            phone: raw.phone.trim() || null,
+            address: raw.address.trim() || null,
+            contactEmail: raw.contactEmail.trim() || null,
+            licenseCategories: raw.licenseCategories || null,
+            attendanceDayType: raw.attendanceDayType || null,
+            scheduleSlot: raw.scheduleSlot.trim() || null,
+            amountDue: Number(raw.amountDue) || 0,
+            amountPaid: Number(raw.amountPaid) || 0,
+            paymentMethod: raw.paymentMethod.trim() || null,
+            receiptNumber: raw.receiptNumber.trim() || null,
+            runtRegistered: raw.runtRegistered,
+            isEnrolled: raw.isEnrolled
+          }
+        : {
+            role: raw.role,
+            name: raw.name,
+            email: raw.email,
+            password: raw.password
+          };
+    this.http.post<UserRow>(`${env.apiUrl}/api/school/members`, body)
       .subscribe({
         next: (created) => {
           this.items.update((rows) => [created, ...rows]);
-          this.form.patchValue({ name: '', email: '', password: '' });
+          this.form.patchValue({
+            name: '',
+            email: '',
+            password: '',
+            documentType: '',
+            documentNumber: '',
+            phone: '',
+            address: '',
+            contactEmail: '',
+            licenseCategories: '',
+            attendanceDayType: '',
+            scheduleSlot: '',
+            amountDue: 0,
+            amountPaid: 0,
+            paymentMethod: '',
+            receiptNumber: '',
+            runtRegistered: false,
+            isEnrolled: false
+          });
           this.saving.set(false);
-          this.ok.set(`${roleLabel(created.role)} ${created.name} creado.`);
+          this.ok.set(
+            raw.role === 'Student'
+              ? `Estudiante ${created.name} creado. Revisa su expediente en Aprendices.`
+              : `${roleLabel(created.role)} ${created.name} creado.`
+          );
           this.refreshSeats();
         },
         error: (err) => {

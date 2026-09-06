@@ -8,5 +8,6 @@ public interface ISchoolStudentEnrollmentBootstrap
     Task EnsurePendingAsync(
         int schoolUserId,
         int studentUserId,
-        CancellationToken ct = default);
+        CancellationToken ct = default,
+        StudentOnboardingSeed? seed = null);
 }

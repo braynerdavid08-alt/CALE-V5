@@ -130,6 +130,7 @@ public sealed class ApprenticeRegistryService
         }
         catch (Exception)
         {
+            await ResetDbConnectionAsync(ct);
             training = new PracticalEligibilityDto(
                 false,
                 false,
@@ -151,24 +152,34 @@ public sealed class ApprenticeRegistryService
         }
         catch (Exception)
         {
+            await ResetDbConnectionAsync(ct);
             practical = new ApprenticePracticalSummaryDto(0, 0, 0, null, null);
         }
 
-        var today = DateOnly.FromDateTime(_clock.UtcNow.Date);
-        var exam = await _db.Set<TheoryExamAppointment>()
-            .Where(x => x.SchoolUserId == schoolUserId
-                && x.StudentUserId == studentUserId
-                && x.ExamDate >= today)
-            .OrderBy(x => x.ExamDate)
-            .ThenBy(x => x.SlotTime)
-            .FirstOrDefaultAsync(ct);
+        ApprenticeExamSummaryDto? nextExam = null;
+        try
+        {
+            var today = DateOnly.FromDateTime(_clock.UtcNow.Date);
+            var exam = await _db.Set<TheoryExamAppointment>()
+                .Where(x => x.SchoolUserId == schoolUserId
+                    && x.StudentUserId == studentUserId
+                    && x.ExamDate >= today)
+                .OrderBy(x => x.ExamDate)
+                .ThenBy(x => x.SlotTime)
+                .FirstOrDefaultAsync(ct);
 
-        ApprenticeExamSummaryDto? nextExam = exam is null
-            ? null
-            : new ApprenticeExamSummaryDto(
-                exam.Id,
-                exam.ExamDate.ToString("yyyy-MM-dd"),
-                exam.SlotTime.ToString("HH:mm"));
+            nextExam = exam is null
+                ? null
+                : new ApprenticeExamSummaryDto(
+                    exam.Id,
+                    exam.ExamDate.ToString("yyyy-MM-dd"),
+                    exam.SlotTime.ToString("HH:mm"));
+        }
+        catch (Exception)
+        {
+            await ResetDbConnectionAsync(ct);
+            nextExam = null;
+        }
 
         IReadOnlyList<EnrollmentAuthorizationEventDto> authHistory;
         try
@@ -181,10 +192,36 @@ public sealed class ApprenticeRegistryService
         }
         catch (Exception)
         {
+            await ResetDbConnectionAsync(ct);
             authHistory = [];
         }
 
         return new ApprenticeDetailDto(apprentice, training, practical, nextExam, authHistory);
+    }
+
+    private async Task ResetDbConnectionAsync(CancellationToken ct)
+    {
+        _db.ChangeTracker.Clear();
+        try
+        {
+            if (_db.Database.CurrentTransaction is not null)
+            {
+                await _db.Database.RollbackTransactionAsync(ct);
+            }
+        }
+        catch
+        {
+            // No ambient transaction.
+        }
+
+        try
+        {
+            await _db.Database.CloseConnectionAsync();
+        }
+        catch
+        {
+            // Already closed.
+        }
     }
 
     public async Task<SchoolOperationsDashboardDto> GetDashboardAsync(
@@ -356,20 +393,34 @@ public sealed class ApprenticeRegistryService
             }
 
             enrollment.AttendanceDayType = dayType;
-            var settings = await _db.Set<TheoryTrainingSettings>()
-                .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId, ct);
-            if (settings is not null)
+            // Do not EF-load TheoryTrainingSettings (JSON columns may be mid-repair and
+            // abort the whole SaveChanges, including payments). Toggle flags via SQL.
+            try
             {
                 if (dayType == StudentAttendanceDayTypes.Weekday)
                 {
-                    settings.WeekdaysEnabled = true;
+                    await _db.Database.ExecuteSqlInterpolatedAsync(
+                        $"""
+                        UPDATE "TheoryTrainingSettings"
+                        SET "WeekdaysEnabled" = TRUE, "UpdatedAt" = {now}
+                        WHERE "SchoolUserId" = {schoolUserId}
+                        """,
+                        ct);
                 }
                 else if (dayType == StudentAttendanceDayTypes.Saturday)
                 {
-                    settings.SaturdayEnabled = true;
+                    await _db.Database.ExecuteSqlInterpolatedAsync(
+                        $"""
+                        UPDATE "TheoryTrainingSettings"
+                        SET "SaturdayEnabled" = TRUE, "UpdatedAt" = {now}
+                        WHERE "SchoolUserId" = {schoolUserId}
+                        """,
+                        ct);
                 }
-
-                settings.UpdatedAt = now;
+            }
+            catch
+            {
+                // Settings row/columns may be absent; profile/payment still persist.
             }
         }
 
