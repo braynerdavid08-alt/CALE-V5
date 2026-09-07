@@ -360,12 +360,17 @@ export class TeacherExamQuestionsPage implements OnInit, OnDestroy {
     };
 
     this.saveState.set('saving');
-    this.api.saveQuestion(body, this.questionId ?? undefined).subscribe({
+    const editingId = this.questionId;
+    this.api.saveQuestion(body, editingId ?? undefined).subscribe({
       next: (res) => {
-        const createdId = this.questionId ?? (res && 'id' in res ? Number(res.id) : null);
+        const createdId =
+          editingId ??
+          (res && typeof res === 'object' && res !== null
+            ? Number((res as { id: number }).id)
+            : null);
         this.saveState.set('saved');
         this.isNew.set(false);
-        this.reloadList(createdId ?? this.questionId ?? undefined);
+        this.reloadList(createdId ?? editingId ?? undefined);
         if (!silent && createdId) {
           this.loadQuestion(createdId);
         }
