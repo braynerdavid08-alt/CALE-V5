@@ -169,7 +169,7 @@
                   type="button"
                   class="more"
                   aria-label="Más opciones"
-                  aria-expanded="{{ menuFor() === exam.id }}"
+                  [attr.aria-expanded]="menuFor() === exam.id"
                   (click)="toggleMenu(exam.id, $event)">
                   ⋮
                 </button>

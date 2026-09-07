@@ -124,7 +124,7 @@ export class TeacherExamReviewPage implements OnInit {
               : `Clave guardada. Quedan ${left}.`
           );
         },
-        error: (err) => {
+        error: (err: unknown) => {
           this.savingId.set(null);
           this.error.set(mapApiError(err));
         }
