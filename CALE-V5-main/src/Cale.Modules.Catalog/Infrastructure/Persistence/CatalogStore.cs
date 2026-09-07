@@ -139,7 +139,10 @@ public sealed class CatalogStore : ICatalogStore
                 x.BankName,
                 x.q.Topic,
                 x.q.IsActive,
-                x.q.CreatedById))
+                x.q.CreatedById,
+                x.q.ImageUrl,
+                x.q.Options.Count,
+                x.q.Options.Any(o => o.IsCorrect)))
             .ToListAsync(ct);
 
         return new PagedResult<QuestionListDto>(items, page, pageSize, total);

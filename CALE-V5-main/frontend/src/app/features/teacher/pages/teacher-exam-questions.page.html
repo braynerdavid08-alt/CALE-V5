@@ -1,0 +1,210 @@
+<section class="eq">
+  <header class="eq-top">
+    <div class="eq-brand">
+      <a routerLink="/teacher/library" class="back">← Biblioteca</a>
+      <div>
+        <h1>{{ exam()?.name || 'Preguntas del examen' }}</h1>
+        <p class="muted">
+          Edita como diapositivas: enunciado, fotos, opciones y respuesta correcta.
+          @if (exam()?.published) {
+            <span class="pill ok">Publicado</span>
+          } @else {
+            <span class="pill">Borrador</span>
+          }
+        </p>
+      </div>
+    </div>
+    <div class="eq-top-actions">
+      <span class="save-pill" [attr.data-state]="saveState()">{{ saveLabel }}</span>
+      <ui-button type="button" variant="secondary" (click)="prev()" [disabled]="selectedIndex() <= 0">Anterior</ui-button>
+      <ui-button type="button" variant="secondary" (click)="next()" [disabled]="selectedIndex() < 0 || selectedIndex() >= filtered().length - 1">Siguiente</ui-button>
+      <ui-button type="button" variant="ghost" (click)="duplicateCurrent()" [disabled]="!text.trim()">Duplicar</ui-button>
+      <ui-button type="button" (click)="save(false)" [loading]="saveState() === 'saving'">Guardar</ui-button>
+      @if (exam() && !exam()!.published) {
+        <ui-button type="button" variant="secondary" (click)="publishExam()">Publicar</ui-button>
+      }
+    </div>
+  </header>
+
+  <ui-error [message]="error()" />
+
+  @if (loading()) {
+    <p class="muted pad">Cargando preguntas…</p>
+  } @else {
+    <div class="eq-stats">
+      <button type="button" class="stat" [class.on]="filter() === 'all'" (click)="setFilter('all')">
+        <strong>{{ items().length }}</strong><span>Total</span>
+      </button>
+      <button type="button" class="stat warn" [class.on]="filter() === 'no-key'" (click)="setFilter('no-key')">
+        <strong>{{ missingKeyCount() }}</strong><span>Sin clave</span>
+      </button>
+      <button type="button" class="stat" [class.on]="filter() === 'no-image'" (click)="setFilter('no-image')">
+        <strong>{{ missingImageCount() }}</strong><span>Sin imagen</span>
+      </button>
+      <button type="button" class="stat" [class.on]="filter() === 'inactive'" (click)="setFilter('inactive')">
+        <strong>{{ inactiveCount() }}</strong><span>Inactivas</span>
+      </button>
+      @if (missingKeyCount() > 0) {
+        <ui-button type="button" variant="ghost" (click)="openReview()">Revisar claves rápido</ui-button>
+      }
+    </div>
+
+    <div class="eq-layout">
+      <aside class="eq-rail">
+        <div class="rail-tools">
+          <input
+            type="search"
+            placeholder="Buscar pregunta…"
+            [ngModel]="search()"
+            (ngModelChange)="onSearch($event)" />
+          <ui-button type="button" (click)="startNew()">+ Nueva</ui-button>
+        </div>
+        <ul class="slide-list">
+          @for (q of filtered(); track q.id; let i = $index) {
+            <li>
+              <button
+                type="button"
+                class="slide-card"
+                [class.on]="selectedId() === q.id"
+                (click)="selectQuestion(q.id)">
+                <span class="num">{{ i + 1 }}</span>
+                @if (mediaUrl(q.imageUrl); as img) {
+                  <img [src]="img" alt="" />
+                } @else {
+                  <div class="ph">?</div>
+                }
+                <div class="meta">
+                  <strong>{{ q.text }}</strong>
+                  <small>
+                    {{ q.type === 'Verdadero/Falso' ? 'V/F' : 'A–D' }}
+                    · {{ q.optionCount || '—' }} opc.
+                    @if (!q.hasCorrectAnswer) {
+                      · <span class="warn-t">sin clave</span>
+                    }
+                    @if (!q.isActive) {
+                      · inactiva
+                    }
+                  </small>
+                </div>
+              </button>
+            </li>
+          } @empty {
+            <li class="muted empty-rail">Sin preguntas con este filtro. Crea una nueva.</li>
+          }
+        </ul>
+      </aside>
+
+      <section class="eq-preview" aria-label="Vista estudiante">
+        <p class="preview-label">Vista del estudiante</p>
+        <article class="preview-card">
+          @if (mediaUrl(imageUrl); as img) {
+            <img class="stem-img" [src]="img" alt="Imagen de la pregunta" />
+          }
+          <h2>{{ text.trim() || 'Escribe el enunciado…' }}</h2>
+          <div class="preview-opts">
+            @for (opt of options; track $index) {
+              <div class="preview-opt" [class.correct]="opt.isCorrect">
+                <span class="letter">{{ letter($index) }}</span>
+                <div>
+                  <p>{{ opt.text.trim() || (mediaUrl(opt.imageUrl) ? '(imagen)' : 'Opción vacía') }}</p>
+                  @if (mediaUrl(opt.imageUrl); as oimg) {
+                    <img [src]="oimg" alt="" />
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </article>
+      </section>
+
+      <aside class="eq-panel">
+        <h2>{{ isNew() ? 'Nueva pregunta' : 'Editar pregunta' }}</h2>
+        <label class="field">Tipo
+          <select [(ngModel)]="type" name="type" (ngModelChange)="onTypeChange()">
+            <option value="Seleccion multiple">Selección múltiple (A–D)</option>
+            <option value="Verdadero/Falso">Verdadero / Falso</option>
+          </select>
+        </label>
+        <label class="field">Bloque / tema de contenido
+          <select [(ngModel)]="blockId" name="blockId" (ngModelChange)="markDirty()">
+            @for (block of blocks(); track block.id) {
+              <option [ngValue]="block.id">{{ block.name }}</option>
+            }
+          </select>
+        </label>
+        <label class="field">Tema (opcional)
+          <input [(ngModel)]="topic" name="topic" (ngModelChange)="markDirty()" placeholder="Señales, normas…" />
+        </label>
+        <label class="field">Enunciado
+          <textarea
+            rows="4"
+            [(ngModel)]="text"
+            name="text"
+            (ngModelChange)="markDirty()"
+            placeholder="¿Qué debe responder el estudiante?"></textarea>
+        </label>
+        <p class="hint">Imagen del enunciado (señal, foto, esquema)</p>
+        <ui-image-picker
+          [src]="mediaUrl(imageUrl)"
+          [busy]="uploading() === 'question'"
+          alt="Imagen de la pregunta"
+          (selected)="uploadQuestionImage($event)"
+          (cleared)="clearQuestionImage()" />
+
+        <h3>Respuestas</h3>
+        <p class="hint">Toca la letra para marcar la correcta. Texto, imagen o ambos.</p>
+        @for (opt of options; track $index) {
+          <article class="answer" [class.correct]="opt.isCorrect">
+            <button
+              type="button"
+              class="letter-btn"
+              [class.on]="opt.isCorrect"
+              (click)="markCorrect($index)">
+              {{ letter($index) }}
+            </button>
+            <div class="answer-body">
+              <input
+                [(ngModel)]="opt.text"
+                [name]="'opt' + $index"
+                (ngModelChange)="markDirty()"
+                [placeholder]="isTrueFalse ? letter($index) : 'Texto de la opción'" />
+              <ui-image-picker
+                [src]="mediaUrl(opt.imageUrl)"
+                [busy]="uploading() === ('opt-' + $index)"
+                [alt]="'Imagen opción ' + letter($index)"
+                (selected)="uploadOptionImage($index, $event)"
+                (cleared)="clearOptionImage($index)" />
+            </div>
+            @if (!isTrueFalse) {
+              <button type="button" class="linkish" [disabled]="options.length <= 2" (click)="removeOption($index)">Quitar</button>
+            }
+          </article>
+        }
+        @if (!isTrueFalse) {
+          <ui-button type="button" variant="secondary" (click)="addOption()">Añadir opción</ui-button>
+        }
+
+        <label class="field">Explicación (al revisar el intento)
+          <textarea
+            rows="3"
+            [(ngModel)]="explanation"
+            name="explanation"
+            (ngModelChange)="markDirty()"
+            placeholder="Por qué esa opción es la correcta."></textarea>
+        </label>
+
+        <label class="row-check">
+          <input type="checkbox" [(ngModel)]="isActive" name="isActive" (ngModelChange)="markDirty()" />
+          Pregunta activa
+        </label>
+
+        <div class="panel-actions">
+          <ui-button type="button" (click)="save(false)" [loading]="saveState() === 'saving'">Guardar</ui-button>
+          @if (questionId) {
+            <ui-button type="button" variant="ghost" (click)="deactivateCurrent()">Desactivar</ui-button>
+          }
+        </div>
+      </aside>
+    </div>
+  }
+</section>

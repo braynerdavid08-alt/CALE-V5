@@ -30,7 +30,10 @@ public sealed record QuestionListDto(
     string BankName,
     string? Topic,
     bool IsActive,
-    int? CreatedById);
+    int? CreatedById,
+    string? ImageUrl = null,
+    int OptionCount = 0,
+    bool HasCorrectAnswer = false);
 
 public sealed record QuestionDetailDto(
     int Id,
@@ -55,7 +58,8 @@ public sealed record QuestionReviewDto(
     string? Explanation,
     bool NeedsCorrectReview,
     bool IsActive,
-    IReadOnlyList<OptionDto> Options);
+    IReadOnlyList<OptionDto> Options,
+    string? ImageUrl = null);
 
 public sealed record SaveQuestionRequest(
     int BankId,

@@ -382,6 +382,14 @@ export const routes: Routes = [
             .then((m) => m.TeacherLibraryPage)
       },
       {
+        path: 'teacher/library/:examId/questions',
+        canActivate: [roleGuard, catalogAccessGuard],
+        data: { roles: ['Teacher', 'Admin'] },
+        loadComponent: () =>
+          import('./features/teacher/pages/teacher-exam-questions.page')
+            .then((m) => m.TeacherExamQuestionsPage)
+      },
+      {
         path: 'teacher/results',
         pathMatch: 'full',
         canActivate: [roleGuard],

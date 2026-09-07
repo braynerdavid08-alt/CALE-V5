@@ -39,7 +39,8 @@ public sealed class ListQuestionsForReviewHandler
                 q.Options
                     .OrderBy(o => o.Id)
                     .Select(o => new OptionDto(o.Id, o.Text, o.IsCorrect, o.ImageUrl))
-                    .ToList()))
+                    .ToList(),
+                q.ImageUrl))
             .ToList();
     }
 }

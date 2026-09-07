@@ -20,9 +20,17 @@ public sealed class SaveQuestionHandler
     public async Task<int> CreateAsync(
         SaveQuestionRequest request,
         int userId,
+        bool isAdmin,
         CancellationToken ct)
     {
-        await EnsureBankAndBlock(request, ct);
+        var bank = await EnsureBankAndBlock(request, ct);
+        if (!isAdmin && bank.CreatedById != userId)
+        {
+            throw new ForbiddenException(
+                "Solo puedes crear preguntas en bancos que hayas importado o creado.",
+                "bank_not_owned");
+        }
+
         var options = MapOptions(request.Options);
         var question = Question.Create(
             request.BankId,
@@ -50,12 +58,16 @@ public sealed class SaveQuestionHandler
     {
         var question = await _store.GetQuestionAsync(id, ct)
             ?? throw new NotFoundException("Question not found.", "question_not_found");
-        if (!question.CanEdit(userId, isAdmin))
+        var bank = await EnsureBankAndBlock(request, ct);
+        if (!isAdmin
+            && !question.CanEdit(userId, isAdmin)
+            && bank.CreatedById != userId)
         {
-            throw new ForbiddenException("You cannot edit this question.");
+            throw new ForbiddenException(
+                "Solo puedes editar preguntas de bancos que hayas importado o creado.",
+                "bank_not_owned");
         }
 
-        await EnsureBankAndBlock(request, ct);
         await _store.RemoveOptionsAsync(question, ct);
         question.Replace(
             request.BankId,
@@ -71,14 +83,15 @@ public sealed class SaveQuestionHandler
         await _store.SaveChangesAsync(ct);
     }
 
-    private async Task EnsureBankAndBlock(
+    private async Task<Bank> EnsureBankAndBlock(
         SaveQuestionRequest request,
         CancellationToken ct)
     {
-        _ = await _store.GetBankAsync(request.BankId, ct)
+        var bank = await _store.GetBankAsync(request.BankId, ct)
             ?? throw new NotFoundException("Bank not found.", "bank_not_found");
         _ = await _store.GetBlockAsync(request.BlockId, ct)
             ?? throw new NotFoundException("Block not found.", "block_not_found");
+        return bank;
     }
 
     private static List<QuestionOption> MapOptions(IReadOnlyList<OptionInput> inputs) =>

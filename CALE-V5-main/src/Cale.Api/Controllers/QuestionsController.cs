@@ -105,12 +105,16 @@ public sealed class QuestionsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Policy = "TeacherOrAdmin")]
     public async Task<IActionResult> Create(
         SaveQuestionRequest request,
         CancellationToken ct)
     {
-        var id = await _save.CreateAsync(request, CurrentUser.GetId(User), ct);
+        var id = await _save.CreateAsync(
+            request,
+            CurrentUser.GetId(User),
+            CurrentUser.IsAdmin(User),
+            ct);
         return Ok(new { id });
     }
 
