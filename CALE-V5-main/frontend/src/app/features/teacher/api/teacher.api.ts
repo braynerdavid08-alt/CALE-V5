@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
+import { Observable, map } from 'rxjs';
 import { env } from '../../../core/config/env';
 import { ExamDto } from '../../student/api/exam.api';
 import { ActivityDto, AnnouncementDto, GroupDto } from '../../student/api/student.api';
@@ -262,10 +263,13 @@ export class TeacherApi {
     );
   }
 
-  saveQuestion(body: unknown, id?: number) {
-    return id
-      ? this.http.put<void>(`${this.base}/api/questions/${id}`, body)
-      : this.http.post<{ id: number }>(`${this.base}/api/questions`, body);
+  saveQuestion(body: unknown, id?: number): Observable<{ id?: number } | null> {
+    if (id) {
+      return this.http
+        .put<void>(`${this.base}/api/questions/${id}`, body)
+        .pipe(map(() => null));
+    }
+    return this.http.post<{ id: number }>(`${this.base}/api/questions`, body);
   }
 
   upload(file: File) {

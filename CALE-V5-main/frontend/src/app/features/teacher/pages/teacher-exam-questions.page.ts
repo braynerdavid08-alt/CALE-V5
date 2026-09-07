@@ -362,12 +362,8 @@ export class TeacherExamQuestionsPage implements OnInit, OnDestroy {
     this.saveState.set('saving');
     const editingId = this.questionId;
     this.api.saveQuestion(body, editingId ?? undefined).subscribe({
-      next: (res) => {
-        const createdId =
-          editingId ??
-          (res && typeof res === 'object' && res !== null
-            ? Number((res as { id: number }).id)
-            : null);
+      next: (res: { id?: number } | null) => {
+        const createdId = editingId ?? (res?.id != null ? Number(res.id) : null);
         this.saveState.set('saved');
         this.isNew.set(false);
         this.reloadList(createdId ?? editingId ?? undefined);
@@ -375,7 +371,7 @@ export class TeacherExamQuestionsPage implements OnInit, OnDestroy {
           this.loadQuestion(createdId);
         }
       },
-      error: (err) => {
+      error: (err: unknown) => {
         this.saveState.set('error');
         this.error.set(mapApiError(err));
       }
