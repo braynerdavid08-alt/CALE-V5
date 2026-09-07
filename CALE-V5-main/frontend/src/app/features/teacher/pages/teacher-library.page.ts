@@ -156,6 +156,15 @@ export class TeacherLibraryPage implements OnInit {
     this.scrollToForm();
   }
 
+  openQuestions(exam: ExamDto): void {
+    this.menuFor.set(null);
+    if (!exam.bankId) {
+      this.error.set('Este examen no tiene banco de preguntas.');
+      return;
+    }
+    void this.router.navigate(['/teacher/library', exam.id, 'questions']);
+  }
+
   focusImport(): void {
     document.getElementById('exam-import')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }

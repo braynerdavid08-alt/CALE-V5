@@ -48,6 +48,10 @@ export interface QuestionListDto {
   bankName: string;
   topic?: string | null;
   isActive: boolean;
+  createdById?: number | null;
+  imageUrl?: string | null;
+  optionCount?: number;
+  hasCorrectAnswer?: boolean;
 }
 
 export interface PagedQuestions {
@@ -86,6 +90,7 @@ export interface QuestionReviewDto {
   explanation?: string | null;
   needsCorrectReview: boolean;
   isActive: boolean;
+  imageUrl?: string | null;
   options: Array<{
     id: number;
     text: string;
@@ -228,10 +233,15 @@ export class TeacherApi {
     );
   }
 
-  questions(page = 1) {
-    return this.http.get<PagedQuestions>(
-      `${this.base}/api/questions?page=${page}&pageSize=20`
-    );
+  questions(page = 1, pageSize = 20, bankId?: number, search?: string) {
+    let url = `${this.base}/api/questions?page=${page}&pageSize=${pageSize}`;
+    if (bankId) {
+      url += `&bankId=${bankId}`;
+    }
+    if (search?.trim()) {
+      url += `&search=${encodeURIComponent(search.trim())}`;
+    }
+    return this.http.get<PagedQuestions>(url);
   }
 
   question(id: number) {
@@ -255,7 +265,7 @@ export class TeacherApi {
   saveQuestion(body: unknown, id?: number) {
     return id
       ? this.http.put<unknown>(`${this.base}/api/questions/${id}`, body)
-      : this.http.post<unknown>(`${this.base}/api/questions`, body);
+      : this.http.post<{ id: number }>(`${this.base}/api/questions`, body);
   }
 
   upload(file: File) {

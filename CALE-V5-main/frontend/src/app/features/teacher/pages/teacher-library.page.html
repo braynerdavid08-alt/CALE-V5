@@ -175,6 +175,9 @@
                 @if (menuFor() === exam.id) {
                   <div class="menu" role="menu">
                     <button type="button" (click)="openEdit(exam)">Editar</button>
+                    @if (exam.bankId) {
+                      <button type="button" (click)="openQuestions(exam)">Editar preguntas</button>
+                    }
                     <button type="button" (click)="togglePublish(exam)">
                       {{ exam.published ? 'Despublicar' : 'Publicar' }}
                     </button>
@@ -225,6 +228,9 @@
             {{ exam.published ? 'Publicado' : 'Borrador' }}
           </ui-badge>
           <ui-button type="button" variant="ghost" (click)="openEdit(exam)">Editar</ui-button>
+          @if (exam.bankId) {
+            <ui-button type="button" variant="ghost" (click)="openQuestions(exam)">Preguntas</ui-button>
+          }
           <ui-button type="button" variant="ghost" (click)="exportExam(exam)">Word</ui-button>
           <ui-button type="button" variant="ghost" (click)="togglePublish(exam)">
             {{ exam.published ? 'Despublicar' : 'Publicar' }}

@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Cale.Api.Controllers;
 
 [ApiController]
-[Authorize(Policy = "AdminOnly")]
+[Authorize(Policy = "TeacherOrAdmin")]
 [Route("api/media")]
 [RequestSizeLimit(6_000_000)]
 public sealed class MediaController : ControllerBase

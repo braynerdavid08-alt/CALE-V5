@@ -106,8 +106,8 @@ export class TeacherExamReviewPage implements OnInit {
           text: question.text,
           type: question.type,
           topic: question.topic ?? null,
-          imageUrl: null,
-          explanation: null,
+          imageUrl: question.imageUrl ?? null,
+          explanation: question.explanation ?? null,
           isActive: question.isActive,
           options
         },
