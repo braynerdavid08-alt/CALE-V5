@@ -254,18 +254,24 @@
 }
 
 .exam-card {
+  position: relative;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 14px;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
   min-height: 100%;
 }
 
+.exam-card.menu-open {
+  z-index: 20;
+}
+
 .thumb {
   position: relative;
   aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-radius: 14px 14px 0 0;
   background:
     radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.35), transparent 45%),
     linear-gradient(145deg, #1a6b8a, #0f3d52);
@@ -369,9 +375,11 @@
 .menu {
   position: absolute;
   right: 0;
-  top: 100%;
-  z-index: 5;
-  min-width: 11.5rem;
+  top: calc(100% + 0.25rem);
+  z-index: 30;
+  min-width: 12.5rem;
+  max-height: min(70vh, 28rem);
+  overflow: auto;
   padding: 0.4rem;
   border-radius: 12px;
   border: 1px solid var(--color-border);

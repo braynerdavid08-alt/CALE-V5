@@ -153,7 +153,7 @@
   } @else if (view() === 'grid') {
     <div class="exam-grid">
       @for (exam of filtered(); track exam.id) {
-        <article class="exam-card">
+        <article class="exam-card" [class.menu-open]="menuFor() === exam.id">
           <div class="thumb" [class]="'thumb ' + thumbTone(exam)">
             <span class="kind">Examen</span>
             @if (!exam.published) {
@@ -169,12 +169,13 @@
                   type="button"
                   class="more"
                   aria-label="Más opciones"
+                  aria-expanded="{{ menuFor() === exam.id }}"
                   (click)="toggleMenu(exam.id, $event)">
                   ⋮
                 </button>
                 @if (menuFor() === exam.id) {
                   <div class="menu" role="menu">
-                    <button type="button" (click)="openEdit(exam)">Editar</button>
+                    <button type="button" (click)="openEdit(exam)">Editar datos</button>
                     @if (exam.bankId) {
                       <button type="button" (click)="openQuestions(exam)">Editar preguntas</button>
                     }
