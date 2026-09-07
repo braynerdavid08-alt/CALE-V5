@@ -35,6 +35,10 @@ public sealed class TheoryTrainingSettingsConfiguration : IEntityTypeConfigurati
         builder.ToTable("TheoryTrainingSettings");
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.SchoolUserId).IsUnique();
+        // Production rows may still have NULL after a nullable ADD COLUMN repair.
+        builder.Property(x => x.LicenseCategoryPoliciesJson).IsRequired(false);
+        builder.Property(x => x.SavedBookingPresetsJson).IsRequired(false);
+        builder.Property(x => x.HiddenBookingPresetKeysJson).IsRequired(false);
     }
 }
 

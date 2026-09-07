@@ -175,6 +175,7 @@ public sealed class TheoryTrainingService
         {
             _logger.LogError(ex, "GetSettings failed for school {SchoolUserId}; repairing", schoolUserId);
             await FeatureSchema.EnsureTheoryTrainingColumnsAsync(_db, ct);
+            await BackfillSettingsJsonNullsAsync(ct);
             _db.ChangeTracker.Clear();
             try
             {
@@ -2157,7 +2158,7 @@ public sealed class TheoryTrainingService
         {
             return await GetOrCreateSettingsCoreAsync(schoolUserId, ct);
         }
-        catch (Exception ex) when (IsLikelyMissingColumn(ex))
+        catch (Exception ex) when (IsLikelyMissingColumn(ex) || IsNullJsonColumnCast(ex))
         {
             _logger.LogWarning(
                 ex,
@@ -2186,6 +2187,7 @@ public sealed class TheoryTrainingService
             }
 
             await FeatureSchema.EnsureTheoryTrainingColumnsAsync(_db, ct);
+            await BackfillSettingsJsonNullsAsync(ct);
             _db.ChangeTracker.Clear();
             return await GetOrCreateSettingsCoreAsync(schoolUserId, ct);
         }
@@ -2195,10 +2197,13 @@ public sealed class TheoryTrainingService
         int schoolUserId,
         CancellationToken ct)
     {
+        await BackfillSettingsJsonNullsAsync(ct);
+
         var settings = await _db.Set<TheoryTrainingSettings>()
             .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId, ct);
         if (settings is not null)
         {
+            NormalizeSettingsJson(settings);
             return settings;
         }
 
@@ -2208,11 +2213,48 @@ public sealed class TheoryTrainingService
             RequiredTheoryHours = TheoryHourStandards.DefaultTheoryHours,
             RequiredWorkshopHours = TheoryHourStandards.DefaultWorkshopHours,
             LicenseCategoryPoliciesJson = "{}",
+            SavedBookingPresetsJson = "[]",
+            HiddenBookingPresetKeysJson = "[]",
             UpdatedAt = _clock.UtcNow
         };
         await _db.Set<TheoryTrainingSettings>().AddAsync(settings, ct);
         await _db.SaveChangesAsync(ct);
         return settings;
+    }
+
+    private async Task BackfillSettingsJsonNullsAsync(CancellationToken ct)
+    {
+        if (!_db.Database.IsNpgsql())
+        {
+            return;
+        }
+
+        try
+        {
+            await _db.Database.ExecuteSqlRawAsync(
+                """
+                UPDATE "TheoryTrainingSettings"
+                SET
+                    "LicenseCategoryPoliciesJson" = COALESCE("LicenseCategoryPoliciesJson", '{}'),
+                    "SavedBookingPresetsJson" = COALESCE("SavedBookingPresetsJson", '[]'),
+                    "HiddenBookingPresetKeysJson" = COALESCE("HiddenBookingPresetKeysJson", '[]')
+                WHERE "LicenseCategoryPoliciesJson" IS NULL
+                   OR "SavedBookingPresetsJson" IS NULL
+                   OR "HiddenBookingPresetKeysJson" IS NULL
+                """,
+                ct);
+        }
+        catch
+        {
+            // Columns may still be missing; EnsureTheoryTrainingColumnsAsync handles that.
+        }
+    }
+
+    private static void NormalizeSettingsJson(TheoryTrainingSettings settings)
+    {
+        settings.LicenseCategoryPoliciesJson ??= "{}";
+        settings.SavedBookingPresetsJson ??= "[]";
+        settings.HiddenBookingPresetKeysJson ??= "[]";
     }
 
     private static bool IsLikelyMissingColumn(Exception ex)
@@ -2226,6 +2268,31 @@ public sealed class TheoryTrainingService
                 || msg.Contains("Invalid column name", StringComparison.OrdinalIgnoreCase))
             {
                 return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsNullJsonColumnCast(Exception ex)
+    {
+        for (var current = ex; current is not null; current = current.InnerException)
+        {
+            if (current is InvalidCastException
+                && current.Message.Contains("is null", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            var msg = current.Message;
+            if (msg.Contains("LicenseCategoryPoliciesJson", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("SavedBookingPresetsJson", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("HiddenBookingPresetKeysJson", StringComparison.OrdinalIgnoreCase))
+            {
+                if (msg.Contains("null", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
             }
         }
 
@@ -2437,8 +2504,10 @@ public sealed class TheoryTrainingService
         return ("Recuerda asistir a tu clase reservada.", null, null);
     }
 
-    private static TheorySettingsDto MapSettings(TheoryTrainingSettings s) =>
-        new(
+    private static TheorySettingsDto MapSettings(TheoryTrainingSettings s)
+    {
+        NormalizeSettingsJson(s);
+        return new(
             s.DefaultDurationMinutes,
             s.MinCancelHours,
             s.ReservationCloseMinutesBefore,
@@ -2462,6 +2531,7 @@ public sealed class TheoryTrainingService
             s.NotifyClassReminder24h,
             s.NotifyClassReminder1h,
             s.NotifyExamReminder24h);
+    }
 
     private async Task LogAuthorizationEventAsync(
         int schoolUserId,
