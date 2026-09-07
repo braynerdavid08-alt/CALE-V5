@@ -23,10 +23,13 @@ public sealed class TheoryBookingPolicy
         BookingWindowEnd = settings.StudentBookingWindowEnd
     };
 
-    public int MaxClassesFor(bool isSaturdayGroup, bool isSaturdaySession) =>
-        isSaturdayGroup && isSaturdaySession
+    public int MaxClassesFor(bool isSaturdayGroup, bool isSaturdaySession)
+    {
+        _ = isSaturdayGroup; // limit follows the calendar day of the session
+        return isSaturdaySession
             ? MaxSaturdayClassesPerDay
             : MaxWeekdayClassesPerDay;
+    }
 
     public bool HasClassLimit(bool isSaturdayGroup, bool isSaturdaySession) =>
         MaxClassesFor(isSaturdayGroup, isSaturdaySession) > 0;
@@ -60,28 +63,28 @@ public sealed class TheoryBookingPolicy
 
         if (policy.MaxWeekdayClassesPerDay == 0)
         {
-            parts.Add("entre semana sin límite de clases por día");
+            parts.Add("entre semana sin límite de clases (programaciones) por día");
         }
         else if (policy.MaxWeekdayClassesPerDay == 1)
         {
-            parts.Add("entre semana: 1 clase por día");
+            parts.Add("entre semana: 1 clase (programación) por día");
         }
         else
         {
-            parts.Add($"entre semana: hasta {policy.MaxWeekdayClassesPerDay} clases por día");
+            parts.Add($"entre semana: hasta {policy.MaxWeekdayClassesPerDay} clases (programaciones) por día");
         }
 
         if (policy.MaxSaturdayClassesPerDay == 0)
         {
-            parts.Add("sábados sin límite de clases");
+            parts.Add("sábados sin límite de clases (programaciones)");
         }
         else if (policy.MaxSaturdayClassesPerDay == 1)
         {
-            parts.Add("sábados: 1 clase por día");
+            parts.Add("sábados: 1 clase (programación) por día");
         }
         else
         {
-            parts.Add($"sábados: hasta {policy.MaxSaturdayClassesPerDay} clases por día");
+            parts.Add($"sábados: hasta {policy.MaxSaturdayClassesPerDay} clases (programaciones) por día");
         }
 
         if (policy.MaxDailyTheoryMinutes > 0)

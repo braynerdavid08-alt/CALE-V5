@@ -164,12 +164,15 @@
 
           <fieldset class="school-field-group">
             <legend>Autorizaciones</legend>
+            <p class="muted auth-override-hint">
+              Puedes autorizar aunque el contador de horas no cuadre. La escuela confirma bajo su responsabilidad.
+            </p>
             <div class="school-flag-list">
               <label class="school-flag-field">
                 <input
                   type="checkbox"
                   [checked]="s.theoryExamAuthorized"
-                  [disabled]="!canAuthorizeTheoryExam() && !s.theoryExamAuthorized"
+                  [disabled]="!!trainingOf()?.theoryExamPassed && !s.theoryExamAuthorized"
                   (change)="toggleTheoryExamAuth($any($event.target).checked)" />
                 <span>
                   <strong>Examen teórico</strong>
@@ -180,7 +183,6 @@
                 <input
                   type="checkbox"
                   [checked]="s.practicalAuthorized"
-                  [disabled]="!canAuthorizePractical() && !s.practicalAuthorized"
                   (change)="togglePracticalAuth($any($event.target).checked)" />
                 <span>
                   <strong>Clases de manejo</strong>

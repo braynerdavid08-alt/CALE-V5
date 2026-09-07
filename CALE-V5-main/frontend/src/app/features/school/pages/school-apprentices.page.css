@@ -1,6 +1,7 @@
 .warn { color: var(--color-warning); font-weight: 700; }
 .ok { color: var(--color-success, #1a7f4b); font-weight: 600; }
 .muted { color: var(--color-text-secondary); }
+.auth-override-hint { margin: 0 0 0.75rem; font-size: var(--text-sm); line-height: 1.4; }
 .login-hint { margin: 0.25rem 0 0.75rem; font-size: var(--text-sm); }
 .empty-guide {
   margin-bottom: 1rem;

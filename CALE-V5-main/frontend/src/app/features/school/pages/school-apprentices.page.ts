@@ -217,18 +217,15 @@ export class SchoolApprenticesPage implements OnInit {
     if (row.theoryExamAuthorized) {
       return 'Autorizado para agendar cita de examen.';
     }
-    if (this.hasBalanceDue()) {
-      return 'Tiene saldo pendiente — registra el pago antes de autorizar.';
-    }
     if (this.detailLoading() && !this.trainingOf(row)) {
       return 'Cargando progreso…';
     }
     if (this.detailError() && !this.trainingOf(row)) {
-      return `No se pudo cargar el progreso: ${this.detailError()}`;
+      return `Progreso no disponible (${this.detailError()}). Aun así puedes autorizar manualmente.`;
     }
     const t = this.trainingOf(row);
     if (!t) {
-      return 'Sin datos de progreso. Revisa Programación teórica o recarga la página.';
+      return 'Sin datos de progreso. Puedes autorizar manualmente si corresponde.';
     }
     if (t.theoryExamPassed) {
       return 'Ya aprobó el examen teórico.';
@@ -236,7 +233,8 @@ export class SchoolApprenticesPage implements OnInit {
     if (this.canAuthorizeTheoryExam()) {
       return 'Completó teoría y taller — listo para autorizar.';
     }
-    return `Pendiente: ${t.theoryHoursCompleted}/${t.theoryHoursRequired} h teoría, ${t.workshopHoursCompleted}/${t.workshopHoursRequired} h taller. Marca asistencia en Programación para acumular horas.`;
+    const balance = this.hasBalanceDue() ? ' Tiene saldo pendiente.' : '';
+    return `Contador: ${t.theoryHoursCompleted}/${t.theoryHoursRequired} h teoría, ${t.workshopHoursCompleted}/${t.workshopHoursRequired} h taller.${balance} Puedes autorizar igual si la escuela lo confirma.`;
   }
 
   practicalAuthHint(): string {
@@ -245,25 +243,44 @@ export class SchoolApprenticesPage implements OnInit {
     if (row.practicalAuthorized) {
       return 'Autorizado para programar y reservar práctica.';
     }
-    if (this.hasBalanceDue()) {
-      return 'Tiene saldo pendiente — registra el pago antes de autorizar.';
-    }
     if (this.detailLoading() && !this.trainingOf(row)) {
       return 'Cargando progreso…';
     }
     if (this.canAuthorizePractical()) {
       return 'Aprobó el examen — listo para autorizar manejo.';
     }
-    return 'Debe aprobar el examen teórico primero.';
+    if (this.trainingOf()?.theoryExamPassed) {
+      return this.hasBalanceDue()
+        ? 'Saldo pendiente. Puedes autorizar manejo manualmente si corresponde.'
+        : 'Listo según examen; confirma autorización de manejo.';
+    }
+    return 'Aún no figura examen aprobado. Puedes autorizar manejo manualmente si la escuela lo confirma.';
   }
 
   hasBalanceDue(): boolean {
     return (this.selected()?.balanceDue ?? 0) > 0;
   }
 
+  private confirmManualOverride(kind: 'examen' | 'manejo'): boolean {
+    if (kind === 'examen' && this.canAuthorizeTheoryExam()) {
+      return true;
+    }
+    if (kind === 'manejo' && this.canAuthorizePractical()) {
+      return true;
+    }
+    return confirm(
+      kind === 'examen'
+        ? 'El aprendiz no cumple todos los requisitos automáticos (horas/saldo). ¿Autorizar examen teórico de todas formas?'
+        : 'El aprendiz no cumple todos los requisitos automáticos (examen/saldo). ¿Autorizar clases de manejo de todas formas?'
+    );
+  }
+
   toggleTheoryExamAuth(authorized: boolean): void {
     const row = this.selected();
     if (!row) return;
+    if (authorized && !this.confirmManualOverride('examen')) {
+      return;
+    }
     this.detailError.set(null);
     this.theoryApi.updateEnrollment(row.studentUserId, {
       status: row.enrollmentStatus,
@@ -277,6 +294,9 @@ export class SchoolApprenticesPage implements OnInit {
   togglePracticalAuth(authorized: boolean): void {
     const row = this.selected();
     if (!row) return;
+    if (authorized && !this.confirmManualOverride('manejo')) {
+      return;
+    }
     this.detailError.set(null);
     this.theoryApi.updateEnrollment(row.studentUserId, {
       status: row.enrollmentStatus,
