@@ -1,108 +1,41 @@
-using System.Text.Json;
 using Cale.Modules.TheoreticalTraining.Application.DTOs;
 using Cale.Modules.TheoreticalTraining.Domain;
 
 namespace Cale.Modules.TheoreticalTraining.Application;
 
-internal sealed class LicenseCategoryPolicyStore
-{
-    public int? RequiredTheoryHours { get; set; }
-    public int? RequiredWorkshopHours { get; set; }
-}
-
+/// <summary>
+/// Hour requirements are platform constants (TheoryHourStandards), not school-editable.
+/// </summary>
 public static class LicenseCategoryPolicyHelper
 {
-    private static readonly JsonSerializerOptions JsonOpts = new()
+    public static IReadOnlyList<LicenseCategoryPolicyDto> BuildPolicyList(TheoryTrainingSettings? settings = null)
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
-
-    public static IReadOnlyList<LicenseCategoryPolicyDto> BuildPolicyList(TheoryTrainingSettings settings)
-    {
-        var overrides = Deserialize(settings.LicenseCategoryPoliciesJson);
+        _ = settings; // retained for call-site compatibility
         return StudentLicenseCategories.Presets
-            .Select(code => new LicenseCategoryPolicyDto(
-                code,
-                StudentLicenseCategories.FormatLabel(code),
-                overrides.TryGetValue(code, out var stored) ? stored.RequiredTheoryHours : null,
-                overrides.TryGetValue(code, out stored) ? stored.RequiredWorkshopHours : null))
+            .Select(code =>
+            {
+                var (theory, workshop) = TheoryHourStandards.ForLicense(code);
+                return new LicenseCategoryPolicyDto(
+                    code,
+                    StudentLicenseCategories.FormatLabel(code),
+                    theory,
+                    workshop);
+            })
             .ToList();
     }
 
+    /// <summary>Ignored — hours are fixed constants. Kept so callers compile.</summary>
     public static string SerializePolicies(IReadOnlyList<LicenseCategoryPolicyDto>? policies)
     {
-        if (policies is null || policies.Count == 0)
-        {
-            return "{}";
-        }
-
-        var dict = new Dictionary<string, LicenseCategoryPolicyStore>(StringComparer.OrdinalIgnoreCase);
-        foreach (var policy in policies)
-        {
-            if (string.IsNullOrWhiteSpace(policy.Code))
-            {
-                continue;
-            }
-
-            if (policy.RequiredTheoryHours is null && policy.RequiredWorkshopHours is null)
-            {
-                continue;
-            }
-
-            dict[policy.Code.Trim().ToUpperInvariant()] = new LicenseCategoryPolicyStore
-            {
-                RequiredTheoryHours = policy.RequiredTheoryHours,
-                RequiredWorkshopHours = policy.RequiredWorkshopHours
-            };
-        }
-
-        return JsonSerializer.Serialize(dict, JsonOpts);
+        _ = policies;
+        return "{}";
     }
 
     public static (int TheoryHours, int WorkshopHours) ResolveHourRequirements(
         TheoryTrainingSettings settings,
         string? licenseCategories)
     {
-        var code = NormalizeLicenseCode(licenseCategories);
-        var overrides = Deserialize(settings.LicenseCategoryPoliciesJson);
-        if (code is not null
-            && overrides.TryGetValue(code, out var stored))
-        {
-            return (
-                stored.RequiredTheoryHours ?? settings.RequiredTheoryHours,
-                stored.RequiredWorkshopHours ?? settings.RequiredWorkshopHours);
-        }
-
-        return (settings.RequiredTheoryHours, settings.RequiredWorkshopHours);
-    }
-
-    private static string? NormalizeLicenseCode(string? licenseCategories)
-    {
-        if (string.IsNullOrWhiteSpace(licenseCategories))
-        {
-            return null;
-        }
-
-        var trimmed = licenseCategories.Trim();
-        return StudentLicenseCategories.Presets
-            .FirstOrDefault(p => string.Equals(p, trimmed, StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static Dictionary<string, LicenseCategoryPolicyStore> Deserialize(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json) || json.Trim() == "{}")
-        {
-            return new Dictionary<string, LicenseCategoryPolicyStore>(StringComparer.OrdinalIgnoreCase);
-        }
-
-        try
-        {
-            return JsonSerializer.Deserialize<Dictionary<string, LicenseCategoryPolicyStore>>(json, JsonOpts)
-                ?? new Dictionary<string, LicenseCategoryPolicyStore>(StringComparer.OrdinalIgnoreCase);
-        }
-        catch (JsonException)
-        {
-            return new Dictionary<string, LicenseCategoryPolicyStore>(StringComparer.OrdinalIgnoreCase);
-        }
+        _ = settings;
+        return TheoryHourStandards.ForLicense(licenseCategories);
     }
 }

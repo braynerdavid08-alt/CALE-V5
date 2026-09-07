@@ -232,6 +232,15 @@
   backdrop-filter: blur(8px);
   box-shadow: 0 -4px 20px color-mix(in srgb, #000 18%, transparent);
 }
+.settings-readonly {
+  display: grid;
+  gap: 0.25rem;
+  font-size: var(--text-sm);
+}
+.settings-readonly strong {
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
 .warn-banner {
   margin: 0.5rem 0 0.75rem;
   padding: 0.65rem 0.85rem;

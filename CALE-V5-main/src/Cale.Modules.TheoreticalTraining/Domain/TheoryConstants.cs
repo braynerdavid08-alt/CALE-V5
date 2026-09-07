@@ -149,6 +149,64 @@ public static class StudentLicenseCategories
     }
 }
 
+public static class TheoryHourStandards
+{
+    /// <summary>Horas fijas de plataforma — no editables por la escuela.</summary>
+    public const int DefaultTheoryHours = 20;
+    public const int DefaultWorkshopHours = 5;
+
+    public const int A2TheoryHours = 20;
+    public const int A2WorkshopHours = 3;
+
+    public const int B1TheoryHours = 20;
+    public const int B1WorkshopHours = 5;
+
+    public const int C1TheoryHours = 20;
+    public const int C1WorkshopHours = 5;
+
+    public const int A2B1TheoryHours = 20;
+    public const int A2B1WorkshopHours = 5;
+
+    public const int A2C1TheoryHours = 20;
+    public const int A2C1WorkshopHours = 5;
+
+    public static (int TheoryHours, int WorkshopHours) ForLicense(string? licenseCategories)
+    {
+        if (string.IsNullOrWhiteSpace(licenseCategories))
+        {
+            return (DefaultTheoryHours, DefaultWorkshopHours);
+        }
+
+        var trimmed = licenseCategories.Trim();
+        if (trimmed.Equals(StudentLicenseCategories.A2, StringComparison.OrdinalIgnoreCase))
+        {
+            return (A2TheoryHours, A2WorkshopHours);
+        }
+
+        if (trimmed.Equals(StudentLicenseCategories.B1, StringComparison.OrdinalIgnoreCase))
+        {
+            return (B1TheoryHours, B1WorkshopHours);
+        }
+
+        if (trimmed.Equals(StudentLicenseCategories.C1, StringComparison.OrdinalIgnoreCase))
+        {
+            return (C1TheoryHours, C1WorkshopHours);
+        }
+
+        if (trimmed.Equals(StudentLicenseCategories.A2B1, StringComparison.OrdinalIgnoreCase))
+        {
+            return (A2B1TheoryHours, A2B1WorkshopHours);
+        }
+
+        if (trimmed.Equals(StudentLicenseCategories.A2C1, StringComparison.OrdinalIgnoreCase))
+        {
+            return (A2C1TheoryHours, A2C1WorkshopHours);
+        }
+
+        return (DefaultTheoryHours, DefaultWorkshopHours);
+    }
+}
+
 public static class TheoryAttendanceLimits
 {
     public const int DefaultMaxWeekdayClassesPerDay = 1;

@@ -34,8 +34,8 @@ public sealed class TheoryTrainingSettings
     public int DefaultDurationMinutes { get; set; } = 120;
     public int MinCancelHours { get; set; } = 2;
     public int ReservationCloseMinutesBefore { get; set; }
-    public int RequiredTheoryHours { get; set; } = 20;
-    public int RequiredWorkshopHours { get; set; } = 10;
+    public int RequiredTheoryHours { get; set; } = TheoryHourStandards.DefaultTheoryHours;
+    public int RequiredWorkshopHours { get; set; } = TheoryHourStandards.DefaultWorkshopHours;
     public int? TheoryExamId { get; set; }
     public bool WeekdaysEnabled { get; set; } = true;
     public bool SaturdayEnabled { get; set; } = true;
