@@ -264,7 +264,7 @@ export class TeacherApi {
 
   saveQuestion(body: unknown, id?: number) {
     return id
-      ? this.http.put<unknown>(`${this.base}/api/questions/${id}`, body)
+      ? this.http.put<void>(`${this.base}/api/questions/${id}`, body)
       : this.http.post<{ id: number }>(`${this.base}/api/questions`, body);
   }
 
