@@ -76,7 +76,7 @@ public sealed class SaveQuestionHandler
             request.Type,
             request.Topic,
             request.ImageUrl,
-            request.Explanation,
+            ExamImportMarkers.ClearNeedsReview(request.Explanation),
             MapOptions(request.Options),
             _clock.UtcNow);
         question.SetActive(request.IsActive);

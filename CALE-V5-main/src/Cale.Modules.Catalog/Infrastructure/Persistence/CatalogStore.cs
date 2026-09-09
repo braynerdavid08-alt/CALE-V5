@@ -142,7 +142,8 @@ public sealed class CatalogStore : ICatalogStore
                 x.q.CreatedById,
                 x.q.ImageUrl,
                 x.q.Options.Count,
-                x.q.Options.Any(o => o.IsCorrect)))
+                x.q.Options.Any(o => o.IsCorrect)
+                    && (x.q.Explanation == null || !x.q.Explanation.Contains("Importada sin clave"))))
             .ToListAsync(ct);
 
         return new PagedResult<QuestionListDto>(items, page, pageSize, total);

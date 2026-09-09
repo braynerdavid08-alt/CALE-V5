@@ -20,7 +20,7 @@ public sealed class ListQuestionsHandler
         CancellationToken ct) =>
         _store.ListQuestionsAsync(
             page < 1 ? 1 : page,
-            pageSize is < 1 or > 100 ? 20 : pageSize,
+            pageSize is < 1 or > 200 ? 20 : pageSize,
             bankId,
             search,
             active,

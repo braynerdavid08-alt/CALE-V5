@@ -52,8 +52,12 @@ export class TeacherExamQuestionsPage implements OnInit, OnDestroy {
   readonly selectedId = signal<number | null>(null);
   readonly filter = signal<FilterMode>('all');
   readonly search = signal('');
+  readonly page = signal(1);
+  readonly pageSize = signal(10);
+  readonly totalItems = signal(0);
   readonly blocks = signal<Array<{ id: number; name: string }>>([]);
   readonly isNew = signal(false);
+  readonly pageSizeOptions = [10, 20, 50, 100] as const;
 
   examId = 0;
   bankId = 0;
@@ -68,6 +72,7 @@ export class TeacherExamQuestionsPage implements OnInit, OnDestroy {
   options: OptionDraft[] = this.blankOptions();
   private lastType = 'Seleccion multiple';
   private suppressAutosave = false;
+  private searchTimer?: ReturnType<typeof setTimeout>;
 
   readonly filtered = computed(() => {
     const q = this.search().trim().toLowerCase();
@@ -89,6 +94,18 @@ export class TeacherExamQuestionsPage implements OnInit, OnDestroy {
     });
   });
 
+  readonly totalPages = computed(() => {
+    const size = this.pageSize();
+    const total = this.filtered().length;
+    return Math.max(1, Math.ceil(total / size));
+  });
+
+  readonly paged = computed(() => {
+    const size = this.pageSize();
+    const start = (this.page() - 1) * size;
+    return this.filtered().slice(start, start + size);
+  });
+
   readonly missingKeyCount = computed(
     () => this.items().filter((i) => !i.hasCorrectAnswer).length
   );
@@ -106,6 +123,10 @@ export class TeacherExamQuestionsPage implements OnInit, OnDestroy {
     }
     return this.filtered().findIndex((i) => i.id === id);
   });
+
+  get pageLabel(): string {
+    return `Pág. ${this.page()} de ${this.totalPages()}`;
+  }
 
   get isTrueFalse(): boolean {
     return this.type === 'Verdadero/Falso';
@@ -144,6 +165,9 @@ export class TeacherExamQuestionsPage implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.autosaveSub?.unsubscribe();
+    if (this.searchTimer) {
+      clearTimeout(this.searchTimer);
+    }
   }
 
   mediaUrl(path?: string | null): string | null {
@@ -163,10 +187,42 @@ export class TeacherExamQuestionsPage implements OnInit, OnDestroy {
 
   setFilter(mode: FilterMode): void {
     this.filter.set(mode);
+    this.page.set(1);
   }
 
   onSearch(value: string): void {
     this.search.set(value);
+    if (this.searchTimer) {
+      clearTimeout(this.searchTimer);
+    }
+    this.searchTimer = setTimeout(() => this.page.set(1), 0);
+  }
+
+  setPageSize(size: number): void {
+    this.pageSize.set(size);
+    this.page.set(1);
+  }
+
+  goToPage(page: number): void {
+    const max = this.totalPages();
+    const next = Math.min(Math.max(1, page), max);
+    this.page.set(next);
+  }
+
+  prevPage(): void {
+    this.goToPage(this.page() - 1);
+  }
+
+  nextPage(): void {
+    this.goToPage(this.page() + 1);
+  }
+
+  listNumber(indexOnPage: number): number {
+    return (this.page() - 1) * this.pageSize() + indexOnPage + 1;
+  }
+
+  pageNumbers(): number[] {
+    return Array.from({ length: this.totalPages() }, (_, i) => i + 1);
   }
 
   selectQuestion(id: number): void {
@@ -214,7 +270,9 @@ export class TeacherExamQuestionsPage implements OnInit, OnDestroy {
     const idx = this.selectedIndex();
     const list = this.filtered();
     if (idx > 0) {
-      this.selectQuestion(list[idx - 1].id);
+      const target = list[idx - 1];
+      this.ensurePageForIndex(idx - 1);
+      this.selectQuestion(target.id);
     }
   }
 
@@ -222,8 +280,14 @@ export class TeacherExamQuestionsPage implements OnInit, OnDestroy {
     const idx = this.selectedIndex();
     const list = this.filtered();
     if (idx >= 0 && idx < list.length - 1) {
+      this.ensurePageForIndex(idx + 1);
       this.selectQuestion(list[idx + 1].id);
     }
+  }
+
+  private ensurePageForIndex(index: number): void {
+    const size = this.pageSize();
+    this.page.set(Math.floor(index / size) + 1);
   }
 
   markDirty(): void {
@@ -350,7 +414,7 @@ export class TeacherExamQuestionsPage implements OnInit, OnDestroy {
       type: this.type,
       topic: this.topic.trim() || null,
       imageUrl: this.imageUrl || null,
-      explanation: this.explanation.trim() || null,
+      explanation: this.clearNeedsReviewMarker(this.explanation.trim() || null),
       isActive: this.isActive,
       options: this.options.map((o) => ({
         text: o.text.trim(),
@@ -429,22 +493,43 @@ export class TeacherExamQuestionsPage implements OnInit, OnDestroy {
   }
 
   private reloadList(selectId?: number): void {
-    this.api.questions(1, 200, this.bankId).subscribe({
-      next: (page) => {
-        this.items.set(page.items);
-        this.loading.set(false);
-        const pick = selectId ?? this.selectedId() ?? page.items[0]?.id;
-        if (pick) {
-          this.loadQuestion(pick);
-        } else if (!this.isNew()) {
-          this.startNew();
+    this.loadAllQuestions(selectId);
+  }
+
+  private loadAllQuestions(selectId?: number): void {
+    const accumulate: QuestionListDto[] = [];
+    const loadPage = (page: number) => {
+      this.api.questions(page, 200, this.bankId).subscribe({
+        next: (result) => {
+          accumulate.push(...result.items);
+          this.totalItems.set(result.totalItems);
+          if (page < result.totalPages) {
+            loadPage(page + 1);
+            return;
+          }
+          this.items.set(accumulate);
+          this.loading.set(false);
+          if (this.page() > this.totalPages()) {
+            this.page.set(this.totalPages());
+          }
+          const pick = selectId ?? this.selectedId() ?? accumulate[0]?.id;
+          if (pick) {
+            const idx = this.filtered().findIndex((i) => i.id === pick);
+            if (idx >= 0) {
+              this.ensurePageForIndex(idx);
+            }
+            this.loadQuestion(pick);
+          } else if (!this.isNew()) {
+            this.startNew();
+          }
+        },
+        error: (err) => {
+          this.loading.set(false);
+          this.error.set(mapApiError(err));
         }
-      },
-      error: (err) => {
-        this.loading.set(false);
-        this.error.set(mapApiError(err));
-      }
-    });
+      });
+    };
+    loadPage(1);
   }
 
   private loadQuestion(id: number): void {
@@ -505,5 +590,21 @@ export class TeacherExamQuestionsPage implements OnInit, OnDestroy {
         this.error.set(mapApiError(err));
       }
     });
+  }
+
+  private clearNeedsReviewMarker(explanation?: string | null): string | null {
+    if (!explanation) {
+      return null;
+    }
+    if (!/importada sin clave/i.test(explanation)) {
+      return explanation;
+    }
+    const cleaned = explanation
+      .replace(
+        /Importada sin clave: revisa y marca la respuesta correcta antes de publicar\.?/gi,
+        ''
+      )
+      .trim();
+    return cleaned || null;
   }
 }

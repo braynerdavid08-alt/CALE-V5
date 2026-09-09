@@ -33,7 +33,7 @@
   } @else {
     <div class="eq-stats">
       <button type="button" class="stat" [class.on]="filter() === 'all'" (click)="setFilter('all')">
-        <strong>{{ items().length }}</strong><span>Total</span>
+        <strong>{{ totalItems() || items().length }}</strong><span>Total</span>
       </button>
       <button type="button" class="stat warn" [class.on]="filter() === 'no-key'" (click)="setFilter('no-key')">
         <strong>{{ missingKeyCount() }}</strong><span>Sin clave</span>
@@ -57,17 +57,31 @@
             placeholder="Buscar pregunta…"
             [ngModel]="search()"
             (ngModelChange)="onSearch($event)" />
+          <div class="page-size-row">
+            <label>
+              Ver
+              <select
+                [ngModel]="pageSize()"
+                (ngModelChange)="setPageSize(+$event)"
+                name="pageSize">
+                @for (size of pageSizeOptions; track size) {
+                  <option [ngValue]="size">{{ size }}</option>
+                }
+              </select>
+              por página
+            </label>
+          </div>
           <ui-button type="button" (click)="startNew()">+ Nueva</ui-button>
         </div>
         <ul class="slide-list">
-          @for (q of filtered(); track q.id; let i = $index) {
+          @for (q of paged(); track q.id; let i = $index) {
             <li>
               <button
                 type="button"
                 class="slide-card"
                 [class.on]="selectedId() === q.id"
                 (click)="selectQuestion(q.id)">
-                <span class="num">{{ i + 1 }}</span>
+                <span class="num">{{ listNumber(i) }}</span>
                 @if (mediaUrl(q.imageUrl); as img) {
                   <img [src]="img" alt="" />
                 } @else {
@@ -92,6 +106,24 @@
             <li class="muted empty-rail">Sin preguntas con este filtro. Crea una nueva.</li>
           }
         </ul>
+        <div class="pager">
+          <button type="button" class="pager-btn" (click)="prevPage()" [disabled]="page() <= 1">← Ant.</button>
+          <span class="pager-label">{{ pageLabel }}</span>
+          <button type="button" class="pager-btn" (click)="nextPage()" [disabled]="page() >= totalPages()">Sig. →</button>
+        </div>
+        @if (totalPages() > 1) {
+          <div class="pager-pages">
+            @for (p of pageNumbers(); track p) {
+              <button
+                type="button"
+                class="page-dot"
+                [class.on]="page() === p"
+                (click)="goToPage(p)">
+                {{ p }}
+              </button>
+            }
+          </div>
+        }
       </aside>
 
       <section class="eq-preview" aria-label="Vista estudiante">
