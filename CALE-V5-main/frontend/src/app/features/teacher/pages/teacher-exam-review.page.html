@@ -63,6 +63,7 @@
               <button
                 type="button"
                 class="opt"
+                [class.correct]="opt.isCorrect"
                 [disabled]="savingId() === q.id"
                 (click)="markCorrect(q, oi)">
                 <span class="letter">{{ letter(oi) }}</span>

@@ -98,6 +98,8 @@ export class TeacherExamReviewPage implements OnInit {
 
     this.savingId.set(question.id);
     this.error.set(null);
+    this.ok.set(null);
+    const explanation = this.clearNeedsReviewMarker(question.explanation);
     this.api
       .saveQuestion(
         {
@@ -107,7 +109,7 @@ export class TeacherExamReviewPage implements OnInit {
           type: question.type,
           topic: question.topic ?? null,
           imageUrl: question.imageUrl ?? null,
-          explanation: question.explanation ?? null,
+          explanation,
           isActive: question.isActive,
           options
         },
@@ -129,6 +131,22 @@ export class TeacherExamReviewPage implements OnInit {
           this.error.set(mapApiError(err));
         }
       });
+  }
+
+  private clearNeedsReviewMarker(explanation?: string | null): string | null {
+    if (!explanation) {
+      return null;
+    }
+    if (!/importada sin clave/i.test(explanation)) {
+      return explanation;
+    }
+    const cleaned = explanation
+      .replace(
+        /Importada sin clave: revisa y marca la respuesta correcta antes de publicar\.?/gi,
+        ''
+      )
+      .trim();
+    return cleaned || null;
   }
 
   assignAndGo(): void {
