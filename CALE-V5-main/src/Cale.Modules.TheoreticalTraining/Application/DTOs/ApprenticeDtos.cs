@@ -113,12 +113,41 @@ public sealed record EnrollmentAuthorizationEventDto(
     string PerformedByName,
     DateTime CreatedAt);
 
+public sealed record ApprenticePaymentAbonoDto(
+    int Id,
+    int StudentUserId,
+    string PaymentDate,
+    decimal Amount,
+    string? PaymentMethod,
+    string? ReceiptNumber,
+    string Kind,
+    string? Notes,
+    string? RecordedByName,
+    DateTime CreatedAt);
+
+public sealed record RegisterApprenticeAbonoRequest(
+    DateOnly PaymentDate,
+    decimal Amount,
+    string? PaymentMethod,
+    string? ReceiptNumber,
+    string? Notes);
+
+public sealed record ApprenticeCarteraDto(
+    decimal AmountDue,
+    decimal AmountPaid,
+    decimal BalanceDue,
+    decimal AccountsReceivable,
+    string? PaymentMethod,
+    string? ReceiptNumber,
+    IReadOnlyList<ApprenticePaymentAbonoDto> Abonos);
+
 public sealed record ApprenticeDetailDto(
     ApprenticeDto Profile,
     PracticalEligibilityDto Training,
     ApprenticePracticalSummaryDto Practical,
     ApprenticeExamSummaryDto? NextExam,
-    IReadOnlyList<EnrollmentAuthorizationEventDto> AuthorizationHistory);
+    IReadOnlyList<EnrollmentAuthorizationEventDto> AuthorizationHistory,
+    ApprenticeCarteraDto? Cartera = null);
 
 public sealed record SchoolDashboardBalanceRowDto(
     int StudentUserId,

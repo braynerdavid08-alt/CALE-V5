@@ -186,6 +186,86 @@
   font-size: 1.05rem;
 }
 
+.abono-form,
+.abono-list {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.abono-form h3,
+.abono-list h3 {
+  margin: 0 0 0.65rem;
+  font-size: 0.9rem;
+}
+
+.abono-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-bottom: 0.75rem;
+}
+
+.abono-grid label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.abono-grid .span-2 {
+  grid-column: 1 / -1;
+}
+
+.abono-grid input {
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-background);
+  color: inherit;
+  font: inherit;
+}
+
+.abono-msg {
+  margin: 0 0 0.55rem;
+  font-size: var(--text-sm);
+}
+
+.abonos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.abonos li {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+}
+
+.abono-main {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.abono-main time {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.abonos small {
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+}
+
 .tip {
   margin: 0.75rem 0 0;
   font-size: var(--text-xs);
@@ -229,4 +309,5 @@
 @media (max-width: 900px) {
   .grid { grid-template-columns: 1fr; }
   .money { grid-template-columns: 1fr; }
+  .abono-grid { grid-template-columns: 1fr; }
 }

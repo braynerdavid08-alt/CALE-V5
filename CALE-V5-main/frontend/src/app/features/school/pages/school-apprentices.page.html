@@ -284,6 +284,11 @@
 
           <fieldset class="school-field-group">
             <legend>Pagos</legend>
+            <p class="muted tip" style="margin: 0 0 0.75rem">
+              Para registrar abonos con historial, usa
+              <a [routerLink]="['/school/apprentices', s.studentUserId]">Expediente 360°</a>.
+              Aquí ajustas el valor del curso y totales.
+            </p>
             <div class="school-form-grid">
               <label class="school-field">
                 <span class="school-field-label">Valor a pagar (COP)</span>

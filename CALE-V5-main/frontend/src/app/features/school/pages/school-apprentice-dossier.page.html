@@ -104,7 +104,7 @@
         </ul>
       </section>
 
-      <section class="school-card">
+      <section class="school-card cartera-card">
         <h2>Cartera</h2>
         <div class="money">
           <div>
@@ -113,30 +113,91 @@
           </div>
           <div>
             <span class="label">Pagado</span>
-            <strong>{{ formatMoney(p.amountPaid) }}</strong>
+            <strong>{{ formatMoney(d.cartera?.amountPaid ?? p.amountPaid) }}</strong>
           </div>
           <div>
             <span class="label">Saldo</span>
-            <strong [class.warn]="p.balanceDue > 0">{{ formatMoney(p.balanceDue) }}</strong>
+            <strong [class.warn]="(d.cartera?.balanceDue ?? p.balanceDue) > 0">
+              {{ formatMoney(d.cartera?.balanceDue ?? p.balanceDue) }}
+            </strong>
           </div>
         </div>
         <ul class="facts tight">
-          <li>Método: {{ p.paymentMethod || '—' }}</li>
-          <li>Recibo: {{ p.receiptNumber || '—' }}</li>
-          @if (p.balancePaymentAmount) {
-            <li>
-              Último abono saldo: {{ formatMoney(p.balancePaymentAmount) }}
-              @if (p.balancePaymentDate) {
-                · {{ p.balancePaymentDate }}
-              }
-            </li>
-          }
-          <li>CxC: {{ formatMoney(p.accountsReceivable) }}</li>
+          <li>Método: {{ d.cartera?.paymentMethod || p.paymentMethod || '—' }}</li>
+          <li>Recibo: {{ d.cartera?.receiptNumber || p.receiptNumber || '—' }}</li>
+          <li>CxC: {{ formatMoney(d.cartera?.accountsReceivable ?? p.accountsReceivable) }}</li>
         </ul>
-        <p class="muted tip">
-          El historial de abonos detallado llegará en la siguiente mejora (Cartera).
-          Por ahora edita montos en Aprendices.
-        </p>
+
+        <div class="abono-form">
+          <h3>Registrar abono</h3>
+          <div class="abono-grid">
+            <label>
+              Fecha
+              <input type="date" [(ngModel)]="abonoDate" name="abonoDate" />
+            </label>
+            <label>
+              Monto
+              <input type="number" [(ngModel)]="abonoAmount" name="abonoAmount" min="1" step="1000" placeholder="0" />
+            </label>
+            <label>
+              Método
+              <input [(ngModel)]="abonoMethod" name="abonoMethod" placeholder="Efectivo, transferencia…" />
+            </label>
+            <label>
+              Recibo
+              <input [(ngModel)]="abonoReceipt" name="abonoReceipt" placeholder="Nº recibo" />
+            </label>
+            <label class="span-2">
+              Nota
+              <input [(ngModel)]="abonoNotes" name="abonoNotes" placeholder="Opcional" />
+            </label>
+          </div>
+          @if (abonoError()) {
+            <p class="warn abono-msg">{{ abonoError() }}</p>
+          }
+          @if (abonoOk()) {
+            <p class="ok abono-msg">{{ abonoOk() }}</p>
+          }
+          <ui-button
+            type="button"
+            (click)="registerAbono()"
+            [disabled]="savingAbono()">
+            {{ savingAbono() ? 'Guardando…' : 'Registrar abono' }}
+          </ui-button>
+        </div>
+
+        <div class="abono-list">
+          <h3>Historial de abonos</h3>
+          @if (!(d.cartera?.abonos?.length)) {
+            <p class="muted tip">
+              Aún no hay movimientos registrados. Los abonos nuevos quedan aquí;
+              el valor del curso se edita en Aprendices.
+            </p>
+          } @else {
+            <ul class="abonos">
+              @for (a of d.cartera!.abonos; track a.id) {
+                <li>
+                  <div class="abono-main">
+                    <strong>{{ formatMoney(a.amount) }}</strong>
+                    <time>{{ a.paymentDate }}</time>
+                  </div>
+                  <small>
+                    {{ a.paymentMethod || 'Sin método' }}
+                    @if (a.receiptNumber) {
+                      · Recibo {{ a.receiptNumber }}
+                    }
+                    @if (a.recordedByName) {
+                      · {{ a.recordedByName }}
+                    }
+                  </small>
+                  @if (a.notes) {
+                    <small class="muted">{{ a.notes }}</small>
+                  }
+                </li>
+              }
+            </ul>
+          }
+        </div>
       </section>
 
       <section class="school-card">
