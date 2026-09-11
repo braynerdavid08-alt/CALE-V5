@@ -308,6 +308,8 @@ export class SimulatorPage implements OnInit, OnDestroy {
         this.finishing.set(false);
         this.result.set(result);
         this.step.set('result');
+        // Immediately load per-question review so the student can study.
+        this.openReview(true);
       },
       error: (err) => {
         this.finishing.set(false);
@@ -315,7 +317,7 @@ export class SimulatorPage implements OnInit, OnDestroy {
           err instanceof HttpErrorResponse
           && err.error?.detail === 'attempt_finished'
         ) {
-          this.openReview();
+          this.openReview(true);
           return;
         }
         this.error.set(mapApiError(err));
@@ -348,15 +350,18 @@ export class SimulatorPage implements OnInit, OnDestroy {
     this.finishing.set(false);
   }
 
-  openReview(): void {
+  openReview(goToReview = true): void {
     const attemptId = this.session()?.attemptId;
     if (!attemptId) {
       return;
     }
+    this.error.set(null);
     this.api.review(attemptId).subscribe({
       next: (review) => {
         this.review.set(review);
-        this.step.set('review');
+        if (goToReview) {
+          this.step.set('review');
+        }
       },
       error: (err) => this.error.set(mapApiError(err))
     });
