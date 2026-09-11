@@ -79,6 +79,19 @@ export class AppShellComponent implements OnInit, OnDestroy {
     return !!this.session.user()?.mustChangePassword;
   }
 
+  /** Students use the home launcher; sidebar duplicates it. */
+  get isStudentShell(): boolean {
+    return this.role === 'Student';
+  }
+
+  get showStudentHomeLink(): boolean {
+    if (!this.isStudentShell || this.mustChangePassword) {
+      return false;
+    }
+    const path = this.url().split('?')[0].replace(/\/$/, '') || '/';
+    return path !== '/student';
+  }
+
   get items() {
     const user = this.session.user();
     return navForRole(this.role, {
