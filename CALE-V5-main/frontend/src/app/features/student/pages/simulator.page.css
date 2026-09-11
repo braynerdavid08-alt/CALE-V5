@@ -412,6 +412,11 @@
   color: var(--color-text-secondary);
 }
 
+.tip {
+  margin: 0.75rem 0 0;
+  font-size: var(--text-sm);
+}
+
 @media (max-width: 960px) {
   .rules-banner,
   .setup-layout {

@@ -89,30 +89,38 @@ interface ResultRow {
     }
 
     @if (review(); as rev) {
-      <section class="panel review">
+      <section class="panel review" id="attempt-review">
         <div class="review-head">
-          <h2>Revisión del intento</h2>
+          <div>
+            <h2>Revisión del intento</h2>
+            <p class="meta">
+              {{ rev.result.correctCount }} / {{ rev.result.totalQuestions }} correctas ·
+              {{ rev.result.percent }}%
+            </p>
+          </div>
           <ui-button type="button" variant="ghost" (click)="closeReview()">Cerrar</ui-button>
         </div>
-        <p class="meta">
-          {{ rev.result.correctCount }} / {{ rev.result.totalQuestions }} correctas ·
-          {{ rev.result.percent }}%
-        </p>
         <ol class="review-list">
           @for (q of rev.questions; track q.id) {
             <li [class.ok]="q.isCorrect" [class.bad]="!q.isCorrect">
-              <strong>{{ q.order }}. {{ q.text }}</strong>
-              <ul>
+              <div class="q-top">
+                <strong>{{ q.order }}. {{ q.text }}</strong>
+                <ui-badge [tone]="q.isCorrect ? 'success' : 'danger'">
+                  {{ q.isCorrect ? 'Correcta' : 'Incorrecta' }}
+                </ui-badge>
+              </div>
+              <ul class="opts">
                 @for (o of q.options; track o.id) {
-                  <li>
+                  <li [class.pick]="o.selected" [class.right]="o.isCorrect">
                     @if (o.selected) { → }
                     {{ o.text }}
                     @if (o.isCorrect) { (correcta) }
+                    @if (o.selected && !o.isCorrect) { (tu respuesta) }
                   </li>
                 }
               </ul>
               @if (q.explanation) {
-                <p class="meta">{{ q.explanation }}</p>
+                <p class="meta explain">{{ q.explanation }}</p>
               }
             </li>
           }
@@ -159,13 +167,35 @@ interface ResultRow {
     .review-head {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       gap: 1rem;
     }
-    .review-list { margin: 0.75rem 0 0; padding-left: 1.1rem; display: grid; gap: 0.85rem; }
-    .review-list li.ok { color: var(--color-success, inherit); }
-    .review-list li.bad { color: var(--color-danger, inherit); }
-    .review-list ul { margin: 0.35rem 0 0; padding-left: 1rem; color: var(--color-text); }
+    .review-list {
+      margin: 0.75rem 0 0;
+      padding-left: 0;
+      list-style: none;
+      display: grid;
+      gap: 0.85rem;
+    }
+    .review-list > li {
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      background: var(--color-background, transparent);
+    }
+    .review-list > li.ok { border-color: color-mix(in srgb, var(--color-success, #22c55e) 55%, var(--color-border)); }
+    .review-list > li.bad { border-color: color-mix(in srgb, var(--color-danger, #ef4444) 55%, var(--color-border)); }
+    .q-top {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 0.75rem;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+    .opts { margin: 0.45rem 0 0; padding-left: 1rem; color: var(--color-text); }
+    .opts .pick { font-weight: 700; }
+    .opts .right { color: var(--color-success, #16a34a); }
+    .explain { margin-top: 0.45rem; }
   `]
 })
 export class StudentEvaluationsPage implements OnInit {
@@ -214,6 +244,12 @@ export class StudentEvaluationsPage implements OnInit {
       next: (rev) => {
         this.review.set(rev);
         this.reviewLoading.set(null);
+        queueMicrotask(() => {
+          document.getElementById('attempt-review')?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        });
       },
       error: (err) => {
         this.reviewLoading.set(null);

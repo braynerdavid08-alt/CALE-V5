@@ -301,10 +301,13 @@
       </label>
       <div class="row">
         <ui-button type="button" (click)="rate()">Enviar valoración</ui-button>
-        <ui-button type="button" variant="secondary" (click)="openReview()">Revisar respuestas</ui-button>
+        <ui-button type="button" variant="secondary" (click)="openReview(true)">
+          Ver buenas y malas
+        </ui-button>
         <ui-button type="button" variant="ghost" (click)="backToSetup()">Nueva práctica</ui-button>
         <ui-button variant="ghost" type="button" (click)="goHome()">Volver al panel</ui-button>
       </div>
+      <p class="muted tip">Al terminar te llevamos a la revisión pregunta por pregunta para que puedas repasar.</p>
     </ui-card>
     </div>
   }
@@ -332,7 +335,8 @@
                 <img class="opt-img" [src]="media(opt.imageUrl)" alt="" />
               }
               {{ opt.selected ? '→ ' : '' }}{{ opt.text }}
-              {{ opt.isCorrect ? ' (correcta)' : '' }}
+              @if (opt.isCorrect) { (correcta) }
+              @if (opt.selected && !opt.isCorrect) { (tu respuesta) }
             </li>
           }
         </ul>
