@@ -356,6 +356,18 @@ public static class FeatureSchema
                     ON "PresentationMediaBlobs" ("OwnerId");
                 CREATE INDEX IF NOT EXISTS "IX_PresentationMediaBlobs_CreatedAt"
                     ON "PresentationMediaBlobs" ("CreatedAt");
+                CREATE TABLE IF NOT EXISTS "CatalogMediaBlobs" (
+                    "Id" TEXT NOT NULL CONSTRAINT "PK_CatalogMediaBlobs" PRIMARY KEY,
+                    "FileName" TEXT NOT NULL,
+                    "ContentType" TEXT NOT NULL,
+                    "Data" BLOB NOT NULL,
+                    "OwnerId" INTEGER NULL,
+                    "CreatedAt" TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS "IX_CatalogMediaBlobs_OwnerId"
+                    ON "CatalogMediaBlobs" ("OwnerId");
+                CREATE INDEX IF NOT EXISTS "IX_CatalogMediaBlobs_CreatedAt"
+                    ON "CatalogMediaBlobs" ("CreatedAt");
                 """,
                 ct);
 
@@ -1028,6 +1040,24 @@ public static class FeatureSchema
                 ct);
             await TryPostgresAsync(db,
                 """CREATE INDEX IF NOT EXISTS "IX_PresentationMediaBlobs_CreatedAt" ON "PresentationMediaBlobs" ("CreatedAt");""",
+                ct);
+            await TryPostgresAsync(db,
+                """
+                CREATE TABLE IF NOT EXISTS "CatalogMediaBlobs" (
+                    "Id" uuid PRIMARY KEY,
+                    "FileName" varchar(260) NOT NULL,
+                    "ContentType" varchar(120) NOT NULL,
+                    "Data" bytea NOT NULL,
+                    "OwnerId" integer NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL
+                );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_CatalogMediaBlobs_OwnerId" ON "CatalogMediaBlobs" ("OwnerId");""",
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_CatalogMediaBlobs_CreatedAt" ON "CatalogMediaBlobs" ("CreatedAt");""",
                 ct);
             await TryPostgresAsync(db,
                 """
