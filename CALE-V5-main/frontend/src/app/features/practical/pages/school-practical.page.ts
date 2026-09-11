@@ -2,6 +2,7 @@ import { forkJoin } from 'rxjs';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { RouterLink } from '@angular/router';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
@@ -39,6 +40,7 @@ interface PickerCell {
   standalone: true,
   imports: [
     FormsModule,
+    RouterLink,
     UiButtonComponent,
     UiErrorComponent,
     UiLoadingComponent,

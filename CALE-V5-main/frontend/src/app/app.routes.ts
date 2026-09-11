@@ -229,6 +229,15 @@ export const routes: Routes = [
             .then((m) => m.SchoolPracticalPage)
       },
       {
+        path: 'school/practical-fleet',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['School'] },
+        loadComponent: () =>
+          import('./features/school/pages/school-practical-fleet.page')
+            .then((m) => m.SchoolPracticalFleetPage)
+      },
+      {
         path: 'school/training',
         pathMatch: 'full',
         canActivate: [roleGuard],
