@@ -88,6 +88,32 @@ public sealed class SaveExamHandler
         var exam = await Owned(id, userId, isAdmin, ct);
         exam.SetPublished(false, _clock.UtcNow);
         exam.SetActive(false);
+
+        // Word import creates a bank + exam together. Soft-deleting only the exam
+        // left orphan banks visible in Aula en vivo — retire the owned bank when unused.
+        if (exam.BankId is int bankId)
+        {
+            var bank = await _store.GetBankAsync(bankId, ct);
+            if (bank is { IsActive: true, CreatedById: int bankOwnerId }
+                && (isAdmin || bankOwnerId == userId)
+                && bankOwnerId == exam.CreatedById)
+            {
+                var otherActive = await _store.CountActiveExamsForBankAsync(
+                    bankId,
+                    exam.Id,
+                    ct);
+                if (otherActive == 0)
+                {
+                    bank.SetActive(false);
+                    var questions = await _store.ListActiveQuestionsInBankAsync(bankId, ct);
+                    foreach (var question in questions)
+                    {
+                        question.SetActive(false);
+                    }
+                }
+            }
+        }
+
         await _store.SaveChangesAsync(ct);
     }
 

@@ -54,6 +54,12 @@ public interface ICatalogStore
     Task AddExamAsync(Exam exam, CancellationToken ct);
     Task<IReadOnlyList<Exam>> ListPublishedExamsAsync(CancellationToken ct);
 
+    /// <summary>Active exams pointing at this bank, optionally excluding one exam id.</summary>
+    Task<int> CountActiveExamsForBankAsync(
+        int bankId,
+        int? excludingExamId,
+        CancellationToken ct);
+
     Task<ExamGroupLink?> FindExamGroupAsync(
         int examId,
         int groupId,

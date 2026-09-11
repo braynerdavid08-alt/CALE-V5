@@ -31,6 +31,17 @@ public sealed class CatalogStore : ICatalogStore
             query = query.Where(x => x.CreatedById == null || x.CreatedById == uid);
         }
 
+        if (activeOnly && !isAdmin)
+        {
+            // Hide teacher-owned banks left behind after exam soft-delete.
+            // Official banks (CreatedById null) stay visible; owned banks without any
+            // exam row also stay (standalone). Owned banks only linked to inactive exams hide.
+            query = query.Where(x =>
+                x.CreatedById == null
+                || !_db.Set<Exam>().Any(e => e.BankId == x.Id)
+                || _db.Set<Exam>().Any(e => e.BankId == x.Id && e.IsActive));
+        }
+
         return await query.OrderBy(x => x.Name).ToListAsync(ct);
     }
 
@@ -197,6 +208,21 @@ public sealed class CatalogStore : ICatalogStore
 
     public async Task AddExamAsync(Exam exam, CancellationToken ct) =>
         await _db.Set<Exam>().AddAsync(exam, ct);
+
+    public Task<int> CountActiveExamsForBankAsync(
+        int bankId,
+        int? excludingExamId,
+        CancellationToken ct)
+    {
+        var query = _db.Set<Exam>()
+            .Where(x => x.IsActive && x.BankId == bankId);
+        if (excludingExamId is int excludeId)
+        {
+            query = query.Where(x => x.Id != excludeId);
+        }
+
+        return query.CountAsync(ct);
+    }
 
     public async Task<IReadOnlyList<Exam>> ListPublishedExamsAsync(
         CancellationToken ct) =>
