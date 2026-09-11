@@ -162,7 +162,8 @@ public sealed record TheoryStudentDashboardDto(
     string? AttendanceDayType = null,
     PracticalEligibilityDto? PracticalEligibility = null,
     StudentExamAppointmentDto? NextExamAppointment = null,
-    StudentPlatformExamDto? PlatformExam = null);
+    StudentPlatformExamDto? PlatformExam = null,
+    decimal BalanceDue = 0);
 
 public sealed record TheoryDailyTaskDto(string Label, bool Done);
 
@@ -315,7 +316,9 @@ public sealed record PracticalStudentDashboardDto(
     PracticalLessonSessionDto? NextLesson,
     IReadOnlyList<PracticalLessonSessionDto> UpcomingReservations,
     IReadOnlyList<PracticalLessonSessionDto> AvailableLessons,
-    IReadOnlyList<PracticalInstructorOptionDto> AvailableInstructors);
+    IReadOnlyList<PracticalInstructorOptionDto> AvailableInstructors,
+    int CompletedLessons = 0,
+    int RequiredLessons = 0);
 
 public sealed record PracticalInstructorOptionDto(
     int InstructorUserId,

@@ -513,12 +513,25 @@ public sealed class PracticalTrainingService
             .OrderBy(x => x.InstructorName)
             .ToList();
 
+        var enrollment = await _db.Set<SchoolStudentEnrollment>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                x => x.SchoolUserId == schoolUserId && x.StudentUserId == studentUserId,
+                ct);
+        var (completedLessons, requiredLessons, _) = await GetStudentLessonProgressAsync(
+            schoolUserId,
+            studentUserId,
+            enrollment?.LicenseCategories,
+            ct);
+
         return new PracticalStudentDashboardDto(
             eligibility,
             nextDto,
             upcomingDtos,
             availableDtos,
-            instructorOptions);
+            instructorOptions,
+            completedLessons,
+            requiredLessons);
     }
 
     public async Task<ApprenticePracticalSummaryDto> GetApprenticePracticalSummaryAsync(
