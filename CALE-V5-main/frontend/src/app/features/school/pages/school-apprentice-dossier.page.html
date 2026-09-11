@@ -100,8 +100,8 @@
                 · {{ practical.scheduledLessons }} programada(s)
               }
             </li>
-            @if (d.nextExam; as nextExam) {
-              <li class="ok">Cita examen: {{ nextExam.examDate }} {{ nextExam.slotTime }}</li>
+            @if (d.nextExam) {
+              <li class="ok">Cita examen: {{ d.nextExam.examDate }} {{ d.nextExam.slotTime }}</li>
             }
             @if (practical.nextLessonDate) {
               <li>Próxima práctica: {{ practical.nextLessonDate }} {{ practical.nextLessonTime }}</li>
