@@ -107,7 +107,8 @@ public sealed record ImportExamResultDto(
     int ImportedQuestions,
     int NeedsCorrectReview,
     int SkippedCount,
-    IReadOnlyList<string> SkippedSamples);
+    IReadOnlyList<string> SkippedSamples,
+    int ImagesAttached = 0);
 
 public sealed record AssignExamToGroupRequest(
     int GroupId,

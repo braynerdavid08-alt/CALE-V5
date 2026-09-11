@@ -10,11 +10,16 @@ namespace Cale.Modules.Catalog.Application.Commands;
 public sealed class ImportExamFromWordHandler
 {
     private readonly ICatalogStore _store;
+    private readonly ICatalogMediaStore _media;
     private readonly IClock _clock;
 
-    public ImportExamFromWordHandler(ICatalogStore store, IClock clock)
+    public ImportExamFromWordHandler(
+        ICatalogStore store,
+        ICatalogMediaStore media,
+        IClock clock)
     {
         _store = store;
+        _media = media;
         _clock = clock;
     }
 
@@ -71,11 +76,29 @@ public sealed class ImportExamFromWordHandler
 
         var imported = 0;
         var reviewNeeded = 0;
+        var imagesAttached = 0;
         foreach (var item in parsed.Questions)
         {
-            var options = item.Options
-                .Select(o => QuestionOption.Create(o.Text, o.IsCorrect, null))
-                .ToList();
+            var options = new List<QuestionOption>();
+            foreach (var o in item.Options)
+            {
+                string? optionUrl = null;
+                if (o.Image is not null)
+                {
+                    optionUrl = await SaveImageAsync(o.Image, userId, ct);
+                    imagesAttached++;
+                }
+
+                options.Add(QuestionOption.Create(o.Text, o.IsCorrect, optionUrl));
+            }
+
+            string? questionUrl = null;
+            if (item.Image is not null)
+            {
+                questionUrl = await SaveImageAsync(item.Image, userId, ct);
+                imagesAttached++;
+            }
+
             var question = Question.Create(
                 bank.Id,
                 block.Id,
@@ -83,7 +106,7 @@ public sealed class ImportExamFromWordHandler
                 item.Text,
                 QuestionTypes.MultipleChoice,
                 topic: $"Pregunta {item.Number}",
-                imageUrl: null,
+                imageUrl: questionUrl,
                 explanation: item.NeedsCorrectReview
                     ? ExamImportMarkers.NeedsReviewExplanation
                     : null,
@@ -123,6 +146,21 @@ public sealed class ImportExamFromWordHandler
             imported,
             reviewNeeded,
             parsed.Skipped.Count,
-            parsed.Skipped.Take(12).ToList());
+            parsed.Skipped.Take(12).ToList(),
+            imagesAttached);
+    }
+
+    private async Task<string> SaveImageAsync(
+        ParsedExamImage image,
+        int userId,
+        CancellationToken ct)
+    {
+        await using var stream = new MemoryStream(image.Data, writable: false);
+        return await _media.SaveAsync(
+            stream,
+            image.FileName,
+            image.ContentType,
+            userId,
+            ct);
     }
 }
