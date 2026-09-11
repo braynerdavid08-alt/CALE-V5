@@ -258,6 +258,8 @@ public sealed class TheoryExamAppointment
     public int? StudentUserId { get; set; }
     public string? StudentLabel { get; set; }
     public string? Notes { get; set; }
+    public DateTime? CheckedInAt { get; set; }
+    public bool NoShow { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

@@ -181,6 +181,34 @@ public sealed record TheoryExamSlotDto(
     string? StudentName,
     string? Notes);
 
+public sealed record TheoryExamControlRowDto(
+    int AppointmentId,
+    string ExamDate,
+    string SlotTime,
+    int? StudentUserId,
+    string StudentName,
+    string? Notes,
+    bool TheoryExamAuthorized,
+    bool NoShow,
+    DateTime? CheckedInAt,
+    string BoardStatus,
+    int? AttemptId,
+    decimal? Percent,
+    bool? Passed,
+    DateTime? AttemptStartedAt,
+    DateTime? AttemptFinishedAt);
+
+public sealed record TheoryExamControlBoardDto(
+    string ExamDate,
+    int? OfficialTheoryExamId,
+    int ScheduledCount,
+    int CheckedInCount,
+    int InProgressCount,
+    int FinishedCount,
+    int PassedCount,
+    int NoShowCount,
+    IReadOnlyList<TheoryExamControlRowDto> Rows);
+
 public sealed record SaveTheoryExamSlotRequest(
     DateOnly ExamDate,
     string SlotTime,

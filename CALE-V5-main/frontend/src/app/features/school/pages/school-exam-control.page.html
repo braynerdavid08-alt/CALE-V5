@@ -1,0 +1,142 @@
+<div class="school-page school-page--wide exam-control">
+  <ui-page-header
+    eyebrow="Escuela"
+    title="Sala de control — Examen teórico"
+    subtitle="Tablero del día: llegada, en curso y resultado del examen oficial." />
+
+  <div class="toolbar">
+    <label class="day-field">
+      Día
+      <input type="date" [ngModel]="day" (ngModelChange)="onDayChange($event)" name="day" />
+    </label>
+    <ui-button type="button" variant="secondary" (click)="goToday()">Hoy</ui-button>
+    <ui-button type="button" variant="ghost" (click)="reload()" [disabled]="loading()">Actualizar</ui-button>
+    <a routerLink="/school/theory-exams">
+      <ui-button type="button" variant="ghost">Calendario</ui-button>
+    </a>
+    <a routerLink="/school/training">
+      <ui-button type="button" variant="ghost">Autorizar</ui-button>
+    </a>
+  </div>
+
+  <ui-error [message]="error()" />
+  @if (ok()) {
+    <p class="ok-msg" role="status">{{ ok() }}</p>
+  }
+
+  @if (loading() && !board()) {
+    <ui-loading />
+  } @else {
+    @let b = board();
+    @if (b) {
+    @if (!b.officialTheoryExamId) {
+      <p class="warn-banner">
+        Configura el examen teórico oficial en
+        <a routerLink="/school/training">Programación → Ajustes</a>
+        para ver intentos en curso y resultados aquí.
+      </p>
+    }
+
+    <div class="kpis">
+      <button type="button" class="kpi" [class.on]="filter() === 'all'" (click)="setFilter('all')">
+        <span>Citas</span><strong>{{ b.scheduledCount }}</strong>
+      </button>
+      <button type="button" class="kpi" [class.on]="filter() === 'CheckedIn'" (click)="setFilter('CheckedIn')">
+        <span>Presentes+</span><strong>{{ b.checkedInCount }}</strong>
+      </button>
+      <button type="button" class="kpi" [class.on]="filter() === 'InProgress'" (click)="setFilter('InProgress')">
+        <span>En curso</span><strong>{{ b.inProgressCount }}</strong>
+      </button>
+      <button type="button" class="kpi ok" [class.on]="filter() === 'Passed'" (click)="setFilter('Passed')">
+        <span>Aprobados</span><strong>{{ b.passedCount }}</strong>
+      </button>
+      <button type="button" class="kpi warn" [class.on]="filter() === 'NoShow'" (click)="setFilter('NoShow')">
+        <span>No asistió</span><strong>{{ b.noShowCount }}</strong>
+      </button>
+    </div>
+
+    <section class="school-card list">
+      @if (!rows().length) {
+        <p class="muted empty">
+          @if (!b.rows.length) {
+            No hay citas este día.
+            <a routerLink="/school/theory-exams">Agenda en el calendario</a>.
+          } @else {
+            No hay filas en este filtro.
+            <button type="button" class="linkish" (click)="setFilter('all')">Ver todas</button>
+          }
+        </p>
+      } @else {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Hora</th>
+                <th>Aprendiz</th>
+                <th>Estado</th>
+                <th>Resultado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of rows(); track row.appointmentId) {
+                <tr [attr.data-status]="row.boardStatus">
+                  <td class="time">{{ row.slotTime }}</td>
+                  <td>
+                    <strong>{{ row.studentName }}</strong>
+                    <div class="meta">
+                      @if (!row.theoryExamAuthorized && row.studentUserId) {
+                        <span class="pill warn">Sin autorizar</span>
+                      }
+                      @if (row.theoryExamAuthorized) {
+                        <span class="pill ok">Autorizado</span>
+                      }
+                      @if (row.notes) {
+                        <span class="muted">{{ row.notes }}</span>
+                      }
+                    </div>
+                  </td>
+                  <td>
+                    <span class="status" [attr.data-status]="row.boardStatus">
+                      {{ statusLabel(row.boardStatus) }}
+                    </span>
+                  </td>
+                  <td>
+                    @if (row.percent != null) {
+                      <strong [class.ok]="row.passed" [class.bad]="row.passed === false">
+                        {{ row.percent }}%
+                      </strong>
+                    } @else if (row.boardStatus === 'InProgress') {
+                      <span class="muted">Presentando…</span>
+                    } @else {
+                      <span class="muted">—</span>
+                    }
+                  </td>
+                  <td class="actions">
+                    @if (row.studentUserId) {
+                      <a [routerLink]="['/school/apprentices', row.studentUserId]">360°</a>
+                    }
+                    @if (row.boardStatus === 'Scheduled' || row.boardStatus === 'NoShow') {
+                      <button type="button" [disabled]="acting() || !row.studentUserId" (click)="checkIn(row)">
+                        Llegada
+                      </button>
+                    }
+                    @if (row.boardStatus === 'Scheduled' || row.boardStatus === 'CheckedIn') {
+                      <button type="button" class="danger" [disabled]="acting()" (click)="noShow(row)">
+                        No asistió
+                      </button>
+                    }
+                    @if (!row.theoryExamAuthorized && row.studentUserId) {
+                      <a routerLink="/school/training">Autorizar</a>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+    }
+  }
+</div>

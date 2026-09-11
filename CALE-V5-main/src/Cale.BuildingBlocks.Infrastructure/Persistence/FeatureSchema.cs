@@ -708,12 +708,22 @@ public static class FeatureSchema
                     "StudentUserId" INTEGER NULL,
                     "StudentLabel" TEXT NULL,
                     "Notes" TEXT NULL,
+                    "CheckedInAt" TEXT NULL,
+                    "NoShow" INTEGER NOT NULL DEFAULT 0,
                     "CreatedAt" TEXT NOT NULL,
                     "UpdatedAt" TEXT NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS "IX_TheoryExamAppointments_SchoolUserId_ExamDate_SlotTime"
                     ON "TheoryExamAppointments" ("SchoolUserId", "ExamDate", "SlotTime");
                 """,
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "TheoryExamAppointments" ADD COLUMN "CheckedInAt" TEXT NULL;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "TheoryExamAppointments" ADD COLUMN "NoShow" INTEGER NOT NULL DEFAULT 0;""",
                 ct);
             await TrySqliteAsync(
                 db,
@@ -1172,6 +1182,8 @@ public static class FeatureSchema
                     "StudentUserId" integer NULL,
                     "StudentLabel" varchar(160) NULL,
                     "Notes" varchar(256) NULL,
+                    "CheckedInAt" timestamp with time zone NULL,
+                    "NoShow" boolean NOT NULL DEFAULT FALSE,
                     "CreatedAt" timestamp with time zone NOT NULL,
                     "UpdatedAt" timestamp with time zone NOT NULL
                 );
@@ -1179,6 +1191,12 @@ public static class FeatureSchema
                 ct);
             await TryPostgresAsync(db,
                 """CREATE INDEX IF NOT EXISTS "IX_TheoryExamAppointments_SchoolUserId_ExamDate_SlotTime" ON "TheoryExamAppointments" ("SchoolUserId", "ExamDate", "SlotTime");""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryExamAppointments" ADD COLUMN IF NOT EXISTS "CheckedInAt" timestamp with time zone NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "TheoryExamAppointments" ADD COLUMN IF NOT EXISTS "NoShow" boolean NOT NULL DEFAULT FALSE;""",
                 ct);
             await TryPostgresAsync(db,
                 """
@@ -2154,11 +2172,24 @@ public static class FeatureSchema
                     StudentUserId int NULL,
                     StudentLabel nvarchar(160) NULL,
                     Notes nvarchar(256) NULL,
+                    CheckedInAt datetime2 NULL,
+                    NoShow bit NOT NULL CONSTRAINT DF_TheoryExamAppointments_NoShow DEFAULT(0),
                     CreatedAt datetime2 NOT NULL,
                     UpdatedAt datetime2 NOT NULL
                 );
                 CREATE INDEX IX_TheoryExamAppointments_SchoolUserId_ExamDate_SlotTime
                     ON dbo.TheoryExamAppointments(SchoolUserId, ExamDate, SlotTime);
+            END
+
+            IF COL_LENGTH(N'dbo.TheoryExamAppointments', N'CheckedInAt') IS NULL
+            BEGIN
+                ALTER TABLE dbo.TheoryExamAppointments ADD CheckedInAt datetime2 NULL;
+            END
+
+            IF COL_LENGTH(N'dbo.TheoryExamAppointments', N'NoShow') IS NULL
+            BEGIN
+                ALTER TABLE dbo.TheoryExamAppointments
+                    ADD NoShow bit NOT NULL CONSTRAINT DF_TheoryExamAppointments_NoShow2 DEFAULT(0);
             END
 
             IF COL_LENGTH(N'dbo.TheoryTrainingSettings', N'NotifyExamReminder24h') IS NULL
@@ -2362,10 +2393,14 @@ public static class FeatureSchema
                 "StudentUserId" integer NULL,
                 "StudentLabel" varchar(160) NULL,
                 "Notes" varchar(256) NULL,
+                "CheckedInAt" timestamp with time zone NULL,
+                "NoShow" boolean NOT NULL DEFAULT FALSE,
                 "CreatedAt" timestamp with time zone NOT NULL,
                 "UpdatedAt" timestamp with time zone NOT NULL
             );
-            """
+            """,
+            """ALTER TABLE "TheoryExamAppointments" ADD COLUMN IF NOT EXISTS "CheckedInAt" timestamp with time zone NULL;""",
+            """ALTER TABLE "TheoryExamAppointments" ADD COLUMN IF NOT EXISTS "NoShow" boolean NOT NULL DEFAULT FALSE;"""
         ];
 
         foreach (var sql in statements)

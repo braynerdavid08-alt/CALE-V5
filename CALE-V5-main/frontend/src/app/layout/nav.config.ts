@@ -104,6 +104,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
           { label: 'Asistencia del día', path: '/school/attendance', exact: true },
           { label: 'Programación teórica', path: '/school/training', exact: true },
           { label: 'Exámenes teóricos', path: '/school/theory-exams', exact: true },
+          { label: 'Sala de control examen', path: '/school/exam-control', exact: true },
           { label: 'Práctica vehicular', path: '/school/practical', exact: true }
         ]
       },

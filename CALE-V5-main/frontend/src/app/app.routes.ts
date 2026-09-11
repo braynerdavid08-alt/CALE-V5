@@ -193,6 +193,15 @@ export const routes: Routes = [
             .then((m) => m.SchoolTheoryExamsPage)
       },
       {
+        path: 'school/exam-control',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['School'] },
+        loadComponent: () =>
+          import('./features/school/pages/school-exam-control.page')
+            .then((m) => m.SchoolExamControlPage)
+      },
+      {
         path: 'school/questions',
         pathMatch: 'full',
         canActivate: [roleGuard, catalogAccessGuard],
