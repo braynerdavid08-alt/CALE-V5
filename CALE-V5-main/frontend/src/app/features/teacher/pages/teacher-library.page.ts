@@ -190,9 +190,13 @@ export class TeacherLibraryPage implements OnInit {
         this.api.banks(true).subscribe({ next: (items) => this.banks.set(items) });
         const skipped =
           result.skippedCount > 0 ? ` Se omitieron ${result.skippedCount}.` : '';
+        const images =
+          (result.imagesAttached ?? 0) > 0
+            ? ` ${result.imagesAttached} imagen(es) incluida(s).`
+            : '';
         if (result.needsCorrectReview > 0) {
           this.ok.set(
-            `Importado “${result.name}”: ${result.importedQuestions} preguntas.${skipped} Abriendo revisión de ${result.needsCorrectReview} sin clave…`
+            `Importado “${result.name}”: ${result.importedQuestions} preguntas.${images}${skipped} Abriendo revisión de ${result.needsCorrectReview} sin clave…`
           );
           void this.router.navigate(['/teacher/exam-review'], {
             queryParams: {
@@ -204,7 +208,7 @@ export class TeacherLibraryPage implements OnInit {
           return;
         }
         this.ok.set(
-          `Importado “${result.name}”: ${result.importedQuestions} preguntas.${skipped}`
+          `Importado “${result.name}”: ${result.importedQuestions} preguntas.${images}${skipped}`
         );
         this.api.exams().subscribe({
           next: (items) => {

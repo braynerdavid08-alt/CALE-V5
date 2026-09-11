@@ -155,6 +155,7 @@ export interface ImportExamResultDto {
   needsCorrectReview: number;
   skippedCount: number;
   skippedSamples: string[];
+  imagesAttached?: number;
 }
 
 @Injectable({ providedIn: 'root' })

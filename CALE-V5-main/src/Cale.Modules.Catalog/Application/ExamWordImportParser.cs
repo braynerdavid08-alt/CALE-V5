@@ -2,21 +2,31 @@ using System.Text;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using A = DocumentFormat.OpenXml.Drawing;
+using V = DocumentFormat.OpenXml.Vml;
 
 namespace Cale.Modules.Catalog.Application;
 
-public sealed record ParsedExamOption(string Letter, string Text, bool IsCorrect);
+public sealed record ParsedExamImage(byte[] Data, string ContentType, string FileName);
+
+public sealed record ParsedExamOption(
+    string Letter,
+    string Text,
+    bool IsCorrect,
+    ParsedExamImage? Image = null);
 
 public sealed record ParsedExamQuestion(
     int Number,
     string Text,
     IReadOnlyList<ParsedExamOption> Options,
-    bool NeedsCorrectReview);
+    bool NeedsCorrectReview,
+    ParsedExamImage? Image = null);
 
 public sealed record ParsedExamDocument(
     IReadOnlyList<ParsedExamQuestion> Questions,
     IReadOnlyList<string> Skipped,
-    int MarkedCorrectCount);
+    int MarkedCorrectCount,
+    int ImagesFound = 0);
 
 public sealed record ExamWordExportOption(char Letter, string Text, bool IsCorrect);
 
@@ -29,9 +39,22 @@ public sealed record ExamWordExportQuestion(
 /// Parses VIP-style theory exams from Word (.docx):
 /// numbered stems (1. …) and A–D options, often concatenated on one line.
 /// Mark the correct option with * before the letter (*B. …) or add a RESPUESTAS key.
+/// Embedded images (DrawingML / VML) are attached to the current question or option.
 /// </summary>
 public static class ExamWordImportParser
 {
+    private const int MaxImageBytes = 5 * 1024 * 1024;
+
+    private static readonly HashSet<string> AllowedImageTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+        "image/bmp"
+    };
+
     private static readonly Regex QuestionStart = new(
         @"^\s*(\d{1,3})\s*[\.\)]\s+(.*)$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
@@ -44,34 +67,110 @@ public static class ExamWordImportParser
         @"(\d{1,3})\s*[\.\):\-]?\s*([A-Da-d])",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
+    private sealed record ParseUnit(string Text, IReadOnlyList<ParsedExamImage> Images);
+
     public static ParsedExamDocument Parse(Stream stream)
     {
         using var doc = WordprocessingDocument.Open(stream, false);
-        var body = doc.MainDocumentPart?.Document?.Body
+        var main = doc.MainDocumentPart
+            ?? throw new InvalidOperationException("El documento Word está vacío.");
+        var body = main.Document?.Body
             ?? throw new InvalidOperationException("El documento Word está vacío.");
 
-        var lines = new List<string>();
+        var units = new List<ParseUnit>();
+        var skippedMedia = new List<string>();
         foreach (var para in body.Elements<Paragraph>())
         {
             var text = Normalize(para.InnerText);
-            if (!string.IsNullOrWhiteSpace(text))
+            var images = ExtractImages(para, main, skippedMedia);
+            if (string.IsNullOrWhiteSpace(text) && images.Count == 0)
             {
-                lines.Add(text);
+                continue;
             }
+
+            units.Add(new ParseUnit(text, images));
         }
 
-        return ParseLines(lines);
+        var parsed = ParseUnits(units);
+        if (skippedMedia.Count == 0)
+        {
+            return parsed;
+        }
+
+        return parsed with
+        {
+            Skipped = parsed.Skipped.Concat(skippedMedia).ToList()
+        };
     }
 
-    public static ParsedExamDocument ParseLines(IReadOnlyList<string> lines)
+    public static ParsedExamDocument ParseLines(IReadOnlyList<string> lines) =>
+        ParseUnits(lines.Select(l => new ParseUnit(l, Array.Empty<ParsedExamImage>())).ToList());
+
+    private static ParsedExamDocument ParseUnits(IReadOnlyList<ParseUnit> units)
     {
-        var answerKey = ExtractAnswerKey(lines);
+        var answerKey = ExtractAnswerKey(units.Select(u => u.Text).ToList());
         var questions = new List<ParsedExamQuestion>();
         var skipped = new List<string>();
+        var imagesFound = 0;
 
         int? currentNumber = null;
         var stem = new StringBuilder();
         var optionBuffer = new StringBuilder();
+        ParsedExamImage? questionImage = null;
+        var optionImages = new Dictionary<string, ParsedExamImage>(StringComparer.OrdinalIgnoreCase);
+        string? lastOptionLetter = null;
+
+        void TakeImages(IReadOnlyList<ParsedExamImage> images, string line, bool optionsStarted)
+        {
+            if (images.Count == 0 || currentNumber is null)
+            {
+                return;
+            }
+
+            imagesFound += images.Count;
+            var remaining = images.ToList();
+
+            if (optionsStarted)
+            {
+                var matches = string.IsNullOrWhiteSpace(line)
+                    ? Array.Empty<Match>()
+                    : OptionChunk.Matches(line).Cast<Match>().ToArray();
+
+                if (matches.Length == 1)
+                {
+                    var letter = matches[0].Groups[2].Value.ToUpperInvariant();
+                    if (!optionImages.ContainsKey(letter))
+                    {
+                        optionImages[letter] = remaining[0];
+                        remaining.RemoveAt(0);
+                    }
+
+                    lastOptionLetter = letter;
+                }
+                else if (string.IsNullOrWhiteSpace(line)
+                         && lastOptionLetter is not null
+                         && !optionImages.ContainsKey(lastOptionLetter)
+                         && remaining.Count > 0)
+                {
+                    // Image-only paragraph right under a single option line.
+                    optionImages[lastOptionLetter] = remaining[0];
+                    remaining.RemoveAt(0);
+                }
+            }
+
+            foreach (var img in remaining)
+            {
+                if (questionImage is null)
+                {
+                    questionImage = img;
+                }
+                else
+                {
+                    skipped.Add(
+                        $"Pregunta {currentNumber}: se omitió una imagen extra (solo se guarda una por enunciado).");
+                }
+            }
+        }
 
         void Flush()
         {
@@ -80,7 +179,11 @@ public static class ExamWordImportParser
                 return;
             }
 
-            var options = SplitOptions(optionBuffer.ToString());
+            var options = SplitOptions(optionBuffer.ToString())
+                .Select(o => optionImages.TryGetValue(o.Letter, out var img)
+                    ? o with { Image = img }
+                    : o)
+                .ToList();
             var text = stem.ToString().Trim();
             if (string.IsNullOrWhiteSpace(text) || options.Count < 2)
             {
@@ -112,7 +215,8 @@ public static class ExamWordImportParser
                         currentNumber.Value,
                         text,
                         options,
-                        NeedsCorrectReview: true));
+                        NeedsCorrectReview: true,
+                        questionImage));
                 }
                 else
                 {
@@ -120,18 +224,22 @@ public static class ExamWordImportParser
                         currentNumber.Value,
                         text,
                         options,
-                        NeedsCorrectReview: false));
+                        NeedsCorrectReview: false,
+                        questionImage));
                 }
             }
 
             currentNumber = null;
             stem.Clear();
             optionBuffer.Clear();
+            questionImage = null;
+            optionImages.Clear();
+            lastOptionLetter = null;
         }
 
-        foreach (var raw in lines)
+        foreach (var unit in units)
         {
-            var line = raw.Trim();
+            var line = unit.Text.Trim();
             if (IsAnswerKeyHeader(line))
             {
                 Flush();
@@ -147,10 +255,13 @@ public static class ExamWordImportParser
                 if (LooksLikeOptions(rest))
                 {
                     optionBuffer.Append(rest);
+                    RememberLastOptionLetter(rest, ref lastOptionLetter);
+                    TakeImages(unit.Images, rest, optionsStarted: true);
                 }
                 else
                 {
                     stem.Append(rest);
+                    TakeImages(unit.Images, rest, optionsStarted: false);
                 }
 
                 continue;
@@ -169,27 +280,40 @@ public static class ExamWordImportParser
                 }
 
                 optionBuffer.Append(line);
+                RememberLastOptionLetter(line, ref lastOptionLetter);
+                TakeImages(unit.Images, line, optionsStarted: true);
             }
             else if (optionBuffer.Length == 0)
             {
-                if (stem.Length > 0)
+                if (!string.IsNullOrWhiteSpace(line))
                 {
-                    stem.Append(' ');
+                    if (stem.Length > 0)
+                    {
+                        stem.Append(' ');
+                    }
+
+                    stem.Append(line);
                 }
 
-                stem.Append(line);
+                TakeImages(unit.Images, line, optionsStarted: false);
             }
             else
             {
-                optionBuffer.Append(' ');
-                optionBuffer.Append(line);
+                if (!string.IsNullOrWhiteSpace(line))
+                {
+                    optionBuffer.Append(' ');
+                    optionBuffer.Append(line);
+                    RememberLastOptionLetter(line, ref lastOptionLetter);
+                }
+
+                TakeImages(unit.Images, line, optionsStarted: true);
             }
         }
 
         Flush();
 
         var marked = questions.Count(q => !q.NeedsCorrectReview);
-        return new ParsedExamDocument(questions, skipped, marked);
+        return new ParsedExamDocument(questions, skipped, marked, imagesFound);
     }
 
     public static byte[] BuildTemplateDocx()
@@ -203,6 +327,7 @@ public static class ExamWordImportParser
             var main = doc.AddMainDocumentPart();
             main.Document = new Document(new Body(
                 P("Plantilla de examen Mi CALE"),
+                P("Puedes pegar una imagen debajo del enunciado; se vinculará a esa pregunta."),
                 P("1. ¿Cuál es la respuesta correcta de ejemplo?"),
                 P("*A. Opción correcta (marca con * la letra). B. Opción incorrecta. C. Otra incorrecta. D. Otra incorrecta."),
                 P("2. Segunda pregunta de ejemplo:"),
@@ -267,6 +392,114 @@ public static class ExamWordImportParser
     private static Paragraph P(string text) =>
         new(new Run(new Text(text)));
 
+    private static void RememberLastOptionLetter(string line, ref string? lastOptionLetter)
+    {
+        var matches = OptionChunk.Matches(line);
+        if (matches.Count > 0)
+        {
+            lastOptionLetter = matches[^1].Groups[2].Value.ToUpperInvariant();
+        }
+    }
+
+    private static List<ParsedExamImage> ExtractImages(
+        Paragraph para,
+        MainDocumentPart main,
+        List<string> skippedMedia)
+    {
+        var list = new List<ParsedExamImage>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var blip in para.Descendants<A.Blip>())
+        {
+            var embed = blip.Embed?.Value;
+            if (string.IsNullOrWhiteSpace(embed) || !seen.Add(embed))
+            {
+                continue;
+            }
+
+            TryAddImagePart(main, embed, list, skippedMedia);
+        }
+
+        foreach (var imageData in para.Descendants<V.ImageData>())
+        {
+            var rel = imageData.RelationshipId?.Value;
+            if (string.IsNullOrWhiteSpace(rel) || !seen.Add(rel))
+            {
+                continue;
+            }
+
+            TryAddImagePart(main, rel, list, skippedMedia);
+        }
+
+        return list;
+    }
+
+    private static void TryAddImagePart(
+        MainDocumentPart main,
+        string relationshipId,
+        List<ParsedExamImage> list,
+        List<string> skippedMedia)
+    {
+        OpenXmlPart? part;
+        try
+        {
+            part = main.GetPartById(relationshipId);
+        }
+        catch
+        {
+            return;
+        }
+
+        if (part is not ImagePart imagePart)
+        {
+            return;
+        }
+
+        var contentType = (imagePart.ContentType ?? "").Trim();
+        if (!AllowedImageTypes.Contains(contentType))
+        {
+            skippedMedia.Add(
+                $"Se omitió una imagen embebida (formato no soportado: {contentType}).");
+            return;
+        }
+
+        byte[] data;
+        using (var input = imagePart.GetStream())
+        using (var ms = new MemoryStream())
+        {
+            input.CopyTo(ms);
+            data = ms.ToArray();
+        }
+
+        if (data.Length == 0)
+        {
+            return;
+        }
+
+        if (data.Length > MaxImageBytes)
+        {
+            skippedMedia.Add("Se omitió una imagen embebida (supera 5 MB).");
+            return;
+        }
+
+        var ext = ExtForContentType(contentType);
+        list.Add(new ParsedExamImage(data, NormalizeContentType(contentType), $"{Guid.NewGuid():N}{ext}"));
+    }
+
+    private static string ExtForContentType(string contentType) =>
+        contentType.ToLowerInvariant() switch
+        {
+            "image/png" => ".png",
+            "image/gif" => ".gif",
+            "image/webp" => ".webp",
+            "image/bmp" => ".bmp",
+            _ => ".jpg"
+        };
+
+    private static string NormalizeContentType(string contentType) =>
+        contentType.Equals("image/jpg", StringComparison.OrdinalIgnoreCase)
+            ? "image/jpeg"
+            : contentType;
 
     private static string Normalize(string? text)
     {
