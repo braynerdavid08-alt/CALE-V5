@@ -53,6 +53,8 @@ export class TeacherLibraryPage implements OnInit {
   readonly importing = signal(false);
   readonly saving = signal(false);
   readonly followUpExam = signal<ExamDto | null>(null);
+  /** Preguntas/imágenes que el import no pudo leer o agregar. */
+  readonly importIssues = signal<string[]>([]);
   followUpGroupId: number | null = null;
 
   name = '';
@@ -194,15 +196,24 @@ export class TeacherLibraryPage implements OnInit {
           (result.imagesAttached ?? 0) > 0
             ? ` ${result.imagesAttached} imagen(es) incluida(s).`
             : '';
-        if (result.needsCorrectReview > 0) {
+        const issues = [...(result.skippedSamples ?? [])];
+        this.importIssues.set(issues);
+        const hasProblems =
+          result.needsCorrectReview > 0 || result.skippedCount > 0;
+        if (hasProblems) {
           this.ok.set(
-            `Importado “${result.name}”: ${result.importedQuestions} preguntas.${images}${skipped} Abriendo revisión de ${result.needsCorrectReview} sin clave…`
+            `Importado “${result.name}”: ${result.importedQuestions} preguntas.${images}${skipped} Revisa lo pendiente…`
           );
           void this.router.navigate(['/teacher/exam-review'], {
             queryParams: {
               bankId: result.bankId,
               examId: result.examId,
               name: result.name
+            },
+            state: {
+              importIssues: issues,
+              skippedCount: result.skippedCount,
+              needsCorrectReview: result.needsCorrectReview
             }
           });
           return;

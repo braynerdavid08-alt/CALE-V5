@@ -31,6 +31,9 @@ export class TeacherExamReviewPage implements OnInit {
 
   readonly items = signal<QuestionReviewDto[]>([]);
   readonly groups = signal<GroupDto[]>([]);
+  /** Preguntas/imágenes del Word que no se pudieron importar. */
+  readonly importIssues = signal<string[]>([]);
+  readonly skippedCount = signal(0);
   readonly error = signal<string | null>(null);
   readonly ok = signal<string | null>(null);
   readonly loading = signal(true);
@@ -43,6 +46,20 @@ export class TeacherExamReviewPage implements OnInit {
   assignGroupId: number | null = null;
 
   readonly allReviewed = computed(() => !this.loading() && this.items().length === 0 && this.bankId > 0);
+
+  constructor() {
+    const nav = this.router.getCurrentNavigation();
+    const state = (nav?.extras?.state ?? history.state) as
+      | {
+          importIssues?: string[];
+          skippedCount?: number;
+        }
+      | undefined;
+    if (state?.importIssues?.length) {
+      this.importIssues.set(state.importIssues);
+      this.skippedCount.set(state.skippedCount ?? state.importIssues.length);
+    }
+  }
 
   ngOnInit(): void {
     this.api.groups().subscribe({ next: (items) => this.groups.set(items) });

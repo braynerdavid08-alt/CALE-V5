@@ -146,7 +146,7 @@ public sealed class ImportExamFromWordHandler
             imported,
             reviewNeeded,
             parsed.Skipped.Count,
-            parsed.Skipped.Take(12).ToList(),
+            parsed.Skipped.Take(80).ToList(),
             imagesAttached);
     }
 
