@@ -122,8 +122,10 @@
               <ul class="dash-feed balance-feed">
                 @for (row of o.topBalanceDue; track row.studentUserId) {
                   <li>
-                    <strong>{{ row.studentName }}</strong>
-                    <p class="meta warn">{{ formatMoney(row.balanceDue) }}</p>
+                    <a [routerLink]="['/school/apprentices', row.studentUserId]" class="dash-row-link">
+                      <strong>{{ row.studentName }}</strong>
+                      <p class="meta warn">{{ formatMoney(row.balanceDue) }}</p>
+                    </a>
                   </li>
                 }
               </ul>
@@ -141,8 +143,10 @@
               <ul class="dash-feed">
                 @for (row of o.topReadyForExam; track row.studentUserId) {
                   <li>
-                    <strong>{{ row.studentName }}</strong>
-                    <p class="meta">Teoría y taller completos</p>
+                    <a [routerLink]="['/school/apprentices', row.studentUserId]" class="dash-row-link">
+                      <strong>{{ row.studentName }}</strong>
+                      <p class="meta">Teoría y taller completos</p>
+                    </a>
                   </li>
                 }
               </ul>
@@ -160,8 +164,10 @@
               <ul class="dash-feed">
                 @for (row of o.topNoExamAppointment; track row.studentUserId) {
                   <li>
-                    <strong>{{ row.studentName }}</strong>
-                    <p class="meta warn">Autorizado — falta agendar</p>
+                    <a [routerLink]="['/school/apprentices', row.studentUserId]" class="dash-row-link">
+                      <strong>{{ row.studentName }}</strong>
+                      <p class="meta warn">Autorizado — falta agendar</p>
+                    </a>
                   </li>
                 }
               </ul>

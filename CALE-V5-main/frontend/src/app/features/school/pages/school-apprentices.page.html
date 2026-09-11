@@ -69,6 +69,7 @@
                 <th>Manejo</th>
                 <th>Pagado</th>
                 <th>Saldo</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -91,10 +92,13 @@
                   <td [class.ok]="r.practicalAuthorized || p?.canBookPractical">{{ formatPracticalStatus(r, p) }}</td>
                   <td>{{ formatMoney(r.amountPaid) }}</td>
                   <td [class.warn]="r.balanceDue > 0">{{ formatMoney(r.balanceDue) }}</td>
+                  <td class="row-actions" (click)="$event.stopPropagation()">
+                    <a [routerLink]="['/school/apprentices', r.studentUserId]" class="dossier-link">360°</a>
+                  </td>
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="7" class="muted">
+                  <td colspan="8" class="muted">
                     Sin aprendices vinculados. Usa <a routerLink="/school/users">Usuarios</a>
                     o <a routerLink="/school/import">Importar</a>.
                   </td>
@@ -108,8 +112,15 @@
       @if (selected(); as s) {
         @let d = detail();
         <aside class="school-card school-panel-scroll">
-          <h2>{{ s.studentName }}</h2>
-          <p class="login-hint muted">Acceso app: <strong>{{ s.studentEmail || '—' }}</strong></p>
+          <div class="detail-head">
+            <div>
+              <h2>{{ s.studentName }}</h2>
+              <p class="login-hint muted">Acceso app: <strong>{{ s.studentEmail || '—' }}</strong></p>
+            </div>
+            <a [routerLink]="['/school/apprentices', s.studentUserId]">
+              <ui-button type="button" variant="secondary">Ver 360°</ui-button>
+            </a>
+          </div>
 
           @if (detailLoading()) {
             <ui-loading />

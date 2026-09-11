@@ -66,11 +66,12 @@ export class SchoolApprenticesPage implements OnInit {
   ngOnInit(): void {
     this.route.queryParamMap.subscribe((params) => {
       this.onlyBalance = params.get('withBalance') === 'true';
-      this.reload();
+      const focusId = Number(params.get('focus') || 0);
+      this.reload(focusId > 0 ? focusId : undefined);
     });
   }
 
-  reload(): void {
+  reload(focusStudentUserId?: number): void {
     this.loading.set(true);
     this.error.set(null);
     forkJoin({
@@ -86,6 +87,12 @@ export class SchoolApprenticesPage implements OnInit {
         this.rows.set(rows);
         this.progressByStudent.set(this.mapEnrollmentProgress(enrollments));
         this.loading.set(false);
+        if (focusStudentUserId) {
+          const hit = rows.find((r) => r.studentUserId === focusStudentUserId);
+          if (hit) {
+            this.select(hit);
+          }
+        }
       },
       error: (err) => {
         this.loading.set(false);
