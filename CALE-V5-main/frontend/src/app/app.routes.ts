@@ -229,6 +229,15 @@ export const routes: Routes = [
             .then((m) => m.SchoolTheoryPage)
       },
       {
+        path: 'school/attendance',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['School'] },
+        loadComponent: () =>
+          import('./features/school/pages/school-attendance-today.page')
+            .then((m) => m.SchoolAttendanceTodayPage)
+      },
+      {
         path: 'student/simulator',
         canActivate: [roleGuard, simulacroAccessGuard],
         data: { roles: ['Student', 'Teacher', 'Admin'] },

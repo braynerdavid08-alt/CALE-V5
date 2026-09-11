@@ -1,0 +1,153 @@
+<div class="school-page school-page--wide hoy">
+  <ui-page-header
+    eyebrow="Escuela"
+    title="Asistencia del día"
+    subtitle="Tablero por aula. Solo Presente o Tarde suma horas de teoría/taller." />
+
+  <div class="toolbar">
+    <label class="day-field">
+      Día
+      <input type="date" [ngModel]="day" (ngModelChange)="onDayChange($event)" name="day" />
+    </label>
+    <ui-button type="button" variant="secondary" (click)="goToday()">Hoy</ui-button>
+    <ui-button type="button" variant="ghost" (click)="reload()" [disabled]="loading()">Actualizar</ui-button>
+    <a routerLink="/school/training">
+      <ui-button type="button" variant="ghost">Programación teórica</ui-button>
+    </a>
+  </div>
+
+  <ui-error [message]="error()" />
+  @if (ok()) {
+    <p class="ok-msg" role="status">{{ ok() }}</p>
+  }
+
+  @if (dashboard(); as dash) {
+    <div class="kpis">
+      <div class="kpi"><span>Clases hoy</span><strong>{{ dash.classesToday }}</strong></div>
+      <div class="kpi"><span>Reservas</span><strong>{{ dash.studentsReserved }}</strong></div>
+      <div class="kpi"><span>Cupos libres</span><strong>{{ dash.availableSeats }}</strong></div>
+      <div class="kpi warn"><span>Ausencias hoy</span><strong>{{ dash.absencesToday }}</strong></div>
+    </div>
+  }
+
+  @if (loading()) {
+    <ui-loading />
+  } @else {
+    <div class="board">
+      <aside class="school-card rooms">
+        <h2>Clases del {{ day }}</h2>
+        @if (!groups().length) {
+          <p class="muted">
+            No hay clases programadas este día.
+            <a routerLink="/school/training">Créalas en Horario</a>.
+          </p>
+        } @else {
+          @for (g of groups(); track g.classroomId) {
+            <section class="room-block">
+              <h3>{{ g.classroomName }}</h3>
+              <ul>
+                @for (s of g.sessions; track s.id) {
+                  <li>
+                    <button
+                      type="button"
+                      class="session-btn"
+                      [class.on]="selectedSessionId() === s.id"
+                      (click)="selectSession(s.id)">
+                      <span class="time">{{ s.startTime.slice(0, 5) }}–{{ s.endTime.slice(0, 5) }}</span>
+                      <strong>{{ s.topicName }}</strong>
+                      <small>
+                        {{ s.reservedCount }}/{{ s.capacity }} · {{ durationLabel(s) }}
+                      </small>
+                      <span class="swatch" [style.background]="s.topicColor || 'var(--color-border)'"></span>
+                    </button>
+                  </li>
+                }
+              </ul>
+            </section>
+          }
+        }
+      </aside>
+
+      <section class="school-card list">
+        @if (!selectedSession()) {
+          <p class="muted">Elige una clase a la izquierda para pasar lista.</p>
+        } @else {
+          @let s = selectedSession()!;
+          <div class="list-head">
+            <div>
+              <h2>{{ s.topicName }}</h2>
+              <p class="muted">
+                {{ s.classroomName }} · {{ s.startTime.slice(0, 5) }}–{{ s.endTime.slice(0, 5) }}
+                · {{ durationLabel(s) }} acreditables si Presente/Tarde
+              </p>
+            </div>
+            <ui-button
+              type="button"
+              (click)="markAllPresent()"
+              [disabled]="marking() || !attendanceRows().length">
+              Todos presentes
+            </ui-button>
+          </div>
+
+          <div class="chips">
+            <span class="chip ok">Presente {{ counts().present }}</span>
+            <span class="chip late">Tarde {{ counts().late }}</span>
+            <span class="chip bad">Ausente {{ counts().absent }}</span>
+            <span class="chip">Pendiente {{ counts().pending }}</span>
+            <span class="chip">Total {{ counts().total }}</span>
+          </div>
+
+          @if (attendanceLoading()) {
+            <ui-loading />
+          } @else if (!attendanceRows().length) {
+            <p class="muted empty">
+              Nadie reservó esta clase. Los estudiantes deben reservar en Mi formación
+              (o asígnalos desde Programación).
+            </p>
+          } @else {
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Estudiante</th>
+                    <th>Estado</th>
+                    <th>Marcar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of attendanceRows(); track row.studentUserId) {
+                    <tr>
+                      <td>
+                        <strong>{{ row.studentName }}</strong>
+                      </td>
+                      <td>
+                        <span
+                          class="status"
+                          [class.ok]="row.status === 'Present'"
+                          [class.late]="row.status === 'Late'"
+                          [class.bad]="row.status === 'Absent'">
+                          {{ statusLabel(row.status) }}
+                        </span>
+                      </td>
+                      <td class="actions">
+                        <button type="button" [disabled]="marking()" (click)="mark(row.studentUserId, 'Present')">
+                          Presente
+                        </button>
+                        <button type="button" [disabled]="marking()" (click)="mark(row.studentUserId, 'Late')">
+                          Tarde
+                        </button>
+                        <button type="button" class="danger" [disabled]="marking()" (click)="mark(row.studentUserId, 'Absent')">
+                          Ausente
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        }
+      </section>
+    </div>
+  }
+</div>
