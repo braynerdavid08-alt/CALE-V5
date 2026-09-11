@@ -43,6 +43,7 @@ export class SchoolApprenticesPage implements OnInit {
 
   readonly loading = signal(true);
   readonly saving = signal(false);
+  readonly exporting = signal(false);
   readonly error = signal<string | null>(null);
   readonly saveOk = signal<string | null>(null);
   readonly rows = signal<ApprenticeDto[]>([]);
@@ -99,6 +100,58 @@ export class SchoolApprenticesPage implements OnInit {
         this.error.set(mapApiError(err));
       }
     });
+  }
+
+  downloadApprentices(): void {
+    if (this.exporting()) {
+      return;
+    }
+    this.exporting.set(true);
+    this.error.set(null);
+    this.api
+      .exportApprenticesXlsx({
+        search: this.search || undefined,
+        withBalance: this.onlyBalance || undefined
+      })
+      .subscribe({
+        next: (blob) => {
+          this.exporting.set(false);
+          this.saveBlob(blob, 'cale-aprendices.xlsx');
+          this.saveOk.set('Excel de aprendices descargado.');
+        },
+        error: (err) => {
+          this.exporting.set(false);
+          this.error.set(mapApiError(err));
+        }
+      });
+  }
+
+  downloadPayments(): void {
+    if (this.exporting()) {
+      return;
+    }
+    this.exporting.set(true);
+    this.error.set(null);
+    this.api.exportPaymentsXlsx().subscribe({
+      next: (blob) => {
+        this.exporting.set(false);
+        this.saveBlob(blob, 'cale-cartera.xlsx');
+        this.saveOk.set('Excel de cartera descargado.');
+      },
+      error: (err) => {
+        this.exporting.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  private saveBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   private mapEnrollmentProgress(enrollments: EnrollmentDto[]): Record<number, PracticalEligibilityDto> {

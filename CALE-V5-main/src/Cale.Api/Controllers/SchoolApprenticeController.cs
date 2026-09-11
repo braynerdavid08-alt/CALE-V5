@@ -13,13 +13,16 @@ public sealed class SchoolApprenticeController : ControllerBase
 {
     private readonly ApprenticeRegistryService _registry;
     private readonly SchoolExcelImportService _import;
+    private readonly SchoolExcelExportService _export;
 
     public SchoolApprenticeController(
         ApprenticeRegistryService registry,
-        SchoolExcelImportService import)
+        SchoolExcelImportService import,
+        SchoolExcelExportService export)
     {
         _registry = registry;
         _import = import;
+        _export = export;
     }
 
     private int SchoolId => CurrentUser.GetId(User);
@@ -83,6 +86,38 @@ public sealed class SchoolApprenticeController : ControllerBase
     [HttpPost("imports/excel/{previewId:guid}/commit")]
     public async Task<IActionResult> ExcelCommit(Guid previewId, CancellationToken ct) =>
         Ok(await _import.CommitAsync(SchoolId, previewId, ct));
+
+    [HttpGet("exports/apprentices.xlsx")]
+    public async Task<IActionResult> ExportApprentices(
+        [FromQuery] string? search,
+        [FromQuery] string? month,
+        [FromQuery] bool? withBalance,
+        CancellationToken ct)
+    {
+        var (bytes, fileName) = await _export.ExportApprenticesAsync(
+            SchoolId,
+            search,
+            month,
+            withBalance,
+            ct);
+        return File(
+            bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            fileName);
+    }
+
+    [HttpGet("exports/payments.xlsx")]
+    public async Task<IActionResult> ExportPayments(
+        [FromQuery] DateOnly? from,
+        [FromQuery] DateOnly? to,
+        CancellationToken ct)
+    {
+        var (bytes, fileName) = await _export.ExportPaymentsAsync(SchoolId, from, to, ct);
+        return File(
+            bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            fileName);
+    }
 
     [HttpGet("theory-exams/schedule")]
     public async Task<IActionResult> ListExamSlots(

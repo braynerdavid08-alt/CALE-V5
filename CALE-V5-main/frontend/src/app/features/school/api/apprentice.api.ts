@@ -275,6 +275,27 @@ export class ApprenticeApi {
     );
   }
 
+  exportApprenticesXlsx(opts?: { search?: string; month?: string; withBalance?: boolean }) {
+    let params = new HttpParams();
+    if (opts?.search) params = params.set('search', opts.search);
+    if (opts?.month) params = params.set('month', opts.month);
+    if (opts?.withBalance) params = params.set('withBalance', 'true');
+    return this.http.get(`${this.base}/exports/apprentices.xlsx`, {
+      params,
+      responseType: 'blob'
+    });
+  }
+
+  exportPaymentsXlsx(from?: string, to?: string) {
+    let params = new HttpParams();
+    if (from) params = params.set('from', from);
+    if (to) params = params.set('to', to);
+    return this.http.get(`${this.base}/exports/payments.xlsx`, {
+      params,
+      responseType: 'blob'
+    });
+  }
+
   listExamSlots(from?: string, to?: string) {
     let params = new HttpParams();
     if (from) params = params.set('from', from);
