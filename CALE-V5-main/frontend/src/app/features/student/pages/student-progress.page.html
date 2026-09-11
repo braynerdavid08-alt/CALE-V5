@@ -1,0 +1,54 @@
+<div class="school-page progress-page">
+  <ui-page-header
+    eyebrow="Estudiante"
+    title="Qué me falta"
+    subtitle="Checklist de tu formación: horas, pagos, examen y manejo." />
+
+  <ui-error [message]="error()" />
+
+  @if (loading()) {
+    <ui-loading />
+  } @else {
+    <section class="summary school-card">
+      <div>
+        <p class="muted">Pendientes</p>
+        <strong class="count">{{ openCount() }}</strong>
+      </div>
+      <p class="hint">{{ nextHint() }}</p>
+      <div class="summary-actions">
+        <a routerLink="/student/training">
+          <ui-button type="button" variant="secondary">Mi formación</ui-button>
+        </a>
+        <a routerLink="/student/practical">
+          <ui-button type="button" variant="secondary">Manejo</ui-button>
+        </a>
+        <a routerLink="/student/simulator">
+          <ui-button type="button">Simulador</ui-button>
+        </a>
+      </div>
+    </section>
+
+    <ol class="checklist">
+      @for (item of items(); track item.id) {
+        <li [attr.data-state]="item.state">
+          <span class="dot" aria-hidden="true"></span>
+          <div class="body">
+            <strong>{{ item.title }}</strong>
+            <small>{{ item.detail }}</small>
+            @if (item.ctaLink && item.ctaLabel) {
+              <a [routerLink]="item.ctaLink">{{ item.ctaLabel }}</a>
+            }
+          </div>
+          <span class="badge">
+            @switch (item.state) {
+              @case ('done') { Listo }
+              @case ('todo') { Pendiente }
+              @case ('blocked') { Bloqueado }
+              @default { Info }
+            }
+          </span>
+        </li>
+      }
+    </ol>
+  }
+</div>

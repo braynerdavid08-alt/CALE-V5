@@ -1102,6 +1102,12 @@ public sealed class TheoryTrainingService
             }
         }
 
+        var profile = await _db.Set<SchoolApprenticeProfile>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                x => x.SchoolUserId == schoolUserId && x.StudentUserId == studentUserId,
+                ct);
+
         return new TheoryStudentDashboardDto(
             nextDto,
             upcomingDtos,
@@ -1122,7 +1128,8 @@ public sealed class TheoryTrainingService
             enrollment?.AttendanceDayType,
             eligibility,
             nextExamAppointment,
-            platformExam);
+            platformExam,
+            profile?.BalanceDue ?? 0);
     }
 
     public async Task<TheoryWeekScheduleDto> GetStudentWeekScheduleAsync(

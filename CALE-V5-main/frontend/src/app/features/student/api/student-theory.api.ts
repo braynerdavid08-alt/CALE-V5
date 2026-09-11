@@ -13,8 +13,11 @@ export interface TheoryStudentDashboardDto {
   absences: number;
   checkedInToday: boolean;
   nextAction?: string | null;
+  nextClass?: { sessionDate: string; startTime: string; topicName?: string | null } | null;
+  nextExamAppointment?: { id: number; examDate: string; slotTime: string } | null;
   platformExam?: { id: number; name: string } | null;
   practicalEligibility?: PracticalEligibilityDto | null;
+  balanceDue?: number;
 }
 
 @Injectable({ providedIn: 'root' })

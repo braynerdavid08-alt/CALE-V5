@@ -156,6 +156,7 @@ export interface TheoryStudentDashboardDto {
   practicalEligibility?: PracticalEligibilityDto | null;
   nextExamAppointment?: StudentExamAppointmentDto | null;
   platformExam?: StudentPlatformExamDto | null;
+  balanceDue?: number;
 }
 
 export interface StudentExamAppointmentDto {

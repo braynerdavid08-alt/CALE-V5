@@ -57,6 +57,8 @@ export interface PracticalStudentDashboardDto {
   upcomingReservations: PracticalLessonSessionDto[];
   availableLessons: PracticalLessonSessionDto[];
   availableInstructors: PracticalInstructorOptionDto[];
+  completedLessons?: number;
+  requiredLessons?: number;
 }
 
 export interface PracticalInstructorOptionDto {
