@@ -105,12 +105,44 @@ export interface PracticalEligibility {
   blockReason?: string | null;
 }
 
+export interface ApprenticePaymentAbono {
+  id: number;
+  studentUserId: number;
+  paymentDate: string;
+  amount: number;
+  paymentMethod?: string | null;
+  receiptNumber?: string | null;
+  kind: string;
+  notes?: string | null;
+  recordedByName?: string | null;
+  createdAt: string;
+}
+
+export interface ApprenticeCartera {
+  amountDue: number;
+  amountPaid: number;
+  balanceDue: number;
+  accountsReceivable: number;
+  paymentMethod?: string | null;
+  receiptNumber?: string | null;
+  abonos: ApprenticePaymentAbono[];
+}
+
+export interface RegisterApprenticeAbonoRequest {
+  paymentDate: string;
+  amount: number;
+  paymentMethod?: string | null;
+  receiptNumber?: string | null;
+  notes?: string | null;
+}
+
 export interface ApprenticeDetail {
   profile: ApprenticeDto;
   training: PracticalEligibility;
   practical: ApprenticePracticalSummary;
   nextExam?: ApprenticeExamSummary | null;
   authorizationHistory?: EnrollmentAuthorizationEvent[];
+  cartera?: ApprenticeCartera | null;
 }
 
 export interface SchoolDashboardBalanceRow {
@@ -170,6 +202,17 @@ export class ApprenticeApi {
 
   getDetail(studentUserId: number) {
     return this.http.get<ApprenticeDetail>(`${this.base}/apprentices/${studentUserId}`);
+  }
+
+  listPayments(studentUserId: number) {
+    return this.http.get<ApprenticeCartera>(`${this.base}/apprentices/${studentUserId}/payments`);
+  }
+
+  registerAbono(studentUserId: number, body: RegisterApprenticeAbonoRequest) {
+    return this.http.post<ApprenticeCartera>(
+      `${this.base}/apprentices/${studentUserId}/payments`,
+      body
+    );
   }
 
   getDashboard() {

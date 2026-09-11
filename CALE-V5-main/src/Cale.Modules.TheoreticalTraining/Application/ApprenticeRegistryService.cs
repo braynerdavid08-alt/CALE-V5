@@ -196,7 +196,179 @@ public sealed class ApprenticeRegistryService
             authHistory = [];
         }
 
-        return new ApprenticeDetailDto(apprentice, training, practical, nextExam, authHistory);
+        ApprenticeCarteraDto? cartera = null;
+        try
+        {
+            cartera = await BuildCarteraAsync(schoolUserId, studentUserId, profile, ct);
+        }
+        catch (Exception)
+        {
+            await ResetDbConnectionAsync(ct);
+            cartera = profile is null
+                ? null
+                : new ApprenticeCarteraDto(
+                    profile.AmountDue,
+                    profile.AmountPaid,
+                    profile.BalanceDue,
+                    profile.AccountsReceivable,
+                    profile.PaymentMethod,
+                    profile.ReceiptNumber,
+                    []);
+        }
+
+        return new ApprenticeDetailDto(apprentice, training, practical, nextExam, authHistory, cartera);
+    }
+
+    public async Task<ApprenticeCarteraDto> ListPaymentsAsync(
+        int schoolUserId,
+        int studentUserId,
+        CancellationToken ct)
+    {
+        var user = await _users.GetByIdAsync(studentUserId, ct)
+            ?? throw new NotFoundException("Estudiante no encontrado.", "student_not_found");
+        if (!await BelongsToSchoolAsync(schoolUserId, studentUserId, user, ct))
+        {
+            throw new DomainException("El estudiante no pertenece a tu escuela.", 400, "invalid_student");
+        }
+
+        var profile = await _db.Set<SchoolApprenticeProfile>()
+            .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId && x.StudentUserId == studentUserId, ct);
+
+        return await BuildCarteraAsync(schoolUserId, studentUserId, profile, ct);
+    }
+
+    public async Task<ApprenticeCarteraDto> RegisterAbonoAsync(
+        int schoolUserId,
+        int studentUserId,
+        RegisterApprenticeAbonoRequest request,
+        CancellationToken ct)
+    {
+        await _membership.EnsureActiveAsync(schoolUserId, ct);
+
+        var user = await _users.GetByIdAsync(studentUserId, ct)
+            ?? throw new NotFoundException("Estudiante no encontrado.", "student_not_found");
+        if (!await BelongsToSchoolAsync(schoolUserId, studentUserId, user, ct))
+        {
+            throw new DomainException("El estudiante no pertenece a tu escuela.", 400, "invalid_student");
+        }
+
+        if (request.Amount <= 0)
+        {
+            throw new DomainException("El abono debe ser mayor a cero.", 400, "invalid_abono_amount");
+        }
+
+        var now = _clock.UtcNow;
+        var profile = await _db.Set<SchoolApprenticeProfile>()
+            .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId && x.StudentUserId == studentUserId, ct);
+        if (profile is null)
+        {
+            profile = new SchoolApprenticeProfile
+            {
+                SchoolUserId = schoolUserId,
+                StudentUserId = studentUserId,
+                CreatedAt = now
+            };
+            await _db.Set<SchoolApprenticeProfile>().AddAsync(profile, ct);
+        }
+
+        var method = Truncate(request.PaymentMethod, 32);
+        var receipt = Truncate(request.ReceiptNumber, 32);
+        var notes = Truncate(request.Notes, 256);
+
+        await _db.Set<ApprenticePaymentAbono>().AddAsync(new ApprenticePaymentAbono
+        {
+            SchoolUserId = schoolUserId,
+            StudentUserId = studentUserId,
+            PaymentDate = request.PaymentDate,
+            Amount = request.Amount,
+            PaymentMethod = method,
+            ReceiptNumber = receipt,
+            Kind = "Abono",
+            Notes = notes,
+            RecordedByUserId = schoolUserId,
+            CreatedAt = now
+        }, ct);
+
+        profile.AmountPaid += request.Amount;
+        profile.BalanceDue = Math.Max(0, profile.AmountDue - profile.AmountPaid);
+        profile.AccountsReceivable = profile.BalanceDue;
+        profile.BalancePaymentAmount = request.Amount;
+        profile.BalancePaymentDate = request.PaymentDate;
+        profile.BalancePaymentMethod = method;
+        profile.BalanceReceiptNumber = receipt;
+        if (!string.IsNullOrWhiteSpace(method))
+        {
+            profile.PaymentMethod = method;
+        }
+        if (!string.IsNullOrWhiteSpace(receipt) && string.IsNullOrWhiteSpace(profile.ReceiptNumber))
+        {
+            profile.ReceiptNumber = receipt;
+        }
+        profile.UpdatedAt = now;
+
+        await _db.SaveChangesAsync(ct);
+        return await BuildCarteraAsync(schoolUserId, studentUserId, profile, ct);
+    }
+
+    private async Task<ApprenticeCarteraDto> BuildCarteraAsync(
+        int schoolUserId,
+        int studentUserId,
+        SchoolApprenticeProfile? profile,
+        CancellationToken ct)
+    {
+        var abonos = await _db.Set<ApprenticePaymentAbono>()
+            .Where(x => x.SchoolUserId == schoolUserId && x.StudentUserId == studentUserId)
+            .OrderByDescending(x => x.PaymentDate)
+            .ThenByDescending(x => x.CreatedAt)
+            .Take(100)
+            .ToListAsync(ct);
+
+        var recorderIds = abonos
+            .Where(x => x.RecordedByUserId is > 0)
+            .Select(x => x.RecordedByUserId!.Value)
+            .Distinct()
+            .ToList();
+        var recorderNames = new Dictionary<int, string>();
+        foreach (var id in recorderIds)
+        {
+            recorderNames[id] = (await _users.GetByIdAsync(id, ct))?.Name ?? "Usuario";
+        }
+
+        var rows = abonos
+            .Select(a => new ApprenticePaymentAbonoDto(
+                a.Id,
+                a.StudentUserId,
+                a.PaymentDate.ToString("yyyy-MM-dd"),
+                a.Amount,
+                a.PaymentMethod,
+                a.ReceiptNumber,
+                a.Kind,
+                a.Notes,
+                a.RecordedByUserId is int rid
+                    ? recorderNames.GetValueOrDefault(rid, "Usuario")
+                    : "Sistema",
+                a.CreatedAt))
+            .ToList();
+
+        return new ApprenticeCarteraDto(
+            profile?.AmountDue ?? 0,
+            profile?.AmountPaid ?? 0,
+            profile?.BalanceDue ?? 0,
+            profile?.AccountsReceivable ?? 0,
+            profile?.PaymentMethod,
+            profile?.ReceiptNumber,
+            rows);
+    }
+
+    private static string? Truncate(string? value, int max)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var trimmed = value.Trim();
+        return trimmed.Length <= max ? trimmed : trimmed[..max];
     }
 
     private async Task ResetDbConnectionAsync(CancellationToken ct)

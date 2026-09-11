@@ -193,3 +193,19 @@ public sealed class EnrollmentAuthorizationEventConfiguration
         builder.HasIndex(x => new { x.SchoolUserId, x.StudentUserId, x.CreatedAt });
     }
 }
+
+public sealed class ApprenticePaymentAbonoConfiguration
+    : IEntityTypeConfiguration<ApprenticePaymentAbono>
+{
+    public void Configure(EntityTypeBuilder<ApprenticePaymentAbono> builder)
+    {
+        builder.ToTable("ApprenticePaymentAbonos");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Amount).HasPrecision(18, 2);
+        builder.Property(x => x.PaymentMethod).HasMaxLength(32);
+        builder.Property(x => x.ReceiptNumber).HasMaxLength(32);
+        builder.Property(x => x.Kind).HasMaxLength(16).IsRequired();
+        builder.Property(x => x.Notes).HasMaxLength(256);
+        builder.HasIndex(x => new { x.SchoolUserId, x.StudentUserId, x.PaymentDate });
+    }
+}

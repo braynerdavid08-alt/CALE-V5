@@ -36,6 +36,17 @@ public sealed class SchoolApprenticeController : ControllerBase
     public async Task<IActionResult> GetDetail(int studentUserId, CancellationToken ct) =>
         Ok(await _registry.GetDetailAsync(SchoolId, studentUserId, ct));
 
+    [HttpGet("apprentices/{studentUserId:int}/payments")]
+    public async Task<IActionResult> ListPayments(int studentUserId, CancellationToken ct) =>
+        Ok(await _registry.ListPaymentsAsync(SchoolId, studentUserId, ct));
+
+    [HttpPost("apprentices/{studentUserId:int}/payments")]
+    public async Task<IActionResult> RegisterAbono(
+        int studentUserId,
+        RegisterApprenticeAbonoRequest request,
+        CancellationToken ct) =>
+        Ok(await _registry.RegisterAbonoAsync(SchoolId, studentUserId, request, ct));
+
     [HttpGet("dashboard")]
     public async Task<IActionResult> Dashboard(CancellationToken ct) =>
         Ok(await _registry.GetDashboardAsync(SchoolId, ct));

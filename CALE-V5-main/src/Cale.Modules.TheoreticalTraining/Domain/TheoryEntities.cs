@@ -233,6 +233,22 @@ public sealed class SchoolApprenticeProfile
     public DateTime UpdatedAt { get; set; }
 }
 
+/// <summary>Append-only payment movement for apprentice cartera.</summary>
+public sealed class ApprenticePaymentAbono
+{
+    public int Id { get; set; }
+    public int SchoolUserId { get; set; }
+    public int StudentUserId { get; set; }
+    public DateOnly PaymentDate { get; set; }
+    public decimal Amount { get; set; }
+    public string? PaymentMethod { get; set; }
+    public string? ReceiptNumber { get; set; }
+    public string Kind { get; set; } = "Abono";
+    public string? Notes { get; set; }
+    public int? RecordedByUserId { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
 public sealed class TheoryExamAppointment
 {
     public int Id { get; set; }

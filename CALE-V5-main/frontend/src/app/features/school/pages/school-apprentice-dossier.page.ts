@@ -1,5 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
@@ -33,6 +34,7 @@ interface TimelineItem {
   standalone: true,
   imports: [
     DatePipe,
+    FormsModule,
     RouterLink,
     UiButtonComponent,
     UiErrorComponent,
@@ -49,7 +51,16 @@ export class SchoolApprenticeDossierPage implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly detail = signal<ApprenticeDetail | null>(null);
+  readonly savingAbono = signal(false);
+  readonly abonoError = signal<string | null>(null);
+  readonly abonoOk = signal<string | null>(null);
   studentUserId = 0;
+
+  abonoDate = '';
+  abonoAmount: number | null = null;
+  abonoMethod = '';
+  abonoReceipt = '';
+  abonoNotes = '';
 
   readonly pipeline = computed(() => this.buildPipeline(this.detail()));
   readonly timeline = computed(() => this.buildTimeline(this.detail()));
@@ -58,6 +69,7 @@ export class SchoolApprenticeDossierPage implements OnInit {
     this.route.paramMap.subscribe((params) => {
       this.studentUserId = Number(params.get('studentUserId') || 0);
       if (this.studentUserId > 0) {
+        this.resetAbonoForm();
         this.reload();
       } else {
         this.loading.set(false);
@@ -79,6 +91,58 @@ export class SchoolApprenticeDossierPage implements OnInit {
         this.error.set(mapApiError(err));
       }
     });
+  }
+
+  registerAbono(): void {
+    const amount = Number(this.abonoAmount);
+    if (!this.abonoDate || !(amount > 0)) {
+      this.abonoError.set('Indica fecha y un monto mayor a cero.');
+      this.abonoOk.set(null);
+      return;
+    }
+
+    this.savingAbono.set(true);
+    this.abonoError.set(null);
+    this.abonoOk.set(null);
+    this.api
+      .registerAbono(this.studentUserId, {
+        paymentDate: this.abonoDate,
+        amount,
+        paymentMethod: this.abonoMethod || null,
+        receiptNumber: this.abonoReceipt || null,
+        notes: this.abonoNotes || null
+      })
+      .subscribe({
+        next: (cartera) => {
+          const current = this.detail();
+          if (current) {
+            this.detail.set({
+              ...current,
+              cartera,
+              profile: {
+                ...current.profile,
+                amountDue: cartera.amountDue,
+                amountPaid: cartera.amountPaid,
+                balanceDue: cartera.balanceDue,
+                accountsReceivable: cartera.accountsReceivable,
+                paymentMethod: cartera.paymentMethod ?? current.profile.paymentMethod,
+                receiptNumber: cartera.receiptNumber ?? current.profile.receiptNumber,
+                balancePaymentAmount: amount,
+                balancePaymentDate: this.abonoDate,
+                balancePaymentMethod: this.abonoMethod || current.profile.balancePaymentMethod,
+                balanceReceiptNumber: this.abonoReceipt || current.profile.balanceReceiptNumber
+              }
+            });
+          }
+          this.savingAbono.set(false);
+          this.abonoOk.set('Abono registrado.');
+          this.resetAbonoForm();
+        },
+        error: (err) => {
+          this.savingAbono.set(false);
+          this.abonoError.set(mapApiError(err));
+        }
+      });
   }
 
   formatMoney(value: number | null | undefined): string {
@@ -103,6 +167,18 @@ export class SchoolApprenticeDossierPage implements OnInit {
           ? 'revocado'
           : ev.action;
     return `${type}: ${action}`;
+  }
+
+  private resetAbonoForm(): void {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    this.abonoDate = `${yyyy}-${mm}-${dd}`;
+    this.abonoAmount = null;
+    this.abonoMethod = '';
+    this.abonoReceipt = '';
+    this.abonoNotes = '';
   }
 
   private buildPipeline(detail: ApprenticeDetail | null): PipelineStep[] {
@@ -214,6 +290,17 @@ export class SchoolApprenticeDossierPage implements OnInit {
         title: this.authEventLabel(ev),
         detail: `Por ${ev.performedByName || 'escuela'}`,
         tone: ev.action === 'Granted' ? 'ok' : 'warn'
+      });
+    }
+
+    for (const abono of detail.cartera?.abonos ?? []) {
+      items.push({
+        at: abono.paymentDate,
+        title: `Abono ${this.formatMoney(abono.amount)}`,
+        detail: [abono.paymentMethod, abono.receiptNumber ? `Recibo ${abono.receiptNumber}` : null]
+          .filter(Boolean)
+          .join(' · ') || (abono.recordedByName ? `Por ${abono.recordedByName}` : 'Pago registrado'),
+        tone: 'ok'
       });
     }
 

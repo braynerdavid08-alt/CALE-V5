@@ -777,6 +777,21 @@ public static class FeatureSchema
                 );
                 CREATE INDEX IF NOT EXISTS "IX_EnrollmentAuthorizationEvents_School_Student_Created"
                     ON "EnrollmentAuthorizationEvents" ("SchoolUserId", "StudentUserId", "CreatedAt");
+                CREATE TABLE IF NOT EXISTS "ApprenticePaymentAbonos" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_ApprenticePaymentAbonos" PRIMARY KEY AUTOINCREMENT,
+                    "SchoolUserId" INTEGER NOT NULL,
+                    "StudentUserId" INTEGER NOT NULL,
+                    "PaymentDate" TEXT NOT NULL,
+                    "Amount" REAL NOT NULL,
+                    "PaymentMethod" TEXT NULL,
+                    "ReceiptNumber" TEXT NULL,
+                    "Kind" TEXT NOT NULL,
+                    "Notes" TEXT NULL,
+                    "RecordedByUserId" INTEGER NULL,
+                    "CreatedAt" TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS "IX_ApprenticePaymentAbonos_School_Student_Date"
+                    ON "ApprenticePaymentAbonos" ("SchoolUserId", "StudentUserId", "PaymentDate");
                 """,
                 ct);
 
@@ -1263,6 +1278,26 @@ public static class FeatureSchema
                 ct);
             await TryPostgresAsync(db,
                 """CREATE INDEX IF NOT EXISTS "IX_EnrollmentAuthorizationEvents_School_Student_Created" ON "EnrollmentAuthorizationEvents" ("SchoolUserId", "StudentUserId", "CreatedAt");""",
+                ct);
+            await TryPostgresAsync(db,
+                """
+                CREATE TABLE IF NOT EXISTS "ApprenticePaymentAbonos" (
+                    "Id" serial PRIMARY KEY,
+                    "SchoolUserId" integer NOT NULL,
+                    "StudentUserId" integer NOT NULL,
+                    "PaymentDate" date NOT NULL,
+                    "Amount" numeric(18,2) NOT NULL,
+                    "PaymentMethod" varchar(32) NULL,
+                    "ReceiptNumber" varchar(32) NULL,
+                    "Kind" varchar(16) NOT NULL,
+                    "Notes" varchar(256) NULL,
+                    "RecordedByUserId" integer NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL
+                );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_ApprenticePaymentAbonos_School_Student_Date" ON "ApprenticePaymentAbonos" ("SchoolUserId", "StudentUserId", "PaymentDate");""",
                 ct);
             await TryPostgresAsync(db,
                 """
@@ -2203,6 +2238,25 @@ public static class FeatureSchema
                 );
                 CREATE INDEX IX_EnrollmentAuthorizationEvents_School_Student_Created
                     ON dbo.EnrollmentAuthorizationEvents(SchoolUserId, StudentUserId, CreatedAt);
+            END
+
+            IF OBJECT_ID(N'dbo.ApprenticePaymentAbonos', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.ApprenticePaymentAbonos (
+                    Id int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                    SchoolUserId int NOT NULL,
+                    StudentUserId int NOT NULL,
+                    PaymentDate date NOT NULL,
+                    Amount decimal(18,2) NOT NULL,
+                    PaymentMethod nvarchar(32) NULL,
+                    ReceiptNumber nvarchar(32) NULL,
+                    Kind nvarchar(16) NOT NULL,
+                    Notes nvarchar(256) NULL,
+                    RecordedByUserId int NULL,
+                    CreatedAt datetime2 NOT NULL
+                );
+                CREATE INDEX IX_ApprenticePaymentAbonos_School_Student_Date
+                    ON dbo.ApprenticePaymentAbonos(SchoolUserId, StudentUserId, PaymentDate);
             END
             """,
             ct);
