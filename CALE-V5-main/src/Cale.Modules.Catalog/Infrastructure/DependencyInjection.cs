@@ -12,6 +12,7 @@ public static class DependencyInjection
         this IServiceCollection services)
     {
         services.AddScoped<ICatalogStore, CatalogStore>();
+        services.AddScoped<ICatalogMediaStore, CatalogMediaStore>();
         services.AddScoped<ListBanksHandler>();
         services.AddScoped<ListBlocksHandler>();
         services.AddScoped<ListQuestionsHandler>();

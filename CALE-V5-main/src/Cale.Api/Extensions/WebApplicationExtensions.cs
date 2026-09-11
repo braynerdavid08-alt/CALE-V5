@@ -36,6 +36,7 @@ public static class WebApplicationExtensions
         app.UseMiddleware<RequestTelemetryMiddleware>();
         app.UseMiddleware<ExceptionHandlingMiddleware>();
         app.UseMiddleware<LegacyPresentationUploadMiddleware>();
+        app.UseMiddleware<LegacyCatalogUploadMiddleware>();
 
         if (app.Environment.IsDevelopment())
         {
