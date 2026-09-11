@@ -114,4 +114,18 @@ public sealed class SchoolApprenticeController : ControllerBase
         await _registry.DeleteExamSlotAsync(SchoolId, id, ct);
         return NoContent();
     }
+
+    [HttpGet("theory-exams/control")]
+    public async Task<IActionResult> ExamControlBoard(
+        [FromQuery] DateOnly? date,
+        CancellationToken ct) =>
+        Ok(await _registry.GetExamControlBoardAsync(SchoolId, date, ct));
+
+    [HttpPost("theory-exams/control/{appointmentId:int}/check-in")]
+    public async Task<IActionResult> ExamCheckIn(int appointmentId, CancellationToken ct) =>
+        Ok(await _registry.CheckInExamAppointmentAsync(SchoolId, appointmentId, ct));
+
+    [HttpPost("theory-exams/control/{appointmentId:int}/no-show")]
+    public async Task<IActionResult> ExamNoShow(int appointmentId, CancellationToken ct) =>
+        Ok(await _registry.MarkExamNoShowAsync(SchoolId, appointmentId, ct));
 }

@@ -187,6 +187,44 @@ export interface TheoryExamSlotDto {
   notes?: string | null;
 }
 
+export type TheoryExamBoardStatus =
+  | 'Scheduled'
+  | 'CheckedIn'
+  | 'InProgress'
+  | 'Passed'
+  | 'Failed'
+  | 'NoShow';
+
+export interface TheoryExamControlRow {
+  appointmentId: number;
+  examDate: string;
+  slotTime: string;
+  studentUserId?: number | null;
+  studentName: string;
+  notes?: string | null;
+  theoryExamAuthorized: boolean;
+  noShow: boolean;
+  checkedInAt?: string | null;
+  boardStatus: TheoryExamBoardStatus | string;
+  attemptId?: number | null;
+  percent?: number | null;
+  passed?: boolean | null;
+  attemptStartedAt?: string | null;
+  attemptFinishedAt?: string | null;
+}
+
+export interface TheoryExamControlBoard {
+  examDate: string;
+  officialTheoryExamId?: number | null;
+  scheduledCount: number;
+  checkedInCount: number;
+  inProgressCount: number;
+  finishedCount: number;
+  passedCount: number;
+  noShowCount: number;
+  rows: TheoryExamControlRow[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class ApprenticeApi {
   private readonly http = inject(HttpClient);
@@ -262,5 +300,25 @@ export class ApprenticeApi {
 
   deleteExamSlot(id: number) {
     return this.http.delete(`${this.base}/theory-exams/schedule/${id}`);
+  }
+
+  getExamControlBoard(date?: string) {
+    let params = new HttpParams();
+    if (date) params = params.set('date', date);
+    return this.http.get<TheoryExamControlBoard>(`${this.base}/theory-exams/control`, { params });
+  }
+
+  examCheckIn(appointmentId: number) {
+    return this.http.post<TheoryExamControlRow>(
+      `${this.base}/theory-exams/control/${appointmentId}/check-in`,
+      {}
+    );
+  }
+
+  examNoShow(appointmentId: number) {
+    return this.http.post<TheoryExamControlRow>(
+      `${this.base}/theory-exams/control/${appointmentId}/no-show`,
+      {}
+    );
   }
 }

@@ -4,6 +4,7 @@ using Cale.BuildingBlocks.Domain.Engagement;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Time;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
+using Cale.Modules.Assessment.Domain;
 using Cale.Modules.Identity.Application.Abstractions;
 using Cale.Modules.Identity.Domain;
 using Cale.Modules.TheoreticalTraining.Application.DTOs;
@@ -865,6 +866,191 @@ public sealed class ApprenticeRegistryService
             ?? throw new NotFoundException("Cita no encontrada.", "slot_not_found");
         _db.Remove(entity);
         await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<TheoryExamControlBoardDto> GetExamControlBoardAsync(
+        int schoolUserId,
+        DateOnly? date,
+        CancellationToken ct)
+    {
+        var day = date ?? DateOnly.FromDateTime(_clock.UtcNow.Date);
+        var settings = await _db.Set<TheoryTrainingSettings>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId, ct);
+        var officialExamId = settings?.TheoryExamId;
+
+        var appointments = await _db.Set<TheoryExamAppointment>()
+            .Where(x => x.SchoolUserId == schoolUserId && x.ExamDate == day)
+            .OrderBy(x => x.SlotTime)
+            .ThenBy(x => x.Id)
+            .ToListAsync(ct);
+
+        var studentIds = appointments
+            .Where(x => x.StudentUserId is int)
+            .Select(x => x.StudentUserId!.Value)
+            .Distinct()
+            .ToList();
+
+        var enrollments = studentIds.Count == 0
+            ? []
+            : await _db.Set<SchoolStudentEnrollment>()
+                .Where(x => x.SchoolUserId == schoolUserId && studentIds.Contains(x.StudentUserId))
+                .ToListAsync(ct);
+        var enrollmentByStudent = enrollments.ToDictionary(x => x.StudentUserId);
+
+        var attempts = new List<Attempt>();
+        if (officialExamId is int examId && studentIds.Count > 0)
+        {
+            attempts = await _db.Set<Attempt>()
+                .Where(a => a.ExamId == examId && studentIds.Contains(a.UserId))
+                .ToListAsync(ct);
+        }
+
+        var dayStart = day.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var dayEnd = day.ToDateTime(new TimeOnly(23, 59, 59), DateTimeKind.Utc);
+
+        var rows = new List<TheoryExamControlRowDto>();
+        foreach (var slot in appointments)
+        {
+            string studentName;
+            if (slot.StudentUserId is int sid)
+            {
+                var user = await _users.GetByIdAsync(sid, ct);
+                studentName = user?.Name
+                    ?? slot.StudentLabel
+                    ?? $"Estudiante {sid}";
+            }
+            else
+            {
+                studentName = string.IsNullOrWhiteSpace(slot.StudentLabel)
+                    ? "Sin asignar"
+                    : slot.StudentLabel!;
+            }
+
+            var authorized = slot.StudentUserId is int authSid
+                && enrollmentByStudent.TryGetValue(authSid, out var enr)
+                && enr.TheoryExamAuthorized;
+
+            Attempt? open = null;
+            Attempt? finishedForDay = null;
+            if (slot.StudentUserId is int studentId)
+            {
+                var studentAttempts = attempts.Where(a => a.UserId == studentId).ToList();
+                open = studentAttempts
+                    .Where(a => a.FinishedAt is null)
+                    .OrderByDescending(a => a.StartedAt)
+                    .FirstOrDefault();
+                finishedForDay = studentAttempts
+                    .Where(a => a.FinishedAt is not null
+                        && ((a.FinishedAt >= dayStart && a.FinishedAt <= dayEnd)
+                            || (a.StartedAt >= dayStart && a.StartedAt <= dayEnd)))
+                    .OrderByDescending(a => a.FinishedAt)
+                    .FirstOrDefault();
+            }
+
+            var boardStatus = ResolveBoardStatus(slot, open, finishedForDay);
+
+            rows.Add(new TheoryExamControlRowDto(
+                slot.Id,
+                slot.ExamDate.ToString("yyyy-MM-dd"),
+                slot.SlotTime.ToString("HH:mm"),
+                slot.StudentUserId,
+                studentName,
+                slot.Notes,
+                authorized,
+                slot.NoShow,
+                slot.CheckedInAt,
+                boardStatus,
+                open?.Id ?? finishedForDay?.Id,
+                open is null ? finishedForDay?.Percent : null,
+                open is null ? finishedForDay?.Passed : null,
+                open?.StartedAt ?? finishedForDay?.StartedAt,
+                finishedForDay?.FinishedAt));
+        }
+
+        return new TheoryExamControlBoardDto(
+            day.ToString("yyyy-MM-dd"),
+            officialExamId,
+            rows.Count,
+            rows.Count(r => r.BoardStatus is "CheckedIn" or "InProgress" or "Finished" or "Passed" or "Failed"),
+            rows.Count(r => r.BoardStatus == "InProgress"),
+            rows.Count(r => r.BoardStatus is "Finished" or "Passed" or "Failed"),
+            rows.Count(r => r.BoardStatus == "Passed"),
+            rows.Count(r => r.BoardStatus == "NoShow"),
+            rows);
+    }
+
+    public async Task<TheoryExamControlRowDto> CheckInExamAppointmentAsync(
+        int schoolUserId,
+        int appointmentId,
+        CancellationToken ct)
+    {
+        await _membership.EnsureActiveAsync(schoolUserId, ct);
+        var entity = await _db.Set<TheoryExamAppointment>()
+            .FirstOrDefaultAsync(x => x.Id == appointmentId && x.SchoolUserId == schoolUserId, ct)
+            ?? throw new NotFoundException("Cita no encontrada.", "slot_not_found");
+
+        if (entity.StudentUserId is null)
+        {
+            throw new DomainException("La cita no tiene aprendiz asignado.", 400, "slot_unassigned");
+        }
+
+        var now = _clock.UtcNow;
+        entity.CheckedInAt = now;
+        entity.NoShow = false;
+        entity.UpdatedAt = now;
+        await _db.SaveChangesAsync(ct);
+
+        var board = await GetExamControlBoardAsync(schoolUserId, entity.ExamDate, ct);
+        return board.Rows.First(r => r.AppointmentId == appointmentId);
+    }
+
+    public async Task<TheoryExamControlRowDto> MarkExamNoShowAsync(
+        int schoolUserId,
+        int appointmentId,
+        CancellationToken ct)
+    {
+        await _membership.EnsureActiveAsync(schoolUserId, ct);
+        var entity = await _db.Set<TheoryExamAppointment>()
+            .FirstOrDefaultAsync(x => x.Id == appointmentId && x.SchoolUserId == schoolUserId, ct)
+            ?? throw new NotFoundException("Cita no encontrada.", "slot_not_found");
+
+        var now = _clock.UtcNow;
+        entity.NoShow = true;
+        entity.CheckedInAt = null;
+        entity.UpdatedAt = now;
+        await _db.SaveChangesAsync(ct);
+
+        var board = await GetExamControlBoardAsync(schoolUserId, entity.ExamDate, ct);
+        return board.Rows.First(r => r.AppointmentId == appointmentId);
+    }
+
+    private static string ResolveBoardStatus(
+        TheoryExamAppointment slot,
+        Attempt? open,
+        Attempt? finished)
+    {
+        if (open is not null)
+        {
+            return "InProgress";
+        }
+
+        if (finished is not null)
+        {
+            return finished.Passed ? "Passed" : "Failed";
+        }
+
+        if (slot.NoShow)
+        {
+            return "NoShow";
+        }
+
+        if (slot.CheckedInAt is not null)
+        {
+            return "CheckedIn";
+        }
+
+        return "Scheduled";
     }
 
     private static ApprenticeDto MapDto(
