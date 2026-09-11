@@ -127,8 +127,16 @@ import { Component, Input } from '@angular/core';
   styles: [`
     :host { display: inline-flex; line-height: 0; }
     svg { width: 1.2rem; height: 1.2rem; }
-  `]
+    :host.size-lg svg { width: 2.75rem; height: 2.75rem; stroke-width: 1.7; }
+    :host.size-xl svg { width: 3.5rem; height: 3.5rem; stroke-width: 1.6; }
+  `],
+  host: {
+    '[class.size-lg]': "size === 'lg'",
+    '[class.size-xl]': "size === 'xl'"
+  }
 })
 export class UiIconComponent {
   @Input() name = 'home';
+  /** sm/md default; lg/xl for senior-friendly launchers. */
+  @Input() size: 'sm' | 'md' | 'lg' | 'xl' = 'md';
 }
