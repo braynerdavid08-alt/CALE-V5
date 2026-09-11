@@ -9,6 +9,7 @@
   <nav class="school-tabs" aria-label="Secciones de práctica">
     <button type="button" [class.on]="tab() === 'schedule'" (click)="setTab('schedule')">Programación</button>
     <button type="button" [class.on]="tab() === 'attendance'" (click)="setTab('attendance')">Asistencia</button>
+    <a class="tab-link" routerLink="/school/practical-fleet">Hoy (flota)</a>
   </nav>
 
 @if (loading() && tab() === 'schedule') {

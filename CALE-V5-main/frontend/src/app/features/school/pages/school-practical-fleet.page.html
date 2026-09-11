@@ -1,0 +1,122 @@
+<div class="school-page school-page--wide fleet">
+  <ui-page-header
+    eyebrow="Escuela"
+    title="Flota práctica — Hoy"
+    subtitle="Tablero del día: vehículo, instructor, aprendiz y asistencia de manejo." />
+
+  <div class="toolbar">
+    <label class="day-field">
+      Día
+      <input type="date" [ngModel]="day" (ngModelChange)="onDayChange($event)" name="day" />
+    </label>
+    <ui-button type="button" variant="secondary" (click)="goToday()">Hoy</ui-button>
+    <ui-button type="button" variant="ghost" (click)="reload()" [disabled]="loading()">Actualizar</ui-button>
+    <a routerLink="/school/practical">
+      <ui-button type="button" variant="ghost">Programación</ui-button>
+    </a>
+  </div>
+
+  <ui-error [message]="error()" />
+  @if (ok()) {
+    <p class="ok-msg" role="status">{{ ok() }}</p>
+  }
+
+  @if (loading() && !dayLessons().length) {
+    <ui-loading />
+  } @else {
+    <div class="kpis">
+      <button type="button" class="kpi" [class.on]="filter() === 'all'" (click)="setFilter('all')">
+        <span>Clases</span><strong>{{ counts().total }}</strong>
+      </button>
+      <button type="button" class="kpi" [class.on]="filter() === 'Free'" (click)="setFilter('Free')">
+        <span>Libres</span><strong>{{ counts().free }}</strong>
+      </button>
+      <button type="button" class="kpi" [class.on]="filter() === 'Reserved'" (click)="setFilter('Reserved')">
+        <span>Reservadas</span><strong>{{ counts().reserved }}</strong>
+      </button>
+      <button type="button" class="kpi ok" [class.on]="filter() === 'Present'" (click)="setFilter('Present')">
+        <span>Presentes</span><strong>{{ counts().present }}</strong>
+      </button>
+      <button type="button" class="kpi warn" [class.on]="filter() === 'Absent'" (click)="setFilter('Absent')">
+        <span>Ausentes</span><strong>{{ counts().absent }}</strong>
+      </button>
+    </div>
+
+    @if (idleVehicles().length) {
+      <p class="idle-note muted">
+        Vehículos sin clase hoy: {{ idleVehiclesLabel() }}
+      </p>
+    }
+
+    <section class="school-card list">
+      @if (!rows().length) {
+        <p class="muted empty">
+          @if (!dayLessons().length) {
+            No hay clases de manejo este día.
+            <a routerLink="/school/practical">Programar en Práctica vehicular</a>.
+          } @else {
+            No hay filas en este filtro.
+            <button type="button" class="linkish" (click)="setFilter('all')">Ver todas</button>
+          }
+        </p>
+      } @else {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Hora</th>
+                <th>Vehículo</th>
+                <th>Instructor</th>
+                <th>Aprendiz</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (lesson of rows(); track lesson.id) {
+                @let status = boardStatus(lesson);
+                <tr [attr.data-status]="status">
+                  <td class="time">
+                    {{ lesson.startTime.slice(0, 5) }}–{{ lesson.endTime.slice(0, 5) }}
+                  </td>
+                  <td>
+                    <strong>{{ lesson.vehicleLabel }}</strong>
+                  </td>
+                  <td>{{ lesson.instructorName }}</td>
+                  <td>
+                    @if (lesson.assignment; as assignment) {
+                      <strong>{{ studentLabel(lesson) }}</strong>
+                      <div class="meta">
+                        <a [routerLink]="['/school/apprentices', assignment.studentUserId]">360°</a>
+                      </div>
+                    } @else {
+                      <strong>{{ studentLabel(lesson) }}</strong>
+                    }
+                  </td>
+                  <td>
+                    <span class="status" [attr.data-status]="status">{{ statusLabel(status) }}</span>
+                  </td>
+                  <td class="actions">
+                    @if (lesson.assignment && (status === 'Reserved' || status === 'Absent')) {
+                      <button type="button" [disabled]="acting()" (click)="mark(lesson, 'Present')">
+                        Presente
+                      </button>
+                    }
+                    @if (lesson.assignment && (status === 'Reserved' || status === 'Present')) {
+                      <button type="button" class="danger" [disabled]="acting()" (click)="mark(lesson, 'Absent')">
+                        Ausente
+                      </button>
+                    }
+                    @if (!lesson.assignment) {
+                      <a routerLink="/school/practical">Asignar</a>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+</div>
