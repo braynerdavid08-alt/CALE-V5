@@ -19,6 +19,7 @@
     <button type="button" [class.on]="tab() === 'schedule'" (click)="setTab('schedule')">Horario</button>
     <button type="button" [class.on]="tab() === 'students'" (click)="setTab('students')">Estudiantes</button>
     <button type="button" [class.on]="tab() === 'attendance'" (click)="setTab('attendance')">Asistencia</button>
+    <a class="tab-link" routerLink="/school/attendance">Hoy (tablero)</a>
     <button type="button" [class.on]="tab() === 'topics'" (click)="setTab('topics')">Temas</button>
     <button type="button" [class.on]="tab() === 'classrooms'" (click)="setTab('classrooms')">Aulas</button>
     <button type="button" [class.on]="tab() === 'settings'" (click)="setTab('settings')">Ajustes</button>

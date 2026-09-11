@@ -92,6 +92,23 @@
   color: var(--color-primary);
 }
 
+.school-tabs .tab-link {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.school-tabs .tab-link:hover {
+  background: var(--color-primary-soft);
+}
+
 /* ── Cards & panels ─────────────────────────────────────────────── */
 
 .school-card {
