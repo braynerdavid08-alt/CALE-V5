@@ -1,25 +1,54 @@
 <section class="review">
   <ui-page-header
-    [title]="bankName || 'Revisar claves del examen'"
-    subtitle="Toca la letra correcta en cada pregunta. Al guardar se quita el aviso de revisión." />
+    [title]="bankName || 'Revisar importación del examen'"
+    subtitle="Arregla lo que faltó al importar: claves sin marcar y preguntas que el Word no pudo leer." />
 
   <ui-error [message]="error()" />
   <ui-success [message]="ok()" />
+
+  @if (importIssues().length) {
+    <section class="import-issues" aria-label="Preguntas no importadas">
+      <h2>No se pudieron leer o agregar ({{ skippedCount() || importIssues().length }})</h2>
+      <p>
+        Estas no quedaron en el banco. Corrígelas en el Word (número, enunciado y opciones A–D) y vuelve a
+        importar, o agrégalas a mano desde Biblioteca → preguntas del examen.
+      </p>
+      <ol>
+        @for (issue of importIssues(); track $index) {
+          <li>{{ issue }}</li>
+        }
+      </ol>
+      @if (skippedCount() > importIssues().length) {
+        <p class="more">
+          …y {{ skippedCount() - importIssues().length }} aviso(s) más. Revisa el archivo Word completo.
+        </p>
+      }
+    </section>
+  }
 
   <div class="review-toolbar">
     <ui-button type="button" variant="secondary" (click)="backToLibrary()">Volver a Biblioteca</ui-button>
     <ui-button type="button" variant="ghost" (click)="reload()" [disabled]="loading()">Actualizar</ui-button>
     @if (items().length) {
-      <span class="count">{{ items().length }} pendientes</span>
+      <span class="count">{{ items().length }} sin clave</span>
     }
   </div>
+
+  @if (items().length) {
+    <h2 class="section-title">Marcar respuesta correcta</h2>
+    <p class="section-hint">Estas sí se importaron, pero sin clave clara. Toca la letra correcta.</p>
+  }
 
   @if (loading()) {
     <p class="muted">Cargando preguntas…</p>
   } @else if (!items().length) {
     <ui-empty
-      title="Sin pendientes"
-      message="Este banco no tiene preguntas importadas sin clave, o ya las marcaste todas." />
+      title="Sin claves pendientes"
+      [message]="
+        importIssues().length
+          ? 'No hay claves por marcar en la app. Revisa la lista de arriba: esas preguntas no entraron.'
+          : 'Este banco no tiene preguntas importadas sin clave, o ya las marcaste todas.'
+      " />
 
     @if (allReviewed() && examId) {
       <section class="next-steps">

@@ -3,6 +3,54 @@
   gap: 1rem;
 }
 
+.import-issues {
+  border: 1px solid color-mix(in srgb, var(--color-danger, #dc2626) 38%, var(--color-border));
+  border-radius: 14px;
+  padding: 1rem 1.05rem;
+  background: color-mix(in srgb, var(--color-danger, #dc2626) 8%, var(--color-surface));
+  display: grid;
+  gap: 0.5rem;
+}
+
+.import-issues h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--color-danger, #b91c1c);
+}
+
+.import-issues p {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.45;
+}
+
+.import-issues ol {
+  margin: 0.1rem 0 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.35rem;
+  font-size: var(--text-sm);
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.import-issues .more {
+  font-weight: 650;
+  color: var(--color-danger, #b91c1c);
+}
+
+.section-title {
+  margin: 0.25rem 0 0;
+  font-size: 1.05rem;
+}
+
+.section-hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
 .review-toolbar {
   display: flex;
   flex-wrap: wrap;

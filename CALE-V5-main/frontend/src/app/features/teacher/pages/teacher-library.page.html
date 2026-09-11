@@ -32,6 +32,23 @@
     </section>
   }
 
+  @if (importIssues().length) {
+    <section class="import-issues" aria-label="Problemas al importar">
+      <div class="import-issues-head">
+        <h2>No se pudieron agregar ({{ importIssues().length }})</h2>
+        <ui-button type="button" variant="ghost" (click)="importIssues.set([])">Cerrar</ui-button>
+      </div>
+      <p>
+        Corrige estas preguntas en el Word y vuelve a importar, o agrégalas a mano en el banco del examen.
+      </p>
+      <ol>
+        @for (issue of importIssues(); track $index) {
+          <li>{{ issue }}</li>
+        }
+      </ol>
+    </section>
+  }
+
   <section class="import-panel" id="exam-import">
     <h2>Importar / exportar examen</h2>
     <p class="import-meta">

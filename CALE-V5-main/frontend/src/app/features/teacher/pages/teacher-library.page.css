@@ -44,6 +44,41 @@
   gap: 0.5rem;
 }
 
+.import-issues {
+  border: 1px solid color-mix(in srgb, var(--color-danger, #dc2626) 35%, var(--color-border));
+  border-radius: var(--radius-lg, 14px);
+  padding: 1rem 1.1rem 1.15rem;
+  background: color-mix(in srgb, var(--color-danger, #dc2626) 7%, var(--color-surface, #fff));
+  display: grid;
+  gap: 0.55rem;
+}
+.import-issues-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.import-issues h2 {
+  margin: 0;
+  font-size: var(--text-lg, 1.1rem);
+  color: var(--color-danger, #b91c1c);
+}
+.import-issues p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+.import-issues ol {
+  margin: 0.15rem 0 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.35rem;
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  font-weight: 600;
+}
+
 .import-panel {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg, 14px);
