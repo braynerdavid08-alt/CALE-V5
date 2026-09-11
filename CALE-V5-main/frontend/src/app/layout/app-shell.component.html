@@ -1,91 +1,108 @@
 <div
   class="shell"
-  [class.open]="menuOpen()"
-  [class.sidebar-collapsed]="sidebarCollapsed()">
-  @if (menuOpen()) {
+  [class.open]="menuOpen() && !isStudentShell"
+  [class.sidebar-collapsed]="sidebarCollapsed()"
+  [class.no-sidebar]="isStudentShell">
+  @if (menuOpen() && !isStudentShell) {
     <button class="scrim" type="button" aria-label="Cerrar menú" (click)="closeMenu()"></button>
   }
 
-  <aside class="sidebar" aria-label="Navegación principal">
-    <div class="brand-row">
-      <a
-        class="brand"
-        [routerLink]="mustChangePassword ? '/profile' : session.homeRoute()"
-        [queryParams]="mustChangePassword ? { mustChange: 1 } : {}"
-        [attr.title]="brand.name">
-        <img class="logo-img" [src]="brand.icon192" [alt]="brand.name" width="40" height="40" />
-        <span class="brand-text">
-          <span class="brand-name">{{ brand.name }}</span>
-          <span class="brand-tag">{{ brand.sloganShort }}</span>
-        </span>
-      </a>
-      <button
-        type="button"
-        class="collapse-btn"
-        [attr.aria-expanded]="!sidebarCollapsed()"
-        [attr.aria-label]="sidebarCollapsed() ? 'Expandir menú' : 'Plegar menú'"
-        [attr.title]="sidebarCollapsed() ? 'Expandir' : 'Plegar'"
-        (click)="toggleSidebarCollapse($event)">
-        <ui-icon name="panel" />
-      </button>
-    </div>
-
-    <nav>
-      @if (mustChangePassword) {
-        <a class="nav-link on" routerLink="/profile" [queryParams]="{ mustChange: 1 }" title="Cambiar contraseña">
-          <ui-icon name="settings" />
-          <span class="nav-label">Cambiar contraseña</span>
+  @if (!isStudentShell) {
+    <aside class="sidebar" aria-label="Navegación principal">
+      <div class="brand-row">
+        <a
+          class="brand"
+          [routerLink]="mustChangePassword ? '/profile' : session.homeRoute()"
+          [queryParams]="mustChangePassword ? { mustChange: 1 } : {}"
+          [attr.title]="brand.name">
+          <img class="logo-img" [src]="brand.icon192" [alt]="brand.name" width="40" height="40" />
+          <span class="brand-text">
+            <span class="brand-name">{{ brand.name }}</span>
+            <span class="brand-tag">{{ brand.sloganShort }}</span>
+          </span>
         </a>
-        <p class="nav-hint">Debes actualizar tu clave temporal antes de usar el resto de Mi CALE.</p>
-      } @else {
-        @for (item of items; track item.label + (item.path || '')) {
-          @if (item.children?.length) {
-            <div class="nav-group" [class.open]="isGroupOpen(item)" [class.on]="isNavOn(item)">
-              <button
-                type="button"
-                class="nav-link nav-group-btn"
+        <button
+          type="button"
+          class="collapse-btn"
+          [attr.aria-expanded]="!sidebarCollapsed()"
+          [attr.aria-label]="sidebarCollapsed() ? 'Expandir menú' : 'Plegar menú'"
+          [attr.title]="sidebarCollapsed() ? 'Expandir' : 'Plegar'"
+          (click)="toggleSidebarCollapse($event)">
+          <ui-icon name="panel" />
+        </button>
+      </div>
+
+      <nav>
+        @if (mustChangePassword) {
+          <a class="nav-link on" routerLink="/profile" [queryParams]="{ mustChange: 1 }" title="Cambiar contraseña">
+            <ui-icon name="settings" />
+            <span class="nav-label">Cambiar contraseña</span>
+          </a>
+          <p class="nav-hint">Debes actualizar tu clave temporal antes de usar el resto de Mi CALE.</p>
+        } @else {
+          @for (item of items; track item.label + (item.path || '')) {
+            @if (item.children?.length) {
+              <div class="nav-group" [class.open]="isGroupOpen(item)" [class.on]="isNavOn(item)">
+                <button
+                  type="button"
+                  class="nav-link nav-group-btn"
+                  [class.on]="isNavOn(item)"
+                  [attr.title]="item.label"
+                  (click)="toggleGroup(item, $event)">
+                  <ui-icon [name]="item.icon" />
+                  <span class="nav-label">{{ item.label }}</span>
+                  <ui-icon name="chevron" class="nav-chevron" />
+                </button>
+                <div class="nav-sub">
+                  @for (child of item.children; track child.path + child.label) {
+                    <a
+                      class="nav-sub-link"
+                      [routerLink]="child.path"
+                      [queryParams]="child.queryParams || {}"
+                      [class.on]="isChildOn(child)"
+                      [attr.title]="child.label">
+                      <span class="nav-label">{{ child.label }}</span>
+                    </a>
+                  }
+                </div>
+              </div>
+            } @else if (item.path) {
+              <a
+                class="nav-link"
+                [routerLink]="item.path"
+                [queryParams]="item.queryParams || {}"
                 [class.on]="isNavOn(item)"
-                [attr.title]="item.label"
-                (click)="toggleGroup(item, $event)">
+                [attr.title]="item.label">
                 <ui-icon [name]="item.icon" />
                 <span class="nav-label">{{ item.label }}</span>
-                <ui-icon name="chevron" class="nav-chevron" />
-              </button>
-              <div class="nav-sub">
-                @for (child of item.children; track child.path + child.label) {
-                  <a
-                    class="nav-sub-link"
-                    [routerLink]="child.path"
-                    [queryParams]="child.queryParams || {}"
-                    [class.on]="isChildOn(child)"
-                    [attr.title]="child.label">
-                    <span class="nav-label">{{ child.label }}</span>
-                  </a>
-                }
-              </div>
-            </div>
-          } @else if (item.path) {
-            <a
-              class="nav-link"
-              [routerLink]="item.path"
-              [queryParams]="item.queryParams || {}"
-              [class.on]="isNavOn(item)"
-              [attr.title]="item.label">
-              <ui-icon [name]="item.icon" />
-              <span class="nav-label">{{ item.label }}</span>
-            </a>
+              </a>
+            }
           }
         }
-      }
-    </nav>
-  </aside>
+      </nav>
+    </aside>
+  }
 
   <div class="main">
     <header class="topbar">
-      <ui-button type="button" variant="ghost" class="menu-btn" (click)="toggleMenu()">
-        <ui-icon name="menu" />
-        <span class="sr">Menú</span>
-      </ui-button>
+      @if (isStudentShell) {
+        @if (showStudentHomeLink) {
+          <a class="student-home-btn" routerLink="/student" title="Volver al inicio">
+            <ui-icon name="home" />
+            <span>Inicio</span>
+          </a>
+        } @else {
+          <a class="student-brand" routerLink="/student" [attr.title]="brand.name">
+            <img class="logo-img" [src]="brand.icon192" [alt]="brand.name" width="36" height="36" />
+            <span class="student-brand-name">{{ brand.name }}</span>
+          </a>
+        }
+      } @else {
+        <ui-button type="button" variant="ghost" class="menu-btn" (click)="toggleMenu()">
+          <ui-icon name="menu" />
+          <span class="sr">Menú</span>
+        </ui-button>
+      }
 
       <span class="spacer" aria-hidden="true"></span>
       <ui-motivation class="top-motivation" [role]="role" />
@@ -159,6 +176,12 @@
       <ui-button type="button" variant="ghost" (click)="logout()">Salir</ui-button>
     </header>
     <main class="content">
+      @if (showStudentHomeLink) {
+        <a class="student-back-bar" routerLink="/student">
+          <ui-icon name="home" />
+          Volver al inicio
+        </a>
+      }
       <router-outlet />
     </main>
   </div>
