@@ -167,6 +167,14 @@ export const routes: Routes = [
             .then((m) => m.SchoolApprenticesPage)
       },
       {
+        path: 'school/apprentices/:studentUserId',
+        canActivate: [roleGuard],
+        data: { roles: ['School'] },
+        loadComponent: () =>
+          import('./features/school/pages/school-apprentice-dossier.page')
+            .then((m) => m.SchoolApprenticeDossierPage)
+      },
+      {
         path: 'school/results',
         pathMatch: 'full',
         canActivate: [roleGuard],

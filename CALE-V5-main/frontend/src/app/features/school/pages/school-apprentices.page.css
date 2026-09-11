@@ -43,3 +43,21 @@
 }
 .detail-placeholder p { margin: 0; max-width: 18rem; }
 aside h2 { margin: 0 0 0.25rem; font-size: var(--text-lg); }
+.detail-head {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.35rem;
+}
+.row-actions { text-align: right; white-space: nowrap; }
+.dossier-link {
+  font-size: var(--text-xs);
+  font-weight: 800;
+  text-decoration: none;
+  color: var(--color-primary);
+  padding: 0.25rem 0.45rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
+}
+.dossier-link:hover { background: color-mix(in srgb, var(--color-primary) 12%, transparent); }

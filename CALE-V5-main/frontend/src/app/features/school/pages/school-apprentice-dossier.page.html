@@ -1,0 +1,177 @@
+<div class="school-page school-page--wide dossier">
+  <ui-page-header
+    eyebrow="Escuela"
+    title="Expediente 360°"
+    subtitle="Vista unificada: matrícula, horas, pagos, examen y práctica." />
+
+  <div class="toolbar">
+    <a routerLink="/school/apprentices">
+      <ui-button type="button" variant="secondary">← Aprendices</ui-button>
+    </a>
+    <ui-button type="button" variant="ghost" (click)="reload()" [disabled]="loading()">
+      Actualizar
+    </ui-button>
+  </div>
+
+  <ui-error [message]="error()" />
+
+  @if (loading()) {
+    <ui-loading />
+  } @else if (detail(); as d) {
+    @let p = d.profile;
+    @let t = d.training;
+
+    <header class="hero school-card">
+      <div>
+        <h1>{{ p.studentName }}</h1>
+        <p class="muted">
+          {{ p.documentType || 'Doc.' }} {{ p.documentNumber || '—' }}
+          · Acceso app: <strong>{{ p.studentEmail || '—' }}</strong>
+        </p>
+        <div class="pill-row">
+          <span class="pill" [class.ok]="p.isEnrolled">{{ p.isEnrolled ? 'Matriculado' : 'Sin matrícula' }}</span>
+          <span class="pill" [class.ok]="p.runtRegistered">{{ p.runtRegistered ? 'RUNT' : 'Sin RUNT' }}</span>
+          <span class="pill info">{{ p.licenseCategories || 'Sin categoría' }}</span>
+          <span class="pill" [class.warn]="p.balanceDue > 0" [class.ok]="p.balanceDue <= 0">
+            Saldo {{ formatMoney(p.balanceDue) }}
+          </span>
+          <span class="pill">{{ p.enrollmentStatus }}</span>
+        </div>
+      </div>
+      <div class="hero-actions">
+        <a routerLink="/school/apprentices" [queryParams]="{ focus: p.studentUserId }">
+          <ui-button type="button">Editar expediente</ui-button>
+        </a>
+        <a routerLink="/school/training">
+          <ui-button type="button" variant="secondary">Programación</ui-button>
+        </a>
+        <a routerLink="/school/theory-exams">
+          <ui-button type="button" variant="secondary">Exámenes</ui-button>
+        </a>
+        <a routerLink="/school/practical">
+          <ui-button type="button" variant="secondary">Práctica</ui-button>
+        </a>
+      </div>
+    </header>
+
+    <section class="pipeline school-card" aria-label="Pipeline de formación">
+      <h2>Camino del aprendiz</h2>
+      <ol class="steps">
+        @for (step of pipeline(); track step.id) {
+          <li [attr.data-state]="step.state">
+            <span class="step-dot" aria-hidden="true"></span>
+            <strong>{{ step.label }}</strong>
+            <small>{{ step.detail }}</small>
+          </li>
+        }
+      </ol>
+      @if (!t.canBookPractical && t.blockReason) {
+        <p class="block-hint warn">{{ t.blockReason }}</p>
+      }
+    </section>
+
+    <div class="grid">
+      <section class="school-card">
+        <h2>Formación</h2>
+        <ul class="facts">
+          <li [class.ok]="t.theoryHoursComplete">
+            Teoría: {{ t.theoryHoursCompleted }}/{{ t.theoryHoursRequired }} h
+          </li>
+          <li [class.ok]="t.workshopHoursComplete">
+            Taller: {{ t.workshopHoursCompleted }}/{{ t.workshopHoursRequired }} h
+          </li>
+          <li [class.ok]="t.theoryExamPassed">
+            Examen teórico: {{ t.theoryExamPassed ? 'Aprobado' : 'Pendiente' }}
+          </li>
+          <li [class.ok]="p.theoryExamAuthorized">
+            Autorización examen: {{ p.theoryExamAuthorized ? 'Sí' : 'No' }}
+          </li>
+          <li [class.ok]="p.practicalAuthorized">
+            Autorización manejo: {{ p.practicalAuthorized ? 'Sí' : 'No' }}
+          </li>
+          <li [class.ok]="d.practical.completedLessons >= d.practical.requiredLessons && d.practical.requiredLessons > 0">
+            Práctica: {{ d.practical.completedLessons }}/{{ d.practical.requiredLessons || '—' }} clases
+            @if (d.practical.scheduledLessons) {
+              · {{ d.practical.scheduledLessons }} programada(s)
+            }
+          </li>
+          @if (d.nextExam) {
+            <li class="ok">Cita examen: {{ d.nextExam.examDate }} {{ d.nextExam.slotTime }}</li>
+          }
+          @if (d.practical.nextLessonDate) {
+            <li>Próxima práctica: {{ d.practical.nextLessonDate }} {{ d.practical.nextLessonTime }}</li>
+          }
+        </ul>
+      </section>
+
+      <section class="school-card">
+        <h2>Cartera</h2>
+        <div class="money">
+          <div>
+            <span class="label">Valor curso</span>
+            <strong>{{ formatMoney(p.amountDue) }}</strong>
+          </div>
+          <div>
+            <span class="label">Pagado</span>
+            <strong>{{ formatMoney(p.amountPaid) }}</strong>
+          </div>
+          <div>
+            <span class="label">Saldo</span>
+            <strong [class.warn]="p.balanceDue > 0">{{ formatMoney(p.balanceDue) }}</strong>
+          </div>
+        </div>
+        <ul class="facts tight">
+          <li>Método: {{ p.paymentMethod || '—' }}</li>
+          <li>Recibo: {{ p.receiptNumber || '—' }}</li>
+          @if (p.balancePaymentAmount) {
+            <li>
+              Último abono saldo: {{ formatMoney(p.balancePaymentAmount) }}
+              @if (p.balancePaymentDate) {
+                · {{ p.balancePaymentDate }}
+              }
+            </li>
+          }
+          <li>CxC: {{ formatMoney(p.accountsReceivable) }}</li>
+        </ul>
+        <p class="muted tip">
+          El historial de abonos detallado llegará en la siguiente mejora (Cartera).
+          Por ahora edita montos en Aprendices.
+        </p>
+      </section>
+
+      <section class="school-card">
+        <h2>Contacto y horario</h2>
+        <ul class="facts">
+          <li>Celular: {{ p.phone || '—' }}</li>
+          <li>Correo contacto: {{ p.contactEmail || '—' }}</li>
+          <li>Dirección: {{ p.address || '—' }}</li>
+          <li>Día: {{ p.attendanceDayType || '—' }}</li>
+          <li>Franja: {{ p.scheduleSlot || '—' }}</li>
+          <li>PIN / RUNT: {{ p.enrollmentPin || '—' }}</li>
+          @if (p.notes) {
+            <li>Notas: {{ p.notes }}</li>
+          }
+        </ul>
+      </section>
+
+      <section class="school-card timeline-card">
+        <h2>Línea de tiempo</h2>
+        @if (!timeline().length) {
+          <p class="muted">Aún no hay eventos registrados para este aprendiz.</p>
+        } @else {
+          <ol class="timeline">
+            @for (item of timeline(); track item.title + item.at) {
+              <li [attr.data-tone]="item.tone">
+                <time>{{ item.at | date:'short' }}</time>
+                <strong>{{ item.title }}</strong>
+                @if (item.detail) {
+                  <small>{{ item.detail }}</small>
+                }
+              </li>
+            }
+          </ol>
+        }
+      </section>
+    </div>
+  }
+</div>

@@ -32,6 +32,14 @@
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
+.dash-row-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+.dash-row-link:hover strong {
+  color: var(--color-primary);
+}
 .balance-feed .warn {
   color: #b45309;
   font-weight: 700;
