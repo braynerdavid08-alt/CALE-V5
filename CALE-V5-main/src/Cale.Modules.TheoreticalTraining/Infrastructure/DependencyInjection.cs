@@ -15,6 +15,7 @@ public static class DependencyInjection
         services.AddScoped<PracticalTrainingService>();
         services.AddScoped<ApprenticeRegistryService>();
         services.AddScoped<SchoolExcelImportService>();
+        services.AddScoped<SchoolExcelExportService>();
         services.AddSingleton<SchoolExcelImportPreviewCache>();
         services.AddHostedService<TheoryReminderService>();
         return services;

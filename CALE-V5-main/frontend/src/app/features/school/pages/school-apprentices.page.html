@@ -20,6 +20,20 @@
     </label>
     <div class="school-toolbar-actions">
       <ui-button type="button" variant="secondary" (click)="reload()">Buscar</ui-button>
+      <ui-button
+        type="button"
+        variant="secondary"
+        (click)="downloadApprentices()"
+        [disabled]="exporting()">
+        {{ exporting() ? 'Exportando…' : 'Excel aprendices' }}
+      </ui-button>
+      <ui-button
+        type="button"
+        variant="secondary"
+        (click)="downloadPayments()"
+        [disabled]="exporting()">
+        Excel cartera
+      </ui-button>
       <a routerLink="/school/users"><ui-button type="button" variant="secondary">Crear / vincular</ui-button></a>
       <a routerLink="/school/import"><ui-button type="button">Importar Excel</ui-button></a>
     </div>
