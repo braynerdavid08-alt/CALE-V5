@@ -143,6 +143,13 @@
   font-size: 0.92rem;
   border-bottom: 1px solid #e8eef5;
 }
+.roster-col .picked {
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.roster-col.bad .picked { color: #b71c1c; }
+.roster-col.ok .picked { color: #1b5e20; }
 .roster-col .empty { color: #7a8b9c; font-style: italic; border: 0; }
 .roster-col.ok { border-color: #a5d6a7; background: #f1faf3; }
 .roster-col.ok h3 { color: #1b5e20; }

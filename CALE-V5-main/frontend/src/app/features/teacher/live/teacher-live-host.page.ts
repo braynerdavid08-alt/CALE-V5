@@ -809,4 +809,17 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   optionLetter(index: number): string {
     return String.fromCharCode(65 + index);
   }
+
+  /** Letter the student picked (A/B/C/D), for roster rows. */
+  rosterOptionLetter(optionId: number | null | undefined): string | null {
+    if (optionId == null) {
+      return null;
+    }
+    const options = this.lobby()?.currentQuestion?.options;
+    if (!options?.length) {
+      return null;
+    }
+    const idx = options.findIndex((o) => o.id === optionId);
+    return idx >= 0 ? this.optionLetter(idx) : null;
+  }
 }

@@ -491,6 +491,21 @@ public sealed class LiveSessionHandler
 
         await BroadcastRankingAsync(session, ct);
 
+        // When every connected student has answered, close like the timer hit 0.
+        var closeNow = _clock.UtcNow;
+        if (session.IsQuestionOpen(closeNow) && connected > 0)
+        {
+            var answers = await _store.ListAnswersForQuestionAsync(sessionQuestionId, ct);
+            var answeredIds = answers.Select(a => a.ParticipantId).ToHashSet();
+            var allConnectedAnswered = session.Participants
+                .Where(p => p.IsConnected)
+                .All(p => answeredIds.Contains(p.Id));
+            if (allConnectedAnswered)
+            {
+                await CloseQuestionInternalAsync(session, config, closeNow, ct);
+            }
+        }
+
         var revealPoints = session.Mode is not LiveSessionModes.Exam;
         return new
         {

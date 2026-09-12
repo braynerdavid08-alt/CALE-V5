@@ -315,7 +315,12 @@
                     <h3>Correctos ({{ roster.correctCount }})</h3>
                     <ul>
                       @for (row of roster.correct; track row.participantId) {
-                        <li>{{ row.displayName }}</li>
+                        <li>
+                          {{ row.displayName }}
+                          @if (rosterOptionLetter(row.optionId); as letter) {
+                            <span class="picked"> · {{ letter }}</span>
+                          }
+                        </li>
                       } @empty {
                         <li class="empty">Nadie aún</li>
                       }
@@ -325,7 +330,12 @@
                     <h3>Incorrectos ({{ roster.incorrectCount }})</h3>
                     <ul>
                       @for (row of roster.incorrect; track row.participantId) {
-                        <li>{{ row.displayName }}</li>
+                        <li>
+                          {{ row.displayName }}
+                          @if (rosterOptionLetter(row.optionId); as letter) {
+                            <span class="picked"> · {{ letter }}</span>
+                          }
+                        </li>
                       } @empty {
                         <li class="empty">Nadie</li>
                       }
@@ -336,7 +346,12 @@
                     <h3>Respondieron ({{ roster.incorrect.length }})</h3>
                     <ul>
                       @for (row of roster.incorrect; track row.participantId) {
-                        <li>{{ row.displayName }}</li>
+                        <li>
+                          {{ row.displayName }}
+                          @if (rosterOptionLetter(row.optionId); as letter) {
+                            <span class="picked"> · {{ letter }}</span>
+                          }
+                        </li>
                       } @empty {
                         <li class="empty">Nadie</li>
                       }
