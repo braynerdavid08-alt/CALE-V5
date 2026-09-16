@@ -123,7 +123,7 @@ public sealed class Attempt
         Percent = TotalQuestions == 0
             ? 0
             : Math.Round(100m * correctCount / TotalQuestions, 2);
-        Passed = ScoringRules.IsPassed(Percent);
+        Passed = ScoringRules.IsPassed(correctCount, TotalQuestions);
         TimeSeconds = (int)Math.Max(0, (finishedAt - StartedAt).TotalSeconds);
         FinishedAt = finishedAt;
     }

@@ -25,8 +25,8 @@ import {
   TakeQuestionDto
 } from '../api/exam.api';
 
-/** Regla fija de CALE (ScoringRules.PassPercent). */
-export const CALE_PASS_PERCENT = 80;
+/** Regla fija de CALE (ScoringRules.MaxIncorrectAnswers). */
+export const CALE_MAX_INCORRECT = 3;
 
 export interface PracticePreset {
   id: string;
@@ -91,7 +91,7 @@ export class SimulatorPage implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly sessionStore = inject(SessionStore);
 
-  readonly passPercent = CALE_PASS_PERCENT;
+  readonly maxIncorrect = CALE_MAX_INCORRECT;
   readonly presets = PRESETS;
 
   readonly loading = signal(true);
@@ -129,7 +129,7 @@ export class SimulatorPage implements OnInit, OnDestroy {
   });
 
   readonly neededCorrect = computed(() =>
-    Math.ceil((this.questionCount * this.passPercent) / 100)
+    Math.max(0, this.questionCount - this.maxIncorrect)
   );
 
   readonly secondsPerQuestion = computed(() => {
@@ -247,7 +247,7 @@ export class SimulatorPage implements OnInit, OnDestroy {
   }
 
   examNeededCorrect(exam: ExamDto): number {
-    return Math.ceil((exam.questionCount * this.passPercent) / 100);
+    return Math.max(0, exam.questionCount - this.maxIncorrect);
   }
 
   answer(optionId: number): void {

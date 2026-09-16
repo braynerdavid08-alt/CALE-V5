@@ -142,7 +142,7 @@ interface PilotMetricsDto {
             <li><span>Intentos iniciados</span><strong>{{ d.attemptsStarted30d }}</strong></li>
             <li><span>Intentos finalizados</span><strong>{{ d.attemptsFinished30d }}</strong></li>
             <li><span>% de finalización</span><strong>{{ d.examCompletionRate30d | number:'1.0-0' }}%</strong></li>
-            <li><span>% aprobación (≥80%)</span><strong>{{ d.examPassRate30d | number:'1.0-0' }}%</strong></li>
+            <li><span>% aprobación (máx. 3 malas)</span><strong>{{ d.examPassRate30d | number:'1.0-0' }}%</strong></li>
             <li><span>Abandonos</span><strong>{{ d.abandonedAttempts30d }}</strong></li>
             <li><span>Tiempo promedio</span><strong>{{ formatSeconds(d.avgExamTimeSeconds30d) }}</strong></li>
             <li><span>Uso del simulador</span><strong>{{ d.simulatorUsageShare30d | number:'1.0-0' }}%</strong></li>

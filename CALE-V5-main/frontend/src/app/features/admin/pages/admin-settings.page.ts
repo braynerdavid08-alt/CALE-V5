@@ -166,7 +166,7 @@ import { roleLabel } from '../../../shared/utils/role-label';
       <h2>Parámetros de plataforma</h2>
       <p class="muted">Reglas operativas vigentes (no editables desde esta pantalla en el MVP).</p>
       <ul class="list" style="margin-top: 0.75rem;">
-        <li>Aprobación de exámenes y simulador: ≥ 80%.</li>
+        <li>Aprobación de exámenes y simulador: máximo 3 respuestas incorrectas.</li>
         <li>El tiempo de examen lo controla el servidor (inicio, vencimiento y cierre).</li>
         <li>Registro público: estudiante, instructor y escuela (rutas separadas).</li>
         <li>Solo Admin crea o edita preguntas y bancos; Escuela e Instructor los heredan en lectura.</li>
