@@ -108,6 +108,7 @@ export class ExamApi {
   start(body: {
     bankId?: number | null;
     examId?: number | null;
+    examIds?: number[] | null;
     questionCount: number;
     mode: string;
     timeMinutes: number;

@@ -9,6 +9,91 @@
 @if (loading()) {
   <ui-loading />
 } @else if (step() === 'setup') {
+  <ui-card class="mixed-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow">Práctica personalizada</p>
+        <h2>Crea tu propio simulacro</h2>
+      </div>
+      <ui-badge tone="primary">Siempre aleatorio</ui-badge>
+    </div>
+    <p class="muted intro">
+      Mezcla uno o varios exámenes y elige cuántas preguntas responder.
+      No consume los intentos de los exámenes oficiales.
+    </p>
+
+    @if (!exams().length) {
+      <ui-empty
+        title="No hay exámenes para mezclar"
+        message="Cuando tu instructor publique uno, aparecerá aquí." />
+    } @else {
+      <h3 class="section-label">1. Exámenes para mezclar</h3>
+      <div class="mix-exam-grid">
+        @for (exam of exams(); track exam.id) {
+          <label
+            class="mix-exam"
+            [class.selected]="selectedMixExamIds().includes(exam.id)">
+            <input
+              type="checkbox"
+              [checked]="selectedMixExamIds().includes(exam.id)"
+              (change)="toggleMixedExam(exam.id)" />
+            <span>
+              <strong>{{ exam.name }}</strong>
+              <small>{{ exam.questionCount }} preguntas</small>
+            </span>
+          </label>
+        }
+      </div>
+
+      <h3 class="section-label">2. Cantidad de preguntas</h3>
+      <div class="mix-counts" role="group" aria-label="Cantidad de preguntas">
+        @for (count of [10, 20, 30, 40]; track count) {
+          <button
+            type="button"
+            [class.selected]="mixedQuestionCount === count"
+            [disabled]="mixedAvailableCount() < count"
+            (click)="setMixedQuestionCount(count)">
+            {{ count }}
+          </button>
+        }
+        <label>
+          <span>Otra cantidad</span>
+          <input
+            type="number"
+            min="10"
+            max="200"
+            [(ngModel)]="mixedQuestionCount" />
+        </label>
+      </div>
+
+      <div class="mix-summary">
+        <span>
+          Seleccionados:
+          <strong>{{ selectedMixExamIds().length }} examen(es)</strong>
+        </span>
+        <span>
+          Banco combinado:
+          <strong>{{ mixedAvailableCount() }} preguntas</strong>
+        </span>
+        <span>
+          Tu simulacro:
+          <strong>{{ mixedQuestionCount }} preguntas · {{ mixedQuestionCount }} min</strong>
+        </span>
+      </div>
+
+      <ui-button
+        type="button"
+        [disabled]="
+          !selectedMixExamIds().length ||
+          mixedQuestionCount < 10 ||
+          mixedQuestionCount > mixedAvailableCount()
+        "
+        (click)="startMixedPractice()">
+        Crear simulacro aleatorio
+      </ui-button>
+    }
+  </ui-card>
+
   <ui-card class="exams-card">
       <div class="card-head">
         <div>
