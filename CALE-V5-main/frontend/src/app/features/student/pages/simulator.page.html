@@ -1,7 +1,7 @@
 @if (step() !== 'take') {
   <ui-page-header
     title="Simulador"
-    subtitle="Práctica con bancos oficiales o exámenes publicados. Apruebas desde 80%." />
+    subtitle="Práctica con bancos oficiales o exámenes publicados. Apruebas con máximo 3 respuestas incorrectas." />
 }
 <ui-error [message]="error()" />
 <ui-success [message]="ok()" />
@@ -14,13 +14,13 @@
       <p class="eyebrow">Estándar CALE</p>
       <h2>Condiciones de aprobación</h2>
       <p class="muted">
-        Necesitas al menos <strong>{{ passPercent }}%</strong> de aciertos.
+        Puedes tener como máximo <strong>{{ maxIncorrect }} respuestas incorrectas</strong>.
         El tiempo lo controla el servidor y las preguntas se toman de bancos oficiales
         (normas y señales).
       </p>
     </div>
     <ul class="rule-chips">
-      <li><span>Aprobar</span><strong>≥ {{ passPercent }}%</strong></li>
+      <li><span>Aprobar</span><strong>Máx. {{ maxIncorrect }} malas</strong></li>
       <li><span>Tiempo</span><strong>Servidor</strong></li>
       <li><span>Respuestas</span><strong>1 correcta</strong></li>
       <li><span>Modo</span><strong>Práctica / Examen</strong></li>
@@ -34,7 +34,7 @@
           <p class="eyebrow">Práctica libre</p>
           <h2>Configura tu intento</h2>
         </div>
-        <ui-badge tone="primary">Aprobar ≥ {{ passPercent }}%</ui-badge>
+        <ui-badge tone="primary">Máximo {{ maxIncorrect }} malas</ui-badge>
       </div>
 
       <h3 class="section-label">1. Banco de preguntas</h3>
@@ -125,7 +125,8 @@
         </div>
       </div>
       <p class="muted intro">
-        Configurados por tu instructor. Misma regla: apruebas con ≥ {{ passPercent }}%.
+        Configurados por tu instructor. Misma regla: apruebas con máximo
+        {{ maxIncorrect }} respuestas incorrectas.
       </p>
       @if (!exams().length) {
         <ui-empty
@@ -174,7 +175,7 @@
           </div>
         </div>
         <div class="bar-side">
-          <ui-badge tone="neutral">Meta {{ passPercent }}%</ui-badge>
+          <ui-badge tone="neutral">Máx. {{ maxIncorrect }} malas</ui-badge>
           @if (remaining()) {
             <ui-badge tone="primary">{{ remaining() }}</ui-badge>
           }
@@ -226,13 +227,13 @@
   @if (result(); as res) {
     <div class="result-shell" [class.passed]="res.passed" [class.failed]="!res.passed">
     <ui-card>
-      <p class="eyebrow">Resultado · umbral {{ passPercent }}%</p>
+      <p class="eyebrow">Resultado · máximo {{ maxIncorrect }} incorrectas</p>
       <h1>{{ res.passed ? 'Aprobado' : 'No aprobado' }}</h1>
       <p class="muted">
         @if (res.passed) {
-          Superaste el estándar CALE (≥ {{ passPercent }}%).
+          Cumpliste el estándar CALE: máximo {{ maxIncorrect }} respuestas incorrectas.
         } @else {
-          Te faltaron aciertos para llegar al {{ passPercent }}% requerido.
+          Tuviste más de {{ maxIncorrect }} respuestas incorrectas.
         }
       </p>
       <div class="grid-stats">
