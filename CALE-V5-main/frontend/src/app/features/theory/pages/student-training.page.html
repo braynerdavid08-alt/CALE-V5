@@ -1,9 +1,20 @@
 <section class="page">
   <header class="hero">
-    <p class="eyebrow">Mi formación</p>
+    <p class="eyebrow">Mi proceso</p>
     <h1>Clases teóricas</h1>
     <p class="lead">Consulta tu programación, reserva cupos y sigue tu progreso.</p>
   </header>
+
+  <nav class="process-switch" aria-label="Cambiar tipo de formación">
+    <span class="current" aria-current="page">
+      <strong>Teoría</strong>
+      <span>Clases y reservas teóricas</span>
+    </span>
+    <a routerLink="/student/practical">
+      <strong>Manejo</strong>
+      <span>Clases prácticas</span>
+    </a>
+  </nav>
 
   <ui-error [message]="error()" />
 

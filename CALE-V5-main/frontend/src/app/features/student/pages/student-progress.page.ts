@@ -101,7 +101,7 @@ export class StudentProgressPage implements OnInit {
           ? `${pe.theoryHoursCompleted}/${pe.theoryHoursRequired} h`
           : 'Sin datos',
       state: theoryDone ? 'done' : 'todo',
-      ctaLabel: theoryDone ? undefined : 'Ir a Mi formación',
+      ctaLabel: theoryDone ? undefined : 'Ir a Teoría',
       ctaLink: theoryDone ? undefined : '/student/training'
     });
 
@@ -115,7 +115,7 @@ export class StudentProgressPage implements OnInit {
           ? `${pe.workshopHoursCompleted}/${pe.workshopHoursRequired} h`
           : 'Sin datos',
       state: workshopDone ? 'done' : 'todo',
-      ctaLabel: workshopDone ? undefined : 'Ir a Mi formación',
+      ctaLabel: workshopDone ? undefined : 'Ir a Teoría',
       ctaLink: workshopDone ? undefined : '/student/training'
     });
 
