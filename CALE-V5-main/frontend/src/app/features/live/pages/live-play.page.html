@@ -8,15 +8,6 @@
       <p class="eyebrow">CALE LIVE</p>
       <h1>{{ l.title }}</h1>
       <p class="meta">{{ displayName() }} · código {{ l.joinCode }}</p>
-      @if (showRanking() && ranking(); as rank) {
-        <p class="my-score">
-          @if (rank.myRank != null) {
-            Tu puesto: #{{ rank.myRank }} · {{ rank.myScore ?? 0 }} pts
-          } @else {
-            Esperando ranking…
-          }
-        </p>
-      }
     </header>
 
     @if (showPresentationPanel()) {
@@ -166,6 +157,30 @@
           <p>Mantén esta pantalla abierta. La pregunta aparecerá automáticamente.</p>
         }
         <p class="count">{{ l.participantCount }} en la sala</p>
+      </div>
+    } @else if (roundRanking() && showRanking()) {
+      <div class="panel round-ranking">
+        <p class="eyebrow">Clasificación de la ronda</p>
+        <h2>Top de jugadores</h2>
+        @if (ranking(); as rank) {
+          <ol class="rank">
+            @for (row of rank.top; track row.participantId) {
+              <li [class.me]="row.participantId === rank.myParticipantId">
+                <span>{{ row.rank }}.</span>
+                <span>{{ row.displayName }}</span>
+                <strong>{{ row.score }} pts</strong>
+              </li>
+            } @empty {
+              <li>Esperando puntuaciones…</li>
+            }
+          </ol>
+          @if (rank.myRank != null) {
+            <p class="my-round-rank">
+              Tu puesto: <strong>#{{ rank.myRank }}</strong> · {{ rank.myScore ?? 0 }} puntos
+            </p>
+          }
+        }
+        <p class="ranking-wait">Espera: el instructor mostrará la siguiente pregunta.</p>
       </div>
     } @else {
       <div class="panel question">

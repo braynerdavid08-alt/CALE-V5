@@ -45,23 +45,6 @@
           }
         </ul>
 
-        @if (showRanking() && ranking(); as rank) {
-          <div class="rank-box">
-            <h3>Top 5</h3>
-            <ol>
-              @for (row of rank.top; track row.participantId) {
-                <li>
-                  <span class="r">{{ row.rank }}.</span>
-                  <span class="n">{{ row.displayName }}</span>
-                  <strong>{{ row.score }}</strong>
-                </li>
-              } @empty {
-                <li class="empty">Sin puntuación aún</li>
-              }
-            </ol>
-          </div>
-        }
-
         <div class="rank-box">
           <h3>Dudas ({{ doubts().length }})</h3>
           <ul class="doubts">
@@ -262,6 +245,36 @@
               </form>
             }
           </div>
+        } @else if (roundRanking() && showRanking()) {
+          <div class="waiting round-ranking">
+            <p class="eyebrow">Clasificación de la ronda</p>
+            <h2>Top de jugadores</h2>
+            @if (ranking(); as rank) {
+              <div class="rank-box wide round-rank-list">
+                <ol>
+                  @for (row of rank.top; track row.participantId) {
+                    <li>
+                      <span class="r">{{ row.rank }}.</span>
+                      <span class="n">{{ row.displayName }}</span>
+                      <strong>{{ row.score }} pts</strong>
+                      <small>{{ row.correctCount }}/{{ row.answerCount }} correctas</small>
+                    </li>
+                  } @empty {
+                    <li class="empty">Esperando puntuaciones…</li>
+                  }
+                </ol>
+              </div>
+            }
+            <p class="ranking-hint">La siguiente pantalla vuelve a las preguntas.</p>
+            <div class="actions">
+              <ui-button type="button" [loading]="loading()" (click)="control('next')">
+                Siguiente pregunta
+              </ui-button>
+              <ui-button type="button" variant="danger" (click)="control('end')">
+                Terminar clase
+              </ui-button>
+            </div>
+          </div>
         } @else {
           @if ((l.status === 'Running' || l.status === 'Paused') && analytics(); as liveA) {
             @if (liveA.topics.length) {
@@ -379,7 +392,11 @@
             @if (l.status === 'Paused') {
               <ui-button type="button" (click)="control('resume')">Reanudar</ui-button>
             }
-            <ui-button type="button" (click)="control('next')">Siguiente pregunta</ui-button>
+            @if (showRanking()) {
+              <ui-button type="button" (click)="control('close')">Cerrar y ver top</ui-button>
+            } @else {
+              <ui-button type="button" (click)="control('next')">Siguiente pregunta</ui-button>
+            }
             <ui-button type="button" variant="ghost" (click)="control('reveal')">Mostrar respuesta</ui-button>
             <ui-button type="button" variant="danger" (click)="control('end')">Terminar clase</ui-button>
             <button type="button" class="linkish" (click)="showMoreControls.set(!showMoreControls())">

@@ -70,6 +70,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   readonly secondsLeft = signal<number | null>(null);
   readonly answersReceived = signal(0);
   readonly answerRoster = signal<LiveAnswerRosterDto | null>(null);
+  readonly roundRanking = signal(false);
   readonly quickOpen = signal(false);
   readonly quickText = signal('');
   readonly quickExplanation = signal('');
@@ -118,6 +119,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
       this.analytics.set(null);
       this.surpriseNotice.set(null);
       this.answerRoster.set(null);
+      this.roundRanking.set(false);
       this.autoCloseSent = false;
       this.lastAnalyticsAtAnswers = -1;
       this.reload(id);
@@ -618,12 +620,24 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   }
 
   private applyLobby(lobby: LiveLobbyDto): void {
+    const previousQuestionId = this.lobby()?.currentQuestion?.sessionQuestionId;
     const safe = lobby.revealCorrect ? lobby : sanitizeLiveLobby(lobby);
     this.lobby.set(safe);
     this.refreshQr(safe.joinUrl);
     this.answersReceived.set(lobby.answersReceived);
     if (lobby.ranking) {
       this.ranking.set(lobby.ranking);
+    }
+    const current = lobby.currentQuestion;
+    if (lobby.status === 'Lobby' || lobby.status === 'Ended' || !current) {
+      this.roundRanking.set(false);
+    } else {
+      const closesAt = current.closesAt ? Date.parse(current.closesAt) : Number.NaN;
+      if (Number.isFinite(closesAt) && closesAt <= Date.now()) {
+        this.roundRanking.set(true);
+      } else if (previousQuestionId !== current.sessionQuestionId) {
+        this.roundRanking.set(false);
+      }
     }
     if (lobby.config?.presentationId && this.route.snapshot.queryParamMap.get('openDeck') === '1') {
       this.showPresentation.set(true);
@@ -734,12 +748,14 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
       }
       this.answersReceived.set(0);
       this.answerRoster.set(null);
+      this.roundRanking.set(false);
       this.autoCloseSent = false;
       this.surpriseNotice.set(payload.isSurprise ? '¡Pregunta sorpresa!' : null);
       this.syncTimer(payload);
     });
     this.hub.on('QuestionClosed', () => {
       this.autoCloseSent = true;
+      this.roundRanking.set(true);
       const current = this.lobby();
       if (current?.currentQuestion) {
         this.syncTimer({ ...current.currentQuestion, closesAt: new Date().toISOString() });
