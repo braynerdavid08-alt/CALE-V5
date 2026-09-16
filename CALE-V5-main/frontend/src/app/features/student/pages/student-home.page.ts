@@ -50,14 +50,6 @@ export class StudentHomePage {
       tone: 'blue'
     },
     {
-      id: 'simulator',
-      label: 'Simulador',
-      hint: 'Practicar',
-      path: '/student/simulator',
-      icon: 'panel',
-      tone: 'green'
-    },
-    {
       id: 'progress',
       label: 'Mi proceso',
       hint: 'Teoría y manejo',
