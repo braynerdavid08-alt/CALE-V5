@@ -1,6 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { mapApiError } from '../../../core/http/map-api-error';
+import { resolveMediaUrl } from '../../../core/media/resolve-media-url';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiEmptyComponent } from '../../../shared/ui/ui-empty.component';
@@ -109,9 +110,21 @@ interface ResultRow {
                   {{ q.isCorrect ? 'Correcta' : 'Incorrecta' }}
                 </ui-badge>
               </div>
+              @if (q.imageUrl) {
+                <img
+                  class="review-q-img"
+                  [src]="media(q.imageUrl)"
+                  [alt]="'Imagen de la pregunta ' + q.order" />
+              }
               <ul class="opts">
                 @for (o of q.options; track o.id) {
                   <li [class.pick]="o.selected" [class.right]="o.isCorrect">
+                    @if (o.imageUrl) {
+                      <img
+                        class="review-opt-img"
+                        [src]="media(o.imageUrl)"
+                        [alt]="'Imagen de la opción: ' + o.text" />
+                    }
                     @if (o.selected) { → }
                     {{ o.text }}
                     @if (o.isCorrect) { (correcta) }
@@ -192,6 +205,24 @@ interface ResultRow {
       align-items: flex-start;
       justify-content: space-between;
     }
+    .review-q-img,
+    .review-opt-img {
+      display: block;
+      width: auto;
+      max-width: min(30rem, 100%);
+      max-height: 18rem;
+      object-fit: contain;
+      margin: 0.75rem 0 0;
+      padding: 0.35rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-surface);
+    }
+    .review-opt-img {
+      max-width: min(12rem, 100%);
+      max-height: 8rem;
+      margin: 0.25rem 0 0.4rem;
+    }
     .opts { margin: 0.45rem 0 0; padding-left: 1rem; color: var(--color-text); }
     .opts .pick { font-weight: 700; }
     .opts .right { color: var(--color-success, #16a34a); }
@@ -202,6 +233,7 @@ export class StudentEvaluationsPage implements OnInit {
   private readonly api = inject(StudentApi);
   private readonly examApi = inject(ExamApi);
 
+  readonly media = resolveMediaUrl;
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly results = signal<ResultRow[]>([]);
