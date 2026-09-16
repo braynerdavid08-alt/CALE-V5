@@ -46,6 +46,8 @@ const messages: Record<string, string> = {
   import_file_too_large: 'El archivo debe pesar 200 MB o menos.',
   presentation_file_too_large: 'El archivo debe pesar 100 MB o menos.',
   empty_bank: 'No hay preguntas activas en ese banco.',
+  invalid_count: 'Elige al menos 10 preguntas para el simulacro personalizado.',
+  insufficient_questions: 'La mezcla seleccionada no tiene suficientes preguntas disponibles.',
   exam_without_bank: 'Este examen no tiene banco de preguntas. Elige un banco antes de publicar.',
   exam_empty_bank: 'El banco del examen no tiene preguntas activas.',
   exam_needs_answer_review: 'Hay preguntas sin clave correcta. Revísalas antes de publicar.',

@@ -33,6 +33,28 @@ public sealed class AttemptStore : IAttemptStore
             .OrderBy(x => x.Order)
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<int>> ListLatestQuestionIdsAsync(
+        int userId,
+        string mode,
+        CancellationToken ct)
+    {
+        var attemptId = await _db.Set<Attempt>()
+            .Where(x => x.UserId == userId && x.Mode == mode)
+            .OrderByDescending(x => x.StartedAt)
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync(ct);
+        if (attemptId is null)
+        {
+            return [];
+        }
+
+        return await _db.Set<AttemptQuestion>()
+            .Where(x => x.AttemptId == attemptId.Value)
+            .OrderBy(x => x.Order)
+            .Select(x => x.QuestionId)
+            .ToListAsync(ct);
+    }
+
     public Task<AttemptAnswer?> FindAnswerAsync(
         int attemptId,
         int questionId,

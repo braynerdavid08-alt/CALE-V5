@@ -110,6 +110,7 @@ export class SimulatorPage implements OnInit, OnDestroy {
   readonly ok = signal<string | null>(null);
   readonly presetId = signal<string>('estandar');
   readonly customMode = signal(false);
+  readonly selectedMixExamIds = signal<number[]>([]);
   readonly answeredCount = signal(0);
   readonly resumed = signal(false);
   readonly finishing = signal(false);
@@ -119,6 +120,7 @@ export class SimulatorPage implements OnInit, OnDestroy {
 
   readonly bankId = signal<number | null>(null);
   questionCount = 25;
+  mixedQuestionCount = 20;
   timeMinutes = 30;
   stars = 5;
   comment = '';
@@ -127,6 +129,12 @@ export class SimulatorPage implements OnInit, OnDestroy {
     const id = this.bankId();
     return this.banks().find((b) => b.id === id) ?? null;
   });
+
+  readonly mixedAvailableCount = computed(() =>
+    this.exams()
+      .filter((exam) => this.selectedMixExamIds().includes(exam.id))
+      .reduce((total, exam) => total + exam.questionCount, 0)
+  );
 
   readonly neededCorrect = computed(() =>
     Math.max(0, this.questionCount - this.maxIncorrect)
@@ -243,6 +251,45 @@ export class SimulatorPage implements OnInit, OnDestroy {
       questionCount: exam.questionCount,
       mode: 'exam',
       timeMinutes: exam.timeMinutes
+    });
+  }
+
+  toggleMixedExam(examId: number): void {
+    this.selectedMixExamIds.update((ids) =>
+      ids.includes(examId)
+        ? ids.filter((id) => id !== examId)
+        : [...ids, examId]
+    );
+  }
+
+  setMixedQuestionCount(count: number): void {
+    this.mixedQuestionCount = count;
+  }
+
+  startMixedPractice(): void {
+    const examIds = this.selectedMixExamIds();
+    if (!examIds.length) {
+      this.error.set('Selecciona al menos un examen para mezclar.');
+      return;
+    }
+    if (this.mixedQuestionCount < 10) {
+      this.error.set('El simulacro personalizado debe tener al menos 10 preguntas.');
+      return;
+    }
+    if (this.mixedQuestionCount > this.mixedAvailableCount()) {
+      this.error.set(
+        `Los exámenes seleccionados ofrecen ${this.mixedAvailableCount()} preguntas.`
+      );
+      return;
+    }
+
+    this.start({
+      bankId: null,
+      examId: null,
+      examIds,
+      questionCount: this.mixedQuestionCount,
+      mode: 'mixed_practice',
+      timeMinutes: this.mixedQuestionCount
     });
   }
 
@@ -384,6 +431,7 @@ export class SimulatorPage implements OnInit, OnDestroy {
   private start(body: {
     bankId?: number | null;
     examId?: number | null;
+    examIds?: number[] | null;
     questionCount: number;
     mode: string;
     timeMinutes: number;

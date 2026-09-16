@@ -265,6 +265,7 @@ export class StudentEvaluationsPage implements OnInit {
   modeLabel(mode: string): string {
     const key = (mode || '').toLowerCase();
     if (key === 'exam' || key === 'examen') return 'Examen';
+    if (key === 'mixed_practice') return 'Simulacro personalizado';
     if (key === 'practice' || key === 'practica' || key === 'práctica') return 'Práctica';
     return mode || 'Evaluación';
   }

@@ -14,6 +14,8 @@ namespace Cale.Modules.Assessment.Application.Commands;
 
 public sealed class StartExamHandler
 {
+    private const int MinimumMixedQuestions = 10;
+
     private readonly IAttemptStore _attempts;
     private readonly ICatalogStore _catalog;
     private readonly IGroupAccess _groups;
@@ -48,8 +50,35 @@ public sealed class StartExamHandler
         try
         {
             var now = _clock.UtcNow;
-            var (bankId, exam, timeMinutes, count) =
-                await ResolveTarget(request, userId, now, ct);
+            var mixedExamIds = request.ExamIds?
+                .Where(id => id > 0)
+                .Distinct()
+                .Take(20)
+                .ToList() ?? [];
+            var isMixedPractice = mixedExamIds.Count > 0;
+
+            int bankId;
+            Exam? exam;
+            int timeMinutes;
+            int count;
+            List<Question>? mixedPool = null;
+            if (isMixedPractice)
+            {
+                (bankId, timeMinutes, count, mixedPool) =
+                    await ResolveMixedPracticeAsync(
+                        mixedExamIds,
+                        request.QuestionCount,
+                        request.TimeMinutes,
+                        userId,
+                        now,
+                        ct);
+                exam = null;
+            }
+            else
+            {
+                (bankId, exam, timeMinutes, count) =
+                    await ResolveTarget(request, userId, now, ct);
+            }
 
             if (exam is not null)
             {
@@ -80,7 +109,7 @@ public sealed class StartExamHandler
                 }
             }
 
-            var pool = await LoadPool(bankId, exam?.Id, ct);
+            var pool = mixedPool ?? await LoadPool(bankId, exam?.Id, ct);
             if (pool.Count == 0)
             {
                 throw new DomainException(
@@ -90,15 +119,25 @@ public sealed class StartExamHandler
             }
 
             var take = Math.Min(count, pool.Count);
-            var selected = exam is { Randomize: false }
+            var selected = exam is { Randomize: false } && !isMixedPractice
                 ? pool.Take(take).ToList()
                 : pool.OrderBy(_ => Guid.NewGuid()).Take(take).ToList();
+            if (isMixedPractice)
+            {
+                selected = await AvoidIdenticalPreviousAttemptAsync(
+                    selected,
+                    pool,
+                    userId,
+                    ct);
+            }
 
             var attempt = Attempt.Start(
                 userId,
                 bankId,
                 exam?.Id,
-                exam is not null
+                isMixedPractice
+                    ? AttemptModes.MixedPractice
+                    : exam is not null
                     ? AttemptModes.Exam
                     : (string.IsNullOrWhiteSpace(request.Mode)
                         ? AttemptModes.Practice
@@ -231,6 +270,131 @@ public sealed class StartExamHandler
             .OrderBy(_ => Guid.NewGuid())
             .Select(o => new TakeOptionDto(o.Id, o.Text, o.ImageUrl))
             .ToList();
+
+    private async Task<(int BankId, int TimeMinutes, int Count, List<Question> Pool)>
+        ResolveMixedPracticeAsync(
+            IReadOnlyList<int> examIds,
+            int requestedCount,
+            int requestedMinutes,
+            int userId,
+            DateTime now,
+            CancellationToken ct)
+    {
+        if (requestedCount < MinimumMixedQuestions || requestedCount > 200)
+        {
+            throw new DomainException(
+                $"El simulacro personalizado debe tener al menos {MinimumMixedQuestions} preguntas.",
+                400,
+                "invalid_count");
+        }
+
+        var groupIds = (await _groups.GetActiveGroupIdsAsync(userId, ct)).ToHashSet();
+        var officialExamId =
+            await _trainingEligibility.GetAuthorizedSchoolOfficialTheoryExamIdAsync(userId, ct);
+        var exams = new List<Exam>();
+        foreach (var examId in examIds)
+        {
+            var exam = await _catalog.GetExamAsync(examId, ct)
+                ?? throw new NotFoundException("Exam not found.", "exam_not_found");
+            if (!exam.IsOpenAt(now))
+            {
+                throw new ForbiddenException(
+                    "Uno de los exámenes seleccionados no está disponible.",
+                    "exam_closed");
+            }
+
+            var links = await _catalog.ListExamGroupsAsync(exam.Id, ct);
+            var assignedNow = links.Any(link =>
+                groupIds.Contains(link.GroupId)
+                && (link.StartsAt is null || link.StartsAt <= now)
+                && (link.EndsAt is null || link.EndsAt >= now));
+            if (!assignedNow && officialExamId != exam.Id)
+            {
+                throw new ForbiddenException(
+                    "Uno de los exámenes seleccionados no está asignado a tu grupo.",
+                    "exam_not_assigned");
+            }
+
+            exams.Add(exam);
+        }
+
+        var bankId = exams
+            .Select(e => e.BankId)
+            .FirstOrDefault(id => id is > 0)
+            ?? throw new DomainException(
+                "Los exámenes seleccionados no tienen banco de preguntas.",
+                400,
+                "exam_without_bank");
+
+        var uniqueQuestions = new Dictionary<int, Question>();
+        foreach (var exam in exams)
+        {
+            if (exam.BankId is not int examBankId)
+            {
+                continue;
+            }
+
+            foreach (var question in await LoadPool(examBankId, exam.Id, ct))
+            {
+                uniqueQuestions.TryAdd(question.Id, question);
+            }
+        }
+
+        if (uniqueQuestions.Count < requestedCount)
+        {
+            throw new DomainException(
+                $"La mezcla solo tiene {uniqueQuestions.Count} preguntas únicas; elegiste {requestedCount}.",
+                400,
+                "insufficient_questions");
+        }
+
+        var count = requestedCount;
+        var minutes = Math.Clamp(
+            requestedMinutes > 0 ? requestedMinutes : count,
+            10,
+            180);
+        return (bankId, minutes, count, uniqueQuestions.Values.ToList());
+    }
+
+    private async Task<List<Question>> AvoidIdenticalPreviousAttemptAsync(
+        List<Question> selected,
+        IReadOnlyList<Question> pool,
+        int userId,
+        CancellationToken ct)
+    {
+        if (selected.Count < 2)
+        {
+            return selected;
+        }
+
+        var previous = await _attempts.ListLatestQuestionIdsAsync(
+            userId,
+            AttemptModes.MixedPractice,
+            ct);
+        var selectedIds = selected.Select(q => q.Id).ToList();
+        if (previous.Count == selectedIds.Count
+            && pool.Count > selected.Count
+            && selectedIds.ToHashSet().SetEquals(previous))
+        {
+            // Prefer at least one different question when the source pool allows it.
+            var priorIds = previous.ToHashSet();
+            var replacement = pool
+                .Where(q => !priorIds.Contains(q.Id))
+                .OrderBy(_ => Guid.NewGuid())
+                .First();
+            selected[^1] = replacement;
+            selected = selected.OrderBy(_ => Guid.NewGuid()).ToList();
+            selectedIds = selected.Select(q => q.Id).ToList();
+        }
+
+        if (!selectedIds.SequenceEqual(previous))
+        {
+            return selected;
+        }
+
+        // Same random sequence as last time: rotate it so the attempt is never identical.
+        return selected.Skip(1).Append(selected[0]).ToList();
+    }
 
     private async Task<(int BankId, Exam? Exam, int TimeMinutes, int Count)>
         ResolveTarget(

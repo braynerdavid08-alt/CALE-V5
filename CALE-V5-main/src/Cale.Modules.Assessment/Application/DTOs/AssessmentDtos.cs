@@ -5,7 +5,8 @@ public sealed record StartExamRequest(
     int? ExamId,
     int QuestionCount,
     string Mode,
-    int TimeMinutes);
+    int TimeMinutes,
+    IReadOnlyList<int>? ExamIds = null);
 
 public sealed record TakeOptionDto(int Id, string Text, string? ImageUrl);
 

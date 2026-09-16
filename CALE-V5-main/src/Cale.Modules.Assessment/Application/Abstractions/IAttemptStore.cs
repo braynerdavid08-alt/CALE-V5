@@ -15,6 +15,11 @@ public interface IAttemptStore
         int attemptId,
         CancellationToken ct);
 
+    Task<IReadOnlyList<int>> ListLatestQuestionIdsAsync(
+        int userId,
+        string mode,
+        CancellationToken ct);
+
     Task<AttemptAnswer?> FindAnswerAsync(
         int attemptId,
         int questionId,
