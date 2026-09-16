@@ -101,6 +101,7 @@ export class LivePlayPage implements OnInit, OnDestroy {
   readonly lastPoints = signal<number | null>(null);
   readonly rematchCode = signal<string | null>(null);
   readonly answerRoster = signal<LiveAnswerRosterDto | null>(null);
+  readonly roundRanking = signal(false);
 
   readonly presentationSlides = signal<EditorSlide[]>([]);
   readonly presentationTitle = signal('');
@@ -594,6 +595,15 @@ export class LivePlayPage implements OnInit, OnDestroy {
       this.selectedOptionId.set(null);
       this.submitted.set(false);
       this.lastPoints.set(null);
+      this.roundRanking.set(false);
+    }
+    if (lobby.status === 'Lobby' || lobby.status === 'Ended' || !lobby.currentQuestion) {
+      this.roundRanking.set(false);
+    } else if (lobby.currentQuestion.closesAt) {
+      const closesAt = Date.parse(lobby.currentQuestion.closesAt);
+      if (Number.isFinite(closesAt) && closesAt <= Date.now()) {
+        this.roundRanking.set(true);
+      }
     }
     this.syncTimer(lobby.currentQuestion ?? null);
     this.loadPresentationIfNeeded(lobby);
@@ -666,9 +676,13 @@ export class LivePlayPage implements OnInit, OnDestroy {
       this.submitted.set(false);
       this.lastPoints.set(null);
       this.answerRoster.set(null);
+      this.roundRanking.set(false);
       this.syncTimer(payload);
     });
-    this.hub.on('QuestionClosed', () => this.submitted.set(true));
+    this.hub.on('QuestionClosed', () => {
+      this.submitted.set(true);
+      this.roundRanking.set(true);
+    });
     this.hub.on('RevealUpdated', (payload: LiveQuestionPayloadDto) => {
       const current = this.lobby();
       if (current) {

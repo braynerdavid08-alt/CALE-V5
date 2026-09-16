@@ -94,6 +94,34 @@ a { color: #2bb0ed; }
 .rank li { display: flex; gap: 0.5rem; padding: 0.4rem 0; border-bottom: 1px solid #243041; }
 .rank li.me { color: #f0b429; font-weight: 700; }
 .rank li span:nth-child(2) { flex: 1; }
+.round-ranking {
+  text-align: center;
+  padding: 1.5rem 1rem;
+}
+.round-ranking h2 {
+  margin: 0.3rem 0;
+  font-size: clamp(1.7rem, 8vw, 2.5rem);
+}
+.round-ranking .rank {
+  text-align: left;
+}
+.round-ranking .rank li {
+  align-items: baseline;
+  padding: 0.8rem 0.35rem;
+  font-size: 1.05rem;
+}
+.my-round-rank {
+  margin: 1rem 0 0;
+  padding: 0.75rem;
+  border-radius: 12px;
+  background: rgba(240, 180, 41, 0.12);
+  color: #f0b429;
+  font-size: 1.05rem;
+}
+.ranking-wait {
+  margin: 1rem 0 0;
+  color: #c9d4e3;
+}
 .surprise { color: #f0b429; font-style: normal; margin-left: 0.35rem; font-weight: 800; font-size: 0.75rem; text-transform: uppercase; }
 .deck { padding: 0.85rem; }
 .deck.compact:not(.is-fullscreen) .deck-stage { max-height: min(42vh, 280px); }
