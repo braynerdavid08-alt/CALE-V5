@@ -1,7 +1,7 @@
 @if (step() !== 'take') {
   <ui-page-header
     title="Simulador"
-    subtitle="Práctica con bancos oficiales o exámenes publicados. Apruebas con máximo 3 respuestas incorrectas." />
+    subtitle="Presenta los exámenes publicados por tu instructor." />
 }
 <ui-error [message]="error()" />
 <ui-success [message]="ok()" />
@@ -9,115 +9,7 @@
 @if (loading()) {
   <ui-loading />
 } @else if (step() === 'setup') {
-  <section class="rules-banner" aria-label="Condiciones CALE">
-    <div>
-      <p class="eyebrow">Estándar CALE</p>
-      <h2>Condiciones de aprobación</h2>
-      <p class="muted">
-        Puedes tener como máximo <strong>{{ maxIncorrect }} respuestas incorrectas</strong>.
-        El tiempo lo controla el servidor y las preguntas se toman de bancos oficiales
-        (normas y señales).
-      </p>
-    </div>
-    <ul class="rule-chips">
-      <li><span>Aprobar</span><strong>Máx. {{ maxIncorrect }} malas</strong></li>
-      <li><span>Tiempo</span><strong>Servidor</strong></li>
-      <li><span>Respuestas</span><strong>1 correcta</strong></li>
-      <li><span>Modo</span><strong>Práctica / Examen</strong></li>
-    </ul>
-  </section>
-
-  <div class="setup-layout">
-    <ui-card class="practice-card">
-      <div class="card-head">
-        <div>
-          <p class="eyebrow">Práctica libre</p>
-          <h2>Configura tu intento</h2>
-        </div>
-        <ui-badge tone="primary">Máximo {{ maxIncorrect }} malas</ui-badge>
-      </div>
-
-      <h3 class="section-label">1. Banco de preguntas</h3>
-      @if (!banks().length) {
-        <ui-empty title="No hay bancos activos" message="Pide a un administrador que active el catálogo." />
-      } @else {
-        <div class="bank-grid">
-          @for (bank of banks(); track bank.id) {
-            <button
-              type="button"
-              class="bank-tile"
-              [class.selected]="bankId() === bank.id"
-              (click)="selectBank(bank.id)">
-              <span class="kind">{{ bankKind(bank) }}</span>
-              <strong>{{ bank.name }}</strong>
-              <span class="muted">{{ bank.questionCount }} preguntas activas</span>
-              @if (bank.description) {
-                <span class="desc">{{ bank.description }}</span>
-              }
-            </button>
-          }
-        </div>
-      }
-
-      <h3 class="section-label">2. Formato de práctica</h3>
-      <div class="preset-grid">
-        @for (preset of presets; track preset.id) {
-          <button
-            type="button"
-            class="preset"
-            [class.selected]="presetId() === preset.id && !customMode()"
-            (click)="applyPreset(preset.id)">
-            <strong>{{ preset.label }}</strong>
-            <span class="muted">{{ preset.hint }}</span>
-            <span class="preset-meta">
-              {{ preset.questionCount }} preg. · {{ preset.timeMinutes }} min
-            </span>
-          </button>
-        }
-        <button
-          type="button"
-          class="preset"
-          [class.selected]="customMode()"
-          (click)="enableCustom()">
-          <strong>Personalizado</strong>
-          <span class="muted">Tú defines cantidad y tiempo</span>
-        </button>
-      </div>
-
-      @if (customMode()) {
-        <div class="custom-row">
-          <label class="field">Preguntas
-            <input type="number" [(ngModel)]="questionCount" min="1" max="200" />
-          </label>
-          <label class="field">Minutos
-            <input type="number" [(ngModel)]="timeMinutes" min="1" max="180" />
-          </label>
-        </div>
-      }
-
-      <div class="summary">
-        <div>
-          <span class="muted">Para aprobar necesitas</span>
-          <strong>{{ neededCorrect() }} de {{ questionCount }} correctas</strong>
-        </div>
-        <div>
-          <span class="muted">Ritmo aproximado</span>
-          <strong>~{{ secondsPerQuestion() }} s por pregunta</strong>
-        </div>
-        <div>
-          <span class="muted">Banco</span>
-          <strong>{{ selectedBank()?.name || 'Sin seleccionar' }}</strong>
-        </div>
-      </div>
-
-      <div class="row actions">
-        <ui-button type="button" [disabled]="!bankId()" (click)="startPractice()">
-          Empezar práctica
-        </ui-button>
-      </div>
-    </ui-card>
-
-    <ui-card class="exams-card">
+  <ui-card class="exams-card">
       <div class="card-head">
         <div>
           <p class="eyebrow">Evaluación formal</p>
@@ -151,8 +43,7 @@
           }
         </ul>
       }
-    </ui-card>
-  </div>
+  </ui-card>
 }
 
 @if (step() === 'take') {
