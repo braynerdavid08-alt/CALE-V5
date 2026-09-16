@@ -11,7 +11,6 @@ interface LauncherTile {
   path: string;
   icon: string;
   tone: 'blue' | 'green' | 'violet';
-  requiresSchool?: boolean;
 }
 
 @Component({
@@ -67,30 +66,12 @@ export class StudentHomePage {
       tone: 'green'
     },
     {
-      id: 'practical',
-      label: 'Manejo',
-      hint: 'Clases prácticas',
-      path: '/student/practical',
-      icon: 'graduate',
-      tone: 'green',
-      requiresSchool: true
-    },
-    {
       id: 'messages',
       label: 'Mensajes',
       hint: 'Avisos',
       path: '/notifications',
       icon: 'bell',
       tone: 'violet'
-    },
-    {
-      id: 'training',
-      label: 'Formación',
-      hint: 'Horario teórico',
-      path: '/student/training',
-      icon: 'clock',
-      tone: 'violet',
-      requiresSchool: true
     },
     {
       id: 'profile',
@@ -103,43 +84,11 @@ export class StudentHomePage {
   ];
 
   visibleTiles(): LauncherTile[] {
-    const hasSchool = !!this.session.user()?.schoolId;
-    return this.tiles.filter((t) => !t.requiresSchool || hasSchool);
+    return this.tiles;
   }
 
-  /** Keep a full 3×3 grid when school tiles are hidden. */
+  /** Keep only distinct destinations; empty filler tiles add cognitive noise. */
   displayTiles(): LauncherTile[] {
-    const visible = this.visibleTiles();
-    if (visible.length >= 9) {
-      return visible.slice(0, 9);
-    }
-    const extras: LauncherTile[] = [
-      {
-        id: 'results',
-        label: 'Resultados',
-        hint: 'Mis notas',
-        path: '/student/evaluations',
-        icon: 'chart',
-        tone: 'green'
-      },
-      {
-        id: 'home-help',
-        label: 'Inicio',
-        hint: 'Volver aquí',
-        path: '/student',
-        icon: 'home',
-        tone: 'blue'
-      }
-    ];
-    const out = [...visible];
-    for (const e of extras) {
-      if (out.length >= 9) {
-        break;
-      }
-      if (!out.some((t) => t.id === e.id || t.path === e.path)) {
-        out.push(e);
-      }
-    }
-    return out.slice(0, 9);
+    return this.visibleTiles();
   }
 }
