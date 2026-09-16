@@ -1,9 +1,20 @@
 <section class="page">
   <header class="hero">
-    <p class="eyebrow">Mi formación</p>
+    <p class="eyebrow">Mi proceso</p>
     <h1>Clases de manejo</h1>
     <p class="lead">Elige el instructor con quien quieres practicar y reserva un horario disponible.</p>
   </header>
+
+  <nav class="process-switch" aria-label="Cambiar tipo de formación">
+    <a routerLink="/student/training">
+      <strong>Teoría</strong>
+      <span>Clases y reservas teóricas</span>
+    </a>
+    <span class="current" aria-current="page">
+      <strong>Manejo</strong>
+      <span>Clases prácticas</span>
+    </span>
+  </nav>
 
   <ui-error [message]="error()" />
 
@@ -39,7 +50,7 @@
       } @else if (dash.eligibility.blockReason) {
         <p class="blocked">{{ dash.eligibility.blockReason }}</p>
       }
-      <p class="hint"><a routerLink="/student/training">Ir a clases teóricas</a> · <a routerLink="/student/simulator">Simulador</a></p>
+      <p class="hint"><a routerLink="/student/training">Ir a Teoría</a> · <a routerLink="/student/simulator">Simulador</a></p>
     </article>
 
     @if (dash.nextLesson; as next) {

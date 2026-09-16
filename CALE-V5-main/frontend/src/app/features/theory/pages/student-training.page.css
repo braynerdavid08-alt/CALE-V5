@@ -1,6 +1,36 @@
 .page { padding: var(--page-pad); max-width: 1200px; margin: 0 auto; }
 .eyebrow { color: var(--color-primary); font-weight: 800; text-transform: uppercase; font-size: var(--text-xs); }
 .lead { color: var(--color-text-secondary); }
+.process-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  max-width: 34rem;
+  margin: 1rem 0;
+}
+.process-switch a,
+.process-switch > span {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-decoration: none;
+}
+.process-switch a:hover {
+  border-color: var(--color-primary);
+}
+.process-switch .current {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+}
+.process-switch span span,
+.process-switch a span {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+}
 .grid-top { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin: 1rem 0; }
 .pathway { grid-column: 1 / -1; }
 .pathway-steps {

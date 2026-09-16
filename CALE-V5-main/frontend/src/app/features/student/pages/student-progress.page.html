@@ -1,8 +1,8 @@
 <div class="school-page progress-page">
   <ui-page-header
     eyebrow="Estudiante"
-    title="Qué me falta"
-    subtitle="Checklist de tu formación: horas, pagos, examen y manejo." />
+    title="Mi proceso"
+    subtitle="Consulta tus pendientes y entra a teoría, manejo o simulador." />
 
   <ui-error [message]="error()" />
 
@@ -17,7 +17,7 @@
       <p class="hint">{{ nextHint() }}</p>
       <div class="summary-actions">
         <a routerLink="/student/training">
-          <ui-button type="button" variant="secondary">Mi formación</ui-button>
+          <ui-button type="button" variant="secondary">Teoría</ui-button>
         </a>
         <a routerLink="/student/practical">
           <ui-button type="button" variant="secondary">Manejo</ui-button>

@@ -59,8 +59,8 @@ export class StudentHomePage {
     },
     {
       id: 'progress',
-      label: 'Qué me falta',
-      hint: 'Pendientes',
+      label: 'Mi proceso',
+      hint: 'Teoría y manejo',
       path: '/student/progress',
       icon: 'list',
       tone: 'green'
