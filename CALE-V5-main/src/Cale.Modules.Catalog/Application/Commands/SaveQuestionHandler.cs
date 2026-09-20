@@ -58,13 +58,18 @@ public sealed class SaveQuestionHandler
     {
         var question = await _store.GetQuestionAsync(id, ct)
             ?? throw new NotFoundException("Question not found.", "question_not_found");
-        var bank = await EnsureBankAndBlock(request, ct);
-        if (!isAdmin
-            && !question.CanEdit(userId, isAdmin)
-            && bank.CreatedById != userId)
+        if (!question.CanEdit(userId, isAdmin))
         {
             throw new ForbiddenException(
-                "Solo puedes editar preguntas de bancos que hayas importado o creado.",
+                "Solo puedes editar preguntas que hayas creado.",
+                "question_not_owned");
+        }
+
+        var bank = await EnsureBankAndBlock(request, ct);
+        if (!isAdmin && bank.CreatedById != userId)
+        {
+            throw new ForbiddenException(
+                "Solo puedes mover preguntas a bancos que hayas importado o creado.",
                 "bank_not_owned");
         }
 

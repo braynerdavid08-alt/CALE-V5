@@ -431,6 +431,14 @@ public sealed class StartExamHandler
             throw new ForbiddenException("Bank is inactive.");
         }
 
+        // Official banks (no owner) are practice-safe. Private teacher banks require ownership.
+        if (bank.CreatedById is int ownerId && ownerId != userId)
+        {
+            throw new ForbiddenException(
+                "No tienes acceso a este banco de preguntas.",
+                "bank_not_visible");
+        }
+
         var minutes = request.TimeMinutes < 1 ? 20 : request.TimeMinutes;
         var count = request.QuestionCount < 1 ? 10 : request.QuestionCount;
         return (bank.Id, null, minutes, count);

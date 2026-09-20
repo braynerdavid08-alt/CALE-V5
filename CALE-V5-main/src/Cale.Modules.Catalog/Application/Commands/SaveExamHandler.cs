@@ -20,8 +20,10 @@ public sealed class SaveExamHandler
     public async Task<ExamDto> CreateAsync(
         SaveExamRequest request,
         int userId,
+        bool isAdmin,
         CancellationToken ct)
     {
+        await EnsureBankAssignableAsync(request.BankId, userId, isAdmin, ct);
         var exam = Exam.Create(
             request.Name,
             request.Description,
@@ -47,6 +49,7 @@ public sealed class SaveExamHandler
         CancellationToken ct)
     {
         var exam = await Owned(id, userId, isAdmin, ct);
+        await EnsureBankAssignableAsync(request.BankId, userId, isAdmin, ct);
         exam.Update(
             request.Name,
             request.Description,
@@ -127,6 +130,16 @@ public sealed class SaveExamHandler
                 "exam_without_bank");
         }
 
+        var bank = await _store.GetBankAsync(exam.BankId.Value, ct)
+            ?? throw new NotFoundException("Bank not found.", "bank_not_found");
+        if (!bank.IsActive)
+        {
+            throw new DomainException(
+                "El banco del examen no está activo.",
+                400,
+                "bank_inactive");
+        }
+
         var activeQuestions = await _store.CountQuestionsInBankAsync(exam.BankId.Value, ct);
         if (activeQuestions < 1)
         {
@@ -143,6 +156,35 @@ public sealed class SaveExamHandler
                 $"Hay {pending} pregunta(s) sin clave revisada. Márcalas antes de publicar.",
                 400,
                 "exam_needs_answer_review");
+        }
+    }
+
+    private async Task EnsureBankAssignableAsync(
+        int? bankId,
+        int userId,
+        bool isAdmin,
+        CancellationToken ct)
+    {
+        if (bankId is not int id)
+        {
+            return;
+        }
+
+        var bank = await _store.GetBankAsync(id, ct)
+            ?? throw new NotFoundException("Bank not found.", "bank_not_found");
+        if (!bank.IsActive)
+        {
+            throw new DomainException(
+                "El banco de preguntas no está activo.",
+                400,
+                "bank_inactive");
+        }
+
+        if (!isAdmin && bank.CreatedById is int ownerId && ownerId != userId)
+        {
+            throw new ForbiddenException(
+                "Solo puedes usar bancos oficiales o bancos que hayas creado.",
+                "bank_not_owned");
         }
     }
 

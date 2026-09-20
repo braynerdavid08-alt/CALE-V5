@@ -115,12 +115,9 @@ public sealed class Question
             throw new DomainException("Question text is required.", 400, "invalid_text");
         }
 
-        if (!QuestionTypes.IsValid(type) && type != QuestionTypes.MultipleChoice)
+        if (string.IsNullOrWhiteSpace(type) || !QuestionTypes.IsValid(type))
         {
-            if (string.IsNullOrWhiteSpace(type))
-            {
-                throw new DomainException("Question type is required.", 400, "invalid_type");
-            }
+            throw new DomainException("Question type is invalid.", 400, "invalid_type");
         }
 
         if (options.Count < 2)

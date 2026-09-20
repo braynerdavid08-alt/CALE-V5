@@ -1,9 +1,10 @@
 using System.Security.Claims;
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.Modules.LiveClassroom.Application.Abstractions;
-using Microsoft.Extensions.DependencyInjection;
 using Cale.Modules.LiveClassroom.Application.Commands;
+using Cale.Modules.LiveClassroom.Domain;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Cale.Api.Hubs;
@@ -58,6 +59,24 @@ public sealed class LiveClassroomHub : Hub
         if (!Guid.TryParse(participantToken, out var token))
         {
             throw new HubException("Token inválido.");
+        }
+
+        var participant = await _sessions.GetParticipantByTokenAsync(
+            token,
+            Context.ConnectionAborted)
+            ?? throw new HubException("Participante no encontrado.");
+
+        if (participant.SessionId != sessionId)
+        {
+            throw new HubException("El token no pertenece a esta sala.");
+        }
+
+        var session = await _sessions.GetByIdAsync(sessionId, Context.ConnectionAborted)
+            ?? throw new HubException("Sesión no encontrada.");
+
+        if (session.Status == LiveSessionStatuses.Ended || session.EndedAt is not null)
+        {
+            throw new HubException("Esta clase ya terminó.");
         }
 
         await _handler.SetConnectionAsync(

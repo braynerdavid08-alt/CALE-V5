@@ -99,7 +99,11 @@ public sealed class ExamsController : ControllerBase
         CancellationToken ct)
     {
         await EnsureCatalogAsync(ct);
-        return Ok(await _save.CreateAsync(request, CurrentUser.GetId(User), ct));
+        return Ok(await _save.CreateAsync(
+            request,
+            CurrentUser.GetId(User),
+            CurrentUser.IsAdmin(User),
+            ct));
     }
 
     [HttpGet("import/template")]
