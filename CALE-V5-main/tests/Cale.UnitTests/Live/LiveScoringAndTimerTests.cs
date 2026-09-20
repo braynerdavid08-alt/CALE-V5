@@ -65,13 +65,13 @@ public sealed class LiveScoringAndTimerTests
     {
         var session = LiveSession.Create(
             1, "T", "ABC123", LiveSessionModes.Pedagogical, 1, "{}", DateTime.UtcNow);
-        var q0 = LiveSessionQuestion.Create(session.Id, 10, 0, "{}",', null, null);
+        var q0 = LiveSessionQuestion.Create(session.Id, 10, 0, "{}", null, null);
         var q1 = LiveSessionQuestion.Create(session.Id, 11, 1, "{}", null, null);
         session.SetQuestions([q0, q1]);
         session.OpenQuestion(0, DateTime.UtcNow, null);
 
         var surprise = LiveSessionQuestion.Create(
-            session.Id, 99, 99, "{}",', "T", null, isSurprise: true);
+            session.Id, 99, 99, "{}", "T", null, isSurprise: true);
         session.InsertQuestionAfterCurrent(surprise);
 
         var ordered = session.Questions.OrderBy(q => q.SortOrder).ToList();

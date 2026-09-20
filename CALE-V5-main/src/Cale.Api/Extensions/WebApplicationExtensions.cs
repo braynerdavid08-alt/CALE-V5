@@ -128,11 +128,15 @@ public static class WebApplicationExtensions
         else if (bootstrapAdmin)
         {
             // Temporary admin once; after you change email/password it is never recreated.
+            // Requires explicit Seed:Admin credentials — never uses hardcoded passwords.
             await IdentitySeed.EnsureBootstrapAdminIfNoneAsync(
                 db,
                 hasher,
                 clock,
-                seedLogger);
+                seedLogger,
+                email: adminEmail,
+                password: adminPassword,
+                name: adminName);
         }
         else if (app.Configuration.GetValue("Seed:DemoUsers", false))
         {

@@ -34,18 +34,18 @@ public static class IdentitySeed
     /// <summary>
     /// Creates one temporary admin only when the database has no Admin yet.
     /// Does not reset an existing admin (so they can change email/password safely).
+    /// Never deletes existing users.
     /// </summary>
     public static async Task EnsureBootstrapAdminIfNoneAsync(
         CaleDbContext db,
         IPasswordHasher hasher,
         IClock clock,
         ILogger? logger = null,
+        string? email = null,
+        string? password = null,
+        string? name = null,
         CancellationToken ct = default)
     {
-        const string bootstrapEmail = "admin@micale.app";
-        const string bootstrapPassword = "CambiarYa123!";
-        const string bootstrapName = "Administrador";
-
         var hasAdmin = await db.Set<User>().AnyAsync(
             u => u.Role == Roles.Admin || u.Role == "Administrador",
             ct);
@@ -56,7 +56,24 @@ public static class IdentitySeed
             return;
         }
 
-        await PurgeAllUsersAsync(db, ct);
+        var bootstrapEmail = string.IsNullOrWhiteSpace(email)
+            ? null
+            : EmailAddress.Normalize(email);
+        var bootstrapPassword = string.IsNullOrWhiteSpace(password) ? null : password;
+        var bootstrapName = string.IsNullOrWhiteSpace(name) ? "Administrador" : name.Trim();
+
+        if (bootstrapEmail is null || bootstrapPassword is null)
+        {
+            throw new InvalidOperationException(
+                "No admin exists. Set Seed:Admin:Email and Seed:Admin:Password " +
+                "(or Seed:Admin:PasswordHash), or disable Seed:BootstrapAdmin.");
+        }
+
+        if (bootstrapPassword.Length < 8)
+        {
+            throw new InvalidOperationException(
+                "Seed:Admin:Password must be at least 8 characters.");
+        }
 
         var user = User.CreateAdmin(
             bootstrapName,

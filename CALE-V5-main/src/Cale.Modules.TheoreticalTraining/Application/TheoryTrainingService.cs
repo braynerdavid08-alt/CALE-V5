@@ -662,6 +662,27 @@ public sealed class TheoryTrainingService
     {
         await EnsureSchoolMembershipActiveAsync(schoolUserId, ct);
         await RequireSessionAsync(schoolUserId, sessionId, ct);
+
+        var enrollment = await GetEnrollmentAsync(schoolUserId, request.StudentUserId, ct);
+        if (!StudentEnrollmentStatuses.CanReserveStatuses.Contains(enrollment.Status))
+        {
+            throw new ForbiddenException(
+                "El estudiante no está habilitado en esta escuela.",
+                "student_not_enrolled");
+        }
+
+        var reservation = await _db.Set<TheoryClassReservation>()
+            .FirstOrDefaultAsync(x => x.ClassSessionId == sessionId
+                && x.StudentUserId == request.StudentUserId
+                && TheoryReservationStatuses.OccupiesSeatStatuses.Contains(x.Status), ct);
+        if (reservation is null)
+        {
+            throw new DomainException(
+                "El estudiante no tiene reserva activa para esta clase.",
+                400,
+                "reservation_required");
+        }
+
         var now = _clock.UtcNow;
         var record = await _db.Set<TheoryAttendanceRecord>()
             .FirstOrDefaultAsync(x => x.ClassSessionId == sessionId
@@ -683,20 +704,13 @@ public sealed class TheoryTrainingService
         record.Notes = request.Notes;
         record.UpdatedAt = now;
 
-        var reservation = await _db.Set<TheoryClassReservation>()
-            .FirstOrDefaultAsync(x => x.ClassSessionId == sessionId
-                && x.StudentUserId == request.StudentUserId
-                && TheoryReservationStatuses.OccupiesSeatStatuses.Contains(x.Status), ct);
-        if (reservation is not null)
+        reservation.Status = request.Status switch
         {
-            reservation.Status = request.Status switch
-            {
-                TheoryAttendanceStatuses.Present or TheoryAttendanceStatuses.Late => TheoryReservationStatuses.Attended,
-                TheoryAttendanceStatuses.Absent => TheoryReservationStatuses.NoShow,
-                _ => reservation.Status
-            };
-            reservation.UpdatedAt = now;
-        }
+            TheoryAttendanceStatuses.Present or TheoryAttendanceStatuses.Late => TheoryReservationStatuses.Attended,
+            TheoryAttendanceStatuses.Absent => TheoryReservationStatuses.NoShow,
+            _ => reservation.Status
+        };
+        reservation.UpdatedAt = now;
 
         await _db.SaveChangesAsync(ct);
     }
@@ -1036,7 +1050,10 @@ public sealed class TheoryTrainingService
             upcomingDtos.Add(await MapSessionAsync(s.Id, studentUserId, ct));
         }
 
-        var (theoryHours, workshopHours, absences) = await ComputeHoursBreakdownAsync(studentUserId, ct);
+        var (theoryHours, workshopHours, absences) = await ComputeHoursBreakdownAsync(
+            schoolUserId,
+            studentUserId,
+            ct);
         var enrollment = await _db.Set<SchoolStudentEnrollment>()
             .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
                 && x.StudentUserId == studentUserId, ct);
@@ -1189,7 +1206,10 @@ public sealed class TheoryTrainingService
         CancellationToken ct)
     {
         var settings = await GetOrCreateSettingsAsync(schoolUserId, ct);
-        var (theoryHours, workshopHours, _) = await ComputeHoursBreakdownAsync(studentUserId, ct);
+        var (theoryHours, workshopHours, _) = await ComputeHoursBreakdownAsync(
+            schoolUserId,
+            studentUserId,
+            ct);
         var enrollment = await _db.Set<SchoolStudentEnrollment>()
             .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
                 && x.StudentUserId == studentUserId, ct);
@@ -1270,6 +1290,7 @@ public sealed class TheoryTrainingService
 
             balanceByStudent.TryGetValue(enrollment.StudentUserId, out var balanceDue);
             var (theoryHours, workshopHours, _) = await ComputeHoursBreakdownAsync(
+                schoolUserId,
                 enrollment.StudentUserId,
                 ct);
             var eligibility = await GetPracticalEligibilityAsync(
@@ -1452,7 +1473,10 @@ public sealed class TheoryTrainingService
         var result = new List<EnrollmentDto>();
         foreach (var student in students)
         {
-            var (theoryHours, workshopHours, _) = await ComputeHoursBreakdownAsync(student.Id, ct);
+            var (theoryHours, workshopHours, _) = await ComputeHoursBreakdownAsync(
+                schoolUserId,
+                student.Id,
+                ct);
             items.TryGetValue(student.Id, out var enrollmentRow);
             var eligibility = await GetPracticalEligibilityAsync(
                 schoolUserId,
@@ -1592,7 +1616,10 @@ public sealed class TheoryTrainingService
             enrollment.SuspendedAt = null;
         }
 
-        var (theoryHours, workshopHours, _) = await ComputeHoursBreakdownAsync(studentUserId, ct);
+        var (theoryHours, workshopHours, _) = await ComputeHoursBreakdownAsync(
+            schoolUserId,
+            studentUserId,
+            ct);
         var notifyTheoryExam = false;
         var notifyPractical = false;
         var prevTheoryAuth = enrollment.TheoryExamAuthorized;
@@ -1741,6 +1768,7 @@ public sealed class TheoryTrainingService
             }
 
             var (theoryHours, workshopHours, _) = await ComputeHoursBreakdownAsync(
+                schoolUserId,
                 enrollment.StudentUserId,
                 ct);
             var eligibility = await GetPracticalEligibilityAsync(
@@ -2310,12 +2338,15 @@ public sealed class TheoryTrainingService
         await _membership.EnsureActiveAsync(schoolUserId, ct);
 
     private async Task<(decimal TheoryHours, decimal WorkshopHours, int Absences)> ComputeHoursBreakdownAsync(
+        int schoolUserId,
         int studentUserId,
         CancellationToken ct)
     {
         var records = await _db.Set<TheoryAttendanceRecord>()
             .Include(x => x.ClassSession)!.ThenInclude(s => s!.Topic)
-            .Where(x => x.StudentUserId == studentUserId)
+            .Where(x => x.StudentUserId == studentUserId
+                && x.ClassSession != null
+                && x.ClassSession.SchoolUserId == schoolUserId)
             .ToListAsync(ct);
         decimal theoryHours = 0;
         decimal workshopHours = 0;
@@ -2601,7 +2632,7 @@ public sealed class TheoryTrainingService
             [studentUserId],
             new NotificationDraft(
                 "Autorizado para examen teórico",
-                "Tu escuela te autorizó para presentar el examen teórico. Revisa Mi formación para ver los siguientes pasos.",
+                "Tu escuela te autorizó para presentar el examen teórico. Revisa Mi proceso para ver los siguientes pasos.",
                 NotificationTypes.TheoryClass,
                 RelatedEntity: "theory_exam_auth",
                 RelatedId: enrollmentId,
