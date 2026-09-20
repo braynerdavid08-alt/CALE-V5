@@ -25,6 +25,39 @@ public sealed class AttemptStore : IAttemptStore
         await _db.Set<AttemptQuestion>().AddRangeAsync(questions, ct);
     }
 
+    public async Task AddAttemptWithQuestionsAsync(
+        Attempt attempt,
+        IReadOnlyList<AttemptQuestion> questions,
+        CancellationToken ct)
+    {
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        try
+        {
+            await _db.Set<Attempt>().AddAsync(attempt, ct);
+            await _db.SaveChangesAsync(ct);
+
+            foreach (var question in questions)
+            {
+                // Re-bind attempt id after identity generation.
+                var bound = AttemptQuestion.Create(
+                    attempt.Id,
+                    question.QuestionId,
+                    question.Order,
+                    question.SnapshotJson);
+                await _db.Set<AttemptQuestion>().AddAsync(bound, ct);
+            }
+
+            await _db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch
+        {
+            await tx.RollbackAsync(ct);
+            _db.ChangeTracker.Clear();
+            throw;
+        }
+    }
+
     public async Task<IReadOnlyList<AttemptQuestion>> ListQuestionsAsync(
         int attemptId,
         CancellationToken ct) =>

@@ -45,23 +45,57 @@ public sealed class ReviewAttemptHandler
             .GroupBy(x => x.QuestionId)
             .ToDictionary(g => g.Key, g => g.First());
 
-        var loaded = await _catalog.ListQuestionsByIdsAsync(
-            snapshot.Select(x => x.QuestionId).Distinct().ToList(),
-            ct);
+        var missingIds = snapshot
+            .Where(x => x.ParsedSnapshot() is null || x.ParsedSnapshot()!.Options.Count == 0)
+            .Select(x => x.QuestionId)
+            .Distinct()
+            .ToList();
+        var loaded = missingIds.Count == 0
+            ? []
+            : await _catalog.ListQuestionsByIdsAsync(missingIds, ct);
         var byId = loaded.ToDictionary(q => q.Id);
 
         var questions = new List<ReviewQuestionDto>();
         foreach (var item in snapshot.OrderBy(x => x.Order))
         {
             answerByQuestion.TryGetValue(item.QuestionId, out var answer);
-            byId.TryGetValue(item.QuestionId, out var live);
+            var parsed = item.ParsedSnapshot();
+            if (parsed is not null && parsed.Options.Count > 0)
+            {
+                questions.Add(FromImmutableSnapshot(item, parsed, answer));
+                continue;
+            }
 
+            byId.TryGetValue(item.QuestionId, out var live);
             questions.Add(live is not null
                 ? FromCatalog(item, live, answer)
                 : FromSnapshot(item, answer));
         }
 
         return new ReviewResponse(FinishExamHandler.Map(attempt), questions);
+    }
+
+    private static ReviewQuestionDto FromImmutableSnapshot(
+        AttemptQuestion item,
+        AttemptQuestionSnapshot parsed,
+        AttemptAnswer? answer)
+    {
+        return new ReviewQuestionDto(
+            item.QuestionId,
+            item.Order,
+            parsed.Text,
+            parsed.Type,
+            parsed.ImageUrl,
+            ClearImportReviewNoise(parsed.Explanation),
+            answer?.IsCorrect ?? false,
+            parsed.Options
+                .Select(o => new ReviewOptionDto(
+                    o.Id,
+                    o.Text,
+                    o.IsCorrect,
+                    answer?.OptionId == o.Id,
+                    o.ImageUrl))
+                .ToList());
     }
 
     private static ReviewQuestionDto FromCatalog(

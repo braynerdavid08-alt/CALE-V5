@@ -1,7 +1,7 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, switchMap, throwError } from 'rxjs';
+import { catchError, finalize, shareReplay, switchMap, throwError } from 'rxjs';
 import { AuthApi } from '../../features/auth/api/auth.api';
 import { SessionStore } from '../auth/session.store';
 
@@ -68,17 +68,20 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
       }
 
       if (!refreshInFlight) {
-        refreshInFlight = authApi.refresh();
+        refreshInFlight = authApi.refresh().pipe(
+          shareReplay(1),
+          finalize(() => {
+            refreshInFlight = null;
+          })
+        );
       }
 
       return refreshInFlight.pipe(
         switchMap((res) => {
-          refreshInFlight = null;
           session.set(res);
           return next(req.clone({ withCredentials: true }));
         }),
         catchError((refreshErr) => {
-          refreshInFlight = null;
           const here = router.url;
           session.clear();
           if (here && here !== '/login') {

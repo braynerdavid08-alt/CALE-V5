@@ -21,24 +21,12 @@ public sealed class RefreshTokenStore : IRefreshTokenStore
         var hash = Hash(raw);
         var created = DateTime.UtcNow;
 
-        if (_db.Database.IsNpgsql())
-        {
-            await _db.Database.ExecuteSqlInterpolatedAsync(
-                $"""
-                INSERT INTO "AuthRefreshTokens" ("UserId", "TokenHash", "ExpiresAt", "CreatedAt")
-                VALUES ({userId}, {hash}, {expiresAtUtc}, {created});
-                """,
-                ct);
-        }
-        else
-        {
-            await _db.Database.ExecuteSqlInterpolatedAsync(
-                $"""
-                INSERT INTO "AuthRefreshTokens" ("UserId", "TokenHash", "ExpiresAt", "CreatedAt")
-                VALUES ({userId}, {hash}, {expiresAtUtc}, {created});
-                """,
-                ct);
-        }
+        await _db.Database.ExecuteSqlInterpolatedAsync(
+            $"""
+            INSERT INTO "AuthRefreshTokens" ("UserId", "TokenHash", "ExpiresAt", "CreatedAt")
+            VALUES ({userId}, {hash}, {expiresAtUtc}, {created});
+            """,
+            ct);
 
         return raw;
     }
@@ -62,45 +50,57 @@ public sealed class RefreshTokenStore : IRefreshTokenStore
             }
 
             await using var cmd = conn.CreateCommand();
-            cmd.CommandText = """
-                SELECT "Id", "UserId", "ExpiresAt", "RevokedAt"
-                FROM "AuthRefreshTokens"
-                WHERE "TokenHash" = @hash
-                LIMIT 1;
-                """;
-            var p = cmd.CreateParameter();
-            p.ParameterName = "@hash";
-            p.Value = hash;
-            cmd.Parameters.Add(p);
-
-            int? tokenId = null;
-            int? userId = null;
-            DateTime? expiresAt = null;
-            DateTime? revokedAt = null;
-
-            await using (var reader = await cmd.ExecuteReaderAsync(ct))
+            // Atomic consume: only one concurrent caller can revoke an unexpired token.
+            if (_db.Database.IsNpgsql())
             {
-                if (!await reader.ReadAsync(ct))
-                {
-                    return null;
-                }
-
-                tokenId = reader.GetInt32(0);
-                userId = reader.GetInt32(1);
-                expiresAt = reader.GetDateTime(2);
-                revokedAt = reader.IsDBNull(3) ? null : reader.GetDateTime(3);
+                cmd.CommandText = """
+                    UPDATE "AuthRefreshTokens"
+                    SET "RevokedAt" = @now
+                    WHERE "TokenHash" = @hash
+                      AND "RevokedAt" IS NULL
+                      AND "ExpiresAt" > @now
+                    RETURNING "UserId";
+                    """;
+            }
+            else if (_db.Database.IsSqlite())
+            {
+                cmd.CommandText = """
+                    UPDATE "AuthRefreshTokens"
+                    SET "RevokedAt" = @now
+                    WHERE "Id" = (
+                        SELECT "Id" FROM "AuthRefreshTokens"
+                        WHERE "TokenHash" = @hash
+                          AND "RevokedAt" IS NULL
+                          AND "ExpiresAt" > @now
+                        LIMIT 1
+                    )
+                    RETURNING "UserId";
+                    """;
+            }
+            else
+            {
+                cmd.CommandText = """
+                    UPDATE "AuthRefreshTokens"
+                    SET "RevokedAt" = @now
+                    OUTPUT INSERTED."UserId"
+                    WHERE "TokenHash" = @hash
+                      AND "RevokedAt" IS NULL
+                      AND "ExpiresAt" > @now;
+                    """;
             }
 
-            if (tokenId is null || userId is null || revokedAt is not null || expiresAt <= now)
-            {
-                return null;
-            }
+            var hashParam = cmd.CreateParameter();
+            hashParam.ParameterName = "@hash";
+            hashParam.Value = hash;
+            cmd.Parameters.Add(hashParam);
 
-            await _db.Database.ExecuteSqlInterpolatedAsync(
-                $"""UPDATE "AuthRefreshTokens" SET "RevokedAt" = {now} WHERE "Id" = {tokenId};""",
-                ct);
+            var nowParam = cmd.CreateParameter();
+            nowParam.ParameterName = "@now";
+            nowParam.Value = now;
+            cmd.Parameters.Add(nowParam);
 
-            return userId;
+            var result = await cmd.ExecuteScalarAsync(ct);
+            return result is null or DBNull ? null : Convert.ToInt32(result);
         }
         catch
         {

@@ -66,7 +66,15 @@ public sealed class ExamAttemptsController : ControllerBase
         var result = await _finish.HandleAsync(attemptId, userId, ct);
         if (result.Passed && result.ExamId is int examId)
         {
-            await _theory.OnPlatformTheoryExamPassedAsync(userId, examId, ct);
+            try
+            {
+                await _theory.OnPlatformTheoryExamPassedAsync(userId, examId, ct);
+            }
+            catch
+            {
+                // Attempt already finished; progression is idempotent on retry via start/finish paths.
+                // Do not fail the student response after a successful score.
+            }
         }
 
         return Ok(result);

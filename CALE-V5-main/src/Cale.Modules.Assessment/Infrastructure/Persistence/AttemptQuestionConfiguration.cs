@@ -14,5 +14,9 @@ public sealed class AttemptQuestionConfiguration
         builder.Property(x => x.AttemptId).HasColumnName("IntentoId");
         builder.Property(x => x.QuestionId).HasColumnName("PreguntaId");
         builder.Property(x => x.Order).HasColumnName("Orden");
+        builder.Property(x => x.SnapshotJson)
+            .HasColumnName("SnapshotJson")
+            .HasColumnType("text")
+            .IsRequired();
     }
 }
