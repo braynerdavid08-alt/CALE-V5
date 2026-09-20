@@ -43,6 +43,7 @@
   --font: "DM Sans", "Segoe UI", system-ui, sans-serif;
   --text-xs: 0.8125rem;
   --text-sm: 0.9375rem;
+  --text-base: 1rem;
   --text-md: 1.0625rem;
   --text-lg: 1.25rem;
   --text-xl: 1.5rem;

@@ -1,8 +1,8 @@
 <div class="school-page progress-page">
   <ui-page-header
-    eyebrow="Estudiante"
+    eyebrow="Inicio"
     title="Mi proceso"
-    subtitle="Consulta tus pendientes y entra a teoría, manejo o simulador." />
+    subtitle="Aquí ves qué te falta y entras a teoría, manejo o práctica de examen." />
 
   <ui-error [message]="error()" />
 
@@ -17,13 +17,29 @@
       <p class="hint">{{ nextHint() }}</p>
       <div class="summary-actions">
         <a routerLink="/student/training">
-          <ui-button type="button" variant="secondary">Teoría</ui-button>
+          <ui-button type="button" variant="secondary">Ir a teoría</ui-button>
         </a>
         <a routerLink="/student/practical">
-          <ui-button type="button" variant="secondary">Manejo</ui-button>
+          <ui-button type="button" variant="secondary">Ir a manejo</ui-button>
         </a>
         <a routerLink="/student/simulator">
-          <ui-button type="button">Simulador</ui-button>
+          <ui-button type="button">Practicar examen</ui-button>
+        </a>
+      </div>
+    </section>
+
+    <section class="summary school-card advances">
+      <div>
+        <p class="muted">Mis avances</p>
+        <strong class="advances-title">Resultados y logros</strong>
+      </div>
+      <p class="hint">
+        Aquí no hay certificados oficiales. Tu escuela acredita horas y habilitaciones.
+        Para ver calificaciones, abre Evaluaciones.
+      </p>
+      <div class="summary-actions">
+        <a routerLink="/student/evaluations">
+          <ui-button type="button" variant="secondary">Ver evaluaciones</ui-button>
         </a>
       </div>
     </section>

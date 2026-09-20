@@ -17,7 +17,7 @@ const TIPS: Record<OnboardingRole, OnboardingTip[]> = {
       title: 'Aula en Vivo',
       text: 'Crea una sala, proyecta el QR y conduce el simulacro en tiempo real.',
       link: '/teacher/live',
-      linkLabel: 'Abrir Live'
+      linkLabel: 'Abrir clase en vivo'
     },
     {
       title: 'Grupos',

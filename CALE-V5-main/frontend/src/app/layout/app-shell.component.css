@@ -326,6 +326,27 @@
   flex-shrink: 0;
 }
 
+.student-profile-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  text-decoration: none;
+  color: inherit;
+  min-height: 2.75rem;
+  padding: 0.15rem 0.35rem;
+  border-radius: var(--radius-md);
+}
+
+.topbar-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.shell.no-sidebar .top-motivation {
+  display: none;
+}
+
 .menu-btn { display: none; }
 
 .sr {

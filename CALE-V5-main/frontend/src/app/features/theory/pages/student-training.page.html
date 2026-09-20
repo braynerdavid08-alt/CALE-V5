@@ -43,7 +43,7 @@
       <article class="card">
         <h2>Tu actividad de hoy</h2>
         @if (!dash.checkedInToday) {
-          <ui-button type="button" (click)="checkIn()">Completar check-in</ui-button>
+          <ui-button type="button" (click)="checkIn()">Confirmar que llegué hoy</ui-button>
         } @else {
           <p class="ok">✅ Ingresaste hoy</p>
         }
@@ -69,18 +69,18 @@
           <p class="when">{{ exam.examDate | date:'EEEE d MMM':'':'es' }} · {{ exam.slotTime }}</p>
           @if (dash.platformExam && !dash.practicalEligibility?.theoryExamPassed) {
             <p class="meta">
-              También debes aprobar <strong>{{ dash.platformExam.name }}</strong> en el Simulador.
+              También debes aprobar <strong>{{ dash.platformExam.name }}</strong> en Practicar examen.
             </p>
-            <a routerLink="/student/simulator"><ui-button type="button">Ir al simulador</ui-button></a>
+            <a routerLink="/student/simulator"><ui-button type="button">Practicar examen</ui-button></a>
           } @else if (dash.practicalEligibility?.theoryExamPassed) {
-            <p class="ok">✅ Ya aprobaste el examen teórico.</p>
+            <p class="ok">Ya aprobaste el examen teórico.</p>
           }
         </article>
       } @else if (dash.practicalEligibility?.theoryExamAuthorized && dash.platformExam && !dash.practicalEligibility?.theoryExamPassed) {
         <article class="card exam-card">
           <h2>Examen teórico pendiente</h2>
-          <p class="meta">Tu escuela te autorizó. Presenta <strong>{{ dash.platformExam.name }}</strong> en el Simulador.</p>
-          <a routerLink="/student/simulator"><ui-button type="button">Ir al simulador</ui-button></a>
+          <p class="meta">Tu escuela te autorizó. Presenta <strong>{{ dash.platformExam.name }}</strong> en Practicar examen.</p>
+          <a routerLink="/student/simulator"><ui-button type="button">Practicar examen</ui-button></a>
         </article>
       }
 
