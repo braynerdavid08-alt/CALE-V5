@@ -50,7 +50,7 @@ export class StudentProgressPage implements OnInit {
   readonly openCount = computed(() => this.items().filter((i) => i.state !== 'done').length);
   readonly nextHint = computed(() => {
     const open = this.items().find((i) => i.state === 'todo' || i.state === 'blocked');
-    return open?.detail ?? 'Vas al día con tu formación.';
+    return open?.detail ?? 'Vas al día. Sigue practicando cuando quieras.';
   });
 
   ngOnInit(): void {
@@ -101,7 +101,7 @@ export class StudentProgressPage implements OnInit {
           ? `${pe.theoryHoursCompleted}/${pe.theoryHoursRequired} h`
           : 'Sin datos',
       state: theoryDone ? 'done' : 'todo',
-      ctaLabel: theoryDone ? undefined : 'Ir a Teoría',
+      ctaLabel: theoryDone ? undefined : 'Abrir clases de teoría',
       ctaLink: theoryDone ? undefined : '/student/training'
     });
 
@@ -115,7 +115,7 @@ export class StudentProgressPage implements OnInit {
           ? `${pe.workshopHoursCompleted}/${pe.workshopHoursRequired} h`
           : 'Sin datos',
       state: workshopDone ? 'done' : 'todo',
-      ctaLabel: workshopDone ? undefined : 'Ir a Teoría',
+      ctaLabel: workshopDone ? undefined : 'Abrir clases de teoría',
       ctaLink: workshopDone ? undefined : '/student/training'
     });
 
@@ -147,14 +147,14 @@ export class StudentProgressPage implements OnInit {
       : theory?.nextExamAppointment
         ? `Cita ${theory.nextExamAppointment.examDate} ${theory.nextExamAppointment.slotTime}`
         : theory?.platformExam
-          ? `Presenta «${theory.platformExam.name}» en el simulador`
+          ? `Presenta «${theory.platformExam.name}» con Practicar examen`
           : 'Sin cita ni examen configurado';
     items.push({
       id: 'exam-pass',
       title: 'Aprobar examen teórico',
       detail: examDetail,
       state: examPassed ? 'done' : examAuth ? 'todo' : 'blocked',
-      ctaLabel: examPassed || !examAuth ? undefined : 'Ir al simulador',
+      ctaLabel: examPassed || !examAuth ? undefined : 'Practicar examen',
       ctaLink: examPassed || !examAuth ? undefined : '/student/simulator'
     });
 
@@ -199,7 +199,7 @@ export class StudentProgressPage implements OnInit {
           theory.nextClass.topicName ? ` · ${theory.nextClass.topicName}` : ''
         }`,
         state: 'info',
-        ctaLabel: 'Ver formación',
+        ctaLabel: 'Abrir teoría',
         ctaLink: '/student/training'
       });
     }
@@ -210,7 +210,7 @@ export class StudentProgressPage implements OnInit {
         title: 'Próxima clase de manejo',
         detail: `${practical.nextLesson.sessionDate} ${practical.nextLesson.startTime.slice(0, 5)} · ${practical.nextLesson.vehicleLabel}`,
         state: 'info',
-        ctaLabel: 'Ver práctica',
+        ctaLabel: 'Abrir manejo',
         ctaLink: '/student/practical'
       });
     }

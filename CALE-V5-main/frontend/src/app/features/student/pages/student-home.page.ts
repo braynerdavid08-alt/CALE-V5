@@ -36,7 +36,7 @@ export class StudentHomePage {
     {
       id: 'classes',
       label: 'Mis clases',
-      hint: 'Materiales',
+      hint: 'Ver materiales',
       path: '/student/classes',
       icon: 'book',
       tone: 'blue'
@@ -44,7 +44,7 @@ export class StudentHomePage {
     {
       id: 'evaluations',
       label: 'Evaluaciones',
-      hint: 'Presentar y ver',
+      hint: 'Ver resultados',
       path: '/student/evaluations',
       icon: 'exam',
       tone: 'blue'
@@ -52,7 +52,7 @@ export class StudentHomePage {
     {
       id: 'progress',
       label: 'Mi proceso',
-      hint: 'Teoría y manejo',
+      hint: 'Teoría, manejo y avances',
       path: '/student/progress',
       icon: 'list',
       tone: 'green'
@@ -60,7 +60,7 @@ export class StudentHomePage {
     {
       id: 'messages',
       label: 'Mensajes',
-      hint: 'Avisos',
+      hint: 'Leer avisos',
       path: '/notifications',
       icon: 'bell',
       tone: 'violet'
@@ -68,7 +68,7 @@ export class StudentHomePage {
     {
       id: 'profile',
       label: 'Mi perfil',
-      hint: 'Mis datos',
+      hint: 'Ver mis datos',
       path: '/profile',
       icon: 'users',
       tone: 'violet'

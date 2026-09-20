@@ -108,7 +108,9 @@
       <ui-motivation class="top-motivation" [role]="role" />
 
       <span class="spacer" aria-hidden="true"></span>
-      <ui-theme-toggle />
+      @if (!isStudentShell) {
+        <ui-theme-toggle />
+      }
       <div class="notif">
         <ui-button
           type="button"
@@ -119,11 +121,14 @@
           aria-controls="notif-panel"
           [attr.aria-label]="
             unread() > 0
-              ? 'Notificaciones, ' + unread() + ' sin leer'
-              : 'Notificaciones'
+              ? 'Mensajes, ' + unread() + ' sin leer'
+              : 'Mensajes'
           "
           (click)="togglePanel($event)">
           <ui-icon name="bell" />
+          @if (isStudentShell) {
+            <span class="topbar-label">Mensajes</span>
+          }
           @if (unread() > 0) {
             <ui-badge tone="primary">{{ unread() }}</ui-badge>
           }
@@ -170,10 +175,19 @@
           </div>
         }
       </div>
-      <a class="avatar" routerLink="/profile" [attr.title]="session.user()?.name">
-        {{ initials }}
+      <a
+        class="student-profile-link"
+        routerLink="/profile"
+        [attr.title]="session.user()?.name"
+        [attr.aria-label]="'Mi perfil, ' + (session.user()?.name || '')">
+        <span class="avatar" aria-hidden="true">{{ initials }}</span>
+        @if (isStudentShell) {
+          <span class="topbar-label">Mi perfil</span>
+        }
       </a>
-      <ui-button type="button" variant="ghost" (click)="logout()">Salir</ui-button>
+      @if (!isStudentShell) {
+        <ui-button type="button" variant="ghost" (click)="logout()">Salir</ui-button>
+      }
     </header>
     <main class="content">
       @if (showStudentHomeLink) {

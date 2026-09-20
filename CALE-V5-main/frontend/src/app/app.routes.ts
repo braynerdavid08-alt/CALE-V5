@@ -293,19 +293,7 @@ export const routes: Routes = [
       {
         path: 'student/certificates',
         pathMatch: 'full',
-        canActivate: [roleGuard],
-        data: {
-          roles: ['Student'],
-          title: 'Certificados',
-          subtitle: 'Constancias y certificados de avance cuando tu escuela o instructor los emita.',
-          notes: [
-            'Aquí verás certificados de aprobación y asistencia.',
-            'Por ahora el simulador y las evaluaciones ya registran tu progreso.'
-          ]
-        },
-        loadComponent: () =>
-          import('./features/student/pages/student-certificates.page')
-            .then((m) => m.StudentCertificatesPage)
+        redirectTo: 'student/progress'
       },
       {
         path: 'student/group/:id',
