@@ -34,5 +34,5 @@ import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
   `]
 })
 export class UiLoadingComponent {
-  @Input() label = 'Cargando informaciÃ³n...';
+  @Input() label = 'Cargando información...';
 }

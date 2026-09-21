@@ -41,4 +41,22 @@ public sealed class SaveBankHandler
         var count = await _store.CountQuestionsInBankAsync(id, ct);
         return new BankDto(bank.Id, bank.Name, bank.Description, bank.IsActive, count);
     }
+
+    public async Task DeleteAsync(int id, CancellationToken ct)
+    {
+        var bank = await _store.GetBankAsync(id, ct)
+            ?? throw new NotFoundException("Bank not found.", "bank_not_found");
+
+        var examRefs = await _store.CountExamsForBankAsync(id, ct);
+        if (examRefs > 0)
+        {
+            throw new DomainException(
+                "No se puede borrar el banco: hay exámenes vinculados. Elimina o reasigna esos exámenes primero.",
+                409,
+                "bank_in_use");
+        }
+
+        await _store.RemoveBankAsync(bank, ct);
+        await _store.SaveChangesAsync(ct);
+    }
 }

@@ -442,4 +442,8 @@ export class TeacherApi {
       isActive
     });
   }
+
+  deleteBank(id: number) {
+    return this.http.delete<void>(`${this.base}/api/banks/${id}`);
+  }
 }

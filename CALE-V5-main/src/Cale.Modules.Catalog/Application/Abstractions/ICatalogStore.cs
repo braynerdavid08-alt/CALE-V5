@@ -14,6 +14,7 @@ public interface ICatalogStore
 
     Task<Bank?> GetBankAsync(int id, CancellationToken ct);
     Task AddBankAsync(Bank bank, CancellationToken ct);
+    Task RemoveBankAsync(Bank bank, CancellationToken ct);
     Task<int> CountQuestionsInBankAsync(int bankId, CancellationToken ct);
 
     /// <summary>Active question counts keyed by bank id (missing keys = 0).</summary>
@@ -59,6 +60,9 @@ public interface ICatalogStore
         int bankId,
         int? excludingExamId,
         CancellationToken ct);
+
+    /// <summary>Any exam row (active or not) pointing at this bank.</summary>
+    Task<int> CountExamsForBankAsync(int bankId, CancellationToken ct);
 
     Task<ExamGroupLink?> FindExamGroupAsync(
         int examId,

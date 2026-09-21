@@ -337,6 +337,27 @@
   border-radius: var(--radius-md);
 }
 
+.logout-btn {
+  flex-shrink: 0;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.logout-btn ::ng-deep svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+@media (max-width: 720px) {
+  .logout-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+}
+
 .topbar-label {
   font-size: 0.95rem;
   font-weight: 700;

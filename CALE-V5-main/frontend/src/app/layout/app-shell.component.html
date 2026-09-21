@@ -186,9 +186,16 @@
           <span class="topbar-label">Mi perfil</span>
         }
       </a>
-      @if (!isStudentShell) {
-        <ui-button type="button" variant="ghost" (click)="logout()">Salir</ui-button>
-      }
+      <ui-button
+        type="button"
+        variant="ghost"
+        class="logout-btn"
+        (click)="logout()"
+        aria-label="Cerrar sesión"
+        title="Cerrar sesión">
+        <ui-icon name="logout" />
+        <span class="logout-label">Cerrar sesión</span>
+      </ui-button>
     </header>
     <main class="content">
       @if (showStudentHomeLink) {
