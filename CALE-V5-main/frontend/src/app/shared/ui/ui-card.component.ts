@@ -1,8 +1,9 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 
 @Component({
   selector: 'ui-card',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `<section class="card"><ng-content /></section>`,
   styles: [`
     .card {

@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, OnInit, SimpleChanges, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnChanges, OnInit, SimpleChanges, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { UiButtonComponent } from './ui-button.component';
 
@@ -77,6 +77,7 @@ const TIPS: Record<OnboardingRole, OnboardingTip[]> = {
 @Component({
   selector: 'ui-onboarding',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, UiButtonComponent],
   template: `
     @if (visible()) {

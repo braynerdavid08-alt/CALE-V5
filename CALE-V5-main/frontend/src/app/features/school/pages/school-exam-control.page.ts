@@ -1,7 +1,11 @@
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { of } from 'rxjs';
+import { catchError, tap } from 'rxjs/operators';
 import { mapApiError } from '../../../core/http/map-api-error';
+import { pollWhileVisible } from '../../../core/rxjs/poll-while-visible';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
@@ -26,9 +30,9 @@ import {
   templateUrl: './school-exam-control.page.html',
   styleUrl: './school-exam-control.page.css'
 })
-export class SchoolExamControlPage implements OnInit, OnDestroy {
+export class SchoolExamControlPage implements OnInit {
   private readonly api = inject(ApprenticeApi);
-  private refreshTimer: ReturnType<typeof setInterval> | null = null;
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly loading = signal(true);
   readonly acting = signal(false);
@@ -50,33 +54,33 @@ export class SchoolExamControlPage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.reload();
-    this.refreshTimer = setInterval(() => this.reload(true), 20000);
-  }
-
-  ngOnDestroy(): void {
-    if (this.refreshTimer) {
-      clearInterval(this.refreshTimer);
-      this.refreshTimer = null;
-    }
+    pollWhileVisible(20000, () => this.fetchBoard(true), { leading: false })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe();
   }
 
   reload(silent = false): void {
+    this.fetchBoard(silent).subscribe();
+  }
+
+  private fetchBoard(silent: boolean) {
     if (!silent) {
       this.loading.set(true);
       this.error.set(null);
     }
-    this.api.getExamControlBoard(this.day).subscribe({
-      next: (board) => {
+    return this.api.getExamControlBoard(this.day).pipe(
+      tap((board) => {
         this.board.set(board);
         this.loading.set(false);
-      },
-      error: (err) => {
+      }),
+      catchError((err) => {
         this.loading.set(false);
         if (!silent) {
           this.error.set(mapApiError(err));
         }
-      }
-    });
+        return of(null);
+      })
+    );
   }
 
   onDayChange(value: string): void {

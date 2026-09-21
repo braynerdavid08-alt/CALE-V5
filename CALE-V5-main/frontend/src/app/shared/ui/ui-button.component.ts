@@ -1,9 +1,10 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { RouterLink, Params } from '@angular/router';
 
 @Component({
   selector: 'ui-button',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink],
   templateUrl: './ui-button.component.html',
   styleUrl: './ui-button.component.css'

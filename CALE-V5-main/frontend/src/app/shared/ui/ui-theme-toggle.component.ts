@@ -1,21 +1,22 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { ThemeService } from '../../core/theme/theme.service';
 import { UiIconComponent } from './ui-icon.component';
 
 @Component({
   selector: 'ui-theme-toggle',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [UiIconComponent],
   template: `
     <button
       type="button"
       class="theme-toggle"
-      [attr.aria-label]="theme.mode() === 'dark' ? 'Activar modo día' : 'Activar modo noche'"
-      [title]="theme.mode() === 'dark' ? 'Modo día' : 'Modo noche'"
+      [attr.aria-label]="theme.mode() === 'dark' ? 'Activar modo dÃ­a' : 'Activar modo noche'"
+      [title]="theme.mode() === 'dark' ? 'Modo dÃ­a' : 'Modo noche'"
       (click)="theme.toggle()">
       @if (theme.mode() === 'dark') {
         <ui-icon name="sun" />
-        <span class="label">Día</span>
+        <span class="label">DÃ­a</span>
       } @else {
         <ui-icon name="moon" />
         <span class="label">Noche</span>

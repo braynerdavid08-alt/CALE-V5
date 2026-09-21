@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, OnInit, SimpleChanges, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnChanges, OnInit, SimpleChanges, computed, inject } from '@angular/core';
 import { MotivationService } from '../../core/motivation/motivation.service';
 import { MOTIVATION_CATEGORY_LABEL } from '../../core/motivation/motivation.model';
 import { UiIconComponent } from './ui-icon.component';
@@ -6,6 +6,7 @@ import { UiIconComponent } from './ui-icon.component';
 @Component({
   selector: 'ui-motivation',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [UiIconComponent],
   template: `
     <aside class="motivation" aria-live="polite">

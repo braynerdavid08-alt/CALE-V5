@@ -1,8 +1,9 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 
 @Component({
   selector: 'ui-success',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (message) {
       <p class="ok" role="status">{{ message }}</p>

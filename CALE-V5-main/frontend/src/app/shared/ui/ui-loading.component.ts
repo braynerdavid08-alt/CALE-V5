@@ -1,8 +1,9 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 
 @Component({
   selector: 'ui-loading',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="loading" role="status" aria-live="polite" aria-busy="true">
       <span class="dot" aria-hidden="true"></span>
@@ -33,5 +34,5 @@ import { Component, Input } from '@angular/core';
   `]
 })
 export class UiLoadingComponent {
-  @Input() label = 'Cargando información...';
+  @Input() label = 'Cargando informaciÃ³n...';
 }
