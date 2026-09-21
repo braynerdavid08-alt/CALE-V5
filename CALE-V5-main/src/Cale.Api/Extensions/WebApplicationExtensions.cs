@@ -53,6 +53,7 @@ public static class WebApplicationExtensions
         app.UseMiddleware<MustChangePasswordMiddleware>();
         app.MapControllers();
         app.MapHub<Cale.Api.Hubs.LiveClassroomHub>("/hubs/live");
+        app.MapHub<Cale.Api.Hubs.GameShowHub>("/hubs/game-show");
 
         // Angular SPA deep links (keep /api/* on controllers).
         app.MapFallbackToFile("index.html");
