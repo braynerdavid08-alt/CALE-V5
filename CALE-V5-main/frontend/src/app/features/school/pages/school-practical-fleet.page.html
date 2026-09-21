@@ -87,7 +87,7 @@
                     @if (lesson.assignment; as assignment) {
                       <strong>{{ studentLabel(lesson) }}</strong>
                       <div class="meta">
-                        <a [routerLink]="['/school/apprentices', assignment.studentUserId]">360°</a>
+                        <a [routerLink]="['/school/apprentices', assignment.studentUserId]">Expediente</a>
                       </div>
                     } @else {
                       <strong>{{ studentLabel(lesson) }}</strong>

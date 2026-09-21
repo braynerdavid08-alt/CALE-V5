@@ -67,12 +67,12 @@
           }
         </p>
       } @else {
-        <div class="table-wrap">
+        <div class="table-wrap desktop-table">
           <table>
             <thead>
               <tr>
                 <th>Hora</th>
-                <th>Aprendiz</th>
+                <th>Estudiante</th>
                 <th>Estado</th>
                 <th>Resultado</th>
                 <th>Acciones</th>
@@ -114,7 +114,7 @@
                   </td>
                   <td class="actions">
                     @if (row.studentUserId) {
-                      <a [routerLink]="['/school/apprentices', row.studentUserId]">360°</a>
+                      <a [routerLink]="['/school/apprentices', row.studentUserId]">Expediente</a>
                     }
                     @if (row.boardStatus === 'Scheduled' || row.boardStatus === 'NoShow') {
                       <button type="button" [disabled]="acting() || !row.studentUserId" (click)="checkIn(row)">
@@ -135,6 +135,52 @@
             </tbody>
           </table>
         </div>
+
+        <ul class="mobile-cards">
+          @for (row of rows(); track row.appointmentId) {
+            <li class="mobile-card" [attr.data-status]="row.boardStatus">
+              <div class="mobile-card-top">
+                <strong>{{ row.slotTime }} · {{ row.studentName }}</strong>
+                <span class="status" [attr.data-status]="row.boardStatus">
+                  {{ statusLabel(row.boardStatus) }}
+                </span>
+              </div>
+              <div class="meta">
+                @if (!row.theoryExamAuthorized && row.studentUserId) {
+                  <span class="pill warn">Sin autorizar</span>
+                }
+                @if (row.theoryExamAuthorized) {
+                  <span class="pill ok">Autorizado</span>
+                }
+                @if (row.percent != null) {
+                  <span [class.ok]="row.passed" [class.bad]="row.passed === false">
+                    Resultado: {{ row.percent }}%
+                  </span>
+                } @else if (row.boardStatus === 'InProgress') {
+                  <span class="muted">Presentando…</span>
+                }
+              </div>
+              <div class="actions">
+                @if (row.studentUserId) {
+                  <a [routerLink]="['/school/apprentices', row.studentUserId]">Expediente</a>
+                }
+                @if (row.boardStatus === 'Scheduled' || row.boardStatus === 'NoShow') {
+                  <button type="button" [disabled]="acting() || !row.studentUserId" (click)="checkIn(row)">
+                    Llegada
+                  </button>
+                }
+                @if (row.boardStatus === 'Scheduled' || row.boardStatus === 'CheckedIn') {
+                  <button type="button" class="danger" [disabled]="acting()" (click)="noShow(row)">
+                    No asistió
+                  </button>
+                }
+                @if (!row.theoryExamAuthorized && row.studentUserId) {
+                  <a routerLink="/school/training">Autorizar</a>
+                }
+              </div>
+            </li>
+          }
+        </ul>
       }
     </section>
     }

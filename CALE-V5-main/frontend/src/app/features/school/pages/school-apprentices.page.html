@@ -107,7 +107,7 @@
                   <td>{{ formatMoney(r.amountPaid) }}</td>
                   <td [class.warn]="r.balanceDue > 0">{{ formatMoney(r.balanceDue) }}</td>
                   <td class="row-actions" (click)="$event.stopPropagation()">
-                    <a [routerLink]="['/school/apprentices', r.studentUserId]" class="dossier-link">360°</a>
+                    <a [routerLink]="['/school/apprentices', r.studentUserId]" class="dossier-link">Expediente</a>
                   </td>
                 </tr>
               } @empty {
@@ -132,7 +132,7 @@
               <p class="login-hint muted">Acceso app: <strong>{{ s.studentEmail || '—' }}</strong></p>
             </div>
             <a [routerLink]="['/school/apprentices', s.studentUserId]">
-              <ui-button type="button" variant="secondary">Ver 360°</ui-button>
+              <ui-button type="button" variant="secondary">Ver expediente</ui-button>
             </a>
           </div>
 
@@ -300,7 +300,7 @@
             <legend>Pagos</legend>
             <p class="muted tip" style="margin: 0 0 0.75rem">
               Para registrar abonos con historial, usa
-              <a [routerLink]="['/school/apprentices', s.studentUserId]">Expediente 360°</a>.
+              <a [routerLink]="['/school/apprentices', s.studentUserId]">Expediente</a>.
               Aquí ajustas el valor del curso y totales.
             </p>
             <div class="school-form-grid">
