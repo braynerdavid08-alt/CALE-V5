@@ -13,7 +13,7 @@ import { UiIconComponent } from './ui-icon.component';
         <strong>{{ value }}</strong>
         @if (delta !== null && delta !== undefined && delta !== '') {
           <span class="delta" [attr.data-dir]="deltaDir">
-            <span aria-hidden="true">{{ deltaDir === 'down' ? 'â†“' : 'â†‘' }}</span>
+            <span aria-hidden="true">{{ deltaDir === 'down' ? '\u2193' : '\u2191' }}</span>
             {{ delta }}
           </span>
         } @else if (hint) {

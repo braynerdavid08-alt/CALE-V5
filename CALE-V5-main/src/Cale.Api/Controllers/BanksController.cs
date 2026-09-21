@@ -67,4 +67,12 @@ public sealed class BanksController : ControllerBase
         SaveBankRequest request,
         CancellationToken ct) =>
         Ok(await _save.UpdateAsync(id, request, ct));
+
+    [HttpDelete("{id:int}")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    {
+        await _save.DeleteAsync(id, ct);
+        return NoContent();
+    }
 }

@@ -51,6 +51,20 @@ public sealed class CatalogStore : ICatalogStore
     public async Task AddBankAsync(Bank bank, CancellationToken ct) =>
         await _db.Set<Bank>().AddAsync(bank, ct);
 
+    public async Task RemoveBankAsync(Bank bank, CancellationToken ct)
+    {
+        var questions = await _db.Set<Question>()
+            .Include(x => x.Options)
+            .Where(x => x.BankId == bank.Id)
+            .ToListAsync(ct);
+        if (questions.Count > 0)
+        {
+            _db.Set<Question>().RemoveRange(questions);
+        }
+
+        _db.Set<Bank>().Remove(bank);
+    }
+
     public Task<int> CountQuestionsInBankAsync(int bankId, CancellationToken ct) =>
         _db.Set<Question>().CountAsync(x => x.BankId == bankId && x.IsActive, ct);
 
@@ -223,6 +237,9 @@ public sealed class CatalogStore : ICatalogStore
 
         return query.CountAsync(ct);
     }
+
+    public Task<int> CountExamsForBankAsync(int bankId, CancellationToken ct) =>
+        _db.Set<Exam>().CountAsync(x => x.BankId == bankId, ct);
 
     public async Task<IReadOnlyList<Exam>> ListPublishedExamsAsync(
         CancellationToken ct) =>

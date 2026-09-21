@@ -68,9 +68,12 @@ import { BankAdminDto, TeacherApi } from '../../teacher/api/teacher.api';
                     </ui-badge>
                   </td>
                   @if (canManage()) {
-                    <td>
+                    <td class="actions">
                       <ui-button type="button" variant="ghost" (click)="toggle(bank)">
                         {{ bank.isActive ? 'Desactivar' : 'Activar' }}
+                      </ui-button>
+                      <ui-button type="button" variant="ghost" (click)="remove(bank)">
+                        Borrar
                       </ui-button>
                     </td>
                   }
@@ -84,6 +87,7 @@ import { BankAdminDto, TeacherApi } from '../../teacher/api/teacher.api';
   `,
   styles: [`
     .input { max-width: 240px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.35rem; }
   `]
 })
 export class AdminBanksPage implements OnInit {
@@ -135,6 +139,24 @@ export class AdminBanksPage implements OnInit {
     ).subscribe({
       next: () => {
         this.ok.set('Banco actualizado.');
+        this.reload();
+      },
+      error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  remove(bank: BankAdminDto): void {
+    if (!this.canManage()) {
+      return;
+    }
+    const label = bank.name?.trim() || `banco #${bank.id}`;
+    if (!confirm(`¿Borrar permanentemente «${label}» y sus preguntas? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+    this.error.set(null);
+    this.api.deleteBank(bank.id).subscribe({
+      next: () => {
+        this.ok.set('Banco borrado.');
         this.reload();
       },
       error: (err) => this.error.set(mapApiError(err))
