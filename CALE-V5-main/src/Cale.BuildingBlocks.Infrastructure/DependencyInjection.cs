@@ -54,6 +54,7 @@ public static class DependencyInjection
                     {
                         sqlite.CommandTimeout(30);
                         sqlite.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+                        sqlite.MigrationsAssembly("Cale.Api");
                     });
                     break;
                 }
@@ -62,6 +63,7 @@ public static class DependencyInjection
                     {
                         npgsql.CommandTimeout(30);
                         npgsql.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+                        npgsql.MigrationsAssembly("Cale.Api");
                     });
                     break;
                 default:
@@ -69,6 +71,7 @@ public static class DependencyInjection
                     {
                         sql.CommandTimeout(30);
                         sql.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+                        sql.MigrationsAssembly("Cale.Api");
                     });
                     break;
             }

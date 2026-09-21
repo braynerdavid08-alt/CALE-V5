@@ -75,13 +75,20 @@ public static class WebApplicationExtensions
         var applyFeatureSchema = app.Configuration.GetValue(
             "Database:ApplyFeatureSchema",
             app.Environment.IsDevelopment());
+        var useEfMigrations = app.Configuration.GetValue("Database:UseEfMigrations", false);
 
         try
         {
             await db.Database.OpenConnectionAsync();
             await db.Database.CloseConnectionAsync();
 
-            if (allowEnsureCreated)
+            if (useEfMigrations)
+            {
+                bootLogger.LogInformation(
+                    "Database:UseEfMigrations=true — applying EF Core migrations.");
+                await db.Database.MigrateAsync();
+            }
+            else if (allowEnsureCreated)
             {
                 bootLogger.LogWarning(
                     "Database:AllowEnsureCreated is enabled — creating missing tables via EnsureCreated (dev/bootstrap only).");
@@ -90,14 +97,19 @@ public static class WebApplicationExtensions
             else
             {
                 bootLogger.LogInformation(
-                    "Skipping EnsureCreated (Database:AllowEnsureCreated=false). Schema must already exist.");
+                    "Skipping EnsureCreated/Migrate (UseEfMigrations=false, AllowEnsureCreated=false). Schema must already exist.");
             }
 
-            if (applyFeatureSchema)
+            if (!useEfMigrations && applyFeatureSchema)
             {
                 bootLogger.LogWarning(
                     "Database:ApplyFeatureSchema is enabled — applying FeatureSchema patches at startup.");
                 await FeatureSchema.EnsureAsync(db);
+            }
+            else if (applyFeatureSchema && useEfMigrations)
+            {
+                bootLogger.LogInformation(
+                    "Skipping FeatureSchema because EF migrations are the schema source of truth.");
             }
             else
             {

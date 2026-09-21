@@ -192,6 +192,13 @@ Esquema en producción (recomendado):
 Database__AllowEnsureCreated=false
 Database__ApplyFeatureSchema=false
 Database__AllowRequestPathRepair=false
+Database__UseEfMigrations=false
 ```
 
-Para un bootstrap inicial controlado en un entorno vacío puedes activar EnsureCreated/FeatureSchema una sola vez y volver a apagarlos.
+Cuando la base existente ya esté baselined con `__EFMigrationsHistory` (ver [MIGRATIONS.md](MIGRATIONS.md)), activa:
+
+```env
+Database__UseEfMigrations=true
+```
+
+Para un bootstrap inicial controlado en un entorno vacío puedes usar `UseEfMigrations=true` (DB vacía) o, solo en Development, `AllowEnsureCreated` / `ApplyFeatureSchema`.
