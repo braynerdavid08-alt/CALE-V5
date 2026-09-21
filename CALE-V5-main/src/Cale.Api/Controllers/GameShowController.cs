@@ -82,6 +82,57 @@ public sealed class GameShowController : ControllerBase
         return File(bytes, contentType, fileName);
     }
 
+    /// <summary>
+    /// Parses an exported JSON/CSV question pack into a create payload (draft preview).
+    /// Does not create a session — client fills the form and calls POST /api/game-show.
+    /// </summary>
+    [HttpPost("import")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(2_000_000)]
+    public async Task<IActionResult> ImportQuestions(
+        IFormFile? file,
+        CancellationToken ct = default)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(new { error = "empty_import", message = "Selecciona un archivo JSON o CSV." });
+        }
+
+        await using var stream = file.OpenReadStream();
+        using var reader = new StreamReader(stream);
+        var text = await reader.ReadToEndAsync(ct);
+        var body = GameShowQuestionImport.Parse(text, file.FileName);
+        return Ok(body);
+    }
+
+    /// <summary>
+    /// Parses a question pack and creates the session in one step.
+    /// </summary>
+    [HttpPost("import/create")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(2_000_000)]
+    public async Task<IActionResult> ImportAndCreate(
+        IFormFile? file,
+        CancellationToken ct = default)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(new { error = "empty_import", message = "Selecciona un archivo JSON o CSV." });
+        }
+
+        await using var stream = file.OpenReadStream();
+        using var reader = new StreamReader(stream);
+        var text = await reader.ReadToEndAsync(ct);
+        var body = GameShowQuestionImport.Parse(text, file.FileName);
+
+        var userId = CurrentUser.GetId(User);
+        var role = CurrentUser.GetRole(User);
+        int? schoolId = role == Roles.School ? userId : null;
+        return Ok(await _handler.CreateAsync(userId, schoolId, body, ct));
+    }
+
     [HttpGet("school/{id:int}/export")]
     [Authorize(Policy = "SchoolOnly")]
     public async Task<IActionResult> ExportQuestionsForSchool(
