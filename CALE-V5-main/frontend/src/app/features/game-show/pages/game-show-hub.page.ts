@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
@@ -11,16 +11,17 @@ import {
   GameShowHistoryItemDto,
   GameShowRoundInput
 } from '../api/game-show.api';
+import { GameShowImportError, parseGameShowImport } from '../api/game-show-import';
 
 function emptyRound(): GameShowRoundInput {
   return {
     questionText: '',
     answers: [
-      { text: '', points: 30 },
-      { text: '', points: 25 },
-      { text: '', points: 20 },
-      { text: '', points: 15 },
-      { text: '', points: 10 }
+      { text: '', points: 30, aliases: [] },
+      { text: '', points: 25, aliases: [] },
+      { text: '', points: 20, aliases: [] },
+      { text: '', points: 15, aliases: [] },
+      { text: '', points: 10, aliases: [] }
     ]
   };
 }
@@ -66,6 +67,12 @@ function emptyRound(): GameShowRoundInput {
                 <span>#{{ ai + 1 }}</span>
                 <input class="input" placeholder="Respuesta" [(ngModel)]="ans.text" [name]="'a'+ri+'-'+ai" />
                 <input class="input pts" type="number" min="1" [(ngModel)]="ans.points" [name]="'p'+ri+'-'+ai" />
+                <input
+                  class="input"
+                  placeholder="Aliases (a | b)"
+                  [ngModel]="aliasesText(ans.aliases)"
+                  (ngModelChange)="setAliases(ans, $event)"
+                  [name]="'al'+ri+'-'+ai" />
               </div>
             }
           </div>
@@ -76,8 +83,18 @@ function emptyRound(): GameShowRoundInput {
         <ui-button type="button" variant="secondary" (click)="addRound()">+ Ronda</ui-button>
         <ui-button type="button" variant="secondary" (click)="exportDraft('csv')">Exportar borrador CSV</ui-button>
         <ui-button type="button" variant="secondary" (click)="exportDraft('json')">Exportar borrador JSON</ui-button>
+        <ui-button type="button" variant="secondary" (click)="pickImport()" [loading]="importing()">
+          Importar JSON/CSV
+        </ui-button>
+        <input
+          #importInput
+          class="file-input"
+          type="file"
+          accept=".json,.csv,application/json,text/csv,text/plain"
+          (change)="onImportFile($event)" />
         <ui-button type="button" [loading]="saving()" (click)="create()">Crear partida</ui-button>
       </div>
+      <p class="hint">Puedes importar un archivo exportado antes, revisar las rondas y luego crear la partida.</p>
     </section>
 
     @if (history().length) {
@@ -108,14 +125,20 @@ function emptyRound(): GameShowRoundInput {
     .round { border: 1px solid var(--color-border); border-radius: 12px; padding: 0.85rem; display: grid; gap: 0.65rem; }
     .round header { display: flex; justify-content: space-between; align-items: center; }
     .answers { display: grid; gap: 0.45rem; }
-    .ans-row { display: grid; grid-template-columns: 2rem 1fr 5rem; gap: 0.45rem; align-items: center; }
+    .ans-row { display: grid; grid-template-columns: 2rem 1fr 5rem 1fr; gap: 0.45rem; align-items: center; }
     .pts { max-width: 5rem; }
-    .actions { display: flex; flex-wrap: wrap; gap: 0.65rem; }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.65rem; align-items: center; }
+    .file-input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+    .hint { margin: 0; color: var(--color-muted, #6b7280); font-size: 0.9rem; }
     .hist { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.55rem; }
     .hist li { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; align-items: center; }
     .hist-main { display: grid; gap: 0.2rem; min-width: 0; }
     .hist-actions { display: flex; gap: 0.35rem; flex-shrink: 0; }
-    @media (max-width: 700px) { .row, .ans-row { grid-template-columns: 1fr; } }
+    @media (max-width: 700px) {
+      .row { grid-template-columns: 1fr; }
+      .ans-row { grid-template-columns: 2rem 1fr; }
+      .pts { max-width: none; }
+    }
   `]
 })
 export class GameShowHubPage implements OnInit {
@@ -124,12 +147,15 @@ export class GameShowHubPage implements OnInit {
 
   readonly error = signal<string | null>(null);
   readonly saving = signal(false);
+  readonly importing = signal(false);
   readonly history = signal<GameShowHistoryItemDto[]>([]);
 
   title = '100 Estudiantes Dijeron';
   teamA = 'Equipo A';
   teamB = 'Equipo B';
   rounds: GameShowRoundInput[] = [emptyRound()];
+
+  @ViewChild('importInput') private importInput?: ElementRef<HTMLInputElement>;
 
   ngOnInit(): void {
     this.api.mine().subscribe({
@@ -144,6 +170,76 @@ export class GameShowHubPage implements OnInit {
 
   removeRound(index: number): void {
     this.rounds = this.rounds.filter((_, i) => i !== index);
+  }
+
+  aliasesText(aliases?: string[]): string {
+    return (aliases || []).join(' | ');
+  }
+
+  setAliases(ans: { aliases?: string[] }, value: string): void {
+    ans.aliases = (value || '')
+      .split('|')
+      .map((x) => x.trim())
+      .filter(Boolean);
+  }
+
+  pickImport(): void {
+    this.importInput?.nativeElement.click();
+  }
+
+  onImportFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+
+    this.error.set(null);
+    this.importing.set(true);
+
+    this.api.importQuestions(file).subscribe({
+      next: (body) => {
+        this.applyImport(body);
+        this.importing.set(false);
+      },
+      error: (err) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const body = parseGameShowImport(String(reader.result ?? ''), file.name);
+            this.applyImport(body);
+            this.importing.set(false);
+          } catch (localErr) {
+            this.importing.set(false);
+            this.error.set(
+              localErr instanceof GameShowImportError ? localErr.message : mapApiError(err)
+            );
+          }
+        };
+        reader.onerror = () => {
+          this.importing.set(false);
+          this.error.set(mapApiError(err));
+        };
+        reader.readAsText(file, 'utf-8');
+      }
+    });
+  }
+
+  private applyImport(body: CreateGameShowBody): void {
+    this.title = body.title || this.title;
+    this.teamA = body.teamAName || this.teamA;
+    this.teamB = body.teamBName || this.teamB;
+    this.rounds = (body.rounds || []).map((r) => ({
+      questionText: r.questionText || '',
+      sourceQuestionId: r.sourceQuestionId ?? null,
+      answers: (r.answers || []).map((a) => ({
+        text: a.text || '',
+        points: a.points || 1,
+        aliases: [...(a.aliases || [])]
+      }))
+    }));
+    if (this.rounds.length < 1) {
+      this.rounds = [emptyRound()];
+    }
   }
 
   exportDraft(format: 'csv' | 'json'): void {

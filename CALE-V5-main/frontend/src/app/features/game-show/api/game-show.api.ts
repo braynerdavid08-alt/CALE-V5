@@ -178,6 +178,20 @@ export class GameShowApi {
     });
   }
 
+  /** Parse exported JSON/CSV into a create body (does not create a session). */
+  importQuestions(file: File) {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    return this.http.post<CreateGameShowBody>(`${this.base}/api/game-show/import`, form);
+  }
+
+  /** Parse and create a session from an exported JSON/CSV pack. */
+  importAndCreate(file: File) {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    return this.http.post<GameShowLobbyDto>(`${this.base}/api/game-show/import/create`, form);
+  }
+
   savePlayerToken(sessionId: number, token: string): void {
     localStorage.setItem(`${TOKEN_KEY}.${sessionId}`, token);
   }
