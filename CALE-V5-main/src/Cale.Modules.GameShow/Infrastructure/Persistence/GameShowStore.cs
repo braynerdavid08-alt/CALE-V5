@@ -33,8 +33,28 @@ public sealed class GameShowStore : IGameShowStore
     public Task<GameShowPlayer?> GetPlayerByTokenAsync(Guid token, CancellationToken ct) =>
         _db.Set<GameShowPlayer>().FirstOrDefaultAsync(x => x.PlayerToken == token, ct);
 
+    public Task<GameShowPlayer?> GetPlayerByConnectionIdAsync(string connectionId, CancellationToken ct) =>
+        _db.Set<GameShowPlayer>().FirstOrDefaultAsync(x => x.ConnectionId == connectionId, ct);
+
     public Task<bool> JoinCodeExistsAsync(string code, CancellationToken ct) =>
         _db.Set<GameShowSession>().AnyAsync(x => x.JoinCode == code, ct);
+
+    public async Task<bool> TryClaimBuzzAsync(int roundId, string team, CancellationToken ct)
+    {
+        var updated = await _db.Set<GameShowRound>()
+            .Where(r =>
+                r.Id == roundId
+                && r.Phase == GameShowRoundPhases.WaitingBuzz
+                && r.BuzzWinnerTeam == null)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(r => r.BuzzWinnerTeam, team)
+                    .SetProperty(r => r.ControllingTeam, team)
+                    .SetProperty(r => r.Phase, GameShowRoundPhases.Playing)
+                    .SetProperty(r => r.Strikes, 0),
+                ct);
+        return updated == 1;
+    }
 
     public async Task<IReadOnlyList<GameShowSession>> ListForHostAsync(
         int hostUserId,

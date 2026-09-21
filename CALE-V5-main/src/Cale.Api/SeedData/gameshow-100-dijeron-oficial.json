@@ -1,0 +1,458 @@
+{
+  "title": "100 Estudiantes Dijeron — Pack oficial",
+  "teamAName": "Equipo A",
+  "teamBName": "Equipo B",
+  "rounds": [
+    {
+      "questionText": "¿Qué dicen los estudiantes que es lo primero que se hace al subir al vehículo?",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Ponerse el cinturón de seguridad", "points": 30, "aliases": ["cinturón", "abrocharse el cinturón"] },
+        { "text": "Ajustar los espejos", "points": 25, "aliases": ["acomodar espejos", "revisar retrovisores"] },
+        { "text": "Ajustar la silla y el timón", "points": 20, "aliases": ["acomodar el asiento", "graduar la silla"] },
+        { "text": "Verificar que esté en neutro", "points": 15, "aliases": ["punto muerto"] },
+        { "text": "Encender el vehículo", "points": 10, "aliases": ["prender el carro"] }
+      ]
+    },
+    {
+      "questionText": "Mencione una señal de tránsito reglamentaria que todo estudiante reconoce",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Pare", "points": 30, "aliases": ["stop", "señal de pare"] },
+        { "text": "Ceda el paso", "points": 25, "aliases": ["ceda"] },
+        { "text": "Velocidad máxima permitida", "points": 20, "aliases": ["límite de velocidad"] },
+        { "text": "Prohibido parquear", "points": 15, "aliases": ["no estacionar", "no parquear"] },
+        { "text": "Prohibido adelantar", "points": 10, "aliases": ["no adelantar", "no sobrepasar"] }
+      ]
+    },
+    {
+      "questionText": "¿Qué documento no puede faltarle a un conductor en Colombia?",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Licencia de conducción", "points": 30, "aliases": ["pase", "licencia"] },
+        { "text": "SOAT vigente", "points": 25, "aliases": ["soat", "seguro obligatorio"] },
+        { "text": "Revisión tecnicomecánica", "points": 20, "aliases": ["tecnomecánica", "técnico mecánica"] },
+        { "text": "Tarjeta de propiedad", "points": 15, "aliases": ["licencia de tránsito"] },
+        { "text": "Documento de identidad", "points": 10, "aliases": ["cédula"] }
+      ]
+    },
+    {
+      "questionText": "Nombre un elemento del kit de carretera obligatorio",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Llanta de repuesto", "points": 30, "aliases": ["repuesto", "llanta de emergencia"] },
+        { "text": "Gato hidráulico", "points": 25, "aliases": ["gato"] },
+        { "text": "Extintor", "points": 20, "aliases": ["extinguidor"] },
+        { "text": "Señales reflectivas de emergencia", "points": 15, "aliases": ["triángulos", "conos reflectivos"] },
+        { "text": "Botiquín de primeros auxilios", "points": 10, "aliases": ["botiquín"] }
+      ]
+    },
+    {
+      "questionText": "¿Cuál es la causa más común de los accidentes de tránsito?",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Exceso de velocidad", "points": 30, "aliases": ["ir muy rápido", "velocidad"] },
+        { "text": "Conducir bajo efectos del licor", "points": 25, "aliases": ["manejar borracho", "embriaguez"] },
+        { "text": "Usar el celular mientras se maneja", "points": 20, "aliases": ["celular", "distracción con el teléfono"] },
+        { "text": "No respetar las señales de tránsito", "points": 15, "aliases": ["pasarse el semáforo"] },
+        { "text": "Imprudencia del peatón", "points": 10, "aliases": ["peatón cruzando mal"] }
+      ]
+    },
+    {
+      "questionText": "¿Qué dicen los estudiantes que más los pone nerviosos en el examen práctico?",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Parquear en paralelo", "points": 30, "aliases": ["parqueo en línea", "estacionar en paralelo"] },
+        { "text": "Arrancar en pendiente", "points": 25, "aliases": ["la rampa", "subida"] },
+        { "text": "Que el examinador esté al lado", "points": 20, "aliases": ["el evaluador", "el instructor mirando"] },
+        { "text": "Hacer el ocho o el slalom", "points": 15, "aliases": ["el ocho", "los conos"] },
+        { "text": "Reversar sin pisar la línea", "points": 10, "aliases": ["dar reversa"] }
+      ]
+    },
+    {
+      "questionText": "Mencione una parte del carro que se revisa antes de un viaje largo",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Las llantas y su presión", "points": 30, "aliases": ["llantas", "presión de aire"] },
+        { "text": "Los frenos", "points": 25, "aliases": ["pastillas de freno"] },
+        { "text": "El nivel de aceite", "points": 20, "aliases": ["aceite del motor"] },
+        { "text": "Las luces", "points": 15, "aliases": ["luces altas y bajas", "direccionales"] },
+        { "text": "El refrigerante del motor", "points": 10, "aliases": ["agua del radiador", "coolant"] }
+      ]
+    },
+    {
+      "questionText": "¿Qué hace usted si se le pincha una llanta en plena vía?",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Orillarse en un lugar seguro", "points": 30, "aliases": ["parquear a un lado", "hacerse a la orilla"] },
+        { "text": "Encender las luces estacionarias", "points": 25, "aliases": ["prender las intermitentes", "estacionarias"] },
+        { "text": "Colocar las señales reflectivas", "points": 20, "aliases": ["poner los triángulos", "poner los conos"] },
+        { "text": "Cambiar la llanta con el gato y la cruceta", "points": 15, "aliases": ["montar el repuesto"] },
+        { "text": "Llamar a la grúa o a la aseguradora", "points": 10, "aliases": ["pedir asistencia", "llamar a la grúa"] }
+      ]
+    },
+    {
+      "questionText": "Nombre una infracción que puede costarle la licencia de conducción",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Conducir en estado de embriaguez", "points": 30, "aliases": ["manejar borracho", "alcohol al volante"] },
+        { "text": "Participar en piques o carreras ilegales", "points": 25, "aliases": ["piques", "carreras clandestinas"] },
+        { "text": "Conducir sin licencia o con licencia vencida", "points": 20, "aliases": ["sin pase"] },
+        { "text": "Huir del lugar de un accidente", "points": 15, "aliases": ["darse a la fuga", "fugarse"] },
+        { "text": "Reincidir en comparendos graves", "points": 10, "aliases": ["muchos comparendos"] }
+      ]
+    },
+    {
+      "questionText": "¿Qué significa la luz amarilla del semáforo?",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Prepararse para detenerse", "points": 30, "aliases": ["alistarse para parar"] },
+        { "text": "Disminuir la velocidad", "points": 25, "aliases": ["bajar la velocidad", "frenar suave"] },
+        { "text": "Precaución", "points": 20, "aliases": ["atención", "cuidado"] },
+        { "text": "Que va a cambiar a rojo", "points": 15, "aliases": ["viene el rojo"] },
+        { "text": "No iniciar el cruce", "points": 10, "aliases": ["no pasar la intersección"] }
+      ]
+    },
+    {
+      "questionText": "Mencione algo que un conductor nunca debe hacer al volante",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Chatear o hablar por celular", "points": 30, "aliases": ["usar el celular", "escribir mensajes"] },
+        { "text": "Tomar licor", "points": 25, "aliases": ["beber alcohol", "tomar trago"] },
+        { "text": "Comer o beber mientras maneja", "points": 20, "aliases": ["desayunar manejando"] },
+        { "text": "Maquillarse o afeitarse", "points": 15, "aliases": ["arreglarse"] },
+        { "text": "Discutir o pelear con los pasajeros", "points": 10, "aliases": ["pelear con el copiloto"] }
+      ]
+    },
+    {
+      "questionText": "¿Qué elemento de protección debe usar un motociclista?",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Casco certificado", "points": 30, "aliases": ["casco"] },
+        { "text": "Chaleco reflectivo", "points": 25, "aliases": ["chaleco", "peto reflectivo"] },
+        { "text": "Guantes", "points": 20, "aliases": [] },
+        { "text": "Chaqueta o impermeable", "points": 15, "aliases": ["chaqueta de moto"] },
+        { "text": "Botas o calzado cerrado", "points": 10, "aliases": ["botas"] }
+      ]
+    },
+    {
+      "questionText": "¿Qué debe revisar antes de cambiar de carril?",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "El espejo retrovisor interno", "points": 30, "aliases": ["retrovisor", "espejo central"] },
+        { "text": "El espejo lateral del lado al que va a girar", "points": 25, "aliases": ["espejo lateral"] },
+        { "text": "El punto ciego", "points": 20, "aliases": ["ángulo muerto"] },
+        { "text": "Activar la direccional", "points": 15, "aliases": ["poner la luz direccional", "señalizar"] },
+        { "text": "Mirar por encima del hombro", "points": 10, "aliases": ["girar la cabeza"] }
+      ]
+    },
+    {
+      "questionText": "¿Qué es lo más difícil de manejar un carro mecánico?",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Soltar bien el embrague", "points": 30, "aliases": ["el clutch", "soltar el clutch"] },
+        { "text": "Arrancar en una subida sin irse para atrás", "points": 25, "aliases": ["arrancar en pendiente"] },
+        { "text": "Cambiar de marcha en el momento correcto", "points": 20, "aliases": ["hacer los cambios", "meter cambios"] },
+        { "text": "Que no se apague el carro", "points": 15, "aliases": ["no ahogar el motor"] },
+        { "text": "Coordinar pies y manos", "points": 10, "aliases": ["coordinación"] }
+      ]
+    },
+    {
+      "questionText": "Mencione un líquido que necesita un vehículo para funcionar",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Gasolina o combustible", "points": 30, "aliases": ["gasolina", "acpm", "diésel"] },
+        { "text": "Aceite de motor", "points": 25, "aliases": ["aceite"] },
+        { "text": "Refrigerante", "points": 20, "aliases": ["coolant", "agua del radiador"] },
+        { "text": "Líquido de frenos", "points": 15, "aliases": ["líquido para frenos"] },
+        { "text": "Agua del limpiaparabrisas", "points": 10, "aliases": ["agua del limpiabrisas"] }
+      ]
+    },
+    {
+      "questionText": "¿Por dónde debe cruzar la calle un peatón?",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Por la cebra", "points": 30, "aliases": ["paso peatonal", "líneas blancas"] },
+        { "text": "Por el puente peatonal", "points": 25, "aliases": ["puente"] },
+        { "text": "Donde haya semáforo peatonal", "points": 20, "aliases": ["semáforo para peatones"] },
+        { "text": "Por las esquinas", "points": 15, "aliases": ["en la esquina"] },
+        { "text": "Por el túnel peatonal", "points": 10, "aliases": ["túnel"] }
+      ]
+    },
+    {
+      "questionText": "Nombre una señal de tránsito preventiva",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Curva peligrosa", "points": 30, "aliases": ["curva", "curva cerrada"] },
+        { "text": "Zona escolar", "points": 25, "aliases": ["colegio cerca", "niños en la vía"] },
+        { "text": "Resalto o reductor de velocidad", "points": 20, "aliases": ["policía acostado", "resalto"] },
+        { "text": "Vía resbalosa", "points": 15, "aliases": ["piso mojado", "superficie deslizante"] },
+        { "text": "Zona de derrumbes", "points": 10, "aliases": ["derrumbes"] }
+      ]
+    },
+    {
+      "questionText": "¿Qué se debe hacer al llegar a una glorieta?",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Ceder el paso a quien ya está dentro", "points": 30, "aliases": ["dar prelación", "ceder el paso"] },
+        { "text": "Reducir la velocidad", "points": 25, "aliases": ["bajar la velocidad"] },
+        { "text": "Señalizar la salida con la direccional", "points": 20, "aliases": ["poner la direccional"] },
+        { "text": "Ubicarse en el carril correcto", "points": 15, "aliases": ["tomar el carril adecuado"] },
+        { "text": "Revisar los espejos antes de salir", "points": 10, "aliases": ["mirar los espejos"] }
+      ]
+    },
+    {
+      "questionText": "Mencione la excusa típica de quien no respeta las normas de tránsito",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Estaba de afán", "points": 30, "aliases": ["iba tarde", "tenía prisa"] },
+        { "text": "No vi la señal", "points": 25, "aliases": ["no la vi"] },
+        { "text": "Todo el mundo lo hace", "points": 20, "aliases": ["todos lo hacen"] },
+        { "text": "Es solo un momentico", "points": 15, "aliases": ["solo un minuto"] },
+        { "text": "No había policía de tránsito", "points": 10, "aliases": ["no había agente"] }
+      ]
+    },
+    {
+      "questionText": "¿Qué herramienta básica debe saber usar todo conductor?",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "El gato", "points": 30, "aliases": ["gato hidráulico"] },
+        { "text": "La cruceta", "points": 25, "aliases": ["llave de pernos", "llave de ruedas"] },
+        { "text": "Los cables para pasar corriente", "points": 20, "aliases": ["cables de batería", "pasar corriente"] },
+        { "text": "El destornillador", "points": 15, "aliases": ["desarmador"] },
+        { "text": "La llave inglesa", "points": 10, "aliases": ["llave ajustable"] }
+      ]
+    },
+    {
+      "questionText": "¿Qué revisa usted si el carro no le prende?",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "La batería", "points": 30, "aliases": ["que no esté descargada", "batería"] },
+        { "text": "El nivel de gasolina", "points": 25, "aliases": ["que tenga gasolina"] },
+        { "text": "Los bornes y cables", "points": 20, "aliases": ["los bornes", "conexiones"] },
+        { "text": "El switch de encendido", "points": 15, "aliases": ["la llave", "el suiche"] },
+        { "text": "Llamar al mecánico", "points": 10, "aliases": ["pedir ayuda al mecánico"] }
+      ]
+    },
+    {
+      "questionText": "Nombre un servicio que presta una escuela de conducción",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Clases prácticas de conducción", "points": 30, "aliases": ["prácticas", "clases de manejo"] },
+        { "text": "Clases teóricas", "points": 25, "aliases": ["teoría", "curso teórico"] },
+        { "text": "Trámite de la licencia de conducción", "points": 20, "aliases": ["sacar el pase", "trámite del pase"] },
+        { "text": "Exámenes médicos", "points": 15, "aliases": ["valoración médica", "CRC"] },
+        { "text": "Prácticas en simulador", "points": 10, "aliases": ["simulador"] }
+      ]
+    },
+    {
+      "questionText": "¿Cuál es la velocidad adecuada dentro de la ciudad?",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "50 km/h en vías urbanas", "points": 30, "aliases": ["50", "cincuenta"] },
+        { "text": "30 km/h en zona escolar o residencial", "points": 25, "aliases": ["30", "treinta"] },
+        { "text": "40 km/h", "points": 20, "aliases": ["cuarenta"] },
+        { "text": "60 km/h en vías principales autorizadas", "points": 15, "aliases": ["sesenta"] },
+        { "text": "Menos de 20 km/h en parqueaderos", "points": 10, "aliases": ["muy despacio en parqueadero"] }
+      ]
+    },
+    {
+      "questionText": "Mencione una consecuencia de conducir borracho",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Multa económica muy alta", "points": 30, "aliases": ["comparendo", "multa"] },
+        { "text": "Suspensión de la licencia", "points": 25, "aliases": ["le quitan el pase"] },
+        { "text": "Provocar un accidente", "points": 20, "aliases": ["chocar", "accidente"] },
+        { "text": "Inmovilización del vehículo", "points": 15, "aliases": ["se llevan el carro a los patios", "patios"] },
+        { "text": "Cárcel si hay heridos o muertos", "points": 10, "aliases": ["ir preso"] }
+      ]
+    },
+    {
+      "questionText": "¿Qué luces se usan cuando hay neblina?",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Luces exploradoras antiniebla", "points": 30, "aliases": ["exploradoras", "antiniebla"] },
+        { "text": "Luces bajas", "points": 25, "aliases": ["luz baja", "medias"] },
+        { "text": "Luces de posición", "points": 20, "aliases": ["luces de parqueo"] },
+        { "text": "Luces estacionarias si hay que detenerse", "points": 15, "aliases": ["intermitentes"] },
+        { "text": "Direccionales al girar", "points": 10, "aliases": ["direccionales"] }
+      ]
+    },
+    {
+      "questionText": "Nombre la norma de tránsito que más se incumple en la ciudad",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Pasarse el semáforo en rojo", "points": 30, "aliases": ["comerse el rojo", "pasarse el rojo"] },
+        { "text": "Parquear en sitio prohibido", "points": 25, "aliases": ["mal parqueado"] },
+        { "text": "Hablar por celular manejando", "points": 20, "aliases": ["usar el celular"] },
+        { "text": "No usar el cinturón de seguridad", "points": 15, "aliases": ["sin cinturón"] },
+        { "text": "Invadir la cebra peatonal", "points": 10, "aliases": ["parar sobre la cebra"] }
+      ]
+    },
+    {
+      "questionText": "¿Qué hace usted cuando viene una ambulancia con sirena?",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Cederle el paso orillándose", "points": 30, "aliases": ["hacerme a un lado", "darle vía"] },
+        { "text": "Reducir la velocidad", "points": 25, "aliases": ["bajar la velocidad"] },
+        { "text": "No bloquear la intersección", "points": 20, "aliases": ["despejar el cruce"] },
+        { "text": "Detenerse por completo si es necesario", "points": 15, "aliases": ["parar"] },
+        { "text": "No seguirla ni aprovechar su paso", "points": 10, "aliases": ["no pegarse a la ambulancia"] }
+      ]
+    },
+    {
+      "questionText": "Mencione un ruido del carro que indica problema mecánico",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Chillido de los frenos", "points": 30, "aliases": ["frenos chillando", "rechinar de frenos"] },
+        { "text": "Golpeteo del motor", "points": 25, "aliases": ["cascabeleo", "motor golpeando"] },
+        { "text": "Silbido de la correa", "points": 20, "aliases": ["correa chillando"] },
+        { "text": "Ruido en la suspensión o amortiguadores", "points": 15, "aliases": ["suspensión sonando"] },
+        { "text": "Zumbido del rodamiento", "points": 10, "aliases": ["balinera dañada", "rodamiento"] }
+      ]
+    },
+    {
+      "questionText": "¿Qué se revisa en la revisión tecnicomecánica?",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Los frenos", "points": 30, "aliases": ["sistema de frenos"] },
+        { "text": "Las luces", "points": 25, "aliases": ["sistema de luces"] },
+        { "text": "Las emisiones de gases", "points": 20, "aliases": ["gases contaminantes", "humo"] },
+        { "text": "La dirección y la suspensión", "points": 15, "aliases": ["suspensión", "dirección"] },
+        { "text": "El estado de las llantas", "points": 10, "aliases": ["llantas"] }
+      ]
+    },
+    {
+      "questionText": "Nombre una distracción común al volante",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "El celular", "points": 30, "aliases": ["el teléfono", "chatear"] },
+        { "text": "La música a todo volumen", "points": 25, "aliases": ["el equipo de sonido", "música muy alta"] },
+        { "text": "Los pasajeros conversando", "points": 20, "aliases": ["los pasajeros", "la conversación"] },
+        { "text": "Comer o tomar algo", "points": 15, "aliases": ["comer manejando"] },
+        { "text": "Mirar el GPS o el waze", "points": 10, "aliases": ["el gps", "el mapa"] }
+      ]
+    },
+    {
+      "questionText": "¿Qué hace un buen conductor cuando está en un trancón?",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Tener paciencia y mantener la calma", "points": 30, "aliases": ["paciencia", "calma"] },
+        { "text": "Mantener la distancia con el carro de adelante", "points": 25, "aliases": ["guardar distancia"] },
+        { "text": "No pitar sin necesidad", "points": 20, "aliases": ["no tocar la bocina", "no pitar"] },
+        { "text": "No invadir el carril de al lado", "points": 15, "aliases": ["no zigzaguear", "no culebrear"] },
+        { "text": "No bloquear la intersección", "points": 10, "aliases": ["no quedarse en el cruce"] }
+      ]
+    },
+    {
+      "questionText": "Mencione una categoría de licencia de conducción en Colombia",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "B1 para carro particular", "points": 30, "aliases": ["b1", "particular"] },
+        { "text": "A2 para motocicleta", "points": 25, "aliases": ["a2", "moto"] },
+        { "text": "C1 para servicio público", "points": 20, "aliases": ["c1", "público"] },
+        { "text": "A1 para ciclomotor o moto pequeña", "points": 15, "aliases": ["a1"] },
+        { "text": "C2 para camión o bus de servicio público", "points": 10, "aliases": ["c2", "camión"] }
+      ]
+    },
+    {
+      "questionText": "¿Qué se hace antes de abrir la puerta al bajarse del carro?",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Mirar por el espejo lateral", "points": 30, "aliases": ["revisar el espejo"] },
+        { "text": "Mirar hacia atrás por encima del hombro", "points": 25, "aliases": ["voltear a mirar"] },
+        { "text": "Verificar que no venga un ciclista o una moto", "points": 20, "aliases": ["cuidado con las bicicletas", "mirar si viene una moto"] },
+        { "text": "Abrir la puerta despacio", "points": 15, "aliases": ["abrir con cuidado"] },
+        { "text": "Apagar el motor y poner el freno de mano", "points": 10, "aliases": ["freno de mano"] }
+      ]
+    },
+    {
+      "questionText": "Nombre un consejo para ahorrar combustible",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "No acelerar ni frenar bruscamente", "points": 30, "aliases": ["manejar suave"] },
+        { "text": "Mantener una velocidad constante", "points": 25, "aliases": ["velocidad estable"] },
+        { "text": "Revisar la presión de las llantas", "points": 20, "aliases": ["llantas bien infladas"] },
+        { "text": "Hacer el mantenimiento a tiempo", "points": 15, "aliases": ["mantenimiento preventivo"] },
+        { "text": "No cargar peso innecesario", "points": 10, "aliases": ["quitar peso extra"] }
+      ]
+    },
+    {
+      "questionText": "¿Qué hace usted si el carro se queda sin frenos?",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Reducir cambios para frenar con el motor", "points": 30, "aliases": ["frenar con motor", "bajar cambios"] },
+        { "text": "Usar el freno de mano poco a poco", "points": 25, "aliases": ["freno de emergencia", "freno de mano"] },
+        { "text": "Pitar y encender las estacionarias", "points": 20, "aliases": ["avisar con la bocina"] },
+        { "text": "Buscar una zona de escape o rampa de frenado", "points": 15, "aliases": ["rampa de escape"] },
+        { "text": "Rozar el andén o la berma para detenerse", "points": 10, "aliases": ["rozar el sardinel"] }
+      ]
+    },
+    {
+      "questionText": "Mencione una señal de tránsito informativa",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Nombre de la vía o la ciudad", "points": 30, "aliases": ["nomenclatura", "nombre de la calle"] },
+        { "text": "Hospital o centro médico", "points": 25, "aliases": ["hospital"] },
+        { "text": "Estación de servicio", "points": 20, "aliases": ["bomba de gasolina", "gasolinera"] },
+        { "text": "Parqueadero", "points": 15, "aliases": ["estacionamiento"] },
+        { "text": "Peaje adelante", "points": 10, "aliases": ["peaje"] }
+      ]
+    },
+    {
+      "questionText": "¿Qué distancia se debe guardar con el vehículo de adelante?",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Dos segundos de distancia", "points": 30, "aliases": ["regla de los dos segundos"] },
+        { "text": "Tres segundos o más si llueve", "points": 25, "aliases": ["tres segundos"] },
+        { "text": "El largo de un vehículo", "points": 20, "aliases": ["un carro de distancia"] },
+        { "text": "El doble cuando la vía está mojada", "points": 15, "aliases": ["más distancia con lluvia"] },
+        { "text": "Suficiente para alcanzar a frenar", "points": 10, "aliases": ["distancia de frenado"] }
+      ]
+    },
+    {
+      "questionText": "Nombre un elemento de seguridad que trae el vehículo",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Cinturón de seguridad", "points": 30, "aliases": ["cinturón"] },
+        { "text": "Bolsas de aire", "points": 25, "aliases": ["airbag", "air bag"] },
+        { "text": "Frenos ABS", "points": 20, "aliases": ["abs"] },
+        { "text": "Apoyacabezas", "points": 15, "aliases": ["reposacabezas"] },
+        { "text": "Silla para niños", "points": 10, "aliases": ["silla infantil", "asiento para bebé"] }
+      ]
+    },
+    {
+      "questionText": "¿Qué hace un conductor responsable si va a tomar licor?",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Dejar el carro y no manejar", "points": 30, "aliases": ["no manejar", "dejar el carro"] },
+        { "text": "Nombrar un conductor elegido", "points": 25, "aliases": ["conductor designado", "conductor elegido"] },
+        { "text": "Pedir un taxi o una aplicación", "points": 20, "aliases": ["pedir taxi", "pedir un uber"] },
+        { "text": "Usar transporte público", "points": 15, "aliases": ["irse en bus", "transmilenio"] },
+        { "text": "Quedarse a dormir donde está", "points": 10, "aliases": ["no salir esa noche"] }
+      ]
+    },
+    {
+      "questionText": "Mencione una razón por la que se pierde el examen teórico",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "No estudiar las señales de tránsito", "points": 30, "aliases": ["no saberse las señales"] },
+        { "text": "Confundir las normas y las sanciones", "points": 25, "aliases": ["confundir las normas"] },
+        { "text": "Los nervios", "points": 20, "aliases": ["ponerse nervioso"] },
+        { "text": "Responder de afán", "points": 15, "aliases": ["contestar rápido", "ir de afán"] },
+        { "text": "No leer bien la pregunta", "points": 10, "aliases": ["no leer el enunciado"] }
+      ]
+    },
+    {
+      "questionText": "¿Qué dicen los estudiantes que aprenden primero en CALE?",
+      "sourceQuestionId": null,
+      "answers": [
+        { "text": "Las señales de tránsito", "points": 30, "aliases": ["las señales"] },
+        { "text": "Las normas de tránsito", "points": 25, "aliases": ["el código de tránsito", "las normas"] },
+        { "text": "A manejar el embrague y los cambios", "points": 20, "aliases": ["el clutch", "los cambios"] },
+        { "text": "A parquear", "points": 15, "aliases": ["estacionar"] },
+        { "text": "Mecánica básica y primeros auxilios", "points": 10, "aliases": ["mecánica básica", "primeros auxilios"] }
+      ]
+    }
+  ]
+}

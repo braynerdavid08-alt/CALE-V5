@@ -72,7 +72,25 @@ public sealed class GameShowHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        // Best-effort: clear connection by scanning is expensive; skip for MVP.
+        try
+        {
+            var player = await _store.GetPlayerByConnectionIdAsync(
+                Context.ConnectionId,
+                CancellationToken.None);
+            if (player is not null)
+            {
+                await _handler.SetConnectionAsync(
+                    player.PlayerToken,
+                    null,
+                    false,
+                    CancellationToken.None);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "GameShow disconnect cleanup failed");
+        }
+
         await base.OnDisconnectedAsync(exception);
     }
 

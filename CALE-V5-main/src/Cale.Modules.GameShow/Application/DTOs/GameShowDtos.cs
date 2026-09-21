@@ -40,7 +40,9 @@ public sealed record GameShowLobbyDto(
     int RoundCount,
     IReadOnlyList<GameShowPlayerDto> Players,
     GameShowRoundPublicDto? CurrentRound,
-    bool IsHostView);
+    bool IsHostView,
+    int? ViewerPlayerId = null,
+    string? ViewerTeam = null);
 
 public sealed record GameShowPlayerDto(
     int Id,
@@ -71,6 +73,8 @@ public sealed record GameShowBoardAnswerPublicDto(
 public sealed record JoinGameShowResultDto(
     int SessionId,
     Guid PlayerToken,
+    int PlayerId,
+    string Team,
     GameShowLobbyDto Lobby);
 
 public sealed record GameShowHistoryItemDto(

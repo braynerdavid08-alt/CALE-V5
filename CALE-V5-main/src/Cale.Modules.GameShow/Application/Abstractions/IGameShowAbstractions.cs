@@ -9,7 +9,12 @@ public interface IGameShowStore
     Task<GameShowSession?> GetByIdAsync(int id, CancellationToken ct);
     Task<GameShowSession?> GetByJoinCodeAsync(string code, CancellationToken ct);
     Task<GameShowPlayer?> GetPlayerByTokenAsync(Guid token, CancellationToken ct);
+    Task<GameShowPlayer?> GetPlayerByConnectionIdAsync(string connectionId, CancellationToken ct);
     Task<bool> JoinCodeExistsAsync(string code, CancellationToken ct);
+    /// <summary>
+    /// Atomically claims the buzz for a round. Returns false if already taken.
+    /// </summary>
+    Task<bool> TryClaimBuzzAsync(int roundId, string team, CancellationToken ct);
     Task<IReadOnlyList<GameShowSession>> ListForHostAsync(int hostUserId, CancellationToken ct);
     Task<IReadOnlyList<GameShowSession>> ListForSchoolAsync(int schoolUserId, CancellationToken ct);
     Task SaveChangesAsync(CancellationToken ct);

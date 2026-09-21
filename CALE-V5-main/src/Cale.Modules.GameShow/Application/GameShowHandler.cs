@@ -37,9 +37,9 @@ public sealed class GameShowHandler
             throw new DomainException("Agrega al menos una ronda.", 400, "invalid_rounds");
         }
 
-        if (request.Rounds.Count > 20)
+        if (request.Rounds.Count > 50)
         {
-            throw new DomainException("Máximo 20 rondas por partida.", 400, "too_many_rounds");
+            throw new DomainException("Máximo 50 rondas por partida.", 400, "too_many_rounds");
         }
 
         var session = new GameShowSession
@@ -107,9 +107,9 @@ public sealed class GameShowHandler
         session.Players.Add(player);
         await _store.SaveChangesAsync(ct);
 
-        var lobby = MapLobby(session, hostView: false);
-        await _broadcaster.LobbyUpdatedAsync(session.Id, lobby, ct);
-        return new JoinGameShowResultDto(session.Id, player.PlayerToken, lobby);
+        var lobby = MapLobby(session, hostView: false, viewerPlayerId: player.Id, viewerTeam: player.Team);
+        await _broadcaster.LobbyUpdatedAsync(session.Id, MapLobby(session, hostView: false), ct);
+        return new JoinGameShowResultDto(session.Id, player.PlayerToken, player.Id, player.Team, lobby);
     }
 
     public async Task<GameShowLobbyDto> GetLobbyAsync(
@@ -121,10 +121,11 @@ public sealed class GameShowHandler
     {
         var session = await RequireSessionAsync(sessionId, ct);
         var isHost = hostUserId is int hid && hid == session.HostUserId;
+        GameShowPlayer? viewer = null;
         if (!isHost && playerToken is Guid token)
         {
-            var player = session.Players.FirstOrDefault(p => p.PlayerToken == token);
-            if (player is null)
+            viewer = session.Players.FirstOrDefault(p => p.PlayerToken == token);
+            if (viewer is null)
             {
                 throw new DomainException("No perteneces a esta partida.", 403, "forbidden");
             }
@@ -132,13 +133,14 @@ public sealed class GameShowHandler
         else if (!isHost)
         {
             // Authenticated viewers (proyector / school) may watch public board.
-            if (hostUserId is null)
-            {
-                throw new DomainException("Acceso denegado.", 403, "forbidden");
-            }
+            // Anonymous screen clients also allowed when they know the session id.
         }
 
-        return MapLobby(session, hostView: isHost && preferHostView);
+        return MapLobby(
+            session,
+            hostView: isHost && preferHostView,
+            viewerPlayerId: viewer?.Id,
+            viewerTeam: viewer?.Team);
     }
 
     public async Task SetConnectionAsync(
@@ -226,17 +228,15 @@ public sealed class GameShowHandler
             throw new DomainException("El buzzer no está abierto.", 400, "buzz_closed");
         }
 
-        // First writer wins; EF concurrency via reload would be ideal — we use phase check + save.
-        if (round.BuzzWinnerTeam is not null)
+        var claimed = await _store.TryClaimBuzzAsync(round.Id, player.Team, ct);
+        if (!claimed)
         {
             throw new DomainException("Otro equipo ya ganó el buzzer.", 409, "buzz_taken");
         }
 
-        round.BuzzWinnerTeam = player.Team;
-        round.ControllingTeam = player.Team;
-        round.Phase = GameShowRoundPhases.Playing;
-        round.Strikes = 0;
-        await _store.SaveChangesAsync(ct);
+        // Reload so in-memory graph matches the atomic claim.
+        session = await RequireSessionAsync(sessionId, ct);
+        round = CurrentRound(session);
         await BroadcastLobbyAsync(session, ct);
         await _broadcaster.EventAsync(
             session.Id,
@@ -260,11 +260,13 @@ public sealed class GameShowHandler
         }
 
         var t = NormalizeTeam(team);
-        round.BuzzWinnerTeam = t;
-        round.ControllingTeam = t;
-        round.Phase = GameShowRoundPhases.Playing;
-        round.Strikes = 0;
-        await _store.SaveChangesAsync(ct);
+        var claimed = await _store.TryClaimBuzzAsync(round.Id, t, ct);
+        if (!claimed)
+        {
+            throw new DomainException("Otro equipo ya ganó el buzzer.", 409, "buzz_taken");
+        }
+
+        session = await RequireHostAsync(sessionId, hostUserId, ct);
         await BroadcastLobbyAsync(session, ct);
         await _broadcaster.EventAsync(session.Id, "BuzzWon", new { team = t, forced = true }, ct);
     }
@@ -317,13 +319,15 @@ public sealed class GameShowHandler
         }
 
         RevealAnswer(round, answer);
-        if (round.ControllingTeam is string team)
+        // During Steal, host reveal is display-only — scoring belongs to steal resolution.
+        if (round.Phase is GameShowRoundPhases.Playing or GameShowRoundPhases.WaitingBuzz
+            && round.ControllingTeam is string team)
         {
             AddTeamScore(session, team, answer.Points);
             round.RoundPointsForController += answer.Points;
         }
 
-        if (round.Answers.All(a => a.IsRevealed))
+        if (round.Answers.All(a => a.IsRevealed) && round.Phase != GameShowRoundPhases.Finished)
         {
             FinishRound(round);
         }
@@ -335,6 +339,44 @@ public sealed class GameShowHandler
             "AnswerRevealed",
             new { answerId = answer.Id, rank = answer.Rank, text = answer.Text, points = answer.Points },
             ct);
+    }
+
+    /// <summary>
+    /// Host ends a silent steal: controlling team keeps banked points; round finishes.
+    /// </summary>
+    public async Task HostFailStealAsync(int sessionId, int hostUserId, CancellationToken ct)
+    {
+        var session = await RequireHostAsync(sessionId, hostUserId, ct);
+        EnsureRunning(session);
+        var round = CurrentRound(session);
+        if (round.Phase != GameShowRoundPhases.Steal)
+        {
+            throw new DomainException("No hay robo activo.", 400, "invalid_phase");
+        }
+
+        FinishRound(round);
+        await _store.SaveChangesAsync(ct);
+        await BroadcastLobbyAsync(session, ct);
+        await _broadcaster.EventAsync(session.Id, "StealFailed", new { forced = true }, ct);
+    }
+
+    /// <summary>
+    /// Host force-finishes the current round keeping scores as-is.
+    /// </summary>
+    public async Task HostEndRoundAsync(int sessionId, int hostUserId, CancellationToken ct)
+    {
+        var session = await RequireHostAsync(sessionId, hostUserId, ct);
+        EnsureRunning(session);
+        var round = CurrentRound(session);
+        if (round.Phase == GameShowRoundPhases.Finished)
+        {
+            return;
+        }
+
+        FinishRound(round);
+        await _store.SaveChangesAsync(ct);
+        await BroadcastLobbyAsync(session, ct);
+        await _broadcaster.EventAsync(session.Id, "RoundEnded", new { forced = true }, ct);
     }
 
     public async Task HostStrikeAsync(int sessionId, int hostUserId, CancellationToken ct)
@@ -752,7 +794,11 @@ public sealed class GameShowHandler
     private async Task BroadcastLobbyAsync(GameShowSession session, CancellationToken ct) =>
         await _broadcaster.LobbyUpdatedAsync(session.Id, MapLobby(session, hostView: false), ct);
 
-    private static GameShowLobbyDto MapLobby(GameShowSession session, bool hostView)
+    private static GameShowLobbyDto MapLobby(
+        GameShowSession session,
+        bool hostView,
+        int? viewerPlayerId = null,
+        string? viewerTeam = null)
     {
         GameShowRoundPublicDto? current = null;
         var rounds = session.Rounds.OrderBy(r => r.SortOrder).ToList();
@@ -792,7 +838,9 @@ public sealed class GameShowHandler
                 .Select(p => new GameShowPlayerDto(p.Id, p.DisplayName, p.Team, p.IsConnected, p.UserId))
                 .ToList(),
             current,
-            hostView);
+            hostView,
+            viewerPlayerId,
+            viewerTeam);
     }
 
     private static string NormalizeTeam(string? team) =>

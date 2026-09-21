@@ -3,6 +3,7 @@ using Cale.Modules.Assessment.Infrastructure.Persistence;
 using Cale.Modules.Catalog.Infrastructure.Persistence;
 using Cale.Modules.Classroom.Infrastructure.Persistence;
 using Cale.Modules.Engagement.Infrastructure.Persistence;
+using Cale.Modules.GameShow.Infrastructure.Persistence;
 using Cale.Modules.Identity.Infrastructure.Persistence;
 using Cale.Modules.LiveClassroom.Infrastructure.Persistence;
 using Cale.Modules.Presentation.Infrastructure.Persistence;
@@ -28,6 +29,7 @@ public sealed class CaleDbContextFactory : IDesignTimeDbContextFactory<CaleDbCon
             typeof(NotificationConfiguration).Assembly,
             typeof(PresentationDeckConfiguration).Assembly,
             typeof(LiveSessionConfiguration).Assembly,
+            typeof(GameShowSessionConfiguration).Assembly,
             typeof(TheoryTopicConfiguration).Assembly);
 
         var options = new DbContextOptionsBuilder<CaleDbContext>()
