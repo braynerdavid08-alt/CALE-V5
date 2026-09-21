@@ -419,6 +419,85 @@ public sealed class GameShowHandler
             s.Players.Count)).ToList();
     }
 
+    public async Task<(byte[] Bytes, string FileName, string ContentType)> ExportQuestionsAsync(
+        int sessionId,
+        int userId,
+        bool isAdmin,
+        string format,
+        CancellationToken ct)
+    {
+        var session = await RequireSessionAsync(sessionId, ct);
+        if (!isAdmin
+            && session.HostUserId != userId
+            && session.SchoolUserId != userId)
+        {
+            throw new DomainException("No puedes exportar esta partida.", 403, "forbidden");
+        }
+
+        var fmt = (format ?? "csv").Trim().ToLowerInvariant();
+        var safe = string.Join("_", session.Title.Split(Path.GetInvalidFileNameChars()));
+        if (string.IsNullOrWhiteSpace(safe))
+        {
+            safe = "partida";
+        }
+
+        if (fmt is "json")
+        {
+            var payload = new CreateGameShowRequest(
+                session.Title,
+                session.TeamAName,
+                session.TeamBName,
+                session.Rounds
+                    .OrderBy(r => r.SortOrder)
+                    .Select(r => new CreateGameShowRoundRequest(
+                        r.QuestionText,
+                        r.SourceQuestionId,
+                        r.Answers
+                            .OrderBy(a => a.Rank)
+                            .Select(a => new CreateGameShowAnswerRequest(
+                                a.Text,
+                                a.Points,
+                                GameShowAnswerMatcher.ParseAliases(a.AliasesJson).ToList()))
+                            .ToList()))
+                    .ToList());
+
+            var json = System.Text.Json.JsonSerializer.Serialize(
+                payload,
+                new System.Text.Json.JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+                });
+            var jsonBytes = System.Text.Encoding.UTF8.GetPreamble()
+                .Concat(System.Text.Encoding.UTF8.GetBytes(json))
+                .ToArray();
+            return (jsonBytes, $"cale-100-dijeron-{session.Id}-{safe}.json", "application/json; charset=utf-8");
+        }
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("ronda,pregunta,rank,respuesta,puntos,aliases");
+        foreach (var round in session.Rounds.OrderBy(r => r.SortOrder))
+        {
+            foreach (var answer in round.Answers.OrderBy(a => a.Rank))
+            {
+                var aliases = string.Join(" | ", GameShowAnswerMatcher.ParseAliases(answer.AliasesJson));
+                sb.AppendLine(
+                    $"{round.SortOrder + 1},{Csv(round.QuestionText)},{answer.Rank},{Csv(answer.Text)},{answer.Points},{Csv(aliases)}");
+            }
+        }
+
+        var csvBytes = System.Text.Encoding.UTF8.GetPreamble()
+            .Concat(System.Text.Encoding.UTF8.GetBytes(sb.ToString()))
+            .ToArray();
+        return (csvBytes, $"cale-100-dijeron-{session.Id}-{safe}.csv", "text/csv; charset=utf-8");
+    }
+
+    private static string Csv(string? value)
+    {
+        var v = (value ?? "").Replace("\"", "\"\"");
+        return $"\"{v}\"";
+    }
+
     private async Task HandlePlayAnswerAsync(
         GameShowSession session,
         GameShowRound round,

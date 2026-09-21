@@ -172,6 +172,12 @@ export class GameShowApi {
     return this.http.post<GameShowLobbyDto>(`${this.base}/api/game-show/${id}/finish`, {});
   }
 
+  exportQuestions(id: number, format: 'csv' | 'json' = 'csv') {
+    return this.http.get(`${this.base}/api/game-show/${id}/export?format=${format}`, {
+      responseType: 'blob'
+    });
+  }
+
   savePlayerToken(sessionId: number, token: string): void {
     localStorage.setItem(`${TOKEN_KEY}.${sessionId}`, token);
   }

@@ -74,6 +74,8 @@ function emptyRound(): GameShowRoundInput {
 
       <div class="actions">
         <ui-button type="button" variant="secondary" (click)="addRound()">+ Ronda</ui-button>
+        <ui-button type="button" variant="secondary" (click)="exportDraft('csv')">Exportar borrador CSV</ui-button>
+        <ui-button type="button" variant="secondary" (click)="exportDraft('json')">Exportar borrador JSON</ui-button>
         <ui-button type="button" [loading]="saving()" (click)="create()">Crear partida</ui-button>
       </div>
     </section>
@@ -84,8 +86,14 @@ function emptyRound(): GameShowRoundInput {
         <ul class="hist">
           @for (h of history(); track h.id) {
             <li>
-              <a [routerLink]="['/teacher/game-show', h.id, 'host']">{{ h.title }}</a>
-              <span>{{ h.teamAScore }} – {{ h.teamBScore }} · {{ h.status }}</span>
+              <div class="hist-main">
+                <a [routerLink]="['/teacher/game-show', h.id, 'host']">{{ h.title }}</a>
+                <span>{{ h.teamAScore }} – {{ h.teamBScore }} · {{ h.status }}</span>
+              </div>
+              <div class="hist-actions">
+                <ui-button type="button" variant="ghost" (click)="exportSession(h.id, 'csv')">CSV</ui-button>
+                <ui-button type="button" variant="ghost" (click)="exportSession(h.id, 'json')">JSON</ui-button>
+              </div>
             </li>
           }
         </ul>
@@ -104,7 +112,9 @@ function emptyRound(): GameShowRoundInput {
     .pts { max-width: 5rem; }
     .actions { display: flex; flex-wrap: wrap; gap: 0.65rem; }
     .hist { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.55rem; }
-    .hist li { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+    .hist li { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; align-items: center; }
+    .hist-main { display: grid; gap: 0.2rem; min-width: 0; }
+    .hist-actions { display: flex; gap: 0.35rem; flex-shrink: 0; }
     @media (max-width: 700px) { .row, .ans-row { grid-template-columns: 1fr; } }
   `]
 })
@@ -136,6 +146,47 @@ export class GameShowHubPage implements OnInit {
     this.rounds = this.rounds.filter((_, i) => i !== index);
   }
 
+  exportDraft(format: 'csv' | 'json'): void {
+    const body: CreateGameShowBody = {
+      title: this.title,
+      teamAName: this.teamA,
+      teamBName: this.teamB,
+      rounds: this.rounds
+    };
+    if (format === 'json') {
+      const blob = new Blob([JSON.stringify(body, null, 2)], { type: 'application/json;charset=utf-8' });
+      this.saveBlob(blob, `cale-100-dijeron-borrador.json`);
+      return;
+    }
+    const lines = ['ronda,pregunta,rank,respuesta,puntos,aliases'];
+    this.rounds.forEach((round, ri) => {
+      round.answers.forEach((ans, ai) => {
+        lines.push(
+          `${ri + 1},${csv(round.questionText)},${ai + 1},${csv(ans.text)},${ans.points},${csv((ans.aliases || []).join(' | '))}`
+        );
+      });
+    });
+    const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    this.saveBlob(blob, `cale-100-dijeron-borrador.csv`);
+  }
+
+  exportSession(id: number, format: 'csv' | 'json'): void {
+    this.error.set(null);
+    this.api.exportQuestions(id, format).subscribe({
+      next: (blob) => this.saveBlob(blob, `cale-100-dijeron-${id}.${format}`),
+      error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  private saveBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   create(): void {
     this.error.set(null);
     this.saving.set(true);
@@ -156,4 +207,8 @@ export class GameShowHubPage implements OnInit {
       }
     });
   }
+}
+
+function csv(value: string): string {
+  return `"${(value || '').replace(/"/g, '""')}"`;
 }
