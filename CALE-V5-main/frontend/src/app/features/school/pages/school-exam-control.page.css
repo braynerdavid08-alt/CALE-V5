@@ -230,8 +230,73 @@ th {
 }
 
 @media (max-width: 720px) {
-  th:nth-child(4),
-  td:nth-child(4) {
+  .toolbar {
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .toolbar a,
+  .toolbar ui-button,
+  .day-field {
+    width: 100%;
+  }
+
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .kpi {
+    min-height: 4.25rem;
+  }
+
+  .desktop-table {
+    display: none;
+  }
+
+  .mobile-cards {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .mobile-card {
+    display: grid;
+    gap: 0.65rem;
+    padding: 0.95rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-background);
+  }
+
+  .mobile-card-top {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.45rem;
+    align-items: center;
+  }
+
+  .mobile-card .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .mobile-card .actions a,
+  .mobile-card .actions button {
+    min-height: 2.75rem;
+    padding: 0.55rem 0.85rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    font-weight: 700;
+  }
+}
+
+@media (min-width: 721px) {
+  .mobile-cards {
     display: none;
   }
 }

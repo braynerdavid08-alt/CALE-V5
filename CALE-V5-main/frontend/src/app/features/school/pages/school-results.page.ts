@@ -61,10 +61,10 @@ interface ResultRow {
             <tbody>
               @for (item of items(); track item.attemptId) {
                 <tr>
-                  <td>{{ item.userName }}</td>
-                  <td>{{ item.mode }}</td>
-                  <td>{{ item.percent }}%</td>
-                  <td>
+                  <td data-label="Estudiante">{{ item.userName }}</td>
+                  <td data-label="Modo">{{ item.mode }}</td>
+                  <td data-label="%">{{ item.percent }}%</td>
+                  <td data-label="Estado">
                     <ui-badge [tone]="item.passed ? 'success' : 'danger'">
                       {{ item.passed ? 'Aprobado' : 'No aprobado' }}
                     </ui-badge>
@@ -78,40 +78,22 @@ interface ResultRow {
     }
   `,
   styles: [`
-    .toolbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-      margin: 0 0 0.85rem;
+    .table-card {
+      border-radius: var(--radius-lg);
+      overflow: hidden;
     }
     .hint {
       margin: 0;
       color: var(--color-text-secondary);
       font-size: var(--text-sm);
     }
-    .table-card {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-    }
-    .table-wrap { overflow-x: auto; }
-    table.data {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: var(--text-sm);
-    }
-    table.data th,
-    table.data td {
-      padding: 0.75rem 1rem;
-      text-align: left;
-      border-bottom: 1px solid var(--color-border);
-    }
-    table.data th {
-      color: var(--color-text-secondary);
-      font-weight: 600;
-      background: var(--color-surface-raised, transparent);
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin: 0 0 0.85rem;
+      flex-wrap: wrap;
     }
   `]
 })

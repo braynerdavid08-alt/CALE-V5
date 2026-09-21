@@ -72,6 +72,7 @@ export class SchoolPracticalPage implements OnInit {
   readonly showVehicles = signal(false);
   readonly picker = signal<PickerCell | null>(null);
   readonly studentSearch = signal('');
+  readonly mobileDay = signal(this.defaultMobileDay());
 
   readonly attendanceLessons = signal<PracticalLessonSessionDto[]>([]);
   readonly selectedAttendanceLessonId = signal<number | null>(null);
@@ -200,7 +201,27 @@ export class SchoolPracticalPage implements OnInit {
 
   goToday(): void {
     this.weekStart.set(this.startOfWeek(new Date()));
+    this.mobileDay.set(this.defaultMobileDay());
     this.loadWeek();
+  }
+
+  setMobileDay(dayIndex: number): void {
+    this.mobileDay.set(dayIndex);
+  }
+
+  dayChipLabel(dayIndex: number): string {
+    const d = this.parseDate(this.weekStart());
+    d.setDate(d.getDate() + dayIndex);
+    const short = this.dayLabels[dayIndex].slice(0, 3);
+    return `${short} ${d.getDate()}`;
+  }
+
+  private defaultMobileDay(): number {
+    const dow = new Date().getDay();
+    if (dow >= 1 && dow <= 6) {
+      return dow - 1;
+    }
+    return 0;
   }
 
   dayDate(dayIndex: number): string {

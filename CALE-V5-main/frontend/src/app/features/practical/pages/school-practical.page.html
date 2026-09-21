@@ -80,7 +80,61 @@
       <div class="grid-loading"><ui-loading /></div>
     }
 
-    <div class="school-grid-wrap" [class.dimmed]="gridLoading()">
+    <nav class="day-picker" aria-label="Día de la semana">
+      @for (label of dayLabels; track label; let i = $index) {
+        <button
+          type="button"
+          class="day-chip"
+          [class.on]="mobileDay() === i"
+          (click)="setMobileDay(i)">
+          {{ dayChipLabel(i) }}
+        </button>
+      }
+    </nav>
+
+    <div class="mobile-day-board" [class.dimmed]="gridLoading()">
+      <header class="mobile-day-head">
+        <strong>{{ dayHeader(mobileDay()) }}</strong>
+        <span>{{ selectedInstructorName() }} · {{ selectedVehicleLabel() }}</span>
+      </header>
+      <ul class="mobile-slot-list">
+        @for (slot of timeSlots; track slot.start) {
+          <li class="mobile-slot">
+            <time>{{ slot.start }}</time>
+            <div class="mobile-slot-body">
+              @if (lessonAt(mobileDay(), slot); as lesson) {
+                @if (lesson.assignment; as a) {
+                  <div class="mobile-assigned" [class.done]="a.reservationStatus === 'Attended'">
+                    <strong>{{ a.studentName }}</strong>
+                    <span>{{ a.licenseCategory }} · {{ a.lessonNumber }}/{{ a.lessonsRequired }}</span>
+                    <div class="cell-actions">
+                      @if (a.reservationStatus === 'Reserved') {
+                        <button type="button" (click)="markLessonPresent(lesson)">Presente</button>
+                      }
+                      <button type="button" class="danger" (click)="unassignLesson(lesson)">Quitar</button>
+                    </div>
+                  </div>
+                } @else if (canAssignSlot(mobileDay(), slot)) {
+                  <button type="button" class="mobile-assign" (click)="openPicker(mobileDay(), slot)">
+                    Asignar estudiante
+                  </button>
+                } @else {
+                  <span class="mobile-limit">Límite {{ maxDailyHours }}h</span>
+                }
+              } @else if (canAssignSlot(mobileDay(), slot)) {
+                <button type="button" class="mobile-assign" (click)="openPicker(mobileDay(), slot)">
+                  Asignar estudiante
+                </button>
+              } @else {
+                <span class="mobile-limit">Límite {{ maxDailyHours }}h</span>
+              }
+            </div>
+          </li>
+        }
+      </ul>
+    </div>
+
+    <div class="school-grid-wrap desktop-grid" [class.dimmed]="gridLoading()">
       <table class="schedule-grid">
         <thead>
           <tr>

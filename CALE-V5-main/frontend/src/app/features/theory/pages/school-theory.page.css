@@ -372,4 +372,26 @@
   .attendance-layout { grid-template-columns: 1fr; }
   .grid-week-bar { flex-wrap: wrap; }
   .week-range { order: -1; width: 100%; margin-bottom: 0.25rem; }
+  .grid-wrap { overflow: visible; }
+  table.grid { display: none; }
+  .month-list {
+    border-top: 0;
+    padding: 0;
+  }
+  .month-list h3 {
+    font-size: 1.1rem;
+  }
+  .month-list ul {
+    max-height: none;
+    gap: 0.65rem;
+  }
+  .month-item {
+    min-height: 3.25rem;
+    padding: 0.85rem 1rem;
+    font-size: 1rem;
+  }
+  .week-nav-btn,
+  .nav-btn {
+    min-height: 2.75rem;
+  }
 }

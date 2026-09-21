@@ -134,10 +134,10 @@ interface SchoolJoinRequestDto {
               <tbody>
                 @for (req of joinRequests(); track req.id) {
                   <tr>
-                    <td>{{ req.teacherName }}</td>
-                    <td>{{ req.teacherEmail }}</td>
-                    <td>{{ req.message || '—' }}</td>
-                    <td>{{ req.createdAt | date:'short' }}</td>
+                    <td data-label="Instructor">{{ req.teacherName }}</td>
+                    <td data-label="Correo">{{ req.teacherEmail }}</td>
+                    <td data-label="Mensaje">{{ req.message || '—' }}</td>
+                    <td data-label="Fecha">{{ req.createdAt | date:'short' }}</td>
                     <td>
                       <div class="row-actions">
                         <ui-button
@@ -351,17 +351,17 @@ interface SchoolJoinRequestDto {
               <tbody>
                 @for (user of filtered(); track user.id) {
                   <tr>
-                    <td>{{ user.name }}</td>
-                    <td>{{ user.email }}</td>
-                    <td>
+                    <td data-label="Nombre">{{ user.name }}</td>
+                    <td data-label="Correo">{{ user.email }}</td>
+                    <td data-label="Rol">
                       <ui-badge [tone]="user.role === 'Teacher' ? 'warning' : 'neutral'">
                         {{ roleLabel(user.role) }}
                       </ui-badge>
                     </td>
-                    <td>
+                    <td data-label="Último acceso">
                       {{ user.lastLoginAt ? (user.lastLoginAt | date:'short') : 'Sin acceso' }}
                     </td>
-                    <td>
+                    <td data-label="Estado">
                       <ui-badge [tone]="user.isActive ? 'success' : 'danger'">
                         {{ user.isActive ? 'Activo' : 'Inactivo' }}
                       </ui-badge>

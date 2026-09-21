@@ -39,10 +39,63 @@ table.data tbody tr:hover td {
 }
 
 @media (max-width: 700px) {
-  table.data { min-width: 480px; }
+  .table-wrap {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
 
-  table.data th,
+  table.data {
+    min-width: 0;
+    border: 0;
+  }
+
+  table.data thead {
+    display: none;
+  }
+
+  table.data,
+  table.data tbody,
+  table.data tr,
   table.data td {
-    padding: 0.75rem 0.85rem;
+    display: block;
+    width: 100%;
+  }
+
+  table.data tbody {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  table.data tr {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    padding: 0.85rem 1rem;
+  }
+
+  table.data td {
+    display: grid;
+    grid-template-columns: minmax(7rem, 35%) 1fr;
+    gap: 0.55rem;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+    font-size: 1rem;
+  }
+
+  table.data td:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  table.data td::before {
+    content: attr(data-label);
+    color: var(--color-text-secondary);
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+
+  table.data td:not([data-label]) {
+    grid-template-columns: 1fr;
   }
 }
