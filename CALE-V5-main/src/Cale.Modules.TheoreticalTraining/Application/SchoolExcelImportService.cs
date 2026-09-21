@@ -203,9 +203,17 @@ public sealed class SchoolExcelImportService
         var cached = _cache.Take(previewId, schoolUserId)
             ?? throw new NotFoundException("La vista previa expiró. Vuelve a subir el archivo.", "preview_expired");
 
-        if (cached.Rows.Any(r => r.Action == "error"))
+        if (cached.Rows.Any(r => r.Action == "error" || string.Equals(r.Severity, "error", StringComparison.OrdinalIgnoreCase)))
         {
             throw new DomainException("Corrige los errores antes de importar.", 400, "import_has_errors");
+        }
+
+        if (cached.Rows.Any(r => string.Equals(r.Severity, "warning", StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new DomainException(
+                "Hay filas con advertencias. Corrige el archivo o vuelve a revisar la vista previa antes de importar.",
+                400,
+                "import_has_warnings");
         }
 
         var created = 0;

@@ -161,7 +161,7 @@ ConnectionStrings__Cale=postgresql://USER:PASSWORD@HOST:5432/DBNAME
 
 También funciona si pegas la URL en `DATABASE_URL` (Render a veces la inyecta solo al linkear la DB).
 
-4. Redeploy. La API crea las tablas sola (`EnsureCreated`) y el admin temporal.
+4. Redeploy. En **Development** la API puede crear tablas (`Database:AllowEnsureCreated`) y parches (`Database:ApplyFeatureSchema`). En **Production** ambos van en `false`: el esquema debe existir ya (copia/migración previa).
 
 SQL Server (Azure/local) sigue soportado con connection string tipo `Server=...;Database=...;...`.
 
@@ -171,12 +171,7 @@ El plan Free **borra el disco del contenedor** cuando la instancia se duerme. Po
 
 Con **PostgreSQL** los usuarios y datos **sí se mantienen**.
 
-Si no hay ningún administrador, la API crea uno temporal:
-
-- Correo: `admin@micale.app`
-- Clave: `CambiarYa123!`
-
-Al entrar te pedirá cambiar la contraseña. En **Mi perfil** también puedes cambiar el **correo**. Después de eso, el bootstrap no vuelve a recrear el admin.
+Si no hay ningún administrador y `Seed:BootstrapAdmin=true` **con** `Seed:Admin:Email` + `Seed:Admin:Password` definidos, la API puede crear un admin temporal. **Nunca** uses claves hardcodeadas en el código.
 
 ### Admin único (producción)
 
@@ -186,7 +181,17 @@ Al entrar te pedirá cambiar la contraseña. En **Mi perfil** también puedes ca
 Seed__Admin__Email=tu-correo@dominio.com
 Seed__Admin__Name=Tu Nombre
 Seed__Admin__Password=TU_CLAVE_FUERTE
-Seed__Admin__PurgeOthers=true
+Seed__Admin__PurgeOthers=false
 ```
 
-Al arrancar, la API crea/actualiza ese admin (clave en **hash** en la BD) y, si `PurgeOthers=true`, **borra el resto de cuentas**. Luego puedes poner `PurgeOthers=false` para no limpiar en cada redeploy.
+`PurgeOthers=true` **borra el resto de cuentas**. Fuera de Development se ignora salvo que también pongas `Seed__Admin__AllowPurgeInNonDevelopment=true` (solo un one-shot deliberado). Luego deja `PurgeOthers=false`.
+
+Esquema en producción (recomendado):
+
+```env
+Database__AllowEnsureCreated=false
+Database__ApplyFeatureSchema=false
+Database__AllowRequestPathRepair=false
+```
+
+Para un bootstrap inicial controlado en un entorno vacío puedes activar EnsureCreated/FeatureSchema una sola vez y volver a apagarlos.

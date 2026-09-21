@@ -68,14 +68,42 @@ public static class WebApplicationExtensions
             "Database provider: {Provider}; {Description}",
             providerKind,
             DatabaseConnection.Describe(DatabaseConnection.Resolve(app.Configuration)));
-     
+
+        var allowEnsureCreated = app.Configuration.GetValue(
+            "Database:AllowEnsureCreated",
+            app.Environment.IsDevelopment());
+        var applyFeatureSchema = app.Configuration.GetValue(
+            "Database:ApplyFeatureSchema",
+            app.Environment.IsDevelopment());
+
         try
         {
             await db.Database.OpenConnectionAsync();
             await db.Database.CloseConnectionAsync();
 
-            await db.Database.EnsureCreatedAsync();
-            await FeatureSchema.EnsureAsync(db);
+            if (allowEnsureCreated)
+            {
+                bootLogger.LogWarning(
+                    "Database:AllowEnsureCreated is enabled — creating missing tables via EnsureCreated (dev/bootstrap only).");
+                await db.Database.EnsureCreatedAsync();
+            }
+            else
+            {
+                bootLogger.LogInformation(
+                    "Skipping EnsureCreated (Database:AllowEnsureCreated=false). Schema must already exist.");
+            }
+
+            if (applyFeatureSchema)
+            {
+                bootLogger.LogWarning(
+                    "Database:ApplyFeatureSchema is enabled — applying FeatureSchema patches at startup.");
+                await FeatureSchema.EnsureAsync(db);
+            }
+            else
+            {
+                bootLogger.LogInformation(
+                    "Skipping FeatureSchema (Database:ApplyFeatureSchema=false).");
+            }
         }
         catch (Exception ex)
         {
@@ -108,6 +136,17 @@ public static class WebApplicationExtensions
         var adminName = app.Configuration["Seed:Admin:Name"] ?? "Administrador";
         var purgeOthers = app.Configuration.GetValue("Seed:Admin:PurgeOthers", false);
         var bootstrapAdmin = app.Configuration.GetValue("Seed:BootstrapAdmin", true);
+        var allowPurgeOutsideDev = app.Configuration.GetValue(
+            "Seed:Admin:AllowPurgeInNonDevelopment",
+            false);
+
+        if (purgeOthers && !app.Environment.IsDevelopment() && !allowPurgeOutsideDev)
+        {
+            seedLogger.LogError(
+                "Refusing Seed:Admin:PurgeOthers outside Development. " +
+                "Set Seed:Admin:AllowPurgeInNonDevelopment=true only for a deliberate one-shot cleanup.");
+            purgeOthers = false;
+        }
 
         var hasSecret = !string.IsNullOrWhiteSpace(adminPassword)
             || !string.IsNullOrWhiteSpace(adminPasswordHash);
@@ -166,11 +205,15 @@ public static class WebApplicationExtensions
         var catalogLogger = scope.ServiceProvider
             .GetRequiredService<ILoggerFactory>()
             .CreateLogger("CatalogSeed");
+        var allowPartialRebuild = app.Configuration.GetValue("Seed:Catalog:AllowPartialRebuild", false);
+        var allowReplaceExisting = app.Configuration.GetValue("Seed:Catalog:AllowReplaceExisting", false);
         await CatalogSeed.EnsureOfficialBanksAsync(
             db,
             seedDir,
             clock,
             adminId,
-            catalogLogger);
+            catalogLogger,
+            allowPartialRebuild: allowPartialRebuild,
+            allowReplaceExisting: allowReplaceExisting);
     }
 }
