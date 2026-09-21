@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import {
   NotificationDto,
@@ -10,6 +10,7 @@ import { UiIconComponent } from './ui-icon.component';
 @Component({
   selector: 'ui-dash-notifs',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, UiIconComponent],
   template: `
     <section class="dash-panel">

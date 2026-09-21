@@ -1,9 +1,10 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { UiIconComponent } from './ui-icon.component';
 
 @Component({
   selector: 'ui-dash-kpi',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [UiIconComponent],
   template: `
     <article class="kpi" [attr.data-tone]="tone">
@@ -12,7 +13,7 @@ import { UiIconComponent } from './ui-icon.component';
         <strong>{{ value }}</strong>
         @if (delta !== null && delta !== undefined && delta !== '') {
           <span class="delta" [attr.data-dir]="deltaDir">
-            <span aria-hidden="true">{{ deltaDir === 'down' ? '↓' : '↑' }}</span>
+            <span aria-hidden="true">{{ deltaDir === 'down' ? 'â†“' : 'â†‘' }}</span>
             {{ delta }}
           </span>
         } @else if (hint) {

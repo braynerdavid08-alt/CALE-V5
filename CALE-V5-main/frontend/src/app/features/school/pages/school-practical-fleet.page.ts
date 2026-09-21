@@ -1,9 +1,11 @@
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, tap } from 'rxjs/operators';
 import { mapApiError } from '../../../core/http/map-api-error';
+import { pollWhileVisible } from '../../../core/rxjs/poll-while-visible';
 import {
   PracticalApi,
   PracticalLessonSessionDto,
@@ -31,9 +33,9 @@ type FleetFilter = 'all' | FleetStatus;
   templateUrl: './school-practical-fleet.page.html',
   styleUrl: './school-practical-fleet.page.css'
 })
-export class SchoolPracticalFleetPage implements OnInit, OnDestroy {
+export class SchoolPracticalFleetPage implements OnInit {
   private readonly api = inject(PracticalApi);
-  private refreshTimer: ReturnType<typeof setInterval> | null = null;
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly loading = signal(true);
   readonly acting = signal(false);
@@ -89,38 +91,38 @@ export class SchoolPracticalFleetPage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.reload();
-    this.refreshTimer = setInterval(() => this.reload(true), 30000);
-  }
-
-  ngOnDestroy(): void {
-    if (this.refreshTimer) {
-      clearInterval(this.refreshTimer);
-      this.refreshTimer = null;
-    }
+    pollWhileVisible(30000, () => this.fetchFleet(true), { leading: false })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe();
   }
 
   reload(silent = false): void {
+    this.fetchFleet(silent).subscribe();
+  }
+
+  private fetchFleet(silent: boolean) {
     if (!silent) {
       this.loading.set(true);
       this.error.set(null);
     }
     const weekStart = this.mondayOf(this.day);
-    forkJoin({
+    return forkJoin({
       lessons: this.api.listLessons(weekStart).pipe(catchError(() => of([] as PracticalLessonSessionDto[]))),
       vehicles: this.api.listVehicles(true).pipe(catchError(() => of([] as PracticalVehicleDto[])))
-    }).subscribe({
-      next: ({ lessons, vehicles }) => {
+    }).pipe(
+      tap(({ lessons, vehicles }) => {
         this.lessons.set(lessons);
         this.vehicles.set(vehicles);
         this.loading.set(false);
-      },
-      error: (err) => {
+      }),
+      catchError((err) => {
         this.loading.set(false);
         if (!silent) {
           this.error.set(mapApiError(err));
         }
-      }
-    });
+        return of(null);
+      })
+    );
   }
 
   onDayChange(value: string): void {

@@ -1,6 +1,9 @@
-import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { of } from 'rxjs';
+import { catchError, tap } from 'rxjs/operators';
 import { mapApiError } from '../../../core/http/map-api-error';
 import {
   NotificationDto,
@@ -9,6 +12,7 @@ import {
   notificationRelativeTime,
   notificationTypeLabel
 } from '../../../core/notifications/notifications.api';
+import { pollWhileVisible } from '../../../core/rxjs/poll-while-visible';
 import { SessionStore } from '../../../core/auth/session.store';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiCardComponent } from '../../../shared/ui/ui-card.component';
@@ -33,9 +37,10 @@ type FilterKey = 'all' | 'unread' | 'academic' | 'admin' | 'membership' | 'syste
   templateUrl: './notifications.page.html',
   styleUrl: './notifications.page.css'
 })
-export class NotificationsPage implements OnInit, OnDestroy {
+export class NotificationsPage implements OnInit {
   private readonly api = inject(NotificationsApi);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   readonly session = inject(SessionStore);
 
   readonly loading = signal(true);
@@ -45,8 +50,6 @@ export class NotificationsPage implements OnInit, OnDestroy {
   readonly filter = signal<FilterKey>('all');
   readonly prefs = signal<NotificationPreferenceDto | null>(null);
   readonly prefsSaved = signal(false);
-
-  private poll?: ReturnType<typeof setInterval>;
 
   readonly filters: { key: FilterKey; label: string }[] = [
     { key: 'all', label: 'Todas' },
@@ -62,38 +65,39 @@ export class NotificationsPage implements OnInit, OnDestroy {
     this.api.preferences().subscribe({
       next: (p) => this.prefs.set(p)
     });
-    this.poll = setInterval(() => this.reload(false), 45000);
-  }
-
-  ngOnDestroy(): void {
-    if (this.poll) {
-      clearInterval(this.poll);
-    }
+    pollWhileVisible(45000, () => this.fetchList(false), { leading: false })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe();
   }
 
   reload(showLoading = true): void {
+    this.fetchList(showLoading).subscribe();
+  }
+
+  private fetchList(showLoading: boolean) {
     if (showLoading) {
       this.loading.set(true);
     }
     this.error.set(null);
     const f = this.filter();
-    this.api
+    return this.api
       .list({
         unreadOnly: f === 'unread' ? true : undefined,
         category: f === 'all' || f === 'unread' ? undefined : f,
         take: 50
       })
-      .subscribe({
-        next: (res) => {
+      .pipe(
+        tap((res) => {
           this.items.set(res.items);
           this.unread.set(res.unreadCount);
           this.loading.set(false);
-        },
-        error: (err) => {
+        }),
+        catchError((err) => {
           this.loading.set(false);
           this.error.set(mapApiError(err));
-        }
-      });
+          return of(null);
+        })
+      );
   }
 
   setFilter(key: FilterKey): void {

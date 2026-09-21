@@ -1,8 +1,9 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 
 @Component({
   selector: 'ui-stat',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <article class="stat" [attr.data-tone]="tone">
       <span class="label">{{ label }}</span>

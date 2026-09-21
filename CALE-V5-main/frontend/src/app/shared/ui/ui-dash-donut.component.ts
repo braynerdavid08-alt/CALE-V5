@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 
 export interface DashDonutSlice {
   label: string;
@@ -9,12 +9,13 @@ export interface DashDonutSlice {
 @Component({
   selector: 'ui-dash-donut',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="wrap">
       <div
         class="chart"
         role="img"
-        [attr.aria-label]="centerLabel || 'Distribución'"
+        [attr.aria-label]="centerLabel || 'DistribuciÃ³n'"
         [style.background]="gradient">
         <div class="hole">
           <span>{{ centerLabel }}</span>

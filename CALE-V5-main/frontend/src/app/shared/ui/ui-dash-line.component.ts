@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 
 export interface DashLineSeries {
   label: string;
@@ -9,13 +9,14 @@ export interface DashLineSeries {
 @Component({
   selector: 'ui-dash-line',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="wrap">
       <svg
         class="chart"
         [attr.viewBox]="'0 0 ' + width + ' ' + height"
         role="img"
-        [attr.aria-label]="title || 'Gráfico de líneas'">
+        [attr.aria-label]="title || 'GrÃ¡fico de lÃ­neas'">
         @for (y of gridYs; track y) {
           <line
             [attr.x1]="padL"

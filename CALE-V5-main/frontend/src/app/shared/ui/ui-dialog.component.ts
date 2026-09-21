@@ -1,5 +1,6 @@
 import {
   AfterViewChecked,
+  ChangeDetectionStrategy,
   Component,
   ElementRef,
   EventEmitter,
@@ -15,6 +16,7 @@ import { UiButtonComponent } from './ui-button.component';
 @Component({
   selector: 'ui-dialog',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [UiButtonComponent],
   template: `
     @if (open) {

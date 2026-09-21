@@ -1,10 +1,11 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { resolveMediaUrl } from '../../core/media/resolve-media-url';
 import { UiButtonComponent } from './ui-button.component';
 
 @Component({
   selector: 'ui-image-picker',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [UiButtonComponent],
   template: `
     <div class="picker">
@@ -27,7 +28,7 @@ import { UiButtonComponent } from './ui-button.component';
         }
       </div>
       @if (busy) {
-        <small>Subiendo imagen…</small>
+        <small>Subiendo imagenâ€¦</small>
       }
     </div>
   `,

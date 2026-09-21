@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 
 export interface DashBarItem {
   label: string;
@@ -10,6 +10,7 @@ export interface DashBarItem {
 @Component({
   selector: 'ui-dash-bars',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <ul class="bars" role="list">
       @for (item of items; track item.label) {

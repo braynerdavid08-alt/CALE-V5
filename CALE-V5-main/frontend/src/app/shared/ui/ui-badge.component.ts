@@ -1,8 +1,9 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 
 @Component({
   selector: 'ui-badge',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `<span class="badge" [attr.data-tone]="tone"><ng-content /></span>`,
   styles: [`
     .badge {

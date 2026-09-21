@@ -1,25 +1,28 @@
 import {
   Component,
+  DestroyRef,
   ElementRef,
   HostListener,
-  OnDestroy,
   OnInit,
   inject,
   signal
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   NavigationEnd,
   Router,
   RouterLink,
   RouterOutlet
 } from '@angular/router';
-import { filter } from 'rxjs';
+import { of } from 'rxjs';
+import { catchError, filter, tap } from 'rxjs/operators';
 import {
   NotificationDto,
   NotificationsApi,
   notificationRelativeTime,
   notificationTypeLabel
 } from '../core/notifications/notifications.api';
+import { pollWhileVisible } from '../core/rxjs/poll-while-visible';
 import { SessionStore } from '../core/auth/session.store';
 import { BRAND } from '../core/brand';
 import { AuthFacade } from '../features/auth/application/auth.facade';
@@ -52,13 +55,14 @@ const SIDEBAR_COLLAPSED_KEY = 'cale.sidebar.collapsed';
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.css'
 })
-export class AppShellComponent implements OnInit, OnDestroy {
+export class AppShellComponent implements OnInit {
   readonly brand = BRAND;
   readonly session = inject(SessionStore);
   private readonly auth = inject(AuthFacade);
   private readonly router = inject(Router);
   private readonly notificationsApi = inject(NotificationsApi);
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly menuOpen = signal(false);
   readonly panelOpen = signal(false);
@@ -68,8 +72,6 @@ export class AppShellComponent implements OnInit, OnDestroy {
   readonly url = signal(this.router.url);
   readonly sidebarCollapsed = signal(this.readCollapsedPref());
   readonly openGroups = signal<Record<string, boolean>>({});
-
-  private poll?: ReturnType<typeof setInterval>;
 
   get role(): string | undefined {
     return this.session.user()?.role;
@@ -111,9 +113,18 @@ export class AppShellComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.refreshUnread();
     this.syncOpenGroups(this.router.url);
-    this.poll = setInterval(() => this.refreshUnread(), 30000);
+    pollWhileVisible(
+      30000,
+      () => this.fetchUnreadCount(),
+      { leading: false }
+    )
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe();
     this.router.events
-      .pipe(filter((e) => e instanceof NavigationEnd))
+      .pipe(
+        filter((e) => e instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe((e) => {
         this.menuOpen.set(false);
         this.panelOpen.set(false);
@@ -122,12 +133,6 @@ export class AppShellComponent implements OnInit, OnDestroy {
         this.syncOpenGroups(nextUrl);
         this.refreshUnread();
       });
-  }
-
-  ngOnDestroy(): void {
-    if (this.poll) {
-      clearInterval(this.poll);
-    }
   }
 
   isNavOn(item: NavItem): boolean {
@@ -201,13 +206,20 @@ export class AppShellComponent implements OnInit, OnDestroy {
   }
 
   refreshUnread(): void {
+    this.fetchUnreadCount().subscribe();
+  }
+
+  private fetchUnreadCount() {
     if (this.mustChangePassword) {
-      return;
+      return of(0);
     }
-    this.notificationsApi.unreadCount().subscribe({
-      next: (count) => this.unread.set(count),
-      error: () => this.unread.set(0)
-    });
+    return this.notificationsApi.unreadCount().pipe(
+      tap((count) => this.unread.set(count)),
+      catchError(() => {
+        this.unread.set(0);
+        return of(0);
+      })
+    );
   }
 
   togglePanel(event: Event): void {
