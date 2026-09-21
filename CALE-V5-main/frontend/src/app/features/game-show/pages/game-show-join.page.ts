@@ -64,7 +64,9 @@ export class GameShowJoinPage implements OnInit {
       next: (res) => {
         this.loading.set(false);
         this.api.savePlayerToken(res.sessionId, res.playerToken);
-        localStorage.setItem(`cale.game-show.team.${res.sessionId}`, this.team);
+        // El equipo definitivo lo decide el backend (puede reasignar al reingresar).
+        localStorage.setItem(`cale.game-show.team.${res.sessionId}`, res.team || this.team);
+        localStorage.setItem(`cale.game-show.playerId.${res.sessionId}`, String(res.playerId));
         void this.router.navigate(['/game-show/play', res.sessionId]);
       },
       error: (err) => {

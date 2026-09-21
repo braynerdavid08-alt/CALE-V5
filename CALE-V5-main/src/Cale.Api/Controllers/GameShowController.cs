@@ -46,17 +46,20 @@ public sealed class GameShowController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
+    [AllowAnonymous]
     public async Task<IActionResult> Get(
         int id,
         [FromQuery] Guid? playerToken,
         [FromQuery] bool host = false,
         CancellationToken ct = default)
     {
-        var userId = CurrentUser.GetId(User);
+        int? userId = null;
+        try { userId = CurrentUser.GetId(User); } catch { /* anonymous screen/player */ }
         return Ok(await _handler.GetLobbyAsync(id, userId, playerToken, ct, preferHostView: host));
     }
 
     [HttpPost("join")]
+    [AllowAnonymous]
     public async Task<IActionResult> Join(
         [FromBody] JoinGameShowRequest request,
         CancellationToken ct)
@@ -64,6 +67,26 @@ public sealed class GameShowController : ControllerBase
         int? userId = null;
         try { userId = CurrentUser.GetId(User); } catch { /* optional */ }
         return Ok(await _handler.JoinAsync(request, userId, ct));
+    }
+
+    [HttpGet("packs/oficial")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> OfficialPack(CancellationToken ct = default)
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "SeedData", "gameshow-100-dijeron-oficial.json");
+        if (!System.IO.File.Exists(path))
+        {
+            // Dev fallback: look relative to content root.
+            path = Path.Combine(Directory.GetCurrentDirectory(), "SeedData", "gameshow-100-dijeron-oficial.json");
+        }
+        if (!System.IO.File.Exists(path))
+        {
+            return NotFound(new { error = "pack_missing", message = "Pack oficial no disponible." });
+        }
+
+        var text = await System.IO.File.ReadAllTextAsync(path, ct);
+        var body = GameShowQuestionImport.ParseJson(text);
+        return Ok(body);
     }
 
     [HttpGet("{id:int}/export")]
@@ -174,6 +197,7 @@ public sealed class GameShowController : ControllerBase
     }
 
     [HttpPost("{id:int}/buzz")]
+    [AllowAnonymous]
     public async Task<IActionResult> Buzz(
         int id,
         [FromQuery] Guid playerToken,
@@ -195,6 +219,7 @@ public sealed class GameShowController : ControllerBase
     }
 
     [HttpPost("{id:int}/answer")]
+    [AllowAnonymous]
     public async Task<IActionResult> Answer(
         int id,
         [FromQuery] Guid playerToken,
@@ -218,6 +243,22 @@ public sealed class GameShowController : ControllerBase
     public async Task<IActionResult> Strike(int id, CancellationToken ct)
     {
         await _handler.HostStrikeAsync(id, CurrentUser.GetId(User), ct);
+        return Ok(await _handler.GetLobbyAsync(id, CurrentUser.GetId(User), null, ct, preferHostView: true));
+    }
+
+    [HttpPost("{id:int}/fail-steal")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> FailSteal(int id, CancellationToken ct)
+    {
+        await _handler.HostFailStealAsync(id, CurrentUser.GetId(User), ct);
+        return Ok(await _handler.GetLobbyAsync(id, CurrentUser.GetId(User), null, ct, preferHostView: true));
+    }
+
+    [HttpPost("{id:int}/end-round")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> EndRound(int id, CancellationToken ct)
+    {
+        await _handler.HostEndRoundAsync(id, CurrentUser.GetId(User), ct);
         return Ok(await _handler.GetLobbyAsync(id, CurrentUser.GetId(User), null, ct, preferHostView: true));
     }
 

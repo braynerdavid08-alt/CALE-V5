@@ -114,31 +114,28 @@ export const routes: Routes = [
       import('./features/live/pages/live-play.page')
         .then((m) => m.LivePlayPage)
   },
+  // Rutas públicas del juego: la API permite anónimos con código/token de jugador.
   {
     path: 'game-show/join',
     pathMatch: 'full',
-    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/game-show/pages/game-show-join.page')
         .then((m) => m.GameShowJoinPage)
   },
   {
     path: 'game-show/join/:code',
-    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/game-show/pages/game-show-join.page')
         .then((m) => m.GameShowJoinPage)
   },
   {
     path: 'game-show/play/:sessionId',
-    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/game-show/pages/game-show-play.page')
         .then((m) => m.GameShowPlayPage)
   },
   {
     path: 'game-show/screen/:sessionId',
-    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/game-show/pages/game-show-screen.page')
         .then((m) => m.GameShowScreenPage)

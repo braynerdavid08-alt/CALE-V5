@@ -86,6 +86,9 @@ function emptyRound(): GameShowRoundInput {
         <ui-button type="button" variant="secondary" (click)="pickImport()" [loading]="importing()">
           Importar JSON/CSV
         </ui-button>
+        <ui-button type="button" variant="secondary" (click)="loadOfficialPack()" [loading]="loadingPack()">
+          Cargar pack oficial (41)
+        </ui-button>
         <input
           #importInput
           class="file-input"
@@ -94,7 +97,10 @@ function emptyRound(): GameShowRoundInput {
           (change)="onImportFile($event)" />
         <ui-button type="button" [loading]="saving()" (click)="create()">Crear partida</ui-button>
       </div>
-      <p class="hint">Puedes importar un archivo exportado antes, revisar las rondas y luego crear la partida.</p>
+      @if (loadedInfo()) {
+        <p class="loaded">{{ loadedInfo() }}</p>
+      }
+      <p class="hint">Puedes importar un archivo exportado antes o cargar el pack oficial, revisar las rondas y luego crear la partida.</p>
     </section>
 
     @if (history().length) {
@@ -130,6 +136,7 @@ function emptyRound(): GameShowRoundInput {
     .actions { display: flex; flex-wrap: wrap; gap: 0.65rem; align-items: center; }
     .file-input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
     .hint { margin: 0; color: var(--color-muted, #6b7280); font-size: 0.9rem; }
+    .loaded { margin: 0; color: var(--color-success); font-weight: 700; }
     .hist { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.55rem; }
     .hist li { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; align-items: center; }
     .hist-main { display: grid; gap: 0.2rem; min-width: 0; }
@@ -148,6 +155,8 @@ export class GameShowHubPage implements OnInit {
   readonly error = signal<string | null>(null);
   readonly saving = signal(false);
   readonly importing = signal(false);
+  readonly loadingPack = signal(false);
+  readonly loadedInfo = signal<string | null>(null);
   readonly history = signal<GameShowHistoryItemDto[]>([]);
 
   title = '100 Estudiantes Dijeron';
@@ -185,6 +194,21 @@ export class GameShowHubPage implements OnInit {
 
   pickImport(): void {
     this.importInput?.nativeElement.click();
+  }
+
+  loadOfficialPack(): void {
+    this.error.set(null);
+    this.loadingPack.set(true);
+    this.api.officialPack().subscribe({
+      next: (body) => {
+        this.applyImport(body);
+        this.loadingPack.set(false);
+      },
+      error: (err) => {
+        this.loadingPack.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
   }
 
   onImportFile(event: Event): void {
@@ -240,6 +264,7 @@ export class GameShowHubPage implements OnInit {
     if (this.rounds.length < 1) {
       this.rounds = [emptyRound()];
     }
+    this.loadedInfo.set(`Rondas cargadas: ${this.rounds.length}`);
   }
 
   exportDraft(format: 'csv' | 'json'): void {

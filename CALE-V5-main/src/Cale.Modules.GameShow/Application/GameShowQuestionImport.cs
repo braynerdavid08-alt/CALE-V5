@@ -62,9 +62,9 @@ public static class GameShowQuestionImport
             throw new DomainException("El JSON no tiene rondas.", 400, "invalid_rounds");
         }
 
-        if (body.Rounds.Count > 20)
+        if (body.Rounds.Count > 50)
         {
-            throw new DomainException("Máximo 20 rondas por partida.", 400, "too_many_rounds");
+            throw new DomainException("Máximo 50 rondas por partida.", 400, "too_many_rounds");
         }
 
         var rounds = body.Rounds.Select(NormalizeRound).ToList();
@@ -151,9 +151,9 @@ public static class GameShowQuestionImport
             throw new DomainException("No se encontraron rondas en el CSV.", 400, "invalid_csv");
         }
 
-        if (byRound.Count > 20)
+        if (byRound.Count > 50)
         {
-            throw new DomainException("Máximo 20 rondas por partida.", 400, "too_many_rounds");
+            throw new DomainException("Máximo 50 rondas por partida.", 400, "too_many_rounds");
         }
 
         var rounds = byRound.Values.Select(acc =>

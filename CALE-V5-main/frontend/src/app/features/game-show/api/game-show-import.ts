@@ -42,8 +42,8 @@ function parseJson(raw: string): CreateGameShowBody {
   if (!Array.isArray(roundsRaw) || roundsRaw.length < 1) {
     throw new GameShowImportError('El JSON no tiene rondas.');
   }
-  if (roundsRaw.length > 20) {
-    throw new GameShowImportError('Máximo 20 rondas por partida.');
+    if (roundsRaw.length > 50) {
+    throw new GameShowImportError('Máximo 50 rondas por partida.');
   }
 
   const rounds: GameShowRoundInput[] = roundsRaw.map((r, i) => mapRound(r, i + 1));
@@ -157,8 +157,8 @@ function parseCsv(raw: string): CreateGameShowBody {
   if (byRound.size < 1) {
     throw new GameShowImportError('No se encontraron rondas en el CSV.');
   }
-  if (byRound.size > 20) {
-    throw new GameShowImportError('Máximo 20 rondas por partida.');
+  if (byRound.size > 50) {
+    throw new GameShowImportError('Máximo 50 rondas por partida.');
   }
 
   const rounds: GameShowRoundInput[] = [...byRound.entries()]

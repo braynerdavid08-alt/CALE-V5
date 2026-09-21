@@ -1,0 +1,206 @@
+ronda,pregunta,rank,respuesta,puntos,aliases
+1,¿Qué dicen los estudiantes que es lo primero que se hace al subir al vehículo?,1,Ponerse el cinturón de seguridad,30,cinturón|abrocharse el cinturón
+1,¿Qué dicen los estudiantes que es lo primero que se hace al subir al vehículo?,2,Ajustar los espejos,25,acomodar espejos|revisar retrovisores
+1,¿Qué dicen los estudiantes que es lo primero que se hace al subir al vehículo?,3,Ajustar la silla y el timón,20,acomodar el asiento|graduar la silla
+1,¿Qué dicen los estudiantes que es lo primero que se hace al subir al vehículo?,4,Verificar que esté en neutro,15,punto muerto
+1,¿Qué dicen los estudiantes que es lo primero que se hace al subir al vehículo?,5,Encender el vehículo,10,prender el carro
+2,Mencione una señal de tránsito reglamentaria que todo estudiante reconoce,1,Pare,30,stop|señal de pare
+2,Mencione una señal de tránsito reglamentaria que todo estudiante reconoce,2,Ceda el paso,25,ceda
+2,Mencione una señal de tránsito reglamentaria que todo estudiante reconoce,3,Velocidad máxima permitida,20,límite de velocidad
+2,Mencione una señal de tránsito reglamentaria que todo estudiante reconoce,4,Prohibido parquear,15,no estacionar|no parquear
+2,Mencione una señal de tránsito reglamentaria que todo estudiante reconoce,5,Prohibido adelantar,10,no adelantar|no sobrepasar
+3,¿Qué documento no puede faltarle a un conductor en Colombia?,1,Licencia de conducción,30,pase|licencia
+3,¿Qué documento no puede faltarle a un conductor en Colombia?,2,SOAT vigente,25,soat|seguro obligatorio
+3,¿Qué documento no puede faltarle a un conductor en Colombia?,3,Revisión tecnicomecánica,20,tecnomecánica|técnico mecánica
+3,¿Qué documento no puede faltarle a un conductor en Colombia?,4,Tarjeta de propiedad,15,licencia de tránsito
+3,¿Qué documento no puede faltarle a un conductor en Colombia?,5,Documento de identidad,10,cédula
+4,Nombre un elemento del kit de carretera obligatorio,1,Llanta de repuesto,30,repuesto|llanta de emergencia
+4,Nombre un elemento del kit de carretera obligatorio,2,Gato hidráulico,25,gato
+4,Nombre un elemento del kit de carretera obligatorio,3,Extintor,20,extinguidor
+4,Nombre un elemento del kit de carretera obligatorio,4,Señales reflectivas de emergencia,15,triángulos|conos reflectivos
+4,Nombre un elemento del kit de carretera obligatorio,5,Botiquín de primeros auxilios,10,botiquín
+5,¿Cuál es la causa más común de los accidentes de tránsito?,1,Exceso de velocidad,30,ir muy rápido|velocidad
+5,¿Cuál es la causa más común de los accidentes de tránsito?,2,Conducir bajo efectos del licor,25,manejar borracho|embriaguez
+5,¿Cuál es la causa más común de los accidentes de tránsito?,3,Usar el celular mientras se maneja,20,celular|distracción con el teléfono
+5,¿Cuál es la causa más común de los accidentes de tránsito?,4,No respetar las señales de tránsito,15,pasarse el semáforo
+5,¿Cuál es la causa más común de los accidentes de tránsito?,5,Imprudencia del peatón,10,peatón cruzando mal
+6,¿Qué dicen los estudiantes que más los pone nerviosos en el examen práctico?,1,Parquear en paralelo,30,parqueo en línea|estacionar en paralelo
+6,¿Qué dicen los estudiantes que más los pone nerviosos en el examen práctico?,2,Arrancar en pendiente,25,la rampa|subida
+6,¿Qué dicen los estudiantes que más los pone nerviosos en el examen práctico?,3,Que el examinador esté al lado,20,el evaluador|el instructor mirando
+6,¿Qué dicen los estudiantes que más los pone nerviosos en el examen práctico?,4,Hacer el ocho o el slalom,15,el ocho|los conos
+6,¿Qué dicen los estudiantes que más los pone nerviosos en el examen práctico?,5,Reversar sin pisar la línea,10,dar reversa
+7,Mencione una parte del carro que se revisa antes de un viaje largo,1,Las llantas y su presión,30,llantas|presión de aire
+7,Mencione una parte del carro que se revisa antes de un viaje largo,2,Los frenos,25,pastillas de freno
+7,Mencione una parte del carro que se revisa antes de un viaje largo,3,El nivel de aceite,20,aceite del motor
+7,Mencione una parte del carro que se revisa antes de un viaje largo,4,Las luces,15,luces altas y bajas|direccionales
+7,Mencione una parte del carro que se revisa antes de un viaje largo,5,El refrigerante del motor,10,agua del radiador|coolant
+8,¿Qué hace usted si se le pincha una llanta en plena vía?,1,Orillarse en un lugar seguro,30,parquear a un lado|hacerse a la orilla
+8,¿Qué hace usted si se le pincha una llanta en plena vía?,2,Encender las luces estacionarias,25,prender las intermitentes|estacionarias
+8,¿Qué hace usted si se le pincha una llanta en plena vía?,3,Colocar las señales reflectivas,20,poner los triángulos|poner los conos
+8,¿Qué hace usted si se le pincha una llanta en plena vía?,4,Cambiar la llanta con el gato y la cruceta,15,montar el repuesto
+8,¿Qué hace usted si se le pincha una llanta en plena vía?,5,Llamar a la grúa o a la aseguradora,10,pedir asistencia|llamar a la grúa
+9,Nombre una infracción que puede costarle la licencia de conducción,1,Conducir en estado de embriaguez,30,manejar borracho|alcohol al volante
+9,Nombre una infracción que puede costarle la licencia de conducción,2,Participar en piques o carreras ilegales,25,piques|carreras clandestinas
+9,Nombre una infracción que puede costarle la licencia de conducción,3,Conducir sin licencia o con licencia vencida,20,sin pase
+9,Nombre una infracción que puede costarle la licencia de conducción,4,Huir del lugar de un accidente,15,darse a la fuga|fugarse
+9,Nombre una infracción que puede costarle la licencia de conducción,5,Reincidir en comparendos graves,10,muchos comparendos
+10,¿Qué significa la luz amarilla del semáforo?,1,Prepararse para detenerse,30,alistarse para parar
+10,¿Qué significa la luz amarilla del semáforo?,2,Disminuir la velocidad,25,bajar la velocidad|frenar suave
+10,¿Qué significa la luz amarilla del semáforo?,3,Precaución,20,atención|cuidado
+10,¿Qué significa la luz amarilla del semáforo?,4,Que va a cambiar a rojo,15,viene el rojo
+10,¿Qué significa la luz amarilla del semáforo?,5,No iniciar el cruce,10,no pasar la intersección
+11,Mencione algo que un conductor nunca debe hacer al volante,1,Chatear o hablar por celular,30,usar el celular|escribir mensajes
+11,Mencione algo que un conductor nunca debe hacer al volante,2,Tomar licor,25,beber alcohol|tomar trago
+11,Mencione algo que un conductor nunca debe hacer al volante,3,Comer o beber mientras maneja,20,desayunar manejando
+11,Mencione algo que un conductor nunca debe hacer al volante,4,Maquillarse o afeitarse,15,arreglarse
+11,Mencione algo que un conductor nunca debe hacer al volante,5,Discutir o pelear con los pasajeros,10,pelear con el copiloto
+12,¿Qué elemento de protección debe usar un motociclista?,1,Casco certificado,30,casco
+12,¿Qué elemento de protección debe usar un motociclista?,2,Chaleco reflectivo,25,chaleco|peto reflectivo
+12,¿Qué elemento de protección debe usar un motociclista?,3,Guantes,20,
+12,¿Qué elemento de protección debe usar un motociclista?,4,Chaqueta o impermeable,15,chaqueta de moto
+12,¿Qué elemento de protección debe usar un motociclista?,5,Botas o calzado cerrado,10,botas
+13,¿Qué debe revisar antes de cambiar de carril?,1,El espejo retrovisor interno,30,retrovisor|espejo central
+13,¿Qué debe revisar antes de cambiar de carril?,2,El espejo lateral del lado al que va a girar,25,espejo lateral
+13,¿Qué debe revisar antes de cambiar de carril?,3,El punto ciego,20,ángulo muerto
+13,¿Qué debe revisar antes de cambiar de carril?,4,Activar la direccional,15,poner la luz direccional|señalizar
+13,¿Qué debe revisar antes de cambiar de carril?,5,Mirar por encima del hombro,10,girar la cabeza
+14,¿Qué es lo más difícil de manejar un carro mecánico?,1,Soltar bien el embrague,30,el clutch|soltar el clutch
+14,¿Qué es lo más difícil de manejar un carro mecánico?,2,Arrancar en una subida sin irse para atrás,25,arrancar en pendiente
+14,¿Qué es lo más difícil de manejar un carro mecánico?,3,Cambiar de marcha en el momento correcto,20,hacer los cambios|meter cambios
+14,¿Qué es lo más difícil de manejar un carro mecánico?,4,Que no se apague el carro,15,no ahogar el motor
+14,¿Qué es lo más difícil de manejar un carro mecánico?,5,Coordinar pies y manos,10,coordinación
+15,Mencione un líquido que necesita un vehículo para funcionar,1,Gasolina o combustible,30,gasolina|acpm|diésel
+15,Mencione un líquido que necesita un vehículo para funcionar,2,Aceite de motor,25,aceite
+15,Mencione un líquido que necesita un vehículo para funcionar,3,Refrigerante,20,coolant|agua del radiador
+15,Mencione un líquido que necesita un vehículo para funcionar,4,Líquido de frenos,15,líquido para frenos
+15,Mencione un líquido que necesita un vehículo para funcionar,5,Agua del limpiaparabrisas,10,agua del limpiabrisas
+16,¿Por dónde debe cruzar la calle un peatón?,1,Por la cebra,30,paso peatonal|líneas blancas
+16,¿Por dónde debe cruzar la calle un peatón?,2,Por el puente peatonal,25,puente
+16,¿Por dónde debe cruzar la calle un peatón?,3,Donde haya semáforo peatonal,20,semáforo para peatones
+16,¿Por dónde debe cruzar la calle un peatón?,4,Por las esquinas,15,en la esquina
+16,¿Por dónde debe cruzar la calle un peatón?,5,Por el túnel peatonal,10,túnel
+17,Nombre una señal de tránsito preventiva,1,Curva peligrosa,30,curva|curva cerrada
+17,Nombre una señal de tránsito preventiva,2,Zona escolar,25,colegio cerca|niños en la vía
+17,Nombre una señal de tránsito preventiva,3,Resalto o reductor de velocidad,20,policía acostado|resalto
+17,Nombre una señal de tránsito preventiva,4,Vía resbalosa,15,piso mojado|superficie deslizante
+17,Nombre una señal de tránsito preventiva,5,Zona de derrumbes,10,derrumbes
+18,¿Qué se debe hacer al llegar a una glorieta?,1,Ceder el paso a quien ya está dentro,30,dar prelación|ceder el paso
+18,¿Qué se debe hacer al llegar a una glorieta?,2,Reducir la velocidad,25,bajar la velocidad
+18,¿Qué se debe hacer al llegar a una glorieta?,3,Señalizar la salida con la direccional,20,poner la direccional
+18,¿Qué se debe hacer al llegar a una glorieta?,4,Ubicarse en el carril correcto,15,tomar el carril adecuado
+18,¿Qué se debe hacer al llegar a una glorieta?,5,Revisar los espejos antes de salir,10,mirar los espejos
+19,Mencione la excusa típica de quien no respeta las normas de tránsito,1,Estaba de afán,30,iba tarde|tenía prisa
+19,Mencione la excusa típica de quien no respeta las normas de tránsito,2,No vi la señal,25,no la vi
+19,Mencione la excusa típica de quien no respeta las normas de tránsito,3,Todo el mundo lo hace,20,todos lo hacen
+19,Mencione la excusa típica de quien no respeta las normas de tránsito,4,Es solo un momentico,15,solo un minuto
+19,Mencione la excusa típica de quien no respeta las normas de tránsito,5,No había policía de tránsito,10,no había agente
+20,¿Qué herramienta básica debe saber usar todo conductor?,1,El gato,30,gato hidráulico
+20,¿Qué herramienta básica debe saber usar todo conductor?,2,La cruceta,25,llave de pernos|llave de ruedas
+20,¿Qué herramienta básica debe saber usar todo conductor?,3,Los cables para pasar corriente,20,cables de batería|pasar corriente
+20,¿Qué herramienta básica debe saber usar todo conductor?,4,El destornillador,15,desarmador
+20,¿Qué herramienta básica debe saber usar todo conductor?,5,La llave inglesa,10,llave ajustable
+21,¿Qué revisa usted si el carro no le prende?,1,La batería,30,que no esté descargada|batería
+21,¿Qué revisa usted si el carro no le prende?,2,El nivel de gasolina,25,que tenga gasolina
+21,¿Qué revisa usted si el carro no le prende?,3,Los bornes y cables,20,los bornes|conexiones
+21,¿Qué revisa usted si el carro no le prende?,4,El switch de encendido,15,la llave|el suiche
+21,¿Qué revisa usted si el carro no le prende?,5,Llamar al mecánico,10,pedir ayuda al mecánico
+22,Nombre un servicio que presta una escuela de conducción,1,Clases prácticas de conducción,30,prácticas|clases de manejo
+22,Nombre un servicio que presta una escuela de conducción,2,Clases teóricas,25,teoría|curso teórico
+22,Nombre un servicio que presta una escuela de conducción,3,Trámite de la licencia de conducción,20,sacar el pase|trámite del pase
+22,Nombre un servicio que presta una escuela de conducción,4,Exámenes médicos,15,valoración médica|CRC
+22,Nombre un servicio que presta una escuela de conducción,5,Prácticas en simulador,10,simulador
+23,¿Cuál es la velocidad adecuada dentro de la ciudad?,1,50 km/h en vías urbanas,30,50|cincuenta
+23,¿Cuál es la velocidad adecuada dentro de la ciudad?,2,30 km/h en zona escolar o residencial,25,30|treinta
+23,¿Cuál es la velocidad adecuada dentro de la ciudad?,3,40 km/h,20,cuarenta
+23,¿Cuál es la velocidad adecuada dentro de la ciudad?,4,60 km/h en vías principales autorizadas,15,sesenta
+23,¿Cuál es la velocidad adecuada dentro de la ciudad?,5,Menos de 20 km/h en parqueaderos,10,muy despacio en parqueadero
+24,Mencione una consecuencia de conducir borracho,1,Multa económica muy alta,30,comparendo|multa
+24,Mencione una consecuencia de conducir borracho,2,Suspensión de la licencia,25,le quitan el pase
+24,Mencione una consecuencia de conducir borracho,3,Provocar un accidente,20,chocar|accidente
+24,Mencione una consecuencia de conducir borracho,4,Inmovilización del vehículo,15,se llevan el carro a los patios|patios
+24,Mencione una consecuencia de conducir borracho,5,Cárcel si hay heridos o muertos,10,ir preso
+25,¿Qué luces se usan cuando hay neblina?,1,Luces exploradoras antiniebla,30,exploradoras|antiniebla
+25,¿Qué luces se usan cuando hay neblina?,2,Luces bajas,25,luz baja|medias
+25,¿Qué luces se usan cuando hay neblina?,3,Luces de posición,20,luces de parqueo
+25,¿Qué luces se usan cuando hay neblina?,4,Luces estacionarias si hay que detenerse,15,intermitentes
+25,¿Qué luces se usan cuando hay neblina?,5,Direccionales al girar,10,direccionales
+26,Nombre la norma de tránsito que más se incumple en la ciudad,1,Pasarse el semáforo en rojo,30,comerse el rojo|pasarse el rojo
+26,Nombre la norma de tránsito que más se incumple en la ciudad,2,Parquear en sitio prohibido,25,mal parqueado
+26,Nombre la norma de tránsito que más se incumple en la ciudad,3,Hablar por celular manejando,20,usar el celular
+26,Nombre la norma de tránsito que más se incumple en la ciudad,4,No usar el cinturón de seguridad,15,sin cinturón
+26,Nombre la norma de tránsito que más se incumple en la ciudad,5,Invadir la cebra peatonal,10,parar sobre la cebra
+27,¿Qué hace usted cuando viene una ambulancia con sirena?,1,Cederle el paso orillándose,30,hacerme a un lado|darle vía
+27,¿Qué hace usted cuando viene una ambulancia con sirena?,2,Reducir la velocidad,25,bajar la velocidad
+27,¿Qué hace usted cuando viene una ambulancia con sirena?,3,No bloquear la intersección,20,despejar el cruce
+27,¿Qué hace usted cuando viene una ambulancia con sirena?,4,Detenerse por completo si es necesario,15,parar
+27,¿Qué hace usted cuando viene una ambulancia con sirena?,5,No seguirla ni aprovechar su paso,10,no pegarse a la ambulancia
+28,Mencione un ruido del carro que indica problema mecánico,1,Chillido de los frenos,30,frenos chillando|rechinar de frenos
+28,Mencione un ruido del carro que indica problema mecánico,2,Golpeteo del motor,25,cascabeleo|motor golpeando
+28,Mencione un ruido del carro que indica problema mecánico,3,Silbido de la correa,20,correa chillando
+28,Mencione un ruido del carro que indica problema mecánico,4,Ruido en la suspensión o amortiguadores,15,suspensión sonando
+28,Mencione un ruido del carro que indica problema mecánico,5,Zumbido del rodamiento,10,balinera dañada|rodamiento
+29,¿Qué se revisa en la revisión tecnicomecánica?,1,Los frenos,30,sistema de frenos
+29,¿Qué se revisa en la revisión tecnicomecánica?,2,Las luces,25,sistema de luces
+29,¿Qué se revisa en la revisión tecnicomecánica?,3,Las emisiones de gases,20,gases contaminantes|humo
+29,¿Qué se revisa en la revisión tecnicomecánica?,4,La dirección y la suspensión,15,suspensión|dirección
+29,¿Qué se revisa en la revisión tecnicomecánica?,5,El estado de las llantas,10,llantas
+30,Nombre una distracción común al volante,1,El celular,30,el teléfono|chatear
+30,Nombre una distracción común al volante,2,La música a todo volumen,25,el equipo de sonido|música muy alta
+30,Nombre una distracción común al volante,3,Los pasajeros conversando,20,los pasajeros|la conversación
+30,Nombre una distracción común al volante,4,Comer o tomar algo,15,comer manejando
+30,Nombre una distracción común al volante,5,Mirar el GPS o el waze,10,el gps|el mapa
+31,¿Qué hace un buen conductor cuando está en un trancón?,1,Tener paciencia y mantener la calma,30,paciencia|calma
+31,¿Qué hace un buen conductor cuando está en un trancón?,2,Mantener la distancia con el carro de adelante,25,guardar distancia
+31,¿Qué hace un buen conductor cuando está en un trancón?,3,No pitar sin necesidad,20,no tocar la bocina|no pitar
+31,¿Qué hace un buen conductor cuando está en un trancón?,4,No invadir el carril de al lado,15,no zigzaguear|no culebrear
+31,¿Qué hace un buen conductor cuando está en un trancón?,5,No bloquear la intersección,10,no quedarse en el cruce
+32,Mencione una categoría de licencia de conducción en Colombia,1,B1 para carro particular,30,b1|particular
+32,Mencione una categoría de licencia de conducción en Colombia,2,A2 para motocicleta,25,a2|moto
+32,Mencione una categoría de licencia de conducción en Colombia,3,C1 para servicio público,20,c1|público
+32,Mencione una categoría de licencia de conducción en Colombia,4,A1 para ciclomotor o moto pequeña,15,a1
+32,Mencione una categoría de licencia de conducción en Colombia,5,C2 para camión o bus de servicio público,10,c2|camión
+33,¿Qué se hace antes de abrir la puerta al bajarse del carro?,1,Mirar por el espejo lateral,30,revisar el espejo
+33,¿Qué se hace antes de abrir la puerta al bajarse del carro?,2,Mirar hacia atrás por encima del hombro,25,voltear a mirar
+33,¿Qué se hace antes de abrir la puerta al bajarse del carro?,3,Verificar que no venga un ciclista o una moto,20,cuidado con las bicicletas|mirar si viene una moto
+33,¿Qué se hace antes de abrir la puerta al bajarse del carro?,4,Abrir la puerta despacio,15,abrir con cuidado
+33,¿Qué se hace antes de abrir la puerta al bajarse del carro?,5,Apagar el motor y poner el freno de mano,10,freno de mano
+34,Nombre un consejo para ahorrar combustible,1,No acelerar ni frenar bruscamente,30,manejar suave
+34,Nombre un consejo para ahorrar combustible,2,Mantener una velocidad constante,25,velocidad estable
+34,Nombre un consejo para ahorrar combustible,3,Revisar la presión de las llantas,20,llantas bien infladas
+34,Nombre un consejo para ahorrar combustible,4,Hacer el mantenimiento a tiempo,15,mantenimiento preventivo
+34,Nombre un consejo para ahorrar combustible,5,No cargar peso innecesario,10,quitar peso extra
+35,¿Qué hace usted si el carro se queda sin frenos?,1,Reducir cambios para frenar con el motor,30,frenar con motor|bajar cambios
+35,¿Qué hace usted si el carro se queda sin frenos?,2,Usar el freno de mano poco a poco,25,freno de emergencia|freno de mano
+35,¿Qué hace usted si el carro se queda sin frenos?,3,Pitar y encender las estacionarias,20,avisar con la bocina
+35,¿Qué hace usted si el carro se queda sin frenos?,4,Buscar una zona de escape o rampa de frenado,15,rampa de escape
+35,¿Qué hace usted si el carro se queda sin frenos?,5,Rozar el andén o la berma para detenerse,10,rozar el sardinel
+36,Mencione una señal de tránsito informativa,1,Nombre de la vía o la ciudad,30,nomenclatura|nombre de la calle
+36,Mencione una señal de tránsito informativa,2,Hospital o centro médico,25,hospital
+36,Mencione una señal de tránsito informativa,3,Estación de servicio,20,bomba de gasolina|gasolinera
+36,Mencione una señal de tránsito informativa,4,Parqueadero,15,estacionamiento
+36,Mencione una señal de tránsito informativa,5,Peaje adelante,10,peaje
+37,¿Qué distancia se debe guardar con el vehículo de adelante?,1,Dos segundos de distancia,30,regla de los dos segundos
+37,¿Qué distancia se debe guardar con el vehículo de adelante?,2,Tres segundos o más si llueve,25,tres segundos
+37,¿Qué distancia se debe guardar con el vehículo de adelante?,3,El largo de un vehículo,20,un carro de distancia
+37,¿Qué distancia se debe guardar con el vehículo de adelante?,4,El doble cuando la vía está mojada,15,más distancia con lluvia
+37,¿Qué distancia se debe guardar con el vehículo de adelante?,5,Suficiente para alcanzar a frenar,10,distancia de frenado
+38,Nombre un elemento de seguridad que trae el vehículo,1,Cinturón de seguridad,30,cinturón
+38,Nombre un elemento de seguridad que trae el vehículo,2,Bolsas de aire,25,airbag|air bag
+38,Nombre un elemento de seguridad que trae el vehículo,3,Frenos ABS,20,abs
+38,Nombre un elemento de seguridad que trae el vehículo,4,Apoyacabezas,15,reposacabezas
+38,Nombre un elemento de seguridad que trae el vehículo,5,Silla para niños,10,silla infantil|asiento para bebé
+39,¿Qué hace un conductor responsable si va a tomar licor?,1,Dejar el carro y no manejar,30,no manejar|dejar el carro
+39,¿Qué hace un conductor responsable si va a tomar licor?,2,Nombrar un conductor elegido,25,conductor designado|conductor elegido
+39,¿Qué hace un conductor responsable si va a tomar licor?,3,Pedir un taxi o una aplicación,20,pedir taxi|pedir un uber
+39,¿Qué hace un conductor responsable si va a tomar licor?,4,Usar transporte público,15,irse en bus|transmilenio
+39,¿Qué hace un conductor responsable si va a tomar licor?,5,Quedarse a dormir donde está,10,no salir esa noche
+40,Mencione una razón por la que se pierde el examen teórico,1,No estudiar las señales de tránsito,30,no saberse las señales
+40,Mencione una razón por la que se pierde el examen teórico,2,Confundir las normas y las sanciones,25,confundir las normas
+40,Mencione una razón por la que se pierde el examen teórico,3,Los nervios,20,ponerse nervioso
+40,Mencione una razón por la que se pierde el examen teórico,4,Responder de afán,15,contestar rápido|ir de afán
+40,Mencione una razón por la que se pierde el examen teórico,5,No leer bien la pregunta,10,no leer el enunciado
+41,¿Qué dicen los estudiantes que aprenden primero en CALE?,1,Las señales de tránsito,30,las señales
+41,¿Qué dicen los estudiantes que aprenden primero en CALE?,2,Las normas de tránsito,25,el código de tránsito|las normas
+41,¿Qué dicen los estudiantes que aprenden primero en CALE?,3,A manejar el embrague y los cambios,20,el clutch|los cambios
+41,¿Qué dicen los estudiantes que aprenden primero en CALE?,4,A parquear,15,estacionar
+41,¿Qué dicen los estudiantes que aprenden primero en CALE?,5,Mecánica básica y primeros auxilios,10,mecánica básica|primeros auxilios

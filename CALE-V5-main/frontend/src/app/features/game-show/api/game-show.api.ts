@@ -66,11 +66,15 @@ export interface GameShowLobbyDto {
   players: GameShowPlayerDto[];
   currentRound: GameShowRoundDto | null;
   isHostView: boolean;
+  viewerPlayerId?: number | null;
+  viewerTeam?: string | null;
 }
 
 export interface JoinGameShowResultDto {
   sessionId: number;
   playerToken: string;
+  playerId: number;
+  team: string;
   lobby: GameShowLobbyDto;
 }
 
@@ -157,6 +161,16 @@ export class GameShowApi {
     return this.http.post<GameShowLobbyDto>(`${this.base}/api/game-show/${id}/strike`, {});
   }
 
+  /** Cierra la oportunidad de robo sin acierto del equipo contrario. */
+  failSteal(id: number) {
+    return this.http.post<GameShowLobbyDto>(`${this.base}/api/game-show/${id}/fail-steal`, {});
+  }
+
+  /** Termina la ronda actual revelando lo que falte. */
+  endRound(id: number) {
+    return this.http.post<GameShowLobbyDto>(`${this.base}/api/game-show/${id}/end-round`, {});
+  }
+
   assign(id: number, playerId: number, team: string) {
     return this.http.post<GameShowLobbyDto>(`${this.base}/api/game-show/${id}/assign`, {
       playerId,
@@ -170,6 +184,11 @@ export class GameShowApi {
 
   finish(id: number) {
     return this.http.post<GameShowLobbyDto>(`${this.base}/api/game-show/${id}/finish`, {});
+  }
+
+  /** Pack oficial precargado (rondas listas para revisar y crear). */
+  officialPack() {
+    return this.http.get<CreateGameShowBody>(`${this.base}/api/game-show/packs/oficial`);
   }
 
   exportQuestions(id: number, format: 'csv' | 'json' = 'csv') {

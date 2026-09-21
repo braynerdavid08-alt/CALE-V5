@@ -27,6 +27,9 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
           </div>
         </header>
         <ui-error [message]="error()" />
+        @if (connection()) {
+          <p class="conn">{{ connection() }}</p>
+        }
         @if (flash()) {
           <p class="flash">{{ flash() }}</p>
         }
@@ -52,6 +55,11 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
           }
           @if (L.currentRound?.phase === 'Playing') {
             <ui-button type="button" variant="secondary" (click)="strike()">Registrar error (X)</ui-button>
+            <ui-button type="button" variant="ghost" (click)="endRound()">Terminar ronda</ui-button>
+          }
+          @if (L.currentRound?.phase === 'Steal') {
+            <ui-button type="button" variant="secondary" (click)="failSteal()">Cerrar robo (fallido)</ui-button>
+            <ui-button type="button" variant="ghost" (click)="endRound()">Terminar ronda</ui-button>
           }
           @if (L.currentRound?.phase === 'Finished') {
             <ui-button type="button" (click)="next()">Siguiente ronda</ui-button>
@@ -66,6 +74,14 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
             <h2>Ronda {{ R.sortOrder + 1 }} / {{ L.roundCount }}</h2>
             <p class="q">{{ R.questionText }}</p>
             <p class="meta">Fase: {{ phaseLabel(R.phase) }} · Errores: {{ '❌'.repeat(R.strikes) }}{{ '⬜'.repeat(Math.max(0, 3 - R.strikes)) }}</p>
+            <p class="meta">
+              Control: <strong>{{ teamName(L, R.controllingTeam) }}</strong>
+              @if (R.buzzWinnerTeam) { · Buzzer: <strong>{{ teamName(L, R.buzzWinnerTeam) }}</strong> }
+              · Puntos acumulados: <strong>{{ R.roundPointsForController }}</strong>
+            </p>
+            @if (R.phase === 'Steal') {
+              <p class="steal">Roba <strong>{{ teamName(L, stealingTeam(R.controllingTeam)) }}</strong> con una sola respuesta.</p>
+            }
             <ol>
               @for (a of R.answers; track a.id) {
                 <li [class.on]="a.isRevealed">
@@ -125,6 +141,8 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
     .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
     .link { background: none; border: 0; color: var(--color-primary); cursor: pointer; }
     .flash { color: var(--color-success); font-weight: 800; }
+    .conn { color: var(--color-text-secondary); font-weight: 700; }
+    .steal { font-weight: 800; color: var(--color-primary); }
     .hint { color: var(--color-text-secondary); word-break: break-all; }
     @media (max-width: 700px) { .cols, .score { grid-template-columns: 1fr; } li { grid-template-columns: 2rem 1fr 3rem; } }
   `]
@@ -137,8 +155,10 @@ export class GameShowHostPage implements OnInit, OnDestroy {
   readonly lobby = signal<GameShowLobbyDto | null>(null);
   readonly error = signal<string | null>(null);
   readonly flash = signal<string | null>(null);
+  readonly connection = signal<string | null>(null);
   private hub: HubConnection | null = null;
   private sessionId = 0;
+  private flashTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit(): void {
     this.sessionId = Number(this.route.snapshot.paramMap.get('sessionId'));
@@ -147,6 +167,7 @@ export class GameShowHostPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.flashTimer) clearTimeout(this.flashTimer);
     void this.hub?.stop();
   }
 
@@ -158,6 +179,17 @@ export class GameShowHostPage implements OnInit, OnDestroy {
       case 'Finished': return 'Ronda terminada';
       default: return phase;
     }
+  }
+
+  teamName(L: GameShowLobbyDto, team: string | null): string {
+    if (team === 'A') return L.teamAName;
+    if (team === 'B') return L.teamBName;
+    return 'Sin definir';
+  }
+
+  stealingTeam(controllingTeam: string | null): string | null {
+    if (!controllingTeam) return null;
+    return controllingTeam === 'A' ? 'B' : 'A';
   }
 
   teamPlayers(L: GameShowLobbyDto, team: string) {
@@ -178,6 +210,8 @@ export class GameShowHostPage implements OnInit, OnDestroy {
   resume(): void { this.api.resume(this.sessionId).subscribe({ next: () => this.reload(), error: (e) => this.error.set(mapApiError(e)) }); }
   forceBuzz(team: string): void { this.act(() => this.api.forceBuzz(this.sessionId, team)); }
   strike(): void { this.act(() => this.api.strike(this.sessionId)); }
+  failSteal(): void { this.act(() => this.api.failSteal(this.sessionId)); }
+  endRound(): void { this.act(() => this.api.endRound(this.sessionId)); }
   reveal(answerId: number): void { this.act(() => this.api.reveal(this.sessionId, answerId)); }
   next(): void { this.act(() => this.api.nextRound(this.sessionId)); }
   finish(): void {
@@ -216,20 +250,33 @@ export class GameShowHostPage implements OnInit, OnDestroy {
     });
   }
 
+  private showFlash(message: string): void {
+    this.flash.set(message);
+    if (this.flashTimer) clearTimeout(this.flashTimer);
+    this.flashTimer = setTimeout(() => this.flash.set(null), 2500);
+  }
+
   private connectHub(): void {
     this.hub = this.api.buildHub();
     this.hub.on('LobbyUpdated', (lobby: GameShowLobbyDto) => {
-      // Prefer host refresh for full board
+      // El payload del hub oculta las respuestas sin revelar: recargamos la vista de host.
       this.reload();
       void lobby;
     });
-    this.hub.on('BuzzWon', () => this.flash.set('¡Buzzer!'));
-    this.hub.on('CorrectAnswer', () => this.flash.set('¡Correcto!'));
-    this.hub.on('Strike', () => this.flash.set('Error'));
-    this.hub.on('StealOpportunity', () => this.flash.set('¡Oportunidad de robo!'));
-    this.hub.on('StealSucceeded', () => this.flash.set('¡Robo exitoso!'));
-    this.hub.on('StealFailed', () => this.flash.set('Robo fallido'));
-    this.hub.on('GameEnded', () => this.flash.set('Partida finalizada'));
+    this.hub.on('BuzzWon', () => this.showFlash('¡Buzzer!'));
+    this.hub.on('CorrectAnswer', () => this.showFlash('¡Correcto!'));
+    this.hub.on('Strike', () => this.showFlash('Error'));
+    this.hub.on('StealOpportunity', () => this.showFlash('¡Oportunidad de robo!'));
+    this.hub.on('StealSucceeded', () => this.showFlash('¡Robo exitoso!'));
+    this.hub.on('StealFailed', () => this.showFlash('Robo fallido'));
+    this.hub.on('GameEnded', () => this.showFlash('Partida finalizada'));
+    this.hub.onreconnecting(() => this.connection.set('Reconectando…'));
+    this.hub.onreconnected(() => {
+      this.connection.set(null);
+      void this.hub?.invoke('JoinAsHost', this.sessionId);
+      this.reload();
+    });
+    this.hub.onclose(() => this.connection.set('Conexión perdida. Recarga la página.'));
     void this.hub.start().then(() => this.hub!.invoke('JoinAsHost', this.sessionId));
   }
 }
