@@ -37,20 +37,49 @@ public sealed class AnswerQuestionHandler
             throw new ForbiddenException("Attempt is closed.", "attempt_closed");
         }
 
-        var snapshot = await _attempts.ListQuestionsAsync(attemptId, ct);
-        if (snapshot.All(x => x.QuestionId != request.QuestionId))
-        {
-            throw new DomainException(
+        var snapshotRows = await _attempts.ListQuestionsAsync(attemptId, ct);
+        var row = snapshotRows.FirstOrDefault(x => x.QuestionId == request.QuestionId)
+            ?? throw new DomainException(
                 "Question is not part of this attempt.",
                 400,
                 "question_not_in_attempt");
-        }
 
-        var question = await _catalog.GetQuestionAsync(request.QuestionId, ct)
-            ?? throw new NotFoundException("Question not found.", "question_not_found");
-        var selected = question.Options.FirstOrDefault(x => x.Id == request.OptionId)
-            ?? throw new DomainException("Option not found.", 400, "option_not_found");
-        var correct = question.Options.First(x => x.IsCorrect);
+        string questionText;
+        string questionType;
+        string? selectedText;
+        string? correctText;
+        bool isCorrect;
+
+        var parsed = row.ParsedSnapshot();
+        if (parsed is not null && parsed.Options.Count > 0)
+        {
+            var selected = parsed.FindOption(request.OptionId)
+                ?? throw new DomainException("Option not found.", 400, "option_not_found");
+            var correct = parsed.CorrectOption()
+                ?? throw new DomainException(
+                    "Question snapshot has no correct option.",
+                    400,
+                    "invalid_snapshot");
+            questionText = parsed.Text;
+            questionType = parsed.Type;
+            selectedText = selected.Text;
+            correctText = correct.Text;
+            isCorrect = selected.IsCorrect;
+        }
+        else
+        {
+            // Legacy attempts created before immutable snapshots.
+            var question = await _catalog.GetQuestionAsync(request.QuestionId, ct)
+                ?? throw new NotFoundException("Question not found.", "question_not_found");
+            var selected = question.Options.FirstOrDefault(x => x.Id == request.OptionId)
+                ?? throw new DomainException("Option not found.", 400, "option_not_found");
+            var correct = question.Options.First(x => x.IsCorrect);
+            questionText = question.Text;
+            questionType = question.Type;
+            selectedText = selected.Text;
+            correctText = correct.Text;
+            isCorrect = selected.IsCorrect;
+        }
 
         var existing = await _attempts.FindAnswerAsync(
             attemptId,
@@ -61,21 +90,21 @@ public sealed class AnswerQuestionHandler
             var answer = AttemptAnswer.Create(
                 attemptId,
                 request.QuestionId,
-                selected.Id,
-                selected.IsCorrect,
-                question.Text,
-                selected.Text,
-                correct.Text,
-                question.Type);
+                request.OptionId,
+                isCorrect,
+                questionText,
+                selectedText,
+                correctText,
+                questionType);
             await _attempts.AddAnswerAsync(answer, ct);
         }
         else
         {
             existing.Update(
-                selected.Id,
-                selected.IsCorrect,
-                selected.Text,
-                correct.Text);
+                request.OptionId,
+                isCorrect,
+                selectedText,
+                correctText);
         }
 
         await _attempts.SaveChangesAsync(ct);

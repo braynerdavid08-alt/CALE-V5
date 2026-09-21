@@ -5,6 +5,7 @@ using Cale.BuildingBlocks.Domain.Time;
 using Cale.Modules.Assessment.Application.Abstractions;
 using Cale.Modules.Assessment.Application.DTOs;
 using Cale.Modules.Catalog.Application.Abstractions;
+using Cale.Modules.Catalog.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -64,10 +65,14 @@ public sealed class FinishExamHandler
 
             var snapshot = await _attempts.ListQuestionsAsync(attemptId, ct);
             var answers = (await _attempts.ListAnswersAsync(attemptId, ct)).ToList();
-            var questionsById = (await _catalog.ListQuestionsByIdsAsync(
-                    snapshot.Select(x => x.QuestionId).ToList(),
-                    ct))
-                .ToDictionary(q => q.Id);
+            var needsCatalog = snapshot.Any(x =>
+                x.ParsedSnapshot() is null || x.ParsedSnapshot()!.Options.Count == 0);
+            var questionsById = needsCatalog
+                ? (await _catalog.ListQuestionsByIdsAsync(
+                        snapshot.Select(x => x.QuestionId).ToList(),
+                        ct))
+                    .ToDictionary(q => q.Id)
+                : new Dictionary<int, Question>();
             var blocksById = (await _catalog.ListBlocksAsync(ct))
                 .ToDictionary(b => b.Id);
 
@@ -85,17 +90,27 @@ public sealed class FinishExamHandler
                     continue;
                 }
 
-                questionsById.TryGetValue(item.QuestionId, out var question);
-                var right = question?.Options.FirstOrDefault(x => x.IsCorrect);
+                var parsed = item.ParsedSnapshot();
+                string? questionText = parsed?.Text;
+                string? correctText = parsed?.CorrectOption()?.Text;
+                string? questionType = parsed?.Type;
+                if (parsed is null || parsed.Options.Count == 0)
+                {
+                    questionsById.TryGetValue(item.QuestionId, out var question);
+                    questionText = question?.Text;
+                    correctText = question?.Options.FirstOrDefault(x => x.IsCorrect)?.Text;
+                    questionType = question?.Type;
+                }
+
                 var blank = Domain.AttemptAnswer.Create(
                     attemptId,
                     item.QuestionId,
                     null,
                     false,
-                    question?.Text,
+                    questionText,
                     null,
-                    right?.Text,
-                    question?.Type);
+                    correctText,
+                    questionType);
 
                 try
                 {
@@ -157,15 +172,19 @@ public sealed class FinishExamHandler
 
             foreach (var item in snapshot)
             {
+                var parsed = item.ParsedSnapshot();
                 questionsById.TryGetValue(item.QuestionId, out var question);
-                var topic = string.IsNullOrWhiteSpace(question?.Topic)
-                    ? "Sin tema"
-                    : question!.Topic!;
-                var block = question is null
-                    ? "Sin bloque"
-                    : blocksById.TryGetValue(question.BlockId, out var blk)
-                        ? blk.Name
-                        : $"Bloque {question.BlockId}";
+                var topic = !string.IsNullOrWhiteSpace(parsed?.Topic)
+                    ? parsed!.Topic!
+                    : string.IsNullOrWhiteSpace(question?.Topic)
+                        ? "Sin tema"
+                        : question!.Topic!;
+                var blockId = parsed?.BlockId > 0 ? parsed.BlockId : question?.BlockId;
+                var block = blockId is int bid && blocksById.TryGetValue(bid, out var blk)
+                    ? blk.Name
+                    : blockId is int missing
+                        ? $"Bloque {missing}"
+                        : "Sin bloque";
 
                 var isCorrect = answerMap.TryGetValue(item.QuestionId, out var ans)
                     && ans.IsCorrect;

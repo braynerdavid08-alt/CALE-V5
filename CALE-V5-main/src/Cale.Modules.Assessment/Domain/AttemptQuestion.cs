@@ -6,16 +6,25 @@ public sealed class AttemptQuestion
     public int AttemptId { get; private set; }
     public int QuestionId { get; private set; }
     public int Order { get; private set; }
+    public string SnapshotJson { get; private set; } = "{}";
 
     private AttemptQuestion()
     {
     }
 
-    public static AttemptQuestion Create(int attemptId, int questionId, int order) =>
+    public static AttemptQuestion Create(
+        int attemptId,
+        int questionId,
+        int order,
+        string? snapshotJson = null) =>
         new()
         {
             AttemptId = attemptId,
             QuestionId = questionId,
-            Order = order
+            Order = order,
+            SnapshotJson = string.IsNullOrWhiteSpace(snapshotJson) ? "{}" : snapshotJson
         };
+
+    public AttemptQuestionSnapshot? ParsedSnapshot() =>
+        AttemptQuestionSnapshot.TryParse(SnapshotJson);
 }

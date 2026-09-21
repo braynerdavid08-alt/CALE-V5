@@ -146,10 +146,16 @@ public sealed class StartExamHandler
                 timeMinutes,
                 now);
 
+            var prepared = selected
+                .Select((q, i) => PrepareQuestion(attemptId: 0, q, i + 1))
+                .ToList();
+
             try
             {
-                await _attempts.AddAsync(attempt, ct);
-                await _attempts.SaveChangesAsync(ct);
+                await _attempts.AddAttemptWithQuestionsAsync(
+                    attempt,
+                    prepared.Select(p => p.Snapshot).ToList(),
+                    ct);
             }
             catch (DbUpdateException) when (exam is not null)
             {
@@ -174,19 +180,7 @@ public sealed class StartExamHandler
                 throw;
             }
 
-            var snapshot = selected
-                .Select((q, i) => AttemptQuestion.Create(attempt.Id, q.Id, i + 1))
-                .ToList();
-            await _attempts.AddQuestionsAsync(attempt.Id, snapshot, ct);
-            await _attempts.SaveChangesAsync(ct);
-
-            var questions = selected.Select((q, i) => new TakeQuestionDto(
-                q.Id,
-                i + 1,
-                q.Text,
-                q.Type,
-                q.ImageUrl,
-                MapShuffledOptions(q))).ToList();
+            var questions = prepared.Select(p => p.Take).ToList();
 
             _logger.LogInformation(
                 "Exam started attemptId={AttemptId} userId={UserId} bankId={BankId} examId={ExamId} mode={Mode} questions={QuestionCount}",
@@ -231,11 +225,27 @@ public sealed class StartExamHandler
         var questions = new List<TakeQuestionDto>();
         foreach (var item in ordered)
         {
+            var parsed = item.ParsedSnapshot();
+            if (parsed is not null && parsed.Options.Count > 0)
+            {
+                questions.Add(new TakeQuestionDto(
+                    item.QuestionId,
+                    item.Order,
+                    parsed.Text,
+                    parsed.Type,
+                    parsed.ImageUrl,
+                    parsed.Options
+                        .Select(o => new TakeOptionDto(o.Id, o.Text, o.ImageUrl))
+                        .ToList()));
+                continue;
+            }
+
             if (!byId.TryGetValue(item.QuestionId, out var q))
             {
                 continue;
             }
 
+            // Legacy attempts without snapshot keep live catalog content.
             questions.Add(new TakeQuestionDto(
                 q.Id,
                 item.Order,
@@ -259,6 +269,32 @@ public sealed class StartExamHandler
             questions,
             Resumed: true,
             Answers: saved);
+    }
+
+    private static (AttemptQuestion Snapshot, TakeQuestionDto Take) PrepareQuestion(
+        int attemptId,
+        Question question,
+        int order)
+    {
+        var presented = question.Options
+            .OrderBy(_ => Guid.NewGuid())
+            .ToList();
+        var snapshotModel = AttemptQuestionSnapshot.FromQuestion(question, presented);
+        var entity = AttemptQuestion.Create(
+            attemptId,
+            question.Id,
+            order,
+            AttemptQuestionSnapshot.Serialize(snapshotModel));
+        var take = new TakeQuestionDto(
+            question.Id,
+            order,
+            question.Text,
+            question.Type,
+            question.ImageUrl,
+            presented
+                .Select(o => new TakeOptionDto(o.Id, o.Text, o.ImageUrl))
+                .ToList());
+        return (entity, take);
     }
 
     /// <summary>

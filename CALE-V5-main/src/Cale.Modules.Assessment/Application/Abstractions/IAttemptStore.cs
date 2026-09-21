@@ -11,6 +11,14 @@ public interface IAttemptStore
         IReadOnlyList<AttemptQuestion> questions,
         CancellationToken ct);
 
+    /// <summary>
+    /// Persists the attempt and its question snapshots in one database transaction.
+    /// </summary>
+    Task AddAttemptWithQuestionsAsync(
+        Attempt attempt,
+        IReadOnlyList<AttemptQuestion> questions,
+        CancellationToken ct);
+
     Task<IReadOnlyList<AttemptQuestion>> ListQuestionsAsync(
         int attemptId,
         CancellationToken ct);

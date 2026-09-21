@@ -190,6 +190,11 @@ public static class FeatureSchema
 
             await TryAddSqliteColumnAsync(
                 db,
+                """ALTER TABLE "IntentosPreguntas" ADD COLUMN "SnapshotJson" TEXT NOT NULL DEFAULT '{}';""",
+                ct);
+
+            await TryAddSqliteColumnAsync(
+                db,
                 """ALTER TABLE "Notificaciones" ADD COLUMN "LeidaEn" TEXT NULL;""",
                 ct);
             await TryAddSqliteColumnAsync(
@@ -850,6 +855,9 @@ public static class FeatureSchema
                 ct);
             await TryPostgresAsync(db,
                 """ALTER TABLE "Bancos" ADD COLUMN IF NOT EXISTS "CreadoPorId" integer NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "IntentosPreguntas" ADD COLUMN IF NOT EXISTS "SnapshotJson" text NOT NULL DEFAULT '{}';""",
                 ct);
             // Backfill owner for banks created by Word import (from any question author).
             await TryPostgresAsync(db,
@@ -1669,6 +1677,10 @@ public static class FeatureSchema
             IF OBJECT_ID(N'dbo.Intentos', N'U') IS NOT NULL
                AND COL_LENGTH(N'dbo.Intentos', N'ExpiresAt') IS NULL
                 ALTER TABLE dbo.Intentos ADD ExpiresAt datetime2 NULL;
+
+            IF OBJECT_ID(N'dbo.IntentosPreguntas', N'U') IS NOT NULL
+               AND COL_LENGTH(N'dbo.IntentosPreguntas', N'SnapshotJson') IS NULL
+                ALTER TABLE dbo.IntentosPreguntas ADD SnapshotJson nvarchar(max) NOT NULL CONSTRAINT DF_IntentosPreguntas_SnapshotJson DEFAULT N'{}';
 
             IF OBJECT_ID(N'dbo.SchoolProfiles', N'U') IS NULL
             BEGIN
