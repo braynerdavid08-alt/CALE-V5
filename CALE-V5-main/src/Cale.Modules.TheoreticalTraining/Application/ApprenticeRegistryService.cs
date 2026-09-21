@@ -10,6 +10,8 @@ using Cale.Modules.Identity.Domain;
 using Cale.Modules.TheoreticalTraining.Application.DTOs;
 using Cale.Modules.TheoreticalTraining.Domain;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Cale.Modules.TheoreticalTraining.Application;
 
@@ -23,6 +25,8 @@ public sealed class ApprenticeRegistryService
     private readonly INotificationPublisher _notifications;
     private readonly ITrainingEligibilityService _eligibility;
     private readonly ISchoolMembershipGuard _membership;
+    private readonly IConfiguration _config;
+    private readonly ILogger<ApprenticeRegistryService> _logger;
 
     public ApprenticeRegistryService(
         CaleDbContext db,
@@ -32,7 +36,9 @@ public sealed class ApprenticeRegistryService
         PracticalTrainingService practical,
         INotificationPublisher notifications,
         ITrainingEligibilityService eligibility,
-        ISchoolMembershipGuard membership)
+        ISchoolMembershipGuard membership,
+        IConfiguration config,
+        ILogger<ApprenticeRegistryService> logger)
     {
         _db = db;
         _users = users;
@@ -42,7 +48,12 @@ public sealed class ApprenticeRegistryService
         _notifications = notifications;
         _eligibility = eligibility;
         _membership = membership;
+        _config = config;
+        _logger = logger;
     }
+
+    private bool AllowRequestPathRepair =>
+        _config.GetValue("Database:AllowRequestPathRepair", false);
 
     public async Task<IReadOnlyList<ApprenticeDto>> ListAsync(
         int schoolUserId,
@@ -405,24 +416,18 @@ public sealed class ApprenticeRegistryService
         {
             return await GetDashboardCoreAsync(schoolUserId, ct);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Schema drift mid-deploy: repair theory columns and retry once.
+            if (!AllowRequestPathRepair)
+            {
+                _logger.LogError(ex, "School dashboard failed for {SchoolUserId}", schoolUserId);
+                throw;
+            }
+
+            _logger.LogWarning(ex, "School dashboard schema mismatch; repairing once");
             await FeatureSchema.EnsureTheoryTrainingColumnsAsync(_db, ct);
             _db.ChangeTracker.Clear();
-            try
-            {
-                return await GetDashboardCoreAsync(schoolUserId, ct);
-            }
-            catch
-            {
-                return new SchoolOperationsDashboardDto(
-                    0, 0, 0, 0, 0, 0, 0, 0,
-                    Array.Empty<SchoolDashboardBalanceRowDto>(),
-                    Array.Empty<SchoolDashboardStudentRowDto>(),
-                    Array.Empty<SchoolDashboardStudentRowDto>(),
-                    Array.Empty<TheoryExamSlotDto>());
-            }
+            return await GetDashboardCoreAsync(schoolUserId, ct);
         }
     }
 

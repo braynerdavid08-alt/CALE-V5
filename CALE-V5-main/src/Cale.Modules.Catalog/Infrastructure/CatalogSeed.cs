@@ -21,7 +21,9 @@ public static class CatalogSeed
         IClock clock,
         int? createdById,
         ILogger logger,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        bool allowPartialRebuild = false,
+        bool allowReplaceExisting = false)
     {
         if (string.IsNullOrWhiteSpace(seedDirectory) || !Directory.Exists(seedDirectory))
         {
@@ -35,6 +37,8 @@ public static class CatalogSeed
             logger,
             createdById,
             Path.Combine(seedDirectory, "banco-normas-transito.json"),
+            allowPartialRebuild,
+            allowReplaceExisting,
             ct);
 
         await ImportBankFileAsync(
@@ -43,6 +47,8 @@ public static class CatalogSeed
             logger,
             createdById,
             Path.Combine(seedDirectory, "banco-senales-reconocimiento.json"),
+            allowPartialRebuild,
+            allowReplaceExisting,
             ct);
 
         await ImportBankFileAsync(
@@ -51,6 +57,8 @@ public static class CatalogSeed
             logger,
             createdById,
             Path.Combine(seedDirectory, "banco-senales-accion.json"),
+            allowPartialRebuild,
+            allowReplaceExisting,
             ct);
     }
 
@@ -60,6 +68,8 @@ public static class CatalogSeed
         ILogger logger,
         int? createdById,
         string path,
+        bool allowPartialRebuild,
+        bool allowReplaceExisting,
         CancellationToken ct)
     {
         if (!File.Exists(path))
@@ -89,26 +99,35 @@ public static class CatalogSeed
         }
         else if (payload.ReplaceExisting)
         {
-            var old = await db.Set<Question>()
-                .Where(x => x.BankId == bank.Id)
-                .ToListAsync(ct);
-            if (old.Count > 0)
+            if (!allowReplaceExisting)
             {
-                logger.LogInformation(
-                    "Replacing bank '{Name}' seed ({Count} old questions → {New}).",
-                    bank.Name,
-                    old.Count,
-                    payload.Questions.Count);
-                db.Set<Question>().RemoveRange(old);
-                await db.SaveChangesAsync(ct);
+                logger.LogWarning(
+                    "Bank '{Name}' requested ReplaceExisting but Seed:Catalog:AllowReplaceExisting=false; skipping wipe.",
+                    bank.Name);
             }
-
-            if (!string.IsNullOrWhiteSpace(payload.Description))
+            else
             {
-                bank.Update(payload.BankName, payload.Description);
-            }
+                var old = await db.Set<Question>()
+                    .Where(x => x.BankId == bank.Id)
+                    .ToListAsync(ct);
+                if (old.Count > 0)
+                {
+                    logger.LogInformation(
+                        "Replacing bank '{Name}' seed ({Count} old questions → {New}).",
+                        bank.Name,
+                        old.Count,
+                        payload.Questions.Count);
+                    db.Set<Question>().RemoveRange(old);
+                    await db.SaveChangesAsync(ct);
+                }
 
-            bank.SetActive(true);
+                if (!string.IsNullOrWhiteSpace(payload.Description))
+                {
+                    bank.Update(payload.BankName, payload.Description);
+                }
+
+                bank.SetActive(true);
+            }
         }
         else if (bank.SeedCompleted)
         {
@@ -138,6 +157,16 @@ public static class CatalogSeed
         var already = await db.Set<Question>().CountAsync(x => x.BankId == bank.Id, ct);
         if (already > 0 && already < payload.Questions.Count)
         {
+            if (!allowPartialRebuild)
+            {
+                logger.LogWarning(
+                    "Bank '{Name}' has partial seed ({Have}/{Need}) but Seed:Catalog:AllowPartialRebuild=false; leaving questions untouched.",
+                    bank.Name,
+                    already,
+                    payload.Questions.Count);
+                return;
+            }
+
             logger.LogWarning(
                 "Bank '{Name}' has partial seed ({Have}/{Need}). Rebuilding questions.",
                 bank.Name,

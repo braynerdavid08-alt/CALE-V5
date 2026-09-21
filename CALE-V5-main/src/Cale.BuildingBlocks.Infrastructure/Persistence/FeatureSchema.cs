@@ -2320,9 +2320,11 @@ public static class FeatureSchema
         {
             await db.Database.ExecuteSqlRawAsync(sql, ct);
         }
-        catch
+        catch (Exception ex)
         {
-            // Table not ready yet or column already exists.
+            var preview = sql.Length <= 140 ? sql : sql[..140] + "…";
+            Console.Error.WriteLine(
+                $"[FeatureSchema] Postgres DDL skipped/failed: {ex.GetType().Name}: {ex.Message} | {preview}");
         }
     }
 
@@ -2447,9 +2449,11 @@ public static class FeatureSchema
         {
             await db.Database.ExecuteSqlRawAsync(sql, ct);
         }
-        catch
+        catch (Exception ex)
         {
-            // Column/index already exists, or unique index blocked by duplicates.
+            var preview = sql.Length <= 140 ? sql : sql[..140] + "…";
+            Console.Error.WriteLine(
+                $"[FeatureSchema] Sqlite DDL skipped/failed: {ex.GetType().Name}: {ex.Message} | {preview}");
         }
     }
 }

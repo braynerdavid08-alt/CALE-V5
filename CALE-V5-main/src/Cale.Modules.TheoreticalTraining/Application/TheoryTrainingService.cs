@@ -12,6 +12,7 @@ using Cale.Modules.TheoreticalTraining.Application.DTOs;
 using Cale.Modules.TheoreticalTraining.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Cale.Modules.TheoreticalTraining.Application;
@@ -25,6 +26,7 @@ public sealed class TheoryTrainingService
     private readonly INotificationPublisher _notifications;
     private readonly ITrainingEligibilityService _eligibility;
     private readonly ISchoolMembershipGuard _membership;
+    private readonly IConfiguration _config;
     private readonly ILogger<TheoryTrainingService> _logger;
 
     public TheoryTrainingService(
@@ -35,6 +37,7 @@ public sealed class TheoryTrainingService
         INotificationPublisher notifications,
         ITrainingEligibilityService eligibility,
         ISchoolMembershipGuard membership,
+        IConfiguration config,
         ILogger<TheoryTrainingService> logger)
     {
         _db = db;
@@ -44,8 +47,12 @@ public sealed class TheoryTrainingService
         _notifications = notifications;
         _eligibility = eligibility;
         _membership = membership;
+        _config = config;
         _logger = logger;
     }
+
+    private bool AllowRequestPathRepair =>
+        _config.GetValue("Database:AllowRequestPathRepair", false);
 
     // ── Topics ──────────────────────────────────────────────────────────
 
@@ -173,19 +180,16 @@ public sealed class TheoryTrainingService
         }
         catch (Exception ex)
         {
+            if (!AllowRequestPathRepair)
+            {
+                throw;
+            }
+
             _logger.LogError(ex, "GetSettings failed for school {SchoolUserId}; repairing", schoolUserId);
             await FeatureSchema.EnsureTheoryTrainingColumnsAsync(_db, ct);
             await BackfillSettingsJsonNullsAsync(ct);
             _db.ChangeTracker.Clear();
-            try
-            {
-                return MapSettings(await GetOrCreateSettingsAsync(schoolUserId, ct));
-            }
-            catch (Exception retryEx)
-            {
-                _logger.LogError(retryEx, "GetSettings retry failed; returning defaults");
-                return MapSettings(new TheoryTrainingSettings { SchoolUserId = schoolUserId });
-            }
+            return MapSettings(await GetOrCreateSettingsAsync(schoolUserId, ct));
         }
     }
 
@@ -1237,6 +1241,11 @@ public sealed class TheoryTrainingService
         }
         catch (Exception ex) when (IsLikelyMissingColumn(ex))
         {
+            if (!AllowRequestPathRepair)
+            {
+                throw;
+            }
+
             _logger.LogWarning(ex, "Pipeline stats schema mismatch; repairing");
             await FeatureSchema.EnsureTheoryTrainingColumnsAsync(_db, ct);
             _db.ChangeTracker.Clear();
@@ -1432,21 +1441,18 @@ public sealed class TheoryTrainingService
         }
         catch (Exception ex)
         {
+            if (!AllowRequestPathRepair)
+            {
+                throw;
+            }
+
             _logger.LogError(
                 ex,
                 "Enrollment list failed for school {SchoolUserId}; repairing and retrying",
                 schoolUserId);
             await FeatureSchema.EnsureTheoryTrainingColumnsAsync(_db, ct);
             _db.ChangeTracker.Clear();
-            try
-            {
-                return await ListEnrollmentsCoreAsync(schoolUserId, ct);
-            }
-            catch (Exception retryEx)
-            {
-                _logger.LogError(retryEx, "Enrollment list retry failed; returning empty");
-                return [];
-            }
+            return await ListEnrollmentsCoreAsync(schoolUserId, ct);
         }
     }
 
@@ -2195,6 +2201,11 @@ public sealed class TheoryTrainingService
         }
         catch (Exception ex) when (IsLikelyMissingColumn(ex) || IsNullJsonColumnCast(ex))
         {
+            if (!AllowRequestPathRepair)
+            {
+                throw;
+            }
+
             _logger.LogWarning(
                 ex,
                 "Theory settings schema mismatch for school {SchoolUserId}; repairing columns",
