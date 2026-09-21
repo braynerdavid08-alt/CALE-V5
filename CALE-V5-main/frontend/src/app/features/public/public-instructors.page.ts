@@ -34,9 +34,7 @@ import { PublicInstructorCardDto } from './public.models';
         <ui-error [message]="error()" />
       } @else if (!instructors().length) {
         <p class="empty">Aún no hay instructores publicados.</p>
-        <a routerLink="/register-teacher">
-          <ui-button type="button">Registrarme como instructor</ui-button>
-        </a>
+        <ui-button routerLink="/register-teacher" type="button">Registrarme como instructor</ui-button>
       } @else {
         <div class="grid">
           @for (ins of instructors(); track ins.id) {

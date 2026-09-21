@@ -13,17 +13,45 @@
   <ui-loading />
 } @else {
   <div class="tabs" role="tablist" aria-label="Secciones del perfil">
-    <button type="button" role="tab" [class.active]="tab() === 'account'" (click)="setTab('account')">
+    <button
+      type="button"
+      role="tab"
+      id="tab-account"
+      [attr.aria-selected]="tab() === 'account'"
+      [attr.tabindex]="tab() === 'account' ? 0 : -1"
+      [class.active]="tab() === 'account'"
+      (click)="setTab('account')">
       Cuenta
     </button>
-    <button type="button" role="tab" [class.active]="tab() === 'preferences'" (click)="setTab('preferences')">
+    <button
+      type="button"
+      role="tab"
+      id="tab-preferences"
+      [attr.aria-selected]="tab() === 'preferences'"
+      [attr.tabindex]="tab() === 'preferences' ? 0 : -1"
+      [class.active]="tab() === 'preferences'"
+      (click)="setTab('preferences')">
       Preferencias
     </button>
-    <button type="button" role="tab" [class.active]="tab() === 'security'" (click)="setTab('security')">
+    <button
+      type="button"
+      role="tab"
+      id="tab-security"
+      [attr.aria-selected]="tab() === 'security'"
+      [attr.tabindex]="tab() === 'security' ? 0 : -1"
+      [class.active]="tab() === 'security'"
+      (click)="setTab('security')">
       Seguridad
     </button>
     @if (role() === 'School' || role() === 'Teacher' || role() === 'Student') {
-      <button type="button" role="tab" [class.active]="tab() === 'context'" (click)="setTab('context')">
+      <button
+        type="button"
+        role="tab"
+        id="tab-context"
+        [attr.aria-selected]="tab() === 'context'"
+        [attr.tabindex]="tab() === 'context' ? 0 : -1"
+        [class.active]="tab() === 'context'"
+        (click)="setTab('context')">
         {{ contextTitle() }}
       </button>
     }
@@ -112,23 +140,23 @@
         <h2>Accesos rápidos</h2>
         <p class="muted">Atajos según tu rol en CALE.</p>
         <div class="row actions">
-          <a [routerLink]="homeLink()"><ui-button type="button" variant="secondary">Ir al inicio</ui-button></a>
+          <ui-button [routerLink]="homeLink()" type="button" variant="secondary">Ir al inicio</ui-button>
           @if (role() === 'School') {
-            <a routerLink="/school/membership"><ui-button type="button" variant="ghost">Membresía</ui-button></a>
-            <a routerLink="/school/users"><ui-button type="button" variant="ghost">Usuarios</ui-button></a>
+            <ui-button routerLink="/school/membership" type="button" variant="ghost">Membresía</ui-button>
+            <ui-button routerLink="/school/users" type="button" variant="ghost">Usuarios</ui-button>
           }
           @if (role() === 'Teacher') {
-            <a routerLink="/teacher/groups"><ui-button type="button" variant="ghost">Grupos</ui-button></a>
-            <a routerLink="/teacher/library"><ui-button type="button" variant="ghost">Biblioteca</ui-button></a>
+            <ui-button routerLink="/teacher/groups" type="button" variant="ghost">Grupos</ui-button>
+            <ui-button routerLink="/teacher/library" type="button" variant="ghost">Biblioteca</ui-button>
           }
           @if (role() === 'Student') {
-            <a routerLink="/student/simulator"><ui-button type="button" variant="ghost">Simulador</ui-button></a>
-            <a routerLink="/live/join"><ui-button type="button" variant="ghost">Entrar a Live</ui-button></a>
-            <a routerLink="/live/join" [queryParams]="{ scan: '1' }"><ui-button type="button" variant="ghost">Escanear QR</ui-button></a>
+            <ui-button routerLink="/student/simulator" type="button" variant="ghost">Simulador</ui-button>
+            <ui-button routerLink="/live/join" type="button" variant="ghost">Entrar a Live</ui-button>
+            <ui-button routerLink="/live/join" [queryParams]="{ scan: '1' }" type="button" variant="ghost">Escanear QR</ui-button>
           }
           @if (role() === 'Admin') {
-            <a routerLink="/admin/settings"><ui-button type="button" variant="ghost">Configuración</ui-button></a>
-            <a routerLink="/admin/users"><ui-button type="button" variant="ghost">Usuarios</ui-button></a>
+            <ui-button routerLink="/admin/settings" type="button" variant="ghost">Configuración</ui-button>
+            <ui-button routerLink="/admin/users" type="button" variant="ghost">Usuarios</ui-button>
           }
         </div>
       </ui-card>
@@ -191,8 +219,8 @@
         </div>
         @if (role() === 'School') {
           <div class="row actions">
-            <a routerLink="/school/membership"><ui-button type="button">Gestionar membresía</ui-button></a>
-            <a routerLink="/school"><ui-button type="button" variant="secondary">Panel escuela</ui-button></a>
+            <ui-button routerLink="/school/membership" type="button">Gestionar membresía</ui-button>
+            <ui-button routerLink="/school" type="button" variant="secondary">Panel escuela</ui-button>
           </div>
         }
       } @else if (role() === 'Teacher' || role() === 'Student') {
@@ -238,10 +266,8 @@
         } @else {
           <p class="muted">Cuando tu escuela te agregue, verás aquí su nombre y plan.</p>
           <div class="row actions" style="margin-top: 1rem;">
-            <a routerLink="/live/join"><ui-button type="button">Entrar a Live</ui-button></a>
-            <a routerLink="/live/join" [queryParams]="{ scan: '1' }">
-              <ui-button type="button" variant="secondary">Escanear QR</ui-button>
-            </a>
+            <ui-button routerLink="/live/join" type="button">Entrar a Live</ui-button>
+            <ui-button routerLink="/live/join" [queryParams]="{ scan: '1' }" type="button" variant="secondary">Escanear QR</ui-button>
           </div>
           <p class="muted" style="margin-top: 0.75rem;">
             Necesitas una cuenta activa para unirte y guardar tu progreso en la actividad en vivo.

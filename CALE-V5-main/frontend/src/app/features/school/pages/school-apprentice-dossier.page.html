@@ -5,9 +5,7 @@
     subtitle="Vista unificada: matrícula, horas, pagos, examen y práctica." />
 
   <div class="toolbar">
-    <a routerLink="/school/apprentices">
-      <ui-button type="button" variant="secondary">← Aprendices</ui-button>
-    </a>
+    <ui-button routerLink="/school/apprentices" type="button" variant="secondary">← Aprendices</ui-button>
     <ui-button type="button" variant="ghost" (click)="reload()" [disabled]="loading()">
       Actualizar
     </ui-button>
@@ -44,18 +42,10 @@
           </div>
         </div>
         <div class="hero-actions">
-          <a routerLink="/school/apprentices" [queryParams]="{ focus: p.studentUserId }">
-            <ui-button type="button">Editar expediente</ui-button>
-          </a>
-          <a routerLink="/school/training">
-            <ui-button type="button" variant="secondary">Programación</ui-button>
-          </a>
-          <a routerLink="/school/theory-exams">
-            <ui-button type="button" variant="secondary">Exámenes</ui-button>
-          </a>
-          <a routerLink="/school/practical">
-            <ui-button type="button" variant="secondary">Práctica</ui-button>
-          </a>
+          <ui-button routerLink="/school/apprentices" [queryParams]="{ focus: p.studentUserId }" type="button">Editar expediente</ui-button>
+          <ui-button routerLink="/school/training" type="button" variant="secondary">Programación</ui-button>
+          <ui-button routerLink="/school/theory-exams" type="button" variant="secondary">Exámenes</ui-button>
+          <ui-button routerLink="/school/practical" type="button" variant="secondary">Práctica</ui-button>
         </div>
       </header>
 

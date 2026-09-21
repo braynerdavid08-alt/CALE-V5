@@ -33,7 +33,7 @@ import { TeacherApi, QuestionListDto } from '../../teacher/api/teacher.api';
         ? 'Catálogo global de Mi CALE. Solo administración crea y edita preguntas.'
         : 'Solo lectura. Los instructores crean y asignan exámenes en su Biblioteca.'">
       @if (canManage()) {
-        <a routerLink="/admin/questions/new"><ui-button type="button">Nueva pregunta</ui-button></a>
+        <ui-button routerLink="/admin/questions/new" type="button">Nueva pregunta</ui-button>
       }
     </ui-page-header>
     <ui-error [message]="error()" />

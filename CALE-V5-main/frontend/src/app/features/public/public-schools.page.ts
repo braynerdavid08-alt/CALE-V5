@@ -27,9 +27,7 @@ import { PublicSchoolCardDto } from './public.models';
         <ui-error [message]="error()" />
       } @else if (!schools().length) {
         <p class="empty">Aún no hay escuelas publicadas.</p>
-        <a routerLink="/register-school">
-          <ui-button type="button">Registrar mi escuela</ui-button>
-        </a>
+        <ui-button routerLink="/register-school" type="button">Registrar mi escuela</ui-button>
       } @else {
         <div class="grid">
           @for (s of schools(); track s.id) {

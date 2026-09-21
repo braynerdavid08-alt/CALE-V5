@@ -41,7 +41,7 @@ import { ActivityDto, GroupDto, StudentApi } from '../api/student.api';
             Solo los estudiantes vinculados a una escuela pueden unirse a grupos.
             Ve a tu perfil y solicita unirte con el NIT o correo de tu CEA.
           </p>
-          <a routerLink="/profile"><ui-button type="button">Ir a Perfil</ui-button></a>
+          <ui-button routerLink="/profile" type="button">Ir a Perfil</ui-button>
         </section>
       } @else {
         <section class="panel join-panel">
@@ -50,7 +50,13 @@ import { ActivityDto, GroupDto, StudentApi } from '../api/student.api';
           <form class="join" (ngSubmit)="join()">
             <label>
               Código del grupo
-              <input class="input" [(ngModel)]="code" name="code" placeholder="CALE-XXXXXXXX" />
+              <input
+                class="input"
+                [(ngModel)]="code"
+                name="code"
+                placeholder="CALE-XXXXXXXX"
+                aria-label="Código del grupo"
+                autocomplete="off" />
             </label>
             <ui-button type="submit">Unirme</ui-button>
           </form>

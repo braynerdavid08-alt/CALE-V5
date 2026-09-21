@@ -42,9 +42,7 @@ import { UiThemeToggleComponent } from '../../shared/ui/ui-theme-toggle.componen
           <div class="actions desktop">
             <ui-theme-toggle />
             <a routerLink="/login" class="link-login">Iniciar sesión</a>
-            <a routerLink="/register">
-              <ui-button type="button">Registrarme</ui-button>
-            </a>
+            <ui-button routerLink="/register" type="button">Registrarme</ui-button>
           </div>
 
           <button

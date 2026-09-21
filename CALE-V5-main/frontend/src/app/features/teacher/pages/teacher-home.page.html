@@ -6,15 +6,9 @@
       <p class="dash-sub">{{ schoolLine() }}</p>
     </div>
     <div class="dash-hero-actions">
-      <a routerLink="/teacher/live">
-        <ui-button type="button">Aula en Vivo</ui-button>
-      </a>
-      <a routerLink="/teacher/presentations">
-        <ui-button type="button" variant="secondary">Presentaciones</ui-button>
-      </a>
-      <a routerLink="/teacher/groups">
-        <ui-button type="button" variant="secondary">Grupos</ui-button>
-      </a>
+      <ui-button routerLink="/teacher/live" type="button">Aula en Vivo</ui-button>
+      <ui-button routerLink="/teacher/presentations" type="button" variant="secondary">Presentaciones</ui-button>
+      <ui-button routerLink="/teacher/groups" type="button" variant="secondary">Grupos</ui-button>
     </div>
   </header>
 
@@ -84,13 +78,9 @@
               }
             </div>
             <div class="feature-actions">
-              <a routerLink="/teacher/presentations">
-                <ui-button type="button">Abrir presentaciones</ui-button>
-              </a>
+              <ui-button routerLink="/teacher/presentations" type="button">Abrir presentaciones</ui-button>
               @if (ps.latest) {
-                <a [routerLink]="['/teacher/presentations', ps.latest.id, 'present']">
-                  <ui-button type="button" variant="secondary">Presentar última</ui-button>
-                </a>
+                <ui-button [routerLink]="['/teacher/presentations', ps.latest.id, 'present']" type="button" variant="secondary">Presentar última</ui-button>
               }
             </div>
           }

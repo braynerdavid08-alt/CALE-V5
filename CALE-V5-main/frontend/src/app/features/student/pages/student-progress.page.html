@@ -16,15 +16,9 @@
       </div>
       <p class="hint">{{ nextHint() }}</p>
       <div class="summary-actions">
-        <a routerLink="/student/training">
-          <ui-button type="button" variant="secondary">Ir a teoría</ui-button>
-        </a>
-        <a routerLink="/student/practical">
-          <ui-button type="button" variant="secondary">Ir a manejo</ui-button>
-        </a>
-        <a routerLink="/student/simulator">
-          <ui-button type="button">Practicar examen</ui-button>
-        </a>
+        <ui-button routerLink="/student/training" type="button" variant="secondary">Ir a teoría</ui-button>
+        <ui-button routerLink="/student/practical" type="button" variant="secondary">Ir a manejo</ui-button>
+        <ui-button routerLink="/student/simulator" type="button">Practicar examen</ui-button>
       </div>
     </section>
 
@@ -38,9 +32,7 @@
         Para ver calificaciones, abre Evaluaciones.
       </p>
       <div class="summary-actions">
-        <a routerLink="/student/evaluations">
-          <ui-button type="button" variant="secondary">Ver evaluaciones</ui-button>
-        </a>
+        <ui-button routerLink="/student/evaluations" type="button" variant="secondary">Ver evaluaciones</ui-button>
       </div>
     </section>
 

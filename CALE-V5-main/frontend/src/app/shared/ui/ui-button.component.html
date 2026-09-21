@@ -1,11 +1,31 @@
-<button
-  [type]="type"
-  [disabled]="disabled || loading"
-  [class.secondary]="variant === 'secondary'"
-  [class.ghost]="variant === 'ghost'"
-  [class.danger]="variant === 'danger'">
-  @if (loading) {
-    <span class="spin" aria-hidden="true"></span>
-  }
-  <ng-content />
-</button>
+@if (routerLink) {
+  <a
+    class="btn"
+    [routerLink]="routerLink"
+    [queryParams]="queryParams ?? undefined"
+    [attr.aria-disabled]="disabled || loading ? true : null"
+    [attr.tabindex]="disabled || loading ? -1 : null"
+    [class.secondary]="variant === 'secondary'"
+    [class.ghost]="variant === 'ghost'"
+    [class.danger]="variant === 'danger'"
+    [class.is-disabled]="disabled || loading">
+    @if (loading) {
+      <span class="spin" aria-hidden="true"></span>
+    }
+    <ng-content />
+  </a>
+} @else {
+  <button
+    class="btn"
+    [type]="type"
+    [disabled]="disabled || loading"
+    [attr.aria-busy]="loading ? true : null"
+    [class.secondary]="variant === 'secondary'"
+    [class.ghost]="variant === 'ghost'"
+    [class.danger]="variant === 'danger'">
+    @if (loading) {
+      <span class="spin" aria-hidden="true"></span>
+    }
+    <ng-content />
+  </button>
+}

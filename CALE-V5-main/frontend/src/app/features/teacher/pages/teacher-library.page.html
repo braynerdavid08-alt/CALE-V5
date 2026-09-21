@@ -126,14 +126,32 @@
   }
 
   <div class="library-toolbar">
-    <div class="tabs" role="tablist">
-      <button type="button" role="tab" [class.on]="tab() === 'recent'" (click)="setTab('recent')">
+    <div class="tabs" role="tablist" aria-label="Filtro de exámenes">
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="tab() === 'recent'"
+        [attr.tabindex]="tab() === 'recent' ? 0 : -1"
+        [class.on]="tab() === 'recent'"
+        (click)="setTab('recent')">
         Reciente
       </button>
-      <button type="button" role="tab" [class.on]="tab() === 'drafts'" (click)="setTab('drafts')">
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="tab() === 'drafts'"
+        [attr.tabindex]="tab() === 'drafts' ? 0 : -1"
+        [class.on]="tab() === 'drafts'"
+        (click)="setTab('drafts')">
         Borradores
       </button>
-      <button type="button" role="tab" [class.on]="tab() === 'published'" (click)="setTab('published')">
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="tab() === 'published'"
+        [attr.tabindex]="tab() === 'published' ? 0 : -1"
+        [class.on]="tab() === 'published'"
+        (click)="setTab('published')">
         Publicados
       </button>
     </div>
@@ -149,10 +167,22 @@
           aria-label="Buscar exámenes" />
       </label>
       <div class="view-toggle" role="group" aria-label="Vista">
-        <button type="button" [class.on]="view() === 'grid'" (click)="setView('grid')" title="Cuadrícula">
+        <button
+          type="button"
+          [class.on]="view() === 'grid'"
+          [attr.aria-pressed]="view() === 'grid'"
+          (click)="setView('grid')"
+          title="Cuadrícula"
+          aria-label="Vista en cuadrícula">
           <ui-icon name="grid" />
         </button>
-        <button type="button" [class.on]="view() === 'list'" (click)="setView('list')" title="Lista">
+        <button
+          type="button"
+          [class.on]="view() === 'list'"
+          [attr.aria-pressed]="view() === 'list'"
+          (click)="setView('list')"
+          title="Lista"
+          aria-label="Vista en lista">
           <ui-icon name="list" />
         </button>
       </div>

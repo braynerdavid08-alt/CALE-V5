@@ -4,8 +4,8 @@ import { Component, Input } from '@angular/core';
   selector: 'ui-loading',
   standalone: true,
   template: `
-    <div class="loading" role="status">
-      <span class="dot"></span>
+    <div class="loading" role="status" aria-live="polite" aria-busy="true">
+      <span class="dot" aria-hidden="true"></span>
       <span>{{ label }}</span>
     </div>
   `,
@@ -26,6 +26,9 @@ import { Component, Input } from '@angular/core';
     }
     @keyframes pulse {
       50% { opacity: 0.35; transform: scale(0.85); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .dot { animation: none; opacity: 0.85; }
     }
   `]
 })

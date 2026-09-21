@@ -169,7 +169,7 @@
             <div class="actions">
               <ui-button type="button" [loading]="loading()" (click)="rematch()">Revancha</ui-button>
               <ui-button type="button" variant="secondary" (click)="exportCsv()">Descargar CSV</ui-button>
-              <a routerLink="/teacher/live"><ui-button type="button" variant="ghost">Nueva sala</ui-button></a>
+              <ui-button routerLink="/teacher/live" type="button" variant="ghost">Nueva sala</ui-button>
             </div>
           </div>
         } @else if (!l.currentQuestion || l.status === 'Lobby') {

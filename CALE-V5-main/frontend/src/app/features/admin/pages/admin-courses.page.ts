@@ -51,9 +51,7 @@ import { TeacherApi } from '../../teacher/api/teacher.api';
             [value]="query()"
             (input)="query.set($any($event.target).value)"
             placeholder="Buscar grupo o instructor…" />
-          <a routerLink="/teacher/groups">
-            <ui-button type="button" variant="secondary">Gestionar grupos</ui-button>
-          </a>
+          <ui-button routerLink="/teacher/groups" type="button" variant="secondary">Gestionar grupos</ui-button>
         </div>
 
         @if (filtered().length === 0) {

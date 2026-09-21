@@ -40,9 +40,7 @@ interface ResultRow {
     <ui-error [message]="error()" />
 
     <div class="actions">
-      <a routerLink="/student/simulator">
-        <ui-button type="button">Abrir simulador</ui-button>
-      </a>
+      <ui-button routerLink="/student/simulator" type="button">Abrir simulador</ui-button>
     </div>
 
     @if (loading()) {

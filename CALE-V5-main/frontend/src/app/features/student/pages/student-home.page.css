@@ -165,3 +165,17 @@
     text-align: left;
   }
 }
+
+.support-line {
+  margin: 1.25rem 0 0;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+}
+
+.support-line a {
+  color: var(--color-primary);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
