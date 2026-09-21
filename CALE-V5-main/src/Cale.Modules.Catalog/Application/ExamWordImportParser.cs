@@ -60,8 +60,13 @@ public static class ExamWordImportParser
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Regex OptionChunk = new(
-        @"(?:^|\s)(\*?)\s*([A-Da-d])\s*\*?\s*[\.\)\:]\s*",
+        @"(?:^|[\s;])(\*?)\s*([A-Da-d])\s*\*?\s*[.\)\:\,\-–—]\s*",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    /// <summary>Recovers glued markers like "VerdeC) Amarillo" inside an option body.</summary>
+    private static readonly Regex GluedOption = new(
+        @"^(?<body>.+?)(?<star>\*?)\s*(?<letter>[A-Da-d])\s*\*?\s*[.\)\:\,\-–—]\s*(?<rest>.+)$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.Singleline);
 
     private static readonly Regex AnswerKeyLine = new(
         @"(\d{1,3})\s*[\.\):\-]?\s*([A-Da-d])",
@@ -207,7 +212,8 @@ public static class ExamWordImportParser
 
                 if (options.Count(o => o.IsCorrect) != 1)
                 {
-                    // Provisional: keep first option correct but flag for teacher review.
+                    // Provisional for persistence (domain requires one correct).
+                    // Live sessions exclude NeedsReview questions until the teacher fixes them.
                     options = options
                         .Select((o, i) => o with { IsCorrect = i == 0 })
                         .ToList();
@@ -520,7 +526,7 @@ public static class ExamWordImportParser
         OptionChunk.IsMatch(text) && OptionChunk.Matches(text).Count >= 1;
 
     private static bool StartsWithOptionLetter(string text) =>
-        Regex.IsMatch(text, @"^\*?[A-Da-d]\s*[\.\)\:]");
+        Regex.IsMatch(text, @"^\*?[A-Da-d]\s*[.\)\:\,\-–—]");
 
     private static List<ParsedExamOption> SplitOptions(string raw)
     {
@@ -529,6 +535,13 @@ public static class ExamWordImportParser
         {
             return [];
         }
+
+        // Normalize glued markers: "B)VerdeC)Amarillo" → "B) Verde C) Amarillo"
+        text = Regex.Replace(
+            text,
+            @"(?<=\S)([A-Da-d])\s*([.\)\:\,\-–—])",
+            " $1$2",
+            RegexOptions.CultureInvariant);
 
         var matches = OptionChunk.Matches(text);
         if (matches.Count == 0)
@@ -559,6 +572,39 @@ public static class ExamWordImportParser
                 || body.Contains('✓')
                 || body.Contains("correcta", StringComparison.OrdinalIgnoreCase);
             body = body.Replace("✓", "", StringComparison.Ordinal).Trim();
+
+            // Split residual glued options that the primary pass still missed.
+            while (true)
+            {
+                var glued = GluedOption.Match(body);
+                if (!glued.Success)
+                {
+                    break;
+                }
+
+                var head = glued.Groups["body"].Value.Trim().TrimEnd('.', ';', ',');
+                if (string.IsNullOrWhiteSpace(head))
+                {
+                    break;
+                }
+
+                options.Add(new ParsedExamOption(letter, head, starred));
+                letter = glued.Groups["letter"].Value.ToUpperInvariant();
+                starred = glued.Groups["star"].Value == "*";
+                body = glued.Groups["rest"].Value.Trim().TrimEnd('.', ';', ',');
+            }
+
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                continue;
+            }
+
+            // Drop bodies that still look like mashed letters ("BCD") without real text.
+            if (Regex.IsMatch(body, @"^[A-Da-d]{2,}$"))
+            {
+                continue;
+            }
+
             options.Add(new ParsedExamOption(letter, body, starred));
         }
 

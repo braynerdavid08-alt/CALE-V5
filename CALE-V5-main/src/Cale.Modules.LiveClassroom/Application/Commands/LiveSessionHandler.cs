@@ -2,6 +2,7 @@ using System.Text.Json;
 using Cale.BuildingBlocks.Domain.Abstractions;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Time;
+using Cale.Modules.Catalog.Application;
 using Cale.Modules.Catalog.Application.Abstractions;
 using Cale.Modules.Catalog.Domain;
 using Cale.Modules.LiveClassroom.Application.Abstractions;
@@ -14,7 +15,8 @@ public sealed class LiveSessionHandler
 {
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true
     };
 
     private readonly ILiveSessionStore _store;
@@ -506,11 +508,12 @@ public sealed class LiveSessionHandler
             }
         }
 
-        var revealPoints = session.Mode is not LiveSessionModes.Exam;
+        var revealPoints = true;
         return new
         {
             ok = true,
-            points = revealPoints ? points : (int?)null
+            points,
+            isCorrect = option.IsCorrect
         };
     }
 
@@ -1039,7 +1042,18 @@ public sealed class LiveSessionHandler
         var order = 0;
         foreach (var q in list)
         {
-            var options = q.Options.Select(o => new SnapshotOption(o.Id, o.Text, o.ImageUrl, o.IsCorrect)).ToList();
+            var options = q.Options
+                .Where(o => !string.IsNullOrWhiteSpace(o.Text) || !string.IsNullOrWhiteSpace(o.ImageUrl))
+                .Select(o => new SnapshotOption(o.Id, o.Text, o.ImageUrl, o.IsCorrect))
+                .ToList();
+            if (options.Count < 2 || options.Count(o => o.IsCorrect) != 1)
+            {
+                throw new DomainException(
+                    "Hay preguntas sin clave correcta o con opciones incompletas. Revísalas en el banco antes de iniciar.",
+                    400,
+                    "invalid_question");
+            }
+
             if (config.ShuffleOptions)
             {
                 options = options.OrderBy(_ => Guid.NewGuid()).ToList();
@@ -1323,7 +1337,7 @@ public sealed class LiveSessionHandler
         }
 
         return new LiveRankingDto(
-            ranked.Take(5).ToList(),
+            ranked,
             myParticipantId,
             myRank,
             myScore);
@@ -1487,10 +1501,46 @@ public sealed class LiveSessionHandler
             .GroupBy(q => q.Id)
             .Select(g => g.First());
 
+        // Collapse re-imported banks that share the same stem (different Ids).
+        filtered = filtered
+            .GroupBy(q => NormalizeQuestionStem(q.Text))
+            .Where(g => !string.IsNullOrWhiteSpace(g.Key))
+            .Select(g => g.OrderBy(q => q.Id).First());
+
         filtered = filtered.Where(q => MatchesSelectedThemes(q, config));
         filtered = filtered.Where(q => MatchesSelectedDifficulties(q, config));
+        filtered = filtered.Where(IsLiveReadyQuestion);
 
         return filtered.ToList();
+    }
+
+    private static bool IsLiveReadyQuestion(Question q)
+    {
+        if (ExamImportMarkers.NeedsReview(q.Explanation))
+        {
+            return false;
+        }
+
+        var usableOptions = q.Options
+            .Where(o => !string.IsNullOrWhiteSpace(o.Text) || !string.IsNullOrWhiteSpace(o.ImageUrl))
+            .ToList();
+        if (usableOptions.Count < 2)
+        {
+            return false;
+        }
+
+        return usableOptions.Count(o => o.IsCorrect) == 1;
+    }
+
+    private static string NormalizeQuestionStem(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return "";
+        }
+
+        var normalized = text.Trim().ToLowerInvariant();
+        return System.Text.RegularExpressions.Regex.Replace(normalized, @"\s+", " ");
     }
 
     private static List<Question> PickQuestions(

@@ -90,6 +90,19 @@
   line-height: 1.4;
   box-shadow: 0 2px 8px rgba(11, 31, 51, 0.06);
 }
+.option-body {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+  flex: 1;
+}
+.option-img {
+  display: block;
+  max-width: min(100%, 240px);
+  max-height: 140px;
+  object-fit: contain;
+  border-radius: 8px;
+}
 .option-text { color: #0b1f33; }
 .option-letter {
   flex-shrink: 0;
@@ -179,7 +192,7 @@
 .rank-box { margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #e2e8f0; color: #0b1f33; }
 .rank-box h3, .rank-box h4 { margin: 0 0 0.5rem; font-size: var(--text-sm); text-transform: uppercase; letter-spacing: 0.04em; color: #5a6f82; }
 .rank-box.wide { text-align: left; max-width: 520px; margin: 1rem auto; }
-.rank-box ol, .doubts, .topics, .q-stats, .recs { list-style: none; padding: 0; margin: 0; }
+.rank-box ol, .doubts, .topics, .q-stats, .recs { list-style: none; padding: 0; margin: 0; max-height: min(50vh, 26rem); overflow: auto; }
 .rank-box li { display: flex; gap: 0.5rem; align-items: baseline; padding: 0.35rem 0; font-size: var(--text-sm); flex-wrap: wrap; color: #0b1f33; }
 .rank-box .r { width: 1.4rem; color: #5a6f82; }
 .round-ranking {

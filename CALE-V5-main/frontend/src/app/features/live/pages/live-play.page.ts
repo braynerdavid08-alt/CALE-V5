@@ -468,6 +468,28 @@ export class LivePlayPage implements OnInit, OnDestroy {
     return el.props as LineProps;
   }
 
+  /** Hide near-black full-width bars that read as a line across the phone screen. */
+  isDecorativeFullBleedLine(el: SlideElement): boolean {
+    if (el.type !== 'line' && el.type !== 'arrow') {
+      return false;
+    }
+    const props = this.lineProps(el);
+    const wide = (el.w ?? 0) >= 70;
+    const color = (props.color || '').toLowerCase();
+    const dark =
+      color === '#000' ||
+      color === '#000000' ||
+      color === 'black' ||
+      color === 'rgb(0, 0, 0)' ||
+      color === 'rgba(0, 0, 0, 1)';
+    return wide && dark;
+  }
+
+  clampedLineStroke(el: SlideElement): number {
+    const w = this.lineProps(el).strokeWidth || 2;
+    return Math.max(1, Math.min(w, 8));
+  }
+
   questionProps(el: SlideElement): QuestionProps {
     return el.props as QuestionProps;
   }
