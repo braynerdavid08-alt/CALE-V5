@@ -27,6 +27,17 @@ import {
   listVisibleBookingPresets,
   presetFromSettings
 } from '../theory-booking-presets';
+import {
+  addDays,
+  addDaysIso,
+  currentMonthKey,
+  formatDateOnly,
+  formatDisplayDate,
+  monthLabelFromKey,
+  parseDate,
+  shiftMonth,
+  startOfWeekIso
+} from '../theory-schedule-dates';
 import { buildStudentBadges, SchoolBadge } from '../../school/utils/school-student-badges';
 
 @Component({
@@ -45,8 +56,8 @@ export class SchoolTheoryPage implements OnInit {
   readonly dashboard = signal<TheorySchoolDashboardDto | null>(null);
   readonly schedule = signal<TheoryWeekScheduleDto | null>(null);
   readonly monthSchedule = signal<TheoryMonthScheduleDto | null>(null);
-  readonly weekStart = signal(this.startOfWeekIso(new Date()));
-  readonly monthKey = signal(this.currentMonthKey());
+  readonly weekStart = signal(startOfWeekIso(new Date()));
+  readonly monthKey = signal(currentMonthKey());
   readonly editingSessionId = signal<number | null>(null);
   readonly scheduleLoading = signal(false);
   readonly topics = signal<TheoryTopicDto[]>([]);
@@ -156,17 +167,15 @@ export class SchoolTheoryPage implements OnInit {
   weekRangeLabel(): string {
     const sch = this.schedule();
     if (sch?.weekStart && sch?.weekEnd) {
-      return `${this.formatDisplayDate(sch.weekStart)} – ${this.formatDisplayDate(sch.weekEnd)}`;
+      return `${formatDisplayDate(sch.weekStart)} – ${formatDisplayDate(sch.weekEnd)}`;
     }
-    const start = this.parseDate(this.weekStart());
-    const end = this.addDays(start, 6);
-    return `${this.formatDisplayDate(this.weekStart())} – ${this.formatDisplayDate(this.formatDateOnly(end))}`;
+    const start = parseDate(this.weekStart());
+    const end = addDays(start, 6);
+    return `${formatDisplayDate(this.weekStart())} – ${formatDisplayDate(formatDateOnly(end))}`;
   }
 
   monthLabel(): string {
-    const [y, m] = this.monthKey().split('-').map(Number);
-    const d = new Date(y, m - 1, 1);
-    return d.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
+    return monthLabelFromKey(this.monthKey());
   }
 
   dayHeader(dayIndex: number): string {
@@ -174,38 +183,38 @@ export class SchoolTheoryPage implements OnInit {
     if (!sch) {
       return this.dayLabels[dayIndex];
     }
-    const d = this.addDays(this.parseDate(sch.weekStart), dayIndex);
+    const d = addDays(parseDate(sch.weekStart), dayIndex);
     return `${this.dayLabels[dayIndex]} ${d.getDate()}`;
   }
 
   prevWeek(): void {
-    this.weekStart.set(this.addDaysIso(this.weekStart(), -7));
+    this.weekStart.set(addDaysIso(this.weekStart(), -7));
     this.syncMonthFromWeek();
     this.loadScheduleData();
   }
 
   nextWeek(): void {
-    this.weekStart.set(this.addDaysIso(this.weekStart(), 7));
+    this.weekStart.set(addDaysIso(this.weekStart(), 7));
     this.syncMonthFromWeek();
     this.loadScheduleData();
   }
 
   prevMonth(): void {
-    this.monthKey.set(this.shiftMonth(this.monthKey(), -1));
-    this.weekStart.set(this.startOfWeekIso(this.parseDate(`${this.monthKey()}-01`)));
+    this.monthKey.set(shiftMonth(this.monthKey(), -1));
+    this.weekStart.set(startOfWeekIso(parseDate(`${this.monthKey()}-01`)));
     this.loadScheduleData();
   }
 
   nextMonth(): void {
-    this.monthKey.set(this.shiftMonth(this.monthKey(), 1));
-    this.weekStart.set(this.startOfWeekIso(this.parseDate(`${this.monthKey()}-01`)));
+    this.monthKey.set(shiftMonth(this.monthKey(), 1));
+    this.weekStart.set(startOfWeekIso(parseDate(`${this.monthKey()}-01`)));
     this.loadScheduleData();
   }
 
   goToday(): void {
     const today = new Date();
-    this.monthKey.set(this.currentMonthKey(today));
-    this.weekStart.set(this.startOfWeekIso(today));
+    this.monthKey.set(currentMonthKey(today));
+    this.weekStart.set(startOfWeekIso(today));
     this.loadScheduleData();
   }
 
@@ -214,12 +223,12 @@ export class SchoolTheoryPage implements OnInit {
       return;
     }
     this.monthKey.set(value);
-    this.weekStart.set(this.startOfWeekIso(this.parseDate(`${value}-01`)));
+    this.weekStart.set(startOfWeekIso(parseDate(`${value}-01`)));
     this.loadScheduleData();
   }
 
   jumpToSessionWeek(sessionDate: string): void {
-    this.weekStart.set(this.startOfWeekIso(this.parseDate(sessionDate)));
+    this.weekStart.set(startOfWeekIso(parseDate(sessionDate)));
     const [y, m] = sessionDate.split('-');
     this.monthKey.set(`${y}-${m}`);
     this.loadScheduleData();
@@ -274,58 +283,7 @@ export class SchoolTheoryPage implements OnInit {
   }
 
   private syncMonthFromWeek(): void {
-    const week = this.parseDate(this.weekStart());
-    this.monthKey.set(this.currentMonthKey(week));
-  }
-
-  private currentMonthKey(date = new Date()): string {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    return `${y}-${m}`;
-  }
-
-  private shiftMonth(key: string, delta: number): string {
-    const [y, m] = key.split('-').map(Number);
-    const d = new Date(y, m - 1 + delta, 1);
-    return this.currentMonthKey(d);
-  }
-
-  private startOfWeekIso(date: Date): string {
-    const d = new Date(date);
-    const day = (d.getDay() + 6) % 7;
-    d.setDate(d.getDate() - day);
-    return this.formatDateOnly(d);
-  }
-
-  private addDaysIso(iso: string, days: number): string {
-    const d = this.parseDate(iso);
-    d.setDate(d.getDate() + days);
-    return this.formatDateOnly(d);
-  }
-
-  private addDays(date: Date, days: number): Date {
-    const d = new Date(date);
-    d.setDate(d.getDate() + days);
-    return d;
-  }
-
-  private parseDate(iso: string): Date {
-    const [y, m, d] = iso.split('-').map(Number);
-    return new Date(y, m - 1, d);
-  }
-
-  private formatDateOnly(date: Date): string {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  }
-
-  private formatDisplayDate(iso: string): string {
-    return this.parseDate(iso).toLocaleDateString('es-CO', {
-      day: 'numeric',
-      month: 'short'
-    });
+    this.monthKey.set(currentMonthKey(parseDate(this.weekStart())));
   }
 
   setTab(value: 'schedule' | 'students' | 'attendance' | 'topics' | 'classrooms' | 'settings'): void {
@@ -970,9 +928,9 @@ export class SchoolTheoryPage implements OnInit {
     if (!sch) {
       return [];
     }
-    const base = this.parseDate(sch.weekStart);
-    const d = this.addDays(base, dayIndex);
-    const dateKey = this.formatDateOnly(d);
+    const base = parseDate(sch.weekStart);
+    const d = addDays(base, dayIndex);
+    const dateKey = formatDateOnly(d);
     return sch.sessions.filter(
       (s) => s.sessionDate === dateKey && s.startTime.startsWith(start.slice(0, 2))
     );
@@ -1044,7 +1002,7 @@ export class SchoolTheoryPage implements OnInit {
       this.error.set('Completa fecha, tema y aula.');
       return;
     }
-    const date = this.parseDate(this.createForm.sessionDate);
+    const date = parseDate(this.createForm.sessionDate);
     const dayIndex = (date.getDay() + 6) % 7;
     if (!this.isDayAllowed(dayIndex)) {
       this.error.set(this.schedulingDaysMessage());
@@ -1087,8 +1045,8 @@ export class SchoolTheoryPage implements OnInit {
     if (!sch) {
       return;
     }
-    const d = this.addDays(this.parseDate(sch.weekStart), dayIndex);
-    this.createForm.sessionDate = this.formatDateOnly(d);
+    const d = addDays(parseDate(sch.weekStart), dayIndex);
+    this.createForm.sessionDate = formatDateOnly(d);
     this.createForm.startTime = start;
     const hour = parseInt(start.slice(0, 2), 10) + 2;
     const endHour = hour >= 24 ? 23 : hour;

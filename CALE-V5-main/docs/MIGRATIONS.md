@@ -29,7 +29,8 @@ Do **not** turn on `UseEfMigrations` until history is recorded, or Migrate will 
 
 1. Take a backup of Postgres.
 2. Confirm the live schema roughly matches `InitialCreate`.
-3. Insert the migration row (adjust id if the file name differs):
+3. Insert the migration row (adjust id if the file name differs), or run
+   `scripts/baseline-ef-migrations.sql`:
 
 ```sql
 CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
