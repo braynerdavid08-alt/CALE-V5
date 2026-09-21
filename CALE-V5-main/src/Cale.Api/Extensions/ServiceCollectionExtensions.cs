@@ -16,6 +16,8 @@ using Cale.Modules.Identity.Infrastructure.Persistence;
 using Cale.Modules.LiveClassroom.Application.Abstractions;
 using Cale.Modules.LiveClassroom.Infrastructure;
 using Cale.Modules.LiveClassroom.Infrastructure.Persistence;
+using Cale.Modules.GameShow.Infrastructure;
+using Cale.Modules.GameShow.Infrastructure.Persistence;
 using Cale.Modules.TheoreticalTraining.Infrastructure;
 using Cale.Modules.TheoreticalTraining.Infrastructure.Persistence;
 using Cale.Modules.Presentation.Infrastructure;
@@ -95,17 +97,20 @@ public static class ServiceCollectionExtensions
                 typeof(NotificationConfiguration).Assembly,
                 typeof(PresentationDeckConfiguration).Assembly,
                 typeof(LiveSessionConfiguration).Assembly,
+                typeof(GameShowSessionConfiguration).Assembly,
                 typeof(TheoryTopicConfiguration).Assembly));
         services.AddIdentityModule();
         services.AddCatalogModule();
         services.AddAssessmentModule();
         services.AddClassroomModule();
         services.AddLiveClassroomModule();
+        services.AddGameShowModule();
         services.AddTheoreticalTrainingModule();
         services.AddEngagementModule();
         services.AddPresentationModule();
         services.AddSingleton<UploadStorage>();
         services.AddScoped<ILiveSessionBroadcaster, LiveSessionBroadcaster>();
+        services.AddScoped<Cale.Modules.GameShow.Application.Abstractions.IGameShowBroadcaster, GameShowBroadcaster>();
         services.AddMemoryCache(options =>
         {
             // Presentation media cache entries set Size = byte length.

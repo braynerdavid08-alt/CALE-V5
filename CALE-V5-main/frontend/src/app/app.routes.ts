@@ -115,6 +115,35 @@ export const routes: Routes = [
         .then((m) => m.LivePlayPage)
   },
   {
+    path: 'game-show/join',
+    pathMatch: 'full',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/game-show/pages/game-show-join.page')
+        .then((m) => m.GameShowJoinPage)
+  },
+  {
+    path: 'game-show/join/:code',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/game-show/pages/game-show-join.page')
+        .then((m) => m.GameShowJoinPage)
+  },
+  {
+    path: 'game-show/play/:sessionId',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/game-show/pages/game-show-play.page')
+        .then((m) => m.GameShowPlayPage)
+  },
+  {
+    path: 'game-show/screen/:sessionId',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/game-show/pages/game-show-screen.page')
+        .then((m) => m.GameShowScreenPage)
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () =>
@@ -455,6 +484,23 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/teacher/live/teacher-live-host.page')
             .then((m) => m.TeacherLiveHostPage)
+      },
+      {
+        path: 'teacher/game-show',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: staffRoles },
+        loadComponent: () =>
+          import('./features/game-show/pages/game-show-hub.page')
+            .then((m) => m.GameShowHubPage)
+      },
+      {
+        path: 'teacher/game-show/:sessionId/host',
+        canActivate: [roleGuard],
+        data: { roles: staffRoles },
+        loadComponent: () =>
+          import('./features/game-show/pages/game-show-host.page')
+            .then((m) => m.GameShowHostPage)
       },
       {
         path: 'admin/questions/:id',
