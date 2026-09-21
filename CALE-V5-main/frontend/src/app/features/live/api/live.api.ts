@@ -252,7 +252,7 @@ export class LiveApi {
   }
 
   answer(sessionId: number, sessionQuestionId: number, participantToken: string, optionId: number) {
-    return this.http.post<{ ok: boolean; points?: number | null }>(
+    return this.http.post<{ ok: boolean; points?: number | null; isCorrect?: boolean }>(
       `${this.base}/sessions/${sessionId}/questions/${sessionQuestionId}/answer`,
       { participantToken, optionId }
     );

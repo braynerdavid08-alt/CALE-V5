@@ -36,6 +36,26 @@ public class ExamWordImportParserTests
     }
 
     [Fact]
+    public void ParseLines_Splits_Comma_Separated_And_Glued_Options()
+    {
+        var parsed = ExamWordImportParser.ParseLines(
+        [
+            "1. Semáforo",
+            "*A, Rojo. B, Verde. C, Amarillo. D, Azul.",
+            "2. Glued",
+            "A)UnoB)DosC)TresD)Cuatro"
+        ]);
+
+        Assert.Equal(2, parsed.Questions.Count);
+        Assert.Equal(4, parsed.Questions[0].Options.Count);
+        Assert.Equal(["A", "B", "C", "D"], parsed.Questions[0].Options.Select(o => o.Letter).ToArray());
+        Assert.Equal("Rojo", parsed.Questions[0].Options[0].Text);
+        Assert.Equal(4, parsed.Questions[1].Options.Count);
+        Assert.Equal("Uno", parsed.Questions[1].Options[0].Text);
+        Assert.Equal("Dos", parsed.Questions[1].Options[1].Text);
+    }
+
+    [Fact]
     public void Parse_Attaches_Embedded_Image_To_Question_Stem()
     {
         using var stream = BuildDocxWithStemImage();

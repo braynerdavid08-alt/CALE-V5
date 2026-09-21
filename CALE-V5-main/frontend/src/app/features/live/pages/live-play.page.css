@@ -53,6 +53,8 @@
 .timer { font-size: 1.6rem; color: #2bb0ed; }
 .opts { display: grid; gap: 0.65rem; margin: 1rem 0; }
 .opt {
+  display: flex;
+  align-items: flex-start;
   text-align: left;
   padding: 0.95rem 1rem;
   border-radius: 14px;
@@ -62,6 +64,23 @@
   font-size: 1rem;
   min-height: 52px;
   touch-action: manipulation;
+  gap: 0.35rem;
+}
+.opt-body {
+  display: grid;
+  gap: 0.45rem;
+  flex: 1;
+  min-width: 0;
+}
+.opt-img {
+  display: block;
+  max-width: min(100%, 220px);
+  max-height: 140px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #0b1220;
 }
 .opt.selected { border-color: #2bb0ed; box-shadow: inset 0 0 0 1px #2bb0ed; }
 .opt.correct { border-color: #3dd68c; background: rgba(61, 214, 140, 0.12); }
@@ -90,7 +109,7 @@
 img { max-width: 100%; border-radius: 12px; margin: 0.5rem 0; }
 a { color: #2bb0ed; }
 .my-score { color: #f0b429; font-weight: 700; margin: 0.35rem 0 0; }
-.rank { list-style: none; padding: 0; margin: 1rem 0; }
+.rank { list-style: none; padding: 0; margin: 1rem 0; max-height: min(55vh, 28rem); overflow: auto; }
 .rank li { display: flex; gap: 0.5rem; padding: 0.4rem 0; border-bottom: 1px solid #243041; }
 .rank li.me { color: #f0b429; font-weight: 700; }
 .rank li span:nth-child(2) { flex: 1; }
@@ -277,8 +296,15 @@ a { color: #2bb0ed; }
   height: 100%;
   display: flex;
   align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
-.deck-slide .line-bar { width: 100%; border-radius: 999px; }
+.deck-slide .line-bar {
+  width: 100%;
+  max-width: 100%;
+  border-radius: 999px;
+  max-height: 8px;
+}
 .deck-slide .el-question {
   width: 100%;
   height: 100%;

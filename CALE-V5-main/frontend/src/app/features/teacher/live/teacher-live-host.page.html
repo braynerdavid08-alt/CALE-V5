@@ -114,7 +114,7 @@
             <h2>Sesión finalizada</h2>
             @if (ranking(); as rank) {
               <div class="rank-box wide">
-                <h3>Resultados · Top 5</h3>
+                <h3>Resultados · todos</h3>
                 <ol>
                   @for (row of rank.top; track row.participantId) {
                     <li>
@@ -248,7 +248,7 @@
         } @else if (roundRanking() && showRanking()) {
           <div class="waiting round-ranking">
             <p class="eyebrow">Clasificación de la ronda</p>
-            <h2>Top de jugadores</h2>
+            <h2>Clasificación completa</h2>
             @if (ranking(); as rank) {
               <div class="rank-box wide round-rank-list">
                 <ol>
@@ -312,7 +312,14 @@
                 class="option-card"
                 [class.revealed-correct]="l.revealCorrect && opt.isCorrect === true">
                 <span class="option-letter">{{ optionLetter(i) }}</span>
-                <span class="option-text">{{ opt.text }}</span>
+                <span class="option-body">
+                  @if (opt.imageUrl) {
+                    <img class="option-img" [src]="opt.imageUrl" alt="" />
+                  }
+                  @if (opt.text) {
+                    <span class="option-text">{{ opt.text }}</span>
+                  }
+                </span>
               </li>
             }
           </ul>

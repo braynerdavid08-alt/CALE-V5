@@ -93,12 +93,14 @@
                       [style.clipPath]="shapeClip(shapeProps(el).shape)"></div>
                   }
                   @if (el.type === 'line' || el.type === 'arrow') {
-                    <div class="el-line">
-                      <div
-                        class="line-bar"
-                        [style.background]="lineProps(el).color"
-                        [style.height.px]="lineProps(el).strokeWidth"></div>
-                    </div>
+                    @if (!isDecorativeFullBleedLine(el)) {
+                      <div class="el-line">
+                        <div
+                          class="line-bar"
+                          [style.background]="lineProps(el).color"
+                          [style.height.px]="clampedLineStroke(el)"></div>
+                      </div>
+                    }
                   }
                   @if (el.type === 'question') {
                     <div class="el-question">
@@ -210,7 +212,14 @@
               [disabled]="submitted()"
               (click)="select(opt.id)">
               <span class="letter">{{ optionLetter(i) }}</span>
-              <span>{{ opt.text }}</span>
+              <span class="opt-body">
+                @if (opt.imageUrl) {
+                  <img class="opt-img" [src]="opt.imageUrl" alt="" />
+                }
+                @if (opt.text) {
+                  <span>{{ opt.text }}</span>
+                }
+              </span>
             </button>
           }
         </div>
