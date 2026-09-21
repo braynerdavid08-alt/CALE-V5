@@ -31,12 +31,8 @@ import { PublicHomeApi } from './public-home.api';
             escuelas e instructores, o crear tu cuenta para acceder a cursos.
           </p>
           <div class="actions">
-            <a routerLink="/escuelas">
-              <ui-button type="button" variant="secondary">Ver escuelas</ui-button>
-            </a>
-            <a routerLink="/register">
-              <ui-button type="button">Registrarme</ui-button>
-            </a>
+            <ui-button routerLink="/escuelas" type="button" variant="secondary">Ver escuelas</ui-button>
+            <ui-button routerLink="/register" type="button">Registrarme</ui-button>
           </div>
         </article>
       }

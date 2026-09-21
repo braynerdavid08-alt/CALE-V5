@@ -12,6 +12,7 @@
       class="search-input"
       type="search"
       placeholder="Buscar nombre, cédula o celular…"
+      aria-label="Buscar aprendiz por nombre, cédula o celular"
       [(ngModel)]="search"
       (keyup.enter)="reload()" />
     <label class="school-toolbar-check">
@@ -34,8 +35,8 @@
         [disabled]="exporting()">
         Excel cartera
       </ui-button>
-      <a routerLink="/school/users"><ui-button type="button" variant="secondary">Crear / vincular</ui-button></a>
-      <a routerLink="/school/import"><ui-button type="button">Importar Excel</ui-button></a>
+      <ui-button routerLink="/school/users" type="button" variant="secondary">Crear / vincular</ui-button>
+      <ui-button routerLink="/school/import" type="button">Importar Excel</ui-button>
     </div>
   </div>
 
@@ -74,16 +75,17 @@
         <p class="school-card-title">{{ rows().length }} aprendices registrados</p>
         <div class="school-table-wrap">
           <table class="school-data-table">
+            <caption class="sr-only">Lista de aprendices de la escuela</caption>
             <thead>
               <tr>
-                <th>Nombre</th>
-                <th>Documento</th>
-                <th>Teoría</th>
-                <th>Examen</th>
-                <th>Manejo</th>
-                <th>Pagado</th>
-                <th>Saldo</th>
-                <th></th>
+                <th scope="col">Nombre</th>
+                <th scope="col">Documento</th>
+                <th scope="col">Teoría</th>
+                <th scope="col">Examen</th>
+                <th scope="col">Manejo</th>
+                <th scope="col">Pagado</th>
+                <th scope="col">Saldo</th>
+                <th scope="col"><span class="sr-only">Acciones</span></th>
               </tr>
             </thead>
             <tbody>
@@ -91,7 +93,13 @@
                 @let p = progressOf(r);
                 <tr
                   [class.is-selected]="selected()?.studentUserId === r.studentUserId"
-                  (click)="select(r)">
+                  tabindex="0"
+                  role="button"
+                  [attr.aria-pressed]="selected()?.studentUserId === r.studentUserId"
+                  [attr.aria-label]="'Seleccionar a ' + r.studentName"
+                  (click)="select(r)"
+                  (keydown.enter)="select(r)"
+                  (keydown.space)="$event.preventDefault(); select(r)">
                   <td>
                     <strong>{{ r.studentName }}</strong>
                     <div class="school-badge-row">
@@ -106,7 +114,7 @@
                   <td [class.ok]="r.practicalAuthorized || p?.canBookPractical">{{ formatPracticalStatus(r, p) }}</td>
                   <td>{{ formatMoney(r.amountPaid) }}</td>
                   <td [class.warn]="r.balanceDue > 0">{{ formatMoney(r.balanceDue) }}</td>
-                  <td class="row-actions" (click)="$event.stopPropagation()">
+                  <td class="row-actions" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
                     <a [routerLink]="['/school/apprentices', r.studentUserId]" class="dossier-link">Expediente</a>
                   </td>
                 </tr>
@@ -131,9 +139,7 @@
               <h2>{{ s.studentName }}</h2>
               <p class="login-hint muted">Acceso app: <strong>{{ s.studentEmail || '—' }}</strong></p>
             </div>
-            <a [routerLink]="['/school/apprentices', s.studentUserId]">
-              <ui-button type="button" variant="secondary">Ver expediente</ui-button>
-            </a>
+            <ui-button [routerLink]="['/school/apprentices', s.studentUserId]" type="button" variant="secondary">Ver expediente</ui-button>
           </div>
 
           @if (detailLoading()) {
@@ -180,9 +186,9 @@
                 }
               </ul>
               <div class="school-quick-links">
-                <a routerLink="/school/training"><ui-button type="button" variant="secondary">Programación</ui-button></a>
-                <a routerLink="/school/practical"><ui-button type="button" variant="secondary">Práctica</ui-button></a>
-                <a routerLink="/school/theory-exams"><ui-button type="button" variant="secondary">Exámenes</ui-button></a>
+                <ui-button routerLink="/school/training" type="button" variant="secondary">Programación</ui-button>
+                <ui-button routerLink="/school/practical" type="button" variant="secondary">Práctica</ui-button>
+                <ui-button routerLink="/school/theory-exams" type="button" variant="secondary">Exámenes</ui-button>
               </div>
             </section>
           }

@@ -11,9 +11,7 @@
     </label>
     <ui-button type="button" variant="secondary" (click)="goToday()">Hoy</ui-button>
     <ui-button type="button" variant="ghost" (click)="reload()" [disabled]="loading()">Actualizar</ui-button>
-    <a routerLink="/school/practical">
-      <ui-button type="button" variant="ghost">Programación</ui-button>
-    </a>
+    <ui-button routerLink="/school/practical" type="button" variant="ghost">Programación</ui-button>
   </div>
 
   <ui-error [message]="error()" />

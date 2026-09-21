@@ -64,9 +64,7 @@ interface UserRow {
             [value]="query()"
             (input)="query.set($any($event.target).value)"
             placeholder="Buscar por nombre o correo…" />
-          <a routerLink="/admin/users">
-            <ui-button type="button" variant="secondary">Gestionar en Usuarios</ui-button>
-          </a>
+          <ui-button routerLink="/admin/users" type="button" variant="secondary">Gestionar en Usuarios</ui-button>
         </div>
 
         @if (filtered().length === 0) {

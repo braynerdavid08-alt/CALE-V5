@@ -168,7 +168,7 @@ interface MembershipEventDto {
             </div>
           </dl>
           <div class="row actions">
-            <a routerLink="/school/users"><ui-button type="button" variant="ghost">Usuarios</ui-button></a>
+            <ui-button routerLink="/school/users" type="button" variant="ghost">Usuarios</ui-button>
             @if (canCancelRequest()) {
               <ui-button type="button" variant="danger" [disabled]="busy()" (click)="cancelRequest()">
                 Cancelar solicitud

@@ -1,6 +1,6 @@
 :host { display: inline-flex; }
 
-button {
+.btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -15,38 +15,63 @@ button {
   font-weight: 650;
   line-height: 1;
   cursor: pointer;
+  text-decoration: none;
+  box-sizing: border-box;
   transition: background var(--transition), transform var(--transition), border-color var(--transition);
 }
 
-button:hover:not(:disabled) { background: var(--color-primary-hover); }
-button:active:not(:disabled) { transform: translateY(1px); }
+a.btn:hover:not(.is-disabled),
+button.btn:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  color: var(--color-on-primary);
+}
 
-button.secondary {
+a.btn:active:not(.is-disabled),
+button.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn.secondary {
   background: var(--color-surface);
   color: var(--color-text);
   border: 1px solid var(--color-border);
 }
 
-button.secondary:hover:not(:disabled) {
+a.btn.secondary:hover:not(.is-disabled),
+button.btn.secondary:hover:not(:disabled) {
   background: var(--color-chip);
   border-color: var(--color-border-strong);
+  color: var(--color-text);
 }
 
-button.ghost {
+.btn.ghost {
   background: transparent;
   color: var(--color-text);
 }
 
-button.ghost:hover:not(:disabled) { background: var(--color-chip); }
+a.btn.ghost:hover:not(.is-disabled),
+button.btn.ghost:hover:not(:disabled) {
+  background: var(--color-chip);
+  color: var(--color-text);
+}
 
-button.danger {
+.btn.danger {
   background: var(--color-danger);
   color: #fff;
 }
 
-button.danger:hover:not(:disabled) { background: var(--color-danger-hover); }
+a.btn.danger:hover:not(.is-disabled),
+button.btn.danger:hover:not(:disabled) {
+  background: var(--color-danger-hover);
+  color: #fff;
+}
 
-button:disabled { opacity: 0.55; cursor: not-allowed; }
+button.btn:disabled,
+a.btn.is-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
 
 .spin {
   width: 0.95rem;
@@ -57,10 +82,17 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   animation: spin 0.7s linear infinite;
 }
 
-button.secondary .spin,
-button.ghost .spin {
+.btn.secondary .spin,
+.btn.ghost .spin {
   border-color: color-mix(in srgb, var(--color-text) 30%, transparent);
   border-top-color: var(--color-text);
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+    opacity: 0.7;
+  }
+}

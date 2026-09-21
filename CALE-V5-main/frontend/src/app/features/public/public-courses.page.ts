@@ -44,12 +44,8 @@ import { PublicHomeApi } from './public-home.api';
             sin autenticación.
           </p>
           <div class="actions">
-            <a routerLink="/register">
-              <ui-button type="button">Crear cuenta</ui-button>
-            </a>
-            <a routerLink="/login">
-              <ui-button type="button" variant="secondary">Iniciar sesión</ui-button>
-            </a>
+            <ui-button routerLink="/register" type="button">Crear cuenta</ui-button>
+            <ui-button routerLink="/login" type="button" variant="secondary">Iniciar sesión</ui-button>
           </div>
         </div>
       }

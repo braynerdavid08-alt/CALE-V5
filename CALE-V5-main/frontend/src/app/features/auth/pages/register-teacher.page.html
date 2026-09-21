@@ -15,23 +15,38 @@
     <form [formGroup]="form" (ngSubmit)="submit()">
       <label class="field">
         Nombre
-        <input type="text" formControlName="name" autocomplete="name" />
+        <input
+          type="text"
+          formControlName="name"
+          autocomplete="name"
+          [attr.aria-invalid]="form.controls.name.touched && form.controls.name.invalid"
+          [attr.aria-describedby]="form.controls.name.touched && form.controls.name.invalid ? 'teacher-name-error' : null" />
         @if (form.controls.name.touched && form.controls.name.invalid) {
-          <span class="field-error">El nombre es obligatorio.</span>
+          <span id="teacher-name-error" class="field-error" role="alert">El nombre es obligatorio.</span>
         }
       </label>
       <label class="field">
         Correo
-        <input type="email" formControlName="email" autocomplete="email" />
+        <input
+          type="email"
+          formControlName="email"
+          autocomplete="email"
+          [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid"
+          [attr.aria-describedby]="form.controls.email.touched && form.controls.email.invalid ? 'teacher-email-error' : null" />
         @if (form.controls.email.touched && form.controls.email.invalid) {
-          <span class="field-error">Ingresa un correo válido.</span>
+          <span id="teacher-email-error" class="field-error" role="alert">Ingresa un correo válido.</span>
         }
       </label>
       <label class="field">
         Contraseña
-        <input type="password" formControlName="password" autocomplete="new-password" />
+        <input
+          type="password"
+          formControlName="password"
+          autocomplete="new-password"
+          [attr.aria-invalid]="form.controls.password.touched && form.controls.password.invalid"
+          [attr.aria-describedby]="form.controls.password.touched && form.controls.password.invalid ? 'teacher-password-error' : null" />
         @if (form.controls.password.touched && form.controls.password.invalid) {
-          <span class="field-error">Mínimo 8 caracteres.</span>
+          <span id="teacher-password-error" class="field-error" role="alert">Mínimo 8 caracteres.</span>
         }
       </label>
       <ui-button type="submit" [loading]="auth.loading()">Crear instructor</ui-button>

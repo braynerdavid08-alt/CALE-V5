@@ -292,7 +292,7 @@
         <ui-button type="button" variant="secondary" (click)="bulkAuthorizePractical()">
           Autorizar manejo ({{ eligibleForPracticalCount() }})
         </ui-button>
-        <a routerLink="/school/theory-exams"><ui-button type="button" variant="secondary">Calendario de exámenes</ui-button></a>
+        <ui-button routerLink="/school/theory-exams" type="button" variant="secondary">Calendario de exámenes</ui-button>
       </div>
 
       @if (!enrollments().length) {

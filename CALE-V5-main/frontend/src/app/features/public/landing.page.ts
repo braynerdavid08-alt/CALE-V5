@@ -48,11 +48,9 @@ import { formatStatDisplay } from './public-stat.util';
               </h1>
               <p class="lead">{{ h.hero.description }}</p>
               <div class="cta-row">
-                <a [routerLink]="h.hero.ctaPrimaryPath || '/register'">
-                  <ui-button type="button">
+                <ui-button [routerLink]="h.hero.ctaPrimaryPath || '/register'" type="button">
                     {{ h.hero.ctaPrimaryLabel || 'Comenzar ahora' }}
                   </ui-button>
-                </a>
                 @if (h.hero.videoUrl) {
                   <a
                     class="video-btn"
@@ -148,9 +146,7 @@ import { formatStatDisplay } from './public-stat.util';
                 <h2>Escuelas aliadas</h2>
                 <p>Formación presencial y acompañamiento con escuelas del ecosistema CALE.</p>
               </div>
-              <a routerLink="/escuelas">
-                <ui-button type="button" variant="secondary">Ver todas</ui-button>
-              </a>
+              <ui-button routerLink="/escuelas" type="button" variant="secondary">Ver todas</ui-button>
             </header>
             @if (h.schools.length) {
               <div class="cards">
@@ -178,9 +174,7 @@ import { formatStatDisplay } from './public-stat.util';
                 <h2>Instructores</h2>
                 <p>Instructores y formadores que acompañan tu proceso teórico y práctico.</p>
               </div>
-              <a routerLink="/instructores">
-                <ui-button type="button" variant="secondary">Ver todos</ui-button>
-              </a>
+              <ui-button routerLink="/instructores" type="button" variant="secondary">Ver todos</ui-button>
             </header>
             @if (h.instructors.length) {
               <div class="cards">
@@ -208,12 +202,8 @@ import { formatStatDisplay } from './public-stat.util';
             <p>Crea tu cuenta y accede a simuladores, contenidos y escuelas aliadas.</p>
           </div>
           <div class="cta-row">
-            <a routerLink="/register">
-              <ui-button type="button">Registrarme</ui-button>
-            </a>
-            <a routerLink="/contacto">
-              <ui-button type="button" variant="secondary">Contacto</ui-button>
-            </a>
+            <ui-button routerLink="/register" type="button">Registrarme</ui-button>
+            <ui-button routerLink="/contacto" type="button" variant="secondary">Contacto</ui-button>
           </div>
         </div>
       </section>

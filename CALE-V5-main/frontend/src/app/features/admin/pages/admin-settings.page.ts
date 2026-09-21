@@ -120,7 +120,7 @@ import { roleLabel } from '../../../shared/utils/role-label';
           </div>
         </dl>
         <div class="row" style="margin-top: 0.85rem;">
-          <a routerLink="/profile"><ui-button type="button" variant="secondary">Ver perfil</ui-button></a>
+          <ui-button routerLink="/profile" type="button" variant="secondary">Ver perfil</ui-button>
         </div>
       </ui-card>
     </div>

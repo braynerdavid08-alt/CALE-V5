@@ -94,9 +94,7 @@ interface PilotMetricsDto {
             <h2>Solicitudes de escuelas</h2>
             <p class="hint">Solo un resumen. Para aprobar, rechazar o editar cupos usa Escuelas de Manejo.</p>
           </div>
-          <a routerLink="/admin/schools/queue">
-            <ui-button type="button" variant="secondary">Ir a Escuelas de Manejo</ui-button>
-          </a>
+          <ui-button routerLink="/admin/schools/queue" type="button" variant="secondary">Ir a Escuelas de Manejo</ui-button>
         </div>
         <div class="kpi-grid">
           <article class="kpi warn">

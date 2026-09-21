@@ -47,9 +47,7 @@ interface CertificateItem {
           Estos registros son solo para tu seguimiento en Mi CALE.
           Tu escuela es quien acredita horas, exámenes RUNT y habilitaciones.
         </p>
-        <a routerLink="/student/progress">
-          <ui-button type="button" variant="secondary">Ver mi progreso</ui-button>
-        </a>
+        <ui-button routerLink="/student/progress" type="button" variant="secondary">Ver mi progreso</ui-button>
       </ui-card>
 
       @if (items().length === 0) {
@@ -58,9 +56,7 @@ interface CertificateItem {
             Aún no hay avances registrados. Practica en el simulador o presenta evaluaciones
             para ver tu historial aquí.
           </p>
-          <a routerLink="/student/simulator">
-            <ui-button type="button">Ir al simulador</ui-button>
-          </a>
+          <ui-button routerLink="/student/simulator" type="button">Ir al simulador</ui-button>
         </ui-card>
       } @else {
         <div class="grid">

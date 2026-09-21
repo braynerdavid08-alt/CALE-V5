@@ -25,7 +25,7 @@ import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.compone
         }
       </ul>
       <div class="row">
-        <a routerLink="/admin"><ui-button type="button" variant="secondary">Volver al Dashboard</ui-button></a>
+        <ui-button routerLink="/admin" type="button" variant="secondary">Volver al Dashboard</ui-button>
       </div>
     </ui-card>
   `,

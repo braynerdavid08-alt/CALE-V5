@@ -91,9 +91,7 @@ interface SchoolJoinRequestDto {
       subtitle="Puedes crear y editar nombre/correo. Activar, desactivar o eliminar solo lo hace el administrador." />
 
     <div class="row-actions" style="justify-content: flex-start; margin-bottom: 1rem;">
-      <a routerLink="/school/import">
-        <ui-button type="button" variant="secondary">Importar CSV</ui-button>
-      </a>
+      <ui-button routerLink="/school/import" type="button" variant="secondary">Importar CSV</ui-button>
     </div>
 
     <ui-error [message]="error()" />

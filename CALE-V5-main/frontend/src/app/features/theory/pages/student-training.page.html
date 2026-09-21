@@ -71,7 +71,7 @@
             <p class="meta">
               También debes aprobar <strong>{{ dash.platformExam.name }}</strong> en Practicar examen.
             </p>
-            <a routerLink="/student/simulator"><ui-button type="button">Practicar examen</ui-button></a>
+            <ui-button routerLink="/student/simulator" type="button">Practicar examen</ui-button>
           } @else if (dash.practicalEligibility?.theoryExamPassed) {
             <p class="ok">Ya aprobaste el examen teórico.</p>
           }
@@ -80,7 +80,7 @@
         <article class="card exam-card">
           <h2>Examen teórico pendiente</h2>
           <p class="meta">Tu escuela te autorizó. Presenta <strong>{{ dash.platformExam.name }}</strong> en Practicar examen.</p>
-          <a routerLink="/student/simulator"><ui-button type="button">Practicar examen</ui-button></a>
+          <ui-button routerLink="/student/simulator" type="button">Practicar examen</ui-button>
         </article>
       }
 
