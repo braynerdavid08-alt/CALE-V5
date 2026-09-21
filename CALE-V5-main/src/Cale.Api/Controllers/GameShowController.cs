@@ -66,6 +66,38 @@ public sealed class GameShowController : ControllerBase
         return Ok(await _handler.JoinAsync(request, userId, ct));
     }
 
+    [HttpGet("{id:int}/export")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> ExportQuestions(
+        int id,
+        [FromQuery] string format = "csv",
+        CancellationToken ct = default)
+    {
+        var (bytes, fileName, contentType) = await _handler.ExportQuestionsAsync(
+            id,
+            CurrentUser.GetId(User),
+            CurrentUser.IsAdmin(User),
+            format,
+            ct);
+        return File(bytes, contentType, fileName);
+    }
+
+    [HttpGet("school/{id:int}/export")]
+    [Authorize(Policy = "SchoolOnly")]
+    public async Task<IActionResult> ExportQuestionsForSchool(
+        int id,
+        [FromQuery] string format = "csv",
+        CancellationToken ct = default)
+    {
+        var (bytes, fileName, contentType) = await _handler.ExportQuestionsAsync(
+            id,
+            CurrentUser.GetId(User),
+            isAdmin: false,
+            format,
+            ct);
+        return File(bytes, contentType, fileName);
+    }
+
     [HttpPost("{id:int}/start")]
     [Authorize(Policy = "TeacherOrAdmin")]
     public async Task<IActionResult> Start(int id, CancellationToken ct)

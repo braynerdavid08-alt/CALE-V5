@@ -20,6 +20,8 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
             <p>Código <strong>{{ L.joinCode }}</strong> · {{ L.status }}</p>
           </div>
           <div class="links">
+            <ui-button type="button" variant="ghost" (click)="exportQuestions('csv')">Exportar CSV</ui-button>
+            <ui-button type="button" variant="ghost" (click)="exportQuestions('json')">Exportar JSON</ui-button>
             <a [routerLink]="['/game-show/screen', L.id]" target="_blank">Abrir proyector</a>
             <a routerLink="/teacher/game-show">Volver</a>
           </div>
@@ -184,6 +186,20 @@ export class GameShowHostPage implements OnInit, OnDestroy {
   }
   assign(playerId: number, team: string): void {
     this.act(() => this.api.assign(this.sessionId, playerId, team));
+  }
+
+  exportQuestions(format: 'csv' | 'json'): void {
+    this.api.exportQuestions(this.sessionId, format).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cale-100-dijeron-${this.sessionId}.${format}`;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: (err) => this.error.set(mapApiError(err))
+    });
   }
 
   private act(call: () => import('rxjs').Observable<GameShowLobbyDto>): void {
