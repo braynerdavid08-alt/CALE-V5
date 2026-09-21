@@ -195,10 +195,17 @@ Database__AllowRequestPathRepair=false
 Database__UseEfMigrations=false
 ```
 
-Cuando la base existente ya esté baselined con `__EFMigrationsHistory` (ver [MIGRATIONS.md](MIGRATIONS.md)), activa:
+Cuando la base existente ya esté baselined con `__EFMigrationsHistory` (ver [MIGRATIONS.md](MIGRATIONS.md) y `scripts/BASELINE_PROD.ps1`), activa:
 
 ```env
 Database__UseEfMigrations=true
 ```
+
+Checklist corto en Render:
+
+1. Backup Postgres.
+2. Ejecutar `scripts/baseline-ef-migrations.sql` (PSQL de Render o `.\scripts\BASELINE_PROD.ps1` con External URL).
+3. Env: `Database__UseEfMigrations=true` (+ EnsureCreated/FeatureSchema en `false`).
+4. Manual Deploy → comprobar `/api/health`.
 
 Para un bootstrap inicial controlado en un entorno vacío puedes usar `UseEfMigrations=true` (DB vacía) o, solo en Development, `AllowEnsureCreated` / `ApplyFeatureSchema`.

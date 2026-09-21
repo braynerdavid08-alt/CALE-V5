@@ -27,10 +27,34 @@ Production defaults keep `UseEfMigrations=false` until the existing database is 
 
 Do **not** turn on `UseEfMigrations` until history is recorded, or Migrate will try to recreate tables.
 
-1. Take a backup of Postgres.
-2. Confirm the live schema roughly matches `InitialCreate`.
-3. Insert the migration row (adjust id if the file name differs), or run
-   `scripts/baseline-ef-migrations.sql`:
+### Render (Mi CALE)
+
+1. Take a backup: Render → PostgreSQL → **…** → create backup / export.
+2. Confirm the live schema roughly matches `InitialCreate` (app already works = schema exists).
+3. Apply history (pick one):
+
+   **A — Script (local)**  
+   Copy the **External Database URL** from Render → PostgreSQL → Connect, then:
+
+   ```powershell
+   $env:CALE_DATABASE_URL = 'postgresql://USER:PASSWORD@HOST:5432/DBNAME'
+   .\scripts\BASELINE_PROD.ps1
+   ```
+
+   **B — Render PSQL / Shell**  
+   Paste and run `scripts/baseline-ef-migrations.sql`.
+
+4. Render → Web Service **MICALE** → Environment:
+
+```env
+Database__UseEfMigrations=true
+Database__AllowEnsureCreated=false
+Database__ApplyFeatureSchema=false
+```
+
+5. **Manual Deploy** (clear build cache) and verify `https://micale.onrender.com/api/health`.
+
+### SQL (same as the script)
 
 ```sql
 CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
@@ -43,16 +67,6 @@ INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
 VALUES ('20260921123944_InitialCreate', '8.0.11')
 ON CONFLICT DO NOTHING;
 ```
-
-4. Set env:
-
-```env
-Database__UseEfMigrations=true
-Database__AllowEnsureCreated=false
-Database__ApplyFeatureSchema=false
-```
-
-5. Redeploy and verify `/health` (or startup logs show migrations applied / already up to date).
 
 ## Empty database (greenfield)
 
