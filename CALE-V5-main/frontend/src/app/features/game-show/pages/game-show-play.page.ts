@@ -36,15 +36,17 @@ import { GameShowSfxService } from '../api/game-show-sfx.service';
             }
           </ol>
           <p class="muted">
-            @if (timerSec() !== null) {
-              <span class="timer" [class.urgent]="(timerSec() ?? 0) <= 3">⏱ {{ timerSec() }}s</span>
-              ·
-            }
             @if (R.phase === 'Control' || R.phase === 'Playing') {
               Strikes: {{ R.strikes }} / 3 · Banco: {{ R.roundPointsForController }} ·
             }
             {{ phaseLabel(L, R.phase) }}
           </p>
+
+          @if (canAnswer(L) && myTurn(L) && timerSec() !== null) {
+            <p class="timer-big" [class.urgent]="(timerSec() ?? 0) <= 3">⏱ {{ timerSec() }}s</p>
+          } @else if (timerSec() !== null) {
+            <p class="timer" [class.urgent]="(timerSec() ?? 0) <= 3">⏱ {{ timerSec() }}s</p>
+          }
 
           @if (R.phase === 'WaitingBuzz') {
             <ui-button type="button" class="buzz" [disabled]="buzzing()" (click)="buzz()">
@@ -96,6 +98,18 @@ import { GameShowSfxService } from '../api/game-show-sfx.service';
     .muted { color: var(--color-text-secondary); }
     .timer { font-weight: 900; color: var(--color-primary); font-variant-numeric: tabular-nums; }
     .timer.urgent { color: #dc2626; }
+    .timer-big {
+      margin: 0;
+      text-align: center;
+      font-size: clamp(2.4rem, 12vw, 3.5rem);
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      color: var(--color-primary);
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+    .timer-big.urgent { color: #dc2626; animation: pulse 0.6s ease infinite alternate; }
+    @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.06); } }
     .field { display: grid; gap: 0.35rem; font-weight: 600; }
     .input { min-height: 3rem; font-size: 1.1rem; }
   `]

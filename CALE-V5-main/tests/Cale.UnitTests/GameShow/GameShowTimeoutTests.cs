@@ -66,13 +66,13 @@ public sealed class GameShowTimeoutTests
         var now = DateTime.UtcNow;
         GameShowEngine.EnterFaceOff(round, GameShowTeams.A, now);
 
-        var outcome = GameShowEngine.ProcessTimeout(session, round, now.AddSeconds(26));
+        var outcome = GameShowEngine.ProcessTimeout(session, round, now.AddSeconds(31));
 
         Assert.Equal(GameShowEngine.OutcomeKind.FaceOffMissPass, outcome.Kind);
         Assert.Equal(GameShowRoundPhases.FaceOffSecond, round.Phase);
         Assert.Equal(GameShowTeams.B, round.ControllingTeam);
         Assert.Equal(0, round.Strikes);
-        Assert.True(round.AnswerDeadlineUtc > now.AddSeconds(25));
+        Assert.True(round.AnswerDeadlineUtc > now.AddSeconds(30));
     }
 
     [Fact]
@@ -160,7 +160,7 @@ public sealed class GameShowTimeoutTests
     public void Timing_constants_match_classroom_pacing()
     {
         Assert.Equal(0, GameShowTiming.BuzzWindow.TotalSeconds);
-        Assert.Equal(25, GameShowTiming.FaceOffAnswer.TotalSeconds);
+        Assert.Equal(30, GameShowTiming.FaceOffAnswer.TotalSeconds);
         Assert.Equal(30, GameShowTiming.ControlAnswer.TotalSeconds);
         Assert.Equal(25, GameShowTiming.StealAnswer.TotalSeconds);
     }

@@ -18,7 +18,7 @@ import { GameShowImportError, parseGameShowImport } from '../api/game-show-impor
 type AdminTab = 'questions' | 'times' | 'rules' | 'preview';
 
 const emptySettings = (): GameShowSettingsDto => ({
-  faceOffSeconds: 25,
+  faceOffSeconds: 30,
   controlSeconds: 30,
   stealSeconds: 25,
   lightningSeconds: 45,
@@ -105,8 +105,8 @@ function blankRound(): GameShowRoundInput {
         </p>
         <div class="grid2">
           <label class="field">
-            <span class="field-title">Face-Off (s)</span>
-            <span class="field-desc">Tiempo que tiene cada equipo para responder en el enfrentamiento inicial (buzzer), antes de que se acabe el turno.</span>
+            <span class="field-title">Tras ¡RESPONDER! / Face-Off (s)</span>
+            <span class="field-desc">Tiempo que tiene el estudiante para escribir su respuesta justo después de pulsar ¡RESPONDER! (enfrentamiento 1.º y 2.º turno). Por defecto 30 s.</span>
             <input class="input" type="number" min="3" max="120" [(ngModel)]="draft.faceOffSeconds" (ngModelChange)="markDirty()" />
           </label>
           <label class="field">
@@ -282,7 +282,7 @@ function blankRound(): GameShowRoundInput {
     @if (tab() === 'preview') {
       <section class="panel">
         <h2>Vista previa</h2>
-        <p class="hint">Face-Off {{ draft.faceOffSeconds }}s · Control {{ draft.controlSeconds }}s · Robo {{ draft.stealSeconds }}s · X máx {{ draft.maxStrikes }}</p>
+        <p class="hint">Tras RESPONDER {{ draft.faceOffSeconds }}s · Control {{ draft.controlSeconds }}s · Robo {{ draft.stealSeconds }}s · X máx {{ draft.maxStrikes }}</p>
         @if (rounds()[previewIndex()]; as R) {
           <h3>{{ R.questionText || '(sin pregunta)' }}</h3>
           <ol>

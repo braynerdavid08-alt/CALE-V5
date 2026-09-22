@@ -14,7 +14,8 @@ public sealed class GameShowSessionSettings
     public const string TieBreakBoth = "Both";
 
     // Server turn clocks (seconds)
-    public int FaceOffSeconds { get; set; } = 25;
+    /// <summary>Time to answer after a student presses RESPONDER (Face-Off / Face-Off second).</summary>
+    public int FaceOffSeconds { get; set; } = 30;
     public int ControlSeconds { get; set; } = 30;
     public int StealSeconds { get; set; } = 25;
     public int LightningSeconds { get; set; } = 45;

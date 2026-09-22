@@ -5,7 +5,7 @@ public static class GameShowTiming
 {
     /// <summary>Legacy defaults — prefer <see cref="GameShowSessionSettings"/> when available.</summary>
     public static readonly TimeSpan BuzzWindow = TimeSpan.Zero;
-    public static readonly TimeSpan FaceOffAnswer = TimeSpan.FromSeconds(25);
+    public static readonly TimeSpan FaceOffAnswer = TimeSpan.FromSeconds(30);
     public static readonly TimeSpan ControlAnswer = TimeSpan.FromSeconds(30);
     public static readonly TimeSpan StealAnswer = TimeSpan.FromSeconds(25);
 

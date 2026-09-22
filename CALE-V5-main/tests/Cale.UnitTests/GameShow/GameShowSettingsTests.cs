@@ -13,7 +13,7 @@ public sealed class GameShowSettingsTests
     public void Defaults_match_previous_hardcoded_timings()
     {
         var s = GameShowSessionSettings.CreateDefaults();
-        Assert.Equal(25, s.FaceOffSeconds);
+        Assert.Equal(30, s.FaceOffSeconds);
         Assert.Equal(30, s.ControlSeconds);
         Assert.Equal(25, s.StealSeconds);
         Assert.Equal(3, s.MaxStrikes);
@@ -32,7 +32,7 @@ public sealed class GameShowSettingsTests
         };
         var snap = GameShowSessionSettings.FromSession(session);
         snap.FaceOffSeconds = 99;
-        Assert.Equal(25, GameShowSessionSettings.FromSession(session).FaceOffSeconds);
+        Assert.Equal(30, GameShowSessionSettings.FromSession(session).FaceOffSeconds);
     }
 
     [Fact]
