@@ -145,8 +145,8 @@ public sealed class ExceptionHandlingMiddleware
         {
             return (
                 500,
-                "La base de datos se está actualizando. Recarga en unos segundos.",
-                "db_error");
+                "La base de datos necesita una actualización. Vuelve a intentar en unos segundos o contacta soporte.",
+                "db_schema_outdated");
         }
 
         if (ex is TimeoutException)

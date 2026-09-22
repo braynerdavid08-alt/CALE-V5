@@ -89,6 +89,8 @@ const messages: Record<string, string> = {
   quick_unavailable: 'No se puede añadir una pregunta rápida ahora.',
   session_not_ended: 'La revancha solo se puede crear cuando la sesión terminó.',
   db_error: 'Error de base de datos. Inténtalo de nuevo.',
+  db_schema_outdated:
+    'La base de datos necesita una actualización. Recarga en unos segundos o contacta soporte.',
   timeout: 'La operación tardó demasiado. Inténtalo de nuevo.',
   enrollment_not_active: 'Debes estar activo en Programación para reservar clases.',
   enrollment_suspended: 'Tu acceso está suspendido. Pide a la escuela que te autorice de nuevo.',
