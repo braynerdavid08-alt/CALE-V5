@@ -7,6 +7,7 @@ import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
 import { phaseHasTurnClock, secondsUntilDeadline } from '../api/game-show-deadline';
+import { GameShowSfxService } from '../api/game-show-sfx.service';
 
 @Component({
   selector: 'app-game-show-play-page',
@@ -58,15 +59,16 @@ import { phaseHasTurnClock, secondsUntilDeadline } from '../api/game-show-deadli
             @if (R.phase === 'FaceOff' || R.phase === 'FaceOffSecond') {
               <p class="steal">Enfrentamiento: acierta para tomar el control. Un fallo pasa el turno.</p>
             }
+            <p class="steal">Te toca responder</p>
             <label class="field">Tu respuesta
               <input class="input" [(ngModel)]="answer" name="answer" autofocus (keyup.enter)="send()" />
             </label>
             <ui-button type="button" (click)="send()">Enviar respuesta</ui-button>
             <ui-button type="button" variant="secondary" (click)="listenVoice()">Hablar (opcional)</ui-button>
           } @else if (R.phase === 'Steal') {
-            <p class="muted">El otro equipo intenta robar la ronda. Espera el resultado.</p>
+            <p class="muted">{{ waitingAnswerHint(L) }}</p>
           } @else if (R.phase === 'FaceOff' || R.phase === 'FaceOffSecond' || R.phase === 'Control' || R.phase === 'Playing') {
-            <p class="muted">Espera el turno de tu equipo.</p>
+            <p class="muted">{{ waitingAnswerHint(L) }}</p>
           } @else if (R.phase === 'Finished') {
             <p class="muted">Ronda terminada. Espera la siguiente.</p>
           }
@@ -102,6 +104,7 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
   private readonly api = inject(GameShowApi);
   private readonly route = inject(ActivatedRoute);
   private readonly zone = inject(NgZone);
+  private readonly sfx = inject(GameShowSfxService);
 
   readonly lobby = signal<GameShowLobbyDto | null>(null);
   readonly error = signal<string | null>(null);
@@ -114,6 +117,8 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
   private hub: HubConnection | null = null;
   private sessionId = 0;
   private token = '';
+  private myPlayerId: number | null = null;
+  private lastActivePlayerId: number | null | undefined = undefined;
   private flashTimer: ReturnType<typeof setTimeout> | null = null;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private tickTimer: ReturnType<typeof setInterval> | null = null;
@@ -128,6 +133,9 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     }
     const savedTeam = localStorage.getItem(`cale.game-show.team.${this.sessionId}`);
     if (savedTeam) this.myTeam.set(savedTeam);
+    const savedPlayer = localStorage.getItem(`cale.game-show.playerId.${this.sessionId}`);
+    if (savedPlayer) this.myPlayerId = Number(savedPlayer) || null;
+    this.sfx.unlock();
     this.reload();
     this.connectHub();
     // Mobile networks often drop SignalR; poll so play stays in sync with the engine.
@@ -149,6 +157,10 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
   myTurn(L: GameShowLobbyDto): boolean {
     const r = L.currentRound;
     if (!r) return false;
+    const me = L.viewerPlayerId ?? this.myPlayerId;
+    if (me == null || r.activePlayerId == null || r.activePlayerId !== me) {
+      return false;
+    }
     if (r.phase === 'Steal') {
       const other = r.controllingTeam === 'A' ? 'B' : 'A';
       return other === this.myTeam();
@@ -175,16 +187,26 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     );
   }
 
+  waitingAnswerHint(L: GameShowLobbyDto): string {
+    const name = L.currentRound?.activePlayerName;
+    if (name) return `Espera: responde ${name}`;
+    if (L.currentRound?.phase === 'Steal') {
+      return 'El otro equipo intenta robar la ronda. Espera el resultado.';
+    }
+    return 'Espera el turno de tu equipo.';
+  }
+
   phaseLabel(L: GameShowLobbyDto, phase: string): string {
     const r = L.currentRound;
     const controller = r?.controllingTeam === 'B' ? L.teamBName : L.teamAName;
+    const who = r?.activePlayerName ? r.activePlayerName : controller;
     switch (phase) {
       case 'WaitingBuzz': return 'Presiona RESPONDER para el enfrentamiento';
-      case 'FaceOff': return `Enfrentamiento: responde ${controller}`;
-      case 'FaceOffSecond': return `Enfrentamiento (2.º): responde ${controller}`;
+      case 'FaceOff': return `Enfrentamiento: responde ${who}`;
+      case 'FaceOffSecond': return `Enfrentamiento (2.º): responde ${who}`;
       case 'Control':
-      case 'Playing': return `Control: responde ${controller}`;
-      case 'Steal': return this.myTurn(L) ? 'Robo: ¡es tu oportunidad!' : `Robo: responde el rival de ${controller}`;
+      case 'Playing': return `Control: responde ${who}`;
+      case 'Steal': return this.myTurn(L) ? 'Robo: ¡es tu oportunidad!' : `Robo: responde ${who}`;
       case 'Finished': return 'Ronda terminada';
       default: return phase;
     }
@@ -194,6 +216,7 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     if (this.buzzing()) return;
     this.buzzing.set(true);
     this.error.set(null);
+    this.sfx.unlock();
     this.api.buzz(this.sessionId, this.token).subscribe({
       next: (lobby) => {
         this.buzzing.set(false);
@@ -266,12 +289,37 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
 
   /** El backend indica el equipo del jugador dueño del token; localStorage es solo respaldo. */
   private apply(lobby: GameShowLobbyDto): void {
-    this.lobby.set(lobby);
-    if (lobby.viewerTeam) {
-      this.myTeam.set(lobby.viewerTeam);
-      localStorage.setItem(`cale.game-show.team.${this.sessionId}`, lobby.viewerTeam);
+    const prev = this.lobby();
+    const viewerPlayerId = lobby.viewerPlayerId ?? prev?.viewerPlayerId ?? this.myPlayerId;
+    const viewerTeam = lobby.viewerTeam ?? prev?.viewerTeam ?? this.myTeam();
+    const merged: GameShowLobbyDto = {
+      ...lobby,
+      viewerPlayerId,
+      viewerTeam
+    };
+    this.lobby.set(merged);
+    if (viewerTeam) {
+      this.myTeam.set(viewerTeam);
+      localStorage.setItem(`cale.game-show.team.${this.sessionId}`, viewerTeam);
     }
-    const deadline = lobby.currentRound?.answerDeadlineUtc ?? null;
+    if (viewerPlayerId != null) {
+      this.myPlayerId = viewerPlayerId;
+      localStorage.setItem(`cale.game-show.playerId.${this.sessionId}`, String(viewerPlayerId));
+    }
+
+    const activeId = merged.currentRound?.activePlayerId ?? null;
+    if (
+      activeId != null
+      && activeId === this.myPlayerId
+      && activeId !== this.lastActivePlayerId
+      && this.myTurn(merged)
+    ) {
+      if (merged.settings?.enableSounds !== false) this.sfx.play('yourTurn');
+      this.showFlash('¡Te toca responder!');
+    }
+    this.lastActivePlayerId = activeId;
+
+    const deadline = merged.currentRound?.answerDeadlineUtc ?? null;
     if (deadline !== this.timeoutPostedFor && (secondsUntilDeadline(deadline) ?? 1) > 0) {
       this.timeoutPostedFor = null;
     }
@@ -299,7 +347,8 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
   private showFlash(message: string): void {
     this.flash.set(message);
     if (this.flashTimer) clearTimeout(this.flashTimer);
-    this.flashTimer = setTimeout(() => this.flash.set(null), 2500);
+    const ms = this.lobby()?.settings?.correctFlashMs ?? 2500;
+    this.flashTimer = setTimeout(() => this.flash.set(null), ms);
   }
 
   private connectHub(): void {
@@ -311,6 +360,16 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     });
 
     this.hub.on('LobbyUpdated', onLobby);
+    this.hub.on('YourTurn', (payload: { playerId?: number; displayName?: string }) => this.zone.run(() => {
+      if (payload?.playerId != null && payload.playerId === this.myPlayerId) {
+        this.lastActivePlayerId = payload.playerId;
+        if (this.lobby()?.settings?.enableSounds !== false) this.sfx.play('yourTurn');
+        this.showFlash('¡Te toca responder!');
+      } else if (payload?.displayName) {
+        this.showFlash(`Responde ${payload.displayName}`);
+      }
+      this.reloadQuiet();
+    }));
     this.hub.on('BuzzWon', () => onFlash('¡Turno de enfrentamiento!'));
     this.hub.on('FaceOffPass', () => onFlash('Turno del otro equipo'));
     this.hub.on('FaceOffWon', () => onFlash('¡Control de la ronda!'));

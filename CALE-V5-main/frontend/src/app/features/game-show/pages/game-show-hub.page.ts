@@ -26,6 +26,9 @@ type PackChoice = 'official' | `pack:${number}` | 'draft';
     <ui-page-header
       title="100 Estudiantes Dijeron"
       subtitle="Elige un banco de preguntas, arma la sala y juega. Edita o guarda packs en la otra pestaña." />
+    <p class="admin-link">
+      <a routerLink="/teacher/game-show/admin">Configuración (tiempos, reglas y banco avanzado)</a>
+    </p>
     <ui-error [message]="error()" />
 
     <div class="tabs" role="tablist" aria-label="Secciones del juego">
@@ -258,6 +261,8 @@ type PackChoice = 'official' | `pack:${number}` | 'draft';
     }
   `,
   styles: [`
+    .admin-link { margin: 0 0 0.75rem; }
+    .admin-link a { font-weight: 800; color: var(--color-primary); }
     .tabs {
       display: flex;
       gap: 0.35rem;

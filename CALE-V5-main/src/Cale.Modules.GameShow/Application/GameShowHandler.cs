@@ -30,7 +30,8 @@ public sealed class GameShowHandler
         int hostUserId,
         int? schoolUserId,
         CreateGameShowRequest request,
-        CancellationToken ct)
+        CancellationToken ct,
+        int? sourcePackId = null)
     {
         if (request.Rounds is null || request.Rounds.Count < 1)
         {
@@ -42,10 +43,15 @@ public sealed class GameShowHandler
             throw new DomainException("Máximo 50 rondas por partida.", 400, "too_many_rounds");
         }
 
+        var globalSettings = await _store.GetOrCreateSettingsAsync(ct);
+        var snapshot = globalSettings.Read().Clone();
+        snapshot.Validate();
+
         var session = new GameShowSession
         {
             HostUserId = hostUserId,
             SchoolUserId = schoolUserId,
+            SourcePackId = sourcePackId,
             Title = string.IsNullOrWhiteSpace(request.Title)
                 ? "100 Estudiantes Dijeron"
                 : request.Title.Trim(),
@@ -53,19 +59,25 @@ public sealed class GameShowHandler
             Status = GameShowSessionStatuses.Lobby,
             TeamAName = string.IsNullOrWhiteSpace(request.TeamAName) ? "Equipo A" : request.TeamAName.Trim(),
             TeamBName = string.IsNullOrWhiteSpace(request.TeamBName) ? "Equipo B" : request.TeamBName.Trim(),
+            SettingsJson = GameShowSessionSettings.Serialize(snapshot),
             CreatedAt = _clock.UtcNow
         };
 
         var order = 0;
-        foreach (var roundReq in request.Rounds)
+        foreach (var roundReq in request.Rounds.Where(r => r.IsActive))
         {
             var round = BuildRound(roundReq, order++);
             session.Rounds.Add(round);
         }
 
+        if (session.Rounds.Count < 1)
+        {
+            throw new DomainException("Agrega al menos una ronda activa.", 400, "invalid_rounds");
+        }
+
         await _store.AddAsync(session, ct);
         await _store.SaveChangesAsync(ct);
-        return MapLobby(session, hostView: true);
+        return await MapLobbyAsync(session, hostView: true, ct: ct);
     }
 
     public async Task<JoinGameShowResultDto> JoinAsync(
@@ -99,9 +111,10 @@ public sealed class GameShowHandler
             var existing = session.Players.FirstOrDefault(p => p.UserId == userId);
             if (existing is not null)
             {
-                var rejoinLobby = MapLobby(
+                var rejoinLobby = await MapLobbyAsync(
                     session,
                     hostView: false,
+                    ct: ct,
                     viewerPlayerId: existing.Id,
                     viewerTeam: existing.Team);
                 await BroadcastLobbyAsync(session, ct);
@@ -132,8 +145,8 @@ public sealed class GameShowHandler
         session.Players.Add(player);
         await _store.SaveChangesAsync(ct);
 
-        var lobby = MapLobby(session, hostView: false, viewerPlayerId: player.Id, viewerTeam: player.Team);
-        await _broadcaster.LobbyUpdatedAsync(session.Id, MapLobby(session, hostView: false), ct);
+        var lobby = await MapLobbyAsync(session, hostView: false, ct: ct, viewerPlayerId: player.Id, viewerTeam: player.Team);
+        await _broadcaster.LobbyUpdatedAsync(session.Id, await MapLobbyAsync(session, hostView: false, ct: ct), ct);
         return new JoinGameShowResultDto(session.Id, player.PlayerToken, player.Id, player.Team, lobby);
     }
 
@@ -161,9 +174,9 @@ public sealed class GameShowHandler
             // Anonymous screen clients also allowed when they know the session id.
         }
 
-        return MapLobby(
-            session,
+        return await MapLobbyAsync(session,
             hostView: isHost && preferHostView,
+            ct: ct,
             viewerPlayerId: viewer?.Id,
             viewerTeam: viewer?.Team);
     }
@@ -189,7 +202,7 @@ public sealed class GameShowHandler
         try
         {
             var session = await RequireSessionAsync(player.SessionId, ct);
-            await _broadcaster.LobbyUpdatedAsync(session.Id, MapLobby(session, false), ct);
+            await _broadcaster.LobbyUpdatedAsync(session.Id, await MapLobbyAsync(session, hostView: false, ct: ct), ct);
         }
         catch (OperationCanceledException)
         {
@@ -223,14 +236,28 @@ public sealed class GameShowHandler
         session.StartedAt ??= _clock.UtcNow;
         session.CurrentRoundIndex = 0;
         GameShowEngine.OpenBuzz(session.Rounds.OrderBy(r => r.SortOrder).First(), _clock.UtcNow);
+        MaybeArmLightning(session, 0);
         await _store.SaveChangesAsync(ct);
         await BroadcastLobbyAsync(session, ct);
         await _broadcaster.EventAsync(session.Id, "RoundStarted", new { roundIndex = 0 }, ct);
+        if (GameShowScoringPolicy.IsLightningActive(session, _clock.UtcNow))
+        {
+            await _broadcaster.EventAsync(
+                session.Id,
+                "LightningStarted",
+                new { untilUtc = session.LightningUntilUtc, multiplier = GameShowScoringPolicy.LightningMultiplier },
+                ct);
+        }
     }
 
     public async Task PauseAsync(int sessionId, int hostUserId, CancellationToken ct)
     {
         var session = await RequireHostAsync(sessionId, hostUserId, ct);
+        if (!GameShowSessionSettings.FromSession(session).AllowPause)
+        {
+            throw new DomainException("La pausa está deshabilitada en esta partida.", 400, "pause_disabled");
+        }
+
         if (session.Status != GameShowSessionStatuses.Running)
         {
             throw new DomainException("La partida no está en curso.", 400, "invalid_state");
@@ -276,7 +303,10 @@ public sealed class GameShowHandler
         // Reload so in-memory graph matches the atomic claim.
         session = await RequireSessionAsync(sessionId, ct);
         round = CurrentRound(session);
-        GameShowTiming.SetDeadline(round, _clock.UtcNow);
+        player = session.Players.First(p => p.PlayerToken == playerToken);
+        GameShowTiming.SetDeadline(round, _clock.UtcNow, GameShowSessionSettings.FromSession(session));
+        GameShowEngine.AssignActivePlayer(session, round, player.Team, player.Id);
+        player.BuzzWins++;
         await _store.SaveChangesAsync(ct);
         await BroadcastLobbyAsync(session, ct);
         await _broadcaster.EventAsync(
@@ -284,12 +314,13 @@ public sealed class GameShowHandler
             "BuzzWon",
             new { team = player.Team, playerId = player.Id, displayName = player.DisplayName },
             ct);
+        await BroadcastYourTurnAsync(session, round, ct);
 
         // Return viewer-scoped lobby so the buzzing phone can open the answer box
         // even if SignalR LobbyUpdated is delayed or dropped on mobile.
-        return MapLobby(
-            session,
+        return await MapLobbyAsync(session,
             hostView: false,
+            ct: ct,
             viewerPlayerId: player.Id,
             viewerTeam: player.Team);
     }
@@ -317,10 +348,12 @@ public sealed class GameShowHandler
 
         session = await RequireHostAsync(sessionId, hostUserId, ct);
         round = CurrentRound(session);
-        GameShowTiming.SetDeadline(round, _clock.UtcNow);
+        GameShowTiming.SetDeadline(round, _clock.UtcNow, GameShowSessionSettings.FromSession(session));
+        GameShowEngine.AssignActivePlayer(session, round, t);
         await _store.SaveChangesAsync(ct);
         await BroadcastLobbyAsync(session, ct);
         await _broadcaster.EventAsync(session.Id, "BuzzWon", new { team = t, forced = true }, ct);
+        await BroadcastYourTurnAsync(session, round, ct);
     }
 
     public async Task<GameShowLobbyDto> AnswerAsync(
@@ -344,6 +377,7 @@ public sealed class GameShowHandler
             if (timedOut.Kind != GameShowEngine.OutcomeKind.Noop)
             {
                 await _broadcaster.EventAsync(session.Id, timedOut.EventName, timedOut.Payload, ct);
+                await BroadcastYourTurnAsync(session, round, ct);
             }
 
             throw new DomainException("Se acabó el tiempo.", 400, "time_expired");
@@ -360,9 +394,18 @@ public sealed class GameShowHandler
             await _store.SaveChangesAsync(ct);
             await BroadcastLobbyAsync(session, ct);
             await _broadcaster.EventAsync(session.Id, outcome.EventName, outcome.Payload, ct);
-            return MapLobby(
-                session,
+            if (outcome.Kind is not GameShowEngine.OutcomeKind.IgnoredAlreadyRevealed
+                and not GameShowEngine.OutcomeKind.RoundCompleted
+                and not GameShowEngine.OutcomeKind.StealSucceeded
+                and not GameShowEngine.OutcomeKind.StealFailed
+                and not GameShowEngine.OutcomeKind.FaceOffBothMissReopen)
+            {
+                await BroadcastYourTurnAsync(session, round, ct);
+            }
+
+            return await MapLobbyAsync(session,
                 hostView: false,
+                ct: ct,
                 viewerPlayerId: player.Id,
                 viewerTeam: player.Team);
         }
@@ -372,7 +415,7 @@ public sealed class GameShowHandler
         }
         catch (InvalidOperationException ex) when (ex.Message == "not_your_turn")
         {
-            throw new DomainException("No es el turno de tu equipo.", 403, "not_your_turn");
+            throw new DomainException("No es tu turno de responder.", 403, "not_your_turn");
         }
         catch (InvalidOperationException ex) when (ex.Message == "invalid_state")
         {
@@ -407,11 +450,12 @@ public sealed class GameShowHandler
             await _store.SaveChangesAsync(ct);
             await BroadcastLobbyAsync(session, ct);
             await _broadcaster.EventAsync(session.Id, outcome.EventName, outcome.Payload, ct);
+            await BroadcastYourTurnAsync(session, round, ct);
         }
 
-        return MapLobby(
-            session,
+        return await MapLobbyAsync(session,
             hostView: isHost,
+            ct: ct,
             viewerPlayerId: viewer?.Id,
             viewerTeam: viewer?.Team);
     }
@@ -433,7 +477,7 @@ public sealed class GameShowHandler
             && outcome.Kind != GameShowEngine.OutcomeKind.RoundCompleted
             && GameShowRoundPhases.IsControl(round.Phase))
         {
-            GameShowTiming.SetDeadline(round, _clock.UtcNow);
+            GameShowTiming.SetDeadline(round, _clock.UtcNow, GameShowSessionSettings.FromSession(session));
         }
         await _store.SaveChangesAsync(ct);
         await BroadcastLobbyAsync(session, ct);
@@ -470,6 +514,11 @@ public sealed class GameShowHandler
     public async Task HostEndRoundAsync(int sessionId, int hostUserId, CancellationToken ct)
     {
         var session = await RequireHostAsync(sessionId, hostUserId, ct);
+        if (!GameShowSessionSettings.FromSession(session).AllowHostEndRound)
+        {
+            throw new DomainException("Terminar ronda está deshabilitado.", 400, "end_round_disabled");
+        }
+
         EnsureRunning(session);
         var round = CurrentRound(session);
         var outcome = GameShowEngine.HostEndRound(session, round, _clock.UtcNow);
@@ -485,10 +534,11 @@ public sealed class GameShowHandler
         var round = CurrentRound(session);
         try
         {
-            var outcome = GameShowEngine.HostStrike(round, _clock.UtcNow);
+            var outcome = GameShowEngine.HostStrike(session, round, _clock.UtcNow);
             await _store.SaveChangesAsync(ct);
             await BroadcastLobbyAsync(session, ct);
             await _broadcaster.EventAsync(session.Id, outcome.EventName, outcome.Payload, ct);
+            await BroadcastYourTurnAsync(session, round, ct);
         }
         catch (InvalidOperationException)
         {
@@ -500,6 +550,12 @@ public sealed class GameShowHandler
     {
         var session = await RequireHostAsync(sessionId, hostUserId, ct);
         EnsureRunning(session);
+        if (!GameShowSessionSettings.FromSession(session).AllowSkipRound
+            && CurrentRound(session).Phase != GameShowRoundPhases.Finished)
+        {
+            throw new DomainException("Saltar ronda está deshabilitado hasta finalizar la actual.", 400, "skip_disabled");
+        }
+
         var rounds = session.Rounds.OrderBy(r => r.SortOrder).ToList();
         var next = session.CurrentRoundIndex + 1;
         if (next >= rounds.Count)
@@ -510,9 +566,18 @@ public sealed class GameShowHandler
 
         session.CurrentRoundIndex = next;
         GameShowEngine.OpenBuzz(rounds[next], _clock.UtcNow);
+        MaybeArmLightning(session, next);
         await _store.SaveChangesAsync(ct);
         await BroadcastLobbyAsync(session, ct);
         await _broadcaster.EventAsync(session.Id, "RoundStarted", new { roundIndex = next }, ct);
+        if (GameShowScoringPolicy.IsLightningActive(session, _clock.UtcNow))
+        {
+            await _broadcaster.EventAsync(
+                session.Id,
+                "LightningStarted",
+                new { untilUtc = session.LightningUntilUtc, multiplier = GameShowScoringPolicy.LightningMultiplier },
+                ct);
+        }
     }
 
     public async Task FinishAsync(int sessionId, int hostUserId, CancellationToken ct)
@@ -522,10 +587,17 @@ public sealed class GameShowHandler
         session.EndedAt = _clock.UtcNow;
         await _store.SaveChangesAsync(ct);
         await BroadcastLobbyAsync(session, ct);
+        var standings = BuildPlayerStandings(session);
         await _broadcaster.EventAsync(
             session.Id,
             "GameEnded",
-            new { teamAScore = session.TeamAScore, teamBScore = session.TeamBScore },
+            new
+            {
+                teamAScore = session.TeamAScore,
+                teamBScore = session.TeamBScore,
+                mvp = standings.FirstOrDefault(),
+                players = standings
+            },
             ct);
     }
 
@@ -714,7 +786,8 @@ public sealed class GameShowHandler
             hostUserId,
             schoolUserId,
             new CreateGameShowRequest(title, teamA, teamB, body.Rounds),
-            ct);
+            ct,
+            sourcePackId: packId);
     }
 
     public async Task<GameShowLobbyDto> ReplayAsync(
@@ -803,6 +876,7 @@ public sealed class GameShowHandler
             else if (session.TeamBScore > session.TeamAScore) winner = GameShowTeams.B;
         }
 
+        var standings = BuildPlayerStandings(session);
         return new GameShowStatsDto(
             session.Id,
             session.Title,
@@ -820,7 +894,9 @@ public sealed class GameShowHandler
             allAttempts.Count(a => a.IsSteal && !a.IsCorrect),
             roundStats,
             session.CreatedAt,
-            session.EndedAt);
+            session.EndedAt,
+            standings,
+            standings.FirstOrDefault());
     }
 
     private async Task<GameShowPack> RequirePackAccessAsync(
@@ -929,15 +1005,18 @@ public sealed class GameShowHandler
             throw new DomainException("Cada ronda necesita una pregunta.", 400, "invalid_question");
         }
 
-        if (request.Answers is null || request.Answers.Count != 5)
+        var activeAnswers = (request.Answers ?? [])
+            .Where(a => a.IsActive)
+            .ToList();
+        if (activeAnswers.Count < 1 || activeAnswers.Count > 8)
         {
-            throw new DomainException("Cada ronda debe tener exactamente 5 respuestas.", 400, "invalid_answers");
+            throw new DomainException("Cada ronda activa debe tener entre 1 y 8 respuestas activas.", 400, "invalid_answers");
         }
 
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var answers = new List<GameShowBoardAnswer>();
         var rank = 1;
-        foreach (var a in request.Answers.OrderByDescending(x => x.Points))
+        foreach (var a in activeAnswers.OrderByDescending(x => x.Points))
         {
             var text = (a.Text ?? "").Trim();
             if (text.Length == 0)
@@ -1014,19 +1093,253 @@ public sealed class GameShowHandler
     }
 
     private async Task BroadcastLobbyAsync(GameShowSession session, CancellationToken ct) =>
-        await _broadcaster.LobbyUpdatedAsync(session.Id, MapLobby(session, hostView: false), ct);
+        await _broadcaster.LobbyUpdatedAsync(
+            session.Id,
+            await MapLobbyAsync(session, hostView: false, ct: ct),
+            ct);
 
-    private static GameShowLobbyDto MapLobby(
+    private async Task BroadcastYourTurnAsync(
+        GameShowSession session,
+        GameShowRound round,
+        CancellationToken ct)
+    {
+        if (round.ActivePlayerId is not int id)
+        {
+            return;
+        }
+
+        var player = session.Players.FirstOrDefault(p => p.Id == id);
+        if (player is null)
+        {
+            return;
+        }
+
+        await _broadcaster.EventAsync(
+            session.Id,
+            "YourTurn",
+            new
+            {
+                playerId = player.Id,
+                team = player.Team,
+                displayName = player.DisplayName,
+                accentColor = AccentFor(player.Id)
+            },
+            ct);
+    }
+
+    private void MaybeArmLightning(GameShowSession session, int roundIndex)
+    {
+        var settings = GameShowSessionSettings.FromSession(session);
+        if (!settings.EnableLightning)
+        {
+            return;
+        }
+
+        var roundCount = session.Rounds.Count;
+        if (roundCount > 0 && roundIndex == roundCount - 1)
+        {
+            session.LightningUntilUtc = _clock.UtcNow.AddSeconds(Math.Max(5, settings.LightningSeconds));
+        }
+    }
+
+    private static GameShowSettingsDto ToSettingsDto(
+        GameShowSessionSettings s,
+        DateTime? updatedAt = null,
+        int? updatedBy = null) =>
+        new(
+            s.FaceOffSeconds,
+            s.ControlSeconds,
+            s.StealSeconds,
+            s.LightningSeconds,
+            s.RoundTransitionSeconds,
+            s.DrumrollMs,
+            s.RevealHighlightMs,
+            s.StrikeFlashMs,
+            s.CelebrationMs,
+            s.CorrectFlashMs,
+            s.ScoreboardFlashMs,
+            s.MaxStrikes,
+            s.EnableFaceOff,
+            s.EnableSteal,
+            s.EnableLightning,
+            s.EnableSounds,
+            s.EnableAnimations,
+            s.AllowPause,
+            s.AllowSkipRound,
+            s.AllowHostEndRound,
+            s.EnableAudienceVote,
+            s.TieBreakMode,
+            updatedAt,
+            updatedBy);
+
+    private static GameShowSessionSettings FromDto(GameShowSettingsDto dto)
+    {
+        var s = new GameShowSessionSettings
+        {
+            FaceOffSeconds = dto.FaceOffSeconds,
+            ControlSeconds = dto.ControlSeconds,
+            StealSeconds = dto.StealSeconds,
+            LightningSeconds = dto.LightningSeconds,
+            RoundTransitionSeconds = dto.RoundTransitionSeconds,
+            DrumrollMs = dto.DrumrollMs,
+            RevealHighlightMs = dto.RevealHighlightMs,
+            StrikeFlashMs = dto.StrikeFlashMs,
+            CelebrationMs = dto.CelebrationMs,
+            CorrectFlashMs = dto.CorrectFlashMs,
+            ScoreboardFlashMs = dto.ScoreboardFlashMs,
+            MaxStrikes = dto.MaxStrikes,
+            EnableFaceOff = dto.EnableFaceOff,
+            EnableSteal = dto.EnableSteal,
+            EnableLightning = dto.EnableLightning,
+            EnableSounds = dto.EnableSounds,
+            EnableAnimations = dto.EnableAnimations,
+            AllowPause = dto.AllowPause,
+            AllowSkipRound = dto.AllowSkipRound,
+            AllowHostEndRound = dto.AllowHostEndRound,
+            EnableAudienceVote = false, // reserved — no audience engine yet
+            TieBreakMode = dto.TieBreakMode
+        };
+        s.Validate();
+        return s;
+    }
+
+    public async Task<GameShowSettingsDto> GetGlobalSettingsAsync(CancellationToken ct)
+    {
+        var row = await _store.GetOrCreateSettingsAsync(ct);
+        return ToSettingsDto(row.Read(), row.UpdatedAt, row.UpdatedByUserId);
+    }
+
+    public async Task<GameShowSettingsDto> UpdateGlobalSettingsAsync(
+        GameShowSettingsDto dto,
+        int userId,
+        CancellationToken ct)
+    {
+        var row = await _store.GetOrCreateSettingsAsync(ct);
+        row.Write(FromDto(dto), userId, _clock.UtcNow);
+        await _store.SaveChangesAsync(ct);
+        return ToSettingsDto(row.Read(), row.UpdatedAt, row.UpdatedByUserId);
+    }
+
+    public async Task<GameShowSettingsDto> RestoreGlobalSettingsAsync(int userId, CancellationToken ct)
+    {
+        var row = await _store.GetOrCreateSettingsAsync(ct);
+        row.Write(GameShowSessionSettings.CreateDefaults(), userId, _clock.UtcNow);
+        await _store.SaveChangesAsync(ct);
+        return ToSettingsDto(row.Read(), row.UpdatedAt, row.UpdatedByUserId);
+    }
+
+    public async Task<GameShowSettingsDto> GetSessionSettingsAsync(
+        int sessionId,
+        int hostUserId,
+        CancellationToken ct)
+    {
+        var session = await RequireHostAsync(sessionId, hostUserId, ct);
+        return ToSettingsDto(GameShowSessionSettings.FromSession(session));
+    }
+
+    public async Task<GameShowSettingsDto> UpdateSessionSettingsAsync(
+        int sessionId,
+        int hostUserId,
+        GameShowSettingsDto dto,
+        CancellationToken ct)
+    {
+        var session = await RequireHostAsync(sessionId, hostUserId, ct);
+        if (session.Status != GameShowSessionStatuses.Lobby)
+        {
+            throw new DomainException(
+                "Solo se puede editar la configuración de la partida en el lobby.",
+                400,
+                "settings_locked");
+        }
+
+        var snap = FromDto(dto);
+        session.SettingsJson = GameShowSessionSettings.Serialize(snap);
+        await _store.SaveChangesAsync(ct);
+        await BroadcastLobbyAsync(session, ct);
+        return ToSettingsDto(snap);
+    }
+
+    private async Task<GameShowLobbyDto> MapLobbyAsync(
         GameShowSession session,
         bool hostView,
+        CancellationToken ct,
         int? viewerPlayerId = null,
         string? viewerTeam = null)
     {
+        IReadOnlyList<GameShowPackLeaderboardEntryDto>? board = null;
+        if (session.SourcePackId is int packId)
+        {
+            board = await BuildPackLeaderboardAsync(packId, ct);
+        }
+
+        return MapLobby(session, hostView, viewerPlayerId, viewerTeam, board);
+    }
+
+    private async Task<IReadOnlyList<GameShowPackLeaderboardEntryDto>> BuildPackLeaderboardAsync(
+        int packId,
+        CancellationToken ct)
+    {
+        var rows = await _store.ListEndedByPackAsync(packId, 5, ct);
+        return rows.Select(s => new GameShowPackLeaderboardEntryDto(
+            s.Id,
+            s.Title,
+            s.TeamAName,
+            s.TeamBName,
+            s.TeamAScore,
+            s.TeamBScore,
+            s.TeamAScore + s.TeamBScore,
+            s.EndedAt)).ToList();
+    }
+
+    private static IReadOnlyList<GameShowPlayerStandingDto> BuildPlayerStandings(GameShowSession session) =>
+        session.Players
+            .OrderByDescending(p => p.CorrectAnswers)
+            .ThenByDescending(p => p.StealsWon)
+            .ThenByDescending(p => p.BuzzWins)
+            .ThenBy(p => p.DisplayName)
+            .Select(p => new GameShowPlayerStandingDto(
+                p.Id,
+                p.DisplayName,
+                p.Team,
+                p.CorrectAnswers,
+                p.StealsWon,
+                p.BuzzWins,
+                AccentFor(p.Id)))
+            .ToList();
+
+    private static readonly string[] PlayerAccents =
+    [
+        "#e11d48", "#ea580c", "#ca8a04", "#16a34a",
+        "#0891b2", "#4f46e5", "#9333ea", "#db2777"
+    ];
+
+    private static string AccentFor(int playerId) =>
+        PlayerAccents[Math.Abs(playerId) % PlayerAccents.Length];
+
+    private GameShowLobbyDto MapLobby(
+        GameShowSession session,
+        bool hostView,
+        int? viewerPlayerId = null,
+        string? viewerTeam = null,
+        IReadOnlyList<GameShowPackLeaderboardEntryDto>? packLeaderboard = null)
+    {
         GameShowRoundPublicDto? current = null;
+        GameShowRoundChampionDto? champion = null;
+        var now = _clock.UtcNow;
+        var lightning = GameShowScoringPolicy.IsLightningActive(session, now);
         var rounds = session.Rounds.OrderBy(r => r.SortOrder).ToList();
         if (session.CurrentRoundIndex >= 0 && session.CurrentRoundIndex < rounds.Count)
         {
             var r = rounds[session.CurrentRoundIndex];
+            string? activeName = null;
+            string? activeAccent = null;
+            if (r.ActivePlayerId is int activeId)
+            {
+                var active = session.Players.FirstOrDefault(p => p.Id == activeId);
+                activeName = active?.DisplayName;
+                activeAccent = AccentFor(activeId);
+            }
+
             current = new GameShowRoundPublicDto(
                 r.Id,
                 r.SortOrder,
@@ -1042,7 +1355,23 @@ public sealed class GameShowHandler
                     hostView || a.IsRevealed || r.Phase == GameShowRoundPhases.Finished
                         ? new GameShowBoardAnswerPublicDto(a.Id, a.Rank, a.Text, a.Points, a.IsRevealed)
                         : new GameShowBoardAnswerPublicDto(a.Id, a.Rank, null, null, false)
-                ).ToList());
+                ).ToList(),
+                r.ActivePlayerId,
+                activeName,
+                activeAccent);
+
+            if (r.Phase == GameShowRoundPhases.Finished && r.RoundChampionPlayerId is int champId)
+            {
+                var champ = session.Players.FirstOrDefault(p => p.Id == champId);
+                if (champ is not null)
+                {
+                    champion = new GameShowRoundChampionDto(
+                        champ.Id,
+                        champ.DisplayName,
+                        champ.Team,
+                        r.RoundChampionCorrectAnswers);
+                }
+            }
         }
 
         return new GameShowLobbyDto(
@@ -1058,12 +1387,25 @@ public sealed class GameShowHandler
             rounds.Count,
             session.Players
                 .OrderBy(p => p.JoinedAt)
-                .Select(p => new GameShowPlayerDto(p.Id, p.DisplayName, p.Team, p.IsConnected, p.UserId))
+                .Select(p => new GameShowPlayerDto(
+                    p.Id,
+                    p.DisplayName,
+                    p.Team,
+                    p.IsConnected,
+                    p.UserId,
+                    AccentFor(p.Id)))
                 .ToList(),
             current,
             hostView,
             viewerPlayerId,
-            viewerTeam);
+            viewerTeam,
+            session.LightningUntilUtc,
+            lightning,
+            session.SourcePackId,
+            champion,
+            BuildPlayerStandings(session),
+            packLeaderboard,
+            ToSettingsDto(GameShowSessionSettings.FromSession(session)));
     }
 
     private static string NormalizeTeam(string? team) =>

@@ -15,6 +15,7 @@ public sealed class GameShowSessionConfiguration : IEntityTypeConfiguration<Game
         builder.Property(x => x.Status).HasMaxLength(32).IsRequired();
         builder.Property(x => x.TeamAName).HasMaxLength(80).IsRequired();
         builder.Property(x => x.TeamBName).HasMaxLength(80).IsRequired();
+        builder.Property(x => x.SettingsJson).HasMaxLength(8000);
         builder.HasIndex(x => x.JoinCode).IsUnique();
         builder.HasIndex(x => x.HostUserId);
         builder.HasIndex(x => x.SchoolUserId);
@@ -101,5 +102,16 @@ public sealed class GameShowPackConfiguration : IEntityTypeConfiguration<GameSho
         builder.HasIndex(x => x.OwnerUserId);
         builder.HasIndex(x => x.SchoolUserId);
         builder.HasIndex(x => x.UpdatedAt);
+    }
+}
+
+public sealed class GameShowSettingsConfiguration : IEntityTypeConfiguration<GameShowSettings>
+{
+    public void Configure(EntityTypeBuilder<GameShowSettings> builder)
+    {
+        builder.ToTable("GameShowSettings");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.PayloadJson).IsRequired();
+        builder.Property(x => x.UpdatedAt).IsRequired();
     }
 }

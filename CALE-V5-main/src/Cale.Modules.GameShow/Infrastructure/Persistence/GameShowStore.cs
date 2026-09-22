@@ -109,6 +109,39 @@ public sealed class GameShowStore : IGameShowStore
         return Task.CompletedTask;
     }
 
+    public async Task<IReadOnlyList<GameShowSession>> ListEndedByPackAsync(
+        int packId,
+        int take,
+        CancellationToken ct) =>
+        await _db.Set<GameShowSession>()
+            .Where(x =>
+                x.SourcePackId == packId
+                && x.Status == GameShowSessionStatuses.Ended)
+            .OrderByDescending(x => x.TeamAScore + x.TeamBScore)
+            .ThenByDescending(x => x.EndedAt)
+            .Take(take)
+            .ToListAsync(ct);
+
+    public async Task<GameShowSettings> GetOrCreateSettingsAsync(CancellationToken ct)
+    {
+        var row = await _db.Set<GameShowSettings>()
+            .FirstOrDefaultAsync(x => x.Id == GameShowSettings.SingletonId, ct);
+        if (row is not null)
+        {
+            return row;
+        }
+
+        row = new GameShowSettings
+        {
+            Id = GameShowSettings.SingletonId,
+            PayloadJson = GameShowSessionSettings.Serialize(GameShowSessionSettings.CreateDefaults()),
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _db.Set<GameShowSettings>().AddAsync(row, ct);
+        await _db.SaveChangesAsync(ct);
+        return row;
+    }
+
     public Task SaveChangesAsync(CancellationToken ct) =>
         _db.SaveChangesAsync(ct);
 }

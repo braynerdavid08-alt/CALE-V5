@@ -3,30 +3,34 @@ namespace Cale.Modules.GameShow.Domain;
 /// <summary>Classroom-friendly turn clocks for 100 Estudiantes Dijeron.</summary>
 public static class GameShowTiming
 {
-    /// <summary>No clock while students decide who buzzes (WaitingBuzz).</summary>
+    /// <summary>Legacy defaults — prefer <see cref="GameShowSessionSettings"/> when available.</summary>
     public static readonly TimeSpan BuzzWindow = TimeSpan.Zero;
-
-    /// <summary>Time to type an answer after winning the face-off buzz.</summary>
     public static readonly TimeSpan FaceOffAnswer = TimeSpan.FromSeconds(25);
-
-    /// <summary>Time per control attempt (correct or strike).</summary>
     public static readonly TimeSpan ControlAnswer = TimeSpan.FromSeconds(30);
-
-    /// <summary>Single steal opportunity.</summary>
     public static readonly TimeSpan StealAnswer = TimeSpan.FromSeconds(25);
 
-    public static TimeSpan ForPhase(string? phase) => phase switch
+    public static TimeSpan ForPhase(string? phase, GameShowSessionSettings? settings = null)
     {
-        GameShowRoundPhases.WaitingBuzz => BuzzWindow,
-        GameShowRoundPhases.FaceOff or GameShowRoundPhases.FaceOffSecond => FaceOffAnswer,
-        GameShowRoundPhases.Control or GameShowRoundPhases.Playing => ControlAnswer,
-        GameShowRoundPhases.Steal => StealAnswer,
-        _ => TimeSpan.Zero
-    };
+        var s = settings ?? GameShowSessionSettings.CreateDefaults();
+        return phase switch
+        {
+            GameShowRoundPhases.WaitingBuzz => BuzzWindow,
+            GameShowRoundPhases.FaceOff or GameShowRoundPhases.FaceOffSecond =>
+                TimeSpan.FromSeconds(Math.Max(1, s.FaceOffSeconds)),
+            GameShowRoundPhases.Control or GameShowRoundPhases.Playing =>
+                TimeSpan.FromSeconds(Math.Max(1, s.ControlSeconds)),
+            GameShowRoundPhases.Steal =>
+                TimeSpan.FromSeconds(Math.Max(1, s.StealSeconds)),
+            _ => TimeSpan.Zero
+        };
+    }
 
-    public static void SetDeadline(GameShowRound round, DateTime utcNow)
+    public static void SetDeadline(
+        GameShowRound round,
+        DateTime utcNow,
+        GameShowSessionSettings? settings = null)
     {
-        var span = ForPhase(round.Phase);
+        var span = ForPhase(round.Phase, settings);
         round.AnswerDeadlineUtc = span > TimeSpan.Zero ? utcNow.Add(span) : null;
     }
 
