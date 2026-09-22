@@ -89,6 +89,113 @@ public sealed class GameShowController : ControllerBase
         return Ok(body);
     }
 
+    [HttpGet("packs")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> ListPacks(CancellationToken ct) =>
+        Ok(await _handler.ListPacksAsync(CurrentUser.GetId(User), ct));
+
+    [HttpGet("packs/{packId:int}")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> GetPack(int packId, CancellationToken ct) =>
+        Ok(await _handler.GetPackAsync(
+            packId,
+            CurrentUser.GetId(User),
+            CurrentUser.IsAdmin(User),
+            ct));
+
+    [HttpPost("packs")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> CreatePack(
+        [FromBody] UpsertGameShowPackRequest request,
+        CancellationToken ct)
+    {
+        var userId = CurrentUser.GetId(User);
+        var role = CurrentUser.GetRole(User);
+        int? schoolId = role == Roles.School ? userId : null;
+        return Ok(await _handler.SavePackAsync(userId, schoolId, request, ct));
+    }
+
+    [HttpPut("packs/{packId:int}")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> UpdatePack(
+        int packId,
+        [FromBody] UpsertGameShowPackRequest request,
+        CancellationToken ct) =>
+        Ok(await _handler.UpdatePackAsync(
+            packId,
+            CurrentUser.GetId(User),
+            CurrentUser.IsAdmin(User),
+            request,
+            ct));
+
+    [HttpDelete("packs/{packId:int}")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> DeletePack(int packId, CancellationToken ct)
+    {
+        await _handler.DeletePackAsync(
+            packId,
+            CurrentUser.GetId(User),
+            CurrentUser.IsAdmin(User),
+            ct);
+        return NoContent();
+    }
+
+    [HttpPost("packs/{packId:int}/create-session")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> CreateFromPack(
+        int packId,
+        [FromBody] CreateSessionFromPackRequest request,
+        CancellationToken ct)
+    {
+        var userId = CurrentUser.GetId(User);
+        var role = CurrentUser.GetRole(User);
+        int? schoolId = role == Roles.School ? userId : null;
+        return Ok(await _handler.CreateFromPackAsync(
+            userId,
+            schoolId,
+            packId,
+            CurrentUser.IsAdmin(User),
+            request,
+            ct));
+    }
+
+    [HttpPost("{id:int}/replay")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> Replay(
+        int id,
+        [FromBody] ReplayGameShowRequest request,
+        CancellationToken ct)
+    {
+        var userId = CurrentUser.GetId(User);
+        var role = CurrentUser.GetRole(User);
+        int? schoolId = role == Roles.School ? userId : null;
+        return Ok(await _handler.ReplayAsync(
+            id,
+            userId,
+            schoolId,
+            CurrentUser.IsAdmin(User),
+            request,
+            ct));
+    }
+
+    [HttpGet("{id:int}/stats")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> Stats(int id, CancellationToken ct) =>
+        Ok(await _handler.GetStatsAsync(
+            id,
+            CurrentUser.GetId(User),
+            CurrentUser.IsAdmin(User),
+            ct));
+
+    [HttpGet("{id:int}/pack")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> SessionPack(int id, CancellationToken ct) =>
+        Ok(await _handler.GetSessionPackAsync(
+            id,
+            CurrentUser.GetId(User),
+            CurrentUser.IsAdmin(User),
+            ct));
+
     [HttpGet("{id:int}/export")]
     [Authorize(Policy = "TeacherOrAdmin")]
     public async Task<IActionResult> ExportQuestions(

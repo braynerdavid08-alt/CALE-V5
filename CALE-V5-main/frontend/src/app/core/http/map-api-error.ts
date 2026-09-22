@@ -75,6 +75,8 @@ const messages: Record<string, string> = {
   question_closed: 'La pregunta está cerrada.',
   session_ended: 'La sesión ya terminó.',
   session_not_found: 'Sala no encontrada.',
+  game_not_found: 'Partida no encontrada.',
+  game_ended: 'Esta partida ya terminó.',
   invalid_join_code: 'Código de sala inválido.',
   no_questions: 'No hay preguntas en el banco con esos filtros.',
   not_host: 'Solo el instructor de la sala puede controlar la actividad.',

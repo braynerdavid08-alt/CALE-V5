@@ -76,6 +76,27 @@ public sealed class GameShowStore : IGameShowStore
             .Take(50)
             .ToListAsync(ct);
 
+    public async Task AddPackAsync(GameShowPack pack, CancellationToken ct) =>
+        await _db.Set<GameShowPack>().AddAsync(pack, ct);
+
+    public Task<GameShowPack?> GetPackByIdAsync(int id, CancellationToken ct) =>
+        _db.Set<GameShowPack>().FirstOrDefaultAsync(x => x.Id == id, ct);
+
+    public async Task<IReadOnlyList<GameShowPack>> ListPacksForOwnerAsync(
+        int ownerUserId,
+        CancellationToken ct) =>
+        await _db.Set<GameShowPack>()
+            .Where(x => x.OwnerUserId == ownerUserId)
+            .OrderByDescending(x => x.UpdatedAt)
+            .Take(100)
+            .ToListAsync(ct);
+
+    public Task RemovePackAsync(GameShowPack pack, CancellationToken ct)
+    {
+        _db.Set<GameShowPack>().Remove(pack);
+        return Task.CompletedTask;
+    }
+
     public Task SaveChangesAsync(CancellationToken ct) =>
         _db.SaveChangesAsync(ct);
 }

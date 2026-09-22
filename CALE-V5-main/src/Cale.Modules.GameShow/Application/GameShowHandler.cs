@@ -85,7 +85,6 @@ public sealed class GameShowHandler
             throw new DomainException("Escribe tu nombre.", 400, "invalid_name");
         }
 
-        var team = NormalizeTeam(request.Team);
         var session = await _store.GetByJoinCodeAsync(code, ct)
             ?? throw new NotFoundException("Partida no encontrada.", "game_not_found");
 
@@ -93,6 +92,32 @@ public sealed class GameShowHandler
         {
             throw new DomainException("Esta partida ya terminó.", 400, "game_ended");
         }
+
+        // Same logged-in user rejoining keeps their seat/token.
+        if (userId is not null)
+        {
+            var existing = session.Players.FirstOrDefault(p => p.UserId == userId);
+            if (existing is not null)
+            {
+                var rejoinLobby = MapLobby(
+                    session,
+                    hostView: false,
+                    viewerPlayerId: existing.Id,
+                    viewerTeam: existing.Team);
+                await BroadcastLobbyAsync(session, ct);
+                return new JoinGameShowResultDto(
+                    session.Id,
+                    existing.PlayerToken,
+                    existing.Id,
+                    existing.Team,
+                    rejoinLobby);
+            }
+        }
+
+        var team = string.IsNullOrWhiteSpace(request.Team)
+            || string.Equals(request.Team, "auto", StringComparison.OrdinalIgnoreCase)
+            ? PickBalancedTeam(session)
+            : NormalizeTeam(request.Team);
 
         var player = new GameShowPlayer
         {
@@ -534,6 +559,294 @@ public sealed class GameShowHandler
         return (csvBytes, $"cale-100-dijeron-{session.Id}-{safe}.csv", "text/csv; charset=utf-8");
     }
 
+    public async Task<IReadOnlyList<GameShowPackSummaryDto>> ListPacksAsync(
+        int ownerUserId,
+        CancellationToken ct)
+    {
+        var list = await _store.ListPacksForOwnerAsync(ownerUserId, ct);
+        return list.Select(MapPackSummary).ToList();
+    }
+
+    public async Task<GameShowPackDetailDto> GetPackAsync(
+        int packId,
+        int userId,
+        bool isAdmin,
+        CancellationToken ct)
+    {
+        var pack = await RequirePackAccessAsync(packId, userId, isAdmin, ct);
+        return MapPackDetail(pack);
+    }
+
+    public async Task<GameShowPackDetailDto> SavePackAsync(
+        int ownerUserId,
+        int? schoolUserId,
+        UpsertGameShowPackRequest request,
+        CancellationToken ct)
+    {
+        var body = NormalizePackBody(request);
+        var now = _clock.UtcNow;
+        var pack = new GameShowPack
+        {
+            OwnerUserId = ownerUserId,
+            SchoolUserId = schoolUserId,
+            Name = body.Title,
+            Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
+            PayloadJson = SerializePackBody(body),
+            RoundCount = body.Rounds.Count,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+        await _store.AddPackAsync(pack, ct);
+        await _store.SaveChangesAsync(ct);
+        return MapPackDetail(pack);
+    }
+
+    public async Task<GameShowPackDetailDto> UpdatePackAsync(
+        int packId,
+        int userId,
+        bool isAdmin,
+        UpsertGameShowPackRequest request,
+        CancellationToken ct)
+    {
+        var pack = await RequirePackAccessAsync(packId, userId, isAdmin, ct);
+        var body = NormalizePackBody(request);
+        pack.Name = body.Title;
+        pack.Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
+        pack.PayloadJson = SerializePackBody(body);
+        pack.RoundCount = body.Rounds.Count;
+        pack.UpdatedAt = _clock.UtcNow;
+        await _store.SaveChangesAsync(ct);
+        return MapPackDetail(pack);
+    }
+
+    public async Task DeletePackAsync(
+        int packId,
+        int userId,
+        bool isAdmin,
+        CancellationToken ct)
+    {
+        var pack = await RequirePackAccessAsync(packId, userId, isAdmin, ct);
+        await _store.RemovePackAsync(pack, ct);
+        await _store.SaveChangesAsync(ct);
+    }
+
+    public async Task<GameShowLobbyDto> CreateFromPackAsync(
+        int hostUserId,
+        int? schoolUserId,
+        int packId,
+        bool isAdmin,
+        CreateSessionFromPackRequest request,
+        CancellationToken ct)
+    {
+        var pack = await RequirePackAccessAsync(packId, hostUserId, isAdmin, ct);
+        var body = DeserializePackBody(pack);
+        var title = string.IsNullOrWhiteSpace(request.Title) ? pack.Name : request.Title.Trim();
+        var teamA = string.IsNullOrWhiteSpace(request.TeamAName) ? body.TeamAName : request.TeamAName.Trim();
+        var teamB = string.IsNullOrWhiteSpace(request.TeamBName) ? body.TeamBName : request.TeamBName.Trim();
+        return await CreateAsync(
+            hostUserId,
+            schoolUserId,
+            new CreateGameShowRequest(title, teamA, teamB, body.Rounds),
+            ct);
+    }
+
+    public async Task<GameShowLobbyDto> ReplayAsync(
+        int sessionId,
+        int hostUserId,
+        int? schoolUserId,
+        bool isAdmin,
+        ReplayGameShowRequest request,
+        CancellationToken ct)
+    {
+        var source = await RequireSessionAsync(sessionId, ct);
+        if (!isAdmin
+            && source.HostUserId != hostUserId
+            && source.SchoolUserId != hostUserId)
+        {
+            throw new DomainException("No puedes reutilizar esta partida.", 403, "forbidden");
+        }
+
+        var body = SessionToCreateRequest(source);
+        var title = string.IsNullOrWhiteSpace(request.Title)
+            ? $"{source.Title} (nueva)"
+            : request.Title.Trim();
+        var teamA = string.IsNullOrWhiteSpace(request.TeamAName) ? body.TeamAName : request.TeamAName.Trim();
+        var teamB = string.IsNullOrWhiteSpace(request.TeamBName) ? body.TeamBName : request.TeamBName.Trim();
+        return await CreateAsync(
+            hostUserId,
+            schoolUserId,
+            new CreateGameShowRequest(title, teamA, teamB, body.Rounds),
+            ct);
+    }
+
+    public async Task<CreateGameShowRequest> GetSessionPackAsync(
+        int sessionId,
+        int userId,
+        bool isAdmin,
+        CancellationToken ct)
+    {
+        var session = await RequireSessionAsync(sessionId, ct);
+        if (!isAdmin
+            && session.HostUserId != userId
+            && session.SchoolUserId != userId)
+        {
+            throw new DomainException("No puedes leer esta partida.", 403, "forbidden");
+        }
+
+        return SessionToCreateRequest(session);
+    }
+
+    public async Task<GameShowStatsDto> GetStatsAsync(
+        int sessionId,
+        int userId,
+        bool isAdmin,
+        CancellationToken ct)
+    {
+        var session = await RequireSessionAsync(sessionId, ct);
+        if (!isAdmin
+            && session.HostUserId != userId
+            && session.SchoolUserId != userId
+            && !session.Players.Any(p => p.UserId == userId))
+        {
+            // Anonymous projector can still see ended scores via lobby; stats stay host-scoped.
+            throw new DomainException("No puedes ver las estadísticas.", 403, "forbidden");
+        }
+
+        var rounds = session.Rounds.OrderBy(r => r.SortOrder).ToList();
+        var roundStats = rounds.Select(r =>
+        {
+            var attempts = r.Attempts;
+            return new GameShowRoundStatDto(
+                r.SortOrder,
+                r.QuestionText,
+                r.RoundPointsForController,
+                r.StealSucceeded,
+                r.ControllingTeam,
+                r.Strikes,
+                attempts.Count(a => a.IsCorrect),
+                attempts.Count(a => !a.IsCorrect));
+        }).ToList();
+
+        var allAttempts = rounds.SelectMany(r => r.Attempts).ToList();
+        string? winner = null;
+        if (session.Status == GameShowSessionStatuses.Ended)
+        {
+            if (session.TeamAScore > session.TeamBScore) winner = GameShowTeams.A;
+            else if (session.TeamBScore > session.TeamAScore) winner = GameShowTeams.B;
+        }
+
+        return new GameShowStatsDto(
+            session.Id,
+            session.Title,
+            session.Status,
+            session.TeamAName,
+            session.TeamBName,
+            session.TeamAScore,
+            session.TeamBScore,
+            winner,
+            session.Players.Count,
+            rounds.Count,
+            allAttempts.Count(a => a.IsCorrect),
+            allAttempts.Count(a => !a.IsCorrect),
+            rounds.Count(r => r.StealSucceeded),
+            allAttempts.Count(a => a.IsSteal && !a.IsCorrect),
+            roundStats,
+            session.CreatedAt,
+            session.EndedAt);
+    }
+
+    private async Task<GameShowPack> RequirePackAccessAsync(
+        int packId,
+        int userId,
+        bool isAdmin,
+        CancellationToken ct)
+    {
+        var pack = await _store.GetPackByIdAsync(packId, ct)
+            ?? throw new NotFoundException("Pack no encontrado.", "pack_not_found");
+        if (!isAdmin && pack.OwnerUserId != userId && pack.SchoolUserId != userId)
+        {
+            throw new DomainException("No puedes usar este pack.", 403, "forbidden");
+        }
+
+        return pack;
+    }
+
+    private CreateGameShowRequest NormalizePackBody(UpsertGameShowPackRequest request)
+    {
+        if (request.Rounds is null || request.Rounds.Count < 1)
+        {
+            throw new DomainException("Agrega al menos una ronda.", 400, "invalid_rounds");
+        }
+
+        if (request.Rounds.Count > 50)
+        {
+            throw new DomainException("Máximo 50 rondas por pack.", 400, "too_many_rounds");
+        }
+
+        var name = string.IsNullOrWhiteSpace(request.Name)
+            ? "Pack de preguntas"
+            : request.Name.Trim();
+        var teamA = string.IsNullOrWhiteSpace(request.DefaultTeamAName) ? "Equipo A" : request.DefaultTeamAName.Trim();
+        var teamB = string.IsNullOrWhiteSpace(request.DefaultTeamBName) ? "Equipo B" : request.DefaultTeamBName.Trim();
+        return new CreateGameShowRequest(name, teamA, teamB, request.Rounds);
+    }
+
+    private static string SerializePackBody(CreateGameShowRequest body) =>
+        System.Text.Json.JsonSerializer.Serialize(
+            body,
+            new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+            });
+
+    private static CreateGameShowRequest DeserializePackBody(GameShowPack pack)
+    {
+        var body = System.Text.Json.JsonSerializer.Deserialize<CreateGameShowRequest>(
+            pack.PayloadJson,
+            new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+        if (body?.Rounds is null || body.Rounds.Count < 1)
+        {
+            throw new DomainException("El pack no tiene rondas válidas.", 400, "invalid_pack");
+        }
+
+        return body;
+    }
+
+    private static CreateGameShowRequest SessionToCreateRequest(GameShowSession session) =>
+        new(
+            session.Title,
+            session.TeamAName,
+            session.TeamBName,
+            session.Rounds
+                .OrderBy(r => r.SortOrder)
+                .Select(r => new CreateGameShowRoundRequest(
+                    r.QuestionText,
+                    r.SourceQuestionId,
+                    r.Answers
+                        .OrderBy(a => a.Rank)
+                        .Select(a => new CreateGameShowAnswerRequest(
+                            a.Text,
+                            a.Points,
+                            GameShowAnswerMatcher.ParseAliases(a.AliasesJson).ToList()))
+                        .ToList()))
+                .ToList());
+
+    private static GameShowPackSummaryDto MapPackSummary(GameShowPack pack) =>
+        new(pack.Id, pack.Name, pack.Notes, pack.RoundCount, pack.CreatedAt, pack.UpdatedAt);
+
+    private static GameShowPackDetailDto MapPackDetail(GameShowPack pack) =>
+        new(
+            pack.Id,
+            pack.Name,
+            pack.Notes,
+            pack.RoundCount,
+            pack.CreatedAt,
+            pack.UpdatedAt,
+            DeserializePackBody(pack));
+
     private static string Csv(string? value)
     {
         var v = (value ?? "").Replace("\"", "\"\"");
@@ -847,6 +1160,15 @@ public sealed class GameShowHandler
         string.Equals(team, GameShowTeams.B, StringComparison.OrdinalIgnoreCase)
             ? GameShowTeams.B
             : GameShowTeams.A;
+
+    private static string PickBalancedTeam(GameShowSession session)
+    {
+        var a = session.Players.Count(p =>
+            string.Equals(p.Team, GameShowTeams.A, StringComparison.OrdinalIgnoreCase));
+        var b = session.Players.Count(p =>
+            string.Equals(p.Team, GameShowTeams.B, StringComparison.OrdinalIgnoreCase));
+        return a <= b ? GameShowTeams.A : GameShowTeams.B;
+    }
 
     private async Task<string> GenerateUniqueCodeAsync(CancellationToken ct)
     {

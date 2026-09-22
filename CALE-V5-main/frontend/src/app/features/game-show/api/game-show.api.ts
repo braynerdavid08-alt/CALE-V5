@@ -91,6 +91,64 @@ export interface GameShowHistoryItemDto {
   playerCount: number;
 }
 
+export interface GameShowPackSummaryDto {
+  id: number;
+  name: string;
+  notes?: string | null;
+  roundCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GameShowPackDetailDto {
+  id: number;
+  name: string;
+  notes?: string | null;
+  roundCount: number;
+  createdAt: string;
+  updatedAt: string;
+  body: CreateGameShowBody;
+}
+
+export interface UpsertGameShowPackBody {
+  name: string;
+  notes?: string | null;
+  rounds: GameShowRoundInput[];
+  defaultTeamAName?: string | null;
+  defaultTeamBName?: string | null;
+}
+
+export interface GameShowRoundStatDto {
+  roundIndex: number;
+  questionText: string;
+  pointsAwarded: number;
+  stealSucceeded: boolean;
+  controllingTeam: string | null;
+  strikes: number;
+  correctAttempts: number;
+  wrongAttempts: number;
+}
+
+export interface GameShowStatsDto {
+  sessionId: number;
+  title: string;
+  status: string;
+  teamAName: string;
+  teamBName: string;
+  teamAScore: number;
+  teamBScore: number;
+  winnerTeam: string | null;
+  playerCount: number;
+  roundCount: number;
+  correctAnswers: number;
+  wrongAnswers: number;
+  stealsSucceeded: number;
+  stealsFailed: number;
+  rounds: GameShowRoundStatDto[];
+  createdAt: string;
+  endedAt?: string | null;
+}
+
 const TOKEN_KEY = 'cale.game-show.player';
 
 @Injectable({ providedIn: 'root' })
@@ -107,6 +165,48 @@ export class GameShowApi {
     return this.http.get<GameShowHistoryItemDto[]>(`${this.base}/api/game-show/mine`);
   }
 
+  listPacks() {
+    return this.http.get<GameShowPackSummaryDto[]>(`${this.base}/api/game-show/packs`);
+  }
+
+  getPack(packId: number) {
+    return this.http.get<GameShowPackDetailDto>(`${this.base}/api/game-show/packs/${packId}`);
+  }
+
+  savePack(body: UpsertGameShowPackBody) {
+    return this.http.post<GameShowPackDetailDto>(`${this.base}/api/game-show/packs`, body);
+  }
+
+  updatePack(packId: number, body: UpsertGameShowPackBody) {
+    return this.http.put<GameShowPackDetailDto>(`${this.base}/api/game-show/packs/${packId}`, body);
+  }
+
+  deletePack(packId: number) {
+    return this.http.delete(`${this.base}/api/game-show/packs/${packId}`);
+  }
+
+  createFromPack(
+    packId: number,
+    body: { title?: string; teamAName?: string; teamBName?: string }
+  ) {
+    return this.http.post<GameShowLobbyDto>(
+      `${this.base}/api/game-show/packs/${packId}/create-session`,
+      body
+    );
+  }
+
+  replay(sessionId: number, body: { title?: string; teamAName?: string; teamBName?: string } = {}) {
+    return this.http.post<GameShowLobbyDto>(`${this.base}/api/game-show/${sessionId}/replay`, body);
+  }
+
+  stats(sessionId: number) {
+    return this.http.get<GameShowStatsDto>(`${this.base}/api/game-show/${sessionId}/stats`);
+  }
+
+  sessionPack(sessionId: number) {
+    return this.http.get<CreateGameShowBody>(`${this.base}/api/game-show/${sessionId}/pack`);
+  }
+
   get(id: number, playerToken?: string | null, host = false) {
     const params = new URLSearchParams();
     if (playerToken) params.set('playerToken', playerToken);
@@ -115,7 +215,7 @@ export class GameShowApi {
     return this.http.get<GameShowLobbyDto>(`${this.base}/api/game-show/${id}${q}`);
   }
 
-  join(code: string, displayName: string, team: string) {
+  join(code: string, displayName: string, team: string = 'auto') {
     return this.http.post<JoinGameShowResultDto>(`${this.base}/api/game-show/join`, {
       code,
       displayName,

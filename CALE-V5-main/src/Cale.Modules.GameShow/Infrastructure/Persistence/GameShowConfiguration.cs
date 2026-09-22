@@ -88,3 +88,18 @@ public sealed class GameShowAttemptConfiguration : IEntityTypeConfiguration<Game
         builder.HasIndex(x => x.RoundId);
     }
 }
+
+public sealed class GameShowPackConfiguration : IEntityTypeConfiguration<GameShowPack>
+{
+    public void Configure(EntityTypeBuilder<GameShowPack> builder)
+    {
+        builder.ToTable("GameShowPacks");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
+        builder.Property(x => x.Notes).HasMaxLength(500);
+        builder.Property(x => x.PayloadJson).IsRequired();
+        builder.HasIndex(x => x.OwnerUserId);
+        builder.HasIndex(x => x.SchoolUserId);
+        builder.HasIndex(x => x.UpdatedAt);
+    }
+}

@@ -17,6 +17,12 @@ public interface IGameShowStore
     Task<bool> TryClaimBuzzAsync(int roundId, string team, CancellationToken ct);
     Task<IReadOnlyList<GameShowSession>> ListForHostAsync(int hostUserId, CancellationToken ct);
     Task<IReadOnlyList<GameShowSession>> ListForSchoolAsync(int schoolUserId, CancellationToken ct);
+
+    Task AddPackAsync(GameShowPack pack, CancellationToken ct);
+    Task<GameShowPack?> GetPackByIdAsync(int id, CancellationToken ct);
+    Task<IReadOnlyList<GameShowPack>> ListPacksForOwnerAsync(int ownerUserId, CancellationToken ct);
+    Task RemovePackAsync(GameShowPack pack, CancellationToken ct);
+
     Task SaveChangesAsync(CancellationToken ct);
 }
 

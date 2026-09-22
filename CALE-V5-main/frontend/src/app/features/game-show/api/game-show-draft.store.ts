@@ -8,6 +8,10 @@ export interface GameShowDraft {
   teamAName: string;
   teamBName: string;
   rounds: GameShowRoundInput[];
+  /** Selected server pack id, or null for local draft / official. */
+  selectedPackId: number | null;
+  /** 'official' | 'pack' | 'draft' */
+  packSource: 'official' | 'pack' | 'draft';
   updatedAt: string;
 }
 
@@ -30,6 +34,8 @@ function defaultDraft(): GameShowDraft {
     teamAName: 'Equipo A',
     teamBName: 'Equipo B',
     rounds: [emptyRound()],
+    selectedPackId: null,
+    packSource: 'draft',
     updatedAt: new Date().toISOString()
   };
 }
@@ -60,7 +66,14 @@ export class GameShowDraftStore {
     this.patch({ title, teamAName, teamBName });
   }
 
-  applyPack(body: CreateGameShowBody): void {
+  selectPack(packId: number | null, source: GameShowDraft['packSource']): void {
+    this.patch({ selectedPackId: packId, packSource: source });
+  }
+
+  applyPack(
+    body: CreateGameShowBody,
+    opts?: { packId?: number | null; source?: GameShowDraft['packSource'] }
+  ): void {
     this.patch({
       title: body.title || this.draft().title,
       teamAName: body.teamAName || this.draft().teamAName,
@@ -73,7 +86,9 @@ export class GameShowDraftStore {
           points: a.points || 1,
           aliases: [...(a.aliases || [])]
         }))
-      }))
+      })),
+      selectedPackId: opts?.packId ?? null,
+      packSource: opts?.source ?? 'draft'
     });
   }
 
@@ -105,6 +120,8 @@ export class GameShowDraftStore {
         teamAName: parsed.teamAName || 'Equipo A',
         teamBName: parsed.teamBName || 'Equipo B',
         rounds: parsed.rounds,
+        selectedPackId: parsed.selectedPackId ?? null,
+        packSource: parsed.packSource || 'draft',
         updatedAt: parsed.updatedAt || new Date().toISOString()
       };
     } catch {

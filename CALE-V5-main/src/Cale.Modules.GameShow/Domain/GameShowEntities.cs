@@ -100,3 +100,19 @@ public sealed class GameShowAttempt
     public int? MatchedAnswerId { get; set; }
     public DateTime CreatedAt { get; set; }
 }
+
+/// <summary>
+/// Saved question pack owned by a teacher (or school). Payload is a CreateGameShowRequest JSON.
+/// </summary>
+public sealed class GameShowPack
+{
+    public int Id { get; set; }
+    public int OwnerUserId { get; set; }
+    public int? SchoolUserId { get; set; }
+    public string Name { get; set; } = "";
+    public string? Notes { get; set; }
+    public string PayloadJson { get; set; } = "{}";
+    public int RoundCount { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
