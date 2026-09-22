@@ -170,8 +170,13 @@ export class GameShowHubPage implements OnInit {
 
     if (this.readyCount() < 1) {
       this.onPackChoice('official');
-    } else if (this.draftStore.draft().packSource === 'pack' && this.draftStore.draft().selectedPackId) {
-      this.packChoice.set(`pack:${this.draftStore.draft().selectedPackId}`);
+    } else if (this.draftStore.draft().packSource === 'pack') {
+      const packId = this.draftStore.draft().selectedPackId;
+      if (packId != null) {
+        this.packChoice.set(`pack:${packId}`);
+      } else {
+        this.packChoice.set('draft');
+      }
     } else if (this.draftStore.draft().packSource === 'official') {
       this.packChoice.set('official');
     } else {
