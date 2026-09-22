@@ -17,16 +17,16 @@ public sealed class GameShowScoringAndPhasesTests
     }
 
     [Fact]
-    public void SuccessfulSteal_awards_banked_plus_matched_points()
+    public void SuccessfulSteal_awards_banked_points_only()
     {
-        var pts = GameShowScoringPolicy.ComputeSuccessfulStealPoints(
-            newlyRevealedPoints: 25,
-            controllerBankedPoints: 40);
-        Assert.Equal(65, pts);
+        Assert.Equal(40, GameShowScoringPolicy.ComputeSuccessfulStealPoints(40));
     }
 
     [Theory]
     [InlineData("WaitingBuzz")]
+    [InlineData("FaceOff")]
+    [InlineData("FaceOffSecond")]
+    [InlineData("Control")]
     [InlineData("Playing")]
     [InlineData("Steal")]
     [InlineData("Finished")]
@@ -35,9 +35,21 @@ public sealed class GameShowScoringAndPhasesTests
         Assert.Contains(phase, new[]
         {
             GameShowRoundPhases.WaitingBuzz,
+            GameShowRoundPhases.FaceOff,
+            GameShowRoundPhases.FaceOffSecond,
+            GameShowRoundPhases.Control,
             GameShowRoundPhases.Playing,
             GameShowRoundPhases.Steal,
             GameShowRoundPhases.Finished
         });
+    }
+
+    [Fact]
+    public void Playing_is_treated_as_control_for_legacy_sessions()
+    {
+        Assert.True(GameShowRoundPhases.IsControl(GameShowRoundPhases.Playing));
+        Assert.True(GameShowRoundPhases.IsControl(GameShowRoundPhases.Control));
+        Assert.True(GameShowRoundPhases.IsFaceOff(GameShowRoundPhases.FaceOff));
+        Assert.True(GameShowRoundPhases.IsFaceOff(GameShowRoundPhases.FaceOffSecond));
     }
 }

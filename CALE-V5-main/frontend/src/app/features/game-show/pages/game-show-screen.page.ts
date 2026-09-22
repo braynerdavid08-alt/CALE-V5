@@ -45,18 +45,26 @@ import { GameShowSfxService } from '../api/game-show-sfx.service';
             @if (L.currentRound.controllingTeam) {
               · Turno de {{ teamName(L, L.currentRound.controllingTeam) }}
             }
-          </p>
-          @if (timerSec() !== null && (L.currentRound.phase === 'WaitingBuzz' || L.currentRound.phase === 'Steal')) {
-            <p class="timer" [class.urgent]="(timerSec() ?? 0) <= 3">{{ timerSec() }}</p>
-          }
-          @if (L.currentRound.phase === 'Steal') {
-            <p class="steal">ROBO: {{ teamName(L, otherTeam(L.currentRound.controllingTeam)) }} tiene una sola respuesta</p>
-          }
-          <p class="strikes">
-            @for (x of strikeSlots(); track $index) {
-              <span [class.hit]="$index < L.currentRound.strikes">✕</span>
+            @if (L.currentRound.phase === 'Control' || L.currentRound.phase === 'Playing' || L.currentRound.phase === 'Steal') {
+              · Banco {{ L.currentRound.roundPointsForController }}
             }
           </p>
+          @if (timerSec() !== null && (L.currentRound.phase === 'WaitingBuzz' || L.currentRound.phase === 'FaceOff' || L.currentRound.phase === 'FaceOffSecond' || L.currentRound.phase === 'Steal')) {
+            <p class="timer" [class.urgent]="(timerSec() ?? 0) <= 3">{{ timerSec() }}</p>
+          }
+          @if (L.currentRound.phase === 'FaceOff' || L.currentRound.phase === 'FaceOffSecond') {
+            <p class="steal">ENFRENTAMIENTO — un fallo pasa el turno (sin strikes)</p>
+          }
+          @if (L.currentRound.phase === 'Steal') {
+            <p class="steal">ROBO: {{ teamName(L, otherTeam(L.currentRound.controllingTeam)) }} tiene UNA respuesta · banco {{ L.currentRound.roundPointsForController }}</p>
+          }
+          @if (L.currentRound.phase === 'Control' || L.currentRound.phase === 'Playing') {
+            <p class="strikes">
+              @for (x of strikeSlots(); track $index) {
+                <span [class.hit]="$index < L.currentRound.strikes">✕</span>
+              }
+            </p>
+          }
           <ol>
             @for (a of L.currentRound.answers; track a.id) {
               <li [class.revealed]="a.isRevealed">
@@ -197,15 +205,31 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
     this.hub.on('LobbyUpdated', (lobby: GameShowLobbyDto) => this.applyLobby(lobby));
     this.hub.on('BuzzWon', () => {
       this.sfx.play('buzz');
-      this.showFlash('¡BUZZER!');
+      this.showFlash('¡ENFRENTAMIENTO!');
+      this.startCountdown(12);
+    });
+    this.hub.on('FaceOffPass', () => {
+      this.sfx.play('strike');
+      this.showFlash('TURNO DEL OTRO EQUIPO');
+      this.startCountdown(12);
+    });
+    this.hub.on('FaceOffWon', () => {
+      this.sfx.play('correct');
+      this.showFlash('¡CONTROL DE LA RONDA!');
+    });
+    this.hub.on('FaceOffReopen', () => {
+      this.sfx.play('tick');
+      this.showFlash('NADIE ACIERTÓ — BUZZER');
+      this.startCountdown(12);
     });
     this.hub.on('CorrectAnswer', () => {
       this.sfx.play('correct');
       this.showFlash('¡CORRECTO!');
     });
+    this.hub.on('AlreadyRevealed', () => this.showFlash('YA DESCUBIERTA'));
     this.hub.on('Strike', () => {
       this.sfx.play('strike');
-      this.showFlash('ERROR');
+      this.showFlash('STRIKE');
     });
     this.hub.on('StealOpportunity', () => {
       this.sfx.play('steal');
@@ -219,6 +243,10 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
     this.hub.on('StealFailed', () => {
       this.sfx.play('stealFail');
       this.showFlash('ROBO FALLIDO');
+    });
+    this.hub.on('RoundWon', () => {
+      this.sfx.play('end');
+      this.showFlash('¡RONDA GANADA!');
     });
     this.hub.on('RoundStarted', () => {
       this.sfx.play('round');
@@ -246,8 +274,10 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
   }
 
   phase(p: string): string {
-    if (p === 'WaitingBuzz') return 'Presionen el buzzer';
-    if (p === 'Playing') return 'Respondiendo';
+    if (p === 'WaitingBuzz') return 'Presionen RESPONDER';
+    if (p === 'FaceOff') return 'Enfrentamiento';
+    if (p === 'FaceOffSecond') return 'Enfrentamiento (2.º equipo)';
+    if (p === 'Control' || p === 'Playing') return 'Control de ronda';
     if (p === 'Steal') return 'Robo';
     if (p === 'Finished') return 'Ronda terminada';
     return p;
@@ -311,9 +341,12 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
 
   private applyLobby(lobby: GameShowLobbyDto): void {
     const phase = lobby.currentRound?.phase ?? null;
-    if (phase === 'WaitingBuzz' && this.lastPhase !== 'WaitingBuzz') {
-      this.startCountdown(12);
-    } else if (phase !== 'WaitingBuzz' && phase !== 'Steal') {
+    if (
+      (phase === 'WaitingBuzz' || phase === 'FaceOff' || phase === 'FaceOffSecond')
+      && this.lastPhase !== phase
+    ) {
+      if (phase === 'WaitingBuzz') this.startCountdown(12);
+    } else if (phase !== 'WaitingBuzz' && phase !== 'FaceOff' && phase !== 'FaceOffSecond' && phase !== 'Steal') {
       this.clearCountdown();
     }
     if (lobby.status === 'Ended' && this.lastStatus !== 'Ended') {

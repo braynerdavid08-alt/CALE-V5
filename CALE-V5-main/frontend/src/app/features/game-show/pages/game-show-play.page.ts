@@ -33,15 +33,23 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
               <li [class.on]="a.isRevealed">{{ a.isRevealed ? (a.text + ' · ' + a.points) : '████████' }}</li>
             }
           </ol>
-          <p class="muted">Errores del equipo: {{ R.strikes }} / 3 · {{ phaseLabel(L, R.phase) }}</p>
+          <p class="muted">
+            @if (R.phase === 'Control' || R.phase === 'Playing') {
+              Strikes: {{ R.strikes }} / 3 · Banco: {{ R.roundPointsForController }} ·
+            }
+            {{ phaseLabel(L, R.phase) }}
+          </p>
 
           @if (R.phase === 'WaitingBuzz') {
-            <ui-button type="button" class="buzz" (click)="buzz()">¡PRESIONAR!</ui-button>
+            <ui-button type="button" class="buzz" (click)="buzz()">¡RESPONDER!</ui-button>
           }
 
-          @if ((R.phase === 'Playing' || R.phase === 'Steal') && myTurn(L)) {
+          @if (canAnswer(L) && myTurn(L)) {
             @if (R.phase === 'Steal') {
-              <p class="steal">🔥 ¡Tienen una sola oportunidad para robar la ronda!</p>
+              <p class="steal">¡Tienen UNA sola oportunidad para robar el banco ({{ R.roundPointsForController }})!</p>
+            }
+            @if (R.phase === 'FaceOff' || R.phase === 'FaceOffSecond') {
+              <p class="steal">Enfrentamiento: acierta para tomar el control. Un fallo pasa el turno.</p>
             }
             <label class="field">Tu respuesta
               <input class="input" [(ngModel)]="answer" name="answer" (keyup.enter)="send()" />
@@ -50,7 +58,7 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
             <ui-button type="button" variant="secondary" (click)="listenVoice()">Hablar (opcional)</ui-button>
           } @else if (R.phase === 'Steal') {
             <p class="muted">El otro equipo intenta robar la ronda. Espera el resultado.</p>
-          } @else if (R.phase === 'Playing') {
+          } @else if (R.phase === 'FaceOff' || R.phase === 'FaceOffSecond' || R.phase === 'Control' || R.phase === 'Playing') {
             <p class="muted">Espera el turno de tu equipo.</p>
           } @else if (R.phase === 'Finished') {
             <p class="muted">Ronda terminada. Espera la siguiente.</p>
@@ -58,7 +66,7 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
         } @else {
           <p>Esperando en el lobby… Código {{ L.joinCode }}</p>
         }
-        <a routerLink="/game-show/join">Salir</a>
+        <a routerLink="/live/join">Salir</a>
       </section>
     } @else {
       <ui-error [message]="error() || 'Cargando…'" />
@@ -120,20 +128,41 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
   myTurn(L: GameShowLobbyDto): boolean {
     const r = L.currentRound;
     if (!r) return false;
-    if (r.phase === 'Playing') return r.controllingTeam === this.myTeam();
     if (r.phase === 'Steal') {
       const other = r.controllingTeam === 'A' ? 'B' : 'A';
       return other === this.myTeam();
     }
+    if (
+      r.phase === 'FaceOff'
+      || r.phase === 'FaceOffSecond'
+      || r.phase === 'Control'
+      || r.phase === 'Playing'
+    ) {
+      return r.controllingTeam === this.myTeam();
+    }
     return false;
+  }
+
+  canAnswer(L: GameShowLobbyDto): boolean {
+    const p = L.currentRound?.phase;
+    return (
+      p === 'FaceOff'
+      || p === 'FaceOffSecond'
+      || p === 'Control'
+      || p === 'Playing'
+      || p === 'Steal'
+    );
   }
 
   phaseLabel(L: GameShowLobbyDto, phase: string): string {
     const r = L.currentRound;
     const controller = r?.controllingTeam === 'B' ? L.teamBName : L.teamAName;
     switch (phase) {
-      case 'WaitingBuzz': return 'Presiona el buzzer para tomar el turno';
-      case 'Playing': return `Responde ${controller}`;
+      case 'WaitingBuzz': return 'Presiona RESPONDER para el enfrentamiento';
+      case 'FaceOff': return `Enfrentamiento: responde ${controller}`;
+      case 'FaceOffSecond': return `Enfrentamiento (2.º): responde ${controller}`;
+      case 'Control':
+      case 'Playing': return `Control: responde ${controller}`;
       case 'Steal': return this.myTurn(L) ? 'Robo: ¡es tu oportunidad!' : `Robo: responde el rival de ${controller}`;
       case 'Finished': return 'Ronda terminada';
       default: return phase;
@@ -206,12 +235,17 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
   private connectHub(): void {
     this.hub = this.api.buildHub();
     this.hub.on('LobbyUpdated', (lobby: GameShowLobbyDto) => this.apply(lobby));
-    this.hub.on('BuzzWon', () => this.showFlash('¡Buzzer ganado!'));
+    this.hub.on('BuzzWon', () => this.showFlash('¡Turno de enfrentamiento!'));
+    this.hub.on('FaceOffPass', () => this.showFlash('Turno del otro equipo'));
+    this.hub.on('FaceOffWon', () => this.showFlash('¡Control de la ronda!'));
+    this.hub.on('FaceOffReopen', () => this.showFlash('Nadie acertó — buzzer de nuevo'));
     this.hub.on('CorrectAnswer', () => this.showFlash('¡Correcto!'));
-    this.hub.on('Strike', () => this.showFlash('❌'));
+    this.hub.on('AlreadyRevealed', () => this.showFlash('Ya estaba descubierta'));
+    this.hub.on('Strike', () => this.showFlash('❌ Strike'));
     this.hub.on('StealOpportunity', () => this.showFlash('¡Oportunidad de robo!'));
-    this.hub.on('StealSucceeded', () => this.showFlash('🎉 Robo exitoso'));
+    this.hub.on('StealSucceeded', () => this.showFlash('Robo exitoso'));
     this.hub.on('StealFailed', () => this.showFlash('Robo fallido'));
+    this.hub.on('RoundWon', () => this.showFlash('¡Ronda ganada!'));
     this.hub.onreconnecting(() => this.connection.set('Reconectando…'));
     this.hub.onreconnected(() => {
       this.connection.set(null);

@@ -50,8 +50,10 @@ public sealed class GameShowStore : IGameShowStore
                 setters => setters
                     .SetProperty(r => r.BuzzWinnerTeam, team)
                     .SetProperty(r => r.ControllingTeam, team)
-                    .SetProperty(r => r.Phase, GameShowRoundPhases.Playing)
-                    .SetProperty(r => r.Strikes, 0),
+                    .SetProperty(r => r.Phase, GameShowRoundPhases.FaceOff)
+                    .SetProperty(r => r.Strikes, 0)
+                    .SetProperty(r => r.RoundPointsForController, 0)
+                    .SetProperty(r => r.StealSucceeded, false),
                 ct);
         return updated == 1;
     }
