@@ -1673,6 +1673,7 @@ public static class FeatureSchema
         }
 
         await db.Database.ExecuteSqlRawAsync(
+            RawSqlLiteral.Escape(
             """
             IF OBJECT_ID(N'dbo.Intentos', N'U') IS NOT NULL
                AND COL_LENGTH(N'dbo.Intentos', N'ExpiresAt') IS NULL
@@ -2301,7 +2302,7 @@ public static class FeatureSchema
                 CREATE INDEX IX_ApprenticePaymentAbonos_School_Student_Date
                     ON dbo.ApprenticePaymentAbonos(SchoolUserId, StudentUserId, PaymentDate);
             END
-            """,
+            """),
             ct);
     }
 
@@ -2318,7 +2319,7 @@ public static class FeatureSchema
     {
         try
         {
-            await db.Database.ExecuteSqlRawAsync(sql, ct);
+            await db.Database.ExecuteSqlRawAsync(RawSqlLiteral.Escape(sql), ct);
         }
         catch (Exception ex)
         {
@@ -2430,7 +2431,7 @@ public static class FeatureSchema
     {
         try
         {
-            await db.Database.ExecuteSqlRawAsync(sql, ct);
+            await db.Database.ExecuteSqlRawAsync(RawSqlLiteral.Escape(sql), ct);
         }
         catch (Exception ex)
         {
@@ -2447,7 +2448,7 @@ public static class FeatureSchema
     {
         try
         {
-            await db.Database.ExecuteSqlRawAsync(sql, ct);
+            await db.Database.ExecuteSqlRawAsync(RawSqlLiteral.Escape(sql), ct);
         }
         catch (Exception ex)
         {

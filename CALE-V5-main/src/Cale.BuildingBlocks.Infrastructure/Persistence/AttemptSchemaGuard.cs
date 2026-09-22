@@ -25,10 +25,11 @@ public static class AttemptSchemaGuard
             if (db.Database.IsNpgsql())
             {
                 await db.Database.ExecuteSqlRawAsync(
-                    """
-                    ALTER TABLE IF EXISTS "IntentosPreguntas"
-                    ADD COLUMN IF NOT EXISTS "SnapshotJson" text NOT NULL DEFAULT '{}';
-                    """,
+                    RawSqlLiteral.Escape(
+                        """
+                        ALTER TABLE IF EXISTS "IntentosPreguntas"
+                        ADD COLUMN IF NOT EXISTS "SnapshotJson" text NOT NULL DEFAULT '{}';
+                        """),
                     ct);
 
                 await db.Database.ExecuteSqlRawAsync(
@@ -67,13 +68,14 @@ public static class AttemptSchemaGuard
             else if (db.Database.IsSqlServer())
             {
                 await db.Database.ExecuteSqlRawAsync(
-                    """
-                    IF OBJECT_ID(N'dbo.IntentosPreguntas', N'U') IS NOT NULL
-                       AND COL_LENGTH(N'dbo.IntentosPreguntas', N'SnapshotJson') IS NULL
-                        ALTER TABLE dbo.IntentosPreguntas
-                        ADD SnapshotJson nvarchar(max) NOT NULL
-                            CONSTRAINT DF_IntentosPreguntas_SnapshotJson DEFAULT N'{}';
-                    """,
+                    RawSqlLiteral.Escape(
+                        """
+                        IF OBJECT_ID(N'dbo.IntentosPreguntas', N'U') IS NOT NULL
+                           AND COL_LENGTH(N'dbo.IntentosPreguntas', N'SnapshotJson') IS NULL
+                            ALTER TABLE dbo.IntentosPreguntas
+                            ADD SnapshotJson nvarchar(max) NOT NULL
+                                CONSTRAINT DF_IntentosPreguntas_SnapshotJson DEFAULT N'{}';
+                        """),
                     ct);
 
                 await db.Database.ExecuteSqlRawAsync(
