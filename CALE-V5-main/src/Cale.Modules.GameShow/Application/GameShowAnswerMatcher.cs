@@ -97,22 +97,3 @@ public static class GameShowAnswerMatcher
     }
 }
 
-/// <summary>Centralized scoring rules for steal / round end.</summary>
-public static class GameShowScoringPolicy
-{
-    public const int MaxStrikes = 3;
-
-    /// <summary>
-    /// On successful steal, the stealing team receives the points of the newly revealed answer
-    /// plus the points already banked for the controlling team this round.
-    /// </summary>
-    public static int ComputeSuccessfulStealPoints(
-        int newlyRevealedPoints,
-        int controllerBankedPoints) =>
-        newlyRevealedPoints + controllerBankedPoints;
-
-    public static string OppositeTeam(string team) =>
-        string.Equals(team, Domain.GameShowTeams.A, StringComparison.OrdinalIgnoreCase)
-            ? Domain.GameShowTeams.B
-            : Domain.GameShowTeams.A;
-}

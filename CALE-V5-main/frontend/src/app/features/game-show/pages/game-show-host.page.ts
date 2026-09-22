@@ -72,12 +72,15 @@ import { Router } from '@angular/router';
             <ui-button type="button" (click)="resume()">Reanudar</ui-button>
           }
           @if (L.currentRound?.phase === 'WaitingBuzz') {
-            <ui-button type="button" variant="secondary" (click)="forceBuzz('A')">Turno {{ L.teamAName }}</ui-button>
-            <ui-button type="button" variant="secondary" (click)="forceBuzz('B')">Turno {{ L.teamBName }}</ui-button>
+            <ui-button type="button" variant="secondary" (click)="forceBuzz('A')">Enfrentamiento {{ L.teamAName }}</ui-button>
+            <ui-button type="button" variant="secondary" (click)="forceBuzz('B')">Enfrentamiento {{ L.teamBName }}</ui-button>
           }
-          @if (L.currentRound?.phase === 'Playing') {
+          @if (L.currentRound?.phase === 'Control' || L.currentRound?.phase === 'Playing') {
             <ui-button type="button" variant="secondary" (click)="strike()">Registrar error (X)</ui-button>
             <ui-button type="button" variant="ghost" (click)="endRound()">Terminar ronda</ui-button>
+          }
+          @if (L.currentRound?.phase === 'FaceOff' || L.currentRound?.phase === 'FaceOffSecond') {
+            <ui-button type="button" variant="ghost" (click)="endRound()">Reiniciar enfrentamiento</ui-button>
           }
           @if (L.currentRound?.phase === 'Steal') {
             <ui-button type="button" variant="secondary" (click)="failSteal()">Cerrar robo (fallido)</ui-button>
@@ -111,12 +114,16 @@ import { Router } from '@angular/router';
             <p class="q">{{ R.questionText }}</p>
             <p class="meta">Fase: {{ phaseLabel(R.phase) }} · Errores: {{ '❌'.repeat(R.strikes) }}{{ '⬜'.repeat(Math.max(0, 3 - R.strikes)) }}</p>
             <p class="meta">
-              Control: <strong>{{ teamName(L, R.controllingTeam) }}</strong>
+              Turno: <strong>{{ teamName(L, R.controllingTeam) }}</strong>
               @if (R.buzzWinnerTeam) { · Buzzer: <strong>{{ teamName(L, R.buzzWinnerTeam) }}</strong> }
-              · Puntos acumulados: <strong>{{ R.roundPointsForController }}</strong>
+              · Banco de ronda: <strong>{{ R.roundPointsForController }}</strong>
+              <span class="hint-inline">(aún no van al marcador)</span>
             </p>
+            @if (R.phase === 'FaceOff' || R.phase === 'FaceOffSecond') {
+              <p class="steal">Enfrentamiento inicial — un fallo pasa el turno (sin strikes).</p>
+            }
             @if (R.phase === 'Steal') {
-              <p class="steal">Roba <strong>{{ teamName(L, stealingTeam(R.controllingTeam)) }}</strong> con una sola respuesta.</p>
+              <p class="steal">Roba <strong>{{ teamName(L, stealingTeam(R.controllingTeam)) }}</strong> con una sola respuesta. Se lleva el banco ({{ R.roundPointsForController }}).</p>
             }
             <ol>
               @for (a of R.answers; track a.id) {
@@ -216,6 +223,7 @@ import { Router } from '@angular/router';
     .flash { color: var(--color-success); font-weight: 800; }
     .conn { color: var(--color-text-secondary); font-weight: 700; }
     .steal { font-weight: 800; color: var(--color-primary); }
+    .hint-inline { color: var(--color-text-secondary); font-weight: 500; margin-left: 0.35rem; font-size: 0.9rem; }
     @media (max-width: 700px) {
       .join-panel, .cols, .score { grid-template-columns: 1fr; }
       .qr { justify-self: start; }
@@ -259,7 +267,10 @@ export class GameShowHostPage implements OnInit, OnDestroy {
   phaseLabel(phase: string): string {
     switch (phase) {
       case 'WaitingBuzz': return 'Buzzer';
-      case 'Playing': return 'Respondiendo';
+      case 'FaceOff': return 'Enfrentamiento (1.er intento)';
+      case 'FaceOffSecond': return 'Enfrentamiento (2.º intento)';
+      case 'Control':
+      case 'Playing': return 'Control de ronda';
       case 'Steal': return 'Oportunidad de robo';
       case 'Finished': return 'Ronda terminada';
       default: return phase;
@@ -398,15 +409,25 @@ export class GameShowHostPage implements OnInit, OnDestroy {
     });
     this.hub.on('BuzzWon', () => {
       this.sfx.play('buzz');
-      this.showFlash('¡Buzzer!');
+      this.showFlash('¡Enfrentamiento!');
     });
+    this.hub.on('FaceOffPass', () => {
+      this.sfx.play('strike');
+      this.showFlash('Turno del otro equipo');
+    });
+    this.hub.on('FaceOffWon', () => {
+      this.sfx.play('correct');
+      this.showFlash('¡Control de la ronda!');
+    });
+    this.hub.on('FaceOffReopen', () => this.showFlash('Buzzer de nuevo'));
     this.hub.on('CorrectAnswer', () => {
       this.sfx.play('correct');
       this.showFlash('¡Correcto!');
     });
+    this.hub.on('AlreadyRevealed', () => this.showFlash('Ya descubierta'));
     this.hub.on('Strike', () => {
       this.sfx.play('strike');
-      this.showFlash('Error');
+      this.showFlash('Strike');
     });
     this.hub.on('StealOpportunity', () => {
       this.sfx.play('steal');
@@ -420,6 +441,7 @@ export class GameShowHostPage implements OnInit, OnDestroy {
       this.sfx.play('stealFail');
       this.showFlash('Robo fallido');
     });
+    this.hub.on('RoundWon', () => this.showFlash('¡Ronda ganada!'));
     this.hub.on('GameEnded', () => {
       this.sfx.play('end');
       this.showFlash('Partida finalizada');

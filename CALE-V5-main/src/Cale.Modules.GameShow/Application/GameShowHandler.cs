@@ -209,7 +209,7 @@ public sealed class GameShowHandler
         session.Status = GameShowSessionStatuses.Running;
         session.StartedAt ??= _clock.UtcNow;
         session.CurrentRoundIndex = 0;
-        OpenBuzz(session.Rounds.OrderBy(r => r.SortOrder).First());
+        GameShowEngine.OpenBuzz(session.Rounds.OrderBy(r => r.SortOrder).First());
         await _store.SaveChangesAsync(ct);
         await BroadcastLobbyAsync(session, ct);
         await _broadcaster.EventAsync(session.Id, "RoundStarted", new { roundIndex = 0 }, ct);
@@ -308,23 +308,30 @@ public sealed class GameShowHandler
             ?? throw new DomainException("Jugador no encontrado.", 404, "player_not_found");
         var round = CurrentRound(session);
 
-        if (round.Phase == GameShowRoundPhases.Steal)
+        try
         {
-            await HandleStealAnswerAsync(session, round, player, request.Text, ct);
-            return;
+            var outcome = GameShowEngine.ProcessAnswer(
+                session,
+                round,
+                player,
+                request.Text,
+                _clock.UtcNow);
+            await _store.SaveChangesAsync(ct);
+            await BroadcastLobbyAsync(session, ct);
+            await _broadcaster.EventAsync(session.Id, outcome.EventName, outcome.Payload, ct);
         }
-
-        if (round.Phase != GameShowRoundPhases.Playing)
+        catch (InvalidOperationException ex) when (ex.Message == "invalid_phase")
         {
             throw new DomainException("No es momento de responder.", 400, "invalid_phase");
         }
-
-        if (!string.Equals(player.Team, round.ControllingTeam, StringComparison.OrdinalIgnoreCase))
+        catch (InvalidOperationException ex) when (ex.Message == "not_your_turn")
         {
             throw new DomainException("No es el turno de tu equipo.", 403, "not_your_turn");
         }
-
-        await HandlePlayAnswerAsync(session, round, player, request.Text, isSteal: false, ct);
+        catch (InvalidOperationException ex) when (ex.Message == "invalid_state")
+        {
+            throw new DomainException("Estado de ronda inválido.", 400, "invalid_state");
+        }
     }
 
     public async Task HostRevealAsync(
@@ -338,32 +345,14 @@ public sealed class GameShowHandler
         var round = CurrentRound(session);
         var answer = round.Answers.FirstOrDefault(a => a.Id == answerId)
             ?? throw new NotFoundException("Respuesta no encontrada.", "answer_not_found");
-        if (answer.IsRevealed)
-        {
-            return;
-        }
 
-        RevealAnswer(round, answer);
-        // During Steal, host reveal is display-only — scoring belongs to steal resolution.
-        if (round.Phase is GameShowRoundPhases.Playing or GameShowRoundPhases.WaitingBuzz
-            && round.ControllingTeam is string team)
-        {
-            AddTeamScore(session, team, answer.Points);
-            round.RoundPointsForController += answer.Points;
-        }
-
-        if (round.Answers.All(a => a.IsRevealed) && round.Phase != GameShowRoundPhases.Finished)
-        {
-            FinishRound(round);
-        }
-
+        var outcome = GameShowEngine.HostReveal(session, round, answer, _clock.UtcNow);
         await _store.SaveChangesAsync(ct);
         await BroadcastLobbyAsync(session, ct);
-        await _broadcaster.EventAsync(
-            session.Id,
-            "AnswerRevealed",
-            new { answerId = answer.Id, rank = answer.Rank, text = answer.Text, points = answer.Points },
-            ct);
+        if (outcome is not null)
+        {
+            await _broadcaster.EventAsync(session.Id, outcome.EventName, outcome.Payload, ct);
+        }
     }
 
     /// <summary>
@@ -374,15 +363,17 @@ public sealed class GameShowHandler
         var session = await RequireHostAsync(sessionId, hostUserId, ct);
         EnsureRunning(session);
         var round = CurrentRound(session);
-        if (round.Phase != GameShowRoundPhases.Steal)
+        try
+        {
+            var outcome = GameShowEngine.HostFailSteal(session, round, _clock.UtcNow);
+            await _store.SaveChangesAsync(ct);
+            await BroadcastLobbyAsync(session, ct);
+            await _broadcaster.EventAsync(session.Id, outcome.EventName, outcome.Payload, ct);
+        }
+        catch (InvalidOperationException)
         {
             throw new DomainException("No hay robo activo.", 400, "invalid_phase");
         }
-
-        FinishRound(round);
-        await _store.SaveChangesAsync(ct);
-        await BroadcastLobbyAsync(session, ct);
-        await _broadcaster.EventAsync(session.Id, "StealFailed", new { forced = true }, ct);
     }
 
     /// <summary>
@@ -393,15 +384,10 @@ public sealed class GameShowHandler
         var session = await RequireHostAsync(sessionId, hostUserId, ct);
         EnsureRunning(session);
         var round = CurrentRound(session);
-        if (round.Phase == GameShowRoundPhases.Finished)
-        {
-            return;
-        }
-
-        FinishRound(round);
+        var outcome = GameShowEngine.HostEndRound(session, round, _clock.UtcNow);
         await _store.SaveChangesAsync(ct);
         await BroadcastLobbyAsync(session, ct);
-        await _broadcaster.EventAsync(session.Id, "RoundEnded", new { forced = true }, ct);
+        await _broadcaster.EventAsync(session.Id, outcome.EventName, outcome.Payload, ct);
     }
 
     public async Task HostStrikeAsync(int sessionId, int hostUserId, CancellationToken ct)
@@ -409,24 +395,17 @@ public sealed class GameShowHandler
         var session = await RequireHostAsync(sessionId, hostUserId, ct);
         EnsureRunning(session);
         var round = CurrentRound(session);
-        if (round.Phase != GameShowRoundPhases.Playing)
+        try
         {
-            throw new DomainException("No hay turno activo.", 400, "invalid_phase");
+            var outcome = GameShowEngine.HostStrike(round);
+            await _store.SaveChangesAsync(ct);
+            await BroadcastLobbyAsync(session, ct);
+            await _broadcaster.EventAsync(session.Id, outcome.EventName, outcome.Payload, ct);
         }
-
-        round.Strikes = Math.Min(GameShowScoringPolicy.MaxStrikes, round.Strikes + 1);
-        if (round.Strikes >= GameShowScoringPolicy.MaxStrikes)
+        catch (InvalidOperationException)
         {
-            round.Phase = GameShowRoundPhases.Steal;
+            throw new DomainException("No hay turno de control activo.", 400, "invalid_phase");
         }
-
-        await _store.SaveChangesAsync(ct);
-        await BroadcastLobbyAsync(session, ct);
-        await _broadcaster.EventAsync(
-            session.Id,
-            round.Phase == GameShowRoundPhases.Steal ? "StealOpportunity" : "Strike",
-            new { strikes = round.Strikes },
-            ct);
     }
 
     public async Task NextRoundAsync(int sessionId, int hostUserId, CancellationToken ct)
@@ -442,7 +421,7 @@ public sealed class GameShowHandler
         }
 
         session.CurrentRoundIndex = next;
-        OpenBuzz(rounds[next]);
+        GameShowEngine.OpenBuzz(rounds[next]);
         await _store.SaveChangesAsync(ct);
         await BroadcastLobbyAsync(session, ct);
         await _broadcaster.EventAsync(session.Id, "RoundStarted", new { roundIndex = next }, ct);
@@ -853,119 +832,6 @@ public sealed class GameShowHandler
         return $"\"{v}\"";
     }
 
-    private async Task HandlePlayAnswerAsync(
-        GameShowSession session,
-        GameShowRound round,
-        GameShowPlayer player,
-        string text,
-        bool isSteal,
-        CancellationToken ct)
-    {
-        var match = round.Answers.FirstOrDefault(a =>
-            !a.IsRevealed && GameShowAnswerMatcher.Matches(text, a.Text, a.AliasesJson));
-
-        round.Attempts.Add(new GameShowAttempt
-        {
-            RoundId = round.Id,
-            PlayerId = player.Id,
-            Team = player.Team,
-            RawText = (text ?? "").Trim()[..Math.Min((text ?? "").Trim().Length, 200)],
-            IsCorrect = match is not null,
-            IsSteal = isSteal,
-            MatchedAnswerId = match?.Id,
-            CreatedAt = _clock.UtcNow
-        });
-
-        if (match is null)
-        {
-            if (isSteal)
-            {
-                // Steal failed — controlling team keeps banked points; round ends.
-                FinishRound(round);
-                await _store.SaveChangesAsync(ct);
-                await BroadcastLobbyAsync(session, ct);
-                await _broadcaster.EventAsync(session.Id, "StealFailed", new { }, ct);
-                return;
-            }
-
-            round.Strikes = Math.Min(GameShowScoringPolicy.MaxStrikes, round.Strikes + 1);
-            if (round.Strikes >= GameShowScoringPolicy.MaxStrikes)
-            {
-                round.Phase = GameShowRoundPhases.Steal;
-            }
-
-            await _store.SaveChangesAsync(ct);
-            await BroadcastLobbyAsync(session, ct);
-            await _broadcaster.EventAsync(
-                session.Id,
-                round.Phase == GameShowRoundPhases.Steal ? "StealOpportunity" : "Strike",
-                new { strikes = round.Strikes, text },
-                ct);
-            return;
-        }
-
-        RevealAnswer(round, match);
-        if (isSteal)
-        {
-            var stealPoints = GameShowScoringPolicy.ComputeSuccessfulStealPoints(
-                match.Points,
-                round.RoundPointsForController);
-            // Move banked controller points to stealer: subtract from controller score add, then give stealPoints.
-            if (round.BuzzWinnerTeam is string original)
-            {
-                AddTeamScore(session, original, -round.RoundPointsForController);
-            }
-
-            AddTeamScore(session, player.Team, stealPoints);
-            round.StealSucceeded = true;
-            FinishRound(round);
-            await _store.SaveChangesAsync(ct);
-            await BroadcastLobbyAsync(session, ct);
-            await _broadcaster.EventAsync(
-                session.Id,
-                "StealSucceeded",
-                new { team = player.Team, points = stealPoints, answerId = match.Id },
-                ct);
-            return;
-        }
-
-        AddTeamScore(session, player.Team, match.Points);
-        round.RoundPointsForController += match.Points;
-        if (round.Answers.All(a => a.IsRevealed))
-        {
-            FinishRound(round);
-        }
-
-        await _store.SaveChangesAsync(ct);
-        await BroadcastLobbyAsync(session, ct);
-        await _broadcaster.EventAsync(
-            session.Id,
-            "CorrectAnswer",
-            new { team = player.Team, answerId = match.Id, rank = match.Rank, text = match.Text, points = match.Points },
-            ct);
-    }
-
-    private Task HandleStealAnswerAsync(
-        GameShowSession session,
-        GameShowRound round,
-        GameShowPlayer player,
-        string text,
-        CancellationToken ct)
-    {
-        if (round.ControllingTeam is null)
-        {
-            throw new DomainException("No hay equipo controlador.", 400, "invalid_state");
-        }
-
-        var stealer = GameShowScoringPolicy.OppositeTeam(round.ControllingTeam);
-        if (!string.Equals(player.Team, stealer, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new DomainException("Solo el equipo contrario puede robar.", 403, "not_your_turn");
-        }
-
-        return HandlePlayAnswerAsync(session, round, player, text, isSteal: true, ct);
-    }
-
     private static GameShowRound BuildRound(CreateGameShowRoundRequest request, int order)
     {
         var q = (request.QuestionText ?? "").Trim();
@@ -1019,52 +885,6 @@ public sealed class GameShowHandler
             Phase = GameShowRoundPhases.WaitingBuzz,
             Answers = answers
         };
-    }
-
-    private static void OpenBuzz(GameShowRound round)
-    {
-        round.Phase = GameShowRoundPhases.WaitingBuzz;
-        round.ControllingTeam = null;
-        round.BuzzWinnerTeam = null;
-        round.Strikes = 0;
-        round.RoundPointsForController = 0;
-        round.StealSucceeded = false;
-        round.BuzzOpenedAt = DateTime.UtcNow;
-        round.FinishedAt = null;
-        foreach (var a in round.Answers)
-        {
-            a.IsRevealed = false;
-            a.RevealedAt = null;
-        }
-    }
-
-    private static void RevealAnswer(GameShowRound round, GameShowBoardAnswer answer)
-    {
-        answer.IsRevealed = true;
-        answer.RevealedAt = DateTime.UtcNow;
-    }
-
-    private static void FinishRound(GameShowRound round)
-    {
-        round.Phase = GameShowRoundPhases.Finished;
-        round.FinishedAt = DateTime.UtcNow;
-        foreach (var a in round.Answers.Where(x => !x.IsRevealed))
-        {
-            a.IsRevealed = true;
-            a.RevealedAt = DateTime.UtcNow;
-        }
-    }
-
-    private static void AddTeamScore(GameShowSession session, string team, int points)
-    {
-        if (string.Equals(team, GameShowTeams.A, StringComparison.OrdinalIgnoreCase))
-        {
-            session.TeamAScore = Math.Max(0, session.TeamAScore + points);
-        }
-        else
-        {
-            session.TeamBScore = Math.Max(0, session.TeamBScore + points);
-        }
     }
 
     private static GameShowRound CurrentRound(GameShowSession session)

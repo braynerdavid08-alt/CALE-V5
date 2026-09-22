@@ -8,12 +8,40 @@ public static class GameShowSessionStatuses
     public const string Ended = "Ended";
 }
 
+/// <summary>
+/// Round state machine for 100 Estudiantes Dijeron.
+/// Face-off is separate from Control (3 strikes) and Steal.
+/// </summary>
 public static class GameShowRoundPhases
 {
+    /// <summary>Both teams can buzz.</summary>
     public const string WaitingBuzz = "WaitingBuzz";
-    public const string Playing = "Playing";
+
+    /// <summary>First team after buzz attempts one answer — miss is NOT a strike.</summary>
+    public const string FaceOff = "FaceOff";
+
+    /// <summary>Other team gets one chance after a FaceOff miss.</summary>
+    public const string FaceOffSecond = "FaceOffSecond";
+
+    /// <summary>Controlling team hunts remaining answers with up to 3 strikes.</summary>
+    public const string Control = "Control";
+
+    /// <summary>Opposite team has one steal attempt.</summary>
     public const string Steal = "Steal";
+
     public const string Finished = "Finished";
+
+    /// <summary>Legacy alias kept for in-flight sessions created before FaceOff/Control split.</summary>
+    public const string Playing = "Playing";
+
+    public static bool IsFaceOff(string? phase) =>
+        phase is FaceOff or FaceOffSecond;
+
+    public static bool IsControl(string? phase) =>
+        phase is Control or Playing;
+
+    public static bool CanAnswerAsController(string? phase) =>
+        IsFaceOff(phase) || IsControl(phase);
 }
 
 public static class GameShowTeams
