@@ -508,7 +508,6 @@ public sealed class LiveSessionHandler
             }
         }
 
-        var revealPoints = true;
         return new
         {
             ok = true,
