@@ -254,7 +254,7 @@ public sealed class GameShowHandler
         await BroadcastLobbyAsync(session, ct);
     }
 
-    public async Task BuzzAsync(int sessionId, Guid playerToken, CancellationToken ct)
+    public async Task<GameShowLobbyDto> BuzzAsync(int sessionId, Guid playerToken, CancellationToken ct)
     {
         var session = await RequireSessionAsync(sessionId, ct);
         EnsureRunning(session);
@@ -274,13 +274,20 @@ public sealed class GameShowHandler
 
         // Reload so in-memory graph matches the atomic claim.
         session = await RequireSessionAsync(sessionId, ct);
-        round = CurrentRound(session);
         await BroadcastLobbyAsync(session, ct);
         await _broadcaster.EventAsync(
             session.Id,
             "BuzzWon",
             new { team = player.Team, playerId = player.Id, displayName = player.DisplayName },
             ct);
+
+        // Return viewer-scoped lobby so the buzzing phone can open the answer box
+        // even if SignalR LobbyUpdated is delayed or dropped on mobile.
+        return MapLobby(
+            session,
+            hostView: false,
+            viewerPlayerId: player.Id,
+            viewerTeam: player.Team);
     }
 
     public async Task ForceBuzzWinnerAsync(
@@ -309,7 +316,7 @@ public sealed class GameShowHandler
         await _broadcaster.EventAsync(session.Id, "BuzzWon", new { team = t, forced = true }, ct);
     }
 
-    public async Task AnswerAsync(
+    public async Task<GameShowLobbyDto> AnswerAsync(
         int sessionId,
         Guid playerToken,
         AnswerGameShowRequest request,
@@ -332,6 +339,11 @@ public sealed class GameShowHandler
             await _store.SaveChangesAsync(ct);
             await BroadcastLobbyAsync(session, ct);
             await _broadcaster.EventAsync(session.Id, outcome.EventName, outcome.Payload, ct);
+            return MapLobby(
+                session,
+                hostView: false,
+                viewerPlayerId: player.Id,
+                viewerTeam: player.Team);
         }
         catch (InvalidOperationException ex) when (ex.Message == "invalid_phase")
         {

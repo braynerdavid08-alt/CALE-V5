@@ -236,7 +236,7 @@ export class GameShowApi {
   }
 
   buzz(id: number, playerToken: string) {
-    return this.http.post(
+    return this.http.post<GameShowLobbyDto>(
       `${this.base}/api/game-show/${id}/buzz?playerToken=${encodeURIComponent(playerToken)}`,
       {}
     );
@@ -247,7 +247,7 @@ export class GameShowApi {
   }
 
   answer(id: number, playerToken: string, text: string) {
-    return this.http.post(
+    return this.http.post<GameShowLobbyDto>(
       `${this.base}/api/game-show/${id}/answer?playerToken=${encodeURIComponent(playerToken)}`,
       { text }
     );

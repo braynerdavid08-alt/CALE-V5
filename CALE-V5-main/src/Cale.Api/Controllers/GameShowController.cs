@@ -310,8 +310,8 @@ public sealed class GameShowController : ControllerBase
         [FromQuery] Guid playerToken,
         CancellationToken ct)
     {
-        await _handler.BuzzAsync(id, playerToken, ct);
-        return NoContent();
+        var lobby = await _handler.BuzzAsync(id, playerToken, ct);
+        return Ok(lobby);
     }
 
     [HttpPost("{id:int}/force-buzz")]
@@ -333,8 +333,8 @@ public sealed class GameShowController : ControllerBase
         [FromBody] AnswerGameShowRequest request,
         CancellationToken ct)
     {
-        await _handler.AnswerAsync(id, playerToken, request, ct);
-        return NoContent();
+        var lobby = await _handler.AnswerAsync(id, playerToken, request, ct);
+        return Ok(lobby);
     }
 
     [HttpPost("{id:int}/reveal/{answerId:int}")]
