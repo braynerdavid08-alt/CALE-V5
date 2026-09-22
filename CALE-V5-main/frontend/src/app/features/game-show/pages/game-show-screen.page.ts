@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { HubConnection } from '@microsoft/signalr';
+import { buildQrDataUrl } from '../../../core/qr/build-qr-data-url';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
@@ -46,11 +47,20 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
             }
           </ol>
         } @else {
-          <h1>Código {{ L.joinCode }}</h1>
-          <p>Esperando jugadores… ({{ L.players.length }} conectados)</p>
+          <div class="lobby-join">
+            <div>
+              <p class="lobby-label">Escanea para unirte</p>
+              <h1 class="lobby-code">{{ L.joinCode }}</h1>
+              <p>Esperando jugadores… ({{ L.players.length }} conectados)</p>
+              <p class="lobby-url">{{ joinUrl(L.joinCode) }}</p>
+            </div>
+            @if (qrUrl()) {
+              <img class="qr" [src]="qrUrl()" [alt]="'QR ' + L.joinCode" width="280" height="280" />
+            }
+          </div>
         }
         <footer class="foot">
-          <span>Únete en <strong>{{ joinUrl() }}</strong></span>
+          <span>Únete en <strong>{{ joinUrl(L.joinCode) }}</strong></span>
           @if (connection()) { <span class="conn">{{ connection() }}</span> }
           <span>Código <strong>{{ L.joinCode }}</strong></span>
         </footer>
@@ -77,8 +87,36 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
     li { display: grid; grid-template-columns: 3rem 1fr 5rem; gap: 1rem; align-items: center; padding: 1rem 1.25rem; border-radius: 16px; background: rgba(0,0,0,0.35); border: 1px solid rgba(94,176,255,0.25); font-size: clamp(1.2rem, 3vw, 2rem); font-weight: 800; letter-spacing: 0.04em; transition: background 0.35s ease, border-color 0.35s ease, transform 0.35s ease; }
     li.revealed { background: rgba(40, 160, 100, 0.25); border-color: rgba(80, 220, 150, 0.45); transform: translateX(0.35rem); }
     .flash { font-size: clamp(1.5rem, 4vw, 2.5rem); font-weight: 900; color: #7dd3fc; text-align: center; }
+    .lobby-join {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 2rem;
+      align-items: center;
+      min-height: 45vh;
+    }
+    .lobby-label { margin: 0; letter-spacing: 0.12em; text-transform: uppercase; color: #5eb0ff; font-weight: 800; }
+    .lobby-code {
+      margin: 0.4rem 0 0.75rem;
+      font-size: clamp(3rem, 10vw, 6.5rem);
+      letter-spacing: 0.18em;
+      font-weight: 900;
+    }
+    .lobby-url { opacity: 0.8; word-break: break-all; font-size: clamp(1rem, 2.2vw, 1.4rem); }
+    .qr {
+      width: min(280px, 42vw);
+      height: auto;
+      aspect-ratio: 1;
+      border-radius: 18px;
+      background: #fff;
+      padding: 0.85rem;
+      box-sizing: border-box;
+    }
     .foot { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; opacity: 0.75; font-size: clamp(1rem, 2vw, 1.4rem); letter-spacing: 0.04em; }
     .conn { color: #fdba74; font-weight: 800; }
+    @media (max-width: 800px) {
+      .lobby-join { grid-template-columns: 1fr; }
+      .qr { justify-self: start; }
+    }
   `]
 })
 export class GameShowScreenPage implements OnInit, OnDestroy {
@@ -88,15 +126,17 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
   readonly error = signal<string | null>(null);
   readonly flash = signal<string | null>(null);
   readonly connection = signal<string | null>(null);
+  readonly qrUrl = signal('');
   private hub: HubConnection | null = null;
   private sessionId = 0;
   private flashTimer: ReturnType<typeof setTimeout> | null = null;
+  private lastQrCode = '';
 
   ngOnInit(): void {
     this.sessionId = Number(this.route.snapshot.paramMap.get('sessionId'));
     this.reload();
     this.hub = this.api.buildHub();
-    this.hub.on('LobbyUpdated', (lobby: GameShowLobbyDto) => this.lobby.set(lobby));
+    this.hub.on('LobbyUpdated', (lobby: GameShowLobbyDto) => this.applyLobby(lobby));
     this.hub.on('BuzzWon', () => this.showFlash('¡BUZZER!'));
     this.hub.on('CorrectAnswer', () => this.showFlash('🎉 ¡CORRECTO!'));
     this.hub.on('Strike', () => this.showFlash('❌ ERROR'));
@@ -146,9 +186,9 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
     return STRIKE_SLOTS;
   }
 
-  joinUrl(): string {
+  joinUrl(code: string): string {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    return `${origin}/game-show/join`;
+    return `${origin}/game-show/join/${code}`;
   }
 
   private showFlash(message: string): void {
@@ -159,9 +199,24 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
 
   private reload(): void {
     this.api.get(this.sessionId).subscribe({
-      next: (lobby) => this.lobby.set(lobby),
+      next: (lobby) => this.applyLobby(lobby),
       error: (err) => this.error.set(mapApiError(err))
     });
+  }
+
+  private applyLobby(lobby: GameShowLobbyDto): void {
+    this.lobby.set(lobby);
+    this.refreshQr(lobby.joinCode);
+  }
+
+  private refreshQr(code: string): void {
+    if (!code || code === this.lastQrCode) return;
+    this.lastQrCode = code;
+    try {
+      this.qrUrl.set(buildQrDataUrl(this.joinUrl(code), 280));
+    } catch {
+      this.qrUrl.set('');
+    }
   }
 }
 

@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HubConnection } from '@microsoft/signalr';
+import { buildQrDataUrl } from '../../../core/qr/build-qr-data-url';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { mapApiError } from '../../../core/http/map-api-error';
@@ -17,7 +18,7 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
           <div>
             <p class="eyebrow">Control del profesor</p>
             <h1>{{ L.title }}</h1>
-            <p>Código <strong>{{ L.joinCode }}</strong> · {{ L.status }}</p>
+            <p class="status">Estado: <strong>{{ L.status }}</strong></p>
           </div>
           <div class="links">
             <ui-button type="button" variant="ghost" (click)="exportQuestions('csv')">Exportar CSV</ui-button>
@@ -33,6 +34,25 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
         @if (flash()) {
           <p class="flash">{{ flash() }}</p>
         }
+
+        <article class="join-panel">
+          <div class="join-copy">
+            <p class="join-label">Código para unirse</p>
+            <p class="join-code">{{ L.joinCode }}</p>
+            <p class="join-hint">Los estudiantes abren la cámara o van a:</p>
+            <p class="join-url">{{ joinUrl(L.joinCode) }}</p>
+            <div class="join-actions">
+              <ui-button type="button" variant="secondary" (click)="copyCode(L.joinCode)">Copiar código</ui-button>
+              <ui-button type="button" variant="ghost" (click)="copyLink(L.joinCode)">Copiar enlace</ui-button>
+            </div>
+            @if (copied()) {
+              <p class="copied">{{ copied() }}</p>
+            }
+          </div>
+          @if (qrUrl()) {
+            <img class="qr" [src]="qrUrl()" [alt]="'QR para unirse con código ' + L.joinCode" width="220" height="220" />
+          }
+        </article>
 
         <div class="score">
           <div><span>{{ L.teamAName }}</span><strong>{{ L.teamAScore }}</strong></div>
@@ -117,7 +137,6 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
               }
             </div>
           </div>
-          <p class="hint">Unirse: {{ joinUrl(L.joinCode) }}</p>
         </article>
       </section>
     } @else {
@@ -128,7 +147,45 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
     .host { display: grid; gap: 1rem; }
     .bar { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
     .eyebrow { margin: 0; color: var(--color-text-secondary); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; font-size: 0.75rem; }
-    .links { display: flex; gap: 0.85rem; align-items: center; }
+    .status { margin: 0.35rem 0 0; color: var(--color-text-secondary); }
+    .links { display: flex; gap: 0.85rem; align-items: center; flex-wrap: wrap; }
+    .join-panel {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1.25rem;
+      align-items: center;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 16px;
+      padding: 1.25rem 1.4rem;
+    }
+    .join-label {
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--color-primary);
+    }
+    .join-code {
+      margin: 0.35rem 0 0.75rem;
+      font-size: clamp(2.4rem, 6vw, 3.6rem);
+      font-weight: 900;
+      letter-spacing: 0.18em;
+      line-height: 1;
+    }
+    .join-hint { margin: 0; color: var(--color-text-secondary); font-size: 0.95rem; }
+    .join-url { margin: 0.35rem 0 0.85rem; word-break: break-all; font-weight: 700; }
+    .join-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .copied { margin: 0.55rem 0 0; color: var(--color-success, #16a34a); font-weight: 700; }
+    .qr {
+      width: 220px;
+      height: 220px;
+      border-radius: 12px;
+      background: #fff;
+      padding: 0.65rem;
+      box-sizing: border-box;
+    }
     .score { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
     .score > div { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 14px; padding: 1rem; display: flex; justify-content: space-between; align-items: baseline; }
     .score strong { font-size: 2rem; }
@@ -143,8 +200,11 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
     .flash { color: var(--color-success); font-weight: 800; }
     .conn { color: var(--color-text-secondary); font-weight: 700; }
     .steal { font-weight: 800; color: var(--color-primary); }
-    .hint { color: var(--color-text-secondary); word-break: break-all; }
-    @media (max-width: 700px) { .cols, .score { grid-template-columns: 1fr; } li { grid-template-columns: 2rem 1fr 3rem; } }
+    @media (max-width: 700px) {
+      .join-panel, .cols, .score { grid-template-columns: 1fr; }
+      .qr { justify-self: start; }
+      li { grid-template-columns: 2rem 1fr 3rem; }
+    }
   `]
 })
 export class GameShowHostPage implements OnInit, OnDestroy {
@@ -156,9 +216,13 @@ export class GameShowHostPage implements OnInit, OnDestroy {
   readonly error = signal<string | null>(null);
   readonly flash = signal<string | null>(null);
   readonly connection = signal<string | null>(null);
+  readonly qrUrl = signal('');
+  readonly copied = signal<string | null>(null);
   private hub: HubConnection | null = null;
   private sessionId = 0;
   private flashTimer: ReturnType<typeof setTimeout> | null = null;
+  private copiedTimer: ReturnType<typeof setTimeout> | null = null;
+  private lastQrCode = '';
 
   ngOnInit(): void {
     this.sessionId = Number(this.route.snapshot.paramMap.get('sessionId'));
@@ -168,6 +232,7 @@ export class GameShowHostPage implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     if (this.flashTimer) clearTimeout(this.flashTimer);
+    if (this.copiedTimer) clearTimeout(this.copiedTimer);
     void this.hub?.stop();
   }
 
@@ -205,6 +270,14 @@ export class GameShowHostPage implements OnInit, OnDestroy {
     return `${origin}/game-show/join/${code}`;
   }
 
+  copyCode(code: string): void {
+    void this.copyText(code, 'Código copiado');
+  }
+
+  copyLink(code: string): void {
+    void this.copyText(this.joinUrl(code), 'Enlace copiado');
+  }
+
   start(): void { this.act(() => this.api.start(this.sessionId)); }
   pause(): void { this.api.pause(this.sessionId).subscribe({ next: () => this.reload(), error: (e) => this.error.set(mapApiError(e)) }); }
   resume(): void { this.api.resume(this.sessionId).subscribe({ next: () => this.reload(), error: (e) => this.error.set(mapApiError(e)) }); }
@@ -238,16 +311,42 @@ export class GameShowHostPage implements OnInit, OnDestroy {
 
   private act(call: () => import('rxjs').Observable<GameShowLobbyDto>): void {
     call().subscribe({
-      next: (lobby) => this.lobby.set(lobby),
+      next: (lobby) => this.applyLobby(lobby),
       error: (err) => this.error.set(mapApiError(err))
     });
   }
 
   private reload(): void {
     this.api.get(this.sessionId, null, true).subscribe({
-      next: (lobby) => this.lobby.set(lobby),
+      next: (lobby) => this.applyLobby(lobby),
       error: (err) => this.error.set(mapApiError(err))
     });
+  }
+
+  private applyLobby(lobby: GameShowLobbyDto): void {
+    this.lobby.set(lobby);
+    this.refreshQr(lobby.joinCode);
+  }
+
+  private refreshQr(code: string): void {
+    if (!code || code === this.lastQrCode) return;
+    this.lastQrCode = code;
+    try {
+      this.qrUrl.set(buildQrDataUrl(this.joinUrl(code), 220));
+    } catch {
+      this.qrUrl.set('');
+    }
+  }
+
+  private async copyText(text: string, okMessage: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(text);
+      this.copied.set(okMessage);
+      if (this.copiedTimer) clearTimeout(this.copiedTimer);
+      this.copiedTimer = setTimeout(() => this.copied.set(null), 2000);
+    } catch {
+      this.error.set('No se pudo copiar. Copia el código manualmente.');
+    }
   }
 
   private showFlash(message: string): void {
