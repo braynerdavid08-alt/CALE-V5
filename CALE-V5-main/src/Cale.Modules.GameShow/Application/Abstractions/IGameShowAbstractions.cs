@@ -6,7 +6,10 @@ namespace Cale.Modules.GameShow.Application.Abstractions;
 public interface IGameShowStore
 {
     Task AddAsync(GameShowSession session, CancellationToken ct);
+    /// <summary>Session + rounds/answers/players (no attempts) — for play/lobby.</summary>
     Task<GameShowSession?> GetByIdAsync(int id, CancellationToken ct);
+    /// <summary>Full graph including attempts — for stats.</summary>
+    Task<GameShowSession?> GetByIdWithAttemptsAsync(int id, CancellationToken ct);
     Task<GameShowSession?> GetByJoinCodeAsync(string code, CancellationToken ct);
     Task<GameShowPlayer?> GetPlayerByTokenAsync(Guid token, CancellationToken ct);
     Task<GameShowPlayer?> GetPlayerByConnectionIdAsync(string connectionId, CancellationToken ct);

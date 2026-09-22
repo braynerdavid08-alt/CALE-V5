@@ -178,10 +178,23 @@ public sealed class GameShowHandler
             ?? throw new NotFoundException("Jugador no encontrado.", "player_not_found");
         player.ConnectionId = connected ? connectionId : null;
         player.IsConnected = connected;
-        await _store.SaveChangesAsync(ct);
+        // Persist presence even if the SignalR caller disconnects mid-flight.
+        await _store.SaveChangesAsync(CancellationToken.None);
 
-        var session = await RequireSessionAsync(player.SessionId, ct);
-        await _broadcaster.LobbyUpdatedAsync(session.Id, MapLobby(session, false), ct);
+        if (ct.IsCancellationRequested)
+        {
+            return;
+        }
+
+        try
+        {
+            var session = await RequireSessionAsync(player.SessionId, ct);
+            await _broadcaster.LobbyUpdatedAsync(session.Id, MapLobby(session, false), ct);
+        }
+        catch (OperationCanceledException)
+        {
+            // Client left while loading lobby — presence already saved.
+        }
     }
 
     public async Task AssignPlayerAsync(
@@ -681,7 +694,8 @@ public sealed class GameShowHandler
         bool isAdmin,
         CancellationToken ct)
     {
-        var session = await RequireSessionAsync(sessionId, ct);
+        var session = await _store.GetByIdWithAttemptsAsync(sessionId, ct)
+            ?? throw new NotFoundException("Partida no encontrada.", "game_not_found");
         if (!isAdmin
             && session.HostUserId != userId
             && session.SchoolUserId != userId

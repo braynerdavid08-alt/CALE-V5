@@ -16,6 +16,15 @@ public sealed class GameShowStore : IGameShowStore
 
     public Task<GameShowSession?> GetByIdAsync(int id, CancellationToken ct) =>
         _db.Set<GameShowSession>()
+            .AsSplitQuery()
+            .Include(x => x.Rounds)
+                .ThenInclude(r => r.Answers)
+            .Include(x => x.Players)
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
+
+    public Task<GameShowSession?> GetByIdWithAttemptsAsync(int id, CancellationToken ct) =>
+        _db.Set<GameShowSession>()
+            .AsSplitQuery()
             .Include(x => x.Rounds)
                 .ThenInclude(r => r.Answers)
             .Include(x => x.Rounds)
@@ -25,6 +34,7 @@ public sealed class GameShowStore : IGameShowStore
 
     public Task<GameShowSession?> GetByJoinCodeAsync(string code, CancellationToken ct) =>
         _db.Set<GameShowSession>()
+            .AsSplitQuery()
             .Include(x => x.Rounds)
                 .ThenInclude(r => r.Answers)
             .Include(x => x.Players)
