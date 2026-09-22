@@ -53,10 +53,13 @@ import { GameShowSfxService } from '../api/game-show-sfx.service';
             <p class="timer" [class.urgent]="(timerSec() ?? 0) <= 3">{{ timerSec() }}</p>
           }
           @if (L.currentRound.phase === 'FaceOff' || L.currentRound.phase === 'FaceOffSecond') {
-            <p class="steal">ENFRENTAMIENTO — un fallo pasa el turno (sin strikes)</p>
+            <p class="steal">⚡ ENFRENTAMIENTO — un fallo pasa el turno (sin strikes)</p>
           }
           @if (L.currentRound.phase === 'Steal') {
-            <p class="steal">ROBO: {{ teamName(L, otherTeam(L.currentRound.controllingTeam)) }} tiene UNA respuesta · banco {{ L.currentRound.roundPointsForController }}</p>
+            <p class="steal">🔥 OPORTUNIDAD DE ROBO · {{ teamName(L, otherTeam(L.currentRound.controllingTeam)) }} · banco {{ L.currentRound.roundPointsForController }}</p>
+          }
+          @if ((L.currentRound.phase === 'Control' || L.currentRound.phase === 'Playing') && L.currentRound.roundPointsForController > 0) {
+            <p class="bank">BANCO: {{ L.currentRound.roundPointsForController }}</p>
           }
           @if (L.currentRound.phase === 'Control' || L.currentRound.phase === 'Playing') {
             <p class="strikes">
@@ -120,6 +123,14 @@ import { GameShowSfxService } from '../api/game-show-sfx.service';
     .timer.urgent { color: #f87171; animation: pulse 0.6s ease infinite alternate; }
     @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.08); } }
     .steal { margin: 0; font-size: clamp(1.2rem, 3vw, 2rem); font-weight: 900; color: #fdba74; }
+    .bank {
+      margin: 0;
+      text-align: center;
+      font-size: clamp(1.4rem, 3.5vw, 2.2rem);
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      color: #7dd3fc;
+    }
     .strikes { margin: 0; display: flex; gap: 0.75rem; }
     .strikes span { font-size: clamp(2rem, 6vw, 4rem); font-weight: 900; line-height: 1; color: rgba(255,255,255,0.14); transition: color 0.3s ease, transform 0.3s ease; }
     .strikes span.hit { color: #f87171; transform: scale(1.1); }
@@ -226,7 +237,7 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
       this.sfx.play('correct');
       this.showFlash('¡CORRECTO!');
     });
-    this.hub.on('AlreadyRevealed', () => this.showFlash('YA DESCUBIERTA'));
+    this.hub.on('AlreadyRevealed', () => this.showFlash('⚠️ YA FUE DESCUBIERTA'));
     this.hub.on('Strike', () => {
       this.sfx.play('strike');
       this.showFlash('STRIKE');

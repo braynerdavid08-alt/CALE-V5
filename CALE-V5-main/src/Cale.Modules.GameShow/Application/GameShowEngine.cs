@@ -269,7 +269,17 @@ public static class GameShowEngine
             return new Outcome(OutcomeKind.RoundCompleted, "RoundEnded", new { forced = true, noop = true });
         }
 
-        // Keep banked points with current controller if any (or discard if still face-off with 0).
+        // During face-off, "end round" from host means reopen the buzz — do not finish the round.
+        if (GameShowRoundPhases.IsFaceOff(round.Phase))
+        {
+            OpenBuzz(round);
+            return new Outcome(
+                OutcomeKind.FaceOffBothMissReopen,
+                "FaceOffReopen",
+                new { forced = true });
+        }
+
+        // Keep banked points with current controller if any (or discard if still waiting buzz).
         if (round.ControllingTeam is string team
             && GameShowRoundPhases.IsControl(round.Phase)
             && round.RoundPointsForController > 0)
