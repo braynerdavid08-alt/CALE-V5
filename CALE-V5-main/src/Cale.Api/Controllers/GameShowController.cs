@@ -337,6 +337,18 @@ public sealed class GameShowController : ControllerBase
         return Ok(lobby);
     }
 
+    [HttpPost("{id:int}/timeout")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Timeout(
+        int id,
+        [FromQuery] Guid? playerToken,
+        CancellationToken ct)
+    {
+        int? hostId = User.Identity?.IsAuthenticated == true ? CurrentUser.GetId(User) : null;
+        var lobby = await _handler.TimeoutAsync(id, hostId, playerToken, ct);
+        return Ok(lobby);
+    }
+
     [HttpPost("{id:int}/reveal/{answerId:int}")]
     [Authorize(Policy = "TeacherOrAdmin")]
     public async Task<IActionResult> Reveal(int id, int answerId, CancellationToken ct)

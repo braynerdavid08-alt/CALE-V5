@@ -6,6 +6,7 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
+import { phaseHasTurnClock, secondsUntilDeadline } from '../api/game-show-deadline';
 
 @Component({
   selector: 'app-game-show-play-page',
@@ -34,6 +35,10 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
             }
           </ol>
           <p class="muted">
+            @if (timerSec() !== null) {
+              <span class="timer" [class.urgent]="(timerSec() ?? 0) <= 3">⏱ {{ timerSec() }}s</span>
+              ·
+            }
             @if (R.phase === 'Control' || R.phase === 'Playing') {
               Strikes: {{ R.strikes }} / 3 · Banco: {{ R.roundPointsForController }} ·
             }
@@ -87,6 +92,8 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
     .steal { font-weight: 800; }
     .conn { color: var(--color-text-secondary); font-weight: 700; }
     .muted { color: var(--color-text-secondary); }
+    .timer { font-weight: 900; color: var(--color-primary); font-variant-numeric: tabular-nums; }
+    .timer.urgent { color: #dc2626; }
     .field { display: grid; gap: 0.35rem; font-weight: 600; }
     .input { min-height: 3rem; font-size: 1.1rem; }
   `]
@@ -102,12 +109,15 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
   readonly connection = signal<string | null>(null);
   readonly myTeam = signal('A');
   readonly buzzing = signal(false);
+  readonly timerSec = signal<number | null>(null);
   answer = '';
   private hub: HubConnection | null = null;
   private sessionId = 0;
   private token = '';
   private flashTimer: ReturnType<typeof setTimeout> | null = null;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private tickTimer: ReturnType<typeof setInterval> | null = null;
+  private timeoutPostedFor: string | null = null;
 
   ngOnInit(): void {
     this.sessionId = Number(this.route.snapshot.paramMap.get('sessionId'));
@@ -122,11 +132,13 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     this.connectHub();
     // Mobile networks often drop SignalR; poll so play stays in sync with the engine.
     this.pollTimer = setInterval(() => this.reloadQuiet(), 2500);
+    this.tickTimer = setInterval(() => this.tickDeadline(), 250);
   }
 
   ngOnDestroy(): void {
     if (this.flashTimer) clearTimeout(this.flashTimer);
     if (this.pollTimer) clearInterval(this.pollTimer);
+    if (this.tickTimer) clearInterval(this.tickTimer);
     void this.hub?.stop();
   }
 
@@ -258,6 +270,29 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     if (lobby.viewerTeam) {
       this.myTeam.set(lobby.viewerTeam);
       localStorage.setItem(`cale.game-show.team.${this.sessionId}`, lobby.viewerTeam);
+    }
+    const deadline = lobby.currentRound?.answerDeadlineUtc ?? null;
+    if (deadline !== this.timeoutPostedFor && (secondsUntilDeadline(deadline) ?? 1) > 0) {
+      this.timeoutPostedFor = null;
+    }
+    this.tickDeadline();
+  }
+
+  private tickDeadline(): void {
+    const lobby = this.lobby();
+    const round = lobby?.currentRound;
+    if (!round || !phaseHasTurnClock(round.phase)) {
+      this.timerSec.set(null);
+      return;
+    }
+    const remaining = secondsUntilDeadline(round.answerDeadlineUtc);
+    this.timerSec.set(remaining);
+    if (remaining === 0 && round.answerDeadlineUtc && this.timeoutPostedFor !== round.answerDeadlineUtc) {
+      this.timeoutPostedFor = round.answerDeadlineUtc;
+      this.api.timeout(this.sessionId, this.token).subscribe({
+        next: (next) => this.apply(next),
+        error: () => this.reloadQuiet()
+      });
     }
   }
 

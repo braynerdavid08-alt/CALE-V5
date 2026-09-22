@@ -6,6 +6,7 @@ import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { GameShowApi, GameShowLobbyDto, GameShowStatsDto } from '../api/game-show.api';
 import { GameShowSfxService } from '../api/game-show-sfx.service';
+import { phaseHasTurnClock, secondsUntilDeadline } from '../api/game-show-deadline';
 
 @Component({
   selector: 'app-game-show-screen-page',
@@ -49,7 +50,14 @@ import { GameShowSfxService } from '../api/game-show-sfx.service';
               · Banco {{ L.currentRound.roundPointsForController }}
             }
           </p>
-          @if (timerSec() !== null && (L.currentRound.phase === 'WaitingBuzz' || L.currentRound.phase === 'FaceOff' || L.currentRound.phase === 'FaceOffSecond' || L.currentRound.phase === 'Steal')) {
+          @if (timerSec() !== null && (
+            L.currentRound.phase === 'WaitingBuzz'
+            || L.currentRound.phase === 'FaceOff'
+            || L.currentRound.phase === 'FaceOffSecond'
+            || L.currentRound.phase === 'Control'
+            || L.currentRound.phase === 'Playing'
+            || L.currentRound.phase === 'Steal'
+          )) {
             <p class="timer" [class.urgent]="(timerSec() ?? 0) <= 3">{{ timerSec() }}</p>
           }
           @if (L.currentRound.phase === 'FaceOff' || L.currentRound.phase === 'FaceOffSecond') {
@@ -204,25 +212,26 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
   private hub: HubConnection | null = null;
   private sessionId = 0;
   private flashTimer: ReturnType<typeof setTimeout> | null = null;
-  private countdownTimer: ReturnType<typeof setInterval> | null = null;
+  private tickTimer: ReturnType<typeof setInterval> | null = null;
   private lastQrCode = '';
   private lastPhase: string | null = null;
   private lastStatus: string | null = null;
+  private timeoutPostedFor: string | null = null;
+  private lastUrgentTick = false;
 
   ngOnInit(): void {
     this.sessionId = Number(this.route.snapshot.paramMap.get('sessionId'));
     this.reload();
+    this.tickTimer = setInterval(() => this.tickDeadline(), 250);
     this.hub = this.api.buildHub();
     this.hub.on('LobbyUpdated', (lobby: GameShowLobbyDto) => this.applyLobby(lobby));
     this.hub.on('BuzzWon', () => {
       this.sfx.play('buzz');
       this.showFlash('¡ENFRENTAMIENTO!');
-      this.startCountdown(12);
     });
     this.hub.on('FaceOffPass', () => {
       this.sfx.play('strike');
       this.showFlash('TURNO DEL OTRO EQUIPO');
-      this.startCountdown(12);
     });
     this.hub.on('FaceOffWon', () => {
       this.sfx.play('correct');
@@ -231,7 +240,10 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
     this.hub.on('FaceOffReopen', () => {
       this.sfx.play('tick');
       this.showFlash('NADIE ACIERTÓ — BUZZER');
-      this.startCountdown(12);
+    });
+    this.hub.on('BuzzWindowExtended', () => {
+      this.sfx.play('tick');
+      this.showFlash('NUEVO TIEMPO DE BUZZER');
     });
     this.hub.on('CorrectAnswer', () => {
       this.sfx.play('correct');
@@ -245,7 +257,6 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
     this.hub.on('StealOpportunity', () => {
       this.sfx.play('steal');
       this.showFlash('¡OPORTUNIDAD DE ROBO!');
-      this.startCountdown(15);
     });
     this.hub.on('StealSucceeded', () => {
       this.sfx.play('correct');
@@ -261,7 +272,6 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
     });
     this.hub.on('RoundStarted', () => {
       this.sfx.play('round');
-      this.startCountdown(12);
     });
     this.hub.on('GameEnded', () => {
       this.sfx.play('end');
@@ -280,7 +290,7 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     if (this.flashTimer) clearTimeout(this.flashTimer);
-    this.clearCountdown();
+    if (this.tickTimer) clearInterval(this.tickTimer);
     void this.hub?.stop();
   }
 
@@ -352,46 +362,44 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
 
   private applyLobby(lobby: GameShowLobbyDto): void {
     const phase = lobby.currentRound?.phase ?? null;
-    if (
-      (phase === 'WaitingBuzz' || phase === 'FaceOff' || phase === 'FaceOffSecond')
-      && this.lastPhase !== phase
-    ) {
-      if (phase === 'WaitingBuzz') this.startCountdown(12);
-    } else if (phase !== 'WaitingBuzz' && phase !== 'FaceOff' && phase !== 'FaceOffSecond' && phase !== 'Steal') {
-      this.clearCountdown();
-    }
     if (lobby.status === 'Ended' && this.lastStatus !== 'Ended') {
       this.loadStats();
     }
     this.lastPhase = phase;
     this.lastStatus = lobby.status;
     this.lobby.set(lobby);
+    const deadline = lobby.currentRound?.answerDeadlineUtc ?? null;
+    if (deadline !== this.timeoutPostedFor && (secondsUntilDeadline(deadline) ?? 1) > 0) {
+      this.timeoutPostedFor = null;
+    }
+    this.tickDeadline();
     this.refreshQr(lobby.joinCode);
   }
 
-  private startCountdown(seconds: number): void {
-    this.clearCountdown();
-    this.timerSec.set(seconds);
-    this.countdownTimer = setInterval(() => {
-      const current = this.timerSec();
-      if (current === null) return;
-      if (current <= 1) {
-        this.timerSec.set(0);
-        this.clearCountdown();
-        return;
-      }
-      const next = current - 1;
-      this.timerSec.set(next);
-      if (next <= 3) this.sfx.play('tick');
-    }, 1000);
-  }
-
-  private clearCountdown(): void {
-    if (this.countdownTimer) {
-      clearInterval(this.countdownTimer);
-      this.countdownTimer = null;
+  private tickDeadline(): void {
+    const lobby = this.lobby();
+    const round = lobby?.currentRound;
+    if (!round || !phaseHasTurnClock(round.phase)) {
+      this.timerSec.set(null);
+      this.lastUrgentTick = false;
+      return;
     }
-    this.timerSec.set(null);
+    const remaining = secondsUntilDeadline(round.answerDeadlineUtc);
+    this.timerSec.set(remaining);
+    if (remaining !== null && remaining <= 3 && remaining > 0 && !this.lastUrgentTick) {
+      this.sfx.play('tick');
+      this.lastUrgentTick = true;
+    }
+    if (remaining !== null && remaining > 3) {
+      this.lastUrgentTick = false;
+    }
+    if (remaining === 0 && round.answerDeadlineUtc && this.timeoutPostedFor !== round.answerDeadlineUtc) {
+      this.timeoutPostedFor = round.answerDeadlineUtc;
+      this.api.timeout(this.sessionId).subscribe({
+        next: (next) => this.applyLobby(next),
+        error: () => this.reload()
+      });
+    }
   }
 
   private refreshQr(code: string): void {

@@ -61,6 +61,7 @@ public sealed record GameShowRoundPublicDto(
     int Strikes,
     int RoundPointsForController,
     bool StealSucceeded,
+    DateTime? AnswerDeadlineUtc,
     IReadOnlyList<GameShowBoardAnswerPublicDto> Answers);
 
 public sealed record GameShowBoardAnswerPublicDto(

@@ -85,6 +85,8 @@ public sealed class GameShowRound
     public int RoundPointsForController { get; set; }
     public bool StealSucceeded { get; set; }
     public DateTime? BuzzOpenedAt { get; set; }
+    /// <summary>UTC instant when the current buzz/answer window ends. Null when Finished or idle.</summary>
+    public DateTime? AnswerDeadlineUtc { get; set; }
     public DateTime? FinishedAt { get; set; }
 
     public List<GameShowBoardAnswer> Answers { get; set; } = [];

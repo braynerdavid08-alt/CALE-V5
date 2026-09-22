@@ -222,7 +222,7 @@ public sealed class GameShowHandler
         session.Status = GameShowSessionStatuses.Running;
         session.StartedAt ??= _clock.UtcNow;
         session.CurrentRoundIndex = 0;
-        GameShowEngine.OpenBuzz(session.Rounds.OrderBy(r => r.SortOrder).First());
+        GameShowEngine.OpenBuzz(session.Rounds.OrderBy(r => r.SortOrder).First(), _clock.UtcNow);
         await _store.SaveChangesAsync(ct);
         await BroadcastLobbyAsync(session, ct);
         await _broadcaster.EventAsync(session.Id, "RoundStarted", new { roundIndex = 0 }, ct);
@@ -261,6 +261,19 @@ public sealed class GameShowHandler
         var player = session.Players.FirstOrDefault(p => p.PlayerToken == playerToken)
             ?? throw new DomainException("Jugador no encontrado.", 404, "player_not_found");
         var round = CurrentRound(session);
+
+        if (GameShowTiming.IsExpired(round, _clock.UtcNow)
+            && round.Phase == GameShowRoundPhases.WaitingBuzz)
+        {
+            var extended = GameShowEngine.ProcessTimeout(session, round, _clock.UtcNow);
+            await _store.SaveChangesAsync(ct);
+            await BroadcastLobbyAsync(session, ct);
+            if (extended.Kind != GameShowEngine.OutcomeKind.Noop)
+            {
+                await _broadcaster.EventAsync(session.Id, extended.EventName, extended.Payload, ct);
+            }
+        }
+
         if (round.Phase != GameShowRoundPhases.WaitingBuzz)
         {
             throw new DomainException("El buzzer no está abierto.", 400, "buzz_closed");
@@ -274,6 +287,9 @@ public sealed class GameShowHandler
 
         // Reload so in-memory graph matches the atomic claim.
         session = await RequireSessionAsync(sessionId, ct);
+        round = CurrentRound(session);
+        GameShowTiming.SetDeadline(round, _clock.UtcNow);
+        await _store.SaveChangesAsync(ct);
         await BroadcastLobbyAsync(session, ct);
         await _broadcaster.EventAsync(
             session.Id,
@@ -312,6 +328,9 @@ public sealed class GameShowHandler
         }
 
         session = await RequireHostAsync(sessionId, hostUserId, ct);
+        round = CurrentRound(session);
+        GameShowTiming.SetDeadline(round, _clock.UtcNow);
+        await _store.SaveChangesAsync(ct);
         await BroadcastLobbyAsync(session, ct);
         await _broadcaster.EventAsync(session.Id, "BuzzWon", new { team = t, forced = true }, ct);
     }
@@ -327,6 +346,20 @@ public sealed class GameShowHandler
         var player = session.Players.FirstOrDefault(p => p.PlayerToken == playerToken)
             ?? throw new DomainException("Jugador no encontrado.", 404, "player_not_found");
         var round = CurrentRound(session);
+        var now = _clock.UtcNow;
+
+        if (GameShowTiming.IsExpired(round, now))
+        {
+            var timedOut = GameShowEngine.ProcessTimeout(session, round, now);
+            await _store.SaveChangesAsync(ct);
+            await BroadcastLobbyAsync(session, ct);
+            if (timedOut.Kind != GameShowEngine.OutcomeKind.Noop)
+            {
+                await _broadcaster.EventAsync(session.Id, timedOut.EventName, timedOut.Payload, ct);
+            }
+
+            throw new DomainException("Se acabó el tiempo.", 400, "time_expired");
+        }
 
         try
         {
@@ -335,7 +368,7 @@ public sealed class GameShowHandler
                 round,
                 player,
                 request.Text,
-                _clock.UtcNow);
+                now);
             await _store.SaveChangesAsync(ct);
             await BroadcastLobbyAsync(session, ct);
             await _broadcaster.EventAsync(session.Id, outcome.EventName, outcome.Payload, ct);
@@ -359,6 +392,42 @@ public sealed class GameShowHandler
         }
     }
 
+    /// <summary>
+    /// Idempotent turn-clock expiry. Callable by host, player token, or anonymous screen
+    /// (session id is already required to watch the board).
+    /// </summary>
+    public async Task<GameShowLobbyDto> TimeoutAsync(
+        int sessionId,
+        int? hostUserId,
+        Guid? playerToken,
+        CancellationToken ct)
+    {
+        var session = await RequireSessionAsync(sessionId, ct);
+        EnsureRunning(session);
+
+        var isHost = hostUserId is int hid && hid == session.HostUserId;
+        GameShowPlayer? viewer = null;
+        if (!isHost && playerToken is Guid token)
+        {
+            viewer = session.Players.FirstOrDefault(p => p.PlayerToken == token);
+        }
+
+        var round = CurrentRound(session);
+        var outcome = GameShowEngine.ProcessTimeout(session, round, _clock.UtcNow);
+        if (outcome.Kind != GameShowEngine.OutcomeKind.Noop)
+        {
+            await _store.SaveChangesAsync(ct);
+            await BroadcastLobbyAsync(session, ct);
+            await _broadcaster.EventAsync(session.Id, outcome.EventName, outcome.Payload, ct);
+        }
+
+        return MapLobby(
+            session,
+            hostView: isHost,
+            viewerPlayerId: viewer?.Id,
+            viewerTeam: viewer?.Team);
+    }
+
     public async Task HostRevealAsync(
         int sessionId,
         int hostUserId,
@@ -372,6 +441,12 @@ public sealed class GameShowHandler
             ?? throw new NotFoundException("Respuesta no encontrada.", "answer_not_found");
 
         var outcome = GameShowEngine.HostReveal(session, round, answer, _clock.UtcNow);
+        if (outcome is not null
+            && outcome.Kind != GameShowEngine.OutcomeKind.RoundCompleted
+            && GameShowRoundPhases.IsControl(round.Phase))
+        {
+            GameShowTiming.SetDeadline(round, _clock.UtcNow);
+        }
         await _store.SaveChangesAsync(ct);
         await BroadcastLobbyAsync(session, ct);
         if (outcome is not null)
@@ -422,7 +497,7 @@ public sealed class GameShowHandler
         var round = CurrentRound(session);
         try
         {
-            var outcome = GameShowEngine.HostStrike(round);
+            var outcome = GameShowEngine.HostStrike(round, _clock.UtcNow);
             await _store.SaveChangesAsync(ct);
             await BroadcastLobbyAsync(session, ct);
             await _broadcaster.EventAsync(session.Id, outcome.EventName, outcome.Payload, ct);
@@ -446,7 +521,7 @@ public sealed class GameShowHandler
         }
 
         session.CurrentRoundIndex = next;
-        GameShowEngine.OpenBuzz(rounds[next]);
+        GameShowEngine.OpenBuzz(rounds[next], _clock.UtcNow);
         await _store.SaveChangesAsync(ct);
         await BroadcastLobbyAsync(session, ct);
         await _broadcaster.EventAsync(session.Id, "RoundStarted", new { roundIndex = next }, ct);
@@ -974,6 +1049,7 @@ public sealed class GameShowHandler
                 r.Strikes,
                 r.RoundPointsForController,
                 r.StealSucceeded,
+                r.AnswerDeadlineUtc,
                 r.Answers.OrderBy(a => a.Rank).Select(a =>
                     hostView || a.IsRevealed || r.Phase == GameShowRoundPhases.Finished
                         ? new GameShowBoardAnswerPublicDto(a.Id, a.Rank, a.Text, a.Points, a.IsRevealed)
