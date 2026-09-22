@@ -12,6 +12,8 @@ public sealed class GameShowAnswerMatcherTests
     [InlineData("Frenos", "frenós", true)]
     [InlineData("Frenos", "aceite", false)]
     [InlineData("Luces", "revisar las luces", true)]
+    [InlineData("Frenos", "el sistema de frenos del vehiculo esta fallando hoy", false)]
+    [InlineData("Aceite", "motor", false)]
     public void Matches_normalized_variants(string canonical, string submitted, bool expected)
     {
         var ok = GameShowAnswerMatcher.Matches(submitted, canonical, "[]");

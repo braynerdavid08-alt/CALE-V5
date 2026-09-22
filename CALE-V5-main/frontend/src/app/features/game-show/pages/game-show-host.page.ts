@@ -424,7 +424,7 @@ export class GameShowHostPage implements OnInit, OnDestroy {
       this.sfx.play('correct');
       this.showFlash('¡Correcto!');
     });
-    this.hub.on('AlreadyRevealed', () => this.showFlash('Ya descubierta'));
+    this.hub.on('AlreadyRevealed', () => this.showFlash('⚠️ Esta respuesta ya fue descubierta'));
     this.hub.on('Strike', () => {
       this.sfx.play('strike');
       this.showFlash('Strike');

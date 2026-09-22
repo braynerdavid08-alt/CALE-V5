@@ -24,22 +24,41 @@ public static class GameShowAnswerMatcher
 
         foreach (var alias in ParseAliases(aliasesJson))
         {
-            if (norm == Normalize(alias))
+            var aliasNorm = Normalize(alias);
+            if (norm == aliasNorm)
+            {
+                return true;
+            }
+
+            if (SoftContains(norm, aliasNorm))
             {
                 return true;
             }
         }
 
-        // Soft containment only when both sides are short phrases and one contains the other.
-        var canon = Normalize(canonical);
-        if (canon.Length >= 4 && (norm.Contains(canon) || canon.Contains(norm)))
+        return SoftContains(norm, Normalize(canonical));
+    }
+
+    /// <summary>
+    /// Soft match when one normalized phrase contains the other.
+    /// Requires target length ≥ 5 and limited padding so vague related words do not match.
+    /// </summary>
+    private static bool SoftContains(string submitted, string target)
+    {
+        if (string.IsNullOrEmpty(submitted) || string.IsNullOrEmpty(target))
         {
-            var shorter = Math.Min(norm.Length, canon.Length);
-            var longer = Math.Max(norm.Length, canon.Length);
-            if (shorter >= 4 && longer <= shorter + 12)
-            {
-                return true;
-            }
+            return false;
+        }
+
+        if (submitted.Contains(target) && target.Length >= 5)
+        {
+            // "revisar las luces" contains "luces"; reject huge unrelated sentences.
+            return submitted.Length <= target.Length + 24;
+        }
+
+        if (target.Contains(submitted) && submitted.Length >= 5)
+        {
+            return target.Length <= submitted.Length + 24;
         }
 
         return false;
@@ -96,4 +115,3 @@ public static class GameShowAnswerMatcher
         }
     }
 }
-

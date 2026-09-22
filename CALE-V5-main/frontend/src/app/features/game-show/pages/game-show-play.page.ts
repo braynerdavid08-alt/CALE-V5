@@ -240,7 +240,7 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     this.hub.on('FaceOffWon', () => this.showFlash('¡Control de la ronda!'));
     this.hub.on('FaceOffReopen', () => this.showFlash('Nadie acertó — buzzer de nuevo'));
     this.hub.on('CorrectAnswer', () => this.showFlash('¡Correcto!'));
-    this.hub.on('AlreadyRevealed', () => this.showFlash('Ya estaba descubierta'));
+    this.hub.on('AlreadyRevealed', () => this.showFlash('⚠️ Esta respuesta ya fue descubierta'));
     this.hub.on('Strike', () => this.showFlash('❌ Strike'));
     this.hub.on('StealOpportunity', () => this.showFlash('¡Oportunidad de robo!'));
     this.hub.on('StealSucceeded', () => this.showFlash('Robo exitoso'));
