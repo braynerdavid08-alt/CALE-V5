@@ -45,6 +45,8 @@ export interface GameShowRoundDto {
   roundPointsForController: number;
   stealSucceeded: boolean;
   answerDeadlineUtc: string | null;
+  /** Server-authoritative seconds left (prefer over client Date math). */
+  secondsRemaining?: number | null;
   answers: GameShowBoardAnswerDto[];
   activePlayerId?: number | null;
   activePlayerName?: string | null;

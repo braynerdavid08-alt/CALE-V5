@@ -127,7 +127,9 @@ public sealed record GameShowRoundPublicDto(
     IReadOnlyList<GameShowBoardAnswerPublicDto> Answers,
     int? ActivePlayerId = null,
     string? ActivePlayerName = null,
-    string? ActivePlayerAccent = null);
+    string? ActivePlayerAccent = null,
+    /// <summary>Whole seconds left until AnswerDeadlineUtc (server clock). Prefer this over client Date math.</summary>
+    int? SecondsRemaining = null);
 
 public sealed record GameShowBoardAnswerPublicDto(
     int Id,

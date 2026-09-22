@@ -6,7 +6,7 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
-import { phaseHasTurnClock, secondsUntilDeadline } from '../api/game-show-deadline';
+import { phaseHasTurnClock, remainingFromServerSnapshot, secondsUntilDeadline } from '../api/game-show-deadline';
 import { GameShowSfxService } from '../api/game-show-sfx.service';
 
 @Component({
@@ -123,6 +123,8 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private tickTimer: ReturnType<typeof setInterval> | null = null;
   private timeoutPostedFor: string | null = null;
+  private turnSecondsSnapshot: number | null = null;
+  private turnSecondsCapturedAtMs = 0;
 
   ngOnInit(): void {
     this.sessionId = Number(this.route.snapshot.paramMap.get('sessionId'));
@@ -320,7 +322,10 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     this.lastActivePlayerId = activeId;
 
     const deadline = merged.currentRound?.answerDeadlineUtc ?? null;
-    if (deadline !== this.timeoutPostedFor && (secondsUntilDeadline(deadline) ?? 1) > 0) {
+    this.turnSecondsSnapshot =
+      merged.currentRound?.secondsRemaining ?? secondsUntilDeadline(deadline);
+    this.turnSecondsCapturedAtMs = Date.now();
+    if (deadline !== this.timeoutPostedFor && (this.turnSecondsSnapshot ?? 1) > 0) {
       this.timeoutPostedFor = null;
     }
     this.tickDeadline();
@@ -333,7 +338,10 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
       this.timerSec.set(null);
       return;
     }
-    const remaining = secondsUntilDeadline(round.answerDeadlineUtc);
+    const remaining = remainingFromServerSnapshot(
+      this.turnSecondsSnapshot,
+      this.turnSecondsCapturedAtMs
+    );
     this.timerSec.set(remaining);
     if (remaining === 0 && round.answerDeadlineUtc && this.timeoutPostedFor !== round.answerDeadlineUtc) {
       this.timeoutPostedFor = round.answerDeadlineUtc;

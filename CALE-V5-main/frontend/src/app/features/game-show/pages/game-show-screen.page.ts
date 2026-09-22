@@ -10,7 +10,7 @@ import {
   GameShowPlayerStandingDto
 } from '../api/game-show.api';
 import { GameShowSfxService } from '../api/game-show-sfx.service';
-import { phaseHasTurnClock, secondsUntilDeadline } from '../api/game-show-deadline';
+import { phaseHasTurnClock, remainingFromServerSnapshot, secondsUntilDeadline } from '../api/game-show-deadline';
 import { phraseForLightning, phraseForSteal, phraseForStrike3 } from '../api/game-show-phrases';
 
 @Component({
@@ -111,7 +111,7 @@ import { phraseForLightning, phraseForSteal, phraseForStrike3 } from '../api/gam
             || L.currentRound.phase === 'Playing'
             || L.currentRound.phase === 'Steal'
           )) {
-            <p class="timer" [class.urgent]="(timerSec() ?? 0) <= 3">{{ timerSec() }}</p>
+            <p class="timer" [class.urgent]="(timerSec() ?? 0) <= 3">{{ timerSec() }}s</p>
           }
           @if (L.currentRound.phase === 'FaceOff' || L.currentRound.phase === 'FaceOffSecond') {
             <p class="steal">⚡ ENFRENTAMIENTO — un fallo pasa el turno (sin strikes)</p>
@@ -281,6 +281,10 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
   private lastUrgentTick = false;
   private lastLightning = false;
   private seenTop1 = new Set<number>();
+  private turnSecondsSnapshot: number | null = null;
+  private turnSecondsCapturedAtMs = 0;
+  private lightningSecondsSnapshot: number | null = null;
+  private lightningSecondsCapturedAtMs = 0;
 
   ngOnInit(): void {
     this.sessionId = Number(this.route.snapshot.paramMap.get('sessionId'));
@@ -496,7 +500,17 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
     this.lastStatus = lobby.status;
     this.lobby.set(lobby);
     const deadline = lobby.currentRound?.answerDeadlineUtc ?? null;
-    if (deadline !== this.timeoutPostedFor && (secondsUntilDeadline(deadline) ?? 1) > 0) {
+    const serverRemaining = lobby.currentRound?.secondsRemaining;
+    this.turnSecondsSnapshot =
+      serverRemaining ?? secondsUntilDeadline(deadline);
+    this.turnSecondsCapturedAtMs = Date.now();
+    if (lobby.lightningUntilUtc) {
+      this.lightningSecondsSnapshot = secondsUntilDeadline(lobby.lightningUntilUtc);
+      this.lightningSecondsCapturedAtMs = Date.now();
+    } else {
+      this.lightningSecondsSnapshot = null;
+    }
+    if (deadline !== this.timeoutPostedFor && (this.turnSecondsSnapshot ?? 1) > 0) {
       this.timeoutPostedFor = null;
     }
     this.tickDeadline();
@@ -505,8 +519,10 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
 
   private tickDeadline(): void {
     const lobby = this.lobby();
-    if (lobby?.lightningUntilUtc) {
-      this.lightningSec.set(secondsUntilDeadline(lobby.lightningUntilUtc));
+    if (this.lightningSecondsSnapshot != null) {
+      this.lightningSec.set(
+        remainingFromServerSnapshot(this.lightningSecondsSnapshot, this.lightningSecondsCapturedAtMs)
+      );
     } else {
       this.lightningSec.set(null);
     }
@@ -517,7 +533,10 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
       this.lastUrgentTick = false;
       return;
     }
-    const remaining = secondsUntilDeadline(round.answerDeadlineUtc);
+    const remaining = remainingFromServerSnapshot(
+      this.turnSecondsSnapshot,
+      this.turnSecondsCapturedAtMs
+    );
     this.timerSec.set(remaining);
     if (remaining !== null && remaining <= 3 && remaining > 0 && !this.lastUrgentTick) {
       this.playSfx('tick');
