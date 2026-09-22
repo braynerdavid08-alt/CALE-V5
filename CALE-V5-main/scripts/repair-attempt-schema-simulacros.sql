@@ -1,5 +1,8 @@
 -- Hotfix for production if Migrate-at-startup is delayed.
 -- Safe to run multiple times.
+-- Note: when applying via EF ExecuteSqlRaw, braces in DEFAULT '{}' must be
+-- doubled to '{{}}' (see AttemptSchemaGuard / RawSqlLiteral). This script
+-- is for psql/ADO and keeps the real JSON default.
 
 ALTER TABLE "IntentosPreguntas"
 ADD COLUMN IF NOT EXISTS "SnapshotJson" text NOT NULL DEFAULT '{}';
