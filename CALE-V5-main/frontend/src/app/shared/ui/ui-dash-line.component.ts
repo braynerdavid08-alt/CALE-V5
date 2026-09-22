@@ -16,7 +16,7 @@ export interface DashLineSeries {
         class="chart"
         [attr.viewBox]="'0 0 ' + width + ' ' + height"
         role="img"
-        [attr.aria-label]="title || 'GrÃ¡fico de lÃ­neas'">
+        [attr.aria-label]="title || 'Gráfico de líneas'">
         @for (y of gridYs; track y) {
           <line
             [attr.x1]="padL"

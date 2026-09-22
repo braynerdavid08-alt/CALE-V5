@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, finalize, shareReplay, switchMap, throwError } from 'rxjs';
 import { AuthApi } from '../../features/auth/api/auth.api';
+import { isSafeReturnUrl, stashReturnUrl } from '../auth/return-url';
 import { SessionStore } from '../auth/session.store';
 
 let refreshInFlight: ReturnType<AuthApi['refresh']> | null = null;
@@ -14,6 +15,18 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
   const session = inject(SessionStore);
   const router = inject(Router);
   const authApi = inject(AuthApi);
+
+  const sendToLogin = (here: string) => {
+    const safe = isSafeReturnUrl(here) ? here : null;
+    if (safe) {
+      stashReturnUrl(safe);
+    }
+    void router.navigate(['/login'], {
+      replaceUrl: true,
+      queryParams: safe ? { returnUrl: safe } : undefined,
+      state: { reason: 'session_expired' }
+    });
+  };
 
   return next(req).pipe(
     catchError((err: unknown) => {
@@ -52,18 +65,7 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
       if (!session.cookieAuth()) {
         const here = router.url;
         session.clear();
-        if (here && here !== '/login') {
-          try {
-            sessionStorage.setItem('cale.auth.returnUrl', here);
-          } catch { /* ignore */ }
-        }
-        void router.navigate(['/login'], {
-          replaceUrl: true,
-          queryParams: here && here.startsWith('/') && here !== '/login'
-            ? { returnUrl: here }
-            : undefined,
-          state: { reason: 'session_expired' }
-        });
+        sendToLogin(here);
         return throwError(() => err);
       }
 
@@ -84,18 +86,7 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
         catchError((refreshErr) => {
           const here = router.url;
           session.clear();
-          if (here && here !== '/login') {
-            try {
-              sessionStorage.setItem('cale.auth.returnUrl', here);
-            } catch { /* ignore */ }
-          }
-          void router.navigate(['/login'], {
-            replaceUrl: true,
-            queryParams: here && here.startsWith('/') && here !== '/login'
-              ? { returnUrl: here }
-              : undefined,
-            state: { reason: 'session_expired' }
-          });
+          sendToLogin(here);
           return throwError(() => refreshErr);
         })
       );
