@@ -23,7 +23,7 @@ interface LauncherTile {
 export class StudentHomePage {
   readonly session = inject(SessionStore);
 
-  /** Nine large shortcuts — home is only a launcher for seniors. */
+  /** Large shortcuts — home is only a launcher for seniors. */
   readonly tiles: LauncherTile[] = [
     {
       id: 'live',
@@ -50,8 +50,16 @@ export class StudentHomePage {
       tone: 'blue'
     },
     {
+      id: 'normas',
+      label: 'Normas de Tránsito',
+      hint: 'Código nacional (lectura)',
+      path: '/student/normas-transito',
+      icon: 'book',
+      tone: 'green'
+    },
+    {
       id: 'progress',
-      label: 'Mi proceso',
+      label: 'Mi progreso',
       hint: 'Teoría, manejo y avances',
       path: '/student/progress',
       icon: 'list',

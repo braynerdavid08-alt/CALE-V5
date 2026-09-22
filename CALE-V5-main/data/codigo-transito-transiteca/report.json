@@ -1,0 +1,578 @@
+{
+  "source": "https://transiteca.app/codigo-de-transito",
+  "startedAt": "2026-09-22T17:41:38.937Z",
+  "maxArticle": 250,
+  "ok": 250,
+  "failed": [],
+  "flagged": [
+    {
+      "number": 2,
+      "flags": [
+        "very_long_meta"
+      ]
+    },
+    {
+      "number": 171,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 172,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 173,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 174,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 175,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 176,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 177,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 178,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 179,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 180,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 181,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 182,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 183,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 184,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 185,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 186,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 187,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 188,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 189,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 190,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 191,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 192,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 193,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 194,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 195,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 196,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 197,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 198,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 199,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 200,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 201,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 202,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 203,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 204,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 205,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 206,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 207,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 208,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 209,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 210,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 211,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 212,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 213,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 214,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 215,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 216,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 217,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 218,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 219,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 220,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 221,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 222,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 223,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 224,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 225,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 226,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 227,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 228,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 229,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 230,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 231,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 232,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 233,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 234,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 235,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 236,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 237,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 238,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 239,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 240,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 241,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 242,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 243,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 244,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 245,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 246,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 247,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 248,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 249,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    },
+    {
+      "number": 250,
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ]
+    }
+  ],
+  "extractorVersion": "1.0.0",
+  "finishedAt": "2026-09-22T17:43:23.909Z",
+  "articleCount": 250
+}

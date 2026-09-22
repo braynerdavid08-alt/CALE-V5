@@ -348,6 +348,23 @@ export const routes: Routes = [
             .then((m) => m.StudentTrainingPage)
       },
       {
+        path: 'student/normas-transito',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['Student'] },
+        loadComponent: () =>
+          import('./features/codigo-transito/pages/codigo-transito.page')
+            .then((m) => m.CodigoTransitoPage)
+      },
+      {
+        path: 'student/normas-transito/:number',
+        canActivate: [roleGuard],
+        data: { roles: ['Student'] },
+        loadComponent: () =>
+          import('./features/codigo-transito/pages/codigo-transito.page')
+            .then((m) => m.CodigoTransitoPage)
+      },
+      {
         path: 'student',
         pathMatch: 'full',
         canActivate: [roleGuard],
@@ -506,6 +523,23 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/game-show/pages/game-show-host.page')
             .then((m) => m.GameShowHostPage)
+      },
+      {
+        path: 'teacher/normas-transito',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: staffRoles },
+        loadComponent: () =>
+          import('./features/codigo-transito/pages/codigo-transito.page')
+            .then((m) => m.CodigoTransitoPage)
+      },
+      {
+        path: 'teacher/normas-transito/:number',
+        canActivate: [roleGuard],
+        data: { roles: staffRoles },
+        loadComponent: () =>
+          import('./features/codigo-transito/pages/codigo-transito.page')
+            .then((m) => m.CodigoTransitoPage)
       },
       {
         path: 'admin/questions/:id',
