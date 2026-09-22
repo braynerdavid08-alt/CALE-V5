@@ -37,7 +37,9 @@ public static class GameShowEngine
         StealOpportunity,
         StealSucceeded,
         StealFailed,
-        RoundCompleted
+        RoundCompleted,
+        BuzzWindowExtended,
+        Noop
     }
 
     public sealed record Outcome(
@@ -45,31 +47,36 @@ public static class GameShowEngine
         string EventName,
         object Payload);
 
-    public static void OpenBuzz(GameShowRound round)
+    public static void OpenBuzz(GameShowRound round, DateTime? utcNow = null)
     {
+        var now = utcNow ?? DateTime.UtcNow;
         round.Phase = GameShowRoundPhases.WaitingBuzz;
         round.ControllingTeam = null;
         round.BuzzWinnerTeam = null;
         round.Strikes = 0;
         round.RoundPointsForController = 0;
         round.StealSucceeded = false;
-        round.BuzzOpenedAt = DateTime.UtcNow;
+        round.BuzzOpenedAt = now;
         round.FinishedAt = null;
         foreach (var a in round.Answers)
         {
             a.IsRevealed = false;
             a.RevealedAt = null;
         }
+
+        GameShowTiming.SetDeadline(round, now);
     }
 
-    public static void EnterFaceOff(GameShowRound round, string team)
+    public static void EnterFaceOff(GameShowRound round, string team, DateTime? utcNow = null)
     {
+        var now = utcNow ?? DateTime.UtcNow;
         round.Phase = GameShowRoundPhases.FaceOff;
         round.BuzzWinnerTeam = team;
         round.ControllingTeam = team;
         round.Strikes = 0;
         round.RoundPointsForController = 0;
         round.StealSucceeded = false;
+        GameShowTiming.SetDeadline(round, now);
     }
 
     public static void RevealAnswer(GameShowBoardAnswer answer, DateTime utcNow)
@@ -82,6 +89,7 @@ public static class GameShowEngine
     {
         round.Phase = GameShowRoundPhases.Finished;
         round.FinishedAt = utcNow;
+        GameShowTiming.ClearDeadline(round);
         foreach (var a in round.Answers.Where(x => !x.IsRevealed))
         {
             a.IsRevealed = true;
@@ -177,12 +185,14 @@ public static class GameShowEngine
             if (round.Strikes >= GameShowScoringPolicy.MaxStrikes)
             {
                 round.Phase = GameShowRoundPhases.Steal;
+                GameShowTiming.SetDeadline(round, utcNow);
                 return new Outcome(
                     OutcomeKind.StealOpportunity,
                     "StealOpportunity",
                     new { strikes = round.Strikes, stealer = GameShowScoringPolicy.OppositeTeam(round.ControllingTeam!) });
             }
 
+            GameShowTiming.SetDeadline(round, utcNow);
             return new Outcome(
                 OutcomeKind.Strike,
                 "Strike",
@@ -209,6 +219,7 @@ public static class GameShowEngine
                 });
         }
 
+        GameShowTiming.SetDeadline(round, utcNow);
         return new Outcome(
             OutcomeKind.CorrectBanked,
             "CorrectAnswer",
@@ -223,8 +234,9 @@ public static class GameShowEngine
             });
     }
 
-    public static Outcome HostStrike(GameShowRound round)
+    public static Outcome HostStrike(GameShowRound round, DateTime? utcNow = null)
     {
+        var now = utcNow ?? DateTime.UtcNow;
         if (!GameShowRoundPhases.IsControl(round.Phase))
         {
             throw new InvalidOperationException("invalid_phase");
@@ -234,12 +246,14 @@ public static class GameShowEngine
         if (round.Strikes >= GameShowScoringPolicy.MaxStrikes)
         {
             round.Phase = GameShowRoundPhases.Steal;
+            GameShowTiming.SetDeadline(round, now);
             return new Outcome(
                 OutcomeKind.StealOpportunity,
                 "StealOpportunity",
                 new { strikes = round.Strikes, forced = true });
         }
 
+        GameShowTiming.SetDeadline(round, now);
         return new Outcome(OutcomeKind.Strike, "Strike", new { strikes = round.Strikes, forced = true });
     }
 
@@ -272,7 +286,7 @@ public static class GameShowEngine
         // During face-off, "end round" from host means reopen the buzz — do not finish the round.
         if (GameShowRoundPhases.IsFaceOff(round.Phase))
         {
-            OpenBuzz(round);
+            OpenBuzz(round, utcNow);
             return new Outcome(
                 OutcomeKind.FaceOffBothMissReopen,
                 "FaceOffReopen",
@@ -332,6 +346,67 @@ public static class GameShowEngine
             new { answerId = answer.Id, rank = answer.Rank, text = answer.Text, points = answer.Points });
     }
 
+    /// <summary>
+    /// Apply turn-clock expiry. Idempotent: returns Noop when deadline is null or still in the future.
+    /// </summary>
+    public static Outcome ProcessTimeout(GameShowSession session, GameShowRound round, DateTime utcNow)
+    {
+        if (!GameShowTiming.IsExpired(round, utcNow))
+        {
+            return new Outcome(OutcomeKind.Noop, "TimerTick", new { expired = false });
+        }
+
+        return round.Phase switch
+        {
+            GameShowRoundPhases.WaitingBuzz => ExtendBuzzWindow(round, utcNow),
+            GameShowRoundPhases.FaceOff => TimeoutFaceOffFirst(round, utcNow),
+            GameShowRoundPhases.FaceOffSecond => TimeoutFaceOffSecond(round, utcNow),
+            GameShowRoundPhases.Control or GameShowRoundPhases.Playing => TimeoutControl(round, utcNow),
+            GameShowRoundPhases.Steal => HostFailSteal(session, round, utcNow),
+            _ => new Outcome(OutcomeKind.Noop, "TimerTick", new { expired = true, phase = round.Phase })
+        };
+    }
+
+    private static Outcome ExtendBuzzWindow(GameShowRound round, DateTime utcNow)
+    {
+        GameShowTiming.SetDeadline(round, utcNow);
+        round.BuzzOpenedAt = utcNow;
+        return new Outcome(
+            OutcomeKind.BuzzWindowExtended,
+            "BuzzWindowExtended",
+            new { deadlineUtc = round.AnswerDeadlineUtc });
+    }
+
+    private static Outcome TimeoutFaceOffFirst(GameShowRound round, DateTime utcNow)
+    {
+        if (round.ControllingTeam is null)
+        {
+            OpenBuzz(round, utcNow);
+            return new Outcome(OutcomeKind.FaceOffBothMissReopen, "FaceOffReopen", new { timedOut = true });
+        }
+
+        var other = GameShowScoringPolicy.OppositeTeam(round.ControllingTeam);
+        round.Phase = GameShowRoundPhases.FaceOffSecond;
+        round.ControllingTeam = other;
+        GameShowTiming.SetDeadline(round, utcNow);
+        return new Outcome(
+            OutcomeKind.FaceOffMissPass,
+            "FaceOffPass",
+            new { fromTeam = GameShowScoringPolicy.OppositeTeam(other), toTeam = other, timedOut = true });
+    }
+
+    private static Outcome TimeoutFaceOffSecond(GameShowRound round, DateTime utcNow)
+    {
+        OpenBuzz(round, utcNow);
+        return new Outcome(
+            OutcomeKind.FaceOffBothMissReopen,
+            "FaceOffReopen",
+            new { timedOut = true });
+    }
+
+    private static Outcome TimeoutControl(GameShowRound round, DateTime utcNow) =>
+        HostStrike(round, utcNow);
+
     private static Outcome ProcessFaceOff(
         GameShowSession session,
         GameShowRound round,
@@ -346,6 +421,7 @@ public static class GameShowEngine
                 var other = GameShowScoringPolicy.OppositeTeam(player.Team);
                 round.Phase = GameShowRoundPhases.FaceOffSecond;
                 round.ControllingTeam = other;
+                GameShowTiming.SetDeadline(round, utcNow);
                 return new Outcome(
                     OutcomeKind.FaceOffMissPass,
                     "FaceOffPass",
@@ -353,7 +429,7 @@ public static class GameShowEngine
             }
 
             // Both missed face-off → reopen buzz (prompt: config; we reopen).
-            OpenBuzz(round);
+            OpenBuzz(round, utcNow);
             return new Outcome(
                 OutcomeKind.FaceOffBothMissReopen,
                 "FaceOffReopen",
@@ -377,6 +453,7 @@ public static class GameShowEngine
                 new { team = player.Team, points = round.RoundPointsForController, answerId = match.Id });
         }
 
+        GameShowTiming.SetDeadline(round, utcNow);
         return new Outcome(
             OutcomeKind.FaceOffWonControl,
             "FaceOffWon",

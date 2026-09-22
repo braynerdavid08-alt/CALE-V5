@@ -7,6 +7,7 @@ import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { GameShowApi, GameShowLobbyDto, GameShowStatsDto } from '../api/game-show.api';
 import { GameShowSfxService } from '../api/game-show-sfx.service';
+import { phaseHasTurnClock, secondsUntilDeadline } from '../api/game-show-deadline';
 import { Router } from '@angular/router';
 
 @Component({
@@ -112,7 +113,11 @@ import { Router } from '@angular/router';
           <article class="board">
             <h2>Ronda {{ R.sortOrder + 1 }} / {{ L.roundCount }}</h2>
             <p class="q">{{ R.questionText }}</p>
-            <p class="meta">Fase: {{ phaseLabel(R.phase) }} · Errores: {{ '❌'.repeat(R.strikes) }}{{ '⬜'.repeat(Math.max(0, 3 - R.strikes)) }}</p>
+            <p class="meta">
+              Fase: {{ phaseLabel(R.phase) }}
+              @if (timerSec() !== null) { · ⏱ <strong [class.urgent]="(timerSec() ?? 0) <= 3">{{ timerSec() }}s</strong> }
+              · Errores: {{ '❌'.repeat(R.strikes) }}{{ '⬜'.repeat(Math.max(0, 3 - R.strikes)) }}
+            </p>
             <p class="meta">
               Turno: <strong>{{ teamName(L, R.controllingTeam) }}</strong>
               @if (R.buzzWinnerTeam) { · Buzzer: <strong>{{ teamName(L, R.buzzWinnerTeam) }}</strong> }
@@ -190,6 +195,7 @@ import { Router } from '@angular/router';
       font-weight: 800;
       color: var(--color-primary);
     }
+    .urgent { color: #dc2626; font-weight: 900; }
     .join-code {
       margin: 0.35rem 0 0.75rem;
       font-size: clamp(2.4rem, 6vw, 3.6rem);
@@ -245,22 +251,27 @@ export class GameShowHostPage implements OnInit, OnDestroy {
   readonly connection = signal<string | null>(null);
   readonly qrUrl = signal('');
   readonly copied = signal<string | null>(null);
+  readonly timerSec = signal<number | null>(null);
   private hub: HubConnection | null = null;
   private sessionId = 0;
   private flashTimer: ReturnType<typeof setTimeout> | null = null;
   private copiedTimer: ReturnType<typeof setTimeout> | null = null;
+  private tickTimer: ReturnType<typeof setInterval> | null = null;
   private lastQrCode = '';
   private lastStatus: string | null = null;
+  private timeoutPostedFor: string | null = null;
 
   ngOnInit(): void {
     this.sessionId = Number(this.route.snapshot.paramMap.get('sessionId'));
     this.reload();
     this.connectHub();
+    this.tickTimer = setInterval(() => this.tickDeadline(), 250);
   }
 
   ngOnDestroy(): void {
     if (this.flashTimer) clearTimeout(this.flashTimer);
     if (this.copiedTimer) clearTimeout(this.copiedTimer);
+    if (this.tickTimer) clearInterval(this.tickTimer);
     void this.hub?.stop();
   }
 
@@ -370,7 +381,30 @@ export class GameShowHostPage implements OnInit, OnDestroy {
     }
     this.lastStatus = lobby.status;
     this.lobby.set(lobby);
+    const deadline = lobby.currentRound?.answerDeadlineUtc ?? null;
+    if (deadline !== this.timeoutPostedFor && (secondsUntilDeadline(deadline) ?? 1) > 0) {
+      this.timeoutPostedFor = null;
+    }
+    this.tickDeadline();
     this.refreshQr(lobby.joinCode);
+  }
+
+  private tickDeadline(): void {
+    const lobby = this.lobby();
+    const round = lobby?.currentRound;
+    if (!round || !phaseHasTurnClock(round.phase)) {
+      this.timerSec.set(null);
+      return;
+    }
+    const remaining = secondsUntilDeadline(round.answerDeadlineUtc);
+    this.timerSec.set(remaining);
+    if (remaining === 0 && round.answerDeadlineUtc && this.timeoutPostedFor !== round.answerDeadlineUtc) {
+      this.timeoutPostedFor = round.answerDeadlineUtc;
+      this.api.timeout(this.sessionId).subscribe({
+        next: (next) => this.applyLobby(next),
+        error: () => this.reload()
+      });
+    }
   }
 
   private refreshQr(code: string): void {

@@ -5,7 +5,8 @@ using Microsoft.Extensions.Logging;
 namespace Cale.Modules.GameShow.Infrastructure.Persistence;
 
 /// <summary>
-/// Idempotent create of GameShowPacks when EF migrations are off in production.
+/// Idempotent create of GameShowPacks when EF migrations are off in production,
+/// plus round column patches (e.g. AnswerDeadlineUtc).
 /// </summary>
 public static class GameShowPackSchemaGuard
 {
@@ -41,6 +42,13 @@ public static class GameShowPackSchemaGuard
                     CREATE INDEX IF NOT EXISTS "IX_GameShowPacks_UpdatedAt" ON "GameShowPacks" ("UpdatedAt");
                     """,
                     ct);
+
+                await db.Database.ExecuteSqlRawAsync(
+                    """
+                    ALTER TABLE IF EXISTS "GameShowRounds"
+                    ADD COLUMN IF NOT EXISTS "AnswerDeadlineUtc" timestamp with time zone NULL;
+                    """,
+                    ct);
             }
             else if (db.Database.IsSqlServer())
             {
@@ -63,6 +71,14 @@ public static class GameShowPackSchemaGuard
                         CREATE INDEX IX_GameShowPacks_SchoolUserId ON dbo.GameShowPacks (SchoolUserId);
                         CREATE INDEX IX_GameShowPacks_UpdatedAt ON dbo.GameShowPacks (UpdatedAt);
                     END
+                    """,
+                    ct);
+
+                await db.Database.ExecuteSqlRawAsync(
+                    """
+                    IF OBJECT_ID(N'dbo.GameShowRounds', N'U') IS NOT NULL
+                       AND COL_LENGTH(N'dbo.GameShowRounds', N'AnswerDeadlineUtc') IS NULL
+                        ALTER TABLE dbo.GameShowRounds ADD AnswerDeadlineUtc datetimeoffset NULL;
                     """,
                     ct);
             }

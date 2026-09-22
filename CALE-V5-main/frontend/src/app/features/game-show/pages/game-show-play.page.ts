@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { Component, NgZone, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HubConnection } from '@microsoft/signalr';
@@ -6,6 +6,7 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
+import { phaseHasTurnClock, secondsUntilDeadline } from '../api/game-show-deadline';
 
 @Component({
   selector: 'app-game-show-play-page',
@@ -34,6 +35,10 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
             }
           </ol>
           <p class="muted">
+            @if (timerSec() !== null) {
+              <span class="timer" [class.urgent]="(timerSec() ?? 0) <= 3">⏱ {{ timerSec() }}s</span>
+              ·
+            }
             @if (R.phase === 'Control' || R.phase === 'Playing') {
               Strikes: {{ R.strikes }} / 3 · Banco: {{ R.roundPointsForController }} ·
             }
@@ -41,7 +46,9 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
           </p>
 
           @if (R.phase === 'WaitingBuzz') {
-            <ui-button type="button" class="buzz" (click)="buzz()">¡RESPONDER!</ui-button>
+            <ui-button type="button" class="buzz" [disabled]="buzzing()" (click)="buzz()">
+              {{ buzzing() ? 'Tomando turno…' : '¡RESPONDER!' }}
+            </ui-button>
           }
 
           @if (canAnswer(L) && myTurn(L)) {
@@ -52,7 +59,7 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
               <p class="steal">Enfrentamiento: acierta para tomar el control. Un fallo pasa el turno.</p>
             }
             <label class="field">Tu respuesta
-              <input class="input" [(ngModel)]="answer" name="answer" (keyup.enter)="send()" />
+              <input class="input" [(ngModel)]="answer" name="answer" autofocus (keyup.enter)="send()" />
             </label>
             <ui-button type="button" (click)="send()">Enviar respuesta</ui-button>
             <ui-button type="button" variant="secondary" (click)="listenVoice()">Hablar (opcional)</ui-button>
@@ -85,23 +92,32 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
     .steal { font-weight: 800; }
     .conn { color: var(--color-text-secondary); font-weight: 700; }
     .muted { color: var(--color-text-secondary); }
+    .timer { font-weight: 900; color: var(--color-primary); font-variant-numeric: tabular-nums; }
+    .timer.urgent { color: #dc2626; }
     .field { display: grid; gap: 0.35rem; font-weight: 600; }
+    .input { min-height: 3rem; font-size: 1.1rem; }
   `]
 })
 export class GameShowPlayPage implements OnInit, OnDestroy {
   private readonly api = inject(GameShowApi);
   private readonly route = inject(ActivatedRoute);
+  private readonly zone = inject(NgZone);
 
   readonly lobby = signal<GameShowLobbyDto | null>(null);
   readonly error = signal<string | null>(null);
   readonly flash = signal<string | null>(null);
   readonly connection = signal<string | null>(null);
   readonly myTeam = signal('A');
+  readonly buzzing = signal(false);
+  readonly timerSec = signal<number | null>(null);
   answer = '';
   private hub: HubConnection | null = null;
   private sessionId = 0;
   private token = '';
   private flashTimer: ReturnType<typeof setTimeout> | null = null;
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private tickTimer: ReturnType<typeof setInterval> | null = null;
+  private timeoutPostedFor: string | null = null;
 
   ngOnInit(): void {
     this.sessionId = Number(this.route.snapshot.paramMap.get('sessionId'));
@@ -114,10 +130,15 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     if (savedTeam) this.myTeam.set(savedTeam);
     this.reload();
     this.connectHub();
+    // Mobile networks often drop SignalR; poll so play stays in sync with the engine.
+    this.pollTimer = setInterval(() => this.reloadQuiet(), 2500);
+    this.tickTimer = setInterval(() => this.tickDeadline(), 250);
   }
 
   ngOnDestroy(): void {
     if (this.flashTimer) clearTimeout(this.flashTimer);
+    if (this.pollTimer) clearInterval(this.pollTimer);
+    if (this.tickTimer) clearInterval(this.tickTimer);
     void this.hub?.stop();
   }
 
@@ -170,8 +191,21 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
   }
 
   buzz(): void {
+    if (this.buzzing()) return;
+    this.buzzing.set(true);
+    this.error.set(null);
     this.api.buzz(this.sessionId, this.token).subscribe({
-      error: (err) => this.error.set(mapApiError(err))
+      next: (lobby) => {
+        this.buzzing.set(false);
+        this.apply(lobby);
+        this.showFlash('¡Tu equipo responde!');
+      },
+      error: (err) => {
+        this.buzzing.set(false);
+        this.error.set(mapApiError(err));
+        // Sync if someone else already claimed the buzz or phase moved on.
+        this.reload();
+      }
     });
   }
 
@@ -179,8 +213,14 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     const text = this.answer.trim();
     if (!text) return;
     this.api.answer(this.sessionId, this.token, text).subscribe({
-      next: () => { this.answer = ''; },
-      error: (err) => this.error.set(mapApiError(err))
+      next: (lobby) => {
+        this.answer = '';
+        this.apply(lobby);
+      },
+      error: (err) => {
+        this.error.set(mapApiError(err));
+        this.reload();
+      }
     });
   }
 
@@ -217,12 +257,42 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     });
   }
 
+  private reloadQuiet(): void {
+    this.api.get(this.sessionId, this.token).subscribe({
+      next: (lobby) => this.apply(lobby),
+      error: () => { /* keep last good lobby while polling */ }
+    });
+  }
+
   /** El backend indica el equipo del jugador dueño del token; localStorage es solo respaldo. */
   private apply(lobby: GameShowLobbyDto): void {
     this.lobby.set(lobby);
     if (lobby.viewerTeam) {
       this.myTeam.set(lobby.viewerTeam);
       localStorage.setItem(`cale.game-show.team.${this.sessionId}`, lobby.viewerTeam);
+    }
+    const deadline = lobby.currentRound?.answerDeadlineUtc ?? null;
+    if (deadline !== this.timeoutPostedFor && (secondsUntilDeadline(deadline) ?? 1) > 0) {
+      this.timeoutPostedFor = null;
+    }
+    this.tickDeadline();
+  }
+
+  private tickDeadline(): void {
+    const lobby = this.lobby();
+    const round = lobby?.currentRound;
+    if (!round || !phaseHasTurnClock(round.phase)) {
+      this.timerSec.set(null);
+      return;
+    }
+    const remaining = secondsUntilDeadline(round.answerDeadlineUtc);
+    this.timerSec.set(remaining);
+    if (remaining === 0 && round.answerDeadlineUtc && this.timeoutPostedFor !== round.answerDeadlineUtc) {
+      this.timeoutPostedFor = round.answerDeadlineUtc;
+      this.api.timeout(this.sessionId, this.token).subscribe({
+        next: (next) => this.apply(next),
+        error: () => this.reloadQuiet()
+      });
     }
   }
 
@@ -234,25 +304,33 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
 
   private connectHub(): void {
     this.hub = this.api.buildHub();
-    this.hub.on('LobbyUpdated', (lobby: GameShowLobbyDto) => this.apply(lobby));
-    this.hub.on('BuzzWon', () => this.showFlash('¡Turno de enfrentamiento!'));
-    this.hub.on('FaceOffPass', () => this.showFlash('Turno del otro equipo'));
-    this.hub.on('FaceOffWon', () => this.showFlash('¡Control de la ronda!'));
-    this.hub.on('FaceOffReopen', () => this.showFlash('Nadie acertó — buzzer de nuevo'));
-    this.hub.on('CorrectAnswer', () => this.showFlash('¡Correcto!'));
-    this.hub.on('AlreadyRevealed', () => this.showFlash('⚠️ Esta respuesta ya fue descubierta'));
-    this.hub.on('Strike', () => this.showFlash('❌ Strike'));
-    this.hub.on('StealOpportunity', () => this.showFlash('¡Oportunidad de robo!'));
-    this.hub.on('StealSucceeded', () => this.showFlash('Robo exitoso'));
-    this.hub.on('StealFailed', () => this.showFlash('Robo fallido'));
-    this.hub.on('RoundWon', () => this.showFlash('¡Ronda ganada!'));
-    this.hub.onreconnecting(() => this.connection.set('Reconectando…'));
-    this.hub.onreconnected(() => {
+    const onLobby = (lobby: GameShowLobbyDto) => this.zone.run(() => this.apply(lobby));
+    const onFlash = (message: string) => this.zone.run(() => {
+      this.showFlash(message);
+      this.reloadQuiet();
+    });
+
+    this.hub.on('LobbyUpdated', onLobby);
+    this.hub.on('BuzzWon', () => onFlash('¡Turno de enfrentamiento!'));
+    this.hub.on('FaceOffPass', () => onFlash('Turno del otro equipo'));
+    this.hub.on('FaceOffWon', () => onFlash('¡Control de la ronda!'));
+    this.hub.on('FaceOffReopen', () => onFlash('Nadie acertó — buzzer de nuevo'));
+    this.hub.on('CorrectAnswer', () => onFlash('¡Correcto!'));
+    this.hub.on('AlreadyRevealed', () => this.zone.run(() => this.showFlash('⚠️ Esta respuesta ya fue descubierta')));
+    this.hub.on('Strike', () => onFlash('❌ Strike'));
+    this.hub.on('StealOpportunity', () => onFlash('¡Oportunidad de robo!'));
+    this.hub.on('StealSucceeded', () => onFlash('Robo exitoso'));
+    this.hub.on('StealFailed', () => onFlash('Robo fallido'));
+    this.hub.on('RoundWon', () => onFlash('¡Ronda ganada!'));
+    this.hub.onreconnecting(() => this.zone.run(() => this.connection.set('Reconectando…')));
+    this.hub.onreconnected(() => this.zone.run(() => {
       this.connection.set(null);
       void this.hub?.invoke('JoinAsPlayer', this.sessionId, this.token);
       this.reload();
-    });
-    this.hub.onclose(() => this.connection.set('Conexión perdida. Recarga la página.'));
-    void this.hub.start().then(() => this.hub!.invoke('JoinAsPlayer', this.sessionId, this.token));
+    }));
+    this.hub.onclose(() => this.zone.run(() => this.connection.set('Conexión perdida. Recarga la página.')));
+    void this.hub.start()
+      .then(() => this.hub!.invoke('JoinAsPlayer', this.sessionId, this.token))
+      .catch(() => this.zone.run(() => this.connection.set('Sin SignalR — sincronizando por red…')));
   }
 }

@@ -41,6 +41,7 @@ export interface GameShowRoundDto {
   strikes: number;
   roundPointsForController: number;
   stealSucceeded: boolean;
+  answerDeadlineUtc: string | null;
   answers: GameShowBoardAnswerDto[];
 }
 
@@ -236,7 +237,7 @@ export class GameShowApi {
   }
 
   buzz(id: number, playerToken: string) {
-    return this.http.post(
+    return this.http.post<GameShowLobbyDto>(
       `${this.base}/api/game-show/${id}/buzz?playerToken=${encodeURIComponent(playerToken)}`,
       {}
     );
@@ -247,10 +248,15 @@ export class GameShowApi {
   }
 
   answer(id: number, playerToken: string, text: string) {
-    return this.http.post(
+    return this.http.post<GameShowLobbyDto>(
       `${this.base}/api/game-show/${id}/answer?playerToken=${encodeURIComponent(playerToken)}`,
       { text }
     );
+  }
+
+  timeout(id: number, playerToken?: string | null) {
+    const q = playerToken ? `?playerToken=${encodeURIComponent(playerToken)}` : '';
+    return this.http.post<GameShowLobbyDto>(`${this.base}/api/game-show/${id}/timeout${q}`, {});
   }
 
   reveal(id: number, answerId: number) {
