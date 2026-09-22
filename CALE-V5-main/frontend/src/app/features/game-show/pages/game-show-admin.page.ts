@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
@@ -7,11 +7,13 @@ import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.compone
 import { UiSuccessComponent } from '../../../shared/ui/ui-success.component';
 import { mapApiError } from '../../../core/http/map-api-error';
 import {
+  CreateGameShowBody,
   GameShowApi,
   GameShowPackSummaryDto,
   GameShowRoundInput,
   GameShowSettingsDto
 } from '../api/game-show.api';
+import { GameShowImportError, parseGameShowImport } from '../api/game-show-import';
 
 type AdminTab = 'questions' | 'times' | 'rules' | 'preview';
 
@@ -46,11 +48,11 @@ function blankRound(): GameShowRoundInput {
     category: '',
     isActive: true,
     answers: [
-      { text: '', points: 30, isActive: true },
-      { text: '', points: 25, isActive: true },
-      { text: '', points: 20, isActive: true },
-      { text: '', points: 15, isActive: true },
-      { text: '', points: 10, isActive: true }
+      { text: '', points: 30, isActive: true, aliases: [] },
+      { text: '', points: 25, isActive: true, aliases: [] },
+      { text: '', points: 20, isActive: true, aliases: [] },
+      { text: '', points: 15, isActive: true, aliases: [] },
+      { text: '', points: 10, isActive: true, aliases: [] }
     ]
   };
 }
@@ -184,8 +186,26 @@ function blankRound(): GameShowRoundInput {
         </div>
         <div class="actions">
           <ui-button type="button" variant="secondary" (click)="addQuestion()">+ Pregunta</ui-button>
+          <ui-button type="button" variant="secondary" (click)="exportPack('csv')">Exportar CSV</ui-button>
+          <ui-button type="button" variant="secondary" (click)="exportPack('json')">Exportar JSON</ui-button>
+          <ui-button type="button" variant="secondary" [loading]="importing()" (click)="pickImport()">
+            Importar JSON/CSV
+          </ui-button>
+          <ui-button type="button" variant="secondary" [loading]="loadingOfficial()" (click)="loadOfficial()">
+            Cargar pack oficial
+          </ui-button>
           <ui-button type="button" [loading]="savingPack()" (click)="savePack()">Guardar pack</ui-button>
+          @if (selectedPackId()) {
+            <ui-button type="button" variant="ghost" (click)="deletePack()">Borrar pack</ui-button>
+          }
+          <input
+            #importInput
+            class="file-input"
+            type="file"
+            accept=".json,.csv,application/json,text/csv,text/plain"
+            (change)="onImportFile($event)" />
         </div>
+        <p class="hint">{{ rounds().length }} pregunta(s) en el editor. Importar reemplaza el contenido actual del editor (guarda después).</p>
 
         @for (r of filteredRounds(); track $index; let i = $index) {
           <article class="round" [class.off]="r.isActive === false">
@@ -211,10 +231,15 @@ function blankRound(): GameShowRoundInput {
                 <label class="check"><input type="checkbox" [(ngModel)]="a.isActive" /></label>
                 <input class="input" [(ngModel)]="a.text" placeholder="Respuesta" />
                 <input class="input pts" type="number" min="1" [(ngModel)]="a.points" />
+                <input
+                  class="input"
+                  [ngModel]="aliasesText(a.aliases)"
+                  (ngModelChange)="onAliases(a, $event)"
+                  placeholder="Aliases (a | b)" />
                 <ui-button type="button" variant="ghost" (click)="r.answers.splice(ai, 1)">×</ui-button>
               </div>
             }
-            <ui-button type="button" variant="secondary" (click)="r.answers.push({ text: '', points: 5, isActive: true })">
+            <ui-button type="button" variant="secondary" (click)="r.answers.push({ text: '', points: 5, isActive: true, aliases: [] })">
               + Respuesta
             </ui-button>
           </article>
@@ -261,8 +286,9 @@ function blankRound(): GameShowRoundInput {
     .round.off { opacity: 0.55; }
     .round header { display: flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
     .hist-actions { display: flex; flex-wrap: wrap; gap: 0.25rem; }
-    .ans { display: grid; grid-template-columns: auto 1fr 5rem auto; gap: 0.4rem; align-items: center; }
+    .ans { display: grid; grid-template-columns: auto 1fr 5rem 1fr auto; gap: 0.4rem; align-items: center; }
     .pts { max-width: 5rem; }
+    .file-input { display: none; }
   `]
 })
 export class GameShowAdminPage implements OnInit {
@@ -296,6 +322,8 @@ export class GameShowAdminPage implements OnInit {
   readonly settingsDirty = signal(false);
   readonly savingSettings = signal(false);
   readonly savingPack = signal(false);
+  readonly importing = signal(false);
+  readonly loadingOfficial = signal(false);
   readonly previewIndex = signal(0);
 
   draft: GameShowSettingsDto = emptySettings();
@@ -303,6 +331,8 @@ export class GameShowAdminPage implements OnInit {
   packName = 'Pack de preguntas';
   query = '';
   filterActive: 'all' | 'on' | 'off' = 'all';
+
+  @ViewChild('importInput') private importInput?: ElementRef<HTMLInputElement>;
 
   readonly filteredRounds = computed(() => {
     const q = this.query.trim().toLowerCase();
@@ -317,6 +347,10 @@ export class GameShowAdminPage implements OnInit {
 
   ngOnInit(): void {
     this.reloadSettings();
+    this.reloadPacks();
+  }
+
+  private reloadPacks(): void {
     this.api.listPacks().subscribe({
       next: (p) => this.packs.set(p),
       error: (e) => this.error.set(mapApiError(e))
@@ -379,14 +413,7 @@ export class GameShowAdminPage implements OnInit {
     this.api.getPack(id).subscribe({
       next: (d) => {
         this.packName = d.name;
-        this.rounds.set(
-          d.body.rounds.map((r) => ({
-            ...r,
-            isActive: r.isActive !== false,
-            category: r.category ?? '',
-            answers: r.answers.map((a) => ({ ...a, isActive: a.isActive !== false }))
-          }))
-        );
+        this.rounds.set(normalizeRounds(d.body.rounds));
       },
       error: (e) => this.error.set(mapApiError(e))
     });
@@ -429,6 +456,136 @@ export class GameShowAdminPage implements OnInit {
     });
   }
 
+  aliasesText(aliases?: string[]): string {
+    return (aliases || []).join(' | ');
+  }
+
+  onAliases(answer: { aliases?: string[] }, value: string): void {
+    answer.aliases = (value || '')
+      .split('|')
+      .map((x) => x.trim())
+      .filter(Boolean);
+  }
+
+  pickImport(): void {
+    this.importInput?.nativeElement.click();
+  }
+
+  loadOfficial(): void {
+    this.error.set(null);
+    this.loadingOfficial.set(true);
+    this.api.officialPack().subscribe({
+      next: (body) => {
+        this.applyImportedBody(body, body.title || 'Pack oficial');
+        this.selectedPackId.set(0);
+        this.loadingOfficial.set(false);
+        this.ok.set('Pack oficial cargado en el editor. Guarda para crear un pack en el servidor.');
+      },
+      error: (e) => {
+        this.loadingOfficial.set(false);
+        this.error.set(mapApiError(e));
+      }
+    });
+  }
+
+  onImportFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+
+    this.error.set(null);
+    this.importing.set(true);
+    this.api.importQuestions(file).subscribe({
+      next: (body) => {
+        this.applyImportedBody(body, body.title || file.name.replace(/\.(json|csv)$/i, ''));
+        this.selectedPackId.set(0);
+        this.importing.set(false);
+        this.ok.set(`Importadas ${body.rounds.length} rondas. Guarda el pack para usarlas en Crear sala.`);
+      },
+      error: (err) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const body = parseGameShowImport(String(reader.result ?? ''), file.name);
+            this.applyImportedBody(body, body.title || file.name.replace(/\.(json|csv)$/i, ''));
+            this.selectedPackId.set(0);
+            this.importing.set(false);
+            this.ok.set(`Importadas ${body.rounds.length} rondas. Guarda el pack para usarlas en Crear sala.`);
+          } catch (localErr) {
+            this.importing.set(false);
+            this.error.set(
+              localErr instanceof GameShowImportError ? localErr.message : mapApiError(err)
+            );
+          }
+        };
+        reader.onerror = () => {
+          this.importing.set(false);
+          this.error.set(mapApiError(err));
+        };
+        reader.readAsText(file, 'utf-8');
+      }
+    });
+  }
+
+  private applyImportedBody(body: CreateGameShowBody, name: string): void {
+    this.packName = name;
+    this.rounds.set(normalizeRounds(body.rounds));
+    this.previewIndex.set(0);
+  }
+
+  exportPack(format: 'csv' | 'json'): void {
+    const body: CreateGameShowBody = {
+      title: this.packName.trim() || 'Pack de preguntas',
+      teamAName: 'Equipo A',
+      teamBName: 'Equipo B',
+      rounds: this.rounds()
+    };
+    if (format === 'json') {
+      this.saveBlob(
+        new Blob([JSON.stringify(body, null, 2)], { type: 'application/json;charset=utf-8' }),
+        `cale-100-dijeron-pack.json`
+      );
+      return;
+    }
+    const lines = ['ronda,pregunta,rank,respuesta,puntos,aliases'];
+    body.rounds.forEach((round, ri) => {
+      round.answers.forEach((ans, ai) => {
+        lines.push(
+          `${ri + 1},${csvCell(round.questionText)},${ai + 1},${csvCell(ans.text)},${ans.points},${csvCell((ans.aliases || []).join(' | '))}`
+        );
+      });
+    });
+    this.saveBlob(
+      new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' }),
+      `cale-100-dijeron-pack.csv`
+    );
+  }
+
+  private saveBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  deletePack(): void {
+    const id = this.selectedPackId();
+    if (!id || !confirm('¿Borrar este pack del servidor?')) return;
+    this.api.deletePack(id).subscribe({
+      next: () => {
+        this.selectedPackId.set(0);
+        this.packName = 'Pack de preguntas';
+        this.rounds.set([blankRound()]);
+        this.reloadPacks();
+        this.ok.set('Pack borrado');
+      },
+      error: (e) => this.error.set(mapApiError(e))
+    });
+  }
+
   savePack(): void {
     const rounds = this.rounds();
     if (!rounds.some((r) => r.isActive !== false && r.questionText.trim().length >= 5)) {
@@ -447,8 +604,8 @@ export class GameShowAdminPage implements OnInit {
       next: (d) => {
         this.savingPack.set(false);
         this.selectedPackId.set(d.id);
-        this.ok.set('Pack guardado');
-        this.api.listPacks().subscribe({ next: (p) => this.packs.set(p) });
+        this.ok.set('Pack guardado. Ya aparece en Crear sala.');
+        this.reloadPacks();
       },
       error: (e) => {
         this.savingPack.set(false);
@@ -456,4 +613,21 @@ export class GameShowAdminPage implements OnInit {
       }
     });
   }
+}
+
+function normalizeRounds(rounds: GameShowRoundInput[]): GameShowRoundInput[] {
+  return rounds.map((r) => ({
+    ...r,
+    isActive: r.isActive !== false,
+    category: r.category ?? '',
+    answers: r.answers.map((a) => ({
+      ...a,
+      isActive: a.isActive !== false,
+      aliases: [...(a.aliases || [])]
+    }))
+  }));
+}
+
+function csvCell(value: string): string {
+  return `"${(value || '').replace(/"/g, '""')}"`;
 }
