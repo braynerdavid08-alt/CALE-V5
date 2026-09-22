@@ -1,3 +1,10 @@
+<ng-template #inner>
+  @if (loading) {
+    <span class="spin" aria-hidden="true"></span>
+  }
+  <ng-content />
+</ng-template>
+
 @if (routerLink) {
   <a
     class="btn"
@@ -9,10 +16,7 @@
     [class.ghost]="variant === 'ghost'"
     [class.danger]="variant === 'danger'"
     [class.is-disabled]="disabled || loading">
-    @if (loading) {
-      <span class="spin" aria-hidden="true"></span>
-    }
-    <ng-content />
+    <ng-container *ngTemplateOutlet="inner" />
   </a>
 } @else {
   <button
@@ -23,9 +27,6 @@
     [class.secondary]="variant === 'secondary'"
     [class.ghost]="variant === 'ghost'"
     [class.danger]="variant === 'danger'">
-    @if (loading) {
-      <span class="spin" aria-hidden="true"></span>
-    }
-    <ng-content />
+    <ng-container *ngTemplateOutlet="inner" />
   </button>
 }

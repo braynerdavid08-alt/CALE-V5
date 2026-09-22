@@ -157,9 +157,15 @@ public sealed class StartExamHandler
                     prepared.Select(p => p.Snapshot).ToList(),
                     ct);
             }
-            catch (DbUpdateException) when (exam is not null)
+            catch (DbUpdateException ex) when (exam is not null)
             {
                 // Concurrent start hit unique open-exam index — resume winner.
+                _logger.LogWarning(
+                    ex,
+                    "Exam start DbUpdate race userId={UserId} examId={ExamId} sql={SqlState}",
+                    userId,
+                    exam.Id,
+                    ex.InnerException?.GetType().Name);
                 var raced = await _attempts.FindOpenByUserAndExamAsync(
                     userId,
                     exam.Id,
@@ -177,6 +183,18 @@ public sealed class StartExamHandler
                     return await ResumeAsync(raced, exam.TimeMinutes, ct);
                 }
 
+                throw;
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Attempt insert failed userId={UserId} mode={Mode} bankId={BankId} questions={QuestionCount} detail={Detail}",
+                    userId,
+                    attempt.Mode,
+                    bankId,
+                    selected.Count,
+                    ex.InnerException?.Message ?? ex.Message);
                 throw;
             }
 
