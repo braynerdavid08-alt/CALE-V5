@@ -28,22 +28,6 @@ public sealed class GameShowHub : Hub
 
     public static string GroupName(int sessionId) => $"{GroupPrefix}{sessionId}";
 
-    public async Task JoinAsHost(int sessionId)
-    {
-        var userId = TryGetUserId()
-            ?? throw new HubException("Debes iniciar sesión.");
-        var session = await _store.GetByIdAsync(sessionId, Context.ConnectionAborted)
-            ?? throw new HubException("Partida no encontrada.");
-        var isAdmin = Context.User?.IsInRole(Roles.Admin) == true;
-        if (!isAdmin && session.HostUserId != userId)
-        {
-            throw new HubException("Solo el anfitrión puede controlar esta partida.");
-        }
-
-        await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(sessionId));
-        _logger.LogInformation("GameShow host {UserId} joined session {SessionId}", userId, sessionId);
-    }
-
     public async Task JoinAsPlayer(int sessionId, string playerToken)
     {
         if (!Guid.TryParse(playerToken, out var token))
@@ -51,23 +35,71 @@ public sealed class GameShowHub : Hub
             throw new HubException("Token inválido.");
         }
 
-        var player = await _store.GetPlayerByTokenAsync(token, Context.ConnectionAborted)
-            ?? throw new HubException("Jugador no encontrado.");
-        if (player.SessionId != sessionId)
+        try
         {
-            throw new HubException("Token inválido para esta partida.");
-        }
+            var player = await _store.GetPlayerByTokenAsync(token, Context.ConnectionAborted)
+                ?? throw new HubException("Jugador no encontrado.");
+            if (player.SessionId != sessionId)
+            {
+                throw new HubException("Token inválido para esta partida.");
+            }
 
-        await _handler.SetConnectionAsync(token, Context.ConnectionId, true, Context.ConnectionAborted);
-        await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(sessionId));
+            await _handler.SetConnectionAsync(token, Context.ConnectionId, true, Context.ConnectionAborted);
+            if (Context.ConnectionAborted.IsCancellationRequested)
+            {
+                return;
+            }
+
+            await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(sessionId));
+        }
+        catch (OperationCanceledException) when (Context.ConnectionAborted.IsCancellationRequested)
+        {
+            _logger.LogDebug(
+                "JoinAsPlayer cancelled for session {SessionId} (client disconnected)",
+                sessionId);
+        }
     }
 
     public async Task JoinAsScreen(int sessionId)
     {
-        var session = await _store.GetByIdAsync(sessionId, Context.ConnectionAborted)
-            ?? throw new HubException("Partida no encontrada.");
-        _ = session;
-        await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(sessionId));
+        try
+        {
+            var session = await _store.GetByIdAsync(sessionId, Context.ConnectionAborted)
+                ?? throw new HubException("Partida no encontrada.");
+            _ = session;
+            await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(sessionId));
+        }
+        catch (OperationCanceledException) when (Context.ConnectionAborted.IsCancellationRequested)
+        {
+            _logger.LogDebug(
+                "JoinAsScreen cancelled for session {SessionId} (client disconnected)",
+                sessionId);
+        }
+    }
+
+    public async Task JoinAsHost(int sessionId)
+    {
+        try
+        {
+            var userId = TryGetUserId()
+                ?? throw new HubException("Debes iniciar sesión.");
+            var session = await _store.GetByIdAsync(sessionId, Context.ConnectionAborted)
+                ?? throw new HubException("Partida no encontrada.");
+            var isAdmin = Context.User?.IsInRole(Roles.Admin) == true;
+            if (!isAdmin && session.HostUserId != userId)
+            {
+                throw new HubException("Solo el anfitrión puede controlar esta partida.");
+            }
+
+            await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(sessionId));
+            _logger.LogInformation("GameShow host {UserId} joined session {SessionId}", userId, sessionId);
+        }
+        catch (OperationCanceledException) when (Context.ConnectionAborted.IsCancellationRequested)
+        {
+            _logger.LogDebug(
+                "JoinAsHost cancelled for session {SessionId} (client disconnected)",
+                sessionId);
+        }
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
