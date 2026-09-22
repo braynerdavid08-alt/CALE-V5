@@ -51,8 +51,7 @@ import { phaseHasTurnClock, secondsUntilDeadline } from '../api/game-show-deadli
             }
           </p>
           @if (timerSec() !== null && (
-            L.currentRound.phase === 'WaitingBuzz'
-            || L.currentRound.phase === 'FaceOff'
+            L.currentRound.phase === 'FaceOff'
             || L.currentRound.phase === 'FaceOffSecond'
             || L.currentRound.phase === 'Control'
             || L.currentRound.phase === 'Playing'
@@ -240,10 +239,6 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
     this.hub.on('FaceOffReopen', () => {
       this.sfx.play('tick');
       this.showFlash('NADIE ACIERTÓ — BUZZER');
-    });
-    this.hub.on('BuzzWindowExtended', () => {
-      this.sfx.play('tick');
-      this.showFlash('NUEVO TIEMPO DE BUZZER');
     });
     this.hub.on('CorrectAnswer', () => {
       this.sfx.play('correct');

@@ -64,7 +64,8 @@ public static class GameShowEngine
             a.RevealedAt = null;
         }
 
-        GameShowTiming.SetDeadline(round, now);
+        // No turn clock while teams decide who presses RESPONDER.
+        GameShowTiming.ClearDeadline(round);
     }
 
     public static void EnterFaceOff(GameShowRound round, string team, DateTime? utcNow = null)
@@ -358,23 +359,16 @@ public static class GameShowEngine
 
         return round.Phase switch
         {
-            GameShowRoundPhases.WaitingBuzz => ExtendBuzzWindow(round, utcNow),
+            GameShowRoundPhases.WaitingBuzz => new Outcome(
+                OutcomeKind.Noop,
+                "TimerTick",
+                new { expired = false, phase = round.Phase }),
             GameShowRoundPhases.FaceOff => TimeoutFaceOffFirst(round, utcNow),
             GameShowRoundPhases.FaceOffSecond => TimeoutFaceOffSecond(round, utcNow),
             GameShowRoundPhases.Control or GameShowRoundPhases.Playing => TimeoutControl(round, utcNow),
             GameShowRoundPhases.Steal => HostFailSteal(session, round, utcNow),
             _ => new Outcome(OutcomeKind.Noop, "TimerTick", new { expired = true, phase = round.Phase })
         };
-    }
-
-    private static Outcome ExtendBuzzWindow(GameShowRound round, DateTime utcNow)
-    {
-        GameShowTiming.SetDeadline(round, utcNow);
-        round.BuzzOpenedAt = utcNow;
-        return new Outcome(
-            OutcomeKind.BuzzWindowExtended,
-            "BuzzWindowExtended",
-            new { deadlineUtc = round.AnswerDeadlineUtc });
     }
 
     private static Outcome TimeoutFaceOffFirst(GameShowRound round, DateTime utcNow)

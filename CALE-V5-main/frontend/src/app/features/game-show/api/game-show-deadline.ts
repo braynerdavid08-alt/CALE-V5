@@ -11,8 +11,7 @@ export function secondsUntilDeadline(
 
 export function phaseHasTurnClock(phase: string | null | undefined): boolean {
   return (
-    phase === 'WaitingBuzz'
-    || phase === 'FaceOff'
+    phase === 'FaceOff'
     || phase === 'FaceOffSecond'
     || phase === 'Control'
     || phase === 'Playing'

@@ -66,13 +66,13 @@ public sealed class GameShowTimeoutTests
         var now = DateTime.UtcNow;
         GameShowEngine.EnterFaceOff(round, GameShowTeams.A, now);
 
-        var outcome = GameShowEngine.ProcessTimeout(session, round, now.AddSeconds(13));
+        var outcome = GameShowEngine.ProcessTimeout(session, round, now.AddSeconds(26));
 
         Assert.Equal(GameShowEngine.OutcomeKind.FaceOffMissPass, outcome.Kind);
         Assert.Equal(GameShowRoundPhases.FaceOffSecond, round.Phase);
         Assert.Equal(GameShowTeams.B, round.ControllingTeam);
         Assert.Equal(0, round.Strikes);
-        Assert.True(round.AnswerDeadlineUtc > now.AddSeconds(13));
+        Assert.True(round.AnswerDeadlineUtc > now.AddSeconds(25));
     }
 
     [Fact]
@@ -82,7 +82,7 @@ public sealed class GameShowTimeoutTests
         var round = session.Rounds[0];
         var now = DateTime.UtcNow;
         GameShowEngine.EnterFaceOff(round, GameShowTeams.A, now);
-        GameShowEngine.ProcessTimeout(session, round, now.AddSeconds(13));
+        GameShowEngine.ProcessTimeout(session, round, round.AnswerDeadlineUtc!.Value);
 
         var secondDeadline = round.AnswerDeadlineUtc!.Value;
         var outcome = GameShowEngine.ProcessTimeout(session, round, secondDeadline);
@@ -90,6 +90,7 @@ public sealed class GameShowTimeoutTests
         Assert.Equal(GameShowEngine.OutcomeKind.FaceOffBothMissReopen, outcome.Kind);
         Assert.Equal(GameShowRoundPhases.WaitingBuzz, round.Phase);
         Assert.Null(round.ControllingTeam);
+        Assert.Null(round.AnswerDeadlineUtc);
     }
 
     [Fact]
@@ -129,7 +130,7 @@ public sealed class GameShowTimeoutTests
         round.Strikes = 3;
         GameShowTiming.SetDeadline(round, now);
 
-        var outcome = GameShowEngine.ProcessTimeout(session, round, now.AddSeconds(13));
+        var outcome = GameShowEngine.ProcessTimeout(session, round, now.AddSeconds(26));
 
         Assert.Equal(GameShowEngine.OutcomeKind.StealFailed, outcome.Kind);
         Assert.Equal(GameShowRoundPhases.Finished, round.Phase);
@@ -139,27 +140,28 @@ public sealed class GameShowTimeoutTests
     }
 
     [Fact]
-    public void WaitingBuzz_timeout_extends_window()
+    public void WaitingBuzz_has_no_deadline()
     {
         var session = SessionWithRound(("Frenos", 30), ("Luces", 25), ("Llantas", 20), ("Espejos", 15), ("Aceite", 10));
         var round = session.Rounds[0];
         var now = DateTime.UtcNow;
         GameShowEngine.OpenBuzz(round, now);
-        var firstDeadline = round.AnswerDeadlineUtc;
 
-        var outcome = GameShowEngine.ProcessTimeout(session, round, now.AddSeconds(11));
+        Assert.Null(round.AnswerDeadlineUtc);
 
-        Assert.Equal(GameShowEngine.OutcomeKind.BuzzWindowExtended, outcome.Kind);
+        var outcome = GameShowEngine.ProcessTimeout(session, round, now.AddMinutes(5));
+
+        Assert.Equal(GameShowEngine.OutcomeKind.Noop, outcome.Kind);
         Assert.Equal(GameShowRoundPhases.WaitingBuzz, round.Phase);
-        Assert.True(round.AnswerDeadlineUtc > firstDeadline);
+        Assert.Null(round.AnswerDeadlineUtc);
     }
 
     [Fact]
-    public void Timing_constants_match_plan()
+    public void Timing_constants_match_classroom_pacing()
     {
-        Assert.Equal(10, GameShowTiming.BuzzWindow.TotalSeconds);
-        Assert.Equal(12, GameShowTiming.FaceOffAnswer.TotalSeconds);
-        Assert.Equal(15, GameShowTiming.ControlAnswer.TotalSeconds);
-        Assert.Equal(12, GameShowTiming.StealAnswer.TotalSeconds);
+        Assert.Equal(0, GameShowTiming.BuzzWindow.TotalSeconds);
+        Assert.Equal(25, GameShowTiming.FaceOffAnswer.TotalSeconds);
+        Assert.Equal(30, GameShowTiming.ControlAnswer.TotalSeconds);
+        Assert.Equal(25, GameShowTiming.StealAnswer.TotalSeconds);
     }
 }
