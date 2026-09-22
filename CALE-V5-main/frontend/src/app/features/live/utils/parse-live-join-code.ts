@@ -1,11 +1,13 @@
-/** Extract a live room join code from a QR payload or manual input. */
+/** Extract a live / gameshow room join code from a QR payload or manual input. */
 export function parseLiveJoinCode(raw: string): string | null {
   const text = raw.trim();
   if (!text) {
     return null;
   }
 
-  const fromUrl = text.match(/\/live\/join\/([A-Za-z0-9]{4,12})/i);
+  const fromUrl = text.match(
+    /\/(?:live\/join|game-show\/join)\/([A-Za-z0-9]{4,12})/i
+  );
   if (fromUrl?.[1]) {
     return fromUrl[1].toUpperCase();
   }

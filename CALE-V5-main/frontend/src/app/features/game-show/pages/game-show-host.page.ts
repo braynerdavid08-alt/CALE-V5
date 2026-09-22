@@ -5,7 +5,9 @@ import { buildQrDataUrl } from '../../../core/qr/build-qr-data-url';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { mapApiError } from '../../../core/http/map-api-error';
-import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
+import { GameShowApi, GameShowLobbyDto, GameShowStatsDto } from '../api/game-show.api';
+import { GameShowSfxService } from '../api/game-show-sfx.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-game-show-host-page',
@@ -39,7 +41,7 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
           <div class="join-copy">
             <p class="join-label">Código para unirse</p>
             <p class="join-code">{{ L.joinCode }}</p>
-            <p class="join-hint">Los estudiantes abren la cámara o van a:</p>
+            <p class="join-hint">Los estudiantes entran en la app → <strong>Aula en vivo</strong> con este código:</p>
             <p class="join-url">{{ joinUrl(L.joinCode) }}</p>
             <div class="join-actions">
               <ui-button type="button" variant="secondary" (click)="copyCode(L.joinCode)">Copiar código</ui-button>
@@ -88,6 +90,20 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
             <ui-button type="button" variant="ghost" (click)="finish()">Finalizar</ui-button>
           }
         </div>
+
+        @if (L.status === 'Ended') {
+          <article class="board finale">
+            <h2>Partida finalizada</h2>
+            <p class="q">{{ L.teamAScore > L.teamBScore ? 'Gana ' + L.teamAName : L.teamBScore > L.teamAScore ? 'Gana ' + L.teamBName : 'Empate' }}</p>
+            @if (stats(); as S) {
+              <p class="meta">Aciertos {{ S.correctAnswers }} · Errores {{ S.wrongAnswers }} · Robos {{ S.stealsSucceeded }} · Rondas {{ S.roundCount }}</p>
+            }
+            <div class="controls">
+              <ui-button type="button" (click)="replay()">Rejugar con el mismo pack</ui-button>
+              <a routerLink="/teacher/game-show">Volver al hub</a>
+            </div>
+          </article>
+        }
 
         @if (L.currentRound; as R) {
           <article class="board">
@@ -210,9 +226,12 @@ import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
 export class GameShowHostPage implements OnInit, OnDestroy {
   private readonly api = inject(GameShowApi);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly sfx = inject(GameShowSfxService);
   readonly Math = Math;
 
   readonly lobby = signal<GameShowLobbyDto | null>(null);
+  readonly stats = signal<GameShowStatsDto | null>(null);
   readonly error = signal<string | null>(null);
   readonly flash = signal<string | null>(null);
   readonly connection = signal<string | null>(null);
@@ -223,6 +242,7 @@ export class GameShowHostPage implements OnInit, OnDestroy {
   private flashTimer: ReturnType<typeof setTimeout> | null = null;
   private copiedTimer: ReturnType<typeof setTimeout> | null = null;
   private lastQrCode = '';
+  private lastStatus: string | null = null;
 
   ngOnInit(): void {
     this.sessionId = Number(this.route.snapshot.paramMap.get('sessionId'));
@@ -267,7 +287,7 @@ export class GameShowHostPage implements OnInit, OnDestroy {
 
   joinUrl(code: string): string {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    return `${origin}/game-show/join/${code}`;
+    return `${origin}/live/join/${code}`;
   }
 
   copyCode(code: string): void {
@@ -293,6 +313,13 @@ export class GameShowHostPage implements OnInit, OnDestroy {
   }
   assign(playerId: number, team: string): void {
     this.act(() => this.api.assign(this.sessionId, playerId, team));
+  }
+
+  replay(): void {
+    this.api.replay(this.sessionId, {}).subscribe({
+      next: (lobby) => void this.router.navigate(['/teacher/game-show', lobby.id, 'host']),
+      error: (err) => this.error.set(mapApiError(err))
+    });
   }
 
   exportQuestions(format: 'csv' | 'json'): void {
@@ -324,6 +351,13 @@ export class GameShowHostPage implements OnInit, OnDestroy {
   }
 
   private applyLobby(lobby: GameShowLobbyDto): void {
+    if (lobby.status === 'Ended' && this.lastStatus !== 'Ended') {
+      this.api.stats(this.sessionId).subscribe({
+        next: (s) => this.stats.set(s),
+        error: () => this.stats.set(null)
+      });
+    }
+    this.lastStatus = lobby.status;
     this.lobby.set(lobby);
     this.refreshQr(lobby.joinCode);
   }
@@ -362,13 +396,34 @@ export class GameShowHostPage implements OnInit, OnDestroy {
       this.reload();
       void lobby;
     });
-    this.hub.on('BuzzWon', () => this.showFlash('¡Buzzer!'));
-    this.hub.on('CorrectAnswer', () => this.showFlash('¡Correcto!'));
-    this.hub.on('Strike', () => this.showFlash('Error'));
-    this.hub.on('StealOpportunity', () => this.showFlash('¡Oportunidad de robo!'));
-    this.hub.on('StealSucceeded', () => this.showFlash('¡Robo exitoso!'));
-    this.hub.on('StealFailed', () => this.showFlash('Robo fallido'));
-    this.hub.on('GameEnded', () => this.showFlash('Partida finalizada'));
+    this.hub.on('BuzzWon', () => {
+      this.sfx.play('buzz');
+      this.showFlash('¡Buzzer!');
+    });
+    this.hub.on('CorrectAnswer', () => {
+      this.sfx.play('correct');
+      this.showFlash('¡Correcto!');
+    });
+    this.hub.on('Strike', () => {
+      this.sfx.play('strike');
+      this.showFlash('Error');
+    });
+    this.hub.on('StealOpportunity', () => {
+      this.sfx.play('steal');
+      this.showFlash('¡Oportunidad de robo!');
+    });
+    this.hub.on('StealSucceeded', () => {
+      this.sfx.play('correct');
+      this.showFlash('¡Robo exitoso!');
+    });
+    this.hub.on('StealFailed', () => {
+      this.sfx.play('stealFail');
+      this.showFlash('Robo fallido');
+    });
+    this.hub.on('GameEnded', () => {
+      this.sfx.play('end');
+      this.showFlash('Partida finalizada');
+    });
     this.hub.onreconnecting(() => this.connection.set('Reconectando…'));
     this.hub.onreconnected(() => {
       this.connection.set(null);

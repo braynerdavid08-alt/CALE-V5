@@ -1,12 +1,14 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { SessionStore } from '../../../core/auth/session.store';
 import { LiveApi } from '../api/live.api';
 import { LiveQrScannerComponent } from '../components/live-qr-scanner.component';
+import { GameShowApi } from '../../game-show/api/game-show.api';
 
 const TOKEN_KEY = 'cale.live.participant';
 
@@ -22,10 +24,11 @@ const TOKEN_KEY = 'cale.live.participant';
   ],
   template: `
     <section class="join">
-      <p class="eyebrow">CALE LIVE</p>
+      <p class="eyebrow">AULA EN VIVO</p>
       <h1>Unirse a la sala</h1>
       <p class="lead">
-        Debes tener sesión iniciada para entrar y registrar tu progreso.
+        Usa el código que te dio el instructor. Sirve para clase en vivo y para
+        <strong>100 Estudiantes Dijeron</strong>.
       </p>
       <ui-error [message]="error()" />
       <div class="mode-tabs">
@@ -93,6 +96,7 @@ const TOKEN_KEY = 'cale.live.participant';
 export class LiveJoinPage implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(LiveApi);
+  private readonly gameShow = inject(GameShowApi);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly session = inject(SessionStore);
@@ -148,10 +152,18 @@ export class LiveJoinPage implements OnInit {
       this.error.set('Código inválido.');
       return;
     }
+    if (!this.session.isAuthenticated()) {
+      void this.router.navigate(['/login'], {
+        queryParams: { returnUrl: `/live/join/${code}` }
+      });
+      return;
+    }
+
     this.loading.set(true);
     this.error.set(null);
     this.form.controls.code.setValue(code);
     const displayName = this.session.user()?.name || 'Estudiante';
+
     this.api.join(code, displayName).subscribe({
       next: (res) => {
         this.loading.set(false);
@@ -159,11 +171,45 @@ export class LiveJoinPage implements OnInit {
         void this.router.navigate(['/live/play', res.sessionId]);
       },
       error: (err) => {
+        if (isRoomMissing(err)) {
+          this.joinGameShow(code, displayName);
+          return;
+        }
         this.loading.set(false);
         this.error.set(mapApiError(err));
       }
     });
   }
+
+  private joinGameShow(code: string, displayName: string): void {
+    this.gameShow.join(code, displayName, 'auto').subscribe({
+      next: (res) => {
+        this.loading.set(false);
+        this.gameShow.savePlayerToken(res.sessionId, res.playerToken);
+        localStorage.setItem(`cale.game-show.team.${res.sessionId}`, res.team || 'A');
+        localStorage.setItem(`cale.game-show.playerId.${res.sessionId}`, String(res.playerId));
+        void this.router.navigate(['/game-show/play', res.sessionId]);
+      },
+      error: (err) => {
+        this.loading.set(false);
+        this.error.set(
+          isRoomMissing(err)
+            ? 'No encontramos esa sala. Revisa el código con tu instructor.'
+            : mapApiError(err)
+        );
+      }
+    });
+  }
+}
+
+function isRoomMissing(err: unknown): boolean {
+  if (!(err instanceof HttpErrorResponse)) return false;
+  const detail = typeof err.error?.detail === 'string' ? err.error.detail : '';
+  return (
+    err.status === 404
+    || detail === 'session_not_found'
+    || detail === 'game_not_found'
+  );
 }
 
 export function saveLiveParticipant(res: {

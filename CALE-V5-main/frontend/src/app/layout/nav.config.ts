@@ -158,7 +158,6 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
   const studentNav: NavItem[] = [
     { label: 'Inicio', path: '/student', icon: 'home', exact: true },
     { label: 'Aula en Vivo', path: '/live/join', icon: 'exam', exact: true },
-    { label: '100 Dijeron', path: '/game-show/join', icon: 'star', exact: true },
     { label: 'Mis Evaluaciones', path: '/student/evaluations', icon: 'exam', exact: true },
     { label: 'Simulador', path: '/student/simulator', icon: 'exam', exact: true },
     { label: 'Mis Clases', path: '/student/classes', icon: 'book', exact: true },

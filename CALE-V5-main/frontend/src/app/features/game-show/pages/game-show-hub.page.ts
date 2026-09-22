@@ -9,10 +9,14 @@ import {
   CreateGameShowBody,
   GameShowApi,
   GameShowHistoryItemDto,
+  GameShowPackSummaryDto,
   GameShowRoundInput
 } from '../api/game-show.api';
 import { GameShowDraftStore } from '../api/game-show-draft.store';
 import { GameShowImportError, parseGameShowImport } from '../api/game-show-import';
+
+type HubTab = 'room' | 'pack';
+type PackChoice = 'official' | `pack:${number}` | 'draft';
 
 @Component({
   selector: 'app-game-show-hub-page',
@@ -21,7 +25,7 @@ import { GameShowImportError, parseGameShowImport } from '../api/game-show-impor
   template: `
     <ui-page-header
       title="100 Estudiantes Dijeron"
-      subtitle="Prepara el pack de preguntas y, aparte, crea la sala para jugar en vivo." />
+      subtitle="Elige un banco de preguntas, arma la sala y juega. Edita o guarda packs en la otra pestaña." />
     <ui-error [message]="error()" />
 
     <div class="tabs" role="tablist" aria-label="Secciones del juego">
@@ -41,8 +45,8 @@ import { GameShowImportError, parseGameShowImport } from '../api/game-show-impor
         [class.on]="tab() === 'pack'"
         [attr.aria-selected]="tab() === 'pack'"
         (click)="tab.set('pack')">
-        Preguntas / pack
-        <span class="count">{{ roundCount() }}</span>
+        Administrar packs
+        <span class="count">{{ packs().length }}</span>
       </button>
     </div>
 
@@ -51,10 +55,41 @@ import { GameShowImportError, parseGameShowImport } from '../api/game-show-impor
         <header class="panel-head">
           <div>
             <h2>Crear sala</h2>
-            <p class="sub">Define el nombre y los equipos. Las preguntas se toman del pack listo.</p>
+            <p class="sub">Escoge el banco de preguntas y define los equipos. No hace falta salir de aquí.</p>
           </div>
-          <ui-button type="button" variant="ghost" (click)="tab.set('pack')">Editar preguntas</ui-button>
         </header>
+
+        <label class="field">Banco de preguntas
+          <select
+            class="input"
+            [ngModel]="packChoice()"
+            (ngModelChange)="onPackChoice($event)"
+            name="packChoice">
+            <option value="official">Pack oficial (41 rondas)</option>
+            @for (p of packs(); track p.id) {
+              <option [value]="'pack:' + p.id">{{ p.name }} ({{ p.roundCount }} rondas)</option>
+            }
+            <option value="draft">Borrador local ({{ readyCount() }} válidas / {{ roundCount() }})</option>
+          </select>
+        </label>
+
+        @if (loadingChoice()) {
+          <p class="hint">Cargando banco…</p>
+        } @else {
+          <div class="pack-summary">
+            <div>
+              <span class="label">Banco seleccionado</span>
+              <strong>{{ selectedLabel() }}</strong>
+            </div>
+            <p class="hint">
+              {{ readyCount() }} rondas válidas listas para jugar.
+              @if (packChoice() === 'draft' && readyCount() < 1) {
+                Ve a <button type="button" class="linkish" (click)="tab.set('pack')">Administrar packs</button>
+                para crear o importar preguntas.
+              }
+            </p>
+          </div>
+        }
 
         <label class="field">Nombre de la partida
           <input class="input" [ngModel]="title()" (ngModelChange)="onTitle($event)" name="title" />
@@ -68,31 +103,16 @@ import { GameShowImportError, parseGameShowImport } from '../api/game-show-impor
           </label>
         </div>
 
-        <div class="pack-summary">
-          <div>
-            <span class="label">Pack listo</span>
-            <strong>{{ readyCount() }} / {{ roundCount() }} rondas válidas</strong>
-          </div>
-          <p class="hint">
-            @if (readyCount() < 1) {
-              Aún no hay rondas válidas. Ve a <button type="button" class="linkish" (click)="tab.set('pack')">Preguntas / pack</button>
-              para cargar el pack oficial o editar rondas.
-            } @else {
-              Al crear la sala se usarán las {{ readyCount() }} rondas válidas del pack.
-            }
-          </p>
-        </div>
-
         <div class="actions">
           <ui-button
             type="button"
             [loading]="saving()"
-            [disabled]="readyCount() < 1"
+            [disabled]="readyCount() < 1 || loadingChoice()"
             (click)="create()">
             Crear sala e ir al control
           </ui-button>
           <ui-button type="button" variant="secondary" (click)="tab.set('pack')">
-            Ir a preguntas
+            Crear / editar packs
           </ui-button>
         </div>
       </section>
@@ -100,11 +120,35 @@ import { GameShowImportError, parseGameShowImport } from '../api/game-show-impor
       <section class="panel" role="tabpanel">
         <header class="panel-head">
           <div>
-            <h2>Preguntas / pack</h2>
-            <p class="sub">Edita, importa o carga el pack oficial. Queda guardado como borrador para crear la sala.</p>
+            <h2>Administrar packs</h2>
+            <p class="sub">Crea, importa o edita bancos de preguntas y guárdalos en el servidor para elegirlos al crear la sala.</p>
           </div>
-          <ui-button type="button" variant="ghost" (click)="tab.set('room')">Crear sala</ui-button>
+          <ui-button type="button" variant="ghost" (click)="tab.set('room')">Volver a crear sala</ui-button>
         </header>
+
+        @if (packs().length) {
+          <div class="saved-packs">
+            <span class="label">Tus packs guardados</span>
+            <ul class="pack-list">
+              @for (p of packs(); track p.id) {
+                <li>
+                  <button type="button" class="pack-pick" (click)="loadSavedPack(p.id)">
+                    <strong>{{ p.name }}</strong>
+                    <span>{{ p.roundCount }} rondas</span>
+                  </button>
+                  <div class="hist-actions">
+                    <ui-button type="button" variant="ghost" (click)="usePackInRoom(p.id)">Usar en sala</ui-button>
+                    <ui-button type="button" variant="ghost" (click)="deletePack(p.id)">Borrar</ui-button>
+                  </div>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+
+        <label class="field">Nombre del pack
+          <input class="input" [ngModel]="packName()" (ngModelChange)="packName.set($event)" name="packName" />
+        </label>
 
         <div class="actions">
           <ui-button type="button" variant="secondary" (click)="addRound()">+ Ronda</ui-button>
@@ -116,6 +160,16 @@ import { GameShowImportError, parseGameShowImport } from '../api/game-show-impor
           <ui-button type="button" variant="secondary" (click)="loadOfficialPack()" [loading]="loadingPack()">
             Cargar pack oficial (41)
           </ui-button>
+          <ui-button
+            type="button"
+            [loading]="savingPack()"
+            [disabled]="readyCount() < 1"
+            (click)="saveCurrentPack()">
+            {{ editingPackId() ? 'Actualizar pack' : 'Guardar pack en servidor' }}
+          </ui-button>
+          @if (editingPackId()) {
+            <ui-button type="button" variant="ghost" (click)="clearEditing()">Nuevo pack</ui-button>
+          }
           <input
             #importInput
             class="file-input"
@@ -126,7 +180,10 @@ import { GameShowImportError, parseGameShowImport } from '../api/game-show-impor
         @if (loadedInfo()) {
           <p class="loaded">{{ loadedInfo() }}</p>
         }
-        <p class="hint">Borrador guardado en este navegador. Cuando esté listo, vuelve a <strong>Crear sala</strong>.</p>
+        <p class="hint">
+          {{ readyCount() }} / {{ roundCount() }} rondas válidas.
+          Al guardar, el pack aparece en el selector de <strong>Crear sala</strong>.
+        </p>
 
         @for (round of rounds(); track $index; let ri = $index) {
           <article class="round">
@@ -174,7 +231,7 @@ import { GameShowImportError, parseGameShowImport } from '../api/game-show-impor
         }
 
         <div class="actions">
-          <ui-button type="button" (click)="tab.set('room')">Listo · ir a crear sala</ui-button>
+          <ui-button type="button" (click)="useDraftInRoom()">Listo · usar este pack en crear sala</ui-button>
         </div>
       </section>
     }
@@ -190,6 +247,7 @@ import { GameShowImportError, parseGameShowImport } from '../api/game-show-impor
                 <span>{{ h.teamAScore }} – {{ h.teamBScore }} · {{ h.status }}</span>
               </div>
               <div class="hist-actions">
+                <ui-button type="button" variant="ghost" (click)="replay(h.id)">Rejugar</ui-button>
                 <ui-button type="button" variant="ghost" (click)="exportSession(h.id, 'csv')">CSV</ui-button>
                 <ui-button type="button" variant="ghost" (click)="exportSession(h.id, 'json')">JSON</ui-button>
               </div>
@@ -273,6 +331,29 @@ import { GameShowImportError, parseGameShowImport } from '../api/game-show-impor
       color: var(--color-text-secondary);
       margin-bottom: 0.2rem;
     }
+    .saved-packs { display: grid; gap: 0.5rem; }
+    .pack-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.45rem; }
+    .pack-list li {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: center;
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: 0.55rem 0.75rem;
+    }
+    .pack-pick {
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+      display: grid;
+      gap: 0.15rem;
+    }
+    .pack-pick span { color: var(--color-text-secondary); font-size: 0.9rem; }
     .round { border: 1px solid var(--color-border); border-radius: 12px; padding: 0.85rem; display: grid; gap: 0.65rem; }
     .round header { display: flex; justify-content: space-between; align-items: center; }
     .answers { display: grid; gap: 0.45rem; }
@@ -295,7 +376,7 @@ import { GameShowImportError, parseGameShowImport } from '../api/game-show-impor
     .hist { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.55rem; }
     .hist li { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; align-items: center; }
     .hist-main { display: grid; gap: 0.2rem; min-width: 0; }
-    .hist-actions { display: flex; gap: 0.35rem; flex-shrink: 0; }
+    .hist-actions { display: flex; gap: 0.35rem; flex-shrink: 0; flex-wrap: wrap; }
     @media (max-width: 700px) {
       .row { grid-template-columns: 1fr; }
       .ans-row { grid-template-columns: 2rem 1fr; }
@@ -310,11 +391,17 @@ export class GameShowHubPage implements OnInit {
 
   readonly error = signal<string | null>(null);
   readonly saving = signal(false);
+  readonly savingPack = signal(false);
   readonly importing = signal(false);
   readonly loadingPack = signal(false);
+  readonly loadingChoice = signal(false);
   readonly loadedInfo = signal<string | null>(null);
   readonly history = signal<GameShowHistoryItemDto[]>([]);
-  readonly tab = signal<'room' | 'pack'>('room');
+  readonly packs = signal<GameShowPackSummaryDto[]>([]);
+  readonly tab = signal<HubTab>('room');
+  readonly packChoice = signal<PackChoice>('official');
+  readonly packName = signal('Mi pack de preguntas');
+  readonly editingPackId = signal<number | null>(null);
 
   readonly title = computed(() => this.draftStore.draft().title);
   readonly teamA = computed(() => this.draftStore.draft().teamAName);
@@ -323,16 +410,43 @@ export class GameShowHubPage implements OnInit {
   readonly roundCount = computed(() => this.rounds().length);
   readonly readyCount = computed(() => this.draftStore.readyRoundCount());
 
+  readonly selectedLabel = computed(() => {
+    const choice = this.packChoice();
+    if (choice === 'official') return 'Pack oficial';
+    if (choice === 'draft') return 'Borrador local';
+    const id = Number(choice.slice(5));
+    const pack = this.packs().find((p) => p.id === id);
+    return pack?.name || `Pack #${id}`;
+  });
+
   @ViewChild('importInput') private importInput?: ElementRef<HTMLInputElement>;
 
   ngOnInit(): void {
+    this.reloadLists();
+    // Prefer official pack on first visit when draft is empty/invalid.
+    if (this.readyCount() < 1) {
+      this.onPackChoice('official');
+    } else if (this.draftStore.draft().packSource === 'pack' && this.draftStore.draft().selectedPackId) {
+      const id = this.draftStore.draft().selectedPackId!;
+      this.packChoice.set(`pack:${id}`);
+      this.editingPackId.set(id);
+      this.packName.set(this.title());
+    } else if (this.draftStore.draft().packSource === 'official') {
+      this.packChoice.set('official');
+    } else {
+      this.packChoice.set('draft');
+    }
+  }
+
+  private reloadLists(): void {
     this.api.mine().subscribe({
       next: (items) => this.history.set(items),
       error: () => this.history.set([])
     });
-    if (this.readyCount() < 1) {
-      this.tab.set('pack');
-    }
+    this.api.listPacks().subscribe({
+      next: (items) => this.packs.set(items),
+      error: () => this.packs.set([])
+    });
   }
 
   onTitle(value: string): void {
@@ -345,6 +459,147 @@ export class GameShowHubPage implements OnInit {
 
   onTeamB(value: string): void {
     this.draftStore.setRoom(this.title(), this.teamA(), value);
+  }
+
+  onPackChoice(value: string): void {
+    const choice = value as PackChoice;
+    this.packChoice.set(choice);
+    this.error.set(null);
+
+    if (choice === 'draft') {
+      this.draftStore.selectPack(null, 'draft');
+      return;
+    }
+
+    if (choice === 'official') {
+      this.loadingChoice.set(true);
+      this.api.officialPack().subscribe({
+        next: (body) => {
+          this.draftStore.applyPack(body, { packId: null, source: 'official' });
+          this.loadingChoice.set(false);
+        },
+        error: (err) => {
+          this.loadingChoice.set(false);
+          this.error.set(mapApiError(err));
+        }
+      });
+      return;
+    }
+
+    const packId = Number(choice.slice(5));
+    if (!Number.isFinite(packId)) return;
+    this.loadingChoice.set(true);
+    this.api.getPack(packId).subscribe({
+      next: (detail) => {
+        this.draftStore.applyPack(detail.body, { packId: detail.id, source: 'pack' });
+        this.packName.set(detail.name);
+        this.editingPackId.set(detail.id);
+        this.loadingChoice.set(false);
+      },
+      error: (err) => {
+        this.loadingChoice.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  usePackInRoom(packId: number): void {
+    this.tab.set('room');
+    this.onPackChoice(`pack:${packId}`);
+  }
+
+  useDraftInRoom(): void {
+    const editId = this.editingPackId();
+    this.draftStore.selectPack(editId, editId ? 'pack' : 'draft');
+    this.packChoice.set(editId ? `pack:${editId}` : 'draft');
+    this.tab.set('room');
+  }
+
+  loadSavedPack(packId: number): void {
+    this.error.set(null);
+    this.loadingPack.set(true);
+    this.api.getPack(packId).subscribe({
+      next: (detail) => {
+        this.draftStore.applyPack(detail.body, { packId: detail.id, source: 'pack' });
+        this.packName.set(detail.name);
+        this.editingPackId.set(detail.id);
+        this.loadedInfo.set(`Editando: ${detail.name} (${detail.roundCount} rondas)`);
+        this.loadingPack.set(false);
+      },
+      error: (err) => {
+        this.loadingPack.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  clearEditing(): void {
+    this.editingPackId.set(null);
+    this.packName.set('Mi pack de preguntas');
+    this.draftStore.applyPack(
+      {
+        title: this.packName(),
+        teamAName: this.teamA(),
+        teamBName: this.teamB(),
+        rounds: [this.draftStore.emptyRound()]
+      },
+      { packId: null, source: 'draft' }
+    );
+    this.loadedInfo.set(null);
+  }
+
+  saveCurrentPack(): void {
+    if (this.readyCount() < 1) {
+      this.error.set('Necesitas al menos una ronda válida para guardar el pack.');
+      return;
+    }
+
+    const full = this.draftStore.toCreateBody();
+    const rounds = full.rounds.filter((r) =>
+      (r.questionText || '').trim().length >= 5
+      && (r.answers || []).filter((a) => (a.text || '').trim().length > 0).length === 5
+    );
+    const body = {
+      name: (this.packName() || full.title || 'Mi pack').trim(),
+      notes: null as string | null,
+      rounds,
+      defaultTeamAName: full.teamAName,
+      defaultTeamBName: full.teamBName
+    };
+
+    this.error.set(null);
+    this.savingPack.set(true);
+    const editId = this.editingPackId();
+    const req = editId
+      ? this.api.updatePack(editId, body)
+      : this.api.savePack(body);
+
+    req.subscribe({
+      next: (detail) => {
+        this.savingPack.set(false);
+        this.editingPackId.set(detail.id);
+        this.packName.set(detail.name);
+        this.draftStore.applyPack(detail.body, { packId: detail.id, source: 'pack' });
+        this.loadedInfo.set(`Pack guardado: ${detail.name}`);
+        this.reloadLists();
+      },
+      error: (err) => {
+        this.savingPack.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  deletePack(packId: number): void {
+    if (!confirm('¿Borrar este pack del servidor?')) return;
+    this.api.deletePack(packId).subscribe({
+      next: () => {
+        if (this.editingPackId() === packId) this.clearEditing();
+        if (this.packChoice() === `pack:${packId}`) this.onPackChoice('official');
+        this.reloadLists();
+      },
+      error: (err) => this.error.set(mapApiError(err))
+    });
   }
 
   addRound(): void {
@@ -404,7 +659,9 @@ export class GameShowHubPage implements OnInit {
     this.loadingPack.set(true);
     this.api.officialPack().subscribe({
       next: (body) => {
-        this.applyImport(body);
+        this.applyImport(body, { source: 'official' });
+        this.packName.set(body.title || 'Pack oficial');
+        this.editingPackId.set(null);
         this.loadingPack.set(false);
       },
       error: (err) => {
@@ -425,7 +682,9 @@ export class GameShowHubPage implements OnInit {
 
     this.api.importQuestions(file).subscribe({
       next: (body) => {
-        this.applyImport(body);
+        this.applyImport(body, { source: 'draft' });
+        this.packName.set(body.title || file.name.replace(/\.(json|csv)$/i, ''));
+        this.editingPackId.set(null);
         this.importing.set(false);
       },
       error: (err) => {
@@ -433,7 +692,9 @@ export class GameShowHubPage implements OnInit {
         reader.onload = () => {
           try {
             const body = parseGameShowImport(String(reader.result ?? ''), file.name);
-            this.applyImport(body);
+            this.applyImport(body, { source: 'draft' });
+            this.packName.set(body.title || file.name.replace(/\.(json|csv)$/i, ''));
+            this.editingPackId.set(null);
             this.importing.set(false);
           } catch (localErr) {
             this.importing.set(false);
@@ -451,8 +712,11 @@ export class GameShowHubPage implements OnInit {
     });
   }
 
-  private applyImport(body: CreateGameShowBody): void {
-    this.draftStore.applyPack(body);
+  private applyImport(
+    body: CreateGameShowBody,
+    opts?: { packId?: number | null; source?: 'official' | 'pack' | 'draft' }
+  ): void {
+    this.draftStore.applyPack(body, opts);
     this.loadedInfo.set(`Rondas cargadas: ${this.roundCount()}`);
   }
 
@@ -483,6 +747,25 @@ export class GameShowHubPage implements OnInit {
     });
   }
 
+  replay(sessionId: number): void {
+    this.error.set(null);
+    this.saving.set(true);
+    this.api.replay(sessionId, {
+      title: undefined,
+      teamAName: this.teamA(),
+      teamBName: this.teamB()
+    }).subscribe({
+      next: (lobby) => {
+        this.saving.set(false);
+        void this.router.navigate(['/teacher/game-show', lobby.id, 'host']);
+      },
+      error: (err) => {
+        this.saving.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
   private saveBlob(blob: Blob, filename: string): void {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -494,17 +777,39 @@ export class GameShowHubPage implements OnInit {
 
   create(): void {
     if (this.readyCount() < 1) {
-      this.error.set('Prepara al menos una ronda válida en Preguntas / pack.');
-      this.tab.set('pack');
+      this.error.set('Elige un banco con al menos una ronda válida.');
       return;
     }
 
     this.error.set(null);
     this.saving.set(true);
+
+    const choice = this.packChoice();
+    const room = {
+      title: this.title(),
+      teamAName: this.teamA(),
+      teamBName: this.teamB()
+    };
+
+    if (choice.startsWith('pack:')) {
+      const packId = Number(choice.slice(5));
+      this.api.createFromPack(packId, room).subscribe({
+        next: (lobby) => {
+          this.saving.set(false);
+          void this.router.navigate(['/teacher/game-show', lobby.id, 'host']);
+        },
+        error: (err) => {
+          this.saving.set(false);
+          this.error.set(mapApiError(err));
+        }
+      });
+      return;
+    }
+
     const full = this.draftStore.toCreateBody();
-    // Only send rounds that pass basic validity so create doesn't fail mid-pack.
     const body: CreateGameShowBody = {
       ...full,
+      ...room,
       rounds: full.rounds.filter((r) =>
         (r.questionText || '').trim().length >= 5
         && (r.answers || []).filter((a) => (a.text || '').trim().length > 0).length === 5

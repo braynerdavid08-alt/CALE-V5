@@ -19,7 +19,7 @@ public sealed record CreateGameShowAnswerRequest(
 public sealed record JoinGameShowRequest(
     string Code,
     string DisplayName,
-    string Team);
+    string? Team = null);
 
 public sealed record AnswerGameShowRequest(string Text);
 
@@ -88,3 +88,66 @@ public sealed record GameShowHistoryItemDto(
     DateTime CreatedAt,
     DateTime? EndedAt,
     int PlayerCount);
+
+public sealed record UpsertGameShowPackRequest(
+    string Name,
+    string? Notes,
+    IReadOnlyList<CreateGameShowRoundRequest> Rounds,
+    string? DefaultTeamAName = null,
+    string? DefaultTeamBName = null);
+
+public sealed record CreateSessionFromPackRequest(
+    string? Title,
+    string? TeamAName,
+    string? TeamBName);
+
+public sealed record ReplayGameShowRequest(
+    string? Title,
+    string? TeamAName,
+    string? TeamBName);
+
+public sealed record GameShowPackSummaryDto(
+    int Id,
+    string Name,
+    string? Notes,
+    int RoundCount,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);
+
+public sealed record GameShowPackDetailDto(
+    int Id,
+    string Name,
+    string? Notes,
+    int RoundCount,
+    DateTime CreatedAt,
+    DateTime UpdatedAt,
+    CreateGameShowRequest Body);
+
+public sealed record GameShowRoundStatDto(
+    int RoundIndex,
+    string QuestionText,
+    int PointsAwarded,
+    bool StealSucceeded,
+    string? ControllingTeam,
+    int Strikes,
+    int CorrectAttempts,
+    int WrongAttempts);
+
+public sealed record GameShowStatsDto(
+    int SessionId,
+    string Title,
+    string Status,
+    string TeamAName,
+    string TeamBName,
+    int TeamAScore,
+    int TeamBScore,
+    string? WinnerTeam,
+    int PlayerCount,
+    int RoundCount,
+    int CorrectAnswers,
+    int WrongAnswers,
+    int StealsSucceeded,
+    int StealsFailed,
+    IReadOnlyList<GameShowRoundStatDto> Rounds,
+    DateTime CreatedAt,
+    DateTime? EndedAt);
