@@ -30,6 +30,25 @@ public sealed class AttemptStore : IAttemptStore
         IReadOnlyList<AttemptQuestion> questions,
         CancellationToken ct)
     {
+        try
+        {
+            await AddAttemptWithQuestionsCoreAsync(attempt, questions, ct);
+        }
+        catch (DbUpdateException ex) when (LooksLikeMissingAttemptColumn(ex))
+        {
+            // Self-heal once if Production skipped FeatureSchema / migrations.
+            await AttemptSchemaGuard.EnsureAsync(_db, logger: null, ct);
+            _db.ChangeTracker.Clear();
+            attempt.ClearGeneratedIdForRetry();
+            await AddAttemptWithQuestionsCoreAsync(attempt, questions, ct);
+        }
+    }
+
+    private async Task AddAttemptWithQuestionsCoreAsync(
+        Attempt attempt,
+        IReadOnlyList<AttemptQuestion> questions,
+        CancellationToken ct)
+    {
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
         try
         {
@@ -56,6 +75,24 @@ public sealed class AttemptStore : IAttemptStore
             _db.ChangeTracker.Clear();
             throw;
         }
+    }
+
+    private static bool LooksLikeMissingAttemptColumn(DbUpdateException ex)
+    {
+        for (var current = (Exception?)ex; current is not null; current = current.InnerException)
+        {
+            var msg = current.Message;
+            if (msg.Contains("42703", StringComparison.Ordinal)
+                || msg.Contains("SnapshotJson", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("ExpiresAt", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("does not exist", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("Invalid column name", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public async Task<IReadOnlyList<AttemptQuestion>> ListQuestionsAsync(

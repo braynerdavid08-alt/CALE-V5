@@ -112,6 +112,14 @@ public sealed class Attempt
         ApplyScore(correctCount, end);
     }
 
+    /// <summary>
+    /// Clears the generated identity after a failed insert so the same aggregate can be retried.
+    /// </summary>
+    public void ClearGeneratedIdForRetry()
+    {
+        Id = 0;
+    }
+
     private void ApplyScore(int correctCount, DateTime finishedAt)
     {
         if (ExpiresAt is { } cap && finishedAt > cap)

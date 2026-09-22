@@ -101,6 +101,9 @@ public static class WebApplicationExtensions
                     "Skipping EnsureCreated/Migrate (UseEfMigrations=false, AllowEnsureCreated=false). Schema must already exist.");
             }
 
+            // Always repair attempt columns needed for simulacros — independent of FeatureSchema.
+            await AttemptSchemaGuard.EnsureAsync(db, bootLogger);
+
             if (!useEfMigrations && applyFeatureSchema)
             {
                 bootLogger.LogWarning(
