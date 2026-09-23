@@ -98,49 +98,81 @@ function blankRound(): GameShowRoundInput {
     }
 
     @if (tab() === 'times') {
-      <section class="panel grid2">
-        <label class="field">Face-Off (s)
-          <input class="input" type="number" min="3" max="120" [(ngModel)]="draft.faceOffSeconds" (ngModelChange)="markDirty()" />
-        </label>
-        <label class="field">Control / responder (s)
-          <input class="input" type="number" min="3" max="180" [(ngModel)]="draft.controlSeconds" (ngModelChange)="markDirty()" />
-        </label>
-        <label class="field">Robo (s)
-          <input class="input" type="number" min="3" max="120" [(ngModel)]="draft.stealSeconds" (ngModelChange)="markDirty()" />
-        </label>
-        <label class="field">Relámpago final (s)
-          <input class="input" type="number" min="5" max="300" [(ngModel)]="draft.lightningSeconds" (ngModelChange)="markDirty()" />
-        </label>
-        <label class="field">Transición de ronda (s)
-          <input class="input" type="number" min="0" max="60" [(ngModel)]="draft.roundTransitionSeconds" (ngModelChange)="markDirty()" />
-        </label>
-        <label class="field">Drumroll (ms)
-          <input class="input" type="number" min="0" max="10000" [(ngModel)]="draft.drumrollMs" (ngModelChange)="markDirty()" />
-        </label>
-        <label class="field">Resaltar revelación (ms)
-          <input class="input" type="number" min="0" max="10000" [(ngModel)]="draft.revealHighlightMs" (ngModelChange)="markDirty()" />
-        </label>
-        <label class="field">Flash de X (ms)
-          <input class="input" type="number" min="0" max="10000" [(ngModel)]="draft.strikeFlashMs" (ngModelChange)="markDirty()" />
-        </label>
-        <label class="field">Celebración / confeti (ms)
-          <input class="input" type="number" min="0" max="15000" [(ngModel)]="draft.celebrationMs" (ngModelChange)="markDirty()" />
-        </label>
-        <label class="field">Flash acierto (ms)
-          <input class="input" type="number" min="0" max="10000" [(ngModel)]="draft.correctFlashMs" (ngModelChange)="markDirty()" />
-        </label>
-        <label class="field">Flash marcador (ms)
-          <input class="input" type="number" min="0" max="10000" [(ngModel)]="draft.scoreboardFlashMs" (ngModelChange)="markDirty()" />
-        </label>
+      <section class="panel">
+        <p class="section-intro">
+          Los tiempos en <strong>segundos (s)</strong> los controla el servidor (reloj real de la partida).
+          Los de <strong>milisegundos (ms)</strong> solo afectan animaciones y sonidos en pantalla/host.
+        </p>
+        <div class="grid2">
+          <label class="field">
+            <span class="field-title">Face-Off (s)</span>
+            <span class="field-desc">Tiempo que tiene cada equipo para responder en el enfrentamiento inicial (buzzer), antes de que se acabe el turno.</span>
+            <input class="input" type="number" min="3" max="120" [(ngModel)]="draft.faceOffSeconds" (ngModelChange)="markDirty()" />
+          </label>
+          <label class="field">
+            <span class="field-title">Control / responder (s)</span>
+            <span class="field-desc">Tiempo por turno cuando un equipo ya tiene el control del tablero y debe dar la siguiente respuesta.</span>
+            <input class="input" type="number" min="3" max="180" [(ngModel)]="draft.controlSeconds" (ngModelChange)="markDirty()" />
+          </label>
+          <label class="field">
+            <span class="field-title">Robo (s)</span>
+            <span class="field-desc">Tiempo que tiene el equipo contrario para intentar robar la ronda después de las X máximas.</span>
+            <input class="input" type="number" min="3" max="120" [(ngModel)]="draft.stealSeconds" (ngModelChange)="markDirty()" />
+          </label>
+          <label class="field">
+            <span class="field-title">Relámpago final (s)</span>
+            <span class="field-desc">Duración de la ronda relámpago al final de la partida (si está activada en Reglas).</span>
+            <input class="input" type="number" min="5" max="300" [(ngModel)]="draft.lightningSeconds" (ngModelChange)="markDirty()" />
+          </label>
+          <label class="field">
+            <span class="field-title">Transición de ronda (s)</span>
+            <span class="field-desc">Pausa orientativa entre rondas para el host (no corta la partida sola; es guía de ritmo).</span>
+            <input class="input" type="number" min="0" max="60" [(ngModel)]="draft.roundTransitionSeconds" (ngModelChange)="markDirty()" />
+          </label>
+          <label class="field">
+            <span class="field-title">Drumroll (ms)</span>
+            <span class="field-desc">Cuánto dura el “suspense” (sonido/espera) cuando el host revela una respuesta del tablero.</span>
+            <input class="input" type="number" min="0" max="10000" [(ngModel)]="draft.drumrollMs" (ngModelChange)="markDirty()" />
+          </label>
+          <label class="field">
+            <span class="field-title">Resaltar revelación (ms)</span>
+            <span class="field-desc">Cuánto tiempo se destaca visualmente una casilla recién revelada en el proyector.</span>
+            <input class="input" type="number" min="0" max="10000" [(ngModel)]="draft.revealHighlightMs" (ngModelChange)="markDirty()" />
+          </label>
+          <label class="field">
+            <span class="field-title">Flash de X (ms)</span>
+            <span class="field-desc">Duración del aviso en pantalla cuando hay un strike (la X roja / mensaje de fallo).</span>
+            <input class="input" type="number" min="0" max="10000" [(ngModel)]="draft.strikeFlashMs" (ngModelChange)="markDirty()" />
+          </label>
+          <label class="field">
+            <span class="field-title">Celebración / confeti (ms)</span>
+            <span class="field-desc">Cuánto dura el confeti y la animación de celebración al ganar una ronda o la partida.</span>
+            <input class="input" type="number" min="0" max="15000" [(ngModel)]="draft.celebrationMs" (ngModelChange)="markDirty()" />
+          </label>
+          <label class="field">
+            <span class="field-title">Flash acierto (ms)</span>
+            <span class="field-desc">Duración del mensaje flash cuando hay un acierto (“¡Correcto!”) en host, pantalla o celular.</span>
+            <input class="input" type="number" min="0" max="10000" [(ngModel)]="draft.correctFlashMs" (ngModelChange)="markDirty()" />
+          </label>
+          <label class="field">
+            <span class="field-title">Flash marcador (ms)</span>
+            <span class="field-desc">Duración del aviso cuando cambia el marcador (puntos de equipo / ronda ganada).</span>
+            <input class="input" type="number" min="0" max="10000" [(ngModel)]="draft.scoreboardFlashMs" (ngModelChange)="markDirty()" />
+          </label>
+        </div>
       </section>
     }
 
     @if (tab() === 'rules') {
       <section class="panel grid2">
-        <label class="field">Máximo de X
+        <label class="field">
+          <span class="field-title">Máximo de X</span>
+          <span class="field-desc">Cuántos strikes (fallos) puede acumular el equipo en control antes de abrir la oportunidad de robo (o cerrar la ronda si el robo está desactivado).</span>
           <input class="input" type="number" min="1" max="5" [(ngModel)]="draft.maxStrikes" (ngModelChange)="markDirty()" />
         </label>
-        <label class="field">Empate (reservado)
+        <label class="field">
+          <span class="field-title">Empate (reservado)</span>
+          <span class="field-desc">Cómo se resolverá un empate en el futuro. Hoy solo aplica “Host decide”; la votación del público aún no está implementada.</span>
           <select class="input" [(ngModel)]="draft.tieBreakMode" (ngModelChange)="markDirty()">
             <option value="Host">Host decide</option>
             <option value="Audience" disabled>Votación del público (próximamente)</option>
@@ -272,8 +304,11 @@ function blankRound(): GameShowRoundInput {
     .tab.on { background: color-mix(in srgb, var(--color-primary) 18%, transparent); border-color: var(--color-primary); color: var(--color-primary); }
     .back { margin-left: auto; font-weight: 700; color: var(--color-primary); }
     .panel { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 16px; padding: 1rem; display: grid; gap: 0.85rem; }
-    .grid2 { grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); }
+    .section-intro { margin: 0 0 0.25rem; color: var(--color-text-secondary); line-height: 1.45; }
+    .grid2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 0.85rem; }
     .field { display: grid; gap: 0.35rem; font-weight: 600; }
+    .field-title { font-weight: 800; }
+    .field-desc { font-weight: 500; font-size: 0.82rem; color: var(--color-text-secondary); line-height: 1.35; }
     .field.grow { flex: 1; }
     .input { min-height: 2.6rem; }
     .row { display: flex; flex-wrap: wrap; gap: 0.75rem; }
