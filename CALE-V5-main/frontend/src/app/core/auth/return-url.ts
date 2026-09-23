@@ -1,12 +1,39 @@
 const RETURN_URL_KEY = 'cale.auth.returnUrl';
 
-/** Safe in-app paths we may restore after login. */
+/** Marketing / guest pages — never restore these after login. */
+const PUBLIC_PATH_PREFIXES = [
+  '/',
+  '/nosotros',
+  '/cursos',
+  '/escuelas',
+  '/instructores',
+  '/blog',
+  '/contacto',
+  '/verify-email',
+  '/login',
+  '/register'
+];
+
+function pathOnly(url: string): string {
+  return url.split('?')[0].split('#')[0] || '/';
+}
+
+function isPublicMarketingPath(url: string): boolean {
+  const path = pathOnly(url).toLowerCase();
+  if (path === '/') {
+    return true;
+  }
+  return PUBLIC_PATH_PREFIXES.some(
+    (p) => p !== '/' && (path === p || path.startsWith(`${p}/`))
+  );
+}
+
+/** Safe in-app paths we may restore after login (authenticated app areas only). */
 export function isSafeReturnUrl(url: string | null | undefined): url is string {
   return !!url
     && url.startsWith('/')
     && !url.startsWith('//')
-    && !url.toLowerCase().startsWith('/login')
-    && !url.toLowerCase().startsWith('/register');
+    && !isPublicMarketingPath(url);
 }
 
 export function stashReturnUrl(url: string | null | undefined): void {
@@ -21,7 +48,11 @@ export function peekReturnUrl(): string | null {
     return null;
   }
   const raw = sessionStorage.getItem(RETURN_URL_KEY);
-  return isSafeReturnUrl(raw) ? raw : null;
+  if (!isSafeReturnUrl(raw)) {
+    sessionStorage.removeItem(RETURN_URL_KEY);
+    return null;
+  }
+  return raw;
 }
 
 export function takeReturnUrl(preferred?: string | null): string | null {
@@ -32,4 +63,10 @@ export function takeReturnUrl(preferred?: string | null): string | null {
     sessionStorage.removeItem(RETURN_URL_KEY);
   }
   return target;
+}
+
+export function clearReturnUrl(): void {
+  if (typeof sessionStorage !== 'undefined') {
+    sessionStorage.removeItem(RETURN_URL_KEY);
+  }
 }

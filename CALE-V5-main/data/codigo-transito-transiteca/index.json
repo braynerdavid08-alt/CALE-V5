@@ -1,0 +1,2255 @@
+{
+  "meta": {
+    "title": "Código Nacional de Tránsito — dataset Transiteca",
+    "sourceBase": "https://transiteca.app/codigo-de-transito",
+    "lawHint": "Ley 769 de 2002 (según Transiteca)",
+    "extractedAt": "2026-09-22T17:43:23.909Z",
+    "extractorVersion": "1.0.0",
+    "articleCount": 250,
+    "attribution": "Contenido extraído literalmente desde transiteca.app para uso educativo en CALE. No parafraseado."
+  },
+  "articles": [
+    {
+      "number": 1,
+      "name": "ÁMBITO DE APLICACIÓN Y PRINCIPIOS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-1",
+      "preview": "Artículo modificado por el artículo 1 de la Ley 1383 de 2010\n\nLas normas del presente Código rigen en todo el territorio nacional y regulan la circulación de los peatones, usuarios",
+      "flags": [],
+      "contentHash": "30dd1e1ec6f2f294392421f176a2c0443fd07678efb9fa293806407437515202"
+    },
+    {
+      "number": 2,
+      "name": "DEFINICIONES",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-2",
+      "preview": "Para la aplicación e interpretación de este código, se tendrán en cuenta las siguientes definiciones:\n\nAcera o andén: Franja longitudinal de la vía urbana, destinada exclusivamente",
+      "flags": [
+        "very_long_meta"
+      ],
+      "contentHash": "cb2379d9d04ac03c0d1f955a7d4f72b7257df33d8fb44397684d8956418221f0"
+    },
+    {
+      "number": 3,
+      "name": "AUTORIDADES DE TRÁNSITO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-3",
+      "preview": "Artículo modificado por el artículo 2 de la Ley 1383 de 2010\n\nPara los efectos de la presente ley entiéndase que son autoridades de tránsito, en su orden, las siguientes:\n\nEl Minis",
+      "flags": [],
+      "contentHash": "9142ebbe698d45785a36c37e209c02f4f106d1cba7a400092876d349322cc600"
+    },
+    {
+      "number": 4,
+      "name": "ACREDITACIÓN DE FORMACIÓN-PROGRAMAS DE SEGURIDAD.",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-4",
+      "preview": "Inciso modificado por el artículo 8 de la Ley 1310 de 2009\n\nAparte tachado declarado INEXEQUIBLE por la Corte Constitucional mediante Sentencia C-530-03 de 3 de julio de 2003\n\nLos ",
+      "flags": [],
+      "contentHash": "1d576779eafee2cfd10782ff0c3f07e1dc6e025422d4c8923e48e03c0bc8079f"
+    },
+    {
+      "number": 5,
+      "name": "DEMARCACIÓN Y SEÑALIZACIÓN VIAL",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-5",
+      "preview": "Artículo modificado por el artículo 3 de la Ley 1383 de 2010\n\nEl Ministerio de Transporte reglamentará en un término no mayor de 60 días posteriores a la sanción de esta ley, las c",
+      "flags": [],
+      "contentHash": "05525896ac3fd980d9af314ef01f849ff6dc7417495ffd110e2af5e096e6e57e"
+    },
+    {
+      "number": 6,
+      "name": "ORGANISMOS DE TRÁNSITO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-6",
+      "preview": "Serán organismos de tránsito en su respectiva jurisdicción:\n\na) Los departamentos administrativos, institutos distritales y/o municipales de tránsito;\n\nb) Los designados por la aut",
+      "flags": [],
+      "contentHash": "ba1bb0794fa1bc549430dc92217f3845837b7f46c0f00fa4fdef7f048981c8d6"
+    },
+    {
+      "number": 7,
+      "name": "CUMPLIMIENTO RÉGIMEN NORMATIVO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-7",
+      "preview": "Artículo modificado por el artículo 58 de la Ley 2197 de 2022\n\nLas autoridades de tránsito velarán por la seguridad de las personas y las cosas en la vía pública y privadas abierta",
+      "flags": [],
+      "contentHash": "f999f1e29df33ba913b74a072b363e1140ecf3e0e8ba11e474b8cf367cb3d59a"
+    },
+    {
+      "number": 8,
+      "name": "REGISTRO ÚNICO NACIONAL DE TRÁNSITO, RUNT",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-8",
+      "preview": "El Ministerio de Transporte pondrá en funcionamiento directamente o a través de entidades públicas o particulares el Registro Unico Nacional de Tránsito, RUNT, en coordinación tota",
+      "flags": [],
+      "contentHash": "235f339baead67b1cb85b976a5421fd195271567cd30c177f999634b4073fc85"
+    },
+    {
+      "number": 9,
+      "name": "CARACTERÍSTICAS DE LA INFORMACIÓN DE LOS REGISTROS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-9",
+      "preview": "Aparte tachado declarado INEXEQUIBLE, por la Corte Constitucional mediante Sentencia C-532-03 de 3 de julio de 2003\n\nToda la información contenida en el RUNT será de carácter públi",
+      "flags": [],
+      "contentHash": "b5f9c57db8f15c11db034144016fa647e19238358c778906d772f87ab1cc5130"
+    },
+    {
+      "number": 10,
+      "name": "SISTEMA INTEGRADO DE INFORMACIÓN SOBRE LAS MULTAS Y SANCIONES POR INFRACCIONES DE TRÁNSITO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-10",
+      "preview": "Con el propósito de contribuir al mejoramiento de los ingresos de los municipios, se autoriza a la Federación Colombiana de Municipios para implementar y mantener actualizado a niv",
+      "flags": [],
+      "contentHash": "ca64aec582c0e4bb13989001d7d3a6a4941df45e36c33865bca5df6366041849"
+    },
+    {
+      "number": 11,
+      "name": "CARACTERÍSTICAS DE LA INFORMACIÓN DE LOS REGISTROS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-11",
+      "preview": "Toda la información contenida en el sistema integrado de información SIMIT, será de carácter público.\n\nLas características, el montaje la operación y actualización de la informació",
+      "flags": [],
+      "contentHash": "eda15576344e2ff80cbc22d543e8cef4a68abaf76be2c0b2f4c010ea26dc9143"
+    },
+    {
+      "number": 12,
+      "name": "NATURALEZA",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-12",
+      "preview": "Artículo modificado por el artículo 2 de la Ley 2283 de 2023\n\nTodo Centro de Enseñanza Automovilística, es un establecimiento docente de naturaleza pública, privada o mixta, que te",
+      "flags": [],
+      "contentHash": "5b67170b165ba240f36008815fd45fd1b8c4e2dee8614e04c514d1ebb16047a7"
+    },
+    {
+      "number": 13,
+      "name": "FORMACIÓN INSTRUCTORES EN CONDUCCIÓN",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-13",
+      "preview": "Para la formación de instructores en conducción, se requerirá autorización especial y se deberán cumplir los requisitos complementarios exigidos a los Centros de Enseñanza Automovi",
+      "flags": [],
+      "contentHash": "c7989a80c4ade922aaf2b7911cea3628bb906cebbf61ffc60bb99fe8ff092f75"
+    },
+    {
+      "number": 14,
+      "name": "CAPACITACIÓN",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-14",
+      "preview": "Artículo modificado por el artículo 3 de la Ley 2283 de 2023\n\nLa capacitación requerida para que las personas puedan conducir por las vías públicas en vehículos que requieren licen",
+      "flags": [],
+      "contentHash": "3e14bbda19bbaf166607205a900a3f2ef4942c1f24f4154dd900e5befdf3b12e"
+    },
+    {
+      "number": 15,
+      "name": "CONSTITUCIÓN Y FUNCIONAMIENTO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-15",
+      "preview": "Artículo modificado por el artículo 1 de la Ley 1397 de 2010\n\nEl Ministerio de Transporte reglamentará la constitución y funcionamiento de los Centros de Enseñanza Automovilística ",
+      "flags": [],
+      "contentHash": "df0c6acc24e80b73f5cb45474719d3ee19f10a6c43ebc430f05f867b2d5711ef"
+    },
+    {
+      "number": 16,
+      "name": "CAPACITACIÓN VEHÍCULOS DE SERVICIO PÚBLICO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-16",
+      "preview": "Los Centros de Enseñanza Automovilística ofrecerán dentro de sus programas una especial capacitación para conducir vehículo de servicio público.\n\nEl Ministerio de Transporte reglam",
+      "flags": [],
+      "contentHash": "d768ebdb67e61bb8960c95b5ea957c4728af9251a7ea4d6d5df6c14462b91ef7"
+    },
+    {
+      "number": 17,
+      "name": "OTORGAMIENTO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-17",
+      "preview": "Artículo modificado por el artículo 6 de la Ley 2251 de 2022\n\nLa licencia de conducción será otorgada por primera vez a quien cumpla con todos los requisitos descritos en el artícu",
+      "flags": [],
+      "contentHash": "acc882f26277b12d57f9beb7d7c78561be09d861743cd232197ce465cc7f76ab"
+    },
+    {
+      "number": 18,
+      "name": "FACULTAD DEL TITULAR",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-18",
+      "preview": "Artículo modificado por el artículo 195 del Decreto 19 de 2012\n\nLa licencia de conducción habilitará a su titular para conducir vehículos automotores de acuerdo con las categorías ",
+      "flags": [],
+      "contentHash": "15d2009199d5b26ac2d172e6011856d72941e4b6e7b1ff6d543a5dc8ca0e4314"
+    },
+    {
+      "number": 19,
+      "name": "REQUISITOS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-19",
+      "preview": "Artículo modificado por el artículo 7 de la Ley 2251 de 2022\n\nPodrá obtener una licencia de conducción para vehículos automotores quien acredite el cumplimiento de los siguientes r",
+      "flags": [],
+      "contentHash": "abcf8e943097f107ec5d556e80b8e00e682fc98671c7ab9fcd5e8e954eb5df32"
+    },
+    {
+      "number": 20,
+      "name": "ARTÍCULO 20",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-20",
+      "preview": "El Ministerio de Transporte definirá mediante resolución las categorías de licencias de conducción y recategorizaciones, lo mismo que las restricciones especiales que deben tenerse",
+      "flags": [],
+      "contentHash": "d75526bea10114084bccf18f7a7fa5424acb2183ffbbcc42881b56a05a5068b1"
+    },
+    {
+      "number": 21,
+      "name": "LIMITADOS FÍSICOS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-21",
+      "preview": "Quien padezca una limitación física parcial podrá obtener la licencia de conducción si, además del cumplimiento de los requisitos que en este Código se señalan, demuestra durante e",
+      "flags": [],
+      "contentHash": "09d0a213c4141035fe21e905b22804e7161fbff66c6009df82adfe7f659e69eb"
+    },
+    {
+      "number": 22,
+      "name": "VIGENCIA DE LA LICENCIA DE CONDUCCIÓN",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-22",
+      "preview": "Artículo modificado por el artículo 197 del Decreto 19 de 2012\n\nLas licencias de conducción para vehículos de servicio particular tendrán una vigencia de diez (10) años para conduc",
+      "flags": [],
+      "contentHash": "f499a363d1c14530e3d093b404fe05c03d099993f086e590cc65005dc1479fc6"
+    },
+    {
+      "number": 23,
+      "name": "RENOVACIÓN DE LICENCIAS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-23",
+      "preview": "Artículo modificado por el artículo 198 del Decreto 19 de 2012\n\nLa renovación se solicitará ante cualquier organismo de tránsito o entidad pública o privada autorizada para ello y ",
+      "flags": [],
+      "contentHash": "7949726feec0615bd3ecae65c212b6c8eeddfc8598c90c5fec185f17eaaa93b7"
+    },
+    {
+      "number": 24,
+      "name": "RECATEGORIZACIÓN",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-24",
+      "preview": "El titular de una licencia de conducción podrá solicitar ante un organismo de tránsito o la entidad pública o privada por él autorizada, la recategorización de su licencia, para lo",
+      "flags": [],
+      "contentHash": "dc602fc27f0fc6f7e0878e7305a839f4bea4eb6cfcada3d804d48558e376a01f"
+    },
+    {
+      "number": 25,
+      "name": "LICENCIAS EXTRANJERAS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-25",
+      "preview": "Las licencias de conducción, expedidas en otro país, que se encuentren vigentes y que sean utilizadas por turistas o personas en tránsito en el territorio nacional, serán válidas y",
+      "flags": [],
+      "contentHash": "76fa41926edbdf55d42b58418c078fa26a3386a41346615079417618afd9625e"
+    },
+    {
+      "number": 26,
+      "name": "CAUSALES DE SUSPENSIÓN O CANCELACIÓN",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-26",
+      "preview": "Artículo modificado por el artículo 7 de la Ley 1383 de 2010\n\nLa licencia de conducción se suspenderá:\n\nLa licencia de conducción se cancelará:\n\nPARÁGRAFO.",
+      "flags": [],
+      "contentHash": "57507f2b778ec366bb77dcf86b642935af90b95630a6a9f6a0f8b1bc27f1aea4"
+    },
+    {
+      "number": 27,
+      "name": "CONDICIONES DE CAMBIO DE SERVICIO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-27",
+      "preview": "Todos los vehículos que circulen por el territorio nacional deben someterse a las normas que sobre tránsito terrestre determine este Código. Estos deben cumplir con los requisitos ",
+      "flags": [],
+      "contentHash": "f224b7547ce560b130e5972d86dbe1f39d3bf5b2b7203333e8cdd4297a024bef"
+    },
+    {
+      "number": 28,
+      "name": "CONDICIONES TECNOMECÁNICAS, DE EMISIONES CONTAMINANTES Y DE OPERACIÓN",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-28",
+      "preview": "Artículo modificado por el artículo 8 de la Ley 1383 de 2010\n\nPara que un vehículo pueda transitar por el Territorio Nacional, debe garantizar como mínimo un perfecto funcionamient",
+      "flags": [],
+      "contentHash": "62d6fd0fd505117eb03ff4b5a267afd19cc82e69410486c7e3715d9c3110a49f"
+    },
+    {
+      "number": 29,
+      "name": "DIMENSIONES Y PESOS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-29",
+      "preview": "Los vehículos deberán someterse a las dimensiones y pesos, incluida carrocería y accesorios, que para tal efecto determine el Ministerio de Transporte, para lo cual debe tener en c",
+      "flags": [],
+      "contentHash": "9245e4859eb8a029bd994f002eaa783f3b65c1f38b9615e964ae0b8f978cf615"
+    },
+    {
+      "number": 30,
+      "name": "EQUIPOS DE PREVENCIÓN Y SEGURIDAD",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-30",
+      "preview": "Ningún vehículo podrá transitar por las vías del territorio nacional sin portar el siguiente equipo de carretera como mínimo.\n\n1. Un gato con capacidad para elevar el vehículo.\n\n2.",
+      "flags": [],
+      "contentHash": "7aa6f852fc49198de0ee2eec2b5b6c7c1370e4f923cbab06b868457995a41794"
+    },
+    {
+      "number": 31,
+      "name": "SALIDA DE EMERGENCIA",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-31",
+      "preview": "Todo vehículo dedicado al transporte colectivo de pasajeros debe tener como mínimo una salida de emergencia en cada uno de sus costados adicionalmente a las puertas de ascenso de p",
+      "flags": [],
+      "contentHash": "62d89d072ffacda643293b4bfe754f3be69a5e1c74ebd11a2d73f65aa34e6c6f"
+    },
+    {
+      "number": 32,
+      "name": "CONDICIONES DE LA CARGA",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-32",
+      "preview": "La carga de un vehículo debe estar debidamente empacada, rotulada, embalada y cubierta conforme a la normatividad técnica nacional cuando esta aplique, de acuerdo con las exigencia",
+      "flags": [],
+      "contentHash": "61054ff98c2e159a6a051d31f1407cab560b3b9c0720082a8739f606c982fbde"
+    },
+    {
+      "number": 33,
+      "name": "PERMISO PARA CARGA",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-33",
+      "preview": "El Ministerio de Transporte definirá lo referente a permisos para transportar cargas indivisibles, extrapesadas y extradimensionadas, así como las especificaciones de los vehículos",
+      "flags": [],
+      "contentHash": "df46398c435a722cc55b07295768bbb5af1ec4f8b12c201032d73058002f12d3"
+    },
+    {
+      "number": 34,
+      "name": "PORTE",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-34",
+      "preview": "En ningún caso podrá circular un vehículo automotor sin portar la licencia de tránsito correspondiente.",
+      "flags": [],
+      "contentHash": "85f32b4e5e663e0e7b2b6f4567fd73dcbf6f0a9e38869e834e046236f4916723"
+    },
+    {
+      "number": 35,
+      "name": "EXPEDICIÓN",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-35",
+      "preview": "La licencia de tránsito será expedida por cualquier organismo de tránsito o por quien él designe, previa entrega de los siguientes documentos:\n\nFactura de compra si el vehículo es ",
+      "flags": [],
+      "contentHash": "c4b09e9c6d361fa4c2f510e07aed601d60ce06beda4c08a040ce5670981fa5b9"
+    },
+    {
+      "number": 36,
+      "name": "ELABORACIÓN",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-36",
+      "preview": "El formato de la licencia de tránsito será único nacional, y será definido por el Ministerio de Transporte antes de los 60 días posteriores a la sanción de esta ley y en el mismo s",
+      "flags": [],
+      "contentHash": "4fe6954557f1fb3c88e895c921eb773681371cb781f44ba8da2213b401c0840e"
+    },
+    {
+      "number": 37,
+      "name": "REGISTRO INICIAL",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-37",
+      "preview": "El registro inicial de un vehículo se podrá hacer en cualquier organismo de tránsito y sus características técnicas y de capacidad deben estar homologadas por el Ministerio de Tran",
+      "flags": [],
+      "contentHash": "07c50408bd3ff72caf43a1985302dedce88fabc102e2880ff0462cd0feb8febe"
+    },
+    {
+      "number": 38,
+      "name": "CONTENIDO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-38",
+      "preview": "La licencia de tránsito contendrá, como mínimo, los siguientes datos:\n\nCaracterísticas de identificación del vehículo, tales como: marca, línea, modelo, cilindrada, potencia, númer",
+      "flags": [],
+      "contentHash": "d8df32bbf71e9224a637c28521c23a685009818c9180127420f2f56e5d1c2f16"
+    },
+    {
+      "number": 39,
+      "name": "MATRÍCULAS Y TRASLADOS DE CUENTA",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-39",
+      "preview": "Artículo modificado por el artículo 199 del Decreto 19 de 2012\n\nTodo vehículo será matriculado ante un organismo de tránsito ante el cual cancelará los derechos de matrícula y paga",
+      "flags": [],
+      "contentHash": "3abe3cf930e958b3aee4865a5fed172abc0f0fc6577b0ba63219c5278ad83f07"
+    },
+    {
+      "number": 40,
+      "name": "CANCELACIÓN",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-40",
+      "preview": "La licencia de tránsito de un vehículo se cancelará a solicitud de su titular por destrucción total del vehículo, pérdida definitiva, exportación o reexportación, hurto o desaparic",
+      "flags": [],
+      "contentHash": "226f82885f45fa95d08fd0a408bd2cac13886dce4bb9d1db6b96c50b996ede5a"
+    },
+    {
+      "number": 41,
+      "name": "VEHÍCULOS EXTRANJEROS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-41",
+      "preview": "Los vehículos registrados legalmente en otros países, que se encuentren en el territorio nacional, podrán transitar durante el tiempo autorizado por el Ministerio de Relaciones Ext",
+      "flags": [],
+      "contentHash": "eef9a30997e61429e33f796fd04c2f8740d6f215733050fe0b8be1f7379503c3"
+    },
+    {
+      "number": 42,
+      "name": "SEGUROS OBLIGATORIOS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-42",
+      "preview": "Para poder transitar en el territorio nacional todos los vehículos deben estar amparados por un seguro obligatorio vigente. El Seguro Obligatorio de Accidentes de Tránsito, SOAT, s",
+      "flags": [],
+      "contentHash": "945e19516c30a5a9258190deaef686bd3c8be28815f301d50fb36b184f1b16d1"
+    },
+    {
+      "number": 43,
+      "name": "DISEÑO Y ELABORACIÓN",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-43",
+      "preview": "Corresponde al Ministerio de Transporte diseñar y establecer las características y ficha técnica de la placa única nacional para los vehículos automotores, asignar sus series, rang",
+      "flags": [],
+      "contentHash": "6d26911635c59d0a8e00c0141d0ffd96c61d730c68b73cc8efd1ccffd628aee0"
+    },
+    {
+      "number": 44,
+      "name": "CLASIFICACIÓN",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-44",
+      "preview": "Las placas se clasifican, en razón del servicio del vehículo, así: De servicio oficial, público, particular, diplomático, consular y de misiones especiales.\n\nLas placas de servicio",
+      "flags": [],
+      "contentHash": "451acfe51c33d8060d6dee7a4cf171ab0c8d8b571d32e724bd3883fee211a803"
+    },
+    {
+      "number": 45,
+      "name": "UBICACIÓN",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-45",
+      "preview": "Artículo modificado por el artículo 200 del Decreto Ley 19 de 2012\n\nLos vehículos automotores llevarán dos (2) placas iguales: una en el extremo delantero y otra en el extremo tras",
+      "flags": [],
+      "contentHash": "ce4b3c0aef8b622ef35e42e2c0ac243141d536c436340c41f251fe6d146617e1"
+    },
+    {
+      "number": 46,
+      "name": "INSCRIPCIÓN EN EL REGISTRO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-46",
+      "preview": "Todo vehículo automotor, registrado y autorizado para, circular por el territorio nacional, incluyendo la maquinaria capaz de desplazarse, deberá ser inscrito por parte de la autor",
+      "flags": [],
+      "contentHash": "ceadcff566f75b1f85207a4019d1a42747522e04aa97d41d5028dbe0aafd2f0d"
+    },
+    {
+      "number": 47,
+      "name": "TRADICIÓN DEL DOMINIO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-47",
+      "preview": "La tradición del dominio de los vehículos automotores requerirá, además de su entrega material, su inscripción en el organismo de tránsito correspondiente, quien lo reportará en el",
+      "flags": [],
+      "contentHash": "268e3433b9b84455d015f888f5499420c0a5786d93b8b88c53d9d55334f6750d"
+    },
+    {
+      "number": 48,
+      "name": "INFORMACIÓN AL REGISTRO NACIONAL",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-48",
+      "preview": "Las autoridades judiciales deberán informar al organismo de tránsito donde se encuentre matriculado un vehículo, de las decisiones adoptadas en relación con él, para su inscripción",
+      "flags": [],
+      "contentHash": "b4481cb9df894738890c2d5b88d65dff9d9ae273e9fde0a1f6c2e5f18bc3e548"
+    },
+    {
+      "number": 49,
+      "name": "AUTORIZACIÓN PREVIA PARA CAMBIO DE CARACTERÍSTICAS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-49",
+      "preview": "Cualquier modificación o cambio en las características que identifican un vehículo automotor, estará sujeto a la autorización previa por parte de la autoridad de tránsito competent",
+      "flags": [],
+      "contentHash": "f6417c69c440c9fc2ec9f5f3d8398288455cf96ead7c79c2e8d3c561e8e317ad"
+    },
+    {
+      "number": 50,
+      "name": "CONDICIONES MECÁNICAS, AMBIENTALES Y DE SEGURIDAD",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-50",
+      "preview": "Artículo modificado por el artículo 10 de la Ley 1383 de 2010\n\nPor razones de seguridad vial y de protección al ambiente, el propietario o tenedor del vehículo de placas nacionales",
+      "flags": [],
+      "contentHash": "0c2ddd77050f8a080603fd80cf3d2a0c14bb56a591176a3a5c9d7aadfbe5789b"
+    },
+    {
+      "number": 51,
+      "name": "REVISIÓN PERIÓDICA DE LOS VEHÍCULOS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-51",
+      "preview": "Artículo modificado por el artículo 201 del Decreto 19 de 2012\n\nSalvo lo dispuesto en el artículo siguiente, todos los vehículos automotores, deben someterse anualmente a revisión ",
+      "flags": [],
+      "contentHash": "be6fb74fa869d3546826cc8079fbc18ba6bc69a0e6bd986b4683914399c3bf55"
+    },
+    {
+      "number": 52,
+      "name": "PRIMERA REVISIÓN DE LOS VEHÍCULOS AUTOMOTORES",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-52",
+      "preview": "Artículo modificado por el artículo 179 de la Ley 2294 de 2023\n\nLos vehículos nuevos de servicio particular diferentes de motocicletas y similares, se someterán a la primera revisi",
+      "flags": [],
+      "contentHash": "22e92f317f4f8792b9e50b4bb858a6c4032e69cd565316d37682d4f21cb5dfa3"
+    },
+    {
+      "number": 53,
+      "name": "CENTROS DE DIAGNÓSTICO AUTOMOTOR",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-53",
+      "preview": "Artículo modificado por el artículo 111 del Decreto Ley 2106 de 2019\n\nLa revisión técnico-mecánica y de emisiones contaminantes se realizará en centros de diagnóstico automotor, le",
+      "flags": [],
+      "contentHash": "0c727e366762cb6c96b13b4d15730a95ad940f668b64f914c46a455d2a903f6d"
+    },
+    {
+      "number": 54,
+      "name": "REGISTRO COMPUTARIZADO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-54",
+      "preview": "Artículo modificado por el artículo 14 de la Ley 1383 de 2010\n\nLos Centros de diagnóstico automotor llevarán un registro computarizado de los resultados de las revisiones técnico-m",
+      "flags": [],
+      "contentHash": "0200bf1987480b93ee083a167997e510ada22b221a7cc9970b20f4770bb853f4"
+    },
+    {
+      "number": 55,
+      "name": "COMPORTAMIENTO DEL CONDUCTOR, PASAJERO O PEATÓN",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-55",
+      "preview": "Toda persona que tome parte en el tránsito como conductor, pasajero o peatón, debe comportarse en forma que no obstaculice, perjudique o ponga en riesgo a las demás y debe conocer ",
+      "flags": [],
+      "contentHash": "600b82f4e6e8a3b2f372373f87928a42191f664438321a0de64f96a5f88c3343"
+    },
+    {
+      "number": 56,
+      "name": "OBLIGATORIEDAD DE ENSEÑANZA",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-56",
+      "preview": "Artículo modificado por el artículo 6 de la Ley 2222 de 2022\n\nSe establece como obligatoria, en la educación Preescolar, Básica Primaria, Básica Secundaria, la enseñanza en educaci",
+      "flags": [],
+      "contentHash": "2d7e285f1caa1b57d89e9f754b21b00288d4c0b559f62069f8603801f01e209c"
+    },
+    {
+      "number": 57,
+      "name": "CIRCULACIÓN PEATONAL",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-57",
+      "preview": "El tránsito de peatones por las vías públicas se hará por fuera de las zonas destinadas al tránsito de vehículos. Cuando un peatón requiera cruzar una vía vehicular, lo hará respet",
+      "flags": [],
+      "contentHash": "42f2193bef06500b2c6ff8e0998c801c2e77fd2321168ed12dd8513649e4d3f2"
+    },
+    {
+      "number": 58,
+      "name": "PROHIBICIONES A LOS PEATONES",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-58",
+      "preview": "Artículo modificado por el artículo 8 de la Ley 1811 de 2016\n\nLos peatones no podrán:\n\n1. Llevar, sin las debidas precauciones, elementos que puedan afectar el tránsito de otros pe",
+      "flags": [],
+      "contentHash": "c6c0e41c3d38069136260851f23fdfe1263542881512ed7bc8f503a7e90902ea"
+    },
+    {
+      "number": 59,
+      "name": "LIMITACIONES A PEATONES ESPECIALES",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-59",
+      "preview": "Los peatones que se enuncian a continuación deberán ser acompañados, al cruzar las vías, por personas mayores de dieciséis años:\n\nLas personas que padezcan de trastornos mentales p",
+      "flags": [],
+      "contentHash": "639aeeae5624986cffcf0484c1b8f4daec997098d4dda563c47ee6a1cfb6525f"
+    },
+    {
+      "number": 60,
+      "name": "OBLIGATORIEDAD DE TRANSITAR POR LOS CARRILES DEMARCADOS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-60",
+      "preview": "Artículo modificado por el artículo 6 de la Ley 2486 de 2025\n\nLos vehículos deben transitar, obligatoriamente, por sus respectivos carriles, dentro de las líneas de demarcación, y ",
+      "flags": [],
+      "contentHash": "658d5f79262784a56d6d689fcf1b8d3af5eea8db456e90807e0572fa914498ba"
+    },
+    {
+      "number": 61,
+      "name": "VEHÍCULO EN MOVIMIENTO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-61",
+      "preview": "Todo conductor de un vehículo deberá abstenerse de realizar o adelantar acciones que afecten la seguridad en la conducción del vehículo automotor, mientras éste se encuentre en mov",
+      "flags": [],
+      "contentHash": "afe368eead67812095b874a97e92a75ce8485fda58c95a8fed99ca71e55d86ed"
+    },
+    {
+      "number": 62,
+      "name": "RESPETO A LOS CONGLOMERADOS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-62",
+      "preview": "Todo conductor de un vehículo deberá respetar las formaciones de tropas, desfiles, columnas motorizadas de fuerza pública, procesiones, entierros, filas estudiantiles y las manifes",
+      "flags": [],
+      "contentHash": "464f80c450697b0e6a74c0ec2cd0d3cbb74cfa51fd6e14cc118173fc34f7c33d"
+    },
+    {
+      "number": 63,
+      "name": "RESPETO A LOS DERECHOS DE LOS PEATONES, CICLISTAS Y USUARIOS DE VEHÍCULOS ELÉCTRICOS LIVIANOS DE MOVILIDAD PERSONAL URBANA",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-63",
+      "preview": "Artículo modificado por el artículo 5 de la Ley 2486 de 2025\n\nLos conductores de vehículos motorizados deberán respetar los derechos e integridad de los peatones, ciclistas y usuar",
+      "flags": [],
+      "contentHash": "22d2d18844b4d953c6a9f8252dc85b9685d77583feccb3fd7ec187e580d84309"
+    },
+    {
+      "number": 64,
+      "name": "CESIÓN DE PASO EN LA VÍA A VEHÍCULOS DE EMERGENCIA",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-64",
+      "preview": "Todo conductor debe ceder el paso a los vehículos de ambulancias, cuerpo de bomberos, vehículos de socorro o emergencia y de la policía o ejército orillándose al costado derecho de",
+      "flags": [],
+      "contentHash": "07230a8dde9f5de0b5af5f1f52838afe1e33c2c9b507ea67ec6e5ac9ec9625e0"
+    },
+    {
+      "number": 65,
+      "name": "UTILIZACIÓN DE LA SEÑAL DE PARQUEO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-65",
+      "preview": "Todo conductor, al detener su vehículo en la vía pública, deberá utilizar la señal luminosa intermitente que corresponda, orillarse al lado derecho de la vía y no efectuar maniobra",
+      "flags": [],
+      "contentHash": "10b84ce66c2b0c58fc7f1f87156b1e3dd3f862a95be679a51d53e1e17ff9feeb"
+    },
+    {
+      "number": 66,
+      "name": "GIROS EN CRUCE DE INTERSECCIÓN",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-66",
+      "preview": "El conductor que transite por una vía sin prelación deberá detener completamente su vehículo al llegar a un cruce y donde no haya semáforo tomará las precauciones debidas e iniciar",
+      "flags": [],
+      "contentHash": "82eab6cc52b7b962321161e88dba187582c18b45606df74ffd05cc9b7ef196ce"
+    },
+    {
+      "number": 67,
+      "name": "UTILIZACIÓN DE SEÑALES",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-67",
+      "preview": "Todo conductor está obligado a utilizar las señales direccionales de su vehículo para dar un giro o para cambiar de carril. Sólo en caso de emergencia, y ante la imposibilidad de u",
+      "flags": [],
+      "contentHash": "83622c9811486667398ed4dfb15cafa03c38a6daf7768a6b08029496277f40e3"
+    },
+    {
+      "number": 68,
+      "name": "UTILIZACIÓN DE LOS CARRILES",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-68",
+      "preview": "Los vehículos transitarán de la siguiente forma:\n\nVía de sentido único de tránsito.\n\nVías de doble sentido de tránsito.\n\nPARÁGRAFO 1.\n\nPARÁGRAFO 2.",
+      "flags": [],
+      "contentHash": "3ed493e49f59d4dc2fd3fe6071100fcb055543afd752f161263484d8b1306534"
+    },
+    {
+      "number": 69,
+      "name": "RETROCESO EN LAS VÍAS PÚBLICAS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-69",
+      "preview": "No se deben realizar maniobras de retroceso en las vías públicas, salvo en casos de estacionamiento o emergencia.\n\nLos vehículos automotores no deben transitar sobre las aceras y z",
+      "flags": [],
+      "contentHash": "cadb0027dddf2cdbc600e4f16746245a7dc913f5dbca8f7a4fecce9223971ee4"
+    },
+    {
+      "number": 70,
+      "name": "PRELACIÓN EN INTERSECCIONES O GIROS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-70",
+      "preview": "Normas de prelación en intersecciones y situaciones de giros en las cuales dos (2) o más vehículos puedan interferir:\n\nCuando dos (2) o más vehículos transiten en sentido contrario",
+      "flags": [],
+      "contentHash": "a86e8a892f6197cef02d2f6070921d9ce2ca77f64ad2139c3c7786ef02f460d2"
+    },
+    {
+      "number": 71,
+      "name": "INICIO DE MARCHA",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-71",
+      "preview": "Al poner en movimiento un vehículo estacionado se utilizará la señal direccional respectiva, dando prelación a los demás vehículos en marcha y tomando las precauciones para evitar ",
+      "flags": [],
+      "contentHash": "3d68f008dadf6e34d21bc33b2e1e97e96463c8a6e3e5fe8719937db935d95e80"
+    },
+    {
+      "number": 72,
+      "name": "REMOLQUE DE VEHÍCULOS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-72",
+      "preview": "Solamente se podrán remolcar vehículos por medio de una grúa destinada a tal fin. En caso de una urgencia, un vehículo varado en vía urbana podrá ser remolcado por otro vehículo, s",
+      "flags": [],
+      "contentHash": "6faace5cd20e3c3935a167c33c11ae4f7710aa9a6236519d24fdb9e9d0915da8"
+    },
+    {
+      "number": 73,
+      "name": "PROHIBICIONES ESPECIALES PARA ADELANTAR OTRO VEHÍCULO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-73",
+      "preview": "No se debe adelantar a otros vehículos en los siguientes casos:\n\nEn intersecciones.\n\nEn los tramos de la vía en donde exista línea separadora central continua o prohibición de adel",
+      "flags": [],
+      "contentHash": "9f98f4d4adf4c0edf192507443fac1540091a6ae5152267dd4ae84e8a8fd305c"
+    },
+    {
+      "number": 74,
+      "name": "REDUCCIÓN DE VELOCIDAD",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-74",
+      "preview": "Los conductores deben reducir la velocidad a treinta (30) kilómetros por hora en los siguientes casos:\n\nEn lugares de concentración de personas y en zonas residenciales.\n\nEn las zo",
+      "flags": [],
+      "contentHash": "7b328818d23de6aacc68258de680491094cc359b1bf1c4623167b6cdf1f7ecb8"
+    },
+    {
+      "number": 75,
+      "name": "ESTACIONAMIENTO DE VEHÍCULOS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-75",
+      "preview": "En vías urbanas donde esté permitido el estacionamiento, se podrá hacerlo sobre el costado autorizado para ello, lo más cercano posible al andén o al límite lateral de la calzada n",
+      "flags": [],
+      "contentHash": "ed738b937b4a192ebcd0926d2c3087de3c07bbc60fbbaa5578ad3061c63131fc"
+    },
+    {
+      "number": 76,
+      "name": "LUGARES PROHIBIDOS PARA ESTACIONAR",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-76",
+      "preview": "Artículo modificado por el artículo 15 de la Ley 1811 de 2016\n\nEstá prohibido estacionar vehículos en los siguientes lugares:\n\n1. Sobre andenes, zonas verdes o zonas de espacio púb",
+      "flags": [],
+      "contentHash": "9f82490ab15fa7d5b001205f14f8fba61ddbdf96dbdc7dcfb8381faf9f397329"
+    },
+    {
+      "number": 77,
+      "name": "NORMAS PARA ESTACIONAR",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-77",
+      "preview": "En autopistas y zonas rurales, los vehículos podrán estacionarse únicamente por fuera de la vía colocando en el día señales reflectivas de peligro, y en la noche, luces de estacion",
+      "flags": [],
+      "contentHash": "cf47f9f05b1799c7720031f38131cecbab31bc26ba18e14a8820b91634af05ce"
+    },
+    {
+      "number": 78,
+      "name": "ZONAS Y HORARIOS DE ESTACIONAMIENTO ESPECIALES",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-78",
+      "preview": "Los conductores que estacionen sus vehículos en los lugares de comercio u obras de construcción de los perímetros urbanos con el objeto de cargar o descargar, deberán hacerlo en zo",
+      "flags": [],
+      "contentHash": "0214681f90a011fdec3cfa2125f4ec39230a86548bf64cb06ed97cf6d2038275"
+    },
+    {
+      "number": 79,
+      "name": "ESTACIONAMIENTO EN VÍA PÚBLICA",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-79",
+      "preview": "No se deben reparar vehículos en vías públicas, parques, aceras, sino en caso de reparaciones de emergencia, o bajo absoluta imposibilidad física de mover el vehículo. En caso de r",
+      "flags": [],
+      "contentHash": "55f737dc0800793c8a00792ef7b4c6f30d4bf9b1387b299bb9dee191668602f0"
+    },
+    {
+      "number": 80,
+      "name": "MEDIDAS PARA EVITAR EL MOVIMIENTO DE VEHÍCULO ESTACIONADO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-80",
+      "preview": "Siempre que el conductor descienda del vehículo, deberá tomar las medidas necesarias para evitar que éste se ponga en movimiento.\n\nPARÁGRAFO.",
+      "flags": [],
+      "contentHash": "c26b7b96573b2bc2f6e6cba20a7529f805082414e68ba5c68d0576c14b142fbd"
+    },
+    {
+      "number": 81,
+      "name": "PUERTAS CERRADAS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-81",
+      "preview": "Los vehículos deberán transitar siempre con todas sus puertas debidamente cerradas.",
+      "flags": [],
+      "contentHash": "ef5b6b4e4f24a0fe649b914b0cbf2a6cfead61c377352675bc1c244936fa550c"
+    },
+    {
+      "number": 82,
+      "name": "CINTURÓN DE SEGURIDAD",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-82",
+      "preview": "Artículo modificado por el artículo 2 de la ley 2393 de 2024\n\nEn el asiento delantero de los vehículos, solo podrán viajar, además del conductor, una (1) o dos (2) personas de acue",
+      "flags": [],
+      "contentHash": "c79c8927ffa15adc271f956661a5eda9369bf60e1d66272be41acd4e6a34d12a"
+    },
+    {
+      "number": 83,
+      "name": "PROHIBICIÓN DE LLEVAR PASAJEROS EN LA PARTE EXTERIOR DEL VEHÍCULO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-83",
+      "preview": "Ningún vehículo podrá llevar pasajeros en su parte exterior, o fuera de la cabina, salvo aquellos que por su naturaleza así lo requieran, tales como los vehículos de atención de in",
+      "flags": [],
+      "contentHash": "75a0a04bf8f401be47762ca25d2c4bdd8b50ae62b3c3f961ab943dd18ea2a9f6"
+    },
+    {
+      "number": 84,
+      "name": "NORMAS PARA EL TRANSPORTE DE ESTUDIANTES",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-84",
+      "preview": "En el transporte de estudiantes, los conductores de vehículos deberán garantizar la integridad física de ellos especialmente en el ascenso y descenso del vehículo. Los estudiantes ",
+      "flags": [],
+      "contentHash": "a3b4b6b3e5c8a882739ad06887a271c432629910db44284863b37bec04eb7627"
+    },
+    {
+      "number": 85,
+      "name": "APROVISIONAMIENTO DE COMBUSTIBLE",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-85",
+      "preview": "El aprovisionamiento de combustible a los vehículos debe hacerse con el motor apagado.\n\nLos conductores de vehículos de servicio público de radio de acción nacional y los de transp",
+      "flags": [],
+      "contentHash": "8a2f676e5554d5b3823170d552031920f865d8013dc8e5c3e82322436108873f"
+    },
+    {
+      "number": 86,
+      "name": "DE LAS LUCES EXTERIORES",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-86",
+      "preview": "Todo vehículo automotor deberá tener encendidas las luces exteriores a partir de las dieciocho (18) horas hasta las seis (6) horas del día siguiente, y cuando las condiciones de vi",
+      "flags": [],
+      "contentHash": "997471b6b9b91c642b9597457c82eaec4843b95b0c3ad24e65a103235c965a23"
+    },
+    {
+      "number": 87,
+      "name": "DE LA PROHIBICIÓN DE LLEVAR ANIMALES Y OBJETOS MOLESTOS EN VEHÍCULOS PARA PASAJEROS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-87",
+      "preview": "En los vehículos de servicio público de pasajeros no deben llevarse objetos que puedan atentar la integridad física de los usuarios; ni animales, salvo que se trate de perros lazar",
+      "flags": [],
+      "contentHash": "0a0feffab4ac3370e43f76ce5ecc2f27216bdd6531a50265e9984384a0ea98c2"
+    },
+    {
+      "number": 88,
+      "name": "TRÁNSITO POR EL CARRIL DERECHO AL TRANSPORTE PÚBLICO INDIVIDUAL",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-88",
+      "preview": "Cuando el vehículo de servicio público individual urbano transite sin pasajeros, estará obligado a hacerlo por el carril derecho indicando la disponibilidad para prestar el servici",
+      "flags": [],
+      "contentHash": "79fab438db270286485c546f68bfadeaf5364d9805641dec163bf2c13ed600cc"
+    },
+    {
+      "number": 89,
+      "name": "TAXÍMETRO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-89",
+      "preview": "Ningún vehículo autorizado para prestar el servicio público con taxímetro, podrá hacerlo cuando no lo tenga instalado, no funcione correctamente o tenga los sellos rotos o etiqueta",
+      "flags": [],
+      "contentHash": "a9b0542bc337d8c0046280cce4732cfe349a1bf535eec5e62457c910ac50395e"
+    },
+    {
+      "number": 90,
+      "name": "LUCES INTERIORES DEL SERVICIO PÚBLICO COLECTIVO URBANO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-90",
+      "preview": "En los vehículos de servicio público colectivo urbano, las luces interiores permanecerán encendidas durante todo el tiempo en que el vehículo esté prestando el servicio entre las d",
+      "flags": [],
+      "contentHash": "39d6059ca10a18059492dbf949b1b8ec3c8e125cfde31df9ddcb50867aa6971c"
+    },
+    {
+      "number": 91,
+      "name": "DE LOS PARADEROS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-91",
+      "preview": "Artículo modificado por el artículo 16 de la Ley 1383 de 2010\n\nTodo conductor de vehículo de servicio público de transporte terrestre automotor debe recoger o dejar pasajeros exclu",
+      "flags": [],
+      "contentHash": "5c5e54a4fc0e9ddeb5a17f8abd5c231fa060908953c4eed6ace139d616e0ab3d"
+    },
+    {
+      "number": 92,
+      "name": "DEL COMPORTAMIENTO DE LOS PASAJEROS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-92",
+      "preview": "Cuando algún usuario del transporte público profiera expresiones injuriosas o groseras, promueva riñas o cause cualquier molestia a los demás pasajeros, el conductor detendrá la ma",
+      "flags": [],
+      "contentHash": "e1970aa959f361ad5a30158f739ede6b9964d9293d54f0ab7ebf7d93486cbf08"
+    },
+    {
+      "number": 93,
+      "name": "CONTROL DE INFRACCIONES DE CONDUCTORES",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-93",
+      "preview": "Artículo modificado por el artículo 204 del Decreto 19 de 2012\n\nLos Organismos de Tránsito deberán reportar diariamente al Registro Único Nacional de Tránsito RUNT, las infraccione",
+      "flags": [],
+      "contentHash": "f89a94300d6443c69101677607dc7ad75430181e0d81667e593535f2f5322b36"
+    },
+    {
+      "number": 94,
+      "name": "NORMAS GENERALES PARA BICICLETAS, TRICICLOS, MOTOCICLETAS, MOTOCICLOS Y MOTOTRICICLOS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-94",
+      "preview": "Los conductores de bicicletas, triciclos, motocicletas, motociclos y mototriciclos, estarán sujetos a las siguientes normas:\n\nDeben transitar por la derecha de las vías a distancia",
+      "flags": [],
+      "contentHash": "bf06c4e8c78df2ec2011e2cc3fcbb24b35a96c2c515a04d1fd96e9c4b2dee155"
+    },
+    {
+      "number": 95,
+      "name": "NORMAS ESPECÍFICAS PARA BICICLETAS Y TRICICLOS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-95",
+      "preview": "Artículo modificado por el artículo 9 de la Ley 1811 de 2016\n\nLas bicicletas y triciclos se sujetarán a las siguientes normas específicas:\n\n1. Debe transitar ocupando un carril, ob",
+      "flags": [],
+      "contentHash": "aeda4500f5cb97f408f04f27de12ecd35612f583280d442ef3cff9a766b3f883"
+    },
+    {
+      "number": 96,
+      "name": "NORMAS ESPECÍFICAS PARA MOTOCICLETAS, MOTOCICLOS Y MOTOTRICICLOS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-96",
+      "preview": "Artículo modificado por el artículo 9 de la Ley 2251 de 2022\n\nLas motocicletas se sujetarán a las siguientes normas específicas:\n\n1. Deben transitar ocupando un carril, observando ",
+      "flags": [],
+      "contentHash": "9c62ba700fe258f840bee6442414e70efb5fcf4fc5f68cbd73775f2adb6320b6"
+    },
+    {
+      "number": 97,
+      "name": "MOVILIZACIÓN DE ANIMALES",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-97",
+      "preview": "No deben dejarse animales sueltos en las vías públicas, o con libre acceso a éstas. Las autoridades tomarán las medidas necesarias para despejar las vías de animales abandonados, q",
+      "flags": [],
+      "contentHash": "20b30f228dac53796701515bc510cba44d7db9832689a4d94bf5f8ac1699d7b7"
+    },
+    {
+      "number": 98,
+      "name": "ERRADICACIÓN DE LOS VEHÍCULOS DE TRACCIÓN ANIMAL",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-98",
+      "preview": "Apartes tachados declarados INEXEQUIBLES por la Corte Constitucional mediante Sentencia C-355-03 de 6 de mayo de 2003\n\nEn un término de un (1) año, contado a partir de la iniciació",
+      "flags": [],
+      "contentHash": "7daf2fde706feb80b34013ce31fafa7be842ce6bf9b7b429845a4a38b6d95b88"
+    },
+    {
+      "number": 99,
+      "name": "ACTIVIDADES COLECTIVAS EN VÍAS PÚBLICAS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-99",
+      "preview": "La autorización de actividades colectivas en vías públicas debe ser solicitada con anticipación ante la autoridad competente. En todo caso, estas actividades no deben afectar la no",
+      "flags": [],
+      "contentHash": "b9aa5026a5ded148c7ca3c4b93a63392752077f7c0b36a3eb43e97fa7f29facb"
+    },
+    {
+      "number": 100,
+      "name": "COMPETENCIAS DEPORTIVAS EN VÍAS PÚBLICAS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-100",
+      "preview": "Las competencias deportivas que se desarrollen en vías públicas, serán coordinadas por las federaciones o ligas respectivas, quienes deberán formular la solicitud de permiso corres",
+      "flags": [],
+      "contentHash": "eb10aec73618f8a994a5969317053fd84918192bab2bfbbc285a4ac17352630a"
+    },
+    {
+      "number": 101,
+      "name": "NORMAS PARA REALIZAR TRABAJOS EN VÍA PÚBLICA",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-101",
+      "preview": "Siempre que deban efectuarse trabajos que alteren la circulación en las vías públicas, el interesado en tal labor obtendrá en forma previa la autorización correspondiente de la aut",
+      "flags": [],
+      "contentHash": "8a9e23c152648cb6024c6e6c2a20c556357bfbeaa165861735200dcbe1302b1a"
+    },
+    {
+      "number": 102,
+      "name": "MANEJO DE ESCOMBROS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-102",
+      "preview": "Artículo modificado por el artículo 19 de la Ley 1383 de 2010\n\nCada municipio determinará el lugar o lugares autorizados para la disposición final de los escombros que se produzcan",
+      "flags": [],
+      "contentHash": "255f1a1a0c57647d59f9af69fa3838bcf3965645e6b51407c210c0e83a00eaf4"
+    },
+    {
+      "number": 103,
+      "name": "NIVELES PERMISIBLES DE EMISIÓN DE FUENTES MÓVILES",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-103",
+      "preview": "El Gobierno Nacional reglamentará, los niveles permisibles de emisión de contaminantes producidos por fuentes móviles terrestres que funcionan con cualquier tipo de combustible apt",
+      "flags": [],
+      "contentHash": "f117230ac498e4aef42c2753fa417c6b0109bc4da969f2a8b79cb2752d90691c"
+    },
+    {
+      "number": 104,
+      "name": "NORMAS PARA DISPOSITIVOS SONOROS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-104",
+      "preview": "Todo vehículo deberá estar provisto de un aparato para producir señales acústicas de intensidad, no superior a los señalados por las autoridades ambientales, utilizable únicamente ",
+      "flags": [],
+      "contentHash": "54391d568466e5f93f0c98a7d078545a4af60106dc5a0cc355294425aa8f8d80"
+    },
+    {
+      "number": 105,
+      "name": "CLASIFICACIÓN DE VÍAS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-105",
+      "preview": "Para efectos de determinar su prelación, las vías se clasifican así:\n\n1. Dentro del perímetro urbano:\n\n2. En las zonas rurales:\n\nLa presencia de peatones en las vías y zonas para e",
+      "flags": [],
+      "contentHash": "c14860dd03329c956eef7ebe98bde3f5ddf7300f7ce560a30cc94a15f467b2db"
+    },
+    {
+      "number": 106,
+      "name": "LÍMITES DE VELOCIDAD EN VÍAS URBANAS Y CARRETERAS MUNICIPALES",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-106",
+      "preview": "Artículo modificado por el artículo 12 de la Ley 2251 de 2022\n\nEn las vías urbanas las velocidades máximas y mínimas para vehículos de servicio público o particular será determinad",
+      "flags": [],
+      "contentHash": "d5c6724838fe7b7e664fbb990223b48ebf9d133e4a2e1d49fb2fac3f0c03f4dd"
+    },
+    {
+      "number": 107,
+      "name": "LÍMITES DE VELOCIDAD EN CARRETERAS NACIONALES Y DEPARTAMENTALES",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-107",
+      "preview": "Artículo modificado por el artículo 13 de la Ley 2251 de 2022\n\nEn las carreteras nacionales y departamentales las velocidades autorizadas para vehículos públicos o privados serán d",
+      "flags": [],
+      "contentHash": "cf27ac64a13efba16394224ff76dab3696c148627b3359900a102af8b835b2f2"
+    },
+    {
+      "number": 108,
+      "name": "SEPARACIÓN ENTRE VEHÍCULOS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-108",
+      "preview": "La separación entre dos (2) vehículos que circulen uno tras de otro en el mismo carril de una calzada, será de acuerdo con la velocidad.\n\nPara velocidades de hasta treinta (30) kil",
+      "flags": [],
+      "contentHash": "24f93d782c583e0554278deb68fc7bb13b8f731be7fbb92aae790ac22b037ee9"
+    },
+    {
+      "number": 109,
+      "name": "DE LA OBLIGATORIEDAD",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-109",
+      "preview": "Todos los usuarios de la vía están obligados a obedecer las señales de tránsito de acuerdo con lo previsto en el artículo 5o., de este código.",
+      "flags": [],
+      "contentHash": "79eabf95e89348b66e9c39a7ba97b1374a3240675111e12f8a609bdc221e553d"
+    },
+    {
+      "number": 110,
+      "name": "CLASIFICACIÓN Y DEFINICIONES",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-110",
+      "preview": "Clasificación y definición de las señales de tránsito:\n\nSeñales reglamentarias: Tienen por objeto indicar a los usuarios de las vías las limitaciones, prohibiciones o restricciones",
+      "flags": [],
+      "contentHash": "956d76447157cfe5714de56099d9a19ba16f2e7782bed182ea6abb1953627642"
+    },
+    {
+      "number": 111,
+      "name": "PRELACIÓN DE LAS SEÑALES",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-111",
+      "preview": "La prelación entre las distintas señales de tránsito será la siguiente:\n\nSeñales y órdenes emitidas por los agentes de tránsito.\n\nSeñales transitorias.\n\nSemáforos.\n\nSeñales vertica",
+      "flags": [],
+      "contentHash": "0e915f672ce397e591e5290345538bdcabccf8ac33e1b0580adc36df25e02d4d"
+    },
+    {
+      "number": 112,
+      "name": "DE LA OBLIGACIÓN DE SEÑALIZAR LAS ZONAS DE PROHIBICIÓN",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-112",
+      "preview": "Artículo modificado por el artículo 2 de la Ley 2252 de 2022\n\nToda zona de prohibición deberá estar expresamente señalizada y demarcada en su sitio previa decisión del funcionario ",
+      "flags": [],
+      "contentHash": "e2b173d3e1feeb361d3b8b6a59e55a3483cc56ce4302afd2e3ba4561aabd7cf3"
+    },
+    {
+      "number": 113,
+      "name": "SEÑALIZACIÓN EN PASOS DE NIVEL",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-113",
+      "preview": "Las entidades ferroviarias, o los particulares en caso de concesión de las vías férreas, colocarán señales, barreras y luces en los pasos a nivel de las vías férreas, así como la c",
+      "flags": [],
+      "contentHash": "8f141e9cd7a001e535ce1fc207145709429cfea417c8b45c0bc4b939e47a00d1"
+    },
+    {
+      "number": 114,
+      "name": "DE LOS PERMISOS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-114",
+      "preview": "No podrán colocarse señales o avisos en las vías sin que medie permiso o convenio con las autoridades competentes, quienes tendrán en cuenta las disposiciones sobre contaminación v",
+      "flags": [],
+      "contentHash": "90162e07241e2ea37b736066044f389f83b87e8d7ce24274f70400861324aee6"
+    },
+    {
+      "number": 115,
+      "name": "REGLAMENTACIÓN DE LAS SEÑALES",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-115",
+      "preview": "El Ministerio de Transporte diseñará y definirá las características de las señales de tránsito, su uso, su ubicación y demás características que estime conveniente. Estas señales s",
+      "flags": [],
+      "contentHash": "919f59810c93776d3344e59678cc864551ad04d02115958b9014c7ac6304e5fc"
+    },
+    {
+      "number": 116,
+      "name": "SEÑALES CORPORALES DE LOS AGENTES DE TRÁNSITO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-116",
+      "preview": "Las autoridades encargadas de controlar el tránsito harán las señales de la siguiente manera:\n\nLa espalda o el frente indican que está cerrada la circulación y el conductor deberá ",
+      "flags": [],
+      "contentHash": "9a5bafb50b801e0a7c298e5c6bc9ef5b8748687357c17ff5f83ec83986634111"
+    },
+    {
+      "number": 117,
+      "name": "CLASIFICACIÓN DE SEMÁFOROS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-117",
+      "preview": "Los semáforos son elementos para regular y ordenar el tránsito y se clasifican en:\n\nSemáforos para control de vehículos.\n\nSemáforos para peatones.\n\nSemáforos especiales.\n\nSemáforos",
+      "flags": [],
+      "contentHash": "4579a0fe493f8485ee0d27850b1586e2294d0725d5e4e32ce27b1b1c38af7db2"
+    },
+    {
+      "number": 118,
+      "name": "SIMBOLOGÍA DE LAS SEÑALES LUMINOSAS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-118",
+      "preview": "Las señales luminosas para ordenar la circulación son las siguientes:\n\nRoja: Indica el deber de detenerse, sin pisar o invadir la raya inicial de la zona de cruce de peatones. Si é",
+      "flags": [],
+      "contentHash": "3c724c0312c2e280d0d47e67330096d4c49be4e9bb080c67919e149e4f6cb108"
+    },
+    {
+      "number": 119,
+      "name": "JURISDICCIÓN Y FACULTADES",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-119",
+      "preview": "Sólo las autoridades de tránsito, dentro del territorio de su jurisdicción, podrán ordenar el cierre temporal de vías, la demarcación de zonas, la colocación o retiro de señales, o",
+      "flags": [],
+      "contentHash": "0f708d23f713cd8166a04ec468f1f51d88e7487ab211b6d72488a44b92760dbf"
+    },
+    {
+      "number": 120,
+      "name": "COLOCACIÓN DE RESALTOS EN LA VÍA PÚBLICA",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-120",
+      "preview": "Los Alcaldes o las Secretarías de Tránsito donde existan podrán colocar reducidores de velocidad o resaltos en las zonas que presenten alto riesgo de accidentalidad.",
+      "flags": [],
+      "contentHash": "f0dc20e9e564dff6ba893b759c9fc639b5da1154399fb8586147860710c2a581"
+    },
+    {
+      "number": 121,
+      "name": "PARADEROS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-121",
+      "preview": "Las autoridades de tránsito, en coordinación con las demás autoridades, fijarán la ubicación, condiciones técnicas y aspectos relativos a los paraderos de transporte urbano y estac",
+      "flags": [],
+      "contentHash": "d9ba67dfa8cce92a8f5445bcd412c94b149499dd6f6eab7e6318c1da15697038"
+    },
+    {
+      "number": 122,
+      "name": "TIPOS DE SANCIONES",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-122",
+      "preview": "Artículo modificado por el artículo 20 de la Ley 1383 de 2010\n\nLas sanciones por infracciones del presente Código son:\n\n1. Amonestación.\n\n2. Multa.\n\n3. Retención preventiva de la l",
+      "flags": [],
+      "contentHash": "d7b6e2633e543faf31a69d006b63a8cb551169d4393a7c8c5541e95dea74d6d5"
+    },
+    {
+      "number": 123,
+      "name": "AMONESTACIÓN",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-123",
+      "preview": "Las autoridades de tránsito podrán amonestar a los infractores. La amonestación consiste en la asistencia a cursos obligatorios de educación vial. El infractor que incumpla la cita",
+      "flags": [],
+      "contentHash": "11af8be6f19a1dac5ad99971909ecd065b4ce632f2b1b4136f704c4855ee5983"
+    },
+    {
+      "number": 124,
+      "name": "REINCIDENCIA",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-124",
+      "preview": "En caso de reincidencia se suspenderá la licencia de conducción por un término de seis meses, en caso de una nueva reincidencia se doblará la sanción.\n\nPARÁGRAFO.",
+      "flags": [],
+      "contentHash": "a166b5f8c5c9cb7aa9ebfc0333581ea57495a345c14705344fe2b9669c0613c9"
+    },
+    {
+      "number": 125,
+      "name": "INMOVILIZACIÓN",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-125",
+      "preview": "La inmovilización en los casos a que se refiere este código, consiste en suspender temporalmente la circulación del vehículo por las vías públicas o privadas abiertas al público. P",
+      "flags": [],
+      "contentHash": "388edb4b864902e47e49ebc0cc99f58eb6721d6dbafed286c48df61fa964556d"
+    },
+    {
+      "number": 126,
+      "name": "RETENCIÓN DE EQUIPOS FÉRREOS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-126",
+      "preview": "Las locomotoras, carros, motores y demás equipos férreos involucrados en accidentes de tránsito, no podrán ser retenidos por más tiempo de lo absolutamente indispensable para reali",
+      "flags": [],
+      "contentHash": "8da6f22c7ed5ba55b2bd3d566c49d9644b8b1222eb563ed550dda378cb1c7658"
+    },
+    {
+      "number": 127,
+      "name": "DEL RETIRO DE VEHÍCULOS MAL ESTACIONADOS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-127",
+      "preview": "La autoridad de tránsito, podrá bloquear o retirar con grúa o cualquier otro medio idóneo los vehículos que se encuentren estacionados irregularmente en zonas prohibidas, o bloquea",
+      "flags": [],
+      "contentHash": "00d34fbd420a692b91efbde9c8cd7865c6561bf2381e6fb19525150302df5a62"
+    },
+    {
+      "number": 128,
+      "name": "DISPOSICIÓN DE LOS VEHÍCULOS INMOVILIZADOS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-128",
+      "preview": "Artículo modificado por el artículo 1 de la Ley 1730 de 2014\n\nSi pasado un (1) año, sin que el propietario o poseedor haya retirado el vehículo de los patios y no haya subsanado la",
+      "flags": [],
+      "contentHash": "191cb2e44f8f7f62096fd2fe256b92fe7e95fdc0895ee1df0bd593fd2ca53a30"
+    },
+    {
+      "number": 129,
+      "name": "DE LOS INFORMES DE TRÁNSITO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-129",
+      "preview": "Aparte tachado declarado INEXEQUIBLE por la Corte Constitucional mediante Sentencia C-530-03 de 3 de julio de 2003\n\nAparte subrayado declarado CONDICIONALMENTE EXEQUIBLE en la mism",
+      "flags": [],
+      "contentHash": "944f48694cf1bbbba8c5e6347e31f838425f8d6d1252b7e66a6b2600194f19c4"
+    },
+    {
+      "number": 130,
+      "name": "GRADUALIDAD",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-130",
+      "preview": "Las sanciones por infracciones a las normas de tránsito se aplicarán teniendo en cuenta la gravedad de la infracción. Para este efecto se tendrá en consideración el grado de peligr",
+      "flags": [],
+      "contentHash": "035523044f5011b1982755cbd86ca8d1af39f80cb58f4824ce2ddf9dae2d82db"
+    },
+    {
+      "number": 131,
+      "name": "MULTAS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-131",
+      "preview": "Artículo modificado por el artículo 21 de la Ley 1383 de 2010\n\nLos infractores de las normas de tránsito serán sancionados con la imposición de multas, de acuerdo con el tipo de in",
+      "flags": [],
+      "contentHash": "9bfd77eb8f0e4cbea6f64d1f11bba1e572e472424d542fe8a2a8226915279153"
+    },
+    {
+      "number": 132,
+      "name": "FUMADOR",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-132",
+      "preview": "El pasajero que sea sorprendido fumando en un vehículo de servicio público, será obligado a abandonar el automotor y deberá asistir a un curso de seguridad vial. Si se tratare del ",
+      "flags": [],
+      "contentHash": "aa689493efae909a78f4363089e08d2ecb7b0d1c17e95bc68586fba1f701205f"
+    },
+    {
+      "number": 133,
+      "name": "CAPACITACIÓN",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-133",
+      "preview": "Aparte tachado declarado INEXEQUIBLE por la Corte Constitucional mediante Sentencia C-530-03 de 3 de julio de 2003\n\nLos peatones y ciclistas que no cumplan con las disposiciones de",
+      "flags": [],
+      "contentHash": "5525af09023aeef9fc1f74d1bc3ec28b44802adaf5cbd60ae06203647a16981c"
+    },
+    {
+      "number": 134,
+      "name": "JURISDICCIÓN Y COMPETENCIA",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-134",
+      "preview": "Los organismos de tránsito conocerán de las faltas ocurridas dentro del territorio de su jurisdicción, así: Las inspecciones de tránsito o quienes hagan sus veces en única instanci",
+      "flags": [],
+      "contentHash": "8ce57ccbfad3e21c4731ac6710f1adec7424d42d65cde143e25de6ec32b6a2bd"
+    },
+    {
+      "number": 135,
+      "name": "PROCEDIMIENTO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-135",
+      "preview": "Artículo modificado por el artículo 22 de la Ley 1383 de 2010\n\nAnte la comisión de una contravención, la autoridad de tránsito debe seguir el procedimiento siguiente para imponer e",
+      "flags": [],
+      "contentHash": "a54265095faa64346b6fea8da35e8aec0ce8f85708191c5f1c9ba32357669b2e"
+    },
+    {
+      "number": 136,
+      "name": "REDUCCIÓN DE LA MULTA",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-136",
+      "preview": "Artículo modificado por el artículo 205 del Decreto 19 de 2012\n\nUna vez surtida la orden de comparendo, si el inculpado acepta la comisión de la infracción, podrá, sin necesidad de",
+      "flags": [],
+      "contentHash": "e02d96b755b4694b2c58cd15f2b7e069d186312c439763197f553606f1bd9580"
+    },
+    {
+      "number": 137,
+      "name": "INFORMACIÓN",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-137",
+      "preview": "En los casos en que la infracción fuere detectada por medios que permitan comprobar la identidad del vehículo o del conductor el comparendo se remitirá a la dirección registrada de",
+      "flags": [],
+      "contentHash": "577a1e30cd4efea886e3b799dc8a1ea05c445c08613e2d2e291e91efe3ee9d53"
+    },
+    {
+      "number": 138,
+      "name": "COMPARECENCIA",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-138",
+      "preview": "El inculpado podrá comparecer por sí mismo, pero si designa apoderado éste deberá ser abogado en ejercicio. El Ministerio Público podrá intervenir en los procesos, de acuerdo con l",
+      "flags": [],
+      "contentHash": "a90acd020748a1487b4537727a184f82dddd3f114d475a9d479b89c99323fdf2"
+    },
+    {
+      "number": 139,
+      "name": "NOTIFICACIÓN",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-139",
+      "preview": "La notificación de las providencias que se dicten dentro del proceso se hará en estrados.",
+      "flags": [],
+      "contentHash": "ef17831d4a9938546d6b5aa098282d521250eea3fb34d082324023ef2b2d73a2"
+    },
+    {
+      "number": 140,
+      "name": "COBRO COACTIVO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-140",
+      "preview": "Aparte tachado declarado INEXEQUIBLE por la Corte Constitucional mediante Sentencia C-799-03 de 16 de septiembre de 2003\n\nLos organismos de tránsito podrán hacer efectivas las mult",
+      "flags": [],
+      "contentHash": "4c8dc82e01a507ca4ce59eeda3b4b5be31dd0a0e823d2213bb6a27c716822396"
+    },
+    {
+      "number": 141,
+      "name": "ARTÍCULO 141",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-141",
+      "preview": "En aquellos municipios ribereños o conurbados cuyos cascos urbanos se encuentren separados por un río y unidos por un puente, podrá prestarse el servicio público de transporte terr",
+      "flags": [],
+      "contentHash": "d5e0de2199273953940e606eaaeff8702e5f80d7944586a2e2c948de8fbde2d6"
+    },
+    {
+      "number": 142,
+      "name": "RECURSOS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-142",
+      "preview": "Contra las providencias que se dicten dentro del proceso procederán los recursos de reposición y apelación.\n\nEl recurso de reposición procede contra los autos ante el mismo funcion",
+      "flags": [],
+      "contentHash": "a64da362770b0a95e96e3a25397d12b5ae83445978090178153c6501910a2142"
+    },
+    {
+      "number": 143,
+      "name": "DAÑOS MATERIALES",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-143",
+      "preview": "Artículo modificado por el artículo 16 de la Ley 2251 de 2022\n\nEn todo accidente de tránsito donde sólo se causen daños materiales en los que resulten afectados vehículos asegurado",
+      "flags": [],
+      "contentHash": "c607e2fca0473f7fa9053c7a1e5e66d2181dbb5fd11b1a2b79ce41e9cab9e0af"
+    },
+    {
+      "number": 144,
+      "name": "INFORME POLICIAL",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-144",
+      "preview": "En los casos en que no fuere posible la conciliación entre los conductores, el agente de tránsito que conozca el hecho levantará un informe descriptivo de sus pormenores, con copia",
+      "flags": [],
+      "contentHash": "4da6656f0e4e7e9d7ed22c3fa3730e4b22d5313a78245a9410814658581429bd"
+    },
+    {
+      "number": 145,
+      "name": "COPIAS DEL INFORME",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-145",
+      "preview": "El agente de tránsito que hubiere conocido el accidente remitirá a más tardar dentro de las veinticuatro (24) horas siguientes, copia del respectivo informe al organismo de tránsit",
+      "flags": [],
+      "contentHash": "520c46cc450c56fa581a543034302a26519c8c6d9f346b61da518715a041d52e"
+    },
+    {
+      "number": 146,
+      "name": "ARTÍCULO 146",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-146",
+      "preview": "Artículo modificado por el artículo 17 de la Ley 2251 de 2022\n\nSe entenderán como conceptos técnicos que deben emitir las autoridades de tránsito, los informes de accidentes de trá",
+      "flags": [],
+      "contentHash": "803979ab0736d8f430277047b3c0125dc2f9e57147d70df04c2238bef208c66a"
+    },
+    {
+      "number": 147,
+      "name": "OBLIGACIÓN DE COMPARENDO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-147",
+      "preview": "En toda circunstancia, si el agente de tránsito observare la violación de las normas establecidas en este código, en caso de daños a cosas, podrá imponer un comparendo al conductor",
+      "flags": [],
+      "contentHash": "71c9a96e33af93199b318fb28e4e4b98216773ce73dbddee4f04a8a624a8d054"
+    },
+    {
+      "number": 148,
+      "name": "FUNCIONES DE POLICÍA JUDICIAL",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-148",
+      "preview": "En caso de hechos que puedan constituir infracción penal, las autoridades de tránsito tendrán las atribuciones y deberes de la policía judicial, con arreglo al Código de Procedimie",
+      "flags": [],
+      "contentHash": "7c983e19a1c84c34d696e3b30261aaeadd4db3fd757a2fd8943cc839dd8db00f"
+    },
+    {
+      "number": 149,
+      "name": "DESCRIPCIÓN",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-149",
+      "preview": "En los casos a que se refiere el artículo anterior, el agente de tránsito que conozca el hecho levantará un informe descriptivo de sus pormenores, con copia inmediata a los conduct",
+      "flags": [],
+      "contentHash": "beccf96b524ead910b58ad06049d0ace8846dd715e980af17fa6e3a6cc9b2719"
+    },
+    {
+      "number": 150,
+      "name": "EXAMEN",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-150",
+      "preview": "Las autoridades de tránsito podrán solicitar a todo conductor de vehículo automotor la práctica de examen de embriaguez, que permita determinar si se encuentra bajo efectos produci",
+      "flags": [],
+      "contentHash": "bfee4b39f49dc06cb459acf6d26a43f94ede3f4d4661ee8d761e3650455c3dee"
+    },
+    {
+      "number": 151,
+      "name": "SUSPENSIÓN DE LICENCIA",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-151",
+      "preview": "Quien cause lesiones u homicidios en accidente de tránsito y se demuestre que actuó bajo cualquiera de los estados de embriaguez de que trata este código, o que injustificadamente ",
+      "flags": [],
+      "contentHash": "265933ee831a556a03ea60cfe0ccfaf9b09a1e4a445615c3a0019df744ff9bc8"
+    },
+    {
+      "number": 152,
+      "name": "SANCIONES Y GRADOS DE ALCOHOLEMIA",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-152",
+      "preview": "Artículo modificado por el artículo 5 de la Ley 1696 de 2013\n\nSi hecha la prueba, se establece que el conductor se encuentra en alguno de los siguientes grados de alcoholemia, incu",
+      "flags": [],
+      "contentHash": "1b9c49bcbffaea74b3f10db7b3aeb2cafdb0343758f0a843e15cce7b80112137"
+    },
+    {
+      "number": 153,
+      "name": "RESOLUCIÓN JUDICIAL",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-153",
+      "preview": "Para efectos legales se entenderá como resolución judicial la providencia que impone una pena de suspensión de licencia de conducción.",
+      "flags": [],
+      "contentHash": "064e53f8fd0692c3c0ecec42a3eb39e00ec69cb1d65db52eb4d7afe73d63078c"
+    },
+    {
+      "number": 154,
+      "name": "CENTROS DE ENSEÑANZA",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-154",
+      "preview": "Artículo modificado por el artículo 4 de la Ley 1397 de 2010\n\nEl incumplimiento de las normas que regulan el funcionamiento de los centros de enseñanza automovilística será sancion",
+      "flags": [],
+      "contentHash": "7a8ed1ffca9c9166bc27352a154b9031fe08675e91c11424c8c90dba418d1c1a"
+    },
+    {
+      "number": 155,
+      "name": "ENSAMBLADORAS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-155",
+      "preview": "Serán sancionados con multa equivalente a mil (1.000) salarios mínimos legales diarios vigentes por cada unidad y a la cancelación de su registro, las ensambladoras o fabricantes d",
+      "flags": [],
+      "contentHash": "c36782de4e9ac547cd6a3de765f0b036ee6edc1c3216abccb354dc7d9a760836"
+    },
+    {
+      "number": 156,
+      "name": "PROPIETARIO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-156",
+      "preview": "Será sancionado con multa equivalente a cien (100) salarios mínimos legales diarios vigentes, el propietario de expendio que provea de combustible a un vehículo automotor de servic",
+      "flags": [],
+      "contentHash": "b0421f31a3826f9926d7b886987b8e5097d923a73d4e1d3b44b8e10d6392192d"
+    },
+    {
+      "number": 157,
+      "name": "INCAPACIDAD",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-157",
+      "preview": "Quien incumpla la obligación consagrada en el artículo 24, y se le compruebe que en caso de un accidente la deficiencia de carácter orgánico o funcional fue su causa, el conductor ",
+      "flags": [],
+      "contentHash": "d9347c32c9c9ef5d78cfd00e61707b1c13ebd03ad386fdba1c436926d48b85c7"
+    },
+    {
+      "number": 158,
+      "name": "PROCEDIMIENTO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-158",
+      "preview": "El procedimiento para regular las actuaciones a que se refiere este capítulo, se someterá a las siguientes reglas:\n\nApertura de la investigación mediante acto administrativo motiva",
+      "flags": [],
+      "contentHash": "88cbae707fb822e905883bffe91941ad5c667afcd1663cfca8f0e571427b6725"
+    },
+    {
+      "number": 159,
+      "name": "CUMPLIMIENTO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-159",
+      "preview": "Artículo modificado por el artículo 206 del Decreto 19 de 2012\n\nLa ejecución de las sanciones que se impongan por violación de las normas de tránsito, estará a cargo de las autorid",
+      "flags": [],
+      "contentHash": "b2647af19b6a1639845ea23ed95531980d06e09fb6fa53004a09b5b743a1765b"
+    },
+    {
+      "number": 160,
+      "name": "DESTINACIÓN",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-160",
+      "preview": "Artículo modificado por el artículo 306 de la Ley 1955 de 2019\n\nDe conformidad con las normas presupuestales respectivas, el recaudo por concepto de multas y sanciones por infracci",
+      "flags": [],
+      "contentHash": "bca34f0b2e125c32e63f57b97b4a5249efc1f148fbee3c15e2ba08330f1ab7ae"
+    },
+    {
+      "number": 161,
+      "name": "CADUCIDAD",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-161",
+      "preview": "Artículo modificado por el artículo 11 de la Ley 1843 de 2017\n\nLa acción por contravención de las normas de tránsito, caduca al año (1), contado a partir de la ocurrencia de los he",
+      "flags": [],
+      "contentHash": "c3d59bd1402120db5e52fac40bcfb95deb9448acf8ce3aa581d10a3a69639bac"
+    },
+    {
+      "number": 162,
+      "name": "COMPATIBILIDAD Y ANALOGÍA",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-162",
+      "preview": "Las normas contenidas en el Código Contencioso Administrativo, Código Penal, Código de Procedimiento Penal y Código de Procedimiento Civil, serán aplicables a las situaciones no re",
+      "flags": [],
+      "contentHash": "020a5a69d6e56da516b2d7d8dd4ea8a423dc21fccb917f3202270c8acaeba849"
+    },
+    {
+      "number": 163,
+      "name": "NORMA APLICABLE",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-163",
+      "preview": "Las actuaciones en curso continuarán sujetas a las disposiciones con base en las cuales se iniciaron.",
+      "flags": [],
+      "contentHash": "230b9ee05dc177e3080dff9d59c7f8433f608369616b1f1b8dd82fee8fc03f74"
+    },
+    {
+      "number": 164,
+      "name": "FACILIDADES",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-164",
+      "preview": "Las autoridades de tránsito a que se refiere el presente código, adoptarán las medidas requeridas para que los usuarios de los servicios puedan cumplir con las obligaciones que les",
+      "flags": [],
+      "contentHash": "e210398c33c77ff7e72b78ce374513949eee5fea196137ca294f4ce978b2dd06"
+    },
+    {
+      "number": 165,
+      "name": "PRESUPUESTO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-165",
+      "preview": "Autorízase al Gobierno Nacional y a las autoridades locales de tránsito para adoptar las medidas presupuestales que fueren necesarias para dar cumplimiento a lo que en este Código ",
+      "flags": [],
+      "contentHash": "d9da130fe729d32a065705cd7704dd612c4f2eb85130a50043d96eaefaa1d928"
+    },
+    {
+      "number": 166,
+      "name": "VIDRIOS OSCUROS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-166",
+      "preview": "El Ministerio de Transporte definirá lo atinente a la circulación de vehículos que posean vidrios oscuros de fabricación.",
+      "flags": [],
+      "contentHash": "ad9997613110134360dd1a2691c4b9c145387ce827ab1fcfdd8967686e1c9263"
+    },
+    {
+      "number": 167,
+      "name": "VEHÍCULOS INMOVILIZADOS POR ORDEN JUDICIAL",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-167",
+      "preview": "Los vehículos que sean inmovilizados por orden judicial deberán llevarse a parqueaderos cuya responsabilidad será de la Dirección Ejecutiva de la Rama Judicial. Las autoridades de ",
+      "flags": [],
+      "contentHash": "3ac5abbde423c163568081dff98390f021d79f7096e4f62f87727c68fa4952c8"
+    },
+    {
+      "number": 168,
+      "name": "TARIFAS QUE FIJARÁN LOS CONCEJOS",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-168",
+      "preview": "Los ingresos por concepto de derechos de tránsito solamente podrán cobrarse de acuerdo con las tarifas que fijen los Concejos. Las tarifas estarán basadas en un estudio económico s",
+      "flags": [],
+      "contentHash": "761c0ba9bbb73d72c50d484254829108101b65c625aceb03565db4d6776c002f"
+    },
+    {
+      "number": 169,
+      "name": "SOBRETASA A LOS TRÁMITES DE TRÁNSITO",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-169",
+      "preview": "Ninguna entidad pública podrá cobrar sobretasas a los trámites de tránsito salvo autorización legal de acuerdo con el artículo 338 de la Constitución Política.",
+      "flags": [],
+      "contentHash": "dff9134d05ec7b18b34cba1c31ada072054ece7820527e01f554b380401f61ca"
+    },
+    {
+      "number": 170,
+      "name": "VIGENCIA",
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-170",
+      "preview": "El presente código empezará a regir transcurridos tres (3) meses contados a partir de su promulgación y deroga todas las disposiciones que le sean contrarias, con excepción de las ",
+      "flags": [],
+      "contentHash": "ee49bbd005fc4e2a77a4c3d4c034c337333776f37a6f3e7a01d85ba20cbd358c"
+    },
+    {
+      "number": 171,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-171",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 172,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-172",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 173,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-173",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 174,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-174",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 175,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-175",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 176,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-176",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 177,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-177",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 178,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-178",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 179,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-179",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 180,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-180",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 181,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-181",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 182,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-182",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 183,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-183",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 184,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-184",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 185,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-185",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 186,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-186",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 187,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-187",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 188,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-188",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 189,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-189",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 190,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-190",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 191,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-191",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 192,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-192",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 193,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-193",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 194,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-194",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 195,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-195",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 196,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-196",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 197,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-197",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 198,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-198",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 199,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-199",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 200,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-200",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 201,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-201",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 202,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-202",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 203,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-203",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 204,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-204",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 205,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-205",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 206,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-206",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 207,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-207",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 208,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-208",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 209,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-209",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 210,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-210",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 211,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-211",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 212,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-212",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 213,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-213",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 214,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-214",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 215,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-215",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 216,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-216",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 217,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-217",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 218,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-218",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 219,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-219",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 220,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-220",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 221,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-221",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 222,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-222",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 223,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-223",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 224,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-224",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 225,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-225",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 226,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-226",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 227,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-227",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 228,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-228",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 229,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-229",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 230,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-230",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 231,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-231",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 232,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-232",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 233,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-233",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 234,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-234",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 235,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-235",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 236,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-236",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 237,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-237",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 238,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-238",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 239,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-239",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 240,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-240",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 241,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-241",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 242,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-242",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 243,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-243",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 244,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-244",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 245,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-245",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 246,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-246",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 247,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-247",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 248,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-248",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 249,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-249",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 250,
+      "name": null,
+      "sourceUrl": "https://transiteca.app/codigo-de-transito/articulo-250",
+      "preview": "",
+      "flags": [
+        "no_blocks",
+        "suspiciously_short"
+      ],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}
