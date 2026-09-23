@@ -1,4 +1,4 @@
-bin/
+﻿bin/
 obj/
 .vs/
 *.user
@@ -22,3 +22,6 @@ src/Cale.Api/wwwroot/uploads/*
 .build-out2/
 .build-verify/
 .tmp-theory-test/
+
+# Crawl HTML cache — regenerate with tools/transiteca-extract-codigo.js
+data/codigo-transito-transiteca/html/
