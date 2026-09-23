@@ -34,6 +34,10 @@
   background: color-mix(in srgb, var(--color-primary) 24%, transparent);
 }
 
+.student-normas-btn {
+  margin-left: 0.35rem;
+}
+
 .student-brand {
   display: inline-flex;
   align-items: center;
