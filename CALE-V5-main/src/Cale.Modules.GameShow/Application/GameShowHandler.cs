@@ -1358,7 +1358,8 @@ public sealed class GameShowHandler
                 ).ToList(),
                 r.ActivePlayerId,
                 activeName,
-                activeAccent);
+                activeAccent,
+                SecondsRemaining: RemainingSeconds(r.AnswerDeadlineUtc, now));
 
             if (r.Phase == GameShowRoundPhases.Finished && r.RoundChampionPlayerId is int champId)
             {
@@ -1406,6 +1407,17 @@ public sealed class GameShowHandler
             BuildPlayerStandings(session),
             packLeaderboard,
             ToSettingsDto(GameShowSessionSettings.FromSession(session)));
+    }
+
+    private static int? RemainingSeconds(DateTime? deadlineUtc, DateTime utcNow)
+    {
+        if (deadlineUtc is null)
+        {
+            return null;
+        }
+
+        var seconds = (int)Math.Ceiling((deadlineUtc.Value - utcNow).TotalSeconds);
+        return Math.Max(0, seconds);
     }
 
     private static string NormalizeTeam(string? team) =>
