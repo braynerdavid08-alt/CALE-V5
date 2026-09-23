@@ -8,7 +8,6 @@ import { mapApiError } from '../../../core/http/map-api-error';
 import {
   CreateGameShowBody,
   GameShowApi,
-  GameShowHistoryItemDto,
   GameShowPackSummaryDto,
   GameShowRoundInput
 } from '../api/game-show.api';
@@ -26,6 +25,12 @@ type PackChoice = 'official' | `pack:${number}` | 'draft';
     <ui-page-header
       title="100 Estudiantes Dijeron"
       subtitle="Elige un banco de preguntas, arma la sala y juega. Edita o guarda packs en la otra pestaña." />
+    <div class="admin-bar">
+      <ui-button type="button" variant="secondary" routerLink="/teacher/game-show/admin">
+        Panel de configuración
+      </ui-button>
+      <span class="admin-hint">Tiempos, reglas y banco avanzado de preguntas</span>
+    </div>
     <ui-error [message]="error()" />
 
     <div class="tabs" role="tablist" aria-label="Secciones del juego">
@@ -235,29 +240,16 @@ type PackChoice = 'official' | `pack:${number}` | 'draft';
         </div>
       </section>
     }
-
-    @if (history().length) {
-      <section class="panel">
-        <h2>Partidas recientes</h2>
-        <ul class="hist">
-          @for (h of history(); track h.id) {
-            <li>
-              <div class="hist-main">
-                <a [routerLink]="['/teacher/game-show', h.id, 'host']">{{ h.title }}</a>
-                <span>{{ h.teamAScore }} – {{ h.teamBScore }} · {{ h.status }}</span>
-              </div>
-              <div class="hist-actions">
-                <ui-button type="button" variant="ghost" (click)="replay(h.id)">Rejugar</ui-button>
-                <ui-button type="button" variant="ghost" (click)="exportSession(h.id, 'csv')">CSV</ui-button>
-                <ui-button type="button" variant="ghost" (click)="exportSession(h.id, 'json')">JSON</ui-button>
-              </div>
-            </li>
-          }
-        </ul>
-      </section>
-    }
   `,
   styles: [`
+    .admin-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 0 0 1rem;
+    }
+    .admin-hint { color: var(--color-text-secondary); font-size: 0.9rem; }
     .tabs {
       display: flex;
       gap: 0.35rem;
@@ -373,9 +365,6 @@ type PackChoice = 'official' | `pack:${number}` | 'draft';
       padding: 0;
       text-decoration: underline;
     }
-    .hist { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.55rem; }
-    .hist li { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; align-items: center; }
-    .hist-main { display: grid; gap: 0.2rem; min-width: 0; }
     .hist-actions { display: flex; gap: 0.35rem; flex-shrink: 0; flex-wrap: wrap; }
     @media (max-width: 700px) {
       .row { grid-template-columns: 1fr; }
@@ -396,7 +385,6 @@ export class GameShowHubPage implements OnInit {
   readonly loadingPack = signal(false);
   readonly loadingChoice = signal(false);
   readonly loadedInfo = signal<string | null>(null);
-  readonly history = signal<GameShowHistoryItemDto[]>([]);
   readonly packs = signal<GameShowPackSummaryDto[]>([]);
   readonly tab = signal<HubTab>('room');
   readonly packChoice = signal<PackChoice>('official');
@@ -439,10 +427,6 @@ export class GameShowHubPage implements OnInit {
   }
 
   private reloadLists(): void {
-    this.api.mine().subscribe({
-      next: (items) => this.history.set(items),
-      error: () => this.history.set([])
-    });
     this.api.listPacks().subscribe({
       next: (items) => this.packs.set(items),
       error: () => this.packs.set([])
@@ -737,33 +721,6 @@ export class GameShowHubPage implements OnInit {
     });
     const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
     this.saveBlob(blob, `cale-100-dijeron-borrador.csv`);
-  }
-
-  exportSession(id: number, format: 'csv' | 'json'): void {
-    this.error.set(null);
-    this.api.exportQuestions(id, format).subscribe({
-      next: (blob) => this.saveBlob(blob, `cale-100-dijeron-${id}.${format}`),
-      error: (err) => this.error.set(mapApiError(err))
-    });
-  }
-
-  replay(sessionId: number): void {
-    this.error.set(null);
-    this.saving.set(true);
-    this.api.replay(sessionId, {
-      title: undefined,
-      teamAName: this.teamA(),
-      teamBName: this.teamB()
-    }).subscribe({
-      next: (lobby) => {
-        this.saving.set(false);
-        void this.router.navigate(['/teacher/game-show', lobby.id, 'host']);
-      },
-      error: (err) => {
-        this.saving.set(false);
-        this.error.set(mapApiError(err));
-      }
-    });
   }
 
   private saveBlob(blob: Blob, filename: string): void {

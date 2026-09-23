@@ -8,6 +8,7 @@ import { mapApiError } from '../../../core/http/map-api-error';
 import { GameShowApi, GameShowLobbyDto, GameShowStatsDto } from '../api/game-show.api';
 import { GameShowSfxService } from '../api/game-show-sfx.service';
 import { phaseHasTurnClock, secondsUntilDeadline } from '../api/game-show-deadline';
+import { phraseForLightning, phraseForSteal, phraseForStrike3 } from '../api/game-show-phrases';
 import { Router } from '@angular/router';
 
 @Component({
@@ -66,7 +67,7 @@ import { Router } from '@angular/router';
           @if (L.status === 'Lobby') {
             <ui-button type="button" (click)="start()">Iniciar partida</ui-button>
           }
-          @if (L.status === 'Running') {
+          @if (L.status === 'Running' && L.settings?.allowPause !== false) {
             <ui-button type="button" variant="secondary" (click)="pause()">Pausar</ui-button>
           }
           @if (L.status === 'Paused') {
@@ -76,18 +77,20 @@ import { Router } from '@angular/router';
             <ui-button type="button" variant="secondary" (click)="forceBuzz('A')">Enfrentamiento {{ L.teamAName }}</ui-button>
             <ui-button type="button" variant="secondary" (click)="forceBuzz('B')">Enfrentamiento {{ L.teamBName }}</ui-button>
           }
-          @if (L.currentRound?.phase === 'Control' || L.currentRound?.phase === 'Playing') {
+          @if ((L.currentRound?.phase === 'Control' || L.currentRound?.phase === 'Playing') && L.settings?.allowHostEndRound !== false) {
             <ui-button type="button" variant="secondary" (click)="strike()">Registrar error (X)</ui-button>
             <ui-button type="button" variant="ghost" (click)="endRound()">Terminar ronda</ui-button>
           }
-          @if (L.currentRound?.phase === 'FaceOff' || L.currentRound?.phase === 'FaceOffSecond') {
+          @if ((L.currentRound?.phase === 'FaceOff' || L.currentRound?.phase === 'FaceOffSecond') && L.settings?.allowHostEndRound !== false) {
             <ui-button type="button" variant="ghost" (click)="endRound()">Reiniciar enfrentamiento</ui-button>
           }
           @if (L.currentRound?.phase === 'Steal') {
             <ui-button type="button" variant="secondary" (click)="failSteal()">Cerrar robo (fallido)</ui-button>
-            <ui-button type="button" variant="ghost" (click)="endRound()">Terminar ronda</ui-button>
+            @if (L.settings?.allowHostEndRound !== false) {
+              <ui-button type="button" variant="ghost" (click)="endRound()">Terminar ronda</ui-button>
+            }
           }
-          @if (L.currentRound?.phase === 'Finished') {
+          @if (L.currentRound?.phase === 'Finished' || (L.settings?.allowSkipRound && L.currentRound)) {
             <ui-button type="button" (click)="next()">Siguiente ronda</ui-button>
           }
           @if (L.status === 'Running' || L.status === 'Paused') {
@@ -101,6 +104,20 @@ import { Router } from '@angular/router';
             <p class="q">{{ L.teamAScore > L.teamBScore ? 'Gana ' + L.teamAName : L.teamBScore > L.teamAScore ? 'Gana ' + L.teamBName : 'Empate' }}</p>
             @if (stats(); as S) {
               <p class="meta">Aciertos {{ S.correctAnswers }} · Errores {{ S.wrongAnswers }} · Robos {{ S.stealsSucceeded }} · Rondas {{ S.roundCount }}</p>
+              @if (S.mvp; as mvp) {
+                <p class="steal">MVP: {{ mvp.displayName }} — {{ mvp.correctAnswers }} aciertos · {{ mvp.stealsWon }} robos · {{ mvp.buzzWins }} buzz</p>
+              }
+              @if (S.players?.length) {
+                <ol class="mvp-list">
+                  @for (p of S.players; track p.playerId; let i = $index) {
+                    <li>
+                      <span class="dot" [style.background]="p.accentColor"></span>
+                      {{ i + 1 }}. {{ p.displayName }}
+                      <span class="meta">{{ p.correctAnswers }}/{{ p.stealsWon }}/{{ p.buzzWins }}</span>
+                    </li>
+                  }
+                </ol>
+              }
             }
             <div class="controls">
               <ui-button type="button" (click)="replay()">Rejugar con el mismo pack</ui-button>
@@ -117,13 +134,23 @@ import { Router } from '@angular/router';
               Fase: {{ phaseLabel(R.phase) }}
               @if (timerSec() !== null) { · ⏱ <strong [class.urgent]="(timerSec() ?? 0) <= 3">{{ timerSec() }}s</strong> }
               · Errores: {{ '❌'.repeat(R.strikes) }}{{ '⬜'.repeat(Math.max(0, 3 - R.strikes)) }}
+              @if (L.isLightning) { · <strong class="lightning">⚡ RELÁMPAGO ×2</strong> }
             </p>
             <p class="meta">
               Turno: <strong>{{ teamName(L, R.controllingTeam) }}</strong>
+              @if (R.activePlayerName) {
+                · Responde:
+                <span class="dot" [style.background]="R.activePlayerAccent || '#2563eb'"></span>
+                <strong>{{ R.activePlayerName }}</strong>
+              }
               @if (R.buzzWinnerTeam) { · Buzzer: <strong>{{ teamName(L, R.buzzWinnerTeam) }}</strong> }
               · Banco de ronda: <strong>{{ R.roundPointsForController }}</strong>
+              @if (L.isLightning) { <strong class="lightning"> (vale {{ R.roundPointsForController * 2 }})</strong> }
               <span class="hint-inline">(aún no van al marcador)</span>
             </p>
+            @if (R.phase === 'Finished' && L.roundChampion; as C) {
+              <p class="steal">Campeón de ronda: {{ C.displayName }} ({{ C.correctAnswers }} aciertos)</p>
+            }
             @if (R.phase === 'FaceOff' || R.phase === 'FaceOffSecond') {
               <p class="steal">Enfrentamiento inicial — un fallo pasa el turno (sin strikes).</p>
             }
@@ -134,11 +161,28 @@ import { Router } from '@angular/router';
               @for (a of R.answers; track a.id) {
                 <li [class.on]="a.isRevealed">
                   <span class="rank">{{ a.rank }}</span>
-                  <span class="txt">{{ a.isRevealed ? a.text : '████████████' }}</span>
+                  <span class="txt">{{ a.isRevealed ? a.text : (revealingId() === a.id ? '…' : '████████████') }}</span>
                   <span class="pts">{{ a.isRevealed ? a.points : '??' }}</span>
                   @if (!a.isRevealed && R.phase !== 'Finished') {
-                    <ui-button type="button" variant="ghost" (click)="reveal(a.id)">Revelar</ui-button>
+                    <ui-button type="button" variant="ghost" [disabled]="revealingId() !== null" (click)="reveal(a.id)">
+                      {{ revealingId() === a.id ? 'Suspense…' : 'Revelar' }}
+                    </ui-button>
                   }
+                </li>
+              }
+            </ol>
+          </article>
+        }
+
+        @if (!L.currentRound && L.packLeaderboard?.length) {
+          <article class="board">
+            <h3>Desafío del pack · ranking</h3>
+            <ol>
+              @for (e of L.packLeaderboard; track e.sessionId; let i = $index) {
+                <li>
+                  <span class="rank">{{ i + 1 }}</span>
+                  <span class="txt">{{ e.title }}</span>
+                  <span class="pts">{{ e.teamAScore }}–{{ e.teamBScore }}</span>
                 </li>
               }
             </ol>
@@ -151,7 +195,9 @@ import { Router } from '@angular/router';
             <div>
               <h4>{{ L.teamAName }} ({{ teamCount(L, 'A') }})</h4>
               @for (p of teamPlayers(L, 'A'); track p.id) {
-                <p>{{ p.displayName }} {{ p.isConnected ? '●' : '○' }}
+                <p>
+                  <span class="dot" [style.background]="p.accentColor || '#64748b'"></span>
+                  {{ p.displayName }} {{ p.isConnected ? '●' : '○' }}
                   <button type="button" class="link" (click)="assign(p.id, 'B')">→ B</button>
                 </p>
               }
@@ -159,7 +205,9 @@ import { Router } from '@angular/router';
             <div>
               <h4>{{ L.teamBName }} ({{ teamCount(L, 'B') }})</h4>
               @for (p of teamPlayers(L, 'B'); track p.id) {
-                <p>{{ p.displayName }} {{ p.isConnected ? '●' : '○' }}
+                <p>
+                  <span class="dot" [style.background]="p.accentColor || '#64748b'"></span>
+                  {{ p.displayName }} {{ p.isConnected ? '●' : '○' }}
                   <button type="button" class="link" (click)="assign(p.id, 'A')">→ A</button>
                 </p>
               }
@@ -230,6 +278,10 @@ import { Router } from '@angular/router';
     .conn { color: var(--color-text-secondary); font-weight: 700; }
     .steal { font-weight: 800; color: var(--color-primary); }
     .hint-inline { color: var(--color-text-secondary); font-weight: 500; margin-left: 0.35rem; font-size: 0.9rem; }
+    .lightning { color: #d97706; }
+    .dot { display: inline-block; width: 0.65rem; height: 0.65rem; border-radius: 50%; margin-right: 0.35rem; vertical-align: middle; }
+    .mvp-list { list-style: none; padding: 0; margin: 0.75rem 0 0; display: grid; gap: 0.35rem; }
+    .mvp-list li { display: flex; gap: 0.5rem; align-items: center; padding: 0.35rem 0; background: transparent; }
     @media (max-width: 700px) {
       .join-panel, .cols, .score { grid-template-columns: 1fr; }
       .qr { justify-self: start; }
@@ -252,6 +304,7 @@ export class GameShowHostPage implements OnInit, OnDestroy {
   readonly qrUrl = signal('');
   readonly copied = signal<string | null>(null);
   readonly timerSec = signal<number | null>(null);
+  readonly revealingId = signal<number | null>(null);
   private hub: HubConnection | null = null;
   private sessionId = 0;
   private flashTimer: ReturnType<typeof setTimeout> | null = null;
@@ -327,7 +380,20 @@ export class GameShowHostPage implements OnInit, OnDestroy {
   strike(): void { this.act(() => this.api.strike(this.sessionId)); }
   failSteal(): void { this.act(() => this.api.failSteal(this.sessionId)); }
   endRound(): void { this.act(() => this.api.endRound(this.sessionId)); }
-  reveal(answerId: number): void { this.act(() => this.api.reveal(this.sessionId, answerId)); }
+  reveal(answerId: number): void {
+    if (this.revealingId() !== null) return;
+    this.revealingId.set(answerId);
+    this.sfx.unlock();
+    const drumroll = this.lobby()?.settings?.drumrollMs ?? 1100;
+    if (this.lobby()?.settings?.enableSounds !== false) {
+      this.sfx.play('drumroll');
+    }
+    this.showFlash('Suspense…');
+    window.setTimeout(() => {
+      this.act(() => this.api.reveal(this.sessionId, answerId));
+      this.revealingId.set(null);
+    }, Math.max(0, drumroll));
+  }
   next(): void { this.act(() => this.api.nextRound(this.sessionId)); }
   finish(): void {
     if (!confirm('¿Finalizar la partida?')) return;
@@ -431,7 +497,8 @@ export class GameShowHostPage implements OnInit, OnDestroy {
   private showFlash(message: string): void {
     this.flash.set(message);
     if (this.flashTimer) clearTimeout(this.flashTimer);
-    this.flashTimer = setTimeout(() => this.flash.set(null), 2500);
+    const ms = this.lobby()?.settings?.correctFlashMs ?? 2500;
+    this.flashTimer = setTimeout(() => this.flash.set(null), ms);
   }
 
   private connectHub(): void {
@@ -442,42 +509,47 @@ export class GameShowHostPage implements OnInit, OnDestroy {
       void lobby;
     });
     this.hub.on('BuzzWon', () => {
-      this.sfx.play('buzz');
+      if (this.lobby()?.settings?.enableSounds !== false) this.sfx.play('buzz');
       this.showFlash('¡Enfrentamiento!');
     });
     this.hub.on('FaceOffPass', () => {
-      this.sfx.play('strike');
+      if (this.lobby()?.settings?.enableSounds !== false) this.sfx.play('strike');
       this.showFlash('Turno del otro equipo');
     });
     this.hub.on('FaceOffWon', () => {
-      this.sfx.play('correct');
+      if (this.lobby()?.settings?.enableSounds !== false) this.sfx.play('correct');
       this.showFlash('¡Control de la ronda!');
     });
     this.hub.on('FaceOffReopen', () => this.showFlash('Buzzer de nuevo'));
     this.hub.on('CorrectAnswer', () => {
-      this.sfx.play('correct');
+      if (this.lobby()?.settings?.enableSounds !== false) this.sfx.play('correct');
       this.showFlash('¡Correcto!');
     });
     this.hub.on('AlreadyRevealed', () => this.showFlash('⚠️ Esta respuesta ya fue descubierta'));
-    this.hub.on('Strike', () => {
-      this.sfx.play('strike');
-      this.showFlash('Strike');
+    this.hub.on('Strike', (p: { strikes?: number }) => {
+      const n = p?.strikes ?? 1;
+      if (this.lobby()?.settings?.enableSounds !== false) this.sfx.playStrike(n);
+      this.showFlash(n >= 3 ? phraseForStrike3() : `Strike ${n}`);
     });
     this.hub.on('StealOpportunity', () => {
-      this.sfx.play('steal');
-      this.showFlash('¡Oportunidad de robo!');
+      if (this.lobby()?.settings?.enableSounds !== false) this.sfx.play('steal');
+      this.showFlash(phraseForSteal());
     });
     this.hub.on('StealSucceeded', () => {
-      this.sfx.play('correct');
+      if (this.lobby()?.settings?.enableSounds !== false) this.sfx.play('correct');
       this.showFlash('¡Robo exitoso!');
     });
     this.hub.on('StealFailed', () => {
-      this.sfx.play('stealFail');
+      if (this.lobby()?.settings?.enableSounds !== false) this.sfx.play('stealFail');
       this.showFlash('Robo fallido');
     });
     this.hub.on('RoundWon', () => this.showFlash('¡Ronda ganada!'));
+    this.hub.on('LightningStarted', () => {
+      if (this.lobby()?.settings?.enableSounds !== false) this.sfx.play('lightning');
+      this.showFlash(phraseForLightning());
+    });
     this.hub.on('GameEnded', () => {
-      this.sfx.play('end');
+      if (this.lobby()?.settings?.enableSounds !== false) this.sfx.play('end');
       this.showFlash('Partida finalizada');
     });
     this.hub.onreconnecting(() => this.connection.set('Reconectando…'));

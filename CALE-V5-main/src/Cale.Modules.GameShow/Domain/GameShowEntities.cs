@@ -63,6 +63,12 @@ public sealed class GameShowSession
     public int TeamAScore { get; set; }
     public int TeamBScore { get; set; }
     public int CurrentRoundIndex { get; set; } = -1;
+    /// <summary>Pack used to create this session (school challenge / leaderboard).</summary>
+    public int? SourcePackId { get; set; }
+    /// <summary>While UtcNow &lt; this, bank commits are doubled (final-round lightning).</summary>
+    public DateTime? LightningUntilUtc { get; set; }
+    /// <summary>JSON snapshot of <see cref="GameShowSessionSettings"/> taken at create (Lobby-editable).</summary>
+    public string SettingsJson { get; set; } = "";
     public DateTime CreatedAt { get; set; }
     public DateTime? StartedAt { get; set; }
     public DateTime? EndedAt { get; set; }
@@ -87,6 +93,11 @@ public sealed class GameShowRound
     public DateTime? BuzzOpenedAt { get; set; }
     /// <summary>UTC instant when the current buzz/answer window ends. Null when Finished or idle.</summary>
     public DateTime? AnswerDeadlineUtc { get; set; }
+    /// <summary>Player currently allowed to submit an answer (team rotation).</summary>
+    public int? ActivePlayerId { get; set; }
+    /// <summary>Player with most correct answers in this round (set on finish).</summary>
+    public int? RoundChampionPlayerId { get; set; }
+    public int RoundChampionCorrectAnswers { get; set; }
     public DateTime? FinishedAt { get; set; }
 
     public List<GameShowBoardAnswer> Answers { get; set; } = [];
@@ -116,6 +127,9 @@ public sealed class GameShowPlayer
     public string? ConnectionId { get; set; }
     public bool IsConnected { get; set; }
     public DateTime JoinedAt { get; set; }
+    public int CorrectAnswers { get; set; }
+    public int StealsWon { get; set; }
+    public int BuzzWins { get; set; }
 }
 
 public sealed class GameShowAttempt

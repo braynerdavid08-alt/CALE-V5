@@ -49,6 +49,40 @@ public static class GameShowPackSchemaGuard
                     ADD COLUMN IF NOT EXISTS "AnswerDeadlineUtc" timestamp with time zone NULL;
                     """,
                     ct);
+
+                await db.Database.ExecuteSqlRawAsync(
+                    """
+                    ALTER TABLE IF EXISTS "GameShowRounds"
+                    ADD COLUMN IF NOT EXISTS "ActivePlayerId" integer NULL;
+                    """,
+                    ct);
+
+                await db.Database.ExecuteSqlRawAsync(
+                    """
+                    ALTER TABLE IF EXISTS "GameShowRounds"
+                    ADD COLUMN IF NOT EXISTS "RoundChampionPlayerId" integer NULL;
+                    ALTER TABLE IF EXISTS "GameShowRounds"
+                    ADD COLUMN IF NOT EXISTS "RoundChampionCorrectAnswers" integer NOT NULL DEFAULT 0;
+                    ALTER TABLE IF EXISTS "GameShowSessions"
+                    ADD COLUMN IF NOT EXISTS "SourcePackId" integer NULL;
+                    ALTER TABLE IF EXISTS "GameShowSessions"
+                    ADD COLUMN IF NOT EXISTS "LightningUntilUtc" timestamp with time zone NULL;
+                    ALTER TABLE IF EXISTS "GameShowSessions"
+                    ADD COLUMN IF NOT EXISTS "SettingsJson" character varying(8000) NOT NULL DEFAULT '';
+                    ALTER TABLE IF EXISTS "GameShowPlayers"
+                    ADD COLUMN IF NOT EXISTS "CorrectAnswers" integer NOT NULL DEFAULT 0;
+                    ALTER TABLE IF EXISTS "GameShowPlayers"
+                    ADD COLUMN IF NOT EXISTS "StealsWon" integer NOT NULL DEFAULT 0;
+                    ALTER TABLE IF EXISTS "GameShowPlayers"
+                    ADD COLUMN IF NOT EXISTS "BuzzWins" integer NOT NULL DEFAULT 0;
+                    CREATE TABLE IF NOT EXISTS "GameShowSettings" (
+                        "Id" integer PRIMARY KEY,
+                        "PayloadJson" text NOT NULL,
+                        "UpdatedAt" timestamp with time zone NOT NULL,
+                        "UpdatedByUserId" integer NULL
+                    );
+                    """,
+                    ct);
             }
             else if (db.Database.IsSqlServer())
             {
@@ -79,6 +113,47 @@ public static class GameShowPackSchemaGuard
                     IF OBJECT_ID(N'dbo.GameShowRounds', N'U') IS NOT NULL
                        AND COL_LENGTH(N'dbo.GameShowRounds', N'AnswerDeadlineUtc') IS NULL
                         ALTER TABLE dbo.GameShowRounds ADD AnswerDeadlineUtc datetimeoffset NULL;
+                    """,
+                    ct);
+
+                await db.Database.ExecuteSqlRawAsync(
+                    """
+                    IF OBJECT_ID(N'dbo.GameShowRounds', N'U') IS NOT NULL
+                       AND COL_LENGTH(N'dbo.GameShowRounds', N'ActivePlayerId') IS NULL
+                        ALTER TABLE dbo.GameShowRounds ADD ActivePlayerId int NULL;
+                    IF OBJECT_ID(N'dbo.GameShowRounds', N'U') IS NOT NULL
+                       AND COL_LENGTH(N'dbo.GameShowRounds', N'RoundChampionPlayerId') IS NULL
+                        ALTER TABLE dbo.GameShowRounds ADD RoundChampionPlayerId int NULL;
+                    IF OBJECT_ID(N'dbo.GameShowRounds', N'U') IS NOT NULL
+                       AND COL_LENGTH(N'dbo.GameShowRounds', N'RoundChampionCorrectAnswers') IS NULL
+                        ALTER TABLE dbo.GameShowRounds ADD RoundChampionCorrectAnswers int NOT NULL CONSTRAINT DF_GSR_ChampCorrect DEFAULT(0);
+                    IF OBJECT_ID(N'dbo.GameShowSessions', N'U') IS NOT NULL
+                       AND COL_LENGTH(N'dbo.GameShowSessions', N'SourcePackId') IS NULL
+                        ALTER TABLE dbo.GameShowSessions ADD SourcePackId int NULL;
+                    IF OBJECT_ID(N'dbo.GameShowSessions', N'U') IS NOT NULL
+                       AND COL_LENGTH(N'dbo.GameShowSessions', N'LightningUntilUtc') IS NULL
+                        ALTER TABLE dbo.GameShowSessions ADD LightningUntilUtc datetimeoffset NULL;
+                    IF OBJECT_ID(N'dbo.GameShowPlayers', N'U') IS NOT NULL
+                       AND COL_LENGTH(N'dbo.GameShowPlayers', N'CorrectAnswers') IS NULL
+                        ALTER TABLE dbo.GameShowPlayers ADD CorrectAnswers int NOT NULL CONSTRAINT DF_GSP_CorrectAnswers DEFAULT(0);
+                    IF OBJECT_ID(N'dbo.GameShowPlayers', N'U') IS NOT NULL
+                       AND COL_LENGTH(N'dbo.GameShowPlayers', N'StealsWon') IS NULL
+                        ALTER TABLE dbo.GameShowPlayers ADD StealsWon int NOT NULL CONSTRAINT DF_GSP_StealsWon DEFAULT(0);
+                    IF OBJECT_ID(N'dbo.GameShowPlayers', N'U') IS NOT NULL
+                       AND COL_LENGTH(N'dbo.GameShowPlayers', N'BuzzWins') IS NULL
+                        ALTER TABLE dbo.GameShowPlayers ADD BuzzWins int NOT NULL CONSTRAINT DF_GSP_BuzzWins DEFAULT(0);
+                    IF OBJECT_ID(N'dbo.GameShowSessions', N'U') IS NOT NULL
+                       AND COL_LENGTH(N'dbo.GameShowSessions', N'SettingsJson') IS NULL
+                        ALTER TABLE dbo.GameShowSessions ADD SettingsJson nvarchar(max) NOT NULL CONSTRAINT DF_GSS_SettingsJson DEFAULT(N'');
+                    IF OBJECT_ID(N'dbo.GameShowSettings', N'U') IS NULL
+                    BEGIN
+                        CREATE TABLE dbo.GameShowSettings (
+                            Id int NOT NULL PRIMARY KEY,
+                            PayloadJson nvarchar(max) NOT NULL,
+                            UpdatedAt datetimeoffset NOT NULL,
+                            UpdatedByUserId int NULL
+                        );
+                    END
                     """,
                     ct);
             }

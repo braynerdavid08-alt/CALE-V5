@@ -492,6 +492,14 @@ export const routes: Routes = [
             .then((m) => m.GameShowHubPage)
       },
       {
+        path: 'teacher/game-show/admin',
+        canActivate: [roleGuard],
+        data: { roles: staffRoles },
+        loadComponent: () =>
+          import('./features/game-show/pages/game-show-admin.page')
+            .then((m) => m.GameShowAdminPage)
+      },
+      {
         path: 'teacher/game-show/:sessionId/host',
         canActivate: [roleGuard],
         data: { roles: staffRoles },

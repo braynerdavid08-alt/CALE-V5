@@ -25,7 +25,9 @@ public interface IGameShowStore
     Task<GameShowPack?> GetPackByIdAsync(int id, CancellationToken ct);
     Task<IReadOnlyList<GameShowPack>> ListPacksForOwnerAsync(int ownerUserId, CancellationToken ct);
     Task RemovePackAsync(GameShowPack pack, CancellationToken ct);
+    Task<IReadOnlyList<GameShowSession>> ListEndedByPackAsync(int packId, int take, CancellationToken ct);
 
+    Task<GameShowSettings> GetOrCreateSettingsAsync(CancellationToken ct);
     Task SaveChangesAsync(CancellationToken ct);
 }
 

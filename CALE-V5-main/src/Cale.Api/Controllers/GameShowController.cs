@@ -94,6 +94,36 @@ public sealed class GameShowController : ControllerBase
     public async Task<IActionResult> ListPacks(CancellationToken ct) =>
         Ok(await _handler.ListPacksAsync(CurrentUser.GetId(User), ct));
 
+    [HttpGet("settings")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> GetGlobalSettings(CancellationToken ct) =>
+        Ok(await _handler.GetGlobalSettingsAsync(ct));
+
+    [HttpPut("settings")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> PutGlobalSettings(
+        [FromBody] GameShowSettingsDto body,
+        CancellationToken ct) =>
+        Ok(await _handler.UpdateGlobalSettingsAsync(body, CurrentUser.GetId(User), ct));
+
+    [HttpPost("settings/restore")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> RestoreGlobalSettings(CancellationToken ct) =>
+        Ok(await _handler.RestoreGlobalSettingsAsync(CurrentUser.GetId(User), ct));
+
+    [HttpGet("{id:int}/settings")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> GetSessionSettings(int id, CancellationToken ct) =>
+        Ok(await _handler.GetSessionSettingsAsync(id, CurrentUser.GetId(User), ct));
+
+    [HttpPut("{id:int}/settings")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> PutSessionSettings(
+        int id,
+        [FromBody] GameShowSettingsDto body,
+        CancellationToken ct) =>
+        Ok(await _handler.UpdateSessionSettingsAsync(id, CurrentUser.GetId(User), body, ct));
+
     [HttpGet("packs/{packId:int}")]
     [Authorize(Policy = "TeacherOrAdmin")]
     public async Task<IActionResult> GetPack(int packId, CancellationToken ct) =>

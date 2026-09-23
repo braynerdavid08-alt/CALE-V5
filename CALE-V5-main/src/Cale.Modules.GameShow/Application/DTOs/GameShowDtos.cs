@@ -9,12 +9,15 @@ public sealed record CreateGameShowRequest(
 public sealed record CreateGameShowRoundRequest(
     string QuestionText,
     int? SourceQuestionId,
-    IReadOnlyList<CreateGameShowAnswerRequest> Answers);
+    IReadOnlyList<CreateGameShowAnswerRequest> Answers,
+    string? Category = null,
+    bool IsActive = true);
 
 public sealed record CreateGameShowAnswerRequest(
     string Text,
     int Points,
-    IReadOnlyList<string>? Aliases);
+    IReadOnlyList<string>? Aliases,
+    bool IsActive = true);
 
 public sealed record JoinGameShowRequest(
     string Code,
@@ -42,14 +45,73 @@ public sealed record GameShowLobbyDto(
     GameShowRoundPublicDto? CurrentRound,
     bool IsHostView,
     int? ViewerPlayerId = null,
-    string? ViewerTeam = null);
+    string? ViewerTeam = null,
+    DateTime? LightningUntilUtc = null,
+    bool IsLightning = false,
+    int? SourcePackId = null,
+    GameShowRoundChampionDto? RoundChampion = null,
+    IReadOnlyList<GameShowPlayerStandingDto>? PlayerStandings = null,
+    IReadOnlyList<GameShowPackLeaderboardEntryDto>? PackLeaderboard = null,
+    GameShowSettingsDto? Settings = null);
+
+public sealed record GameShowSettingsDto(
+    int FaceOffSeconds,
+    int ControlSeconds,
+    int StealSeconds,
+    int LightningSeconds,
+    int RoundTransitionSeconds,
+    int DrumrollMs,
+    int RevealHighlightMs,
+    int StrikeFlashMs,
+    int CelebrationMs,
+    int CorrectFlashMs,
+    int ScoreboardFlashMs,
+    int MaxStrikes,
+    bool EnableFaceOff,
+    bool EnableSteal,
+    bool EnableLightning,
+    bool EnableSounds,
+    bool EnableAnimations,
+    bool AllowPause,
+    bool AllowSkipRound,
+    bool AllowHostEndRound,
+    bool EnableAudienceVote,
+    string TieBreakMode,
+    DateTime? UpdatedAt = null,
+    int? UpdatedByUserId = null);
 
 public sealed record GameShowPlayerDto(
     int Id,
     string DisplayName,
     string Team,
     bool IsConnected,
-    int? UserId);
+    int? UserId,
+    string? AccentColor = null);
+
+public sealed record GameShowRoundChampionDto(
+    int PlayerId,
+    string DisplayName,
+    string Team,
+    int CorrectAnswers);
+
+public sealed record GameShowPlayerStandingDto(
+    int PlayerId,
+    string DisplayName,
+    string Team,
+    int CorrectAnswers,
+    int StealsWon,
+    int BuzzWins,
+    string AccentColor);
+
+public sealed record GameShowPackLeaderboardEntryDto(
+    int SessionId,
+    string Title,
+    string TeamAName,
+    string TeamBName,
+    int TeamAScore,
+    int TeamBScore,
+    int CombinedScore,
+    DateTime? EndedAt);
 
 public sealed record GameShowRoundPublicDto(
     int Id,
@@ -62,7 +124,10 @@ public sealed record GameShowRoundPublicDto(
     int RoundPointsForController,
     bool StealSucceeded,
     DateTime? AnswerDeadlineUtc,
-    IReadOnlyList<GameShowBoardAnswerPublicDto> Answers);
+    IReadOnlyList<GameShowBoardAnswerPublicDto> Answers,
+    int? ActivePlayerId = null,
+    string? ActivePlayerName = null,
+    string? ActivePlayerAccent = null);
 
 public sealed record GameShowBoardAnswerPublicDto(
     int Id,
@@ -151,4 +216,6 @@ public sealed record GameShowStatsDto(
     int StealsFailed,
     IReadOnlyList<GameShowRoundStatDto> Rounds,
     DateTime CreatedAt,
-    DateTime? EndedAt);
+    DateTime? EndedAt,
+    IReadOnlyList<GameShowPlayerStandingDto>? Players = null,
+    GameShowPlayerStandingDto? Mvp = null);

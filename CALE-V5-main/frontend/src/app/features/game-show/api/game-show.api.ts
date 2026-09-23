@@ -8,12 +8,15 @@ export interface GameShowAnswerInput {
   text: string;
   points: number;
   aliases?: string[];
+  isActive?: boolean;
 }
 
 export interface GameShowRoundInput {
   questionText: string;
   sourceQuestionId?: number | null;
   answers: GameShowAnswerInput[];
+  category?: string | null;
+  isActive?: boolean;
 }
 
 export interface CreateGameShowBody {
@@ -43,6 +46,9 @@ export interface GameShowRoundDto {
   stealSucceeded: boolean;
   answerDeadlineUtc: string | null;
   answers: GameShowBoardAnswerDto[];
+  activePlayerId?: number | null;
+  activePlayerName?: string | null;
+  activePlayerAccent?: string | null;
 }
 
 export interface GameShowPlayerDto {
@@ -51,6 +57,35 @@ export interface GameShowPlayerDto {
   team: string;
   isConnected: boolean;
   userId?: number | null;
+  accentColor?: string | null;
+}
+
+export interface GameShowRoundChampionDto {
+  playerId: number;
+  displayName: string;
+  team: string;
+  correctAnswers: number;
+}
+
+export interface GameShowPlayerStandingDto {
+  playerId: number;
+  displayName: string;
+  team: string;
+  correctAnswers: number;
+  stealsWon: number;
+  buzzWins: number;
+  accentColor: string;
+}
+
+export interface GameShowPackLeaderboardEntryDto {
+  sessionId: number;
+  title: string;
+  teamAName: string;
+  teamBName: string;
+  teamAScore: number;
+  teamBScore: number;
+  combinedScore: number;
+  endedAt?: string | null;
 }
 
 export interface GameShowLobbyDto {
@@ -69,6 +104,40 @@ export interface GameShowLobbyDto {
   isHostView: boolean;
   viewerPlayerId?: number | null;
   viewerTeam?: string | null;
+  lightningUntilUtc?: string | null;
+  isLightning?: boolean;
+  sourcePackId?: number | null;
+  roundChampion?: GameShowRoundChampionDto | null;
+  playerStandings?: GameShowPlayerStandingDto[] | null;
+  packLeaderboard?: GameShowPackLeaderboardEntryDto[] | null;
+  settings?: GameShowSettingsDto | null;
+}
+
+export interface GameShowSettingsDto {
+  faceOffSeconds: number;
+  controlSeconds: number;
+  stealSeconds: number;
+  lightningSeconds: number;
+  roundTransitionSeconds: number;
+  drumrollMs: number;
+  revealHighlightMs: number;
+  strikeFlashMs: number;
+  celebrationMs: number;
+  correctFlashMs: number;
+  scoreboardFlashMs: number;
+  maxStrikes: number;
+  enableFaceOff: boolean;
+  enableSteal: boolean;
+  enableLightning: boolean;
+  enableSounds: boolean;
+  enableAnimations: boolean;
+  allowPause: boolean;
+  allowSkipRound: boolean;
+  allowHostEndRound: boolean;
+  enableAudienceVote: boolean;
+  tieBreakMode: string;
+  updatedAt?: string | null;
+  updatedByUserId?: number | null;
 }
 
 export interface JoinGameShowResultDto {
@@ -148,6 +217,8 @@ export interface GameShowStatsDto {
   rounds: GameShowRoundStatDto[];
   createdAt: string;
   endedAt?: string | null;
+  players?: GameShowPlayerStandingDto[] | null;
+  mvp?: GameShowPlayerStandingDto | null;
 }
 
 const TOKEN_KEY = 'cale.game-show.player';
@@ -184,6 +255,26 @@ export class GameShowApi {
 
   deletePack(packId: number) {
     return this.http.delete(`${this.base}/api/game-show/packs/${packId}`);
+  }
+
+  getGlobalSettings() {
+    return this.http.get<GameShowSettingsDto>(`${this.base}/api/game-show/settings`);
+  }
+
+  putGlobalSettings(body: GameShowSettingsDto) {
+    return this.http.put<GameShowSettingsDto>(`${this.base}/api/game-show/settings`, body);
+  }
+
+  restoreGlobalSettings() {
+    return this.http.post<GameShowSettingsDto>(`${this.base}/api/game-show/settings/restore`, {});
+  }
+
+  getSessionSettings(sessionId: number) {
+    return this.http.get<GameShowSettingsDto>(`${this.base}/api/game-show/${sessionId}/settings`);
+  }
+
+  putSessionSettings(sessionId: number, body: GameShowSettingsDto) {
+    return this.http.put<GameShowSettingsDto>(`${this.base}/api/game-show/${sessionId}/settings`, body);
   }
 
   createFromPack(
