@@ -3,10 +3,17 @@ namespace Cale.Modules.GameShow.Domain;
 /// <summary>Classroom-friendly turn clocks for 100 Estudiantes Dijeron.</summary>
 public static class GameShowTiming
 {
-    public static readonly TimeSpan BuzzWindow = TimeSpan.FromSeconds(10);
-    public static readonly TimeSpan FaceOffAnswer = TimeSpan.FromSeconds(12);
-    public static readonly TimeSpan ControlAnswer = TimeSpan.FromSeconds(15);
-    public static readonly TimeSpan StealAnswer = TimeSpan.FromSeconds(12);
+    /// <summary>No clock while students decide who buzzes (WaitingBuzz).</summary>
+    public static readonly TimeSpan BuzzWindow = TimeSpan.Zero;
+
+    /// <summary>Time to type an answer after winning the face-off buzz.</summary>
+    public static readonly TimeSpan FaceOffAnswer = TimeSpan.FromSeconds(25);
+
+    /// <summary>Time per control attempt (correct or strike).</summary>
+    public static readonly TimeSpan ControlAnswer = TimeSpan.FromSeconds(30);
+
+    /// <summary>Single steal opportunity.</summary>
+    public static readonly TimeSpan StealAnswer = TimeSpan.FromSeconds(25);
 
     public static TimeSpan ForPhase(string? phase) => phase switch
     {

@@ -262,18 +262,6 @@ public sealed class GameShowHandler
             ?? throw new DomainException("Jugador no encontrado.", 404, "player_not_found");
         var round = CurrentRound(session);
 
-        if (GameShowTiming.IsExpired(round, _clock.UtcNow)
-            && round.Phase == GameShowRoundPhases.WaitingBuzz)
-        {
-            var extended = GameShowEngine.ProcessTimeout(session, round, _clock.UtcNow);
-            await _store.SaveChangesAsync(ct);
-            await BroadcastLobbyAsync(session, ct);
-            if (extended.Kind != GameShowEngine.OutcomeKind.Noop)
-            {
-                await _broadcaster.EventAsync(session.Id, extended.EventName, extended.Payload, ct);
-            }
-        }
-
         if (round.Phase != GameShowRoundPhases.WaitingBuzz)
         {
             throw new DomainException("El buzzer no está abierto.", 400, "buzz_closed");
