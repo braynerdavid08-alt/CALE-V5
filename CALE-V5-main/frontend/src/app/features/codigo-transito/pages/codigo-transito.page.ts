@@ -19,7 +19,7 @@ import {
   imports: [FormsModule, UiButtonComponent, UiErrorComponent, UiPageHeaderComponent],
   template: `
     <ui-page-header
-      title="Normas de Tránsito"
+      title="Biblioteca Jurídica"
       subtitle="Código Nacional de Tránsito (Ley 769 de 2002) — texto literal según Transiteca." />
 
     <ui-error [message]="error()" />

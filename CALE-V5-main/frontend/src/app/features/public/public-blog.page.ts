@@ -94,7 +94,7 @@ export class PublicBlogPage implements OnInit {
     this.title.setTitle(brandPageTitle('Blog'));
     this.meta.updateTag({
       name: 'description',
-      content: 'Artículos y novedades de formación vial en CALE.'
+      content: 'Artículos y novedades de formación vial en Mi CALE.'
     });
 
     this.api.getHome().subscribe({

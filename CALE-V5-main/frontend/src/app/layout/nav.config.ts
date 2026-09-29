@@ -138,14 +138,14 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
           { label: 'Aula en vivo', path: '/teacher/live', exact: true },
           { label: '100 Estudiantes Dijeron', path: '/teacher/game-show', exact: true },
           { label: 'Presentaciones', path: '/teacher/presentations', exact: true },
-          { label: 'Grupos', path: '/teacher/groups', exact: true },
-          { label: 'Normas de Tránsito', path: '/teacher/normas-transito' }
+          { label: 'Grupos', path: '/teacher/groups', exact: true }
         ]
       },
       {
         label: 'Biblioteca',
         icon: 'book',
         children: [
+          { label: 'Biblioteca Jurídica', path: '/teacher/normas-transito' },
           { label: 'Exámenes', path: '/teacher/library', exact: true },
           { label: 'Bancos', path: '/teacher/banks', exact: true },
           { label: 'Preguntas', path: '/teacher/questions', exact: true }
@@ -161,7 +161,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
     { label: 'Aula en Vivo', path: '/live/join', icon: 'exam', exact: true },
     { label: 'Mis Evaluaciones', path: '/student/evaluations', icon: 'exam', exact: true },
     { label: 'Simulador', path: '/student/simulator', icon: 'exam', exact: true },
-    { label: 'Normas de Tránsito', path: '/student/normas-transito', icon: 'book' },
+    { label: 'Biblioteca Jurídica', path: '/student/normas-transito', icon: 'book' },
     { label: 'Mis Clases', path: '/student/classes', icon: 'book', exact: true },
     { label: 'Teoría', path: '/student/training', icon: 'exam', exact: true, requiresSchool: true },
     { label: 'Clases de manejo', path: '/student/practical', icon: 'exam', exact: true, requiresSchool: true },

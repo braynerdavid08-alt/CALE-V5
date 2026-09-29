@@ -140,6 +140,7 @@ export class AuthFacade {
       void this.router.navigateByUrl('/profile');
       return;
     }
+    // Prefer role home when returnUrl is missing or was a public marketing page.
     const target = takeReturnUrl(returnUrl) ?? this.session.homeRoute();
     void this.router.navigateByUrl(target);
   }

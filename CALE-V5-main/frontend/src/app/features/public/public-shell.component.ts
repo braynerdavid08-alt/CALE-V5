@@ -1,6 +1,7 @@
-import { Component, HostListener, signal } from '@angular/core';
+import { Component, HostListener, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { BRAND } from '../../core/brand';
+import { SessionStore } from '../../core/auth/session.store';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiIconComponent } from '../../shared/ui/ui-icon.component';
 import { UiThemeToggleComponent } from '../../shared/ui/ui-theme-toggle.component';
@@ -41,8 +42,12 @@ import { UiThemeToggleComponent } from '../../shared/ui/ui-theme-toggle.componen
 
           <div class="actions desktop">
             <ui-theme-toggle />
-            <a routerLink="/login" class="link-login">Iniciar sesión</a>
-            <ui-button routerLink="/register" type="button">Registrarme</ui-button>
+            @if (loggedIn()) {
+              <ui-button [routerLink]="accountPath()" type="button">Mi cuenta</ui-button>
+            } @else {
+              <a routerLink="/login" class="link-login">Iniciar sesión</a>
+              <ui-button routerLink="/register" type="button">Registrarme</ui-button>
+            }
           </div>
 
           <button
@@ -71,10 +76,16 @@ import { UiThemeToggleComponent } from '../../shared/ui/ui-theme-toggle.componen
             </nav>
             <div class="mobile-actions">
               <ui-theme-toggle />
-              <a routerLink="/login" (click)="closeMenu()">Iniciar sesión</a>
-              <a routerLink="/register" (click)="closeMenu()">
-                <ui-button type="button">Registrarme</ui-button>
-              </a>
+              @if (loggedIn()) {
+                <a [routerLink]="accountPath()" (click)="closeMenu()">
+                  <ui-button type="button">Mi cuenta</ui-button>
+                </a>
+              } @else {
+                <a routerLink="/login" (click)="closeMenu()">Iniciar sesión</a>
+                <a routerLink="/register" (click)="closeMenu()">
+                  <ui-button type="button">Registrarme</ui-button>
+                </a>
+              }
             </div>
           </div>
         }
@@ -100,8 +111,11 @@ import { UiThemeToggleComponent } from '../../shared/ui/ui-theme-toggle.componen
   styleUrl: './public-shell.component.css'
 })
 export class PublicShellComponent {
+  private readonly session = inject(SessionStore);
   readonly brand = BRAND;
   readonly menuOpen = signal(false);
+  readonly loggedIn = computed(() => this.session.isAuthenticated());
+  readonly accountPath = computed(() => this.session.homeRoute());
 
   readonly links = [
     { label: 'Inicio', path: '/', exact: true },

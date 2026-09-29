@@ -72,6 +72,23 @@ import { formatStatDisplay } from './public-stat.util';
                   [alt]="h.hero.imageAlt || brand.name"
                   loading="eager" />
               </div>
+            } @else {
+              <aside class="hero-panel" [attr.aria-label]="'Qué encuentras en ' + brand.name">
+                <p class="hero-panel-title">Todo tu CALE en un solo lugar</p>
+                <ul class="hero-panel-list">
+                  @for (f of heroFeatures; track f.title) {
+                    <li>
+                      <span class="hero-panel-icon" aria-hidden="true">
+                        <ui-icon [name]="f.icon" />
+                      </span>
+                      <span>
+                        <strong>{{ f.title }}</strong>
+                        <small>{{ f.text }}</small>
+                      </span>
+                    </li>
+                  }
+                </ul>
+              </aside>
             }
           </div>
         </section>
@@ -144,7 +161,7 @@ import { formatStatDisplay } from './public-stat.util';
             <header class="sec-head row">
               <div>
                 <h2>Escuelas aliadas</h2>
-                <p>Formación presencial y acompañamiento con escuelas del ecosistema CALE.</p>
+                <p>Centros de enseñanza automovilística que ya forman a sus estudiantes con {{ brand.name }}.</p>
               </div>
               <ui-button routerLink="/escuelas" type="button" variant="secondary">Ver todas</ui-button>
             </header>
@@ -222,6 +239,13 @@ export class LandingPage implements OnInit {
   readonly error = signal<string | null>(null);
   readonly home = signal<PublicHomeDto | null>(null);
 
+  readonly heroFeatures = [
+    { icon: 'exam', title: 'Simulacros tipo examen', text: 'Practica con preguntas reales del CALE.' },
+    { icon: 'book', title: 'Biblioteca jurídica', text: 'Normas de tránsito siempre a la mano.' },
+    { icon: 'play', title: 'Clases en vivo', text: 'Únete con un código o escaneando el QR.' },
+    { icon: 'chart', title: 'Tu progreso', text: 'Mira tus aciertos y lo que debes repasar.' }
+  ];
+
   ngOnInit(): void {
     this.api.getHome().subscribe({
       next: (data) => {
@@ -279,11 +303,21 @@ export class LandingPage implements OnInit {
         imageAlt: BRAND.name,
         imageEnabled: false
       },
-      benefits: [],
-      stepsVisible: false,
-      stepsTitle: '',
-      stepsSubtitle: '',
-      steps: [],
+      benefits: [
+        { id: 'b1', title: 'Aprende a tu ritmo', description: 'Estudia desde donde estés con contenidos disponibles 24/7.', icon: 'graduate', tone: 'blue', sortOrder: 1, active: true },
+        { id: 'b2', title: 'Clases prácticas', description: 'Coordina tus clases con instructores certificados de tu escuela.', icon: 'play', tone: 'green', sortOrder: 2, active: true },
+        { id: 'b3', title: 'Evaluaciones inteligentes', description: 'Prepárate con simulacros teóricos como los del examen oficial.', icon: 'exam', tone: 'purple', sortOrder: 3, active: true },
+        { id: 'b4', title: 'Certificación', description: 'Cumple los requisitos y completa tu proceso de formación.', icon: 'star', tone: 'yellow', sortOrder: 4, active: true }
+      ],
+      stepsVisible: true,
+      stepsTitle: '¿Cómo funciona Mi CALE?',
+      stepsSubtitle: 'Cuatro pasos claros para completar tu formación vial.',
+      steps: [
+        { id: 's1', number: 1, title: 'Regístrate', description: 'Crea tu cuenta y vincúlate a tu escuela de conducción.', icon: 'users', tone: 'blue', sortOrder: 1, active: true },
+        { id: 's2', number: 2, title: 'Estudia', description: 'Accede a los contenidos teóricos y a la biblioteca jurídica.', icon: 'book', tone: 'green', sortOrder: 2, active: true },
+        { id: 's3', number: 3, title: 'Practica', description: 'Presenta simulacros y repasa las preguntas que fallaste.', icon: 'exam', tone: 'purple', sortOrder: 3, active: true },
+        { id: 's4', number: 4, title: 'Aprueba', description: 'Llega preparado al examen y obtén tu licencia.', icon: 'star', tone: 'yellow', sortOrder: 4, active: true }
+      ],
       stats: [],
       schoolsVisible: false,
       schools: [],

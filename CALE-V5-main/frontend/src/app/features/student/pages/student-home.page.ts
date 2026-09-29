@@ -50,9 +50,9 @@ export class StudentHomePage {
       tone: 'blue'
     },
     {
-      id: 'normas',
-      label: 'Normas de Tránsito',
-      hint: 'Código nacional (lectura)',
+      id: 'biblioteca-juridica',
+      label: 'Biblioteca Jurídica',
+      hint: 'Normas de tránsito',
       path: '/student/normas-transito',
       icon: 'book',
       tone: 'green'

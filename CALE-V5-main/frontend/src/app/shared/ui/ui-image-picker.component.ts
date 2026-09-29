@@ -28,7 +28,7 @@ import { UiButtonComponent } from './ui-button.component';
         }
       </div>
       @if (busy) {
-        <small>Subiendo imagenâ€¦</small>
+        <small>Subiendo imagen…</small>
       }
     </div>
   `,

@@ -97,6 +97,15 @@
             <span class="student-brand-name">{{ brand.name }}</span>
           </a>
         }
+        @if (!mustChangePassword) {
+          <a
+            class="student-home-btn student-normas-btn"
+            routerLink="/student/normas-transito"
+            title="Biblioteca Jurídica">
+            <ui-icon name="book" />
+            <span>Biblioteca Jurídica</span>
+          </a>
+        }
       } @else {
         <ui-button type="button" variant="ghost" class="menu-btn" (click)="toggleMenu()">
           <ui-icon name="menu" />

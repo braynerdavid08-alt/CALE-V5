@@ -11,12 +11,12 @@ import { UiIconComponent } from './ui-icon.component';
     <button
       type="button"
       class="theme-toggle"
-      [attr.aria-label]="theme.mode() === 'dark' ? 'Activar modo dÃ­a' : 'Activar modo noche'"
-      [title]="theme.mode() === 'dark' ? 'Modo dÃ­a' : 'Modo noche'"
+      [attr.aria-label]="theme.mode() === 'dark' ? dayAria : nightAria"
+      [title]="theme.mode() === 'dark' ? dayTitle : nightTitle"
       (click)="theme.toggle()">
       @if (theme.mode() === 'dark') {
         <ui-icon name="sun" />
-        <span class="label">DÃ­a</span>
+        <span class="label">{{ dayLabel }}</span>
       } @else {
         <ui-icon name="moon" />
         <span class="label">Noche</span>
@@ -63,4 +63,11 @@ import { UiIconComponent } from './ui-icon.component';
 })
 export class UiThemeToggleComponent {
   readonly theme = inject(ThemeService);
+
+  /** Avoid mojibake if the source file encoding is wrong. */
+  readonly dayLabel = 'D\u00eda';
+  readonly dayTitle = 'Modo d\u00eda';
+  readonly dayAria = 'Activar modo d\u00eda';
+  readonly nightTitle = 'Modo noche';
+  readonly nightAria = 'Activar modo noche';
 }
