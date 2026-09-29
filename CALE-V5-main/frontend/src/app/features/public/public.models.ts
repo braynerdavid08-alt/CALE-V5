@@ -67,6 +67,21 @@ export interface PublicInstructorCardDto {
   detailPath: string;
 }
 
+export interface PublicTestimonialDto {
+  id: number;
+  displayName: string;
+  schoolName: string | null;
+  stars: number;
+  comment: string;
+  createdAt: string;
+}
+
+export interface PublicTestimonialsDto {
+  average: number;
+  count: number;
+  items: PublicTestimonialDto[];
+}
+
 export interface PublicHomeDto {
   hero: PublicHeroDto;
   benefits: HomepageBenefitItem[];

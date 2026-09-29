@@ -6,6 +6,7 @@ import {
   PublicHomeDto,
   PublicInstructorCardDto,
   PublicSchoolCardDto,
+  PublicTestimonialsDto,
   UpdateHomepageRequest
 } from './public.models';
 
@@ -28,6 +29,13 @@ export class PublicHomeApi {
   listInstructors(take = 48) {
     return this.http.get<PublicInstructorCardDto[]>(
       `${this.base}/api/public/instructors`,
+      { params: { take } }
+    );
+  }
+
+  listTestimonials(take = 6) {
+    return this.http.get<PublicTestimonialsDto>(
+      `${this.base}/api/public/testimonials`,
       { params: { take } }
     );
   }
