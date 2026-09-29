@@ -4,226 +4,347 @@ import { RouterLink } from '@angular/router';
 import { resolveMediaUrl } from '../../core/media/resolve-media-url';
 import { BRAND } from '../../core/brand';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
-import { UiErrorComponent } from '../../shared/ui/ui-error.component';
 import { UiIconComponent } from '../../shared/ui/ui-icon.component';
 import { UiLoadingComponent } from '../../shared/ui/ui-loading.component';
 import { PublicHomeApi } from './public-home.api';
-import { PublicHomeDto, ResolvedStatDto } from './public.models';
+import { PublicHomeDto, PublicTestimonialsDto, ResolvedStatDto } from './public.models';
 import { formatStatDisplay } from './public-stat.util';
 
 @Component({
   selector: 'app-landing-page',
   standalone: true,
-  imports: [
-    RouterLink,
-    UiButtonComponent,
-    UiErrorComponent,
-    UiIconComponent,
-    UiLoadingComponent
-  ],
+  imports: [RouterLink, UiButtonComponent, UiIconComponent, UiLoadingComponent],
   template: `
     @if (loading()) {
       <div class="pad">
         <ui-loading label="Cargando página de inicio..." />
       </div>
-    } @else if (error()) {
-      <div class="pad">
-        <ui-error [message]="error()" />
-      </div>
     } @else {
       @if (home(); as h) {
-      @if (h.hero.visible) {
-        <section class="hero">
-          <div class="hero-bg" aria-hidden="true"></div>
-          <div class="hero-inner">
-            <div class="hero-copy">
-              @if (h.hero.badge) {
-                <p class="badge">{{ h.hero.badge }}</p>
-              }
-              <h1>
-                {{ h.hero.title }}
-                @if (h.hero.titleHighlight) {
-                  <span class="hl"> {{ h.hero.titleHighlight }}</span>
+        @if (h.hero.visible) {
+          <section class="hero">
+            <div class="hero-bg" aria-hidden="true">
+              <span class="glow g1"></span>
+              <span class="glow g2"></span>
+              <span class="grid-lines"></span>
+            </div>
+            <div class="hero-inner">
+              <div class="hero-copy">
+                @if (h.hero.badge) {
+                  <p class="badge"><span class="dot" aria-hidden="true"></span>{{ h.hero.badge }}</p>
                 }
-              </h1>
-              <p class="lead">{{ h.hero.description }}</p>
-              <div class="cta-row">
-                <ui-button [routerLink]="h.hero.ctaPrimaryPath || '/register'" type="button">
+                <h1>
+                  {{ h.hero.title }}
+                  @if (h.hero.titleHighlight) {
+                    <span class="hl">{{ h.hero.titleHighlight }}</span>
+                  }
+                </h1>
+                <p class="lead">{{ h.hero.description }}</p>
+                <div class="cta-row">
+                  <ui-button [routerLink]="h.hero.ctaPrimaryPath || '/register'">
                     {{ h.hero.ctaPrimaryLabel || 'Comenzar ahora' }}
                   </ui-button>
-                @if (h.hero.videoUrl) {
-                  <a
-                    class="video-btn"
-                    [href]="h.hero.videoUrl"
-                    target="_blank"
-                    rel="noopener noreferrer">
-                    <ui-button type="button" variant="secondary">
-                      <ui-icon name="play" />
+                  @if (h.hero.videoUrl) {
+                    <a class="ghost-btn" [href]="h.hero.videoUrl" target="_blank" rel="noopener noreferrer">
+                      <ui-icon name="play" size="sm" />
                       {{ h.hero.ctaSecondaryLabel || 'Ver video' }}
-                    </ui-button>
-                  </a>
+                    </a>
+                  } @else {
+                    <a class="ghost-btn" routerLink="/escuelas">
+                      <ui-icon name="building" size="sm" />
+                      {{ h.hero.ctaSecondaryLabel || 'Ver escuelas' }}
+                    </a>
+                  }
+                </div>
+
+                <div class="trust">
+                  @if (reviews(); as r) {
+                    @if (r.count > 0) {
+                      <span class="avatars" aria-hidden="true">
+                        @for (t of r.items.slice(0, 4); track t.id) {
+                          <span class="av">{{ initials(t.displayName) }}</span>
+                        }
+                      </span>
+                      <span class="trust-text">
+                        <span class="stars" [attr.aria-label]="r.average + ' de 5 estrellas'">{{ starString(r.average) }}</span>
+                        <strong>{{ r.average }}/5</strong> · {{ r.count }} {{ r.count === 1 ? 'valoración' : 'valoraciones' }} de estudiantes
+                      </span>
+                    } @else {
+                      <span class="trust-text">✔ Preguntas tipo examen oficial · ✔ Normas actualizadas · ✔ Gratis para empezar</span>
+                    }
+                  } @else {
+                    <span class="trust-text">✔ Preguntas tipo examen oficial · ✔ Normas actualizadas · ✔ Gratis para empezar</span>
+                  }
+                </div>
+              </div>
+
+              @if (h.hero.imageEnabled && heroImageUrl(h)) {
+                <div class="hero-media">
+                  <img [src]="heroImageUrl(h)" [alt]="h.hero.imageAlt || brand.name" loading="eager" />
+                </div>
+              } @else {
+                <div class="device-wrap" aria-hidden="true">
+                  <div class="float-chip chip-streak">🔥 7 días de racha</div>
+                  <div class="float-chip chip-badge">🏅 ¡Nueva insignia!</div>
+                  <div class="device">
+                    <div class="device-notch"></div>
+                    <div class="device-screen">
+                      <div class="mock-top">
+                        <span>Simulacro CALE</span>
+                        <span class="mock-timer">⏱ 24:10</span>
+                      </div>
+                      <div class="mock-progress"><span></span></div>
+                      <p class="mock-q-num">Pregunta 12 de 25</p>
+                      <div class="mock-sign">
+                        <svg viewBox="0 0 100 100" width="64" height="64">
+                          <polygon points="30,4 70,4 96,30 96,70 70,96 30,96 4,70 4,30" fill="#c0352b" stroke="#fff" stroke-width="4" />
+                          <text x="50" y="59" text-anchor="middle" font-size="24" font-weight="800" fill="#fff" font-family="system-ui">PARE</text>
+                        </svg>
+                      </div>
+                      <p class="mock-q">¿Qué debe hacer el conductor ante esta señal?</p>
+                      <div class="mock-opt">A. Reducir la velocidad</div>
+                      <div class="mock-opt ok">B. Detenerse por completo ✓</div>
+                      <div class="mock-opt">C. Tocar el pito y seguir</div>
+                      <div class="mock-ready">
+                        <span>¿Listo para el examen?</span>
+                        <strong>86%</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </section>
+        }
+
+        @if (visibleStats(h).length) {
+          <section class="stats-strip">
+            <div class="wrap stats-grid">
+              @for (st of visibleStats(h); track st.key) {
+                <div class="stat">
+                  <span class="stat-icon" aria-hidden="true"><ui-icon [name]="st.icon || 'users'" /></span>
+                  <span>
+                    <strong class="stat-value">{{ formatStat(st) }}</strong>
+                    <span class="stat-label">{{ st.label }}</span>
+                  </span>
+                </div>
+              }
+            </div>
+          </section>
+        }
+
+        <section class="section">
+          <div class="wrap">
+            <header class="sec-head center">
+              <p class="eyebrow">Para cada etapa</p>
+              <h2>Una plataforma, dos formas de usarla</h2>
+              <p>Los estudiantes se preparan mejor y las escuelas ven el avance de cada aprendiz en tiempo real.</p>
+            </header>
+            <div class="audience">
+              <article class="aud-card student">
+                <span class="aud-tag">Estudiantes</span>
+                <h3>Llega al examen seguro de aprobar</h3>
+                <ul>
+                  @for (f of studentFeatures; track f) {
+                    <li><span class="check" aria-hidden="true">✓</span>{{ f }}</li>
+                  }
+                </ul>
+                <ui-button routerLink="/register">Crear mi cuenta gratis</ui-button>
+              </article>
+              <article class="aud-card school">
+                <span class="aud-tag">Escuelas (CEA)</span>
+                <h3>Gestiona tu escuela sin papeles</h3>
+                <ul>
+                  @for (f of schoolFeatures; track f) {
+                    <li><span class="check" aria-hidden="true">✓</span>{{ f }}</li>
+                  }
+                </ul>
+                <ui-button routerLink="/contacto" variant="secondary">Quiero Mi CALE para mi escuela</ui-button>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        @if (h.benefits.length) {
+          <section class="section alt">
+            <div class="wrap">
+              <header class="sec-head center">
+                <p class="eyebrow">Beneficios</p>
+                <h2>Por qué formarte con {{ brand.name }}</h2>
+                <p>Todo lo que necesitas para avanzar en tu licencia, en un solo lugar.</p>
+              </header>
+              <div class="bento">
+                @for (b of h.benefits; track b.id; let i = $index) {
+                  <article class="bento-card" [class.wide]="i === 0" [attr.data-tone]="b.tone || 'blue'">
+                    <span class="tone-icon" aria-hidden="true"><ui-icon [name]="b.icon || 'book'" /></span>
+                    <h3>{{ b.title }}</h3>
+                    <p>{{ b.description }}</p>
+                  </article>
                 }
               </div>
             </div>
-            @if (h.hero.imageEnabled && heroImageUrl(h)) {
-              <div class="hero-media">
-                <img
-                  [src]="heroImageUrl(h)"
-                  [alt]="h.hero.imageAlt || brand.name"
-                  loading="eager" />
-              </div>
-            } @else {
-              <aside class="hero-panel" [attr.aria-label]="'Qué encuentras en ' + brand.name">
-                <p class="hero-panel-title">Todo tu CALE en un solo lugar</p>
-                <ul class="hero-panel-list">
-                  @for (f of heroFeatures; track f.title) {
-                    <li>
-                      <span class="hero-panel-icon" aria-hidden="true">
-                        <ui-icon [name]="f.icon" />
-                      </span>
-                      <span>
-                        <strong>{{ f.title }}</strong>
-                        <small>{{ f.text }}</small>
-                      </span>
-                    </li>
-                  }
-                </ul>
-              </aside>
-            }
-          </div>
-        </section>
-      }
+          </section>
+        }
 
-      @if (h.benefits.length) {
-        <section class="section">
-          <div class="wrap">
-            <header class="sec-head">
-              <h2>Beneficios de formarte con {{ brand.name }}</h2>
-              <p>Todo lo que necesitas para avanzar en tu licencia, en un solo lugar.</p>
-            </header>
-            <div class="benefits">
-              @for (b of h.benefits; track b.id) {
-                <article class="benefit" [attr.data-tone]="b.tone || 'blue'">
-                  <div class="tone-icon" aria-hidden="true">
-                    <ui-icon [name]="b.icon || 'book'" />
-                  </div>
-                  <h3>{{ b.title }}</h3>
-                  <p>{{ b.description }}</p>
+        <section class="section games">
+          <div class="wrap games-inner">
+            <div class="games-copy">
+              <p class="eyebrow">Nuevo</p>
+              <h2>Practica jugando, no memorizando</h2>
+              <p>Pequeños retos diarios que se sienten como un juego y te dejan listo para el examen teórico.</p>
+              <ui-button routerLink="/register">Empezar a jugar</ui-button>
+            </div>
+            <div class="games-grid">
+              @for (g of games; track g.title) {
+                <article class="game">
+                  <span class="game-emoji" aria-hidden="true">{{ g.emoji }}</span>
+                  <h3>{{ g.title }}</h3>
+                  <p>{{ g.text }}</p>
                 </article>
               }
             </div>
           </div>
         </section>
-      }
 
-      @if (h.stepsVisible && h.steps.length) {
-        <section class="section alt">
-          <div class="wrap">
-            <header class="sec-head">
-              <h2>{{ h.stepsTitle }}</h2>
-              <p>{{ h.stepsSubtitle }}</p>
-            </header>
-            <ol class="steps">
-              @for (s of h.steps; track s.id) {
-                <li class="step" [attr.data-tone]="s.tone || 'blue'">
-                  <span class="step-num">{{ s.number || $index + 1 }}</span>
-                  <div class="step-icon" aria-hidden="true">
-                    <ui-icon [name]="s.icon || 'users'" />
+        @if (h.stepsVisible && h.steps.length) {
+          <section class="section">
+            <div class="wrap">
+              <header class="sec-head center">
+                <p class="eyebrow">Paso a paso</p>
+                <h2>{{ h.stepsTitle }}</h2>
+                <p>{{ h.stepsSubtitle }}</p>
+              </header>
+              <ol class="timeline">
+                @for (s of h.steps; track s.id) {
+                  <li class="t-step" [attr.data-tone]="s.tone || 'blue'">
+                    <span class="t-num">{{ s.number || $index + 1 }}</span>
+                    <h3>{{ s.title }}</h3>
+                    <p>{{ s.description }}</p>
+                  </li>
+                }
+              </ol>
+            </div>
+          </section>
+        }
+
+        @if (reviews(); as r) {
+          @if (r.items.length) {
+            <section class="section alt">
+              <div class="wrap">
+                <header class="sec-head row">
+                  <div>
+                    <p class="eyebrow">Valoraciones</p>
+                    <h2>Lo que dicen nuestros estudiantes</h2>
+                    <p>Opiniones reales dejadas al terminar un simulacro en {{ brand.name }}.</p>
                   </div>
-                  <h3>{{ s.title }}</h3>
-                  <p>{{ s.description }}</p>
-                </li>
-              }
-            </ol>
-          </div>
-        </section>
-      }
-
-      @if (visibleStats(h).length) {
-        <section class="stats-bar">
-          <div class="wrap stats-grid">
-            @for (st of visibleStats(h); track st.key) {
-              <div class="stat">
-                <div class="stat-icon" aria-hidden="true">
-                  <ui-icon [name]="st.icon || 'users'" />
+                  <div class="rating-box">
+                    <strong>{{ r.average }}</strong>
+                    <span class="stars big">{{ starString(r.average) }}</span>
+                    <small>{{ r.count }} {{ r.count === 1 ? 'valoración' : 'valoraciones' }}</small>
+                  </div>
+                </header>
+                <div class="reviews">
+                  @for (t of r.items; track t.id) {
+                    <figure class="review">
+                      <span class="stars">{{ starString(t.stars) }}</span>
+                      <blockquote>“{{ t.comment }}”</blockquote>
+                      <figcaption>
+                        <span class="av solid">{{ initials(t.displayName) }}</span>
+                        <span>
+                          <strong>{{ t.displayName }}</strong>
+                          <small>{{ t.schoolName || 'Estudiante de ' + brand.name }}</small>
+                        </span>
+                      </figcaption>
+                    </figure>
+                  }
                 </div>
-                <p class="stat-value">{{ formatStat(st) }}</p>
-                <p class="stat-label">{{ st.label }}</p>
               </div>
-            }
-          </div>
-        </section>
-      }
+            </section>
+          }
+        }
 
-      @if (h.schoolsVisible) {
-        <section class="section">
-          <div class="wrap">
-            <header class="sec-head row">
-              <div>
-                <h2>Escuelas aliadas</h2>
-                <p>Centros de enseñanza automovilística que ya forman a sus estudiantes con {{ brand.name }}.</p>
-              </div>
-              <ui-button routerLink="/escuelas" type="button" variant="secondary">Ver todas</ui-button>
-            </header>
-            @if (h.schools.length) {
-              <div class="cards">
+        @if (h.schoolsVisible && h.schools.length) {
+          <section class="section">
+            <div class="wrap">
+              <header class="sec-head row">
+                <div>
+                  <p class="eyebrow">Red de escuelas</p>
+                  <h2>Escuelas aliadas</h2>
+                  <p>Centros de enseñanza automovilística que ya forman a sus estudiantes con {{ brand.name }}.</p>
+                </div>
+                <ui-button routerLink="/escuelas" variant="secondary">Ver todas</ui-button>
+              </header>
+              <div class="people">
                 @for (school of h.schools; track school.id) {
-                  <article class="card">
-                    <h3>{{ school.name }}</h3>
-                    <p class="muted">
-                      {{ school.city }}{{ school.department ? ', ' + school.department : '' }}
-                    </p>
+                  <article class="person">
+                    <span class="av square">{{ initials(school.name) }}</span>
+                    <span>
+                      <strong>{{ school.name }}</strong>
+                      <small>{{ school.city }}{{ school.department ? ', ' + school.department : '' }}</small>
+                    </span>
                   </article>
                 }
               </div>
-            } @else {
-              <p class="empty">Pronto verás escuelas publicadas aquí.</p>
-            }
-          </div>
-        </section>
-      }
+            </div>
+          </section>
+        }
 
-      @if (h.instructorsVisible) {
-        <section class="section alt">
-          <div class="wrap">
-            <header class="sec-head row">
-              <div>
-                <h2>Instructores</h2>
-                <p>Instructores y formadores que acompañan tu proceso teórico y práctico.</p>
-              </div>
-              <ui-button routerLink="/instructores" type="button" variant="secondary">Ver todos</ui-button>
-            </header>
-            @if (h.instructors.length) {
-              <div class="cards">
+        @if (h.instructorsVisible && h.instructors.length) {
+          <section class="section alt">
+            <div class="wrap">
+              <header class="sec-head row">
+                <div>
+                  <p class="eyebrow">Equipo</p>
+                  <h2>Instructores</h2>
+                  <p>Formadores que acompañan tu proceso teórico y práctico.</p>
+                </div>
+                <ui-button routerLink="/instructores" variant="secondary">Ver todos</ui-button>
+              </header>
+              <div class="people">
                 @for (ins of h.instructors; track ins.id) {
-                  <article class="card">
-                    <div class="avatar" aria-hidden="true">
-                      <ui-icon name="instructor" />
-                    </div>
-                    <h3>{{ ins.displayName }}</h3>
-                    <p class="muted">{{ ins.schoolName || ('Instructor ' + brand.name) }}</p>
+                  <article class="person">
+                    <span class="av solid">{{ initials(ins.displayName) }}</span>
+                    <span>
+                      <strong>{{ ins.displayName }}</strong>
+                      <small>{{ ins.schoolName || 'Instructor ' + brand.name }}</small>
+                    </span>
                   </article>
                 }
               </div>
-            } @else {
-              <p class="empty">Pronto verás instructores publicados aquí.</p>
-            }
+            </div>
+          </section>
+        }
+
+        <section class="section">
+          <div class="wrap faq-wrap">
+            <header class="sec-head">
+              <p class="eyebrow">Preguntas frecuentes</p>
+              <h2>¿Tienes dudas?</h2>
+              <p>Si no encuentras tu respuesta, <a routerLink="/contacto">escríbenos</a>.</p>
+            </header>
+            <div class="faq">
+              @for (q of faqs; track q.q) {
+                <details>
+                  <summary>{{ q.q }}</summary>
+                  <p>{{ q.a }}</p>
+                </details>
+              }
+            </div>
           </div>
         </section>
-      }
 
-      <section class="cta-band">
-        <div class="wrap cta-band-inner">
-          <div>
-            <h2>Empieza tu formación hoy</h2>
-            <p>Crea tu cuenta y accede a simuladores, contenidos y escuelas aliadas.</p>
+        <section class="cta-band">
+          <div class="wrap cta-inner">
+            <div>
+              <h2>Empieza tu formación hoy</h2>
+              <p>Crea tu cuenta en menos de un minuto y haz tu primer simulacro.</p>
+            </div>
+            <div class="cta-row">
+              <ui-button routerLink="/register">Registrarme gratis</ui-button>
+              <a class="ghost-btn" routerLink="/contacto">Hablar con ventas</a>
+            </div>
           </div>
-          <div class="cta-row">
-            <ui-button routerLink="/register" type="button">Registrarme</ui-button>
-            <ui-button routerLink="/contacto" type="button" variant="secondary">Contacto</ui-button>
-          </div>
-        </div>
-      </section>
+        </section>
       }
     }
   `,
@@ -236,14 +357,53 @@ export class LandingPage implements OnInit {
   private readonly meta = inject(Meta);
 
   readonly loading = signal(true);
-  readonly error = signal<string | null>(null);
   readonly home = signal<PublicHomeDto | null>(null);
+  readonly reviews = signal<PublicTestimonialsDto | null>(null);
 
-  readonly heroFeatures = [
-    { icon: 'exam', title: 'Simulacros tipo examen', text: 'Practica con preguntas reales del CALE.' },
-    { icon: 'book', title: 'Biblioteca jurídica', text: 'Normas de tránsito siempre a la mano.' },
-    { icon: 'play', title: 'Clases en vivo', text: 'Únete con un código o escaneando el QR.' },
-    { icon: 'chart', title: 'Tu progreso', text: 'Mira tus aciertos y lo que debes repasar.' }
+  readonly studentFeatures = [
+    'Simulacros con preguntas tipo examen oficial',
+    'Reto diario y repaso de las preguntas que fallas',
+    'Medidor que te dice si ya estás listo',
+    'Biblioteca jurídica con las normas de tránsito',
+    'Clases en vivo con tu instructor'
+  ];
+
+  readonly schoolFeatures = [
+    'Aprendices, pagos y saldos en un solo panel',
+    'Programación de teoría, práctica y exámenes',
+    'Resultados por estudiante y por tema',
+    'Alertas de estudiantes que dejaron de practicar',
+    'Aula en vivo y presentaciones para tus instructores'
+  ];
+
+  readonly games = [
+    { emoji: '🔥', title: 'Reto diario', text: '5 preguntas al día para mantener tu racha.' },
+    { emoji: '⚡', title: 'Señal relámpago', text: '¿Cuántas señales reconoces en 60 segundos?' },
+    { emoji: '⚔️', title: 'Duelo 1 vs 1', text: 'Reta a un compañero con un código.' },
+    { emoji: '🏅', title: 'Insignias y ranking', text: 'Sube de nivel y compite con tu escuela.' }
+  ];
+
+  readonly faqs = [
+    {
+      q: '¿Qué es el examen CALE?',
+      a: 'Es la evaluación teórica que debes aprobar para obtener tu licencia de conducción en Colombia. En Mi CALE practicas con preguntas del mismo estilo y ves en qué temas debes mejorar.'
+    },
+    {
+      q: '¿Cuánto cuesta para estudiantes?',
+      a: 'Puedes crear tu cuenta gratis. Si tu escuela tiene un plan activo con Mi CALE, tienes acceso completo a simulacros, clases y contenidos.'
+    },
+    {
+      q: '¿Cuántas preguntas puedo fallar en el examen?',
+      a: 'En los simulacros usamos la regla del examen: puedes tener como máximo 3 respuestas incorrectas para aprobar.'
+    },
+    {
+      q: 'Soy una escuela, ¿cómo empiezo?',
+      a: 'Regístrate como escuela o escríbenos desde Contacto. Te ayudamos a importar tus aprendices y a configurar tu plan.'
+    },
+    {
+      q: '¿Funciona en el celular?',
+      a: 'Sí. Mi CALE funciona en cualquier navegador y puedes instalarla en tu celular como una aplicación.'
+    }
   ];
 
   ngOnInit(): void {
@@ -254,13 +414,15 @@ export class LandingPage implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        // Keep the landing usable even if CMS/API is down.
         const fallback = this.buildLocalFallback();
         this.home.set(fallback);
         this.applySeo(fallback);
-        this.error.set(null);
         this.loading.set(false);
       }
+    });
+    this.api.listTestimonials(6).subscribe({
+      next: (r) => this.reviews.set(r),
+      error: () => this.reviews.set(null)
     });
   }
 
@@ -269,13 +431,21 @@ export class LandingPage implements OnInit {
   }
 
   visibleStats(h: PublicHomeDto): ResolvedStatDto[] {
-    return [...h.stats]
-      .filter((s) => s.visible)
-      .sort((a, b) => a.sortOrder - b.sortOrder);
+    return [...h.stats].filter((s) => s.visible).sort((a, b) => a.sortOrder - b.sortOrder);
   }
 
   formatStat(stat: ResolvedStatDto): string {
     return formatStatDisplay(stat);
+  }
+
+  initials(name: string): string {
+    const parts = name.replace(/[^\p{L}\s]/gu, ' ').trim().split(/\s+/).filter(Boolean);
+    return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || 'MC';
+  }
+
+  starString(value: number): string {
+    const full = Math.round(value);
+    return '★'.repeat(full) + '☆'.repeat(Math.max(0, 5 - full));
   }
 
   private applySeo(data: PublicHomeDto): void {
@@ -289,12 +459,12 @@ export class LandingPage implements OnInit {
     return {
       hero: {
         visible: true,
-        badge: 'PLATAFORMA #1 EN FORMACIÓN VIAL',
-        title: 'Aprende a conducir de',
-        titleHighlight: 'manera segura y responsable',
+        badge: 'Plataforma de formación vial',
+        title: 'Aprueba tu examen CALE',
+        titleHighlight: 'a la primera',
         description:
-          'Mi CALE te acompaña en tu CEA: estudia, practica y aprueba con las mejores escuelas e instructores.',
-        ctaPrimaryLabel: 'Comenzar ahora',
+          'Simulacros tipo examen, retos diarios y el acompañamiento de tu escuela de conducción, todo en un solo lugar.',
+        ctaPrimaryLabel: 'Comenzar gratis',
         ctaPrimaryPath: '/register',
         ctaSecondaryLabel: 'Ver escuelas',
         videoUrl: null,

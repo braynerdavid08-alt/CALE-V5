@@ -56,6 +56,12 @@ public sealed class PublicHomeController : ControllerBase
         [FromQuery] int take = 24,
         CancellationToken ct = default) =>
         _home.ListPublicInstructorsAsync(take, ct);
+
+    [HttpGet("testimonials")]
+    public Task<PublicTestimonialsDto> Testimonials(
+        [FromQuery] int take = 6,
+        CancellationToken ct = default) =>
+        _home.ListPublicTestimonialsAsync(take, ct);
 }
 
 [ApiController]

@@ -295,6 +295,63 @@ public sealed class HomepageService
             "/instructores")).ToList();
     }
 
+    /// <summary>Best visible simulator reviews for the public landing (first name + initial only).</summary>
+    public async Task<PublicTestimonialsDto> ListPublicTestimonialsAsync(int take, CancellationToken ct)
+    {
+        const string cacheKey = "cale.public.testimonials.v1";
+        if (_cache.TryGetValue(cacheKey, out PublicTestimonialsDto? cached) && cached is not null)
+        {
+            return cached;
+        }
+
+        try
+        {
+            var visible = _db.Set<AttemptRating>().AsNoTracking().Where(r => !r.Hidden);
+            var count = await visible.CountAsync(ct);
+            var average = count == 0 ? 0 : await visible.AverageAsync(r => (double)r.Stars, ct);
+
+            var rows = await visible
+                .Where(r => r.Stars >= 4 && r.Comment != null && r.Comment.Length >= 12)
+                .OrderByDescending(r => r.Stars)
+                .ThenByDescending(r => r.CreatedAt)
+                .Take(Math.Clamp(take, 1, 12))
+                .ToListAsync(ct);
+
+            var userIds = rows.Select(r => r.UserId).Distinct().ToList();
+            var users = await _db.Set<User>().AsNoTracking()
+                .Where(u => userIds.Contains(u.Id))
+                .Select(u => new { u.Id, u.Name, u.SchoolId })
+                .ToListAsync(ct);
+            var schoolIds = users.Where(u => u.SchoolId != null).Select(u => u.SchoolId!.Value).Distinct().ToList();
+            var schools = await _db.Set<SchoolProfile>().AsNoTracking()
+                .Where(p => schoolIds.Contains(p.UserId))
+                .Select(p => new { p.UserId, p.LegalName })
+                .ToListAsync(ct);
+
+            var items = rows.Select(r =>
+            {
+                var user = users.FirstOrDefault(u => u.Id == r.UserId);
+                var school = user?.SchoolId is { } sid ? schools.FirstOrDefault(s => s.UserId == sid)?.LegalName : null;
+                return new PublicTestimonialDto(
+                    r.Id,
+                    user is null ? "Estudiante" : PublicDisplayName(user.Name),
+                    school,
+                    r.Stars,
+                    r.Comment!.Length > 280 ? r.Comment[..277] + "…" : r.Comment,
+                    r.CreatedAt);
+            }).ToList();
+
+            var dto = new PublicTestimonialsDto(Math.Round(average, 1), count, items);
+            _cache.Set(cacheKey, dto, TimeSpan.FromMinutes(5));
+            return dto;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Public testimonials could not be loaded.");
+            return new PublicTestimonialsDto(0, 0, []);
+        }
+    }
+
     private async Task<IReadOnlyList<ResolvedStatDto>> ResolveStatsAsync(
         bool persistComputed,
         CancellationToken ct)
@@ -812,6 +869,19 @@ public sealed record PublicInstructorCardDto(
     string DisplayName,
     string? SchoolName,
     string DetailPath);
+
+public sealed record PublicTestimonialDto(
+    int Id,
+    string DisplayName,
+    string? SchoolName,
+    int Stars,
+    string Comment,
+    DateTime CreatedAt);
+
+public sealed record PublicTestimonialsDto(
+    double Average,
+    int Count,
+    IReadOnlyList<PublicTestimonialDto> Items);
 
 public sealed record ResolvedStatDto(
     string Key,
