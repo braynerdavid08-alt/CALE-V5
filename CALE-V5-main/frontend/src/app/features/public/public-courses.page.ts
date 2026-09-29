@@ -112,7 +112,7 @@ export class PublicCoursesPage implements OnInit {
     this.title.setTitle(brandPageTitle('Cursos'));
     this.meta.updateTag({
       name: 'description',
-      content: 'Accede al catálogo de formación vial CALE tras iniciar sesión.'
+      content: 'Accede al catálogo de formación vial de Mi CALE al iniciar sesión.'
     });
 
     this.api.getHome().subscribe({

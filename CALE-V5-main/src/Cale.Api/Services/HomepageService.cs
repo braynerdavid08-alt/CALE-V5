@@ -7,6 +7,7 @@ using Cale.Modules.Engagement.Domain;
 using Cale.Modules.Identity.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 
 namespace Cale.Api.Services;
 
@@ -23,12 +24,18 @@ public sealed class HomepageService
     private readonly CaleDbContext _db;
     private readonly IClock _clock;
     private readonly IMemoryCache _cache;
+    private readonly ILogger<HomepageService> _logger;
 
-    public HomepageService(CaleDbContext db, IClock clock, IMemoryCache cache)
+    public HomepageService(
+        CaleDbContext db,
+        IClock clock,
+        IMemoryCache cache,
+        ILogger<HomepageService> logger)
     {
         _db = db;
         _clock = clock;
         _cache = cache;
+        _logger = logger;
     }
 
     public void InvalidatePublicCache() => _cache.Remove(PublicCacheKey);
@@ -48,8 +55,9 @@ public sealed class HomepageService
             {
                 stats = await ResolveStatsAsync(persistComputed: true, ct);
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Homepage stats could not be resolved.");
                 stats = Array.Empty<ResolvedStatDto>();
             }
 
@@ -67,17 +75,19 @@ public sealed class HomepageService
                     instructors = await ListPublicInstructorsAsync(8, ct);
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 // Keep CMS content even if school/instructor cards fail.
+                _logger.LogWarning(ex, "Homepage school/instructor cards could not be loaded.");
             }
 
             var dto = MapPublic(settings, stats, schools, instructors);
             _cache.Set(PublicCacheKey, dto, CacheTtl);
             return dto;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Homepage CMS unavailable; serving emergency landing.");
             // Never touch the DbContext again here — it may be poisoned after a failed SQL.
             var fallback = EmergencyHome();
             _cache.Set(PublicCacheKey, fallback, TimeSpan.FromSeconds(20));
@@ -105,11 +115,11 @@ public sealed class HomepageService
                 null,
                 "Mi CALE — formación vial",
                 false),
-            Array.Empty<HomepageBenefitItem>(),
-            false,
+            DefaultBenefits(),
+            true,
             "¿Cómo funciona Mi CALE?",
             "Cuatro pasos claros para completar tu formación vial.",
-            Array.Empty<HomepageStepItem>(),
+            DefaultSteps(),
             Array.Empty<ResolvedStatDto>(),
             false,
             Array.Empty<PublicSchoolCardDto>(),
@@ -119,7 +129,7 @@ public sealed class HomepageService
             "Mi CALE: tu CALE, en tu CEA. Formación vial con tu centro de enseñanza automovilística.",
             "<p><strong>Mi CALE</strong> — tu CALE, en tu CEA.</p>",
             "Pronto publicaremos artículos sobre formación vial.",
-            "contacto@cale.local",
+            "",
             "",
             DateTime.UtcNow);
 
@@ -452,9 +462,17 @@ public sealed class HomepageService
         }
     }
 
-    private HomepageSettings CreateDefaultSettings()
-    {
-        var benefits = new List<HomepageBenefitItem>
+    private HomepageSettings CreateDefaultSettings() =>
+        new()
+        {
+            Id = 1,
+            BenefitsJson = JsonSerializer.Serialize(DefaultBenefits(), JsonOpts),
+            StepsJson = JsonSerializer.Serialize(DefaultSteps(), JsonOpts),
+            UpdatedAt = _clock.UtcNow
+        };
+
+    private static List<HomepageBenefitItem> DefaultBenefits() =>
+        new()
         {
             new()
             {
@@ -490,7 +508,8 @@ public sealed class HomepageService
             }
         };
 
-        var steps = new List<HomepageStepItem>
+    private static List<HomepageStepItem> DefaultSteps() =>
+        new()
         {
             new()
             {
@@ -529,15 +548,6 @@ public sealed class HomepageService
                 SortOrder = 4
             }
         };
-
-        return new HomepageSettings
-        {
-            Id = 1,
-            BenefitsJson = JsonSerializer.Serialize(benefits, JsonOpts),
-            StepsJson = JsonSerializer.Serialize(steps, JsonOpts),
-            UpdatedAt = _clock.UtcNow
-        };
-    }
 
     private static List<HomepageStatSetting> DefaultStats() =>
     [
