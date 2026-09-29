@@ -137,7 +137,17 @@ const messages: Record<string, string> = {
   balance_due_pending: 'Hay saldo pendiente. Registra el pago en Aprendices antes de continuar.',
   practical_not_authorized: 'El estudiante no está autorizado para clases de manejo.',
   exam_slot_conflict: 'El estudiante ya tiene cita de examen en ese horario.',
-  practical_not_eligible: 'Aún no cumples los requisitos para clases de manejo.'
+  practical_not_eligible: 'Aún no cumples los requisitos para clases de manejo.',
+  daily_not_found: 'El reto de hoy aún no está listo. Recarga la página.',
+  daily_question_invalid: 'Esa pregunta no es parte del reto de hoy.',
+  daily_already_answered: 'Ya respondiste esa pregunta del reto.',
+  mistake_not_found: 'Esa pregunta ya no está en tu lista de repaso.',
+  invalid_result: 'El resultado de la partida no es válido.',
+  duel_full: 'Ese duelo ya tiene dos jugadores.',
+  duel_not_playing: 'El duelo no está en curso.',
+  duel_question_invalid: 'Esa pregunta no es parte del duelo.',
+  duel_already_answered: 'Ya respondiste esa pregunta del duelo.',
+  duel_not_found: 'No encontramos ese duelo o ya expiró. Revisa el código.'
 };
 
 function withSupportCode(message: string, error: unknown): string {

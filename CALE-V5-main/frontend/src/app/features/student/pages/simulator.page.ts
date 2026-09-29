@@ -24,6 +24,8 @@ import {
   StartExamResponse,
   TakeQuestionDto
 } from '../api/exam.api';
+import { PlayFxService } from '../../play/play-fx.service';
+import { shareCard } from '../../play/share-card';
 
 /** Regla fija de CALE (ScoringRules.MaxIncorrectAnswers). */
 export const CALE_MAX_INCORRECT = 3;
@@ -114,6 +116,10 @@ export class SimulatorPage implements OnInit, OnDestroy {
   readonly answeredCount = signal(0);
   readonly resumed = signal(false);
   readonly finishing = signal(false);
+  readonly sharing = signal(false);
+  readonly shareMsg = signal<string | null>(null);
+  readonly isStudent = computed(() => this.sessionStore.user()?.role === 'Student');
+  private readonly fx = inject(PlayFxService);
 
   private timer: ReturnType<typeof setInterval> | null = null;
   private readonly answers: Record<number, number> = {};
@@ -355,8 +361,12 @@ export class SimulatorPage implements OnInit, OnDestroy {
         this.finishing.set(false);
         this.result.set(result);
         this.step.set('result');
-        // Immediately load per-question review so the student can study.
-        this.openReview(true);
+        this.openReview(false);
+        if (result.passed) {
+          this.fx.celebrate();
+        } else {
+          this.fx.play('start');
+        }
       },
       error: (err) => {
         this.finishing.set(false);
@@ -412,6 +422,30 @@ export class SimulatorPage implements OnInit, OnDestroy {
       },
       error: (err) => this.error.set(mapApiError(err))
     });
+  }
+
+  async shareResult(): Promise<void> {
+    const res = this.result();
+    if (!res) return;
+    this.sharing.set(true);
+    this.shareMsg.set(null);
+    try {
+      const outcome = await shareCard({
+        kicker: 'Simulacro CALE',
+        headline: `${res.percent}%`,
+        title: res.passed ? '¡Aprobé el simulacro!' : 'Sigo practicando para aprobar',
+        details: [`${res.correctCount} de ${res.totalQuestions} correctas · ${this.formatTime(res.timeSeconds)}`],
+        name: this.sessionStore.user()?.name,
+        tone: res.passed ? 'success' : 'primary'
+      });
+      if (outcome === 'downloaded') {
+        this.shareMsg.set('Imagen descargada. Ya puedes subirla a tus redes.');
+      }
+    } catch {
+      this.shareMsg.set('No se pudo generar la imagen en este navegador.');
+    } finally {
+      this.sharing.set(false);
+    }
   }
 
   rate(): void {

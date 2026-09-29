@@ -204,7 +204,7 @@
     <div class="result-shell" [class.passed]="res.passed" [class.failed]="!res.passed">
     <ui-card>
       <p class="eyebrow">Resultado · máximo {{ maxIncorrect }} incorrectas</p>
-      <h1>{{ res.passed ? 'Aprobado' : 'No aprobado' }}</h1>
+      <h1>{{ res.passed ? '¡Aprobado! 🎉' : 'No aprobado' }}</h1>
       <p class="muted">
         @if (res.passed) {
           Cumpliste el estándar CALE: máximo {{ maxIncorrect }} respuestas incorrectas.
@@ -220,6 +220,21 @@
           <ui-stat label="Mejor marca" [value]="res.bestPercent + '%'" tone="success" hint="Entre intentos finalizados" />
         }
       </div>
+
+      <div class="row share-row">
+        <ui-button type="button" variant="secondary" [loading]="sharing()" (click)="shareResult()">
+          Compartir resultado
+        </ui-button>
+        @if (isStudent() && res.correctCount < res.totalQuestions) {
+          <ui-button variant="secondary" routerLink="/student/play/mistakes">Repasar mis errores</ui-button>
+        }
+        @if (isStudent()) {
+          <ui-button variant="ghost" routerLink="/student/play/readiness">¿Estoy listo?</ui-button>
+        }
+      </div>
+      @if (shareMsg()) {
+        <p class="muted">{{ shareMsg() }}</p>
+      }
 
       @if (res.byTopic.length) {
         <h2>Por tema</h2>
@@ -284,7 +299,7 @@
         <ui-button type="button" variant="ghost" (click)="backToSetup()">Nueva práctica</ui-button>
         <ui-button variant="ghost" type="button" (click)="goHome()">Volver al panel</ui-button>
       </div>
-      <p class="muted tip">Al terminar te llevamos a la revisión pregunta por pregunta para que puedas repasar.</p>
+      <p class="muted tip">Toca «Ver buenas y malas» para revisar pregunta por pregunta. Las que fallaste también llegan a tu repaso de errores.</p>
     </ui-card>
     </div>
   }
