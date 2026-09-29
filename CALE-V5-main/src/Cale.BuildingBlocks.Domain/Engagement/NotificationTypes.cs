@@ -13,11 +13,13 @@ public static class NotificationTypes
     public const string System = "system";
     public const string Admin = "admin";
     public const string TheoryClass = "theory_class";
+    public const string Achievement = "achievement";
+    public const string Reminder = "reminder";
 
     public static string CategoryOf(string type) => type switch
     {
         Announcement or Material or Activity or Exam or ExamResult or Grade or Submission
-            or TheoryClass
+            or TheoryClass or Achievement or Reminder
             => NotificationCategories.Academic,
         Membership => NotificationCategories.Membership,
         Admin => NotificationCategories.Admin,

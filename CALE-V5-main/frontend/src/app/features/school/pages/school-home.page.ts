@@ -17,6 +17,7 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiDashBarsComponent, DashBarItem } from '../../../shared/ui/ui-dash-bars.component';
 import { UiDashKpiComponent } from '../../../shared/ui/ui-dash-kpi.component';
 import { UiDashNotifsComponent } from '../../../shared/ui/ui-dash-notifs.component';
+import { InactiveStudentsCardComponent } from '../../play/components/inactive-students-card.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import { UiOnboardingComponent } from '../../../shared/ui/ui-onboarding.component';
@@ -56,6 +57,7 @@ interface UserRow {
   standalone: true,
   imports: [
     DatePipe,
+    InactiveStudentsCardComponent,
     RouterLink,
     UiBadgeComponent,
     UiButtonComponent,

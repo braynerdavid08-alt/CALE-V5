@@ -562,3 +562,10 @@ ui-card.mixed-card {
     display: none;
   }
 }
+
+.share-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 1rem 0 0.5rem;
+}

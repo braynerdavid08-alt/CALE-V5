@@ -104,6 +104,7 @@ public static class WebApplicationExtensions
             // Always repair attempt columns needed for simulacros — independent of FeatureSchema.
             await AttemptSchemaGuard.EnsureAsync(db, bootLogger);
             await HomepageSchemaGuard.EnsureAsync(db, bootLogger);
+            await PlaySchemaGuard.EnsureAsync(db, bootLogger);
             await Cale.Modules.GameShow.Infrastructure.Persistence.GameShowPackSchemaGuard
                 .EnsureAsync(db, bootLogger);
 

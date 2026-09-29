@@ -1,8 +1,11 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { SessionStore } from '../../../core/auth/session.store';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiIconComponent } from '../../../shared/ui/ui-icon.component';
+import { Badge, PlayApi, PlaySummary } from '../../play/api/play.api';
+import { PlayBadgesToastComponent } from '../../play/components/play-badges-toast.component';
+import { PlayFxService } from '../../play/play-fx.service';
 
 interface LauncherTile {
   id: string;
@@ -16,12 +19,47 @@ interface LauncherTile {
 @Component({
   selector: 'app-student-home-page',
   standalone: true,
-  imports: [RouterLink, UiButtonComponent, UiIconComponent],
+  imports: [RouterLink, UiButtonComponent, UiIconComponent, PlayBadgesToastComponent],
   templateUrl: './student-home.page.html',
   styleUrl: './student-home.page.css'
 })
-export class StudentHomePage {
+export class StudentHomePage implements OnInit {
   readonly session = inject(SessionStore);
+  private readonly play = inject(PlayApi);
+  private readonly fx = inject(PlayFxService);
+
+  readonly summary = signal<PlaySummary | null>(null);
+  readonly newBadges = signal<Badge[]>([]);
+
+  readonly greetingName = computed(
+    () => this.summary()?.firstName || this.session.user()?.name?.split(' ')[0] || ''
+  );
+
+  readonly readinessTone = computed(() => {
+    const v = this.summary()?.readiness ?? 0;
+    return v >= 80 ? 'good' : v >= 60 ? 'mid' : 'low';
+  });
+
+  readonly games = [
+    { id: 'signs', label: 'Señal relámpago', hint: '¿Cuántas señales en 60 s?', path: '/student/play/signs', emoji: '⚡' },
+    { id: 'duel', label: 'Duelo 1 vs 1', hint: 'Reta a un compañero', path: '/student/play/duel', emoji: '⚔️' },
+    { id: 'ranking', label: 'Ranking semanal', hint: 'Compite con tu escuela', path: '/student/play/ranking', emoji: '🏁' },
+    { id: 'achievements', label: 'Mis logros', hint: 'Nivel e insignias', path: '/student/play/achievements', emoji: '🏅' }
+  ];
+
+  ngOnInit(): void {
+    this.play.summary().subscribe({
+      next: (s) => {
+        this.summary.set(s);
+        if (s.newBadges.length) {
+          this.newBadges.set(s.newBadges);
+          this.fx.play('badge');
+          this.fx.confetti(90);
+        }
+      },
+      error: () => this.summary.set(null)
+    });
+  }
 
   /** Large shortcuts — home is only a launcher for seniors. */
   readonly tiles: LauncherTile[] = [
@@ -32,6 +70,14 @@ export class StudentHomePage {
       path: '/live/join',
       icon: 'play',
       tone: 'blue'
+    },
+    {
+      id: 'simulator',
+      label: 'Simulacro',
+      hint: 'Practica el examen',
+      path: '/student/simulator',
+      icon: 'exam',
+      tone: 'green'
     },
     {
       id: 'classes',

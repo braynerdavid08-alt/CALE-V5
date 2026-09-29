@@ -365,6 +365,56 @@ export const routes: Routes = [
             .then((m) => m.CodigoTransitoPage)
       },
       {
+        path: 'student/play',
+        canActivate: [roleGuard],
+        data: { roles: ['Student'] },
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'daily' },
+          {
+            path: 'daily',
+            loadComponent: () =>
+              import('./features/play/pages/daily-challenge.page')
+                .then((m) => m.DailyChallengePage)
+          },
+          {
+            path: 'mistakes',
+            loadComponent: () =>
+              import('./features/play/pages/mistakes-review.page')
+                .then((m) => m.MistakesReviewPage)
+          },
+          {
+            path: 'readiness',
+            loadComponent: () =>
+              import('./features/play/pages/readiness.page')
+                .then((m) => m.ReadinessPage)
+          },
+          {
+            path: 'achievements',
+            loadComponent: () =>
+              import('./features/play/pages/achievements.page')
+                .then((m) => m.AchievementsPage)
+          },
+          {
+            path: 'signs',
+            loadComponent: () =>
+              import('./features/play/pages/signs-game.page')
+                .then((m) => m.SignsGamePage)
+          },
+          {
+            path: 'duel',
+            loadComponent: () =>
+              import('./features/play/pages/duel.page')
+                .then((m) => m.DuelPage)
+          },
+          {
+            path: 'ranking',
+            loadComponent: () =>
+              import('./features/play/pages/ranking.page')
+                .then((m) => m.RankingPage)
+          }
+        ]
+      },
+      {
         path: 'student',
         pathMatch: 'full',
         canActivate: [roleGuard],

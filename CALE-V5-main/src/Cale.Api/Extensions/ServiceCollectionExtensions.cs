@@ -118,6 +118,9 @@ public static class ServiceCollectionExtensions
         });
         services.AddScoped<Cale.Api.Services.PilotMetricsService>();
         services.AddScoped<Cale.Api.Services.HomepageService>();
+        services.AddSingleton<Cale.Api.Services.Play.PlayContent>();
+        services.AddSingleton<Cale.Api.Services.Play.DuelService>();
+        services.AddScoped<Cale.Api.Services.Play.PlayService>();
         services.AddScoped<Cale.Api.Services.AuthCookieService>();
         services.AddCaleAuth(config);
         services.AddCaleCors(config);

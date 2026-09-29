@@ -1,8 +1,41 @@
 <section class="launcher">
   <header class="launcher-hero">
-    <p class="kicker">Panel del estudiante</p>
-    <h1>Hola, {{ session.user()?.name }}</h1>
-    <p class="sub">Toca un botón grande para continuar.</p>
+    <div>
+      <p class="kicker">Panel del estudiante</p>
+      <h1>Hola, {{ greetingName() }}</h1>
+      <p class="sub">
+        @if (summary(); as s) {
+          @if (s.streak.activeToday) {
+            ¡Ya practicaste hoy! Sigue así.
+          } @else if (s.streak.current > 0) {
+            Practica hoy para no perder tu racha de {{ s.streak.current }} {{ s.streak.current === 1 ? 'día' : 'días' }}.
+          } @else {
+            Empieza hoy tu racha con el reto diario.
+          }
+        } @else {
+          Toca un botón grande para continuar.
+        }
+      </p>
+    </div>
+    @if (summary(); as s) {
+      <div class="hero-stats">
+        <a class="streak" routerLink="/student/play/daily" [class.on]="s.streak.activeToday">
+          <span class="flame" aria-hidden="true">🔥</span>
+          <span>
+            <strong>{{ s.streak.current }}</strong>
+            <small>{{ s.streak.current === 1 ? 'día de racha' : 'días de racha' }}</small>
+          </span>
+        </a>
+        <a class="level" routerLink="/student/play/achievements">
+          <span class="level-num">{{ s.level.level }}</span>
+          <span class="level-body">
+            <strong>{{ s.level.name }}</strong>
+            <span class="level-bar"><span [style.width.%]="s.level.progressPercent"></span></span>
+            <small>{{ s.level.xp }} XP · {{ s.earnedBadges }}/{{ s.totalBadges }} insignias</small>
+          </span>
+        </a>
+      </div>
+    }
   </header>
 
   @if (!session.user()?.schoolId) {
@@ -12,6 +45,62 @@
         <p>Para formación y manejo necesitas estar registrado en un CEA.</p>
       </div>
       <ui-button routerLink="/profile" type="button" variant="secondary">Ir a perfil</ui-button>
+    </section>
+  }
+
+  @if (summary(); as s) {
+    <section class="today" aria-label="Tu práctica de hoy">
+      <a class="today-card daily" routerLink="/student/play/daily" [class.done]="s.dailyCompleted">
+        <span class="today-kicker">Reto diario</span>
+        <strong>
+          @if (s.dailyCompleted) { ¡Completado! } @else if (s.dailyAnswered > 0) { Vas {{ s.dailyAnswered }} de {{ s.dailyTotal }} } @else { 5 preguntas te esperan }
+        </strong>
+        <span class="dots" aria-hidden="true">
+          @for (i of [0, 1, 2, 3, 4]; track i) {
+            <span [class.filled]="i < s.dailyAnswered"></span>
+          }
+        </span>
+        <span class="today-cta">{{ s.dailyCompleted ? 'Ver resultado' : 'Jugar ahora' }} →</span>
+      </a>
+
+      <a class="today-card mistakes" routerLink="/student/play/mistakes">
+        <span class="today-kicker">Repaso de mis errores</span>
+        <strong>
+          @if (s.mistakesDue > 0) { {{ s.mistakesDue }} {{ s.mistakesDue === 1 ? 'pregunta' : 'preguntas' }} para hoy }
+          @else if (s.mistakesPending > 0) { Al día · {{ s.mistakesPending }} en repaso }
+          @else { Sin errores pendientes }
+        </strong>
+        <span class="today-hint">Lo que fallas vuelve hasta que lo domines.</span>
+        <span class="today-cta">Repasar →</span>
+      </a>
+
+      <a class="today-card readiness" routerLink="/student/play/readiness" [attr.data-tone]="readinessTone()">
+        <span class="today-kicker">¿Estoy listo para el examen?</span>
+        <strong>{{ s.readiness }}% · {{ s.readinessLabel }}</strong>
+        <span class="ready-bar"><span [style.width.%]="s.readiness"></span></span>
+        <span class="today-hint">
+          @if (s.weakestTopic) { Refuerza: {{ s.weakestTopic }} } @else { Haz simulacros para medir tu nivel. }
+        </span>
+        <span class="today-cta">Ver detalle →</span>
+      </a>
+    </section>
+
+    <section class="games" aria-label="Juegos">
+      <h2>Juega y aprende</h2>
+      <div class="games-grid">
+        @for (g of games; track g.id) {
+          <a class="game" [routerLink]="g.path">
+            <span class="game-emoji" aria-hidden="true">{{ g.emoji }}</span>
+            <span>
+              <strong>{{ g.label }}</strong>
+              <small>
+                @if (g.id === 'ranking' && s.weeklyRank) { Vas #{{ s.weeklyRank }} · {{ s.weeklyXp }} XP }
+                @else { {{ g.hint }} }
+              </small>
+            </span>
+          </a>
+        }
+      </div>
     </section>
   }
 
@@ -35,4 +124,6 @@
     ¿Necesitas ayuda?
     <a routerLink="/contacto">Hablar con soporte</a>
   </p>
+
+  <play-badges-toast [badges]="newBadges()" (closed)="newBadges.set([])" />
 </section>

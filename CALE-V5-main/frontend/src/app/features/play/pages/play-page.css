@@ -1,0 +1,118 @@
+.play-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0.25rem 0 2rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.play-page.wide {
+  max-width: 1040px;
+}
+
+.play-card {
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: 0 8px 22px color-mix(in srgb, #0f172a 6%, transparent);
+}
+
+.play-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.play-progress .bar {
+  flex: 1;
+  height: 0.6rem;
+  border-radius: 999px;
+  background: var(--color-chip);
+  overflow: hidden;
+}
+
+.play-progress .bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-primary), #22c55e);
+  transition: width 0.3s ease;
+}
+
+.play-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+
+.play-actions.center {
+  justify-content: center;
+}
+
+.result-hero {
+  text-align: center;
+  display: grid;
+  gap: 0.5rem;
+  justify-items: center;
+}
+
+.result-hero .big {
+  margin: 0;
+  font-size: clamp(2.6rem, 8vw, 3.8rem);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-primary);
+}
+
+.result-hero h2 {
+  margin: 0;
+}
+
+.result-hero p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  max-width: 34rem;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  background: var(--color-chip);
+}
+
+.chip.good {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.chip.warn {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.muted {
+  color: var(--color-text-secondary);
+}
+
+.alert {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
