@@ -6,8 +6,10 @@ import {
   OnInit,
   ViewChild,
   computed,
+  effect,
   inject,
-  signal
+  signal,
+  untracked
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgStyle } from '@angular/common';
@@ -28,6 +30,7 @@ import {
   sanitizeLiveLobby
 } from '../api/live.api';
 import { computeSecondsLeft } from '../live-timer.util';
+import { PlayFxService } from '../../play/play-fx.service';
 import { readLiveParticipant, saveLiveParticipant } from './live-join.page';
 import {
   EditorSlide,
@@ -61,6 +64,8 @@ export class LivePlayPage implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly api = inject(LiveApi);
+  private readonly fx = inject(PlayFxService);
+  private soundedQuestionId: number | null = null;
   private hub: HubConnection | null = null;
   private timerId: ReturnType<typeof setInterval> | null = null;
   private timerQuestionId: number | null = null;
@@ -112,6 +117,15 @@ export class LivePlayPage implements OnInit, OnDestroy {
   readonly deckOffsetY = signal(0);
   readonly deckFullscreen = signal(false);
   readonly deckChromeVisible = signal(true);
+
+  private readonly revealSound = effect(() => {
+    const result = this.myRosterResult();
+    const questionId = this.lobby()?.currentQuestion?.sessionQuestionId ?? null;
+    if (questionId == null || questionId === this.soundedQuestionId) return;
+    if (result !== 'correct' && result !== 'incorrect') return;
+    this.soundedQuestionId = questionId;
+    untracked(() => this.fx.play(result === 'correct' ? 'correct' : 'wrong'));
+  });
 
   readonly currentPresentationSlide = computed(
     () => this.presentationSlides()[this.presentationSlide()] ?? null

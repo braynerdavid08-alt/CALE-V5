@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { playAnswerSound, preloadAnswerSounds } from '../../core/sound/answer-sounds';
 
 export type PlaySound = 'correct' | 'wrong' | 'win' | 'badge' | 'tick' | 'start' | 'notify';
 
@@ -16,11 +17,15 @@ interface Particle {
   color: string;
 }
 
-/** Confetti and Web Audio cues for the practice games (no asset files). */
+/** Confetti and sound cues for the practice games (answer sounds are audio files, the rest Web Audio). */
 @Injectable({ providedIn: 'root' })
 export class PlayFxService {
   readonly muted = signal(this.readMuted());
   private ctx: AudioContext | null = null;
+
+  constructor() {
+    preloadAnswerSounds();
+  }
 
   toggleMute(): void {
     const next = !this.muted();
@@ -34,6 +39,14 @@ export class PlayFxService {
 
   play(kind: PlaySound): void {
     if (this.muted() || typeof window === 'undefined') return;
+    if (kind === 'correct' || kind === 'wrong') {
+      playAnswerSound(kind, 0.9, () => this.synth(kind));
+      return;
+    }
+    this.synth(kind);
+  }
+
+  private synth(kind: PlaySound): void {
     try {
       const ctx = this.ensureCtx();
       if (ctx.state === 'suspended') void ctx.resume();
