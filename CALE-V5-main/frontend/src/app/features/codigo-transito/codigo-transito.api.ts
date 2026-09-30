@@ -25,10 +25,16 @@ export interface CodigoNote {
   text?: string | null;
 }
 
+export interface CodigoInline {
+  text?: string;
+  marks?: string[];
+}
+
 export interface CodigoBlock {
   type?: string;
   variant?: string;
-  content?: Array<{ text?: string } | string> | unknown;
+  content?: Array<CodigoInline | string> | string | unknown;
+  children?: CodigoBlock[];
   items?: unknown[];
 }
 
