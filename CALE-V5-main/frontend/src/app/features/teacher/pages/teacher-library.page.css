@@ -1,6 +1,12 @@
 .library {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.15rem;
+}
+
+.library > ui-error:not(:has(*)),
+.library > ui-success:not(:has(*)) {
+  display: none;
 }
 
 .follow-up {
@@ -125,7 +131,7 @@
   gap: 0.5rem;
 }
 @media (max-width: 720px) {
-  .import-grid { grid-template-columns: 1fr; }
+  .import-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 .create-panel {

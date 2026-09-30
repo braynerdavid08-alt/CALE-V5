@@ -217,11 +217,25 @@
     flex-direction: column;
   }
 
-  .create-grid {
-    grid-template-columns: 1fr;
+  .plist {
+    padding: 0.25rem 0 2rem;
   }
 
+  .create-panel,
+  .import-panel {
+    padding: 1rem;
+  }
+
+  .create-grid,
   .import-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .create-grid input,
+  .create-grid select,
+  .import-grid input,
+  .import-grid select {
+    width: 100%;
+    min-width: 0;
   }
 }

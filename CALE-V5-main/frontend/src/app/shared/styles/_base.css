@@ -49,6 +49,14 @@ a:hover { color: var(--color-primary-hover); }
 
 img { max-width: 100%; height: auto; }
 
+input, select, textarea { max-width: 100%; }
+
+input[type='file'] {
+  width: 100%;
+  min-width: 0;
+  contain: inline-size;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
