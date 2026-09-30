@@ -28,18 +28,27 @@ import { UiIconComponent } from './ui-icon.component';
     </article>
   `,
   styles: [`
+    :host { display: block; height: 100%; }
     .kpi {
-      min-height: 7.25rem;
-      background: var(--color-surface);
+      --tone: var(--color-primary);
+      height: 100%;
+      min-height: 6.5rem;
+      background:
+        linear-gradient(150deg, color-mix(in srgb, var(--tone) 10%, transparent), transparent 55%),
+        var(--color-surface);
       border: 1px solid var(--color-border);
-      border-radius: 16px;
-      padding: 1.15rem 1.2rem;
+      border-radius: 1.1rem;
+      padding: 1rem 1.1rem;
       box-shadow: var(--shadow-sm);
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 0.85rem;
     }
+    .kpi[data-tone='success'] { --tone: var(--color-success); }
+    .kpi[data-tone='warning'],
+    .kpi[data-tone='orange'] { --tone: var(--color-warning); }
+    .kpi[data-tone='info'] { --tone: var(--color-info); }
     .kpi-body {
       display: grid;
       gap: 0.28rem;
@@ -71,9 +80,9 @@ import { UiIconComponent } from './ui-icon.component';
     }
     .delta[data-dir='down'] { color: var(--color-danger); }
     .icon {
-      width: 3.1rem;
-      height: 3.1rem;
-      border-radius: 999px;
+      width: 2.85rem;
+      height: 2.85rem;
+      border-radius: 0.85rem;
       display: grid;
       place-items: center;
       flex-shrink: 0;

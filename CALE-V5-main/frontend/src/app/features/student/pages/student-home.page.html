@@ -1,8 +1,9 @@
 <section class="launcher">
-  <header class="launcher-hero">
-    <div>
+  <header class="hero">
+    <div class="hero-glow" aria-hidden="true"></div>
+    <div class="hero-copy">
       <p class="kicker">Panel del estudiante</p>
-      <h1>Hola, {{ greetingName() }}</h1>
+      <h1>Hola, {{ greetingName() }} 👋</h1>
       <p class="sub">
         @if (summary(); as s) {
           @if (s.streak.activeToday) {
@@ -13,45 +14,81 @@
             Empieza hoy tu racha con el reto diario.
           }
         } @else {
-          Toca un botón grande para continuar.
+          Elige por dónde quieres continuar.
         }
       </p>
-    </div>
-    @if (summary(); as s) {
-      <div class="hero-stats">
-        <a class="streak" routerLink="/student/play/daily" [class.on]="s.streak.activeToday">
-          <span class="flame" aria-hidden="true">🔥</span>
-          <span>
-            <strong>{{ s.streak.current }}</strong>
-            <small>{{ s.streak.current === 1 ? 'día de racha' : 'días de racha' }}</small>
-          </span>
+      <div class="hero-actions">
+        <a class="btn-primary" routerLink="/student/play/daily">
+          @if (summary()?.dailyCompleted) { Ver mi reto de hoy } @else { Jugar reto diario }
         </a>
-        <a class="level" routerLink="/student/play/achievements">
-          <span class="level-num">{{ s.level.level }}</span>
-          <span class="level-body">
-            <strong>{{ s.level.name }}</strong>
-            <span class="level-bar"><span [style.width.%]="s.level.progressPercent"></span></span>
-            <small>{{ s.level.xp }} XP · {{ s.earnedBadges }}/{{ s.totalBadges }} insignias</small>
-          </span>
+        <a class="btn-ghost" routerLink="/student/simulator">
+          <ui-icon name="exam" />
+          Hacer simulacro
         </a>
       </div>
-    }
+      @if (summary(); as s) {
+        <div class="hero-stats">
+          <a class="pill streak" routerLink="/student/play/daily" [class.on]="s.streak.activeToday">
+            <span class="flame" aria-hidden="true">🔥</span>
+            <strong>{{ s.streak.current }}</strong>
+            <small>{{ s.streak.current === 1 ? 'día de racha' : 'días de racha' }}</small>
+          </a>
+          <a class="pill level" routerLink="/student/play/achievements">
+            <span class="level-num">{{ s.level.level }}</span>
+            <span class="level-body">
+              <strong>{{ s.level.name }}</strong>
+              <span class="level-bar"><span [style.width.%]="s.level.progressPercent"></span></span>
+            </span>
+            <small>{{ s.level.xp }} XP</small>
+          </a>
+          <a class="pill" routerLink="/student/play/achievements">
+            <span aria-hidden="true">🏅</span>
+            <strong>{{ s.earnedBadges }}/{{ s.totalBadges }}</strong>
+            <small>insignias</small>
+          </a>
+        </div>
+      }
+    </div>
+
+    <a
+      class="ring-card"
+      routerLink="/student/play/readiness"
+      [attr.data-tone]="readinessTone()"
+      aria-label="Ver mi preparación para el examen">
+      <span class="ring" [style.--p]="summary()?.readiness ?? 0">
+        <span class="ring-inner">
+          <strong>{{ summary()?.readiness ?? 0 }}%</strong>
+          <small>preparado</small>
+        </span>
+      </span>
+      <span class="ring-label">
+        {{ summary()?.readinessLabel || 'Haz un simulacro para medir tu nivel' }}
+      </span>
+      @if (summary()?.weakestTopic; as topic) {
+        <span class="ring-hint">Refuerza: {{ topic }}</span>
+      }
+    </a>
   </header>
 
   @if (!session.user()?.schoolId) {
     <section class="school-banner" role="status">
+      <span class="banner-icon" aria-hidden="true"><ui-icon name="building" /></span>
       <div>
         <strong>Vincula tu escuela</strong>
-        <p>Para formación y manejo necesitas estar registrado en un CEA.</p>
+        <p>Para ver tus clases de teoría y manejo necesitas estar registrado en un CEA.</p>
       </div>
-      <ui-button routerLink="/profile" type="button" variant="secondary">Ir a perfil</ui-button>
+      <ui-button routerLink="/profile" type="button" variant="secondary">Vincular ahora</ui-button>
     </section>
   }
 
   @if (summary(); as s) {
+    <h2 class="section-title">Tu práctica de hoy</h2>
     <section class="today" aria-label="Tu práctica de hoy">
-      <a class="today-card daily" routerLink="/student/play/daily" [class.done]="s.dailyCompleted">
-        <span class="today-kicker">Reto diario</span>
+      <a class="today-card" data-tone="amber" routerLink="/student/play/daily" [class.done]="s.dailyCompleted">
+        <span class="today-head">
+          <span class="today-icon" aria-hidden="true">{{ s.dailyCompleted ? '✅' : '🎯' }}</span>
+          <span class="today-kicker">Reto diario</span>
+        </span>
         <strong>
           @if (s.dailyCompleted) { ¡Completado! } @else if (s.dailyAnswered > 0) { Vas {{ s.dailyAnswered }} de {{ s.dailyTotal }} } @else { 5 preguntas te esperan }
         </strong>
@@ -63,8 +100,11 @@
         <span class="today-cta">{{ s.dailyCompleted ? 'Ver resultado' : 'Jugar ahora' }} →</span>
       </a>
 
-      <a class="today-card mistakes" routerLink="/student/play/mistakes">
-        <span class="today-kicker">Repaso de mis errores</span>
+      <a class="today-card" data-tone="rose" routerLink="/student/play/mistakes">
+        <span class="today-head">
+          <span class="today-icon" aria-hidden="true">🔁</span>
+          <span class="today-kicker">Repaso de errores</span>
+        </span>
         <strong>
           @if (s.mistakesDue > 0) { {{ s.mistakesDue }} {{ s.mistakesDue === 1 ? 'pregunta' : 'preguntas' }} para hoy }
           @else if (s.mistakesPending > 0) { Al día · {{ s.mistakesPending }} en repaso }
@@ -74,29 +114,31 @@
         <span class="today-cta">Repasar →</span>
       </a>
 
-      <a class="today-card readiness" routerLink="/student/play/readiness" [attr.data-tone]="readinessTone()">
-        <span class="today-kicker">¿Estoy listo para el examen?</span>
-        <strong>{{ s.readiness }}% · {{ s.readinessLabel }}</strong>
-        <span class="ready-bar"><span [style.width.%]="s.readiness"></span></span>
-        <span class="today-hint">
-          @if (s.weakestTopic) { Refuerza: {{ s.weakestTopic }} } @else { Haz simulacros para medir tu nivel. }
+      <a class="today-card" data-tone="sky" routerLink="/student/play/ranking">
+        <span class="today-head">
+          <span class="today-icon" aria-hidden="true">🏁</span>
+          <span class="today-kicker">Ranking semanal</span>
         </span>
-        <span class="today-cta">Ver detalle →</span>
+        <strong>
+          @if (s.weeklyRank && s.weeklyXp > 0) { Vas en el puesto #{{ s.weeklyRank }} } @else { Aún sin puesto esta semana }
+        </strong>
+        <span class="today-hint">{{ s.weeklyXp }} XP ganados esta semana.</span>
+        <span class="today-cta">Ver ranking →</span>
       </a>
     </section>
 
     <section class="games" aria-label="Juegos">
-      <h2>Juega y aprende</h2>
+      <div class="games-head">
+        <h2 class="section-title">Juega y aprende</h2>
+        <span class="new-tag">Nuevo</span>
+      </div>
       <div class="games-grid">
         @for (g of games; track g.id) {
           <a class="game" [routerLink]="g.path">
             <span class="game-emoji" aria-hidden="true">{{ g.emoji }}</span>
             <span>
               <strong>{{ g.label }}</strong>
-              <small>
-                @if (g.id === 'ranking' && s.weeklyRank) { Vas #{{ s.weeklyRank }} · {{ s.weeklyXp }} XP }
-                @else { {{ g.hint }} }
-              </small>
+              <small>{{ g.hint }}</small>
             </span>
           </a>
         }
@@ -104,6 +146,7 @@
     </section>
   }
 
+  <h2 class="section-title">Todo lo que necesitas</h2>
   <nav class="tile-grid" aria-label="Menú principal del estudiante">
     @for (tile of displayTiles(); track tile.id) {
       <a
@@ -112,10 +155,13 @@
         [routerLink]="tile.path"
         [attr.aria-label]="tile.label + '. ' + tile.hint">
         <span class="tile-icon" aria-hidden="true">
-          <ui-icon [name]="tile.icon" size="xl" />
+          <ui-icon [name]="tile.icon" />
         </span>
-        <span class="tile-label">{{ tile.label }}</span>
-        <span class="tile-hint">{{ tile.hint }}</span>
+        <span class="tile-text">
+          <span class="tile-label">{{ tile.label }}</span>
+          <span class="tile-hint">{{ tile.hint }}</span>
+        </span>
+        <span class="tile-arrow" aria-hidden="true">→</span>
       </a>
     }
   </nav>

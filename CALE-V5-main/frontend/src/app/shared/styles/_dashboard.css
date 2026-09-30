@@ -7,12 +7,109 @@
   max-width: 1180px;
 }
 
+.dash > ui-error:not(:has(*)) {
+  display: none;
+}
+
 .dash-hero {
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 1rem 1.25rem;
+  padding: clamp(1.15rem, 2.6vw, 1.6rem) clamp(1.15rem, 2.8vw, 1.75rem);
+  border-radius: 1.35rem;
+  color: #fff;
+  background:
+    radial-gradient(110% 150% at 0% 0%, rgba(78, 182, 212, 0.34), transparent 55%),
+    radial-gradient(80% 120% at 100% 100%, rgba(34, 197, 94, 0.2), transparent 55%),
+    linear-gradient(135deg, #0b1f33, #081421);
+  box-shadow: 0 18px 40px rgba(8, 20, 33, 0.22);
+}
+
+.dash-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(90deg, #000 15%, transparent 85%);
+}
+
+.dash-hero > * {
+  position: relative;
+}
+
+.dash .dash-hero .dash-kicker {
+  color: #8fd4e8;
+}
+
+.dash .dash-hero h1 {
+  color: #fff;
+}
+
+.dash .dash-hero .dash-sub,
+.dash .dash-hero .meta {
+  color: rgba(226, 239, 247, 0.8);
+}
+
+.dash-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+.dash-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.dash-pill strong {
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.dash-pill[data-tone='warning'] {
+  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(245, 158, 11, 0.16);
+}
+
+.dash-pill[data-tone='success'] {
+  border-color: rgba(34, 197, 94, 0.45);
+  background: rgba(34, 197, 94, 0.14);
+}
+
+a.dash-pill:hover {
+  background: rgba(255, 255, 255, 0.13);
+}
+
+.dash-hero ui-button .btn.secondary,
+.dash-hero ui-button .btn.ghost {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: none;
+}
+
+.dash-hero ui-button .btn.secondary:hover,
+.dash-hero ui-button .btn.ghost:hover {
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .dash-hero-copy {
@@ -89,7 +186,7 @@
 .dash-panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: 1.1rem;
   box-shadow: var(--shadow-sm);
   padding: 1rem 1.1rem;
   display: grid;

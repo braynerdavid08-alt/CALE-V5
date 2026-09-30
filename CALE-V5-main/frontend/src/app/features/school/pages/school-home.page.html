@@ -4,14 +4,27 @@
       <p class="dash-kicker">Operaciones de la escuela</p>
       <h1>{{ profile()?.legalName || 'Tu escuela' }}</h1>
       <p class="dash-sub">Aprendices, formación y resultados en un solo lugar.</p>
+      @if (profile(); as p) {
+        <div class="dash-pills">
+          <a class="dash-pill" routerLink="/school/membership" [attr.data-tone]="p.isMembershipActive ? 'success' : 'warning'">
+            Plan <strong>{{ p.planLabel }}</strong> · {{ statusLabel(p.displayStatus || p.subscriptionStatus) }}
+          </a>
+          <span class="dash-pill" [attr.data-tone]="p.isMembershipActive ? null : 'warning'">
+            <strong>{{ p.daysRemaining }}</strong> {{ p.daysRemaining === 1 ? 'día restante' : 'días restantes' }}
+          </span>
+          <a class="dash-pill" routerLink="/school/users">
+            Estudiantes <strong>{{ p.studentsUsed }}/{{ p.studentsMax }}</strong>
+          </a>
+          <a class="dash-pill" routerLink="/school/users">
+            Instructores <strong>{{ p.teachersUsed }}/{{ p.teachersMax }}</strong>
+          </a>
+        </div>
+      }
     </div>
     <div class="dash-hero-actions">
       <ui-button routerLink="/school/apprentices" type="button">Aprendices</ui-button>
       <ui-button routerLink="/school/attendance" type="button" variant="secondary">Asistencia hoy</ui-button>
       <ui-button routerLink="/school/exam-control" type="button" variant="secondary">Sala de examen</ui-button>
-      <ui-button routerLink="/school/practical-fleet" type="button" variant="secondary">Flota hoy</ui-button>
-      <ui-button routerLink="/school/results" type="button" variant="secondary">Resultados</ui-button>
-      <ui-button routerLink="/school/import" type="button" variant="secondary">Importar</ui-button>
     </div>
   </header>
 
@@ -25,7 +38,7 @@
 
   @if (profile(); as p) {
     @if (ops(); as o) {
-      <div class="dash-kpis ops-kpis">
+      <div class="dash-kpis">
         <a routerLink="/school/apprentices" class="kpi-link">
           <ui-dash-kpi
             label="Aprendices"
@@ -48,68 +61,43 @@
             [value]="o.readyForExamCount"
             icon="exam"
             [tone]="o.readyForExamCount > 0 ? 'success' : 'info'"
-            hint="Horas completas — autorizar" />
+            hint="Horas completas, por autorizar" />
         </a>
         <a routerLink="/school/theory-exams" class="kpi-link">
           <ui-dash-kpi
-            label="Sin cita de examen"
-            [value]="o.noExamAppointmentCount"
-            icon="clock"
-            [tone]="o.noExamAppointmentCount > 0 ? 'warning' : 'success'"
-            hint="Autorizados sin calendario" />
-        </a>
-        <a routerLink="/school/training" class="kpi-link">
-          <ui-dash-kpi
-            label="Listos para manejo"
-            [value]="o.readyForPracticalCount"
-            icon="instructor"
-            [tone]="o.readyForPracticalCount > 0 ? 'success' : 'info'"
-            hint="Aprobaron examen — autorizar" />
-        </a>
-        <a routerLink="/school/theory-exams" class="kpi-link">
-          <ui-dash-kpi
-            label="Exámenes (7 días)"
+            label="Exámenes en 7 días"
             [value]="o.examsNext7Days"
-            icon="exam"
+            icon="clock"
             tone="info"
             hint="Citas programadas" />
         </a>
-        <a routerLink="/school/apprentices" class="kpi-link">
-          <ui-dash-kpi
-            label="Sin enrolar"
-            [value]="o.pendingEnrollmentCount"
-            icon="users"
-            [tone]="o.pendingEnrollmentCount > 0 ? 'warning' : 'success'"
-            hint="Pendientes de enrolamiento" />
-        </a>
       </div>
+
+      <nav class="todo-strip" aria-label="Pendientes">
+        <a routerLink="/school/theory-exams" class="todo" [class.alert]="o.noExamAppointmentCount > 0">
+          <span class="todo-count">{{ o.noExamAppointmentCount }}</span>
+          <span class="todo-text">
+            <strong>Sin cita de examen</strong>
+            <small>Autorizados sin fecha</small>
+          </span>
+        </a>
+        <a routerLink="/school/training" class="todo" [class.good]="o.readyForPracticalCount > 0">
+          <span class="todo-count">{{ o.readyForPracticalCount }}</span>
+          <span class="todo-text">
+            <strong>Listos para manejo</strong>
+            <small>Aprobaron el examen teórico</small>
+          </span>
+        </a>
+        <a routerLink="/school/apprentices" class="todo" [class.alert]="o.pendingEnrollmentCount > 0">
+          <span class="todo-count">{{ o.pendingEnrollmentCount }}</span>
+          <span class="todo-text">
+            <strong>Sin enrolar</strong>
+            <small>Pendientes de enrolamiento</small>
+          </span>
+        </a>
+      </nav>
     }
 
-    <div class="dash-kpis">
-      <ui-dash-kpi
-        label="Estudiantes activos"
-        [value]="activeStudents()"
-        icon="group"
-        tone="primary"
-        [hint]="p.studentsUsed + ' / ' + p.studentsMax + ' cupos'" />
-      <ui-dash-kpi
-        label="Instructores"
-        [value]="activeTeachers()"
-        icon="users"
-        tone="info"
-        [hint]="p.teachersUsed + ' / ' + p.teachersMax + ' cupos'" />
-      <ui-dash-kpi
-        label="Días restantes"
-        [value]="p.daysRemaining"
-        icon="clock"
-        [tone]="p.isMembershipActive ? 'success' : 'warning'" />
-      <ui-dash-kpi
-        label="Plan"
-        [value]="p.planLabel"
-        icon="bank"
-        tone="primary"
-        [hint]="statusLabel(p.displayStatus || p.subscriptionStatus)" />
-    </div>
 
     <div class="dash-main">
       <div class="dash-side">
