@@ -4,6 +4,7 @@ using Cale.BuildingBlocks.Domain.Time;
 using Cale.Modules.Engagement.Application;
 using Cale.Modules.Engagement.Application.Abstractions;
 using Cale.Modules.Engagement.Domain;
+using Cale.Modules.Engagement.Infrastructure.Push;
 using Microsoft.Extensions.Logging;
 
 namespace Cale.Modules.Engagement.Infrastructure;
@@ -13,15 +14,18 @@ public sealed class NotificationPublisher : INotificationPublisher, INotificatio
     private readonly INotificationStore _store;
     private readonly IClock _clock;
     private readonly ILogger<NotificationPublisher> _logger;
+    private readonly PushQueue? _push;
 
     public NotificationPublisher(
         INotificationStore store,
         IClock clock,
-        ILogger<NotificationPublisher> logger)
+        ILogger<NotificationPublisher> logger,
+        PushQueue? push = null)
     {
         _store = store;
         _clock = clock;
         _logger = logger;
+        _push = push;
     }
 
     public Task NotifyUserAsync(
@@ -126,6 +130,13 @@ public sealed class NotificationPublisher : INotificationPublisher, INotificatio
 
             await _store.AddRangeAsync(items, ct);
             await _store.SaveChangesAsync(ct);
+
+            _push?.Enqueue(new PushMessage(
+                allowed,
+                draft.Title,
+                draft.Message,
+                link,
+                string.IsNullOrWhiteSpace(draft.DedupeKey) ? $"cale-{draft.Type}" : $"cale-{draft.DedupeKey}"));
 
             _logger.LogInformation(
                 "Notifications published type={Type} count={Count} groupId={GroupId} dedupe={Dedupe}",

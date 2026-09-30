@@ -4,6 +4,7 @@ import {
   ElementRef,
   HostListener,
   OnInit,
+  effect,
   inject,
   signal
 } from '@angular/core';
@@ -22,7 +23,10 @@ import {
   notificationRelativeTime,
   notificationTypeLabel
 } from '../core/notifications/notifications.api';
+import { PushService } from '../core/notifications/push.service';
 import { pollWhileVisible } from '../core/rxjs/poll-while-visible';
+import { PlayFxService } from '../features/play/play-fx.service';
+import { PushPromptComponent } from './push-prompt.component';
 import { SessionStore } from '../core/auth/session.store';
 import { BRAND } from '../core/brand';
 import { AuthFacade } from '../features/auth/application/auth.facade';
@@ -46,6 +50,7 @@ const SIDEBAR_COLLAPSED_KEY = 'cale.sidebar.collapsed';
   imports: [
     RouterOutlet,
     RouterLink,
+    PushPromptComponent,
     UiBadgeComponent,
     UiButtonComponent,
     UiIconComponent,
@@ -63,6 +68,8 @@ export class AppShellComponent implements OnInit {
   private readonly notificationsApi = inject(NotificationsApi);
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly push = inject(PushService);
+  private readonly fx = inject(PlayFxService);
 
   readonly menuOpen = signal(false);
   readonly panelOpen = signal(false);
@@ -72,6 +79,12 @@ export class AppShellComponent implements OnInit {
   readonly url = signal(this.router.url);
   readonly sidebarCollapsed = signal(this.readCollapsedPref());
   readonly openGroups = signal<Record<string, boolean>>({});
+  private unreadLoaded = false;
+
+  constructor() {
+    effect(() => syncAppBadge(this.unread()));
+    this.destroyRef.onDestroy(() => syncAppBadge(0));
+  }
 
   get role(): string | undefined {
     return this.session.user()?.role;
@@ -112,6 +125,10 @@ export class AppShellComponent implements OnInit {
 
   ngOnInit(): void {
     this.refreshUnread();
+    this.listenToServiceWorker();
+    if (!this.mustChangePassword) {
+      void this.push.syncIfGranted();
+    }
     this.syncOpenGroups(this.router.url);
     pollWhileVisible(
       30000,
@@ -214,7 +231,13 @@ export class AppShellComponent implements OnInit {
       return of(0);
     }
     return this.notificationsApi.unreadCount().pipe(
-      tap((count) => this.unread.set(count)),
+      tap((count) => {
+        if (this.unreadLoaded && count > this.unread()) {
+          this.fx.play('notify');
+        }
+        this.unreadLoaded = true;
+        this.unread.set(count);
+      }),
       catchError(() => {
         this.unread.set(0);
         return of(0);
@@ -303,6 +326,27 @@ export class AppShellComponent implements OnInit {
     this.panelOpen.set(false);
   }
 
+  private listenToServiceWorker(): void {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+      return;
+    }
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as { type?: string; url?: string } | null;
+      if (data?.type === 'cale-push') {
+        this.refreshUnread();
+      } else if (data?.type === 'cale-open' && data.url) {
+        const target = new URL(data.url, window.location.origin);
+        if (target.origin === window.location.origin) {
+          void this.router.navigateByUrl(target.pathname + target.search + target.hash);
+        }
+      }
+    };
+    navigator.serviceWorker.addEventListener('message', onMessage);
+    this.destroyRef.onDestroy(() =>
+      navigator.serviceWorker.removeEventListener('message', onMessage)
+    );
+  }
+
   private syncOpenGroups(url: string): void {
     const next: Record<string, boolean> = { ...this.openGroups() };
     for (const item of this.items) {
@@ -331,4 +375,18 @@ export class AppShellComponent implements OnInit {
       /* ignore */
     }
   }
+}
+
+function syncAppBadge(count: number): void {
+  const nav = typeof navigator === 'undefined'
+    ? null
+    : (navigator as Navigator & {
+        setAppBadge?: (n?: number) => Promise<void>;
+        clearAppBadge?: () => Promise<void>;
+      });
+  if (!nav?.setAppBadge || !nav.clearAppBadge) {
+    return;
+  }
+  const done = count > 0 ? nav.setAppBadge(count) : nav.clearAppBadge();
+  done.catch(() => undefined);
 }
