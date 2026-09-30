@@ -5,8 +5,8 @@ import { env } from '../config/env';
 
 export type PushPermission = NotificationPermission | 'unsupported';
 
-const DISMISS_KEY = 'cale.push.dismissedAt';
-const DISMISS_DAYS = 7;
+const PROMPT_DONE_KEY = 'cale.push.promptDone';
+const OPTED_OUT_KEY = 'cale.push.optedOut';
 
 /** Web Push subscription for the installed app / browser (all roles). */
 @Injectable({ providedIn: 'root' })
@@ -32,20 +32,44 @@ export class PushService {
     return ios && !this.isStandalone();
   }
 
-  get dismissedRecently(): boolean {
+  /** The welcome popup is shown once per device; afterwards it lives in Mi perfil. */
+  get promptDone(): boolean {
+    return getFlag(PROMPT_DONE_KEY);
+  }
+
+  markPromptDone(): void {
+    setFlag(PROMPT_DONE_KEY, true);
+  }
+
+  /** True when this browser holds an active push subscription. */
+  async isSubscribedHere(): Promise<boolean> {
+    if (!this.supported || this.readPermission() !== 'granted') return false;
     try {
-      const at = Number(localStorage.getItem(DISMISS_KEY) || 0);
-      return at > 0 && Date.now() - at < DISMISS_DAYS * 86400000;
+      const reg = await navigator.serviceWorker.getRegistration();
+      return !!(await reg?.pushManager.getSubscription());
     } catch {
       return false;
     }
   }
 
-  dismiss(): void {
+  async sendTest(): Promise<void> {
+    await firstValueFrom(this.http.post(`${this.base}/test`, {}));
+  }
+
+  /** Stops push on this device entirely (server link and browser subscription). */
+  async disable(): Promise<void> {
+    if (!this.supported) return;
+    this.busy.set(true);
+    setFlag(OPTED_OUT_KEY, true);
     try {
-      localStorage.setItem(DISMISS_KEY, String(Date.now()));
+      await this.detach();
+      const reg = await navigator.serviceWorker.getRegistration();
+      const sub = await reg?.pushManager.getSubscription();
+      await sub?.unsubscribe();
     } catch {
-      // Storage may be unavailable.
+      // Best effort.
+    } finally {
+      this.busy.set(false);
     }
   }
 
@@ -57,8 +81,9 @@ export class PushService {
       const result = await Notification.requestPermission();
       this.permission.set(result);
       if (result !== 'granted') return false;
+      setFlag(OPTED_OUT_KEY, false);
       await this.subscribe();
-      await firstValueFrom(this.http.post(`${this.base}/test`, {}));
+      await this.sendTest();
       return true;
     } catch {
       return false;
@@ -70,7 +95,7 @@ export class PushService {
   /** Re-links this device to the signed-in user when permission was already granted. */
   async syncIfGranted(): Promise<void> {
     this.permission.set(this.readPermission());
-    if (this.permission() !== 'granted') return;
+    if (this.permission() !== 'granted' || getFlag(OPTED_OUT_KEY)) return;
     try {
       await this.subscribe();
     } catch {
@@ -127,6 +152,23 @@ export class PushService {
   private readPermission(): PushPermission {
     if (typeof window === 'undefined' || !('Notification' in window)) return 'unsupported';
     return Notification.permission;
+  }
+}
+
+function getFlag(key: string): boolean {
+  try {
+    return localStorage.getItem(key) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function setFlag(key: string, on: boolean): void {
+  try {
+    if (on) localStorage.setItem(key, '1');
+    else localStorage.removeItem(key);
+  } catch {
+    // Storage may be unavailable.
   }
 }
 
