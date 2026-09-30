@@ -226,6 +226,13 @@ public static class WebApplicationExtensions
         var catalogLogger = scope.ServiceProvider
             .GetRequiredService<ILoggerFactory>()
             .CreateLogger("CatalogSeed");
+
+        // Off in production: banks the admin deletes must not come back on every deploy.
+        if (!app.Configuration.GetValue("Seed:Catalog:OfficialBanks", !app.Environment.IsProduction()))
+        {
+            catalogLogger.LogInformation("Official bank seed disabled (Seed:Catalog:OfficialBanks=false).");
+            return;
+        }
         var allowPartialRebuild = app.Configuration.GetValue("Seed:Catalog:AllowPartialRebuild", false);
         var allowReplaceExisting = app.Configuration.GetValue("Seed:Catalog:AllowReplaceExisting", false);
         await CatalogSeed.EnsureOfficialBanksAsync(

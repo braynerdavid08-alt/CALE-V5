@@ -182,8 +182,26 @@ public sealed partial class PlayService
         }
 
         var bankIds = await OfficialBankIdsAsync(ct);
+        if (bankIds.Count == 0)
+        {
+            // No official banks left: fall back to active banks behind published exams.
+            var activeBankIds = await _db.Set<Bank>().AsNoTracking()
+                .Where(b => b.IsActive)
+                .Select(b => b.Id)
+                .ToListAsync(ct);
+            bankIds = await _db.Set<Exam>().AsNoTracking()
+                .Where(e => e.Published && e.IsActive && e.BankId != null && activeBankIds.Contains(e.BankId.Value))
+                .Select(e => e.BankId!.Value)
+                .Distinct()
+                .ToListAsync(ct);
+        }
+
         var ids = await _db.Set<Question>().AsNoTracking()
-            .Where(q => q.IsActive && bankIds.Contains(q.BankId))
+            .Where(q => q.IsActive
+                && bankIds.Contains(q.BankId)
+                && (q.Explanation == null || !q.Explanation.Contains("Importada sin clave"))
+                && q.Options.Count() >= 2
+                && q.Options.Count(o => o.IsCorrect) == 1)
             .Select(q => q.Id)
             .ToListAsync(ct);
         CacheSmall(key, ids, CatalogTtl);

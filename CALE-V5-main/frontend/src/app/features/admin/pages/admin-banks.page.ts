@@ -77,6 +77,9 @@ import { BankAdminDto, BankUsageDto, TeacherApi } from '../../teacher/api/teache
                     <td data-label="Uso real" class="usage">
                       @if (usageOf(bank.id); as u) {
                         <div class="usage-tags">
+                          @if (u.isOfficial) {
+                            <ui-badge tone="success">★ Oficial CALE</ui-badge>
+                          }
                           @if (u.duplicateRole === 'main') {
                             <ui-badge tone="success">Principal (el que se usa)</ui-badge>
                           } @else if (u.duplicateRole === 'duplicate') {
@@ -103,6 +106,11 @@ import { BankAdminDto, BankUsageDto, TeacherApi } from '../../teacher/api/teache
                       }
                     </td>
                     <td class="actions">
+                      @if (usageOf(bank.id); as u) {
+                        <ui-button type="button" variant="ghost" (click)="toggleOfficial(bank, u)">
+                          {{ u.isOfficial ? 'Quitar oficial' : 'Hacer oficial' }}
+                        </ui-button>
+                      }
                       <ui-button type="button" variant="ghost" (click)="toggle(bank)">
                         {{ bank.isActive ? 'Desactivar' : 'Activar' }}
                       </ui-button>
@@ -203,6 +211,29 @@ export class AdminBanksPage implements OnInit {
     ).subscribe({
       next: () => {
         this.ok.set('Banco actualizado.');
+        this.reload();
+      },
+      error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  toggleOfficial(bank: BankAdminDto, usage: BankUsageDto): void {
+    if (!this.canManage()) {
+      return;
+    }
+    const official = !usage.isOfficial;
+    const label = bank.name?.trim() || `banco #${bank.id}`;
+    const message = official
+      ? `¿Hacer oficial «${label}» (#${bank.id})?\n\nLo verán todas las escuelas, instructores y estudiantes, `
+        + 'y sus preguntas se usarán en el reto diario y el duelo.'
+      : `¿Quitar «${label}» (#${bank.id}) de los oficiales?\n\nDejará de verse en otras escuelas y de usarse en los juegos.`;
+    if (!confirm(message)) {
+      return;
+    }
+    this.error.set(null);
+    this.api.setBankOfficial(bank.id, official).subscribe({
+      next: () => {
+        this.ok.set(official ? 'Banco marcado como oficial.' : 'Banco quitado de los oficiales.');
         this.reload();
       },
       error: (err) => this.error.set(mapApiError(err))

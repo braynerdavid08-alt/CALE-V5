@@ -61,6 +61,20 @@ public sealed class BanksController : ControllerBase
         CancellationToken ct) =>
         Ok(await usage.ListAsync(ct));
 
+    [HttpPut("{id:int}/official")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> SetOfficial(
+        int id,
+        SetBankOfficialRequest request,
+        [FromServices] BankUsageService usage,
+        CancellationToken ct)
+    {
+        await usage.SetOfficialAsync(id, request.Official, CurrentUser.GetId(User), ct);
+        return NoContent();
+    }
+
+    public sealed record SetBankOfficialRequest(bool Official);
+
     [HttpPost]
     [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> Create(

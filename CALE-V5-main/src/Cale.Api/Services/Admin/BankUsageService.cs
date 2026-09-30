@@ -1,15 +1,18 @@
 using Cale.BuildingBlocks.Domain.Auth;
+using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
 using Cale.Modules.Assessment.Domain;
 using Cale.Modules.Catalog.Domain;
 using Cale.Modules.Identity.Domain;
 using Cale.Modules.LiveClassroom.Domain;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Cale.Api.Services.Admin;
 
 public sealed record BankUsageDto(
     int BankId,
+    bool IsOfficial,
     DateTime CreatedAt,
     int Exams,
     int PublishedExams,
@@ -29,15 +32,40 @@ public sealed record BankUsageDto(
 public sealed class BankUsageService
 {
     private readonly CaleDbContext _db;
+    private readonly IMemoryCache _cache;
 
-    public BankUsageService(CaleDbContext db) => _db = db;
+    public BankUsageService(CaleDbContext db, IMemoryCache cache)
+    {
+        _db = db;
+        _cache = cache;
+    }
+
+    /// <summary>
+    /// Official banks have no owner: every school, instructor and student sees them and the
+    /// practice games draw from them. Removing the flag hands the bank to <paramref name="adminId"/>.
+    /// </summary>
+    public async Task SetOfficialAsync(int bankId, bool official, int adminId, CancellationToken ct)
+    {
+        int? owner = official ? null : adminId;
+        var updated = await _db.Set<Bank>()
+            .Where(b => b.Id == bankId)
+            .ExecuteUpdateAsync(s => s.SetProperty(b => b.CreatedById, owner), ct);
+        if (updated == 0)
+        {
+            throw new NotFoundException("Bank not found.", "bank_not_found");
+        }
+
+        _cache.Remove("play:official-banks");
+        _cache.Remove("play:official-questions");
+        _cache.Remove("play:official-blocks");
+    }
 
     public async Task<IReadOnlyList<BankUsageDto>> ListAsync(CancellationToken ct)
     {
         var since = DateTime.UtcNow.AddDays(-30);
 
         var banks = await _db.Set<Bank>().AsNoTracking()
-            .Select(b => new { b.Id, b.Name, b.CreatedAt })
+            .Select(b => new { b.Id, b.Name, b.CreatedAt, IsOfficial = b.CreatedById == null })
             .ToListAsync(ct);
 
         var exams = await _db.Set<Exam>().AsNoTracking()
@@ -104,6 +132,7 @@ public sealed class BankUsageService
                 Key = b.Name.Trim().ToLowerInvariant(),
                 Dto = new BankUsageDto(
                     b.Id,
+                    b.IsOfficial,
                     b.CreatedAt,
                     bankExams.Count,
                     bankExams.Count(e => e.Live),

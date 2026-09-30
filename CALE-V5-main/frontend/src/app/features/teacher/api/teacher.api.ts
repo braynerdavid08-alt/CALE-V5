@@ -149,6 +149,7 @@ export interface BankAdminDto {
 
 export interface BankUsageDto {
   bankId: number;
+  isOfficial: boolean;
   createdAt: string;
   exams: number;
   publishedExams: number;
@@ -464,5 +465,9 @@ export class TeacherApi {
 
   bankUsage() {
     return this.http.get<BankUsageDto[]>(`${this.base}/api/banks/usage`);
+  }
+
+  setBankOfficial(id: number, official: boolean) {
+    return this.http.put<void>(`${this.base}/api/banks/${id}/official`, { official });
   }
 }
