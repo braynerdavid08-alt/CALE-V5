@@ -1,4 +1,5 @@
 using Cale.Api.Extensions;
+using Cale.Api.Services.Admin;
 using Cale.BuildingBlocks.Domain.Abstractions;
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Time;
@@ -207,9 +208,18 @@ public sealed class ExamsController : ControllerBase
 
     [HttpDelete("{id:int}")]
     [Authorize(Policy = "TeacherOrAdmin")]
-    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    public async Task<IActionResult> Delete(
+        int id,
+        [FromServices] CatalogPurgeService purge,
+        CancellationToken ct)
     {
         await EnsureCatalogAsync(ct);
+        if (CurrentUser.IsAdmin(User))
+        {
+            await purge.PurgeExamAsync(id, ct);
+            return NoContent();
+        }
+
         await _save.DeleteAsync(
             id,
             CurrentUser.GetId(User),

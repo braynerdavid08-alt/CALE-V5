@@ -150,7 +150,12 @@ export class AdminBanksPage implements OnInit {
       return;
     }
     const label = bank.name?.trim() || `banco #${bank.id}`;
-    if (!confirm(`¿Borrar permanentemente «${label}» y sus preguntas? Esta acción no se puede deshacer.`)) {
+    if (!confirm(
+      `¿Borrar permanentemente «${label}»?\n\n`
+      + 'Se eliminará de todos lados: sus preguntas, los exámenes que lo usan, los intentos y resultados '
+      + 'de los estudiantes en esos exámenes y las clases en vivo que lo usaron.\n\n'
+      + 'Esta acción no se puede deshacer.'
+    )) {
       return;
     }
     this.error.set(null);

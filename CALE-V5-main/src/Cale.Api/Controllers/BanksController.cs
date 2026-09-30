@@ -1,4 +1,5 @@
 using Cale.Api.Extensions;
+using Cale.Api.Services.Admin;
 using Cale.BuildingBlocks.Domain.Abstractions;
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.Modules.Catalog.Application.Commands;
@@ -70,9 +71,12 @@ public sealed class BanksController : ControllerBase
 
     [HttpDelete("{id:int}")]
     [Authorize(Policy = "AdminOnly")]
-    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    public async Task<IActionResult> Delete(
+        int id,
+        [FromServices] CatalogPurgeService purge,
+        CancellationToken ct)
     {
-        await _save.DeleteAsync(id, ct);
+        await purge.PurgeBankAsync(id, ct);
         return NoContent();
     }
 }
