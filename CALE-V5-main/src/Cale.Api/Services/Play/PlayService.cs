@@ -248,9 +248,7 @@ public sealed partial class PlayService
     {
         await SyncMistakesAsync(userId, ct);
         var now = _clock.UtcNow;
-        var rows = await _db.Set<MistakeReview>().AsNoTracking()
-            .Where(x => x.UserId == userId)
-            .ToListAsync(ct);
+        var rows = await ReviewableMistakesAsync(userId, ct);
 
         var pending = rows.Where(x => !x.Mastered).ToList();
         var dueRows = pending
@@ -260,7 +258,7 @@ public sealed partial class PlayService
             .Take(10)
             .ToList();
 
-        var questions = await LoadQuestionsAsync(dueRows.Select(x => x.QuestionId).ToList(), ct);
+        var questions = await LoadQuestionsAsync(dueRows.Select(x => x.QuestionId).ToList(), ct, includeInactive: true);
         var seed = unchecked(userId * 7919 + (int)(now.Ticks / TimeSpan.TicksPerHour));
         var dtos = dueRows
             .Where(x => questions.ContainsKey(x.QuestionId))
@@ -334,6 +332,7 @@ public sealed partial class PlayService
         var wrong = await (
                 from ans in _db.Set<AttemptAnswer>().AsNoTracking()
                 join at in _db.Set<Attempt>().AsNoTracking() on ans.AttemptId equals at.Id
+                join q in _db.Set<Question>().AsNoTracking() on ans.QuestionId equals q.Id
                 where at.UserId == userId && !ans.IsCorrect && ans.OptionId != null
                 select new { ans.QuestionId, When = at.FinishedAt ?? at.StartedAt })
             .ToListAsync(ct);
@@ -384,11 +383,48 @@ public sealed partial class PlayService
     {
         await SyncMistakesAsync(userId, ct);
         var now = _clock.UtcNow;
-        var dueDates = await _db.Set<MistakeReview>().AsNoTracking()
-            .Where(x => x.UserId == userId && !x.Mastered)
+        var dueDates = (await ReviewableMistakesAsync(userId, ct))
+            .Where(x => !x.Mastered)
             .Select(x => x.NextDueAt)
-            .ToListAsync(ct);
+            .ToList();
         return (dueDates.Count(d => d <= now), dueDates.Count);
+    }
+
+    /// <summary>
+    /// Mistake rows whose question can still be practised: it exists, has exactly one correct
+    /// option and is not an unkeyed Word import. Rows of deleted questions are pruned.
+    /// </summary>
+    private async Task<List<MistakeReview>> ReviewableMistakesAsync(int userId, CancellationToken ct)
+    {
+        var rows = await _db.Set<MistakeReview>().AsNoTracking()
+            .Where(x => x.UserId == userId)
+            .ToListAsync(ct);
+        if (rows.Count == 0)
+        {
+            return rows;
+        }
+
+        var ids = rows.Select(x => x.QuestionId).Distinct().ToList();
+        var existing = await _db.Set<Question>().AsNoTracking()
+            .Where(q => ids.Contains(q.Id))
+            .Select(q => new
+            {
+                q.Id,
+                Reviewable = q.Options.Count(o => o.IsCorrect) == 1
+                    && (q.Explanation == null || !q.Explanation.Contains("Importada sin clave"))
+            })
+            .ToListAsync(ct);
+
+        var orphanIds = ids.Except(existing.Select(x => x.Id)).ToList();
+        if (orphanIds.Count > 0)
+        {
+            await _db.Set<MistakeReview>()
+                .Where(x => x.UserId == userId && orphanIds.Contains(x.QuestionId))
+                .ExecuteDeleteAsync(ct);
+        }
+
+        var reviewable = existing.Where(x => x.Reviewable).Select(x => x.Id).ToHashSet();
+        return rows.Where(x => reviewable.Contains(x.QuestionId)).ToList();
     }
 
     private async Task UpsertMistakeAsync(int userId, int questionId, DateTime now, CancellationToken ct)
@@ -592,7 +628,8 @@ public sealed partial class PlayService
 
     internal async Task<Dictionary<int, Question>> LoadQuestionsAsync(
         IReadOnlyCollection<int> ids,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool includeInactive = false)
     {
         if (ids.Count == 0)
         {
@@ -601,7 +638,7 @@ public sealed partial class PlayService
 
         return await _db.Set<Question>().AsNoTracking()
             .Include(q => q.Options)
-            .Where(q => ids.Contains(q.Id) && q.IsActive)
+            .Where(q => ids.Contains(q.Id) && (includeInactive || q.IsActive))
             .ToDictionaryAsync(q => q.Id, ct);
     }
 
