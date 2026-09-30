@@ -28,6 +28,8 @@ public interface IGameShowStore
     Task<IReadOnlyList<GameShowSession>> ListEndedByPackAsync(int packId, int take, CancellationToken ct);
 
     Task<GameShowSettings> GetOrCreateSettingsAsync(CancellationToken ct);
+    Task<GameShowSettings?> GetSettingsRowAsync(int id, CancellationToken ct);
+    Task AddSettingsRowAsync(GameShowSettings row, CancellationToken ct);
     Task SaveChangesAsync(CancellationToken ct);
 }
 

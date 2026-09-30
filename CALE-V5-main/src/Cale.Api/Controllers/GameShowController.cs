@@ -73,6 +73,17 @@ public sealed class GameShowController : ControllerBase
     [Authorize(Policy = "TeacherOrAdmin")]
     public async Task<IActionResult> OfficialPack(CancellationToken ct = default)
     {
+        var body = await LoadOfficialPackAsync(ct);
+        if (body is null)
+        {
+            return NotFound(new { error = "pack_missing", message = "Pack oficial no disponible." });
+        }
+
+        return Ok(await _handler.WithOfficialAliasesAsync(body, ct));
+    }
+
+    private static async Task<CreateGameShowRequest?> LoadOfficialPackAsync(CancellationToken ct)
+    {
         var path = Path.Combine(AppContext.BaseDirectory, "SeedData", "gameshow-100-dijeron-oficial.json");
         if (!System.IO.File.Exists(path))
         {
@@ -81,13 +92,56 @@ public sealed class GameShowController : ControllerBase
         }
         if (!System.IO.File.Exists(path))
         {
-            return NotFound(new { error = "pack_missing", message = "Pack oficial no disponible." });
+            return null;
         }
 
         var text = await System.IO.File.ReadAllTextAsync(path, ct);
-        var body = GameShowQuestionImport.ParseJson(text);
-        return Ok(body);
+        return GameShowQuestionImport.ParseJson(text);
     }
+
+    [HttpGet("{id:int}/review")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> Review(int id, CancellationToken ct) =>
+        Ok(await _handler.GetHostReviewAsync(
+            id,
+            CurrentUser.GetId(User),
+            CurrentUser.IsAdmin(User),
+            await LoadOfficialPackAsync(ct),
+            ct));
+
+    [HttpPost("{id:int}/attempts/{attemptId:int}/accept")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> AcceptAttempt(
+        int id,
+        int attemptId,
+        [FromBody] AcceptGameShowAttemptRequest body,
+        CancellationToken ct)
+    {
+        await _handler.AcceptAttemptAsync(id, CurrentUser.GetId(User), attemptId, body.AnswerId, ct);
+        return Ok(await _handler.GetLobbyAsync(id, CurrentUser.GetId(User), null, ct, preferHostView: true));
+    }
+
+    [HttpPost("{id:int}/attempts/{attemptId:int}/reject")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> RejectAttempt(int id, int attemptId, CancellationToken ct)
+    {
+        await _handler.RejectAttemptAsync(id, CurrentUser.GetId(User), attemptId, ct);
+        return Ok(await _handler.GetLobbyAsync(id, CurrentUser.GetId(User), null, ct, preferHostView: true));
+    }
+
+    [HttpPost("{id:int}/aliases")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> AddAlias(
+        int id,
+        [FromBody] AddGameShowAliasRequest body,
+        CancellationToken ct) =>
+        Ok(await _handler.AddAliasAsync(
+            id,
+            CurrentUser.GetId(User),
+            CurrentUser.IsAdmin(User),
+            body,
+            await LoadOfficialPackAsync(ct),
+            ct));
 
     [HttpGet("packs")]
     [Authorize(Policy = "TeacherOrAdmin")]
