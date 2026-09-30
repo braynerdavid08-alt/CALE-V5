@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
@@ -26,6 +26,7 @@ export class RegisterPage {
   private readonly fb = inject(FormBuilder);
   readonly auth = inject(AuthFacade);
   readonly brand = BRAND;
+  readonly showPassword = signal(false);
 
   readonly form = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(200)]],
