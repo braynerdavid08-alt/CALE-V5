@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 
-export type PlaySound = 'correct' | 'wrong' | 'win' | 'badge' | 'tick' | 'start';
+export type PlaySound = 'correct' | 'wrong' | 'win' | 'badge' | 'tick' | 'start' | 'notify';
 
 const MUTE_KEY = 'cale.play.muted';
 const CONFETTI_COLORS = ['#1a6b8a', '#4eb6d4', '#f59e0b', '#22c55e', '#ef4444', '#8b5cf6', '#facc15'];
@@ -61,6 +61,10 @@ export class PlayFxService {
         case 'start':
           this.beep(ctx, t, 440, 0.08, 'square', 0.14);
           this.beep(ctx, t + 0.1, 660, 0.12, 'square', 0.16);
+          break;
+        case 'notify':
+          this.beep(ctx, t, 880, 0.12, 'sine', 0.22);
+          this.beep(ctx, t + 0.14, 1175, 0.22, 'sine', 0.2);
           break;
       }
     } catch {

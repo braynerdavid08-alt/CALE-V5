@@ -105,6 +105,7 @@ public static class WebApplicationExtensions
             await AttemptSchemaGuard.EnsureAsync(db, bootLogger);
             await HomepageSchemaGuard.EnsureAsync(db, bootLogger);
             await PlaySchemaGuard.EnsureAsync(db, bootLogger);
+            await PushSchemaGuard.EnsureAsync(db, bootLogger);
             await Cale.Modules.GameShow.Infrastructure.Persistence.GameShowPackSchemaGuard
                 .EnsureAsync(db, bootLogger);
 

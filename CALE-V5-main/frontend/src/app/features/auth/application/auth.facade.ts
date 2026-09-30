@@ -3,6 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { MotivationService } from '../../../core/motivation/motivation.service';
+import { PushService } from '../../../core/notifications/push.service';
 import { SessionStore } from '../../../core/auth/session.store';
 import { stashReturnUrl, takeReturnUrl } from '../../../core/auth/return-url';
 import { AuthApi } from '../api/auth.api';
@@ -13,6 +14,7 @@ export class AuthFacade {
   private readonly session = inject(SessionStore);
   private readonly motivation = inject(MotivationService);
   private readonly router = inject(Router);
+  private readonly push = inject(PushService);
 
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
@@ -81,10 +83,12 @@ export class AuthFacade {
   }
 
   logout(): void {
-    this.api.logout().subscribe({
-      next: () => this.finishLogout(),
-      error: () => this.finishLogout()
-    });
+    void this.push.detach().finally(() =>
+      this.api.logout().subscribe({
+        next: () => this.finishLogout(),
+        error: () => this.finishLogout()
+      })
+    );
   }
 
   private finishLogout(): void {

@@ -214,6 +214,9 @@
       </ui-button>
     </header>
     <main class="content">
+      @if (!mustChangePassword) {
+        <app-push-prompt />
+      }
       @if (showStudentHomeLink) {
         <a class="student-back-bar" routerLink="/student">
           <ui-icon name="home" />
