@@ -393,6 +393,13 @@ public sealed partial class GameShowHandler
                 now);
             await _store.SaveChangesAsync(ct);
             await BroadcastLobbyAsync(session, ct);
+            await BroadcastAttemptAsync(
+                session,
+                round,
+                round.Attempts.LastOrDefault(a => a.PlayerId == player.Id),
+                corrected: false,
+                repeated: outcome.Kind == GameShowEngine.OutcomeKind.IgnoredAlreadyRevealed,
+                ct);
             await _broadcaster.EventAsync(session.Id, outcome.EventName, outcome.Payload, ct);
             if (outcome.Kind is not GameShowEngine.OutcomeKind.IgnoredAlreadyRevealed
                 and not GameShowEngine.OutcomeKind.RoundCompleted

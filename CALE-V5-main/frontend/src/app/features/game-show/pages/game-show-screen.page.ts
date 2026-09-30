@@ -6,6 +6,7 @@ import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { mapApiError } from '../../../core/http/map-api-error';
 import {
   GameShowApi,
+  GameShowAttemptEventDto,
   GameShowLobbyDto,
   GameShowPlayerStandingDto
 } from '../api/game-show.api';
@@ -104,6 +105,20 @@ import { phraseForLightning, phraseForSteal, phraseForStrike3 } from '../api/gam
             </div>
           }
 
+          @if (lastAttempt(); as A) {
+            @if (A.roundId === L.currentRound.id) {
+              <div class="said" [class.ok]="A.isCorrect" [class.bad]="!A.isCorrect && !A.repeated" [class.rep]="A.repeated"
+                   [style.--accent]="A.accentColor || '#5eb0ff'">
+                <p class="said-label">
+                  <span class="dot" [style.background]="A.accentColor || '#5eb0ff'"></span>
+                  {{ A.playerName || 'Jugador' }} ({{ teamName(L, A.team) }}){{ A.isSteal ? ' intentó robar con' : ' escribió' }}:
+                </p>
+                <p class="said-text">«{{ A.text }}»</p>
+                <p class="said-verdict">{{ attemptVerdict(A) }}</p>
+              </div>
+            }
+          }
+
           @if (timerSec() !== null && (
             L.currentRound.phase === 'FaceOff'
             || L.currentRound.phase === 'FaceOffSecond'
@@ -177,7 +192,10 @@ import { phraseForLightning, phraseForSteal, phraseForStrike3 } from '../api/gam
   `,
   styles: [`
     :host { display: block; min-height: 100vh; background: radial-gradient(circle at top, #123a6b, #070d18 55%); color: #fff; }
-    .screen { padding: 2rem clamp(1rem, 4vw, 3rem); display: grid; gap: 1.25rem; position: relative; overflow: hidden; }
+    .screen { padding: 2rem clamp(1rem, 4vw, 3rem); display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; position: relative; overflow: hidden; }
+    .score > div { min-width: 0; gap: 0.5rem; }
+    .score span { min-width: 0; overflow-wrap: anywhere; }
+    h1 { overflow-wrap: anywhere; }
     .screen.lightning { background: radial-gradient(circle at top, #1e3a5f, #0a1628 50%, #1a0a00 100%); }
     .brand { letter-spacing: 0.18em; font-weight: 900; color: #5eb0ff; margin: 0; }
     .lightning-banner {
@@ -209,6 +227,18 @@ import { phraseForLightning, phraseForSteal, phraseForStrike3 } from '../api/gam
     li { display: grid; grid-template-columns: 3rem 1fr 5rem; gap: 1rem; align-items: center; padding: 1rem 1.25rem; border-radius: 16px; background: rgba(0,0,0,0.35); border: 1px solid rgba(94,176,255,0.25); font-size: clamp(1.2rem, 3vw, 2rem); font-weight: 800; letter-spacing: 0.04em; transition: background 0.35s ease, border-color 0.35s ease, transform 0.35s ease; }
     li.revealed { background: rgba(40, 160, 100, 0.25); border-color: rgba(80, 220, 150, 0.45); transform: translateX(0.35rem); }
     li.top { background: rgba(250, 204, 21, 0.22); border-color: rgba(250, 204, 21, 0.65); box-shadow: 0 0 1.5rem rgba(250, 204, 21, 0.25); }
+    .said {
+      display: grid; gap: 0.2rem; padding: 0.85rem 1.2rem; border-radius: 16px;
+      border: 2px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.06);
+      animation: said-in 0.35s ease;
+    }
+    .said.ok { border-color: rgba(80, 220, 150, 0.7); background: rgba(40, 160, 100, 0.22); }
+    .said.bad { border-color: rgba(248, 113, 113, 0.75); background: rgba(220, 38, 38, 0.18); }
+    .said.rep { border-color: rgba(251, 191, 36, 0.7); background: rgba(251, 191, 36, 0.14); }
+    .said-label { margin: 0; opacity: 0.85; font-size: clamp(0.95rem, 2vw, 1.2rem); font-weight: 700; }
+    .said-text { margin: 0; font-size: clamp(1.5rem, 4vw, 2.6rem); font-weight: 900; overflow-wrap: anywhere; line-height: 1.15; }
+    .said-verdict { margin: 0; font-size: clamp(1rem, 2.4vw, 1.4rem); font-weight: 800; }
+    @keyframes said-in { from { opacity: 0; transform: translateY(-0.4rem); } to { opacity: 1; transform: none; } }
     .flash { font-size: clamp(1.5rem, 4vw, 2.5rem); font-weight: 900; color: #7dd3fc; text-align: center; }
     .active-player {
       display: flex; align-items: center; gap: 1rem; padding: 0.85rem 1.2rem;
@@ -250,6 +280,10 @@ import { phraseForLightning, phraseForSteal, phraseForStrike3 } from '../api/gam
     @keyframes fall {
       to { transform: translateY(110vh) rotate(720deg); opacity: 0.2; }
     }
+    @media (max-width: 600px) {
+      .score > div { padding: 0.8rem 0.9rem; }
+      li { grid-template-columns: 2rem minmax(0, 1fr) auto; padding: 0.75rem 0.85rem; gap: 0.6rem; }
+    }
     @media (max-width: 800px) {
       .lobby-join { grid-template-columns: 1fr; }
       .qr { justify-self: start; }
@@ -268,6 +302,7 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
   readonly timerSec = signal<number | null>(null);
   readonly lightningSec = signal<number | null>(null);
   readonly confetti = signal(false);
+  readonly lastAttempt = signal<GameShowAttemptEventDto | null>(null);
   readonly confettiPieces = Array.from({ length: 28 }, (_, i) => i + 1);
   private hub: HubConnection | null = null;
   private sessionId = 0;
@@ -292,6 +327,7 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
     this.tickTimer = setInterval(() => this.tickDeadline(), 250);
     this.hub = this.api.buildHub();
     this.hub.on('LobbyUpdated', (lobby: GameShowLobbyDto) => this.applyLobby(lobby));
+    this.hub.on('AttemptSubmitted', (a: GameShowAttemptEventDto) => this.lastAttempt.set(a));
     this.hub.on('BuzzWon', () => {
       this.playSfx('buzz');
       this.showFlash('¡ENFRENTAMIENTO!');
@@ -433,6 +469,17 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
     if (!parts.length) return '?';
     if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
     return (parts[0]![0]! + parts[1]![0]!).toUpperCase();
+  }
+
+  attemptVerdict(a: GameShowAttemptEventDto): string {
+    if (a.corrected) {
+      return a.isCorrect
+        ? `✔ El profesor la aceptó${a.matchedText ? ' como «' + a.matchedText + '»' : ''}`
+        : '✖ El profesor la anuló';
+    }
+    if (a.repeated) return '⚠️ Esa respuesta ya estaba descubierta';
+    if (a.isCorrect) return `✅ ¡Está en el tablero!${a.matchedText ? ' → ' + a.matchedText : ''}`;
+    return '❌ No está en el tablero';
   }
 
   strikeSlots(): readonly number[] {
