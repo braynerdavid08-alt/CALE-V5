@@ -14,6 +14,7 @@ using Cale.Modules.Classroom.Domain;
 using Cale.Modules.Identity.Domain;
 using Cale.Modules.TheoreticalTraining.Application;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Cale.Api.Services.Play;
 
@@ -27,17 +28,20 @@ public sealed partial class PlayService
     private readonly IClock _clock;
     private readonly INotificationPublisher _notifications;
     private readonly PlayContent _content;
+    private readonly IMemoryCache _cache;
 
     public PlayService(
         CaleDbContext db,
         IClock clock,
         INotificationPublisher notifications,
-        PlayContent content)
+        PlayContent content,
+        IMemoryCache cache)
     {
         _db = db;
         _clock = clock;
         _notifications = notifications;
         _content = content;
+        _cache = cache;
     }
 
     // ───────────────────────── Daily challenge ─────────────────────────
@@ -141,16 +145,28 @@ public sealed partial class PlayService
             return row;
         }
 
-        var pool = await OfficialQuestionIdsAsync(ct);
-        if (pool.Count == 0)
+        var official = await OfficialQuestionIdsAsync(ct);
+        var school = await SchoolQuestionIdsAsync(userId, ct);
+        if (official.Count == 0 && school.Count == 0)
         {
             throw new DomainException("There are no questions available yet.", 404, "no_questions");
         }
 
         var seed = DailySeed(userId, today);
-        var picked = pool
+        var fromSchool = school
             .OrderBy(id => StableHash(seed, id))
+            .Take(DailySchoolShare)
+            .ToList();
+        var fromOfficial = official
+            .Where(id => !fromSchool.Contains(id))
+            .OrderBy(id => StableHash(seed, id))
+            .Take(DailySize - fromSchool.Count)
+            .ToList();
+        var picked = fromSchool
+            .Concat(fromOfficial)
+            .Concat(school.Where(id => !fromSchool.Contains(id)).OrderBy(id => StableHash(seed, id)))
             .Take(DailySize)
+            .OrderBy(id => StableHash(seed ^ 0x5bd1e995, id))
             .ToList();
 
         row = new DailyChallenge
@@ -364,6 +380,17 @@ public sealed partial class PlayService
         }
     }
 
+    private async Task<(int Due, int Pending)> MistakeCountsAsync(int userId, CancellationToken ct)
+    {
+        await SyncMistakesAsync(userId, ct);
+        var now = _clock.UtcNow;
+        var dueDates = await _db.Set<MistakeReview>().AsNoTracking()
+            .Where(x => x.UserId == userId && !x.Mastered)
+            .Select(x => x.NextDueAt)
+            .ToListAsync(ct);
+        return (dueDates.Count(d => d <= now), dueDates.Count);
+    }
+
     private async Task UpsertMistakeAsync(int userId, int questionId, DateTime now, CancellationToken ct)
     {
         var row = await _db.Set<MistakeReview>()
@@ -410,12 +437,7 @@ public sealed partial class PlayService
             .Take(5)
             .ToListAsync(ct);
 
-        var officialBanks = await OfficialBankIdsAsync(ct);
-        var blockIds = await _db.Set<Question>().AsNoTracking()
-            .Where(q => q.IsActive && officialBanks.Contains(q.BankId))
-            .Select(q => q.BlockId)
-            .Distinct()
-            .ToListAsync(ct);
+        var blockIds = await OfficialBlockIdsAsync(ct);
         var practiced = answers.Select(a => a.BlockId).Distinct().ToList();
         var allBlockIds = blockIds.Union(practiced).ToList();
         var names = await _db.Set<Block>().AsNoTracking()
@@ -524,10 +546,10 @@ public sealed partial class PlayService
         var dailyAnswered = daily is null ? 0 : ParseAnswers(daily.AnswersJson).Count;
         var dailyTotal = daily is null ? DailySize : ParseIds(daily.QuestionIdsJson).Count;
 
-        var mistakes = await GetMistakesAsync(userId, ct);
+        var (stats, streak) = await ComputeStatsCoreAsync(userId, ct);
+        var newBadges = await CheckAchievementsAsync(userId, stats, ct);
+        var (mistakesDue, mistakesPending) = await MistakeCountsAsync(userId, ct);
         var readiness = await GetReadinessAsync(userId, ct);
-        var newBadges = await CheckAchievementsAsync(userId, ct);
-        var stats = await ComputeStatsAsync(userId, ct);
         var earned = await _db.Set<UserAchievement>().AsNoTracking().CountAsync(x => x.UserId == userId, ct);
 
         RankingDto? ranking = null;
@@ -547,13 +569,13 @@ public sealed partial class PlayService
 
         return new PlaySummaryDto(
             firstName,
-            await GetStreakAsync(userId, ct),
+            streak,
             BuildLevel(stats.Xp),
             dailyAnswered,
             dailyTotal,
             daily?.CompletedAt is not null,
-            mistakes.DueCount,
-            mistakes.PendingCount,
+            mistakesDue,
+            mistakesPending,
             readiness.Overall,
             readiness.Label,
             readiness.Topics.FirstOrDefault(t => t.Answered >= 5 && t.Percent < 90)?.Name,
@@ -567,21 +589,6 @@ public sealed partial class PlayService
     }
 
     // ───────────────────────── Helpers ─────────────────────────
-
-    private async Task<List<int>> OfficialBankIdsAsync(CancellationToken ct) =>
-        await _db.Set<Bank>().AsNoTracking()
-            .Where(b => b.IsActive && b.CreatedById == null)
-            .Select(b => b.Id)
-            .ToListAsync(ct);
-
-    internal async Task<List<int>> OfficialQuestionIdsAsync(CancellationToken ct)
-    {
-        var bankIds = await OfficialBankIdsAsync(ct);
-        return await _db.Set<Question>().AsNoTracking()
-            .Where(q => q.IsActive && bankIds.Contains(q.BankId))
-            .Select(q => q.Id)
-            .ToListAsync(ct);
-    }
 
     internal async Task<Dictionary<int, Question>> LoadQuestionsAsync(
         IReadOnlyCollection<int> ids,

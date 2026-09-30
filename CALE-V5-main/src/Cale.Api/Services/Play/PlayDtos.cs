@@ -99,6 +99,8 @@ public sealed record SignDto(string Code, string Family, string Name, string Ima
 
 public sealed record SignsResultRequest(int Correct, int Total);
 
+public sealed record QuickCheckResultDto(bool Correct, int? CorrectOptionId);
+
 public sealed record GameSavedDto(
     int Score,
     int Best,

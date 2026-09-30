@@ -4,7 +4,8 @@ import { mapApiError } from '../../../core/http/map-api-error';
 import { resolveMediaUrl } from '../../../core/media/resolve-media-url';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
-import { Badge, GameSaved, PlayApi, Sign } from '../api/play.api';
+import { catchError, forkJoin, of } from 'rxjs';
+import { Badge, GameSaved, PlayApi, PlayQuestion, Sign } from '../api/play.api';
 import { PlayBadgesToastComponent } from '../components/play-badges-toast.component';
 import { PlayTopbarComponent } from '../components/play-topbar.component';
 import { PlayFxService } from '../play-fx.service';
@@ -12,11 +13,11 @@ import { shareCard } from '../share-card';
 
 const GAME_SECONDS = 60;
 const OPTION_COUNT = 4;
+const QUESTION_EVERY = 3;
 
-interface SignRound {
-  sign: Sign;
-  options: Sign[];
-}
+type Round =
+  | { kind: 'sign'; sign: Sign; options: Sign[] }
+  | { kind: 'question'; question: PlayQuestion };
 
 @Component({
   selector: 'app-signs-game-page',
@@ -38,6 +39,20 @@ interface SignRound {
       margin: 0.5rem 0 1rem;
     }
     .sign-img img { max-height: 100%; max-width: 70%; object-fit: contain; }
+    .q-tag {
+      display: inline-block;
+      margin: 0.6rem 0 0.4rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-size: var(--text-xs);
+      font-weight: 700;
+      background: var(--color-primary-soft);
+      color: var(--color-primary);
+    }
+    .q-text { margin: 0 0 0.9rem; font-size: 1.1rem; font-weight: 700; line-height: 1.4; }
+    .q-text.flash-ok { animation: ok 0.3s ease; }
+    .q-text.flash-bad { animation: bad 0.3s ease; }
+    .sign-img.small { height: clamp(6rem, 18vw, 9rem); margin: 0 0 0.8rem; }
     .sign-img.flash-ok img { animation: ok 0.3s ease; }
     .sign-img.flash-bad img { animation: bad 0.3s ease; }
     .opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; }
@@ -77,6 +92,9 @@ interface SignRound {
               <span class="emoji" aria-hidden="true">⚡🚦</span>
               <h2>¿Listo?</h2>
               <p>Verás una señal de tránsito y 4 nombres. Toca el correcto lo más rápido que puedas. Los errores no restan, pero te hacen perder tiempo.</p>
+              @if (hasSchoolQuestions()) {
+                <p>Cada tanto aparecerá una pregunta de los exámenes de tu escuela o instructor.</p>
+              }
               <ui-button type="button" (click)="start()">¡Empezar!</ui-button>
             </div>
           }
@@ -87,22 +105,45 @@ interface SignRound {
                   <span class="timer" [class.low]="secondsLeft() <= 10">⏱ {{ secondsLeft() }} s</span>
                   <span class="score">✔ {{ correct() }}</span>
                 </div>
-                <div class="sign-img" [class.flash-ok]="flash() === 'ok'" [class.flash-bad]="flash() === 'bad'">
-                  <img [src]="media(r.sign.imageUrl)" alt="Señal de tránsito" />
-                </div>
-                <div class="opts">
-                  @for (o of r.options; track o.code) {
-                    <button
-                      type="button"
-                      class="opt"
-                      [class.ok]="picked() && o.code === r.sign.code"
-                      [class.bad]="picked() === o.code && o.code !== r.sign.code"
-                      [disabled]="!!picked()"
-                      (click)="pick(o)">
-                      {{ o.name }}
-                    </button>
+                @if (r.kind === 'sign') {
+                  <div class="sign-img" [class.flash-ok]="flash() === 'ok'" [class.flash-bad]="flash() === 'bad'">
+                    <img [src]="media(r.sign.imageUrl)" alt="Señal de tránsito" />
+                  </div>
+                  <div class="opts">
+                    @for (o of r.options; track o.code) {
+                      <button
+                        type="button"
+                        class="opt"
+                        [class.ok]="correctKey() === o.code"
+                        [class.bad]="picked() === o.code && correctKey() !== o.code"
+                        [disabled]="!!picked()"
+                        (click)="pickSign(o)">
+                        {{ o.name }}
+                      </button>
+                    }
+                  </div>
+                } @else {
+                  <span class="q-tag">📝 Pregunta de tu escuela</span>
+                  @if (r.question.imageUrl) {
+                    <div class="sign-img small">
+                      <img [src]="media(r.question.imageUrl)" alt="Imagen de la pregunta" />
+                    </div>
                   }
-                </div>
+                  <p class="q-text" [class.flash-ok]="flash() === 'ok'" [class.flash-bad]="flash() === 'bad'">{{ r.question.text }}</p>
+                  <div class="opts">
+                    @for (o of r.question.options; track o.id) {
+                      <button
+                        type="button"
+                        class="opt"
+                        [class.ok]="correctKey() === '' + o.id"
+                        [class.bad]="picked() === '' + o.id && correctKey() !== null && correctKey() !== '' + o.id"
+                        [disabled]="!!picked()"
+                        (click)="pickOption(o.id)">
+                        {{ o.text }}
+                      </button>
+                    }
+                  </div>
+                }
               </div>
             }
           }
@@ -139,8 +180,10 @@ export class SignsGamePage implements OnInit, OnDestroy {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly phase = signal<'intro' | 'playing' | 'done'>('intro');
-  readonly round = signal<SignRound | null>(null);
+  readonly round = signal<Round | null>(null);
   readonly picked = signal<string | null>(null);
+  readonly correctKey = signal<string | null>(null);
+  readonly hasSchoolQuestions = signal(false);
   readonly flash = signal<'ok' | 'bad' | null>(null);
   readonly secondsLeft = signal(GAME_SECONDS);
   readonly correct = signal(0);
@@ -152,15 +195,23 @@ export class SignsGamePage implements OnInit, OnDestroy {
 
   private signs: Sign[] = [];
   private deck: Sign[] = [];
+  private questions: PlayQuestion[] = [];
+  private questionDeck: PlayQuestion[] = [];
+  private roundIndex = 0;
   private timer: ReturnType<typeof setInterval> | null = null;
   private endsAt = 0;
 
   ngOnInit(): void {
-    this.api.signs().subscribe({
-      next: (signs) => {
+    forkJoin({
+      signs: this.api.signs(),
+      questions: this.api.signsQuestions().pipe(catchError(() => of([] as PlayQuestion[])))
+    }).subscribe({
+      next: ({ signs, questions }) => {
         this.signs = signs.filter((s) => s.imageUrl && s.name);
+        this.questions = questions.filter((q) => q.options.length >= 2);
+        this.hasSchoolQuestions.set(this.questions.length > 0);
         this.loading.set(false);
-        if (this.signs.length < OPTION_COUNT) {
+        if (!this.canPlay()) {
           this.error.set('Todavía no hay suficientes señales para jugar.');
         }
       },
@@ -176,12 +227,14 @@ export class SignsGamePage implements OnInit, OnDestroy {
   }
 
   start(): void {
-    if (this.signs.length < OPTION_COUNT) return;
+    if (!this.canPlay()) return;
     this.correct.set(0);
     this.total.set(0);
     this.saved.set(null);
     this.shareMsg.set(null);
     this.deck = shuffle([...this.signs]);
+    this.questionDeck = shuffle([...this.questions]);
+    this.roundIndex = 0;
     this.nextRound();
     this.phase.set('playing');
     this.fx.play('start');
@@ -198,11 +251,30 @@ export class SignsGamePage implements OnInit, OnDestroy {
     }, 200);
   }
 
-  pick(option: Sign): void {
+  pickSign(option: Sign): void {
     const r = this.round();
-    if (!r || this.picked() || this.phase() !== 'playing') return;
-    const ok = option.code === r.sign.code;
+    if (!r || r.kind !== 'sign' || this.picked() || this.phase() !== 'playing') return;
     this.picked.set(option.code);
+    this.resolve(option.code === r.sign.code, r.sign.code);
+  }
+
+  pickOption(optionId: number): void {
+    const r = this.round();
+    if (!r || r.kind !== 'question' || this.picked() || this.phase() !== 'playing') return;
+    this.picked.set(String(optionId));
+    this.api.checkSignsQuestion(r.question.id, optionId).subscribe({
+      next: (res) => {
+        if (this.round() !== r) return;
+        this.resolve(res.correct, res.correctOptionId != null ? String(res.correctOptionId) : null);
+      },
+      error: () => {
+        if (this.round() === r && this.phase() === 'playing') this.nextRound();
+      }
+    });
+  }
+
+  private resolve(ok: boolean, correctKey: string | null): void {
+    this.correctKey.set(correctKey);
     this.flash.set(ok ? 'ok' : 'bad');
     this.total.update((n) => n + 1);
     if (ok) this.correct.update((n) => n + 1);
@@ -210,6 +282,10 @@ export class SignsGamePage implements OnInit, OnDestroy {
     setTimeout(() => {
       if (this.phase() === 'playing') this.nextRound();
     }, ok ? 350 : 800);
+  }
+
+  private canPlay(): boolean {
+    return this.signs.length >= OPTION_COUNT || this.questions.length > 0;
   }
 
   async share(): Promise<void> {
@@ -233,6 +309,19 @@ export class SignsGamePage implements OnInit, OnDestroy {
   }
 
   private nextRound(): void {
+    this.roundIndex++;
+    this.picked.set(null);
+    this.correctKey.set(null);
+    this.flash.set(null);
+
+    const signsReady = this.signs.length >= OPTION_COUNT;
+    const questionTurn = this.questions.length > 0 && (!signsReady || this.roundIndex % QUESTION_EVERY === 0);
+    if (questionTurn) {
+      if (!this.questionDeck.length) this.questionDeck = shuffle([...this.questions]);
+      this.round.set({ kind: 'question', question: this.questionDeck.pop()! });
+      return;
+    }
+
     if (!this.deck.length) this.deck = shuffle([...this.signs]);
     const sign = this.deck.pop()!;
     const sameFamily = shuffle(this.signs.filter((s) => s.family === sign.family && s.code !== sign.code));
@@ -240,9 +329,7 @@ export class SignsGamePage implements OnInit, OnDestroy {
     const distractors = [...sameFamily, ...others]
       .filter((s, i, arr) => s.name !== sign.name && arr.findIndex((x) => x.name === s.name) === i)
       .slice(0, OPTION_COUNT - 1);
-    this.round.set({ sign, options: shuffle([sign, ...distractors]) });
-    this.picked.set(null);
-    this.flash.set(null);
+    this.round.set({ kind: 'sign', sign, options: shuffle([sign, ...distractors]) });
   }
 
   private finish(): void {
