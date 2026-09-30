@@ -170,7 +170,8 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
     { label: 'Clases de manejo', path: '/student/practical', icon: 'exam', exact: true, requiresSchool: true },
     { label: 'Mi proceso', path: '/student/progress', icon: 'chart', exact: true },
     { label: 'Mensajes', path: '/notifications', icon: 'bell', exact: true },
-    { label: 'Perfil', path: '/profile', icon: 'users', exact: true }
+    { label: 'Perfil', path: '/profile', icon: 'users', exact: true },
+    { label: 'Apoya Mi CALE', path: '/student/donaciones', icon: 'heart', exact: true }
   ];
 
   return studentNav.filter((item) => !item.requiresSchool || hasSchool);

@@ -348,6 +348,14 @@ export const routes: Routes = [
             .then((m) => m.StudentTrainingPage)
       },
       {
+        path: 'student/donaciones',
+        canActivate: [roleGuard],
+        data: { roles: ['Student'] },
+        loadComponent: () =>
+          import('./features/student/pages/student-donations.page')
+            .then((m) => m.StudentDonationsPage)
+      },
+      {
         path: 'student/normas-transito',
         pathMatch: 'full',
         canActivate: [roleGuard],

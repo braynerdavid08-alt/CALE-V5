@@ -38,6 +38,10 @@
   margin-left: 0.35rem;
 }
 
+.student-donate-btn ui-icon {
+  color: #f43f5e;
+}
+
 .student-brand {
   display: inline-flex;
   align-items: center;
