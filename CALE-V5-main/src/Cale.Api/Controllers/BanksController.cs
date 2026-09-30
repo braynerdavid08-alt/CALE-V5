@@ -54,6 +54,13 @@ public sealed class BanksController : ControllerBase
             role == Roles.Admin));
     }
 
+    [HttpGet("usage")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> Usage(
+        [FromServices] BankUsageService usage,
+        CancellationToken ct) =>
+        Ok(await usage.ListAsync(ct));
+
     [HttpPost]
     [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> Create(

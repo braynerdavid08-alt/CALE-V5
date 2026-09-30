@@ -147,6 +147,21 @@ export interface BankAdminDto {
   difficulties?: BankThemeDto[] | null;
 }
 
+export interface BankUsageDto {
+  bankId: number;
+  createdAt: string;
+  exams: number;
+  publishedExams: number;
+  attempts: number;
+  attemptsLast30Days: number;
+  students: number;
+  liveSessions: number;
+  lastUsedAt: string | null;
+  schools: string[];
+  inUse: boolean;
+  duplicateRole: 'unique' | 'main' | 'duplicate';
+}
+
 export interface ImportExamResultDto {
   examId: number;
   bankId: number;
@@ -445,5 +460,9 @@ export class TeacherApi {
 
   deleteBank(id: number) {
     return this.http.delete<void>(`${this.base}/api/banks/${id}`);
+  }
+
+  bankUsage() {
+    return this.http.get<BankUsageDto[]>(`${this.base}/api/banks/usage`);
   }
 }
