@@ -106,6 +106,7 @@ public sealed partial class GameShowHandler
 
         await _store.SaveChangesAsync(ct);
         await BroadcastLobbyAsync(session, ct);
+        await BroadcastAttemptAsync(session, round, attempt, corrected: true, repeated: false, ct);
         await _broadcaster.EventAsync(session.Id, outcome.EventName, outcome.Payload, ct);
         if (GameShowRoundPhases.IsControl(round.Phase))
         {
@@ -137,8 +138,46 @@ public sealed partial class GameShowHandler
 
         await _store.SaveChangesAsync(ct);
         await BroadcastLobbyAsync(session, ct);
+        await BroadcastAttemptAsync(session, round, attempt, corrected: true, repeated: false, ct);
         await _broadcaster.EventAsync(session.Id, outcome.EventName, outcome.Payload, ct);
         await BroadcastYourTurnAsync(session, round, ct);
+    }
+
+    /// <summary>Lets the projector and phones show what a student typed and the verdict.</summary>
+    private async Task BroadcastAttemptAsync(
+        GameShowSession session,
+        GameShowRound round,
+        GameShowAttempt? attempt,
+        bool corrected,
+        bool repeated,
+        CancellationToken ct)
+    {
+        if (attempt is null)
+        {
+            return;
+        }
+
+        var player = session.Players.FirstOrDefault(p => p.Id == attempt.PlayerId);
+        var matched = round.Answers.FirstOrDefault(a => a.Id == attempt.MatchedAnswerId);
+        await _broadcaster.EventAsync(
+            session.Id,
+            "AttemptSubmitted",
+            new
+            {
+                attemptId = attempt.Id,
+                roundId = round.Id,
+                playerId = attempt.PlayerId,
+                playerName = player?.DisplayName,
+                accentColor = attempt.PlayerId is int pid ? AccentFor(pid) : null,
+                team = attempt.Team,
+                text = attempt.RawText,
+                isCorrect = attempt.IsCorrect,
+                isSteal = attempt.IsSteal,
+                repeated,
+                corrected,
+                matchedText = matched?.Text
+            },
+            ct);
     }
 
     public async Task<AddGameShowAliasResultDto> AddAliasAsync(

@@ -90,6 +90,22 @@ export interface GameShowPackLeaderboardEntryDto {
   endedAt?: string | null;
 }
 
+/** Hub event "AttemptSubmitted": lo que escribió un estudiante y su veredicto. */
+export interface GameShowAttemptEventDto {
+  attemptId: number;
+  roundId: number;
+  playerId: number | null;
+  playerName: string | null;
+  accentColor: string | null;
+  team: string;
+  text: string;
+  isCorrect: boolean;
+  isSteal: boolean;
+  repeated: boolean;
+  corrected: boolean;
+  matchedText: string | null;
+}
+
 export type GameShowAcceptMode = 'FaceOff' | 'ControlStrike' | 'Steal';
 
 export interface GameShowReviewAttemptDto {
