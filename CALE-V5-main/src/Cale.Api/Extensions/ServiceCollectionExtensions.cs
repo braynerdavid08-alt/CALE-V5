@@ -122,6 +122,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<Cale.Api.Services.Play.DuelService>();
         services.AddScoped<Cale.Api.Services.Play.PlayService>();
         services.AddScoped<Cale.Api.Services.Admin.CatalogPurgeService>();
+        services.AddScoped<Cale.Api.Services.Admin.BankUsageService>();
         services.AddHostedService<Cale.Api.Services.Play.PlayNudgeService>();
         services.AddScoped<Cale.Api.Services.AuthCookieService>();
         services.AddCaleAuth(config);
