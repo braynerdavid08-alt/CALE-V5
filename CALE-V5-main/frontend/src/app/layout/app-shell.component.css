@@ -38,8 +38,57 @@
   margin-left: 0.35rem;
 }
 
+.student-donate-btn {
+  margin-left: 0.35rem;
+}
+
 .student-donate-btn ui-icon {
   color: #f43f5e;
+}
+
+@media (max-width: 600px) {
+  .student-normas-btn {
+    display: none;
+  }
+
+  .topbar .topbar-label {
+    display: none;
+  }
+
+  .shell.no-sidebar .topbar {
+    flex-wrap: nowrap;
+  }
+
+  .shell.no-sidebar .topbar .spacer {
+    min-width: 0;
+  }
+
+  .shell.no-sidebar .topbar {
+    gap: 0.3rem;
+    padding-inline: 0.6rem;
+  }
+
+  .shell.no-sidebar .topbar ::ng-deep .notif-btn .btn,
+  .shell.no-sidebar .topbar ::ng-deep .logout-btn .btn {
+    min-width: 0;
+    padding-inline: 0.5rem;
+  }
+
+  .shell.no-sidebar .student-profile-link {
+    padding-inline: 0.15rem;
+  }
+
+  .student-home-btn {
+    padding: 0.5rem 0.7rem;
+  }
+
+  .student-home-btn:not(.student-donate-btn) span {
+    display: none;
+  }
+
+  .student-donate-btn {
+    margin-left: 0;
+  }
 }
 
 .student-brand {
