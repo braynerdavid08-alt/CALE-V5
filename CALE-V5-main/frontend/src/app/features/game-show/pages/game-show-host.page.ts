@@ -10,11 +10,14 @@ import { GameShowSfxService } from '../api/game-show-sfx.service';
 import { phaseHasTurnClock, remainingFromServerSnapshot, secondsUntilDeadline } from '../api/game-show-deadline';
 import { phraseForLightning, phraseForSteal, phraseForStrike3 } from '../api/game-show-phrases';
 import { Router } from '@angular/router';
+import { GameShowReviewPanelComponent } from '../components/game-show-review-panel.component';
+
+const HIDE_ANSWERS_KEY = 'cale.gameshow.hideAnswers';
 
 @Component({
   selector: 'app-game-show-host-page',
   standalone: true,
-  imports: [RouterLink, UiButtonComponent, UiErrorComponent],
+  imports: [RouterLink, UiButtonComponent, UiErrorComponent, GameShowReviewPanelComponent],
   template: `
     @if (lobby(); as L) {
       <section class="host">
@@ -157,12 +160,20 @@ import { Router } from '@angular/router';
             @if (R.phase === 'Steal') {
               <p class="steal">Roba <strong>{{ teamName(L, stealingTeam(R.controllingTeam)) }}</strong> con una sola respuesta. Se lleva el banco ({{ R.roundPointsForController }}).</p>
             }
+            <div class="board-tools">
+              <span class="hint-inline">
+                {{ hideAnswers() ? 'Respuestas ocultas en tu panel.' : 'Solo tú ves las respuestas en gris; el proyector y los celulares siguen tapados.' }}
+              </span>
+              <ui-button type="button" variant="ghost" (click)="toggleHideAnswers()">
+                {{ hideAnswers() ? 'Mostrar respuestas' : 'Ocultar respuestas' }}
+              </ui-button>
+            </div>
             <ol>
               @for (a of R.answers; track a.id) {
-                <li [class.on]="a.isRevealed">
+                <li [class.on]="a.isRevealed" [class.peek]="!a.isRevealed && !hideAnswers()">
                   <span class="rank">{{ a.rank }}</span>
-                  <span class="txt">{{ a.isRevealed ? a.text : (revealingId() === a.id ? '…' : '████████████') }}</span>
-                  <span class="pts">{{ a.isRevealed ? a.points : '??' }}</span>
+                  <span class="txt">{{ revealingId() === a.id ? '…' : a.isRevealed || (!hideAnswers() && a.text) ? a.text : '████████████' }}</span>
+                  <span class="pts">{{ a.isRevealed || (!hideAnswers() && a.points != null) ? a.points : '??' }}</span>
                   @if (!a.isRevealed && R.phase !== 'Finished') {
                     <ui-button type="button" variant="ghost" [disabled]="revealingId() !== null" (click)="reveal(a.id)">
                       {{ revealingId() === a.id ? 'Suspense…' : 'Revelar' }}
@@ -172,6 +183,16 @@ import { Router } from '@angular/router';
               }
             </ol>
           </article>
+        }
+
+        @if (L.status !== 'Lobby') {
+          <app-game-show-review-panel
+            [sessionId]="L.id"
+            [teamAName]="L.teamAName"
+            [teamBName]="L.teamBName"
+            [hideAnswers]="hideAnswers()"
+            [refreshKey]="refreshKey()"
+            (lobbyChanged)="applyLobby($event)" />
         }
 
         @if (!L.currentRound && L.packLeaderboard?.length) {
@@ -272,6 +293,9 @@ import { Router } from '@angular/router';
     ol { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.45rem; }
     li { display: grid; grid-template-columns: 2rem 1fr 3rem auto; gap: 0.5rem; align-items: center; padding: 0.55rem 0.65rem; border-radius: 10px; background: color-mix(in srgb, var(--color-primary) 8%, transparent); }
     li.on { background: color-mix(in srgb, var(--color-success) 18%, transparent); }
+    li.peek .txt, li.peek .pts { color: var(--color-text-secondary); font-style: italic; }
+    .board-tools { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+    .txt { overflow-wrap: anywhere; min-width: 0; }
     .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
     .link { background: none; border: 0; color: var(--color-primary); cursor: pointer; }
     .flash { color: var(--color-success); font-weight: 800; }
@@ -305,6 +329,8 @@ export class GameShowHostPage implements OnInit, OnDestroy {
   readonly copied = signal<string | null>(null);
   readonly timerSec = signal<number | null>(null);
   readonly revealingId = signal<number | null>(null);
+  readonly hideAnswers = signal(localStorage.getItem(HIDE_ANSWERS_KEY) === '1');
+  readonly refreshKey = signal(0);
   private hub: HubConnection | null = null;
   private sessionId = 0;
   private flashTimer: ReturnType<typeof setTimeout> | null = null;
@@ -440,7 +466,14 @@ export class GameShowHostPage implements OnInit, OnDestroy {
     });
   }
 
-  private applyLobby(lobby: GameShowLobbyDto): void {
+  toggleHideAnswers(): void {
+    const next = !this.hideAnswers();
+    this.hideAnswers.set(next);
+    localStorage.setItem(HIDE_ANSWERS_KEY, next ? '1' : '0');
+  }
+
+  applyLobby(lobby: GameShowLobbyDto): void {
+    this.refreshKey.update((n) => n + 1);
     if (lobby.status === 'Ended' && this.lastStatus !== 'Ended') {
       this.api.stats(this.sessionId).subscribe({
         next: (s) => this.stats.set(s),

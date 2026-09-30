@@ -142,6 +142,12 @@ public sealed class GameShowStore : IGameShowStore
         return row;
     }
 
+    public Task<GameShowSettings?> GetSettingsRowAsync(int id, CancellationToken ct) =>
+        _db.Set<GameShowSettings>().FirstOrDefaultAsync(x => x.Id == id, ct);
+
+    public async Task AddSettingsRowAsync(GameShowSettings row, CancellationToken ct) =>
+        await _db.Set<GameShowSettings>().AddAsync(row, ct);
+
     public Task SaveChangesAsync(CancellationToken ct) =>
         _db.SaveChangesAsync(ct);
 }

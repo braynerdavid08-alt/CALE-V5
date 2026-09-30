@@ -7,7 +7,7 @@ using Cale.Modules.GameShow.Domain;
 
 namespace Cale.Modules.GameShow.Application;
 
-public sealed class GameShowHandler
+public sealed partial class GameShowHandler
 {
     private static readonly char[] CodeAlphabet =
         "ABCDEFGHJKLMNPQRSTUVWXYZ23456789".ToCharArray();

@@ -90,6 +90,55 @@ export interface GameShowPackLeaderboardEntryDto {
   endedAt?: string | null;
 }
 
+export type GameShowAcceptMode = 'FaceOff' | 'ControlStrike' | 'Steal';
+
+export interface GameShowReviewAttemptDto {
+  id: number;
+  playerId: number | null;
+  playerName: string | null;
+  team: string;
+  text: string;
+  isCorrect: boolean;
+  isSteal: boolean;
+  matchedAnswerId: number | null;
+  createdAt: string;
+  acceptMode: GameShowAcceptMode | null;
+  canReject: boolean;
+}
+
+export interface GameShowReviewAnswerDto {
+  id: number;
+  rank: number;
+  text: string;
+  points: number;
+  isRevealed: boolean;
+  aliases: string[];
+}
+
+export interface GameShowReviewRoundDto {
+  roundId: number;
+  sortOrder: number;
+  questionText: string;
+  phase: string;
+  isCurrent: boolean;
+  isOfficialQuestion: boolean;
+  answers: GameShowReviewAnswerDto[];
+  attempts: GameShowReviewAttemptDto[];
+}
+
+export interface GameShowHostReviewDto {
+  sessionId: number;
+  sourcePackId: number | null;
+  canEditPack: boolean;
+  canEditOfficial: boolean;
+  rounds: GameShowReviewRoundDto[];
+}
+
+export interface GameShowAddAliasResultDto {
+  savedTo: 'session' | 'pack' | 'official';
+  message: string;
+}
+
 export interface GameShowLobbyDto {
   id: number;
   title: string;
@@ -383,6 +432,30 @@ export class GameShowApi {
 
   finish(id: number) {
     return this.http.post<GameShowLobbyDto>(`${this.base}/api/game-show/${id}/finish`, {});
+  }
+
+  /** Vista del profesor: respuestas completas + lo que escribió cada estudiante. */
+  review(id: number) {
+    return this.http.get<GameShowHostReviewDto>(`${this.base}/api/game-show/${id}/review`);
+  }
+
+  acceptAttempt(id: number, attemptId: number, answerId: number) {
+    return this.http.post<GameShowLobbyDto>(
+      `${this.base}/api/game-show/${id}/attempts/${attemptId}/accept`,
+      { answerId }
+    );
+  }
+
+  rejectAttempt(id: number, attemptId: number) {
+    return this.http.post<GameShowLobbyDto>(`${this.base}/api/game-show/${id}/attempts/${attemptId}/reject`, {});
+  }
+
+  addAlias(id: number, roundId: number, answerId: number, alias: string) {
+    return this.http.post<GameShowAddAliasResultDto>(`${this.base}/api/game-show/${id}/aliases`, {
+      roundId,
+      answerId,
+      alias
+    });
   }
 
   /** Pack oficial precargado (rondas listas para revisar y crear). */

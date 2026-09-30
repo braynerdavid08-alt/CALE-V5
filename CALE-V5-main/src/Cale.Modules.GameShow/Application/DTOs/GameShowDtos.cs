@@ -30,6 +30,52 @@ public sealed record AssignPlayerRequest(int PlayerId, string Team);
 
 public sealed record ForceBuzzRequest(string Team);
 
+public sealed record AcceptGameShowAttemptRequest(int AnswerId);
+
+public sealed record AddGameShowAliasRequest(int RoundId, int AnswerId, string Alias);
+
+/// <summary>Where a new alias was persisted: "session", "pack" or "official".</summary>
+public sealed record AddGameShowAliasResultDto(string SavedTo, string Message);
+
+public sealed record GameShowHostReviewDto(
+    int SessionId,
+    int? SourcePackId,
+    bool CanEditPack,
+    bool CanEditOfficial,
+    IReadOnlyList<GameShowReviewRoundDto> Rounds);
+
+public sealed record GameShowReviewRoundDto(
+    int RoundId,
+    int SortOrder,
+    string QuestionText,
+    string Phase,
+    bool IsCurrent,
+    bool IsOfficialQuestion,
+    IReadOnlyList<GameShowReviewAnswerDto> Answers,
+    IReadOnlyList<GameShowReviewAttemptDto> Attempts);
+
+public sealed record GameShowReviewAnswerDto(
+    int Id,
+    int Rank,
+    string Text,
+    int Points,
+    bool IsRevealed,
+    IReadOnlyList<string> Aliases);
+
+public sealed record GameShowReviewAttemptDto(
+    int Id,
+    int? PlayerId,
+    string? PlayerName,
+    string Team,
+    string Text,
+    bool IsCorrect,
+    bool IsSteal,
+    int? MatchedAnswerId,
+    DateTime CreatedAt,
+    // "FaceOff", "ControlStrike", "Steal" or null when it can no longer be overruled.
+    string? AcceptMode,
+    bool CanReject);
+
 public sealed record GameShowLobbyDto(
     int Id,
     string Title,

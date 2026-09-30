@@ -233,6 +233,9 @@ public sealed class GameShowSettingsTests
             Task.FromResult<IReadOnlyList<GameShowSession>>([]);
         public Task<GameShowSettings> GetOrCreateSettingsAsync(CancellationToken ct) =>
             Task.FromResult(new GameShowSettings());
+        public Task<GameShowSettings?> GetSettingsRowAsync(int id, CancellationToken ct) =>
+            Task.FromResult<GameShowSettings?>(null);
+        public Task AddSettingsRowAsync(GameShowSettings row, CancellationToken ct) => Task.CompletedTask;
         public Task SaveChangesAsync(CancellationToken ct) => Task.CompletedTask;
     }
 }

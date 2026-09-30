@@ -108,6 +108,8 @@ public sealed class GameShowSessionSettings
 public sealed class GameShowSettings
 {
     public const int SingletonId = 1;
+    /// <summary>Row whose PayloadJson holds admin-approved aliases merged into the official pack.</summary>
+    public const int OfficialAliasesId = 2;
 
     public int Id { get; set; } = SingletonId;
     public string PayloadJson { get; set; } = GameShowSessionSettings.Serialize(GameShowSessionSettings.CreateDefaults());

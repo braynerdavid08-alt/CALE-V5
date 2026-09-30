@@ -7,6 +7,10 @@ namespace Cale.Modules.GameShow.Application;
 
 public static class GameShowAnswerMatcher
 {
+    /// <summary>Keeps the serialized list under the 2000-char AliasesJson column (aliases ≤ 60 chars).</summary>
+    public const int MaxAliases = 30;
+    public const int MaxAliasLength = 60;
+
     private static readonly Regex NonLetters = new(@"[^\p{L}\p{N}\s]", RegexOptions.Compiled);
 
     public static bool Matches(string submitted, string canonical, string aliasesJson)
@@ -93,7 +97,7 @@ public static class GameShowAnswerMatcher
             .Select(a => a.Trim())
             .Where(a => a.Length > 0)
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Take(12)
+            .Take(MaxAliases)
             .ToList();
         return JsonSerializer.Serialize(list);
     }
