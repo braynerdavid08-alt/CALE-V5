@@ -8,15 +8,15 @@ import { mapApiError } from '../../../core/http/map-api-error';
 import {
   CodigoArticle,
   CodigoArticleSummary,
-  CodigoBlock,
   CodigoMeta,
   CodigoTransitoApi
 } from '../codigo-transito.api';
+import { CodigoBlocksComponent } from '../components/codigo-blocks.component';
 
 @Component({
   selector: 'app-codigo-transito-page',
   standalone: true,
-  imports: [FormsModule, UiButtonComponent, UiErrorComponent, UiPageHeaderComponent],
+  imports: [FormsModule, CodigoBlocksComponent, UiButtonComponent, UiErrorComponent, UiPageHeaderComponent],
   template: `
     <ui-page-header
       title="Biblioteca Jurídica"
@@ -81,14 +81,9 @@ import {
             }
           </header>
           <article class="body">
-            @for (b of art.blocks || []; track $index) {
-              @if (b.type === 'note') {
-                <p class="note" [attr.data-variant]="b.variant || ''">{{ blockText(b) }}</p>
-              } @else {
-                <p class="para">{{ blockText(b) }}</p>
-              }
-            }
-            @if (!art.blocks.length) {
+            @if (art.blocks.length) {
+              <codigo-blocks [blocks]="art.blocks" />
+            } @else {
               <pre class="plain">{{ art.plainText }}</pre>
             }
           </article>
@@ -146,17 +141,6 @@ import {
     .head h2 { margin: 0.2rem 0 0.35rem; line-height: 1.2; }
     .source { font-weight: 700; color: var(--color-primary); }
     .body { display: grid; gap: 0.85rem; }
-    .note {
-      margin: 0;
-      padding: 0.75rem 0.9rem;
-      border-radius: 10px;
-      border-left: 4px solid #d97706;
-      background: color-mix(in srgb, #d97706 12%, transparent);
-      font-weight: 700;
-    }
-    .note[data-variant='adicionado'] { border-left-color: #059669; background: color-mix(in srgb, #059669 12%, transparent); }
-    .note[data-variant='derogado'] { border-left-color: #dc2626; background: color-mix(in srgb, #dc2626 12%, transparent); }
-    .para { margin: 0; line-height: 1.55; white-space: pre-wrap; }
     .plain { white-space: pre-wrap; font: inherit; }
   `]
 })
@@ -207,23 +191,6 @@ export class CodigoTransitoPage implements OnInit {
 
   back(): void {
     void this.router.navigate([this.basePath]);
-  }
-
-  blockText(b: CodigoBlock): string {
-    const c = b.content;
-    if (!c) return '';
-    if (typeof c === 'string') return c;
-    if (!Array.isArray(c)) return '';
-    return c
-      .map((x) => {
-        if (!x) return '';
-        if (typeof x === 'string') return x;
-        if (typeof x === 'object' && x && 'text' in x && typeof (x as { text?: string }).text === 'string') {
-          return (x as { text: string }).text;
-        }
-        return '';
-      })
-      .join('');
   }
 
   private reloadList(q?: string): void {
