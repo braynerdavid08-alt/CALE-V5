@@ -15,7 +15,10 @@ TestResults/
 *.db
 *.db-shm
 *.db-wal
+backups/
+*.dump
 appsettings.Development.local.json
+appsettings.Development.local.json.bak
 src/Cale.Api/wwwroot/uploads/*
 !src/Cale.Api/wwwroot/uploads/.gitkeep
 .build-out/
