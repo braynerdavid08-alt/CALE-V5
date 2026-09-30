@@ -55,6 +55,50 @@ public sealed partial class PlayService
             return [];
         }
 
+        return (await InactiveCoreAsync(students, days, ct)).Take(200).ToList();
+    }
+
+    /// <summary>
+    /// Once a day (Colombia evening) nudges students that have not practised in the last day.
+    /// Only accounts that logged in at least once and went quiet less than 60 days ago.
+    /// </summary>
+    public async Task<int> SendAutoNudgesAsync(CancellationToken ct)
+    {
+        var students = await ScopedStudentsAsync(0, Roles.Admin, ct);
+        if (students.Count == 0)
+        {
+            return 0;
+        }
+
+        var inactive = (await InactiveCoreAsync(students, 1, ct))
+            .Where(s => s.LastActivityAt is not null && s.DaysInactive is >= 1 and <= 60)
+            .ToList();
+        var today = DateOnly.FromDateTime(_clock.UtcNow.AddHours(ColombiaUtcOffsetHours));
+        var day = today.ToString("yyyyMMdd");
+
+        foreach (var s in inactive)
+        {
+            var (title, body) = PlayNudges.ForInactive(s.UserId, today, s.DaysInactive);
+            await _notifications.NotifyUsersAsync(
+                [s.UserId],
+                new NotificationDraft(
+                    title,
+                    body,
+                    NotificationTypes.Reminder,
+                    Link: "/student/play/daily",
+                    Priority: NotificationPriorities.High,
+                    DedupeKey: $"nudge:{s.UserId}:{day}"),
+                ct);
+        }
+
+        return inactive.Count;
+    }
+
+    private async Task<List<InactiveStudentDto>> InactiveCoreAsync(
+        List<ScopedStudent> students,
+        int days,
+        CancellationToken ct)
+    {
         var ids = students.Select(s => s.Id).ToList();
         var lastActivity = students.ToDictionary(s => s.Id, s => s.LastLoginAt);
         void Bump(int id, DateTime? at)
@@ -108,7 +152,6 @@ public sealed partial class PlayService
             .Where(s => s.LastActivityAt is null || s.LastActivityAt < cutoff)
             .OrderBy(s => s.LastActivityAt is null ? 0 : 1)
             .ThenBy(s => s.LastActivityAt)
-            .Take(200)
             .ToList();
     }
 
@@ -135,14 +178,16 @@ public sealed partial class PlayService
             .Select(u => u.Name)
             .FirstOrDefaultAsync(ct) ?? "Tu escuela";
         var day = _clock.UtcNow.ToString("yyyyMMdd");
+        var today = DateOnly.FromDateTime(_clock.UtcNow.AddHours(ColombiaUtcOffsetHours));
 
         foreach (var id in targets)
         {
+            var (title, body) = PlayNudges.FromActor(id, today, PublicName(actorName));
             await _notifications.NotifyUsersAsync(
                 [id],
                 new NotificationDraft(
-                    "Te extrañamos en Mi CALE",
-                    $"{actorName} te recuerda practicar. Haz el reto diario de hoy: son solo 5 preguntas.",
+                    title,
+                    body,
                     NotificationTypes.Reminder,
                     Link: "/student/play/daily",
                     Priority: NotificationPriorities.High,
@@ -199,6 +244,8 @@ public sealed partial class PlayService
             .Select(u => new ScopedStudent(u.Id, u.Name, u.Email, u.LastLoginAt))
             .ToList();
     }
+
+    internal const int ColombiaUtcOffsetHours = -5;
 
     private sealed record ScopedStudent(int Id, string Name, string Email, DateTime? LastLoginAt);
 }

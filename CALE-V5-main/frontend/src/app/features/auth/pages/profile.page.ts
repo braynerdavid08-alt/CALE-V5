@@ -19,6 +19,7 @@ import { UiSuccessComponent } from '../../../shared/ui/ui-success.component';
 import { roleLabel } from '../../../shared/utils/role-label';
 import { AuthApi } from '../api/auth.api';
 import { AuthFacade } from '../application/auth.facade';
+import { PushSettingsComponent } from '../components/push-settings.component';
 
 type ProfileTab = 'account' | 'preferences' | 'security' | 'context';
 
@@ -42,6 +43,7 @@ interface SchoolJoinRequestDto {
   standalone: true,
   imports: [
     DatePipe,
+    PushSettingsComponent,
     ReactiveFormsModule,
     RouterLink,
     UiBadgeComponent,
