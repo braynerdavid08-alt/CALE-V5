@@ -101,8 +101,8 @@ public static class CatalogSeed
         {
             if (!allowReplaceExisting)
             {
-                logger.LogWarning(
-                    "Bank '{Name}' requested ReplaceExisting but Seed:Catalog:AllowReplaceExisting=false; skipping wipe.",
+                logger.LogInformation(
+                    "Bank '{Name}' already exists; keeping its questions (Seed:Catalog:AllowReplaceExisting=false).",
                     bank.Name);
             }
             else
