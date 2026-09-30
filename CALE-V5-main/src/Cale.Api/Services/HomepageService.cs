@@ -82,7 +82,7 @@ public sealed class HomepageService
             }
 
             var dto = MapPublic(settings, stats, schools, instructors);
-            _cache.Set(PublicCacheKey, dto, CacheTtl);
+            CacheSmall(PublicCacheKey, dto, CacheTtl);
             return dto;
         }
         catch (Exception ex)
@@ -90,8 +90,25 @@ public sealed class HomepageService
             _logger.LogError(ex, "Homepage CMS unavailable; serving emergency landing.");
             // Never touch the DbContext again here — it may be poisoned after a failed SQL.
             var fallback = EmergencyHome();
-            _cache.Set(PublicCacheKey, fallback, TimeSpan.FromSeconds(20));
+            CacheSmall(PublicCacheKey, fallback, TimeSpan.FromSeconds(20));
             return fallback;
+        }
+    }
+
+    // The shared cache has a SizeLimit, so every entry must declare a Size.
+    private void CacheSmall<T>(string key, T value, TimeSpan ttl)
+    {
+        try
+        {
+            _cache.Set(key, value, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = ttl,
+                Size = 1
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not cache {Key}.", key);
         }
     }
 
@@ -342,7 +359,7 @@ public sealed class HomepageService
             }).ToList();
 
             var dto = new PublicTestimonialsDto(Math.Round(average, 1), count, items);
-            _cache.Set(cacheKey, dto, TimeSpan.FromMinutes(5));
+            CacheSmall(cacheKey, dto, TimeSpan.FromMinutes(5));
             return dto;
         }
         catch (Exception ex)
