@@ -9,7 +9,9 @@ import { PlayFxService } from '../play-fx.service';
   imports: [RouterLink],
   template: `
     <header class="top">
-      <a class="back" [routerLink]="back">← {{ backLabel }}</a>
+      @if (back && back !== '/student') {
+        <a class="back" [routerLink]="back">← {{ backLabel }}</a>
+      }
       <button
         type="button"
         class="mute"
@@ -28,6 +30,7 @@ import { PlayFxService } from '../play-fx.service';
   styles: [`
     :host { display: grid; gap: 0.6rem; }
     .top { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+    .mute { margin-left: auto; }
     .back { color: var(--color-primary); font-weight: 700; text-decoration: none; }
     .back:hover { text-decoration: underline; }
     .mute {

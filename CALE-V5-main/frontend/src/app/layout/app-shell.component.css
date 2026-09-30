@@ -445,26 +445,6 @@
   flex: 1;
 }
 
-.student-back-bar {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin: 0 0 1rem;
-  padding: 0.7rem 1.05rem;
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
-  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
-  color: var(--color-primary);
-  font-weight: 800;
-  font-size: 1.05rem;
-  text-decoration: none;
-  line-height: 1.2;
-}
-
-.student-back-bar:hover {
-  background: color-mix(in srgb, var(--color-primary) 20%, var(--color-surface));
-}
-
 .scrim { display: none; }
 
 @media (max-width: 900px) {
