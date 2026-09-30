@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { AnswerSound, playAnswerSound, preloadAnswerSounds } from '../../../core/sound/answer-sounds';
 
 export type GameShowSfx =
   | 'buzz'
@@ -16,13 +17,25 @@ export type GameShowSfx =
   | 'confetti'
   | 'lightning';
 
+const ANSWER_FILE: Partial<Record<GameShowSfx, AnswerSound>> = {
+  correct: 'correct',
+  strike: 'wrong',
+  strike2: 'wrong',
+  stealFail: 'wrong'
+};
+
 /**
- * Lightweight Web Audio cues for projector/host — no asset files required.
+ * Sound cues for projector/host: correct / wrong use the app's audio files,
+ * the rest are Web Audio tones. The third strike keeps its louder stinger.
  */
 @Injectable({ providedIn: 'root' })
 export class GameShowSfxService {
   private ctx: AudioContext | null = null;
   muted = false;
+
+  constructor() {
+    preloadAnswerSounds();
+  }
 
   unlock(): void {
     const ctx = this.ensureCtx();
@@ -40,6 +53,15 @@ export class GameShowSfxService {
 
   play(kind: GameShowSfx): void {
     if (this.muted || typeof window === 'undefined') return;
+    const file = ANSWER_FILE[kind];
+    if (file) {
+      playAnswerSound(file, 1, () => this.synth(kind));
+      return;
+    }
+    this.synth(kind);
+  }
+
+  private synth(kind: GameShowSfx): void {
     try {
       const ctx = this.ensureCtx();
       if (ctx.state === 'suspended') void ctx.resume();
