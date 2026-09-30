@@ -2,11 +2,19 @@
 <auth-back-home />
 <section class="auth">
   <div class="brand-side">
-    <img class="brand-logo" [src]="brand.icon192" [alt]="brand.name" width="120" height="120" />
-    <p class="brand-name">{{ brand.name }}</p>
-    <p class="brand-slogan">{{ brand.slogan }}</p>
-    <h1>Confirma tu correo</h1>
-    <p>Te enviamos un código de 6 dígitos. Úsalo para activar tu cuenta.</p>
+    <a class="brand-row" routerLink="/">
+      <img class="brand-logo" [src]="brand.icon192" [alt]="brand.name" width="56" height="56" />
+      <span>
+        <strong>{{ brand.name }}</strong>
+        <small>{{ brand.slogan }}</small>
+      </span>
+    </a>
+    <h1>Ya casi <span class="hl">terminas</span></h1>
+    <p class="brand-lead">Te enviamos un código de 6 dígitos. Úsalo para activar tu cuenta.</p>
+    <ul class="perks">
+      <li>Revisa tu bandeja de entrada y la carpeta de spam</li>
+      <li>El código vence pronto; si no llega, pide uno nuevo</li>
+    </ul>
   </div>
   <div class="auth-card">
     <p class="eyebrow">Verificación</p>
@@ -47,12 +55,18 @@
       </label>
       <ui-button type="submit" [loading]="auth.loading()">Confirmar y entrar</ui-button>
     </form>
-    <p class="hint signup-label">¿No llegó el correo?</p>
+    <p class="divider">¿No llegó el correo?</p>
     <div class="signup-options">
       <button type="button" class="signup-option" (click)="resend()" [disabled]="auth.loading()">
-        Reenviar código
+        <span class="opt-icon" aria-hidden="true">📨</span>
+        <span class="opt-title">Reenviar código</span>
+        <span class="opt-desc">Te llega en unos segundos</span>
       </button>
-      <a class="signup-option" routerLink="/login">Volver al inicio de sesión</a>
+      <a class="signup-option" routerLink="/login">
+        <span class="opt-icon" aria-hidden="true">↩️</span>
+        <span class="opt-title">Iniciar sesión</span>
+        <span class="opt-desc">Volver al ingreso</span>
+      </a>
     </div>
   </div>
 </section>

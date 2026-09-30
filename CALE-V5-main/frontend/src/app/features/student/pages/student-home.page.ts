@@ -43,7 +43,6 @@ export class StudentHomePage implements OnInit {
   readonly games = [
     { id: 'signs', label: 'Señal relámpago', hint: '¿Cuántas señales en 60 s?', path: '/student/play/signs', emoji: '⚡' },
     { id: 'duel', label: 'Duelo 1 vs 1', hint: 'Reta a un compañero', path: '/student/play/duel', emoji: '⚔️' },
-    { id: 'ranking', label: 'Ranking semanal', hint: 'Compite con tu escuela', path: '/student/play/ranking', emoji: '🏁' },
     { id: 'achievements', label: 'Mis logros', hint: 'Nivel e insignias', path: '/student/play/achievements', emoji: '🏅' }
   ];
 
@@ -70,14 +69,6 @@ export class StudentHomePage implements OnInit {
       path: '/live/join',
       icon: 'play',
       tone: 'blue'
-    },
-    {
-      id: 'simulator',
-      label: 'Simulacro',
-      hint: 'Practica el examen',
-      path: '/student/simulator',
-      icon: 'exam',
-      tone: 'green'
     },
     {
       id: 'classes',
@@ -110,14 +101,6 @@ export class StudentHomePage implements OnInit {
       path: '/student/progress',
       icon: 'list',
       tone: 'green'
-    },
-    {
-      id: 'messages',
-      label: 'Mensajes',
-      hint: 'Leer avisos',
-      path: '/notifications',
-      icon: 'bell',
-      tone: 'violet'
     },
     {
       id: 'profile',

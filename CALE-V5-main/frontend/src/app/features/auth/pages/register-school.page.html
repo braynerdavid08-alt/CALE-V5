@@ -2,56 +2,89 @@
 <auth-back-home />
 <section class="auth school-auth">
   <div class="brand-side">
-    <img class="brand-logo" [src]="brand.icon192" [alt]="brand.name" width="120" height="120" />
-    <p class="brand-name">{{ brand.name }}</p>
-    <p class="brand-slogan">{{ brand.slogan }}</p>
-    <h1>Registro de escuela</h1>
-    <p>Completa facturación, elige un plan y luego paga + sube el comprobante para que un administrador active tu membresía.</p>
+    <a class="brand-row" routerLink="/">
+      <img class="brand-logo" [src]="brand.icon192" [alt]="brand.name" width="56" height="56" />
+      <span>
+        <strong>{{ brand.name }}</strong>
+        <small>{{ brand.slogan }}</small>
+      </span>
+    </a>
+    <h1>Gestiona tu escuela <span class="hl">sin papeles</span></h1>
+    <p class="brand-lead">Aprendices, pagos, formación y exámenes de tu CEA en un solo panel.</p>
+    <ul class="perks">
+      <li>Aprendices, saldos y autorizaciones en un solo lugar</li>
+      <li>Programación de teoría, práctica y citas de examen</li>
+      <li>Resultados por estudiante con fechas y exportación a Excel</li>
+      <li>Aula en vivo y presentaciones para tus instructores</li>
+    </ul>
+    <div class="brand-foot">
+      <span class="foot-icon" aria-hidden="true">🧾</span>
+      <span>
+        <strong>¿Cómo se activa?</strong>
+        Registra la escuela, elige un plan, paga y sube el comprobante. Un administrador activa tu membresía.
+      </span>
+    </div>
   </div>
+
   <div class="auth-card">
-    <p class="eyebrow">Escuela</p>
-    <h2>Crear cuenta</h2>
-    <p class="lead">Los datos fiscales son obligatorios para emitir factura a nombre de la escuela.</p>
+    <p class="eyebrow">Cuenta de escuela</p>
+    <h2>Registrar mi escuela</h2>
+    <p class="lead">Los datos fiscales son obligatorios para emitir la factura a nombre de la escuela.</p>
     <ui-error [message]="auth.error() || plansError()" />
 
     <form [formGroup]="form" (ngSubmit)="submit()">
       <fieldset>
-        <legend>Acceso</legend>
+        <legend><span class="step">1</span> Acceso</legend>
         <label class="field">
           Nombre del responsable
-          <input formControlName="contactName" autocomplete="name" />
+          <input formControlName="contactName" autocomplete="name" placeholder="Nombre y apellido" />
         </label>
         <label class="field">
           Correo de acceso
-          <input type="email" formControlName="email" autocomplete="email" />
+          <input type="email" formControlName="email" autocomplete="email" placeholder="escuela@ejemplo.com" />
         </label>
         <label class="field">
           Contraseña
-          <input type="password" formControlName="password" autocomplete="new-password" />
+          <span class="pwd">
+            <input
+              [type]="showPassword() ? 'text' : 'password'"
+              formControlName="password"
+              autocomplete="new-password"
+              placeholder="Mínimo 8 caracteres" />
+            <button
+              type="button"
+              class="pwd-toggle"
+              [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+              (click)="showPassword.set(!showPassword())">
+              {{ showPassword() ? 'Ocultar' : 'Mostrar' }}
+            </button>
+          </span>
         </label>
       </fieldset>
 
       <fieldset>
-        <legend>Facturación</legend>
+        <legend><span class="step">2</span> Facturación</legend>
         <label class="field">
           Razón social
-          <input formControlName="legalName" autocomplete="organization" />
+          <input formControlName="legalName" autocomplete="organization" placeholder="CEA Ejemplo S.A.S." />
         </label>
-        <label class="field">
-          NIT
-          <input formControlName="taxId" />
-        </label>
+        <div class="grid-2-fields">
+          <label class="field">
+            NIT
+            <input formControlName="taxId" placeholder="900123456-7" />
+          </label>
+          <label class="field">
+            Teléfono
+            <input formControlName="phone" autocomplete="tel" placeholder="300 123 4567" />
+          </label>
+        </div>
         <label class="field">
           Correo de facturación
-          <input type="email" formControlName="billingEmail" autocomplete="email" />
-        </label>
-        <label class="field">
-          Teléfono
-          <input formControlName="phone" autocomplete="tel" />
+          <input type="email" formControlName="billingEmail" autocomplete="email" placeholder="facturacion@ejemplo.com" />
         </label>
         <label class="field">
           Dirección
-          <input formControlName="address" autocomplete="street-address" />
+          <input formControlName="address" autocomplete="street-address" placeholder="Calle 10 # 5-20" />
         </label>
         <div class="grid-2-fields">
           <label class="field">
@@ -66,13 +99,14 @@
       </fieldset>
 
       <fieldset>
-        <legend>Plan</legend>
+        <legend><span class="step">3</span> Plan</legend>
         <div class="plans">
           @for (plan of plans(); track plan.code) {
             <button
               type="button"
               class="plan"
               [class.selected]="form.controls.planCode.value === plan.code"
+              [attr.aria-pressed]="form.controls.planCode.value === plan.code"
               (click)="selectPlan(plan.code)">
               <span class="plan-label">{{ plan.label }}</span>
               <strong>{{ plan.priceCop | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
@@ -94,10 +128,19 @@
       ¿Ya tienes cuenta?
       <a routerLink="/login">Iniciar sesión</a>
     </p>
-    <p class="hint signup-label">Otros registros</p>
+
+    <p class="divider">Otros tipos de cuenta</p>
     <div class="signup-options">
-      <a class="signup-option" routerLink="/register">Crear estudiante</a>
-      <a class="signup-option" routerLink="/register-teacher">Crear instructor</a>
+      <a class="signup-option" routerLink="/register">
+        <span class="opt-icon" aria-hidden="true">🎓</span>
+        <span class="opt-title">Estudiante</span>
+        <span class="opt-desc">Prepárate para el examen</span>
+      </a>
+      <a class="signup-option" routerLink="/register-teacher">
+        <span class="opt-icon" aria-hidden="true">🧑‍🏫</span>
+        <span class="opt-title">Instructor</span>
+        <span class="opt-desc">Guía a tus grupos</span>
+      </a>
     </div>
   </div>
 </section>

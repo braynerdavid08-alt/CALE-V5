@@ -30,6 +30,7 @@ export class LoginPage implements OnInit {
   readonly auth = inject(AuthFacade);
   readonly brand = BRAND;
 
+  readonly showPassword = signal(false);
   returnUrl: string | null = null;
   readonly sessionExpired =
     (this.router.getCurrentNavigation()?.extras.state as { reason?: string } | undefined)?.reason

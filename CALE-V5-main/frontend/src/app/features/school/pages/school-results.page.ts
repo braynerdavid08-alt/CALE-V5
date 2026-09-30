@@ -2,37 +2,30 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { env } from '../../../core/config/env';
-import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiEmptyComponent } from '../../../shared/ui/ui-empty.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
-
-interface ResultRow {
-  attemptId: number;
-  userName: string;
-  percent: number;
-  passed: boolean;
-  mode: string;
-}
+import {
+  ResultAttempt,
+  UiResultsByStudentComponent
+} from '../../../shared/ui/ui-results-by-student.component';
 
 @Component({
   selector: 'app-school-results-page',
   standalone: true,
   imports: [
-    UiBadgeComponent,
-    UiButtonComponent,
     UiEmptyComponent,
     UiErrorComponent,
     UiLoadingComponent,
-    UiPageHeaderComponent
+    UiPageHeaderComponent,
+    UiResultsByStudentComponent
   ],
   template: `
     <ui-page-header
       eyebrow="Escuela"
       title="Resultados"
-      subtitle="Intentos finalizados de tus aprendices en la plataforma." />
+      subtitle="Intentos finalizados de tus aprendices, agrupados por estudiante y ordenados por fecha." />
 
     <ui-error [message]="error()" />
 
@@ -43,68 +36,18 @@ interface ResultRow {
         title="Sin resultados"
         message="Cuando tus aprendices terminen evaluaciones o el simulador, verás los puntajes aquí." />
     } @else {
-      <div class="toolbar">
-        <p class="hint">{{ items().length }} intento(s)</p>
-        <ui-button type="button" variant="secondary" (click)="exportCsv()">Exportar CSV</ui-button>
-      </div>
-      <section class="table-card">
-        <div class="table-wrap">
-          <table class="data">
-            <thead>
-              <tr>
-                <th>Estudiante</th>
-                <th>Modo</th>
-                <th>%</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (item of items(); track item.attemptId) {
-                <tr>
-                  <td data-label="Estudiante">{{ item.userName }}</td>
-                  <td data-label="Modo">{{ item.mode }}</td>
-                  <td data-label="%">{{ item.percent }}%</td>
-                  <td data-label="Estado">
-                    <ui-badge [tone]="item.passed ? 'success' : 'danger'">
-                      {{ item.passed ? 'Aprobado' : 'No aprobado' }}
-                    </ui-badge>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <ui-results-by-student [items]="items()" csvName="resultados-escuela.csv" />
     }
-  `,
-  styles: [`
-    .table-card {
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-    }
-    .hint {
-      margin: 0;
-      color: var(--color-text-secondary);
-      font-size: var(--text-sm);
-    }
-    .toolbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-      margin: 0 0 0.85rem;
-      flex-wrap: wrap;
-    }
-  `]
+  `
 })
 export class SchoolResultsPage implements OnInit {
   private readonly http = inject(HttpClient);
-  readonly items = signal<ResultRow[]>([]);
+  readonly items = signal<ResultAttempt[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
 
   ngOnInit(): void {
-    this.http.get<ResultRow[]>(`${env.apiUrl}/api/school/results`).subscribe({
+    this.http.get<ResultAttempt[]>(`${env.apiUrl}/api/school/results`).subscribe({
       next: (items) => {
         this.items.set(items);
         this.loading.set(false);
@@ -114,29 +57,5 @@ export class SchoolResultsPage implements OnInit {
         this.error.set(mapApiError(err));
       }
     });
-  }
-
-  exportCsv(): void {
-    const rows = this.items();
-    if (!rows.length) {
-      return;
-    }
-    const esc = (v: string | number | boolean) => {
-      const s = String(v);
-      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-    };
-    const lines = [
-      ['Estudiante', 'Modo', 'Porcentaje', 'Aprobado'].join(','),
-      ...rows.map((r) =>
-        [esc(r.userName), esc(r.mode), esc(r.percent), esc(r.passed ? 'Sí' : 'No')].join(',')
-      )
-    ];
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'resultados-escuela.csv';
-    a.click();
-    URL.revokeObjectURL(url);
   }
 }

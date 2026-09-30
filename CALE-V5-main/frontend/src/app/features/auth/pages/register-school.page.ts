@@ -30,6 +30,7 @@ export class RegisterSchoolPage implements OnInit {
   private readonly api = inject(AuthApi);
   readonly auth = inject(AuthFacade);
   readonly brand = BRAND;
+  readonly showPassword = signal(false);
 
   readonly plans = signal<SchoolPlanDto[]>([]);
   readonly plansError = signal<string | null>(null);
