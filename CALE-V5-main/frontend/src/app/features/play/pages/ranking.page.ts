@@ -66,13 +66,13 @@ import { PlayTopbarComponent } from '../components/play-topbar.component';
 
         @if (d.scopes.length > 1) {
           <div class="scopes" role="tablist" aria-label="Tipo de ranking">
-            @for (s of d.scopes; track s.scope + (s.groupId ?? '')) {
+            @for (s of d.scopes; track $index) {
               <button
                 type="button"
                 role="tab"
                 class="scope"
-                [class.active]="isActive(s, d)"
-                [attr.aria-selected]="isActive(s, d)"
+                [class.active]="isActive(s)"
+                [attr.aria-selected]="isActive(s)"
                 (click)="select(s)">
                 {{ s.label }}
               </button>
@@ -133,8 +133,9 @@ export class RankingPage implements OnInit {
     this.load();
   }
 
-  isActive(s: RankingScope, d: Ranking): boolean {
-    return s.scope === d.scope && (s.scope !== 'group' || s.groupId === d.groupId);
+  isActive(s: RankingScope): boolean {
+    const d = this.data();
+    return !!d && s.scope === d.scope && (s.scope !== 'group' || s.groupId === d.groupId);
   }
 
   toggleVisibility(event: Event): void {

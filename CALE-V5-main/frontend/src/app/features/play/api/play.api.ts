@@ -121,6 +121,11 @@ export interface Sign {
   imageUrl: string;
 }
 
+export interface QuickCheck {
+  correct: boolean;
+  correctOptionId?: number | null;
+}
+
 export interface GameSaved {
   score: number;
   best: number;
@@ -246,6 +251,14 @@ export class PlayApi {
 
   signs() {
     return this.http.get<Sign[]>(`${this.base}/signs`);
+  }
+
+  signsQuestions() {
+    return this.http.get<PlayQuestion[]>(`${this.base}/signs/questions`);
+  }
+
+  checkSignsQuestion(questionId: number, optionId: number) {
+    return this.http.post<QuickCheck>(`${this.base}/signs/check`, { questionId, optionId });
   }
 
   saveSigns(correct: number, total: number) {

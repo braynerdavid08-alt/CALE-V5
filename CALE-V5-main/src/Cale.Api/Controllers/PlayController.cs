@@ -52,6 +52,14 @@ public sealed class PlayController : ControllerBase
     [HttpGet("signs")]
     public IReadOnlyList<SignDto> Signs() => _play.GetSigns();
 
+    [HttpGet("signs/questions")]
+    public Task<IReadOnlyList<PlayQuestionDto>> SignsQuestions(CancellationToken ct) =>
+        _play.GetSignsQuestionsAsync(UserId, ct);
+
+    [HttpPost("signs/check")]
+    public Task<QuickCheckResultDto> SignsCheck(PlayAnswerRequest request, CancellationToken ct) =>
+        _play.CheckSignsQuestionAsync(UserId, request, ct);
+
     [HttpPost("signs/result")]
     public Task<GameSavedDto> SignsResult(SignsResultRequest request, CancellationToken ct) =>
         _play.SaveSignsResultAsync(UserId, request, ct);

@@ -8,6 +8,7 @@ using Cale.Modules.Classroom.Domain;
 using Cale.Modules.Identity.Domain;
 using Cale.Modules.TheoreticalTraining.Application;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Cale.Api.Services.Play;
 
@@ -15,7 +16,10 @@ public sealed partial class PlayService
 {
     // ───────────────────────── Stats, XP, levels ─────────────────────────
 
-    public async Task<PlayStats> ComputeStatsAsync(int userId, CancellationToken ct)
+    public async Task<PlayStats> ComputeStatsAsync(int userId, CancellationToken ct) =>
+        (await ComputeStatsCoreAsync(userId, ct)).Stats;
+
+    private async Task<(PlayStats Stats, StreakDto Streak)> ComputeStatsCoreAsync(int userId, CancellationToken ct)
     {
         var attempts = await _db.Set<Attempt>().AsNoTracking()
             .Where(x => x.UserId == userId && x.FinishedAt != null)
@@ -42,7 +46,7 @@ public sealed partial class PlayService
         var signs = games.Where(g => g.Game == GameKinds.Signs).ToList();
         var duels = games.Where(g => g.Game == GameKinds.Duel).ToList();
 
-        return new PlayStats(
+        var stats = new PlayStats(
             attempts.Count,
             attempts.Count(a => a.Passed),
             attempts.Count(a => a.Percent >= 100 && a.TotalQuestions >= 10),
@@ -55,6 +59,7 @@ public sealed partial class PlayService
             signs.Sum(s => s.Correct),
             duels.Count(d => d.Won),
             duels.Count);
+        return (stats, streak);
     }
 
     public static LevelDto BuildLevel(int xp)
@@ -84,8 +89,8 @@ public sealed partial class PlayService
 
     public async Task<AchievementsDto> GetAchievementsAsync(int userId, CancellationToken ct)
     {
-        var newBadges = await CheckAchievementsAsync(userId, ct);
         var stats = await ComputeStatsAsync(userId, ct);
+        var newBadges = await CheckAchievementsAsync(userId, stats, ct);
         var earned = await _db.Set<UserAchievement>().AsNoTracking()
             .Where(x => x.UserId == userId)
             .ToDictionaryAsync(x => x.Code, x => x.EarnedAt, ct);
@@ -100,9 +105,15 @@ public sealed partial class PlayService
     }
 
     /// <summary>Persists newly reached badges, notifies the student and returns them.</summary>
-    public async Task<IReadOnlyList<BadgeDto>> CheckAchievementsAsync(int userId, CancellationToken ct)
+    public Task<IReadOnlyList<BadgeDto>> CheckAchievementsAsync(int userId, CancellationToken ct) =>
+        CheckAchievementsAsync(userId, null, ct);
+
+    private async Task<IReadOnlyList<BadgeDto>> CheckAchievementsAsync(
+        int userId,
+        PlayStats? knownStats,
+        CancellationToken ct)
     {
-        var stats = await ComputeStatsAsync(userId, ct);
+        var stats = knownStats ?? await ComputeStatsAsync(userId, ct);
         var owned = await _db.Set<UserAchievement>().AsNoTracking()
             .Where(x => x.UserId == userId)
             .Select(x => x.Code)
@@ -209,34 +220,31 @@ public sealed partial class PlayService
             ? groups.FirstOrDefault(g => g.Id == groupId) ?? groups[0]
             : null;
 
-        var students = (await _db.Set<User>().AsNoTracking()
-                .Where(u => u.IsActive)
-                .Select(u => new { u.Id, u.Name, u.Role, u.SchoolId })
-                .ToListAsync(ct))
-            .Where(u => Roles.Normalize(u.Role) == Roles.Student || u.Id == userId)
-            .ToList();
+        var weekStart = WeekStart();
+        var boardKey = resolved switch
+        {
+            "school" => $"play:board:school:{me.SchoolId}:{weekStart:yyyyMMdd}",
+            "group" => $"play:board:group:{selectedGroup?.Id}:{weekStart:yyyyMMdd}",
+            _ => $"play:board:global:{weekStart:yyyyMMdd}"
+        };
+        if (!_cache.TryGetValue(boardKey, out List<BoardRow>? cachedBoard) || cachedBoard is null)
+        {
+            cachedBoard = await LoadBoardAsync(resolved, me.SchoolId, selectedGroup?.Id, weekStart, ct);
+            CacheSmall(boardKey, cachedBoard, TimeSpan.FromSeconds(60));
+        }
 
-        if (resolved == "school")
-        {
-            students = students.Where(u => u.SchoolId == me.SchoolId || u.Id == userId).ToList();
-        }
-        else if (resolved == "group" && selectedGroup is not null)
-        {
-            var memberIds = await _db.Set<GroupMember>().AsNoTracking()
-                .Where(m => m.GroupId == selectedGroup.Id && (m.Status == MemberStatuses.Active || m.Status == "Active"))
-                .Select(m => m.UserId)
-                .ToListAsync(ct);
-            students = students.Where(u => memberIds.Contains(u.Id) || u.Id == userId).ToList();
-        }
+        var myXp = (await ComputeWeeklyXpAsync([userId], weekStart, ct)).GetValueOrDefault(userId);
+        var students = cachedBoard
+            .Where(s => s.Id != userId)
+            .Append(new BoardRow(userId, me.Name, myXp))
+            .ToList();
+        var xp = students.ToDictionary(s => s.Id, s => s.Xp);
 
         var hidden = await _db.Set<PlayerProfile>().AsNoTracking()
             .Where(p => !p.ShowInRanking)
             .Select(p => p.UserId)
             .ToListAsync(ct);
         var myVisible = !hidden.Contains(userId);
-
-        var weekStart = WeekStart();
-        var xp = await ComputeWeeklyXpAsync(students.Select(s => s.Id).ToList(), weekStart, ct);
 
         var board = students
             .Where(s => !hidden.Contains(s.Id))
@@ -264,13 +272,48 @@ public sealed partial class PlayService
             selectedGroup?.Id,
             weekStart,
             weekStart.AddDays(6),
-            entries.Take(20).ToList(),
+            entries.Take(20).Concat(mine is { Position: > 20 } ? [mine] : []).ToList(),
             mine?.Position,
             xp.GetValueOrDefault(userId),
             entries.Count,
             myVisible,
             scopes);
     }
+
+    private async Task<List<BoardRow>> LoadBoardAsync(
+        string scope,
+        int? schoolId,
+        int? groupId,
+        DateOnly weekStart,
+        CancellationToken ct)
+    {
+        var query = _db.Set<User>().AsNoTracking().Where(u => u.IsActive);
+        if (scope == "school")
+        {
+            query = query.Where(u => u.SchoolId == schoolId);
+        }
+        else if (scope == "group" && groupId is not null)
+        {
+            var memberIds = await _db.Set<GroupMember>().AsNoTracking()
+                .Where(m => m.GroupId == groupId && (m.Status == MemberStatuses.Active || m.Status == "Active"))
+                .Select(m => m.UserId)
+                .ToListAsync(ct);
+            query = query.Where(u => memberIds.Contains(u.Id));
+        }
+
+        var students = (await query
+                .Select(u => new { u.Id, u.Name, u.Role })
+                .ToListAsync(ct))
+            .Where(u => Roles.Normalize(u.Role) == Roles.Student)
+            .ToList();
+        var xp = await ComputeWeeklyXpAsync(students.Select(s => s.Id).ToList(), weekStart, ct);
+        return students
+            .Select(s => new BoardRow(s.Id, s.Name, xp.GetValueOrDefault(s.Id)))
+            .Where(s => s.Xp > 0)
+            .ToList();
+    }
+
+    private sealed record BoardRow(int Id, string Name, int Xp);
 
     public async Task SetRankingVisibilityAsync(int userId, bool show, CancellationToken ct)
     {
