@@ -217,6 +217,9 @@
       @if (!mustChangePassword) {
         <app-push-prompt />
       }
+      @if (!isStudentShell) {
+        <ui-motivation class="content-motivation" [role]="role" />
+      }
       <router-outlet />
     </main>
   </div>

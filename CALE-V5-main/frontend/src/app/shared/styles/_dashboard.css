@@ -319,9 +319,24 @@ a.dash-pill:hover {
     align-items: stretch;
   }
 
+  .dash-hero-copy {
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+
   .dash-hero-actions,
   .dash-hero .row {
     width: 100%;
+  }
+
+  .dash-hero-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dash-hero-actions ui-button .btn {
+    width: 100%;
+    white-space: normal;
   }
 
   .dash-hero-actions > a,
@@ -337,7 +352,8 @@ a.dash-pill:hover {
 
 @media (max-width: 600px) {
   .dash-kpis {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
   }
 
   .dash-panel {

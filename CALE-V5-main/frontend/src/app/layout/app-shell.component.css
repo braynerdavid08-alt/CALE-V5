@@ -343,6 +343,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
+  overflow-x: clip;
 }
 
 .topbar {
@@ -422,6 +423,10 @@
 }
 
 .shell.no-sidebar .top-motivation {
+  display: none;
+}
+
+.content > .content-motivation {
   display: none;
 }
 
@@ -507,19 +512,40 @@
   }
 
   .topbar {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
 
-  .top-motivation {
-    flex: 1 1 auto;
-    max-width: none;
+  .topbar > .top-motivation {
+    display: none;
+  }
+
+  .content > .content-motivation {
+    display: block;
+    margin-bottom: var(--spacing-md);
   }
 }
 
 @media (max-width: 600px) {
   .topbar {
-    gap: 0.4rem;
-    padding-inline: var(--spacing-md);
+    gap: 0.25rem;
+    padding-top: calc(0.4rem + var(--safe-top, 0px));
+    padding-bottom: 0.4rem;
+    padding-inline: var(--spacing-sm, 0.5rem);
+  }
+
+  .topbar ::ng-deep .notif-btn .btn,
+  .topbar ::ng-deep .logout-btn .btn,
+  .topbar ::ng-deep .menu-btn .btn {
+    min-width: 0;
+    padding-inline: 0.5rem;
+  }
+
+  .student-profile-link {
+    padding-inline: 0.15rem;
+  }
+
+  .content {
+    padding-inline: calc(0.75rem + var(--safe-left, 0px)) calc(0.75rem + var(--safe-right, 0px));
   }
 }
 

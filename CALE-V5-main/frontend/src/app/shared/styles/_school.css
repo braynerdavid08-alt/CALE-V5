@@ -2,6 +2,7 @@
 
 .school-page {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--spacing-md);
   max-width: var(--content-max);
   margin-inline: auto;
@@ -295,6 +296,7 @@
 /* ── Data tables ────────────────────────────────────────────────── */
 
 .school-table-wrap {
+  position: relative;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   border: 1px solid var(--color-border);
@@ -517,9 +519,9 @@
 /* ── Responsive ─────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
-  .school-split { grid-template-columns: 1fr; }
-  .school-form-grid { grid-template-columns: 1fr; }
-  .school-kpis { grid-template-columns: repeat(2, 1fr); }
+  .school-split { grid-template-columns: minmax(0, 1fr); }
+  .school-form-grid { grid-template-columns: minmax(0, 1fr); }
+  .school-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .school-panel-scroll { max-height: none; }
   .school-toolbar-actions { margin-left: 0; width: 100%; }
 }
