@@ -119,6 +119,8 @@ export class SimulatorPage implements OnInit, OnDestroy {
   readonly sharing = signal(false);
   readonly shareMsg = signal<string | null>(null);
   readonly isStudent = computed(() => this.sessionStore.user()?.role === 'Student');
+  /** Sin escuela (app gratis): practica con los bancos oficiales. */
+  readonly independent = computed(() => !this.sessionStore.user()?.schoolId);
   private readonly fx = inject(PlayFxService);
 
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -166,7 +168,8 @@ export class SimulatorPage implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.applyPreset('estandar');
     this.api.banks().subscribe({
-      next: (banks) => {
+      next: (all) => {
+        const banks = all.filter((b) => b.questionCount > 0);
         this.banks.set(banks);
         const preferred =
           banks.find((b) => /normas/i.test(b.name))

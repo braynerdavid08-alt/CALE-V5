@@ -55,7 +55,7 @@ public sealed class SchoolAffiliationLookup : ISchoolAffiliationLookup
         profile.RefreshStatus(_clock.UtcNow);
         var plan = SchoolPlans.Find(profile.PlanCode);
         var days = profile.DaysRemaining(_clock.UtcNow);
-        var active = profile.IsCommerciallyActive(_clock.UtcNow);
+        var active = profile.CanOperateProduct(_clock.UtcNow);
 
         return new SchoolAffiliationSnapshot(
             schoolId,

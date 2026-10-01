@@ -1,4 +1,5 @@
 using Cale.BuildingBlocks.Domain.Abstractions;
+using Cale.BuildingBlocks.Domain.Access;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Time;
 using Cale.Modules.Identity.Application.Abstractions;
@@ -18,6 +19,11 @@ public sealed class SchoolMembershipGuard : ISchoolMembershipGuard
 
     public async Task EnsureActiveAsync(int schoolUserId, CancellationToken ct = default)
     {
+        if (FreeAccessPolicy.Enabled)
+        {
+            return;
+        }
+
         var profile = await _profiles.GetByUserIdAsync(schoolUserId, ct);
         if (profile is null || !profile.IsCommerciallyActive(_clock.UtcNow))
         {

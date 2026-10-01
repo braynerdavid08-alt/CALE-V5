@@ -6,18 +6,30 @@
       <p class="dash-sub">Aprendices, formación y resultados en un solo lugar.</p>
       @if (profile(); as p) {
         <div class="dash-pills">
-          <a class="dash-pill" routerLink="/school/membership" [attr.data-tone]="p.isMembershipActive ? 'success' : 'warning'">
-            Plan <strong>{{ p.planLabel }}</strong> · {{ statusLabel(p.displayStatus || p.subscriptionStatus) }}
-          </a>
-          <span class="dash-pill" [attr.data-tone]="p.isMembershipActive ? null : 'warning'">
-            <strong>{{ p.daysRemaining }}</strong> {{ p.daysRemaining === 1 ? 'día restante' : 'días restantes' }}
-          </span>
-          <a class="dash-pill" routerLink="/school/users">
-            Estudiantes <strong>{{ p.studentsUsed }}/{{ p.studentsMax }}</strong>
-          </a>
-          <a class="dash-pill" routerLink="/school/users">
-            Instructores <strong>{{ p.teachersUsed }}/{{ p.teachersMax }}</strong>
-          </a>
+          @if (free()) {
+            <a class="dash-pill" routerLink="/donaciones" data-tone="success">
+              <strong>CALE gratis</strong> · sin límites
+            </a>
+            <a class="dash-pill" routerLink="/school/users">
+              Estudiantes <strong>{{ p.studentsUsed }}</strong>
+            </a>
+            <a class="dash-pill" routerLink="/school/users">
+              Instructores <strong>{{ p.teachersUsed }}</strong>
+            </a>
+          } @else {
+            <a class="dash-pill" routerLink="/school/membership" [attr.data-tone]="p.isMembershipActive ? 'success' : 'warning'">
+              Plan <strong>{{ p.planLabel }}</strong> · {{ statusLabel(p.displayStatus || p.subscriptionStatus) }}
+            </a>
+            <span class="dash-pill" [attr.data-tone]="p.isMembershipActive ? null : 'warning'">
+              <strong>{{ p.daysRemaining }}</strong> {{ p.daysRemaining === 1 ? 'día restante' : 'días restantes' }}
+            </span>
+            <a class="dash-pill" routerLink="/school/users">
+              Estudiantes <strong>{{ p.studentsUsed }}/{{ p.studentsMax }}</strong>
+            </a>
+            <a class="dash-pill" routerLink="/school/users">
+              Instructores <strong>{{ p.teachersUsed }}/{{ p.teachersMax }}</strong>
+            </a>
+          }
         </div>
       }
     </div>
@@ -185,44 +197,57 @@
           </section>
         }
 
-        <section class="dash-panel">
-          <div class="dash-panel-head">
-            <h2>Uso de cupos</h2>
-            <a routerLink="/school/users">Gestionar</a>
-          </div>
-          <ui-dash-bars [items]="seatBars()" />
-          <p class="dash-empty">
-            Estado:
-            <ui-badge [tone]="statusTone(p.displayStatus || p.subscriptionStatus)">
-              {{ statusLabel(p.displayStatus || p.subscriptionStatus) }}
-            </ui-badge>
-            @if (p.membershipEndsAt) {
-              · vence {{ p.membershipEndsAt | date:'mediumDate' }}
-            }
-          </p>
-        </section>
-
-        <section class="dash-panel">
-          <div class="dash-panel-head">
-            <h2>Actividad de membresía</h2>
-            <a routerLink="/school/membership">Ver detalle</a>
-          </div>
-          @if (!events().length) {
-            <p class="dash-empty">Aún no hay eventos de plan.</p>
-          } @else {
-            <ul class="dash-feed">
-              @for (e of events(); track e.createdAt + e.eventType) {
-                <li>
-                  <strong>{{ eventLabel(e.eventType) }}</strong>
-                  <p class="meta">
-                    {{ e.createdAt | date:'short' }}
-                    @if (e.note) { · {{ e.note }} }
-                  </p>
-                </li>
+        @if (free()) {
+          <section class="dash-panel donate-panel">
+            <div class="dash-panel-head">
+              <h2>CALE es gratis para tu escuela</h2>
+            </div>
+            <p class="dash-empty">
+              Agrega todos los instructores y estudiantes que necesites, sin planes ni pagos.
+              Si CALE le sirve a tu escuela, puedes apoyarlo con una donación por Nequi.
+            </p>
+            <ui-button routerLink="/donaciones" type="button" variant="secondary">Apoyar CALE</ui-button>
+          </section>
+        } @else {
+          <section class="dash-panel">
+            <div class="dash-panel-head">
+              <h2>Uso de cupos</h2>
+              <a routerLink="/school/users">Gestionar</a>
+            </div>
+            <ui-dash-bars [items]="seatBars()" />
+            <p class="dash-empty">
+              Estado:
+              <ui-badge [tone]="statusTone(p.displayStatus || p.subscriptionStatus)">
+                {{ statusLabel(p.displayStatus || p.subscriptionStatus) }}
+              </ui-badge>
+              @if (p.membershipEndsAt) {
+                · vence {{ p.membershipEndsAt | date:'mediumDate' }}
               }
-            </ul>
-          }
-        </section>
+            </p>
+          </section>
+
+          <section class="dash-panel">
+            <div class="dash-panel-head">
+              <h2>Actividad de membresía</h2>
+              <a routerLink="/school/membership">Ver detalle</a>
+            </div>
+            @if (!events().length) {
+              <p class="dash-empty">Aún no hay eventos de plan.</p>
+            } @else {
+              <ul class="dash-feed">
+                @for (e of events(); track e.createdAt + e.eventType) {
+                  <li>
+                    <strong>{{ eventLabel(e.eventType) }}</strong>
+                    <p class="meta">
+                      {{ e.createdAt | date:'short' }}
+                      @if (e.note) { · {{ e.note }} }
+                    </p>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+        }
       </div>
 
       <div class="dash-side">
@@ -240,7 +265,11 @@
             <ui-button routerLink="/school/training" type="button" variant="secondary">Programación</ui-button>
             <ui-button routerLink="/school/practical" type="button" variant="secondary">Práctica</ui-button>
             <ui-button routerLink="/school/theory-exams" type="button" variant="ghost">Exámenes</ui-button>
-            <ui-button routerLink="/school/membership" type="button" variant="ghost">Membresía</ui-button>
+            @if (free()) {
+              <ui-button routerLink="/donaciones" type="button" variant="ghost">Apoyar CALE</ui-button>
+            } @else {
+              <ui-button routerLink="/school/membership" type="button" variant="ghost">Membresía</ui-button>
+            }
           </div>
         </section>
       </div>

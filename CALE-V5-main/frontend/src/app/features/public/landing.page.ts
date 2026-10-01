@@ -341,7 +341,7 @@ import { formatStatDisplay } from './public-stat.util';
             </div>
             <div class="cta-row">
               <ui-button routerLink="/register">Registrarme gratis</ui-button>
-              <a class="ghost-btn" routerLink="/contacto">Hablar con ventas</a>
+              <a class="ghost-btn" routerLink="/apoyar">Apoyar CALE</a>
             </div>
           </div>
         </section>
@@ -389,8 +389,12 @@ export class LandingPage implements OnInit {
       a: 'Es la evaluación teórica que debes aprobar para obtener tu licencia de conducción en Colombia. En Mi CALE practicas con preguntas del mismo estilo y ves en qué temas debes mejorar.'
     },
     {
-      q: '¿Cuánto cuesta para estudiantes?',
-      a: 'Puedes crear tu cuenta gratis. Si tu escuela tiene un plan activo con Mi CALE, tienes acceso completo a simulacros, clases y contenidos.'
+      q: '¿Cuánto cuesta?',
+      a: 'Nada. Mi CALE es gratis para estudiantes, instructores y escuelas, con acceso completo a simulacros, juegos, clases y contenidos. No necesitas pertenecer a una escuela para usarla.'
+    },
+    {
+      q: 'Si es gratis, ¿cómo se mantiene?',
+      a: 'Con donaciones voluntarias de quienes la usan. Si la app te ayuda, puedes apoyarla con el QR de Nequi en la sección «Apoyar CALE».'
     },
     {
       q: '¿Cuántas preguntas puedo fallar en el examen?',
@@ -398,7 +402,7 @@ export class LandingPage implements OnInit {
     },
     {
       q: 'Soy una escuela, ¿cómo empiezo?',
-      a: 'Regístrate como escuela o escríbenos desde Contacto. Te ayudamos a importar tus aprendices y a configurar tu plan.'
+      a: 'Regístrate gratis como escuela: sin planes, sin pagos y sin límite de instructores ni estudiantes. Si necesitas ayuda para importar tus aprendices, escríbenos desde Contacto.'
     },
     {
       q: '¿Funciona en el celular?',

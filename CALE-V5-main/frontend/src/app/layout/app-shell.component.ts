@@ -110,7 +110,8 @@ export class AppShellComponent implements OnInit {
   get items() {
     const user = this.session.user();
     return navForRole(this.role, {
-      hasSchool: !!user?.schoolId || user?.role === 'School'
+      hasSchool: !!user?.schoolId || user?.role === 'School',
+      freeAccess: this.session.freeAccess()
     });
   }
 

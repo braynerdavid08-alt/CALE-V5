@@ -345,7 +345,8 @@ public sealed record MeResponse(
     bool IsActive,
     DateTime CreatedAt,
     bool MustChangePassword,
-    MeSchoolContextDto? School);
+    MeSchoolContextDto? School,
+    bool FreeAccess = false);
 
 public sealed record MeSchoolContextDto(
     int SchoolId,

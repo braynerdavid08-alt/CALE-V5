@@ -1,3 +1,4 @@
+using Cale.BuildingBlocks.Domain.Access;
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Time;
@@ -48,7 +49,8 @@ public sealed class GetCurrentUserHandler
             user.IsActive,
             user.CreatedAt,
             user.MustChangePassword,
-            school);
+            school,
+            FreeAccessPolicy.Enabled);
     }
 
     private async Task<MeSchoolContextDto?> MapSchoolAsync(
@@ -79,7 +81,7 @@ public sealed class GetCurrentUserHandler
         await _profiles.SaveChangesAsync(ct);
         var plan = SchoolPlans.Find(profile.PlanCode);
         var days = profile.DaysRemaining(_clock.UtcNow);
-        var active = profile.IsCommerciallyActive(_clock.UtcNow);
+        var active = profile.CanOperateProduct(_clock.UtcNow);
 
         return new MeSchoolContextDto(
             schoolUserId,

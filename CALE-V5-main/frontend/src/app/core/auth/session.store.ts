@@ -15,6 +15,8 @@ export class SessionStore {
   readonly isAuthenticated = computed(() => !!this.user());
   readonly hasCatalogAccess = computed(() => this.catalogAccess());
   readonly hasSimulacroAccess = computed(() => this.simulacroAccess());
+  /** Modo gratuito activo (por defecto sí hasta que el servidor diga lo contrario). */
+  readonly freeAccess = computed(() => this.user()?.freeAccess !== false);
 
   private readonly catalogAccess = computed(() => {
     const user = this.user();
@@ -25,7 +27,7 @@ export class SessionStore {
       return true;
     }
     if (user.role === 'School' || user.role === 'Teacher') {
-      return !!user.isMembershipActive;
+      return this.freeAccess() || !!user.isMembershipActive;
     }
     return false;
   });
@@ -35,7 +37,7 @@ export class SessionStore {
     if (!user) {
       return false;
     }
-    if (user.role === 'Admin') {
+    if (user.role === 'Admin' || this.freeAccess()) {
       return true;
     }
     if (user.role === 'School') {
@@ -112,6 +114,7 @@ export class SessionStore {
     role: string;
     mustChangePassword?: boolean;
     school?: MeSchoolContext | null;
+    freeAccess?: boolean;
   }): void {
     const current = this.user();
     const user: SessionUser = {
@@ -122,13 +125,14 @@ export class SessionStore {
       mustChangePassword: !!me.mustChangePassword,
       schoolId: me.school?.schoolId ?? current?.schoolId ?? null,
       isMembershipActive: me.school?.isMembershipActive ?? current?.isMembershipActive,
-      planLabel: me.school?.planLabel ?? current?.planLabel ?? null
+      planLabel: me.school?.planLabel ?? current?.planLabel ?? null,
+      freeAccess: me.freeAccess ?? current?.freeAccess
     };
     this.user.set(user);
     this.persist(user, this.cookieAuth() ? null : this.token());
   }
 
-  applySchoolContext(school: MeSchoolContext | null | undefined): void {
+  applySchoolContext(school: MeSchoolContext | null | undefined, freeAccess?: boolean): void {
     const current = this.user();
     if (!current) {
       return;
@@ -137,7 +141,8 @@ export class SessionStore {
       ...current,
       schoolId: school?.schoolId ?? null,
       isMembershipActive: !!school?.isMembershipActive,
-      planLabel: school?.planLabel ?? null
+      planLabel: school?.planLabel ?? null,
+      freeAccess: freeAccess ?? current.freeAccess
     };
     this.user.set(user);
     this.persist(user, this.cookieAuth() ? null : this.token());

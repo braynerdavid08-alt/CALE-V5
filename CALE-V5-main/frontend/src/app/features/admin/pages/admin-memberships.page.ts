@@ -2,6 +2,7 @@ import { Component, OnInit, computed, inject, input, signal } from '@angular/cor
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { SessionStore } from '../../../core/auth/session.store';
 import { env } from '../../../core/config/env';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
@@ -143,23 +144,32 @@ type Tab = 'queue' | 'schools';
   ],
   template: `
     @if (!embedded()) {
-      <ui-page-header
-        eyebrow="Escuelas de Manejo"
-        title="Solicitudes y escuelas"
-        subtitle="Aquí apruebas, rechazas, ajustas cupos y revisas cada escuela. Sin ir a otra pantalla." />
+      @if (free()) {
+        <ui-page-header
+          eyebrow="Escuelas de Manejo"
+          title="Directorio de escuelas"
+          subtitle="CALE es gratis: las escuelas no necesitan plan. Aquí revisas, suspendes o reactivas cada escuela." />
+      } @else {
+        <ui-page-header
+          eyebrow="Escuelas de Manejo"
+          title="Solicitudes y escuelas"
+          subtitle="Aquí apruebas, rechazas, ajustas cupos y revisas cada escuela. Sin ir a otra pantalla." />
+      }
     }
 
     <ui-error [message]="error()" />
     <ui-success [message]="ok()" />
 
-    <div class="tabs">
-      <button type="button" [class.active]="tab() === 'queue'" (click)="setTab('queue')">
-        Solicitudes pendientes
-      </button>
-      <button type="button" [class.active]="tab() === 'schools'" (click)="setTab('schools')">
-        Directorio de escuelas
-      </button>
-    </div>
+    @if (!free()) {
+      <div class="tabs">
+        <button type="button" [class.active]="tab() === 'queue'" (click)="setTab('queue')">
+          Solicitudes pendientes
+        </button>
+        <button type="button" [class.active]="tab() === 'schools'" (click)="setTab('schools')">
+          Directorio de escuelas
+        </button>
+      </div>
+    }
 
     @if (loading()) {
       <ui-loading />
@@ -496,7 +506,8 @@ export class AdminMembershipsPage implements OnInit {
   /** When true, hides the standalone page header (used inside Métricas). */
   readonly embedded = input(false);
 
-  readonly tab = signal<Tab>('queue');
+  readonly free = inject(SessionStore).freeAccess;
+  readonly tab = signal<Tab>(this.free() ? 'schools' : 'queue');
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly ok = signal<string | null>(null);

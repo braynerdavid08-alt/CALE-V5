@@ -120,7 +120,7 @@ export class ProfilePage implements OnInit {
           role: dto.role,
           mustChangePassword: !!dto.mustChangePassword
         });
-        this.session.applySchoolContext(dto.school ?? null);
+        this.session.applySchoolContext(dto.school ?? null, dto.freeAccess);
         if (dto.mustChangePassword) {
           this.tab.set('security');
         }

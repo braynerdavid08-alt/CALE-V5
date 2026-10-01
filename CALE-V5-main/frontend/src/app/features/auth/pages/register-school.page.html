@@ -18,18 +18,30 @@
       <li>Aula en vivo y presentaciones para tus instructores</li>
     </ul>
     <div class="brand-foot">
-      <span class="foot-icon" aria-hidden="true">🧾</span>
-      <span>
-        <strong>¿Cómo se activa?</strong>
-        Registra la escuela, elige un plan, paga y sube el comprobante. Un administrador activa tu membresía.
-      </span>
+      @if (free()) {
+        <span class="foot-icon" aria-hidden="true">💚</span>
+        <span>
+          <strong>100% gratis</strong>
+          Registra tu escuela y empieza hoy mismo. Sin planes, sin pagos y sin límite de instructores ni estudiantes.
+        </span>
+      } @else {
+        <span class="foot-icon" aria-hidden="true">🧾</span>
+        <span>
+          <strong>¿Cómo se activa?</strong>
+          Registra la escuela, elige un plan, paga y sube el comprobante. Un administrador activa tu membresía.
+        </span>
+      }
     </div>
   </div>
 
   <div class="auth-card">
     <p class="eyebrow">Cuenta de escuela</p>
     <h2>Registrar mi escuela</h2>
-    <p class="lead">Los datos fiscales son obligatorios para emitir la factura a nombre de la escuela.</p>
+    @if (free()) {
+      <p class="lead">Completa los datos de tu escuela. Usar CALE es gratis.</p>
+    } @else {
+      <p class="lead">Los datos fiscales son obligatorios para emitir la factura a nombre de la escuela.</p>
+    }
     <ui-error [message]="auth.error() || plansError()" />
 
     <form [formGroup]="form" (ngSubmit)="submit()">
@@ -63,7 +75,7 @@
       </fieldset>
 
       <fieldset>
-        <legend><span class="step">2</span> Facturación</legend>
+        <legend><span class="step">2</span> {{ free() ? 'Datos de la escuela' : 'Facturación' }}</legend>
         <label class="field">
           Razón social
           <input formControlName="legalName" autocomplete="organization" placeholder="CEA Ejemplo S.A.S." />
@@ -98,6 +110,7 @@
         </div>
       </fieldset>
 
+      @if (!free()) {
       <fieldset>
         <legend><span class="step">3</span> Plan</legend>
         <div class="plans">
@@ -120,6 +133,7 @@
           }
         </div>
       </fieldset>
+      }
 
       <ui-button type="submit" [loading]="auth.loading()">Registrar escuela</ui-button>
     </form>

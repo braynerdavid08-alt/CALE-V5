@@ -2,7 +2,7 @@ import { CanActivateFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { SessionStore } from '../auth/session.store';
 
-/** Admin catalog or school/teacher with active paid plan. */
+/** Admin catalog or school/teacher with active paid plan (always open in free mode). */
 export const catalogAccessGuard: CanActivateFn = () => {
   const session = inject(SessionStore);
   const router = inject(Router);
@@ -25,7 +25,7 @@ export const catalogAccessGuard: CanActivateFn = () => {
   return router.parseUrl(session.homeRoute());
 };
 
-/** Students/teachers linked to a school with active plan (admin bypass). */
+/** Students/teachers linked to a school with active plan (admin bypass, open in free mode). */
 export const simulacroAccessGuard: CanActivateFn = () => {
   const session = inject(SessionStore);
   const router = inject(Router);
@@ -44,4 +44,11 @@ export const simulacroAccessGuard: CanActivateFn = () => {
     return router.parseUrl('/profile');
   }
   return router.parseUrl(session.homeRoute());
+};
+
+/** Pantallas de planes/pagos: en modo gratis se reemplazan por Donaciones. */
+export const paidModelGuard: CanActivateFn = () => {
+  const session = inject(SessionStore);
+  const router = inject(Router);
+  return session.freeAccess() ? router.parseUrl('/donaciones') : true;
 };

@@ -144,8 +144,13 @@
         <div class="row actions">
           <ui-button [routerLink]="homeLink()" type="button" variant="secondary">Ir al inicio</ui-button>
           @if (role() === 'School') {
-            <ui-button routerLink="/school/membership" type="button" variant="ghost">Membresía</ui-button>
+            @if (!session.freeAccess()) {
+              <ui-button routerLink="/school/membership" type="button" variant="ghost">Membresía</ui-button>
+            }
             <ui-button routerLink="/school/users" type="button" variant="ghost">Usuarios</ui-button>
+          }
+          @if (role() !== 'Admin') {
+            <ui-button routerLink="/donaciones" type="button" variant="ghost">Apoyar CALE</ui-button>
           }
           @if (role() === 'Teacher') {
             <ui-button routerLink="/teacher/groups" type="button" variant="ghost">Grupos</ui-button>
@@ -211,23 +216,32 @@
           }
         </p>
         <div class="meta">
-          <ui-badge [tone]="statusTone(school.subscriptionStatus)">
-            {{ statusLabel(school.subscriptionStatus) }}
-          </ui-badge>
-          <span class="pill">Plan {{ school.planLabel }}</span>
-          @if (school.isMembershipActive) {
-            <span class="pill soft">{{ school.daysRemaining }} día(s) restantes</span>
+          @if (session.freeAccess()) {
+            <ui-badge tone="success">CALE gratis</ui-badge>
+          } @else {
+            <ui-badge [tone]="statusTone(school.subscriptionStatus)">
+              {{ statusLabel(school.subscriptionStatus) }}
+            </ui-badge>
+            <span class="pill">Plan {{ school.planLabel }}</span>
+            @if (school.isMembershipActive) {
+              <span class="pill soft">{{ school.daysRemaining }} día(s) restantes</span>
+            }
           }
         </div>
         @if (role() === 'School') {
           <div class="row actions">
-            <ui-button routerLink="/school/membership" type="button">Gestionar membresía</ui-button>
+            @if (!session.freeAccess()) {
+              <ui-button routerLink="/school/membership" type="button">Gestionar membresía</ui-button>
+            }
             <ui-button routerLink="/school" type="button" variant="secondary">Panel escuela</ui-button>
           </div>
         }
       } @else if (role() === 'Teacher' || role() === 'Student') {
         <p class="muted">
           Todavía no estás vinculado a una escuela.
+          @if (session.freeAccess()) {
+            No hace falta: puedes usar todo CALE gratis por tu cuenta.
+          }
         </p>
         @if (role() === 'Teacher') {
           <form class="stack" style="margin-top: 1rem;" [formGroup]="joinForm" (ngSubmit)="requestJoin()">
@@ -266,7 +280,7 @@
             </div>
           }
         } @else {
-          <p class="muted">Cuando tu escuela te agregue, verás aquí su nombre y plan.</p>
+          <p class="muted">Cuando tu escuela te agregue, verás aquí su nombre.</p>
           <div class="row actions" style="margin-top: 1rem;">
             <ui-button routerLink="/live/join" type="button">Entrar a Live</ui-button>
             <ui-button routerLink="/live/join" [queryParams]="{ scan: '1' }" type="button" variant="secondary">Escanear QR</ui-button>

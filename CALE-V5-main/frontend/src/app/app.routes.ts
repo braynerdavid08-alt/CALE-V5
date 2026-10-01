@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
-import { catalogAccessGuard, simulacroAccessGuard } from './core/guards/catalog-access.guard';
+import { catalogAccessGuard, paidModelGuard, simulacroAccessGuard } from './core/guards/catalog-access.guard';
 import { guestGuard } from './core/guards/guest.guard';
 import { roleGuard } from './core/guards/role.guard';
 import { LoginPage } from './features/auth/pages/login.page';
@@ -56,6 +56,12 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/public/public-contact.page')
             .then((m) => m.PublicContactPage)
+      },
+      {
+        path: 'apoyar',
+        loadComponent: () =>
+          import('./features/student/pages/student-donations.page')
+            .then((m) => m.StudentDonationsPage)
       }
     ]
   },
@@ -159,7 +165,7 @@ export const routes: Routes = [
       {
         path: 'school/membership',
         pathMatch: 'full',
-        canActivate: [roleGuard],
+        canActivate: [roleGuard, paidModelGuard],
         data: { roles: ['School'] },
         loadComponent: () =>
           import('./features/school/pages/school-membership.page')
@@ -348,12 +354,16 @@ export const routes: Routes = [
             .then((m) => m.StudentTrainingPage)
       },
       {
-        path: 'student/donaciones',
-        canActivate: [roleGuard],
-        data: { roles: ['Student'] },
+        path: 'donaciones',
+        pathMatch: 'full',
         loadComponent: () =>
           import('./features/student/pages/student-donations.page')
             .then((m) => m.StudentDonationsPage)
+      },
+      {
+        path: 'student/donaciones',
+        pathMatch: 'full',
+        redirectTo: '/donaciones'
       },
       {
         path: 'student/normas-transito',

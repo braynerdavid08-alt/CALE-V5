@@ -124,7 +124,8 @@ export class PublicShellComponent {
     { label: 'Escuelas', path: '/escuelas', exact: true },
     { label: 'Instructores', path: '/instructores', exact: true },
     { label: 'Blog', path: '/blog', exact: true },
-    { label: 'Contacto', path: '/contacto', exact: true }
+    { label: 'Contacto', path: '/contacto', exact: true },
+    { label: 'Apoyar CALE', path: '/apoyar', exact: true }
   ];
 
   toggleMenu(): void {

@@ -77,6 +77,7 @@ export class SchoolHomePage implements OnInit {
   private readonly apprenticeApi = inject(ApprenticeApi);
   private readonly router = inject(Router);
   readonly session = inject(SessionStore);
+  readonly free = this.session.freeAccess;
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
