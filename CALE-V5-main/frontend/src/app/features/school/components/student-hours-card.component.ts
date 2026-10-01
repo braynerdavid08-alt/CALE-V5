@@ -104,8 +104,8 @@ export class StudentHoursCardComponent implements OnChanges {
       this.formError.set('El nuevo total es igual al actual. No hay nada que cambiar.');
       return;
     }
-    if (reason.length < 3) {
-      this.formError.set('Escribe el motivo del cambio.');
+    if (reason.length < 5) {
+      this.formError.set('Escribe el motivo del cambio (mínimo 5 letras).');
       return;
     }
     this.saving.set(true);
