@@ -76,6 +76,21 @@ ui-theme-toggle {
   z-index: 1;
 }
 
+.brand-wordmark {
+  display: block;
+  width: min(100%, 22rem);
+  border-radius: 1rem;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.brand-wordmark img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 .brand-row {
   display: inline-flex;
   align-items: center;
