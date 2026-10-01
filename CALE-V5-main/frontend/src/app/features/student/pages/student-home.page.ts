@@ -109,6 +109,14 @@ export class StudentHomePage implements OnInit {
       path: '/profile',
       icon: 'users',
       tone: 'violet'
+    },
+    {
+      id: 'requests',
+      label: 'Proponer y sugerir',
+      hint: 'Crea preguntas o ideas',
+      path: '/solicitudes',
+      icon: 'idea',
+      tone: 'violet'
     }
   ];
 

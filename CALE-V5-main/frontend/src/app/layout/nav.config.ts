@@ -24,6 +24,7 @@ export interface NavOptions {
 }
 
 const DONATE_ITEM: NavItem = { label: 'Apoyar CALE', path: '/donaciones', icon: 'heart', exact: true };
+const REQUESTS_ITEM: NavItem = { label: 'Proponer y sugerir', path: '/solicitudes', icon: 'idea', exact: true };
 
 export function navChildActive(url: string, child: NavChild): boolean {
   const [pathPart, query = ''] = url.split('?');
@@ -66,7 +67,8 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
           { label: 'Preguntas', path: '/admin/questions', exact: true },
           { label: 'Bancos', path: '/admin/banks', exact: true },
           { label: 'Exámenes', path: '/admin/exams', exact: true },
-          { label: 'Cursos / Clases', path: '/admin/courses', exact: true }
+          { label: 'Cursos / Clases', path: '/admin/courses', exact: true },
+          { label: 'Solicitudes de usuarios', path: '/admin/requests', exact: true }
         ]
       },
       {
@@ -132,6 +134,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
               { label: 'Pagos y membresía', path: '/school/membership', exact: true }
             ]
       },
+      REQUESTS_ITEM,
       ...(free ? [DONATE_ITEM] : [])
     ];
   }
@@ -160,6 +163,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
         ]
       },
       { label: 'Informes', path: '/teacher/results', icon: 'chart', exact: true },
+      REQUESTS_ITEM,
       DONATE_ITEM
     ];
   }
@@ -180,6 +184,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
     { label: 'Mi proceso', path: '/student/progress', icon: 'chart', exact: true },
     { label: 'Mensajes', path: '/notifications', icon: 'bell', exact: true },
     { label: 'Perfil', path: '/profile', icon: 'users', exact: true },
+    REQUESTS_ITEM,
     DONATE_ITEM
   ];
 
