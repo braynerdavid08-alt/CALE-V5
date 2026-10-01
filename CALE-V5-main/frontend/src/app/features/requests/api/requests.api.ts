@@ -22,7 +22,7 @@ export interface QuestionDraft {
   options: QuestionDraftOption[];
 }
 
-export type UserRequestKind = 'question' | 'idea';
+export type UserRequestKind = 'question' | 'idea' | 'report';
 export type UserRequestStatus = 'Pending' | 'Accepted' | 'Rejected';
 
 export interface UserRequestDto {
@@ -46,6 +46,14 @@ export interface UserRequestDto {
   reviewedAt: string | null;
   createdQuestionId: number | null;
   createdAt: string;
+  reportedQuestionId?: number | null;
+}
+
+export interface SimilarQuestion {
+  questionId: number;
+  text: string;
+  bankName: string;
+  percent: number;
 }
 
 export interface BlockedUser {
@@ -119,7 +127,13 @@ export class RequestsApi {
   private readonly http = inject(HttpClient);
   private readonly base = `${env.apiUrl}/api/requests`;
 
-  create(body: { kind: UserRequestKind; title?: string | null; message?: string | null; question?: unknown }) {
+  create(body: {
+    kind: UserRequestKind;
+    title?: string | null;
+    message?: string | null;
+    question?: unknown;
+    questionId?: number;
+  }) {
     return this.http.post<UserRequestDto>(this.base, body);
   }
 
@@ -129,6 +143,10 @@ export class RequestsApi {
 
   myStatus() {
     return this.http.get<MyRequestStatus>(`${this.base}/mine/status`);
+  }
+
+  similar(text: string) {
+    return this.http.post<SimilarQuestion[]>(`${this.base}/admin/similar`, { text });
   }
 
   blockedUsers() {

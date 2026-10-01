@@ -32,7 +32,15 @@ public sealed record CreateUserRequest(
     string Kind,
     string? Title,
     string? Message,
-    QuestionDraft? Question);
+    QuestionDraft? Question,
+    int? QuestionId = null);
+
+/// <summary>Payload of a <see cref="UserRequestKinds.Report"/> request.</summary>
+public sealed record QuestionReportPayload(int QuestionId);
+
+public sealed record SimilarQuestionsRequest(string? Text, int? ExcludeQuestionId = null);
+
+public sealed record SimilarQuestionDto(int QuestionId, string Text, string BankName, int Percent);
 
 public sealed record AcceptUserRequest(
     string? Note,
@@ -55,7 +63,8 @@ public sealed record UserRequestDto(
     string? AdminNote,
     DateTime? ReviewedAt,
     int? CreatedQuestionId,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    int? ReportedQuestionId = null);
 
 public sealed record UserRequestCountsDto(int Pending, int Accepted, int Rejected);
 
@@ -148,6 +157,36 @@ public sealed class UserRequestService
             payload = JsonSerializer.Serialize(draft, Json);
             title ??= Clip(draft.Text, 200);
         }
+        else if (kind == UserRequestKinds.Report)
+        {
+            var questionId = request.QuestionId
+                ?? throw new DomainException("Falta la pregunta a reportar.", 400, "invalid_report");
+            var text = await _db.Set<Question>().AsNoTracking()
+                .Where(q => q.Id == questionId)
+                .Select(q => q.Text)
+                .FirstOrDefaultAsync(ct)
+                ?? throw new NotFoundException("Pregunta no encontrada.", "question_not_found");
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                throw new DomainException("Cuéntanos qué está mal en la pregunta.", 400, "invalid_report");
+            }
+
+            payload = JsonSerializer.Serialize(new QuestionReportPayload(questionId), Json);
+            var marker = $"\"questionId\":{questionId}}}";
+            var already = await _db.Set<UserRequest>().AnyAsync(
+                r => r.UserId == userId
+                    && r.Kind == UserRequestKinds.Report
+                    && r.Status == UserRequestStatuses.Pending
+                    && r.PayloadJson != null
+                    && r.PayloadJson.Contains(marker),
+                ct);
+            if (already)
+            {
+                throw new DomainException("Ya reportaste esta pregunta. El administrador la está revisando.", 400, "already_reported");
+            }
+
+            title = Clip(text, 200);
+        }
         else if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(message))
         {
             throw new DomainException("Escribe un título y describe tu idea.", 400, "invalid_idea");
@@ -188,7 +227,7 @@ public sealed class UserRequestService
             throw new DomainException("Solo puedes retirar solicitudes pendientes.", 400, "request_not_pending");
         }
 
-        var draft = ParseDraft(entity.PayloadJson);
+        var draft = ParseDraft(entity);
         _db.Remove(entity);
         await _db.SaveChangesAsync(ct);
         await DeleteUnusedImagesAsync(userId, ImageUrls(draft), ct);
@@ -209,6 +248,78 @@ public sealed class UserRequestService
 
         var rows = await query.OrderByDescending(r => r.CreatedAt).Take(200).ToListAsync(ct);
         return rows.Select(Map).ToList();
+    }
+
+    /// <summary>
+    /// Active questions whose wording overlaps the given text (word-set similarity), to spot
+    /// duplicates before accepting a proposal.
+    /// </summary>
+    public async Task<IReadOnlyList<SimilarQuestionDto>> FindSimilarAsync(SimilarQuestionsRequest request, CancellationToken ct)
+    {
+        var target = Words(request.Text);
+        if (target.Count < 2)
+        {
+            return [];
+        }
+
+        var rows = await _db.Set<Question>().AsNoTracking()
+            .Where(q => q.IsActive && (request.ExcludeQuestionId == null || q.Id != request.ExcludeQuestionId))
+            .Select(q => new { q.Id, q.Text, q.BankId })
+            .ToListAsync(ct);
+
+        var best = rows
+            .Select(q =>
+            {
+                var words = Words(q.Text);
+                var shared = words.Count(target.Contains);
+                var union = words.Count + target.Count - shared;
+                return new { q.Id, q.Text, q.BankId, Score = union == 0 ? 0 : (double)shared / union };
+            })
+            .Where(x => x.Score >= 0.45)
+            .OrderByDescending(x => x.Score)
+            .Take(5)
+            .ToList();
+        if (best.Count == 0)
+        {
+            return [];
+        }
+
+        var bankIds = best.Select(x => x.BankId).Distinct().ToList();
+        var banks = await _db.Set<Bank>().AsNoTracking()
+            .Where(b => bankIds.Contains(b.Id))
+            .ToDictionaryAsync(b => b.Id, b => b.Name, ct);
+        return best
+            .Select(x => new SimilarQuestionDto(
+                x.Id,
+                x.Text,
+                banks.GetValueOrDefault(x.BankId, ""),
+                (int)Math.Round(x.Score * 100)))
+            .ToList();
+    }
+
+    private static readonly HashSet<string> StopWords = new(StringComparer.Ordinal)
+    {
+        "que", "los", "las", "del", "por", "para", "con", "una", "uno", "unos", "unas", "como", "cual",
+        "cuál", "debe", "esta", "este", "esto", "son", "sus", "más", "mas", "sin", "sobre", "entre",
+        "cuando", "donde", "segun", "según", "puede", "pueden", "tiene", "hay", "ser", "está", "estan"
+    };
+
+    private static HashSet<string> Words(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return [];
+        }
+
+        var normalized = new string(text.ToLowerInvariant()
+            .Normalize(System.Text.NormalizationForm.FormD)
+            .Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)
+            .Select(c => char.IsLetterOrDigit(c) ? c : ' ')
+            .ToArray());
+        return normalized
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Where(w => w.Length > 2 && !StopWords.Contains(w))
+            .ToHashSet(StringComparer.Ordinal);
     }
 
     public async Task<MyRequestStatusDto> MyStatusAsync(int userId, CancellationToken ct)
@@ -262,7 +373,7 @@ public sealed class UserRequestService
         var images = new List<string>();
         foreach (var entity in pending)
         {
-            var draft = ParseDraft(entity.PayloadJson);
+            var draft = ParseDraft(entity);
             images.AddRange(ImageUrls(draft));
             entity.Reject(adminId, "Envío de solicitudes desactivado.", _clock.UtcNow, StripImages(draft));
         }
@@ -322,7 +433,7 @@ public sealed class UserRequestService
                 throw new DomainException("Elige el banco y el bloque donde irá la pregunta.", 400, "bank_required");
             }
 
-            var original = ParseDraft(entity.PayloadJson);
+            var original = ParseDraft(entity);
             var draft = Normalize(request.Question ?? original
                 ?? throw new DomainException("La solicitud no tiene pregunta.", 400, "invalid_question"));
             droppedImages = ImageUrls(original).Except(ImageUrls(draft)).ToList();
@@ -350,9 +461,12 @@ public sealed class UserRequestService
         await _db.SaveChangesAsync(ct);
         await DeleteUnusedImagesAsync(entity.UserId, droppedImages, ct);
 
-        var what = entity.Kind == UserRequestKinds.Question
-            ? "Tu pregunta fue aceptada y ya forma parte de CALE. ¡Gracias por aportar!"
-            : "Tu idea fue aceptada. ¡Gracias por ayudar a mejorar CALE!";
+        var what = entity.Kind switch
+        {
+            UserRequestKinds.Question => "Tu pregunta fue aceptada y ya forma parte de CALE. ¡Gracias por aportar!",
+            UserRequestKinds.Report => $"Revisamos la pregunta que reportaste («{entity.Title}»). ¡Gracias por avisar!",
+            _ => "Tu idea fue aceptada. ¡Gracias por ayudar a mejorar CALE!"
+        };
         await NotifyRequesterAsync(entity, "Solicitud aceptada ✅", Append(what, note), ct);
         return Map(entity);
     }
@@ -361,7 +475,7 @@ public sealed class UserRequestService
     {
         var entity = await RequirePendingAsync(id, ct);
         var note = Clip(request.Note, 1000);
-        var draft = ParseDraft(entity.PayloadJson);
+        var draft = ParseDraft(entity);
         var images = ImageUrls(draft).ToList();
         entity.Reject(adminId, note, _clock.UtcNow, StripImages(draft));
         await _db.SaveChangesAsync(ct);
@@ -369,7 +483,11 @@ public sealed class UserRequestService
         await NotifyRequesterAsync(
             entity,
             "Solicitud revisada",
-            Append($"Tu solicitud «{entity.Title}» no fue aceptada esta vez.", note),
+            Append(
+                entity.Kind == UserRequestKinds.Report
+                    ? $"Revisamos la pregunta que reportaste («{entity.Title}») y no encontramos un error."
+                    : $"Tu solicitud «{entity.Title}» no fue aceptada esta vez.",
+                note),
             ct);
         return Map(entity);
     }
@@ -397,7 +515,12 @@ public sealed class UserRequestService
             return;
         }
 
-        var what = entity.Kind == UserRequestKinds.Question ? "propone una pregunta" : "envió una idea";
+        var what = entity.Kind switch
+        {
+            UserRequestKinds.Question => "propone una pregunta",
+            UserRequestKinds.Report => "reportó una pregunta",
+            _ => "envió una idea"
+        };
         try
         {
             await _notifications.NotifyUsersAsync(
@@ -478,16 +601,35 @@ public sealed class UserRequestService
             options);
     }
 
-    private static QuestionDraft? ParseDraft(string? json)
+    /// <summary>Question draft of a proposal; null for ideas and reports.</summary>
+    private static QuestionDraft? ParseDraft(UserRequest r)
     {
-        if (string.IsNullOrWhiteSpace(json))
+        if (r.Kind != UserRequestKinds.Question || string.IsNullOrWhiteSpace(r.PayloadJson))
         {
             return null;
         }
 
         try
         {
-            return JsonSerializer.Deserialize<QuestionDraft>(json, Json);
+            var draft = JsonSerializer.Deserialize<QuestionDraft>(r.PayloadJson, Json);
+            return draft is { Options: not null } ? draft : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static int? ReportedQuestionId(UserRequest r)
+    {
+        if (r.Kind != UserRequestKinds.Report || string.IsNullOrWhiteSpace(r.PayloadJson))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<QuestionReportPayload>(r.PayloadJson, Json)?.QuestionId;
         }
         catch (JsonException)
         {
@@ -504,11 +646,12 @@ public sealed class UserRequestService
         r.Status,
         r.Title,
         r.Message,
-        ParseDraft(r.PayloadJson),
+        ParseDraft(r),
         r.AdminNote,
         r.ReviewedAt,
         r.CreatedQuestionId,
-        r.CreatedAt);
+        r.CreatedAt,
+        ReportedQuestionId(r));
 
     private static readonly Regex MediaUrl = new(
         @"/api/media/(?<id>[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12})",

@@ -1,11 +1,13 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { resolveMediaUrl } from '../../../core/media/resolve-media-url';
+import { ReportQuestionComponent } from '../../requests/components/report-question.component';
 import { AnswerFeedback, PlayQuestion } from '../api/play.api';
 
 @Component({
   selector: 'play-question',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [ReportQuestionComponent],
   template: `
     <article class="pq">
       @if (question.topic) {
@@ -46,6 +48,9 @@ import { AnswerFeedback, PlayQuestion } from '../api/play.api';
             <p>La respuesta correcta quedó marcada en verde.</p>
           }
         </div>
+        @if (reportable) {
+          <app-report-question [questionId]="question.id" [questionText]="question.text" />
+        }
       }
     </article>
   `,
@@ -135,6 +140,8 @@ export class PlayQuestionComponent {
   @Input() feedback: AnswerFeedback | null = null;
   @Input() selectedId: number | null = null;
   @Input() busy = false;
+  /** Show "Reportar pregunta" after answering (off in timed games like the duel). */
+  @Input() reportable = true;
   @Output() readonly answered = new EventEmitter<number>();
 
   readonly letters = ['A', 'B', 'C', 'D', 'E', 'F'];

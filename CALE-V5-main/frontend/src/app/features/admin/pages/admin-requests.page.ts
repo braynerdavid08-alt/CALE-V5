@@ -1,6 +1,7 @@
 import { Component, HostListener, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { resolveMediaUrl } from '../../../core/media/resolve-media-url';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
@@ -15,6 +16,7 @@ import {
   BlockedUser,
   QuestionDraft,
   RequestsApi,
+  SimilarQuestion,
   UserRequestCounts,
   UserRequestDto,
   UserRequestStatus,
@@ -23,7 +25,7 @@ import {
   validateDraft
 } from '../../requests/api/requests.api';
 
-type KindFilter = '' | 'question' | 'idea';
+type KindFilter = '' | 'question' | 'idea' | 'report';
 
 @Component({
   selector: 'app-admin-requests-page',
@@ -32,6 +34,7 @@ type KindFilter = '' | 'question' | 'idea';
     DatePipe,
     FormsModule,
     QuestionDraftEditorComponent,
+    RouterLink,
     UiButtonComponent,
     UiErrorComponent,
     UiLoadingComponent,
@@ -80,6 +83,11 @@ type KindFilter = '' | 'question' | 'idea';
     .tag { padding: 0.2rem 0.6rem; border-radius: 999px; font-size: var(--text-xs); font-weight: 800; white-space: nowrap; }
     .tag.question { background: var(--color-primary-soft); color: var(--color-primary); }
     .tag.idea { background: color-mix(in srgb, #f59e0b 18%, transparent); color: #b45309; }
+    .tag.report { background: var(--color-danger-soft, #fee2e2); color: var(--color-danger, #b91c1c); }
+    .q-link { font-weight: 700; color: var(--color-primary); text-decoration: none; overflow-wrap: anywhere; }
+    .similar { padding: 0.75rem 0.9rem; border-radius: 0.75rem; background: color-mix(in srgb, #f59e0b 14%, transparent); border: 1px solid color-mix(in srgb, #f59e0b 40%, transparent); }
+    .similar ul { margin: 0.4rem 0 0; padding-left: 1.1rem; display: grid; gap: 0.3rem; font-size: var(--text-sm); overflow-wrap: anywhere; }
+    .similar a { font-weight: 800; color: var(--color-primary); }
     .msg { margin: 0; white-space: pre-wrap; line-height: 1.5; overflow-wrap: anywhere; }
     .q-img { max-width: min(260px, 100%); border-radius: 0.6rem; border: 1px solid var(--color-border); }
     .opts { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.35rem; }
@@ -140,6 +148,7 @@ type KindFilter = '' | 'question' | 'idea';
         <option value="">Todas</option>
         <option value="question">Preguntas</option>
         <option value="idea">Ideas</option>
+        <option value="report">Reportes de preguntas</option>
       </select>
     </div>
 
@@ -153,7 +162,7 @@ type KindFilter = '' | 'question' | 'idea';
           <li class="card">
             <div class="head">
               <h3 class="title">{{ r.question?.text || r.title }}</h3>
-              <span class="tag" [class]="'tag ' + r.kind">{{ r.kind === 'question' ? 'Pregunta' : 'Idea' }}</span>
+              <span class="tag" [class]="'tag ' + r.kind">{{ kindLabel(r.kind) }}</span>
             </div>
             <span class="meta">
               {{ r.userName }} · {{ role(r.userRole) }} · {{ r.createdAt | date:'d MMM y, h:mm a' }}
@@ -179,6 +188,13 @@ type KindFilter = '' | 'question' | 'idea';
               }
               @if (r.message) {
                 <p class="note"><strong>Mensaje:</strong> {{ r.message }}</p>
+              }
+            } @else if (r.kind === 'report') {
+              <p class="note"><strong>Problema:</strong> {{ r.message }}</p>
+              @if (r.reportedQuestionId) {
+                <a class="q-link" [routerLink]="['/admin/questions', r.reportedQuestionId]" target="_blank" rel="noopener">
+                  Abrir pregunta #{{ r.reportedQuestionId }} para corregirla ↗
+                </a>
               }
             } @else {
               <p class="msg">{{ r.message }}</p>
@@ -206,10 +222,12 @@ type KindFilter = '' | 'question' | 'idea';
                 <div class="row-actions">
                   @if (r.kind === 'question') {
                     <ui-button type="button" (click)="openReview(r)">Revisar y aceptar</ui-button>
+                  } @else if (r.kind === 'report') {
+                    <ui-button type="button" [loading]="busyId() === r.id" (click)="acceptIdea(r)">Ya la corregí</ui-button>
                   } @else {
                     <ui-button type="button" [loading]="busyId() === r.id" (click)="acceptIdea(r)">Aceptar idea</ui-button>
                   }
-                  <ui-button type="button" variant="ghost" (click)="startReject(r)">Rechazar</ui-button>
+                  <ui-button type="button" variant="ghost" (click)="startReject(r)">{{ r.kind === 'report' ? 'Está bien así' : 'Rechazar' }}</ui-button>
                 </div>
               }
             }
@@ -286,6 +304,20 @@ type KindFilter = '' | 'question' | 'idea';
                 </select>
               </label>
             </div>
+            @if (similar().length) {
+              <div class="similar" role="status">
+                <strong>⚠️ Posibles preguntas repetidas</strong>
+                <ul>
+                  @for (s of similar(); track s.questionId) {
+                    <li>
+                      <a [routerLink]="['/admin/questions', s.questionId]" target="_blank" rel="noopener">#{{ s.questionId }}</a>
+                      {{ s.text }}
+                      <span class="meta">· {{ s.bankName }} · {{ s.percent }}% parecida</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
             <app-question-draft-editor [draft]="draft" />
             <label class="field">Nota para el usuario (opcional)
               <input [(ngModel)]="acceptNote" name="acceptNote" maxlength="1000" placeholder="Ej. ¡Gracias! Ajusté la redacción." />
@@ -319,6 +351,7 @@ export class AdminRequestsPage implements OnInit {
   readonly blocks = signal<Array<{ id: number; name: string }>>([]);
   readonly media = resolveMediaUrl;
   readonly blocked = signal<BlockedUser[]>([]);
+  readonly similar = signal<SimilarQuestion[]>([]);
   readonly blockingUserId = signal<number | null>(null);
   readonly blockingFrom = signal<number | null>(null);
   readonly blockBusy = signal(false);
@@ -345,6 +378,10 @@ export class AdminRequestsPage implements OnInit {
   @HostListener('document:keydown.escape')
   onEscape(): void {
     if (this.reviewing() && this.busyId() === null) this.closeReview();
+  }
+
+  kindLabel(kind: string): string {
+    return kind === 'question' ? 'Pregunta' : kind === 'report' ? 'Reporte' : 'Idea';
   }
 
   role(r: string): string {
@@ -381,7 +418,8 @@ export class AdminRequestsPage implements OnInit {
   acceptIdea(r: UserRequestDto): void {
     this.busyId.set(r.id);
     this.api.accept(r.id, { note: null }).subscribe({
-      next: () => this.done(r, 'Idea aceptada. Se le avisó al usuario.'),
+      next: () =>
+        this.done(r, r.kind === 'report' ? 'Reporte cerrado. Se le avisó al usuario.' : 'Idea aceptada. Se le avisó al usuario.'),
       error: (err) => this.fail(err)
     });
   }
@@ -393,6 +431,8 @@ export class AdminRequestsPage implements OnInit {
     this.reviewError.set(null);
     const official = this.banks().find((b) => /normas/i.test(b.name) || /señal|senal/i.test(b.name));
     if (!this.bankId) this.bankId = official?.id ?? this.banks()[0]?.id ?? 0;
+    this.similar.set([]);
+    this.api.similar(r.question.text).subscribe({ next: (list) => this.similar.set(list) });
     this.reviewing.set(r);
   }
 

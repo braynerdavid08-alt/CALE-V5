@@ -134,6 +134,7 @@ const POLL_MS = 1500;
                 </div>
                 <play-question
                   [question]="q"
+                  [reportable]="false"
                   [feedback]="feedback()"
                   [selectedId]="selected()"
                   [busy]="busy()"

@@ -20,6 +20,9 @@ Fecha: 30 sep 2026. Contexto: la app pasó a ser gratis para todos (PR #129), co
 - **3.1** Página *Contenido → Señal relámpago*: preguntas en el juego, avance por examen de señales y lista de preguntas que no entran (sin imagen, sin clave, sin una única respuesta correcta) con botón «Editar».
 - **3.2** Contador de solicitudes pendientes en el menú del administrador (se actualiza cada minuto y al aceptar o rechazar).
 - **2.4** Las imágenes se reducen en el navegador antes de subirlas: máximo 1600 px por lado y formato WebP (PNG o JPEG si el navegador no puede). Los GIF no se tocan, y si la versión reducida pesa más se sube la original.
+- **4.1** «Reportar pregunta» al corregir en el simulador, el reto diario y el repaso de errores (no en el duelo, que va contra reloj). Llega al administrador como solicitud tipo «Reporte» con enlace a la pregunta; él la marca como corregida o como sin error, y el usuario recibe aviso.
+- **4.2** Al revisar una pregunta propuesta se muestran las preguntas activas más parecidas (por palabras en común), con enlace para compararlas.
+- **2.3, 3.4 y 4.3** Página *Reportes → Uso de la app*: actividad de los últimos 7 o 30 días, espacio de las imágenes (y de la base completa en Postgres, frente a 1 GB), imágenes más pesadas y preguntas con menor porcentaje de aciertos en exámenes. Los lunes por la mañana llega el resumen semanal como notificación (`Admin:WeeklySummary=false` para desactivarlo).
 - **3.3** Bloqueo de usuarios para solicitudes: desde *Solicitudes de usuarios* el administrador puede bloquear a quien abuse (se rechazan sus pendientes y se le avisa) y desbloquearlo después. El usuario bloqueado ve un aviso en lugar del formulario.
 
 **Pendiente de verificar en Render (manual):** que exista la variable `Jwt__Key` con un secreto propio, y revisar en el log si aparece la advertencia de imágenes `/uploads` perdidas.
