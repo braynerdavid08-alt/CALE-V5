@@ -14,6 +14,26 @@ public sealed partial class GameShowHandler
         return GameShowOfficialAliases.Merge(body, row?.PayloadJson);
     }
 
+    /// <summary>Gives a logged-in student back their seat when the phone lost the player token.</summary>
+    public async Task<JoinGameShowResultDto> RejoinAsync(int sessionId, int userId, CancellationToken ct)
+    {
+        var session = await RequireSessionAsync(sessionId, ct);
+        if (session.Status == GameShowSessionStatuses.Ended)
+        {
+            throw new DomainException("Esta partida ya terminó.", 400, "game_ended");
+        }
+
+        var player = session.Players.FirstOrDefault(p => p.UserId == userId)
+            ?? throw new NotFoundException("No estabas en esta partida.", "player_not_found");
+        var lobby = await MapLobbyAsync(
+            session,
+            hostView: false,
+            ct: ct,
+            viewerPlayerId: player.Id,
+            viewerTeam: player.Team);
+        return new JoinGameShowResultDto(session.Id, player.PlayerToken, player.Id, player.Team, lobby);
+    }
+
     public async Task<GameShowHostReviewDto> GetHostReviewAsync(
         int sessionId,
         int hostUserId,

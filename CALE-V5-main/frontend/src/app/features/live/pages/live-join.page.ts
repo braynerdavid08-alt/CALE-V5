@@ -31,6 +31,12 @@ const TOKEN_KEY = 'cale.live.participant';
         <strong>100 Estudiantes Dijeron</strong>.
       </p>
       <ui-error [message]="error()" />
+      @if (resume(); as G) {
+        <div class="resume">
+          <p>Tienes una partida en curso: <strong>{{ G.title }}</strong></p>
+          <ui-button type="button" (click)="resumeGame(G.sessionId)">Volver a mi partida</ui-button>
+        </div>
+      }
       <div class="mode-tabs">
         <button type="button" [class.on]="mode() === 'code'" (click)="setMode('code')">Código</button>
         <button type="button" [class.on]="mode() === 'scan'" (click)="setMode('scan')">Escanear QR</button>
@@ -89,6 +95,11 @@ const TOKEN_KEY = 'cale.live.participant';
       background: #161d27; color: #fff; font-size: 1.1rem; text-transform: uppercase;
     }
     .account { color: #9aa4b2; font-size: 0.95rem; }
+    .resume {
+      display: grid; gap: 0.6rem; margin: 0.75rem 0; padding: 0.85rem 1rem; border-radius: 12px;
+      border: 1px solid #2bb0ed; background: color-mix(in srgb, #2bb0ed 14%, #161d27);
+    }
+    .resume p { margin: 0; overflow-wrap: anywhere; }
     .hint { margin-top: 1rem; color: #9aa4b2; font-size: 0.9rem; }
     a { color: #2bb0ed; }
   `
@@ -104,6 +115,26 @@ export class LiveJoinPage implements OnInit {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly mode = signal<'code' | 'scan'>('code');
+  readonly resume = signal<{ sessionId: number; title: string } | null>(null);
+
+  resumeGame(sessionId: number): void {
+    void this.router.navigate(['/game-show/play', sessionId]);
+  }
+
+  private checkResumableGame(): void {
+    const last = this.gameShow.lastGame();
+    if (!last) return;
+    this.gameShow.get(last.sessionId, last.token).subscribe({
+      next: (lobby) => {
+        if (lobby.status === 'Ended') {
+          this.gameShow.forgetLastGame();
+          return;
+        }
+        this.resume.set({ sessionId: lobby.id, title: lobby.title });
+      },
+      error: () => this.gameShow.forgetLastGame()
+    });
+  }
 
   homeLink(): string {
     return this.session.homeRoute();
@@ -126,7 +157,9 @@ export class LiveJoinPage implements OnInit {
     const pending = (code || this.form.controls.code.value || '').trim().toUpperCase();
     if (pending.length >= 4 && this.session.isAuthenticated()) {
       this.joinWithCode(pending);
+      return;
     }
+    this.checkResumableGame();
   }
 
   accountName(): string {

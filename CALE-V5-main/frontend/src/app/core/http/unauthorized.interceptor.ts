@@ -62,6 +62,12 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
         return throwError(() => err);
       }
 
+      // The game show works without login: a stale session must not kick a student out mid-game.
+      const inGameShow = /^\/game-show\/(play|screen)\//.test(router.url);
+      if (inGameShow && !session.cookieAuth()) {
+        return throwError(() => err);
+      }
+
       if (!session.cookieAuth()) {
         const here = router.url;
         session.clear();
@@ -86,7 +92,7 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
         catchError((refreshErr) => {
           const here = router.url;
           session.clear();
-          sendToLogin(here);
+          if (!inGameShow) sendToLogin(here);
           return throwError(() => refreshErr);
         })
       );
