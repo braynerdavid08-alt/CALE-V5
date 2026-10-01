@@ -1,7 +1,9 @@
 import { Component, NgZone, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { HubConnection } from '@microsoft/signalr';
+import { HttpErrorResponse } from '@angular/common/http';
+import { HubConnection, HubConnectionState } from '@microsoft/signalr';
+import { SessionStore } from '../../../core/auth/session.store';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { mapApiError } from '../../../core/http/map-api-error';
@@ -75,7 +77,7 @@ import { GameShowSfxService } from '../api/game-show-sfx.service';
         } @else {
           <p>Esperando en el lobby… Código {{ L.joinCode }}</p>
         }
-        <a routerLink="/live/join">Salir</a>
+        <a routerLink="/live/join" (click)="leave()">Salir de la partida</a>
       </section>
     } @else {
       <ui-error [message]="error() || 'Cargando…'" />
@@ -125,14 +127,42 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
   private timeoutPostedFor: string | null = null;
   private turnSecondsSnapshot: number | null = null;
   private turnSecondsCapturedAtMs = 0;
+  private restartTimer: ReturnType<typeof setTimeout> | null = null;
+  private lastSyncAt = 0;
+  private syncInFlight = false;
+  private started = false;
+  private destroyed = false;
+  private readonly session = inject(SessionStore);
 
   ngOnInit(): void {
     this.sessionId = Number(this.route.snapshot.paramMap.get('sessionId'));
     this.token = this.api.loadPlayerToken(this.sessionId) || '';
     if (!this.token) {
-      this.error.set('No hay sesión de jugador. Vuelve a unirte con el código.');
+      this.tryRejoin();
       return;
     }
+    this.startPlaying();
+  }
+
+  ngOnDestroy(): void {
+    this.destroyed = true;
+    if (this.flashTimer) clearTimeout(this.flashTimer);
+    if (this.pollTimer) clearInterval(this.pollTimer);
+    if (this.tickTimer) clearInterval(this.tickTimer);
+    if (this.restartTimer) clearTimeout(this.restartTimer);
+    document.removeEventListener('visibilitychange', this.onWake);
+    window.removeEventListener('online', this.onWake);
+    window.removeEventListener('focus', this.onWake);
+    void this.hub?.stop();
+  }
+
+  leave(): void {
+    this.api.forgetLastGame();
+  }
+
+  private startPlaying(): void {
+    if (this.started) return;
+    this.started = true;
     const savedTeam = localStorage.getItem(`cale.game-show.team.${this.sessionId}`);
     if (savedTeam) this.myTeam.set(savedTeam);
     const savedPlayer = localStorage.getItem(`cale.game-show.playerId.${this.sessionId}`);
@@ -140,16 +170,78 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     this.sfx.unlock();
     this.reload();
     this.connectHub();
-    // Mobile networks often drop SignalR; poll so play stays in sync with the engine.
-    this.pollTimer = setInterval(() => this.reloadQuiet(), 2500);
+    // Poll fast only while the realtime link is down; otherwise a slow safety sync.
+    this.pollTimer = setInterval(() => {
+      const live = this.hub?.state === HubConnectionState.Connected;
+      if (!live || Date.now() - this.lastSyncAt >= 10_000) this.reloadQuiet();
+    }, 2500);
     this.tickTimer = setInterval(() => this.tickDeadline(), 250);
+    document.addEventListener('visibilitychange', this.onWake);
+    window.addEventListener('online', this.onWake);
+    window.addEventListener('focus', this.onWake);
   }
 
-  ngOnDestroy(): void {
-    if (this.flashTimer) clearTimeout(this.flashTimer);
-    if (this.pollTimer) clearInterval(this.pollTimer);
-    if (this.tickTimer) clearInterval(this.tickTimer);
-    void this.hub?.stop();
+  /** Phone unlocked / tab back / network back: resync at once and revive the realtime link. */
+  private readonly onWake = () => {
+    if (document.visibilityState === 'hidden') return;
+    this.zone.run(() => {
+      this.reloadQuiet();
+      this.ensureHub();
+    });
+  };
+
+  private tryRejoin(): void {
+    if (!this.session.user()) {
+      this.error.set('Se perdió tu lugar en la partida. Vuelve a unirte con el código.');
+      return;
+    }
+    this.connection.set('Recuperando tu lugar en la partida…');
+    this.api.rejoin(this.sessionId).subscribe({
+      next: (res) => {
+        this.connection.set(null);
+        this.token = res.playerToken;
+        this.api.savePlayerToken(res.sessionId, res.playerToken);
+        localStorage.setItem(`cale.game-show.team.${res.sessionId}`, res.team || 'A');
+        localStorage.setItem(`cale.game-show.playerId.${res.sessionId}`, String(res.playerId));
+        this.error.set(null);
+        if (this.started) {
+          void this.hub?.invoke('JoinAsPlayer', this.sessionId, this.token).catch(() => {});
+          this.apply(res.lobby);
+        } else {
+          this.startPlaying();
+        }
+      },
+      error: (err) => {
+        this.connection.set(null);
+        this.error.set(mapApiError(err) || 'Se perdió tu lugar en la partida. Vuelve a unirte con el código.');
+      }
+    });
+  }
+
+  private isSeatLost(err: unknown): boolean {
+    return err instanceof HttpErrorResponse
+      && (err.status === 403 || err.status === 404)
+      && (err.error?.detail === 'forbidden' || err.error?.detail === 'player_not_found');
+  }
+
+  private ensureHub(): void {
+    const hub = this.hub;
+    if (!hub || this.destroyed) return;
+    if (hub.state === HubConnectionState.Disconnected) {
+      this.connection.set('Reconectando…');
+      void hub.start()
+        .then(() => hub.invoke('JoinAsPlayer', this.sessionId, this.token))
+        .then(() => this.zone.run(() => this.connection.set(null)))
+        .catch(() => this.scheduleRestart());
+    }
+  }
+
+  private scheduleRestart(): void {
+    if (this.destroyed || this.restartTimer) return;
+    this.restartTimer = setTimeout(() => {
+      this.restartTimer = null;
+      this.ensureHub();
+    }, 5000);
   }
 
   myTeamName(L: GameShowLobbyDto): string {
@@ -278,19 +370,35 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
   private reload(): void {
     this.api.get(this.sessionId, this.token).subscribe({
       next: (lobby) => this.apply(lobby),
-      error: (err) => this.error.set(mapApiError(err))
+      error: (err) => {
+        if (this.isSeatLost(err)) {
+          this.tryRejoin();
+          return;
+        }
+        this.error.set(mapApiError(err));
+      }
     });
   }
 
   private reloadQuiet(): void {
+    if (this.syncInFlight) return;
+    this.syncInFlight = true;
     this.api.get(this.sessionId, this.token).subscribe({
-      next: (lobby) => this.apply(lobby),
-      error: () => { /* keep last good lobby while polling */ }
+      next: (lobby) => {
+        this.syncInFlight = false;
+        this.apply(lobby);
+      },
+      error: (err) => {
+        this.syncInFlight = false;
+        // Keep the last good board on network blips; only a lost seat needs action.
+        if (this.isSeatLost(err)) this.tryRejoin();
+      }
     });
   }
 
   /** El backend indica el equipo del jugador dueño del token; localStorage es solo respaldo. */
   private apply(lobby: GameShowLobbyDto): void {
+    this.lastSyncAt = Date.now();
     const prev = this.lobby();
     const viewerPlayerId = lobby.viewerPlayerId ?? prev?.viewerPlayerId ?? this.myPlayerId;
     const viewerTeam = lobby.viewerTeam ?? prev?.viewerTeam ?? this.myTeam();
@@ -392,12 +500,19 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     this.hub.onreconnecting(() => this.zone.run(() => this.connection.set('Reconectando…')));
     this.hub.onreconnected(() => this.zone.run(() => {
       this.connection.set(null);
-      void this.hub?.invoke('JoinAsPlayer', this.sessionId, this.token);
-      this.reload();
+      void this.hub?.invoke('JoinAsPlayer', this.sessionId, this.token).catch(() => {});
+      this.reloadQuiet();
     }));
-    this.hub.onclose(() => this.zone.run(() => this.connection.set('Conexión perdida. Recarga la página.')));
+    this.hub.onclose(() => this.zone.run(() => {
+      if (this.destroyed) return;
+      this.connection.set('Reconectando… sigues en la partida.');
+      this.scheduleRestart();
+    }));
     void this.hub.start()
       .then(() => this.hub!.invoke('JoinAsPlayer', this.sessionId, this.token))
-      .catch(() => this.zone.run(() => this.connection.set('Sin SignalR — sincronizando por red…')));
+      .catch(() => this.zone.run(() => {
+        this.connection.set('Reconectando… sigues en la partida.');
+        this.scheduleRestart();
+      }));
   }
 }

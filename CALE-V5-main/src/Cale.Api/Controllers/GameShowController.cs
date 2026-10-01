@@ -69,6 +69,10 @@ public sealed class GameShowController : ControllerBase
         return Ok(await _handler.JoinAsync(request, userId, ct));
     }
 
+    [HttpPost("{id:int}/rejoin")]
+    public async Task<IActionResult> Rejoin(int id, CancellationToken ct) =>
+        Ok(await _handler.RejoinAsync(id, CurrentUser.GetId(User), ct));
+
     [HttpGet("packs/oficial")]
     [Authorize(Policy = "TeacherOrAdmin")]
     public async Task<IActionResult> OfficialPack(CancellationToken ct = default)

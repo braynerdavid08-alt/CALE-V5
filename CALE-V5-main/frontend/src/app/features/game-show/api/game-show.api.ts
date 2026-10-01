@@ -289,6 +289,8 @@ export interface GameShowStatsDto {
 }
 
 const TOKEN_KEY = 'cale.game-show.player';
+const LAST_GAME_KEY = 'cale.game-show.last';
+const LAST_GAME_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 
 @Injectable({ providedIn: 'root' })
 export class GameShowApi {
@@ -499,8 +501,30 @@ export class GameShowApi {
     return this.http.post<GameShowLobbyDto>(`${this.base}/api/game-show/import/create`, form);
   }
 
+  /** Recupera el puesto del estudiante con sesión iniciada si el celular perdió el token. */
+  rejoin(sessionId: number) {
+    return this.http.post<JoinGameShowResultDto>(`${this.base}/api/game-show/${sessionId}/rejoin`, {});
+  }
+
   savePlayerToken(sessionId: number, token: string): void {
     localStorage.setItem(`${TOKEN_KEY}.${sessionId}`, token);
+    localStorage.setItem(LAST_GAME_KEY, JSON.stringify({ sessionId, at: Date.now() }));
+  }
+
+  /** Última partida en la que entró este celular (para el botón "Volver a la partida"). */
+  lastGame(): { sessionId: number; token: string } | null {
+    try {
+      const raw = JSON.parse(localStorage.getItem(LAST_GAME_KEY) || 'null') as { sessionId?: number; at?: number } | null;
+      if (!raw?.sessionId || !raw.at || Date.now() - raw.at > LAST_GAME_MAX_AGE_MS) return null;
+      const token = this.loadPlayerToken(raw.sessionId);
+      return token ? { sessionId: raw.sessionId, token } : null;
+    } catch {
+      return null;
+    }
+  }
+
+  forgetLastGame(): void {
+    localStorage.removeItem(LAST_GAME_KEY);
   }
 
   loadPlayerToken(sessionId: number): string | null {
@@ -513,7 +537,10 @@ export class GameShowApi {
       .withUrl(url, {
         accessTokenFactory: () => this.session.token() || ''
       })
-      .withAutomaticReconnect()
+      // Never give up: phones lock, switch networks and Render restarts on deploy.
+      .withAutomaticReconnect({
+        nextRetryDelayInMilliseconds: (ctx) => Math.min(10_000, 1000 * 2 ** Math.min(ctx.previousRetryCount, 4))
+      })
       .configureLogging(LogLevel.Warning)
       .build();
   }
