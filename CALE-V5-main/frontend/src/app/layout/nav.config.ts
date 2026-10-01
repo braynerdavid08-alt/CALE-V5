@@ -1,8 +1,12 @@
+/** Live counters the shell can show next to a menu entry. */
+export type NavBadge = 'pendingRequests';
+
 export interface NavChild {
   label: string;
   path: string;
   exact?: boolean;
   queryParams?: Record<string, string>;
+  badge?: NavBadge;
 }
 
 export interface NavItem {
@@ -68,7 +72,8 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
           { label: 'Bancos', path: '/admin/banks', exact: true },
           { label: 'Exámenes', path: '/admin/exams', exact: true },
           { label: 'Cursos / Clases', path: '/admin/courses', exact: true },
-          { label: 'Solicitudes de usuarios', path: '/admin/requests', exact: true }
+          { label: 'Solicitudes de usuarios', path: '/admin/requests', exact: true, badge: 'pendingRequests' },
+          { label: 'Señal relámpago', path: '/admin/signs-game', exact: true }
         ]
       },
       {

@@ -101,6 +101,22 @@ public sealed record SignsResultRequest(int Correct, int Total);
 
 public sealed record QuickCheckResultDto(bool Correct, int? CorrectOptionId);
 
+public sealed record SignsExamReportDto(
+    int ExamId,
+    string Name,
+    bool AdminOwned,
+    int Questions,
+    int InGame,
+    int NotOfficial);
+
+public sealed record SignsIssueDto(int QuestionId, string Text, string ExamName, string Reason);
+
+public sealed record SignsReportDto(
+    int InGame,
+    int Candidates,
+    IReadOnlyList<SignsExamReportDto> Exams,
+    IReadOnlyList<SignsIssueDto> Issues);
+
 public sealed record GameSavedDto(
     int Score,
     int Best,

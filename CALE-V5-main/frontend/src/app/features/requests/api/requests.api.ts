@@ -1,5 +1,6 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { tap } from 'rxjs/operators';
 import { env } from '../../../core/config/env';
 
 export const QUESTION_TYPE_MC = 'Seleccion multiple';
@@ -123,8 +124,13 @@ export class RequestsApi {
     return this.http.get<UserRequestDto[]>(`${this.base}/admin`, { params });
   }
 
+  /** Last known pending count; feeds the admin menu badge. */
+  readonly pendingCount = signal(0);
+
   adminCounts() {
-    return this.http.get<UserRequestCounts>(`${this.base}/admin/counts`);
+    return this.http
+      .get<UserRequestCounts>(`${this.base}/admin/counts`)
+      .pipe(tap((c) => this.pendingCount.set(c.pending)));
   }
 
   accept(id: number, body: { note?: string | null; bankId?: number | null; blockId?: number | null; question?: unknown }) {
