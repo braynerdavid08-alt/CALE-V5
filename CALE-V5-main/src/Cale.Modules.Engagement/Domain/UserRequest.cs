@@ -76,11 +76,15 @@ public sealed class UserRequest
         }
     }
 
-    public void Reject(int adminId, string? note, DateTime now)
+    public void Reject(int adminId, string? note, DateTime now, string? payloadWithoutImages = null)
     {
         Status = UserRequestStatuses.Rejected;
         AdminNote = note;
         ReviewedById = adminId;
         ReviewedAt = now;
+        if (payloadWithoutImages is not null)
+        {
+            PayloadJson = payloadWithoutImages;
+        }
     }
 }

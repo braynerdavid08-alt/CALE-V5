@@ -1,6 +1,8 @@
 using System.ComponentModel.DataAnnotations;
+using Cale.Api.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Cale.Api.Controllers;
 
@@ -33,6 +35,7 @@ public sealed class ClientErrorsController : ControllerBase
 
     [HttpPost]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.ClientErrors)]
     [RequestSizeLimit(32_000)]
     public IActionResult Report([FromBody] ClientErrorReport? report)
     {

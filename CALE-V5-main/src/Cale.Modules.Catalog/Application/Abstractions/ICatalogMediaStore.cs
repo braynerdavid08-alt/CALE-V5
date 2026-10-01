@@ -15,6 +15,12 @@ public interface ICatalogMediaStore
         Guid id,
         CancellationToken ct = default);
 
+    /// <summary>Deletes the given blobs owned by <paramref name="ownerId"/>; returns how many were removed.</summary>
+    Task<int> DeleteOwnedAsync(
+        IReadOnlyCollection<Guid> ids,
+        int ownerId,
+        CancellationToken ct = default);
+
     /// <summary>Serve pre-DB uploads still present on disk under /uploads/.</summary>
     Task<(byte[] Data, string ContentType, string FileName)?> TryReadLegacyDiskAsync(
         string fileName,

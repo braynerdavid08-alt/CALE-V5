@@ -62,7 +62,7 @@ public sealed class AuthController : ControllerBase
 
     [HttpPost("login")]
     [AllowAnonymous]
-    [EnableRateLimiting("login")]
+    [EnableRateLimiting(RateLimitPolicies.Login)]
     public async Task<ActionResult<AuthResponse>> Login(
         LoginRequest request,
         CancellationToken ct)
@@ -81,6 +81,7 @@ public sealed class AuthController : ControllerBase
 
     [HttpPost("register")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Register)]
     public async Task<ActionResult<PendingEmailConfirmationResponse>> Register(
         RegisterRequest request,
         CancellationToken ct) =>
@@ -88,6 +89,7 @@ public sealed class AuthController : ControllerBase
 
     [HttpPost("register-teacher")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Register)]
     public async Task<ActionResult<PendingEmailConfirmationResponse>> RegisterTeacher(
         RegisterRequest request,
         CancellationToken ct) =>
@@ -95,6 +97,7 @@ public sealed class AuthController : ControllerBase
 
     [HttpPost("register-school")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Register)]
     public async Task<ActionResult<PendingEmailConfirmationResponse>> RegisterSchool(
         RegisterSchoolRequest request,
         CancellationToken ct) =>
@@ -102,6 +105,7 @@ public sealed class AuthController : ControllerBase
 
     [HttpPost("confirm-email")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.EmailCode)]
     public async Task<ActionResult<AuthResponse>> ConfirmEmail(
         ConfirmEmailRequest request,
         CancellationToken ct)
@@ -120,6 +124,7 @@ public sealed class AuthController : ControllerBase
 
     [HttpPost("resend-confirmation")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.EmailCode)]
     public async Task<ActionResult<PendingEmailConfirmationResponse>> ResendConfirmation(
         ResendConfirmationRequest request,
         CancellationToken ct) =>

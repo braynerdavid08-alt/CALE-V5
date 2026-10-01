@@ -65,6 +65,15 @@ public static class WebApplicationExtensions
         var bootLogger = scope.ServiceProvider
             .GetRequiredService<ILoggerFactory>()
             .CreateLogger("Cale.Startup");
+        var jwtKey = app.Configuration["Jwt:Key"] ?? "";
+        if (!app.Environment.IsDevelopment()
+            && (jwtKey.Length < 32 || jwtKey.Contains("CHANGE-ME", StringComparison.OrdinalIgnoreCase)))
+        {
+            bootLogger.LogCritical(
+                "SECURITY: Jwt:Key is the placeholder or too short. Set the Jwt__Key environment variable "
+                + "to a random secret of at least 32 characters; otherwise login tokens can be forged.");
+        }
+
         bootLogger.LogInformation(
             "Database provider: {Provider}; {Description}",
             providerKind,
