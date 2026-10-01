@@ -1,3 +1,4 @@
+using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Classroom;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.Modules.Catalog.Domain;
@@ -152,8 +153,9 @@ public sealed partial class PlayService
     private static readonly TimeSpan SignsTtl = TimeSpan.FromSeconds(30);
 
     /// <summary>
-    /// Questions with an image from any exam named like "Examen Señales SR", whoever created it
-    /// and whether or not it is active.
+    /// Questions with an image from active exams named like "Examen Señales SR". Only content the
+    /// admin controls counts: every question of an admin-created exam, or, for exams created by
+    /// anyone else, only the questions that live in an official bank.
     /// </summary>
     internal async Task<List<int>> SignsQuestionIdsAsync(CancellationToken ct)
     {
@@ -163,8 +165,14 @@ public sealed partial class PlayService
             return cached;
         }
 
+        var adminIds = (await _db.Set<User>().AsNoTracking()
+                .Where(u => u.Role == Roles.Admin)
+                .Select(u => u.Id)
+                .ToListAsync(ct))
+            .ToHashSet();
         var exams = (await _db.Set<Exam>().AsNoTracking()
-                .Select(e => new { e.Id, e.Name, e.BankId })
+                .Where(e => e.IsActive)
+                .Select(e => new { e.Id, e.Name, e.BankId, e.CreatedById })
                 .ToListAsync(ct))
             .Where(e => SignsExamKeywords.Any(k => e.Name.Contains(k, StringComparison.OrdinalIgnoreCase)))
             .ToList();
@@ -179,16 +187,20 @@ public sealed partial class PlayService
             .Select(x => new { x.ExamId, x.QuestionId })
             .ToListAsync(ct);
         var examsWithList = picked.Select(x => x.ExamId).ToHashSet();
-        var questionIds = picked.Select(x => x.QuestionId).Distinct().ToList();
-        var bankIds = exams
-            .Where(e => e.BankId is not null && !examsWithList.Contains(e.Id))
-            .Select(e => e.BankId!.Value)
-            .Distinct()
-            .ToList();
+        var adminExamIds = exams.Where(e => adminIds.Contains(e.CreatedById)).Select(e => e.Id).ToHashSet();
+
+        var trustedQuestionIds = picked.Where(x => adminExamIds.Contains(x.ExamId)).Select(x => x.QuestionId).Distinct().ToList();
+        var otherQuestionIds = picked.Where(x => !adminExamIds.Contains(x.ExamId)).Select(x => x.QuestionId).Distinct().ToList();
+        var bankOnly = exams.Where(e => e.BankId is not null && !examsWithList.Contains(e.Id)).ToList();
+        var trustedBankIds = bankOnly.Where(e => adminExamIds.Contains(e.Id)).Select(e => e.BankId!.Value).Distinct().ToList();
+        var otherBankIds = bankOnly.Where(e => !adminExamIds.Contains(e.Id)).Select(e => e.BankId!.Value).Distinct().ToList();
+        var officialBanks = await OfficialBankIdsAsync(ct);
 
         var ids = await _db.Set<Question>().AsNoTracking()
             .Where(q => q.IsActive
-                && (questionIds.Contains(q.Id) || bankIds.Contains(q.BankId))
+                && (trustedQuestionIds.Contains(q.Id)
+                    || trustedBankIds.Contains(q.BankId)
+                    || ((otherQuestionIds.Contains(q.Id) || otherBankIds.Contains(q.BankId)) && officialBanks.Contains(q.BankId)))
                 && ((q.ImageUrl != null && q.ImageUrl != "") || q.Options.Any(o => o.ImageUrl != null && o.ImageUrl != ""))
                 && (q.Explanation == null || !q.Explanation.Contains("Importada sin clave"))
                 && q.Options.Count() >= 2
