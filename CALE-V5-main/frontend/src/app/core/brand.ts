@@ -20,7 +20,7 @@ export const BRAND = {
   icon512: '/icons/icon-512.png',
   appleTouchIcon: '/icons/apple-touch-icon.png',
   favicon: '/icons/favicon.png',
-  themeColor: '#051128',
+  themeColor: '#070b09',
   pwaBackground: '#000000'
 } as const;
 

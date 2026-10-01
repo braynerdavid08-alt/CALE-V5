@@ -67,7 +67,7 @@ const TOKEN_KEY = 'cale.live.participant';
       color: var(--color-text, #fff);
     }
     .join { width: min(420px, 100%); }
-    .eyebrow { color: #2bb0ed; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.75rem; }
+    .eyebrow { color: #4ade80; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.75rem; }
     .lead { color: #9aa4b2; }
     .mode-tabs {
       display: flex;
@@ -85,9 +85,9 @@ const TOKEN_KEY = 'cale.live.participant';
       cursor: pointer;
     }
     .mode-tabs button.on {
-      border-color: #2bb0ed;
+      border-color: #4ade80;
       color: #fff;
-      background: color-mix(in srgb, #2bb0ed 18%, #161d27);
+      background: color-mix(in srgb, #4ade80 18%, #161d27);
     }
     .field { display: grid; gap: 0.35rem; margin: 0.85rem 0; }
     input {
@@ -97,11 +97,11 @@ const TOKEN_KEY = 'cale.live.participant';
     .account { color: #9aa4b2; font-size: 0.95rem; }
     .resume {
       display: grid; gap: 0.6rem; margin: 0.75rem 0; padding: 0.85rem 1rem; border-radius: 12px;
-      border: 1px solid #2bb0ed; background: color-mix(in srgb, #2bb0ed 14%, #161d27);
+      border: 1px solid #4ade80; background: color-mix(in srgb, #4ade80 14%, #161d27);
     }
     .resume p { margin: 0; overflow-wrap: anywhere; }
     .hint { margin-top: 1rem; color: #9aa4b2; font-size: 0.9rem; }
-    a { color: #2bb0ed; }
+    a { color: #4ade80; }
   `
 })
 export class LiveJoinPage implements OnInit {

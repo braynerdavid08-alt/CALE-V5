@@ -15,7 +15,7 @@
   position: sticky;
   top: 0;
   z-index: var(--z-topbar);
-  background: #051128;
+  background: #070b09;
   color: #d7e2ea;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -174,7 +174,7 @@
 
 .foot {
   margin-top: auto;
-  background: #051128;
+  background: #070b09;
   color: #9db0bf;
   padding: 2rem 0;
 }

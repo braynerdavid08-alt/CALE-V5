@@ -215,7 +215,7 @@ const timeFmt = new Intl.DateTimeFormat('es-CO', { hour: 'numeric', minute: '2-d
       font-size: 0.8rem;
       font-weight: 800;
       color: #062231;
-      background: linear-gradient(135deg, #4eb6d4, #22c55e);
+      background: linear-gradient(135deg, #84cc16, #22c55e);
     }
     .who { display: grid; gap: 0.1rem; min-width: 0; }
     .who strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

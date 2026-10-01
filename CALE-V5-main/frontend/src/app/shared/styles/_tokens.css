@@ -2,21 +2,21 @@
 [data-theme='light'] {
   color-scheme: light;
 
-  --color-primary: #1a6b8a;
-  --color-primary-hover: #155a74;
-  --color-primary-soft: #dceef5;
+  --color-primary: #15803d;
+  --color-primary-hover: #116932;
+  --color-primary-soft: #dcf5e3;
   --color-on-primary: #ffffff;
 
-  --color-background: #eef2f6;
+  --color-background: #f0f4f1;
   --color-bg: var(--color-background);
   --color-surface: #ffffff;
-  --color-surface-raised: #f7f9fb;
-  --color-text: #14212b;
-  --color-text-secondary: #4a5b6a;
+  --color-surface-raised: #f6f9f7;
+  --color-text: #141b17;
+  --color-text-secondary: #4a5a51;
   --color-muted: var(--color-text-secondary);
-  --color-border: #d5dee7;
-  --color-border-strong: #b7c4d0;
-  --color-chip: #e6edf3;
+  --color-border: #d4ded8;
+  --color-border-strong: #b4c4ba;
+  --color-chip: #e5eee8;
 
   --color-success: #0f7a4d;
   --color-success-soft: #def5ea;
@@ -28,16 +28,16 @@
   --color-info: #1769aa;
   --color-info-soft: #e4f1fb;
 
-  --color-sidebar: #132029;
-  --color-sidebar-text: #b7c5d0;
+  --color-sidebar: #0f1712;
+  --color-sidebar-text: #b9c6be;
   --color-sidebar-active: #ffffff;
   --color-sidebar-hover: rgba(255, 255, 255, 0.07);
-  --color-brand-panel: #132029;
-  --color-brand-panel-text: #d7e2ea;
-  --color-scrim: rgba(20, 33, 43, 0.45);
+  --color-brand-panel: #0f1712;
+  --color-brand-panel-text: #d8e3dc;
+  --color-scrim: rgba(15, 23, 18, 0.45);
 
-  --color-auth-glow: rgba(26, 107, 138, 0.16);
-  --color-welcome-start: #dceef5;
+  --color-auth-glow: rgba(34, 197, 94, 0.16);
+  --color-welcome-start: #dcf5e3;
   --color-welcome-end: #ffffff;
 
   --font: "DM Sans", "Segoe UI", system-ui, sans-serif;
@@ -80,21 +80,21 @@
 [data-theme='dark'] {
   color-scheme: dark;
 
-  --color-primary: #4eb6d4;
-  --color-primary-hover: #6bc4db;
-  --color-primary-soft: #1a3644;
-  --color-on-primary: #0b1820;
+  --color-primary: #4ade80;
+  --color-primary-hover: #6ee79a;
+  --color-primary-soft: #133222;
+  --color-on-primary: #052e14;
 
-  --color-background: #0e1419;
+  --color-background: #0a0e0c;
   --color-bg: var(--color-background);
-  --color-surface: #172028;
-  --color-surface-raised: #1d2832;
-  --color-text: #e8eef3;
-  --color-text-secondary: #a3b4c2;
+  --color-surface: #131915;
+  --color-surface-raised: #19211c;
+  --color-text: #e9efeb;
+  --color-text-secondary: #a5b4ab;
   --color-muted: var(--color-text-secondary);
-  --color-border: #2a3844;
-  --color-border-strong: #3d5060;
-  --color-chip: #22303b;
+  --color-border: #26322b;
+  --color-border-strong: #3a4a40;
+  --color-chip: #1c2620;
 
   --color-success: #3dcf8e;
   --color-success-soft: #143528;
@@ -106,17 +106,17 @@
   --color-info: #6ab0e0;
   --color-info-soft: #173246;
 
-  --color-sidebar: #0a1015;
-  --color-sidebar-text: #9db0bf;
+  --color-sidebar: #060907;
+  --color-sidebar-text: #a0b2a7;
   --color-sidebar-active: #ffffff;
   --color-sidebar-hover: rgba(255, 255, 255, 0.06);
-  --color-brand-panel: #0a1015;
-  --color-brand-panel-text: #c5d3de;
+  --color-brand-panel: #060907;
+  --color-brand-panel-text: #c7d5cc;
   --color-scrim: rgba(0, 0, 0, 0.55);
 
-  --color-auth-glow: rgba(78, 182, 212, 0.12);
-  --color-welcome-start: #1a3644;
-  --color-welcome-end: #172028;
+  --color-auth-glow: rgba(74, 222, 128, 0.12);
+  --color-welcome-start: #133222;
+  --color-welcome-end: #131915;
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
   --shadow-md: 0 12px 32px rgba(0, 0, 0, 0.4);
@@ -144,17 +144,17 @@ html[data-size='large'] {
 
 html[data-size='large'][data-theme='light'],
 html[data-size='large']:not([data-theme]) {
-  --color-text: #0b1720;
-  --color-text-secondary: #2f3f4b;
-  --color-border: #b9c6d2;
-  --color-sidebar-text: #dbe5ec;
+  --color-text: #0b130e;
+  --color-text-secondary: #2f3f35;
+  --color-border: #b8c7be;
+  --color-sidebar-text: #dbe6df;
 }
 
 html[data-size='large'][data-theme='dark'] {
-  --color-text: #f5f8fa;
-  --color-text-secondary: #cad6df;
-  --color-border: #3b4d5c;
-  --color-sidebar-text: #d6e1e9;
+  --color-text: #f5f9f6;
+  --color-text-secondary: #cbd8d0;
+  --color-border: #3a4c41;
+  --color-sidebar-text: #d7e3db;
 }
 
 @media (max-width: 900px) {

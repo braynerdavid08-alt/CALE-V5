@@ -17,7 +17,7 @@ const HEIGHT = 1350;
 
 const TONES: Record<NonNullable<ShareCardData['tone']>, [string, string]> = {
   success: ['#0f7a4d', '#16a34a'],
-  primary: ['#132029', '#1a6b8a'],
+  primary: ['#0f1712', '#15803d'],
   warning: ['#9a3412', '#f59e0b']
 };
 
