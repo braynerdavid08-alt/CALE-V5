@@ -1,4 +1,3 @@
-using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Classroom;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.Modules.Catalog.Domain;
@@ -144,12 +143,18 @@ public sealed partial class PlayService
             .ToList();
     }
 
-    // ───────────────────────── Señal relámpago: admin sign questions with images ─────────────────────────
+    // ───────────────────────── Señal relámpago: sign exam questions with images ─────────────────────────
 
-    /// <summary>Admin exams whose name contains one of these fragments feed Señal relámpago.</summary>
+    /// <summary>Exams whose name contains one of these fragments feed Señal relámpago.</summary>
     private static readonly string[] SignsExamKeywords = ["señal", "senal"];
 
-    /// <summary>Questions with an image from the admin's sign exams (e.g. "Examen Señales SR").</summary>
+    /// <summary>Short so newly added images show up in the game almost immediately.</summary>
+    private static readonly TimeSpan SignsTtl = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// Questions with an image from any exam named like "Examen Señales SR", whoever created it
+    /// and whether or not it is active.
+    /// </summary>
     internal async Task<List<int>> SignsQuestionIdsAsync(CancellationToken ct)
     {
         const string key = "play:signs-questions";
@@ -158,12 +163,7 @@ public sealed partial class PlayService
             return cached;
         }
 
-        var adminIds = await _db.Set<User>().AsNoTracking()
-            .Where(u => u.Role == Roles.Admin)
-            .Select(u => u.Id)
-            .ToListAsync(ct);
         var exams = (await _db.Set<Exam>().AsNoTracking()
-                .Where(e => e.IsActive && adminIds.Contains(e.CreatedById))
                 .Select(e => new { e.Id, e.Name, e.BankId })
                 .ToListAsync(ct))
             .Where(e => SignsExamKeywords.Any(k => e.Name.Contains(k, StringComparison.OrdinalIgnoreCase)))
@@ -197,7 +197,7 @@ public sealed partial class PlayService
             .ToListAsync(ct);
         if (ids.Count > 0)
         {
-            CacheSmall(key, ids, CatalogTtl);
+            CacheSmall(key, ids, SignsTtl);
         }
 
         return ids;
