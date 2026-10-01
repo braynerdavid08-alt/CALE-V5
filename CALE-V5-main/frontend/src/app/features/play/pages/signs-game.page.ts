@@ -93,7 +93,7 @@ type Round =
               <h2>¿Listo?</h2>
               <p>Verás una señal de tránsito y 4 nombres. Toca el correcto lo más rápido que puedas. Los errores no restan, pero te hacen perder tiempo.</p>
               @if (hasSchoolQuestions()) {
-                <p>Cada tanto aparecerá una pregunta de los exámenes de tu escuela o instructor.</p>
+                <p>Cada tanto aparecerá una pregunta CALE del banco oficial o de los exámenes de tu escuela.</p>
               }
               <ui-button type="button" (click)="start()">¡Empezar!</ui-button>
             </div>
@@ -123,7 +123,7 @@ type Round =
                     }
                   </div>
                 } @else {
-                  <span class="q-tag">📝 Pregunta de tu escuela</span>
+                  <span class="q-tag">📝 Pregunta CALE</span>
                   @if (r.question.imageUrl) {
                     <div class="sign-img small">
                       <img [src]="media(r.question.imageUrl)" alt="Imagen de la pregunta" />
