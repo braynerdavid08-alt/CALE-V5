@@ -45,12 +45,6 @@
       }
     </section>
 
-    <app-inactive-students-card />
-
-    @if (notifs().length) {
-      <ui-dash-notifs [items]="notifs()" (open)="openNotif($event)" />
-    }
-
     @if (profile(); as p) {
       @if (free()) {
         <section class="easy-panel donate-panel">

@@ -1,21 +1,15 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { SessionStore } from '../../../core/auth/session.store';
 import { env } from '../../../core/config/env';
 import { mapApiError } from '../../../core/http/map-api-error';
-import {
-  NotificationDto,
-  NotificationsApi
-} from '../../../core/notifications/notifications.api';
 import { ApprenticeApi, SchoolOperationsDashboard } from '../api/apprentice.api';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
-import { UiDashNotifsComponent } from '../../../shared/ui/ui-dash-notifs.component';
-import { InactiveStudentsCardComponent } from '../../play/components/inactive-students-card.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 
@@ -60,11 +54,9 @@ const VISIBLE_TODOS = 6;
   standalone: true,
   imports: [
     DatePipe,
-    InactiveStudentsCardComponent,
     RouterLink,
     UiBadgeComponent,
     UiButtonComponent,
-    UiDashNotifsComponent,
     UiErrorComponent,
     UiLoadingComponent
   ],
@@ -73,16 +65,13 @@ const VISIBLE_TODOS = 6;
 })
 export class SchoolHomePage implements OnInit {
   private readonly http = inject(HttpClient);
-  private readonly notificationsApi = inject(NotificationsApi);
   private readonly apprenticeApi = inject(ApprenticeApi);
-  private readonly router = inject(Router);
   readonly session = inject(SessionStore);
   readonly free = this.session.freeAccess;
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly profile = signal<SchoolProfileDto | null>(null);
-  readonly notifs = signal<NotificationDto[]>([]);
   readonly ops = signal<SchoolOperationsDashboard | null>(null);
   readonly showAllTodos = signal(false);
 
@@ -185,16 +174,12 @@ export class SchoolHomePage implements OnInit {
   ngOnInit(): void {
     forkJoin({
       profile: this.http.get<SchoolProfileDto>(`${env.apiUrl}/api/school/profile`),
-      notifs: this.notificationsApi.list({ take: 5 }).pipe(
-        catchError(() => of({ items: [] as NotificationDto[], unreadCount: 0 }))
-      ),
       ops: this.apprenticeApi.getDashboard().pipe(
         catchError(() => of(null as SchoolOperationsDashboard | null))
       )
     }).subscribe({
       next: (res) => {
         this.profile.set(res.profile);
-        this.notifs.set(res.notifs.items);
         this.ops.set(res.ops);
         this.loading.set(false);
       },
@@ -230,22 +215,5 @@ export class SchoolHomePage implements OnInit {
 
   formatMoney(value: number): string {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value);
-  }
-
-  openNotif(n: NotificationDto): void {
-    const go = () => void this.router.navigateByUrl(n.link || '/notifications');
-    if (n.isRead) {
-      go();
-      return;
-    }
-    this.notificationsApi.markRead(n.id).subscribe({
-      next: () => {
-        this.notifs.update((list) =>
-          list.map((x) => (x.id === n.id ? { ...x, isRead: true } : x))
-        );
-        go();
-      },
-      error: () => go()
-    });
   }
 }
