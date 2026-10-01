@@ -24,7 +24,7 @@ import { PublicInstructorCardDto } from './public.models';
     <div class="page">
       <header class="head">
         <p class="eyebrow">Instructores</p>
-        <h1>Instructores de Mi CALE</h1>
+        <h1>Instructores de Luz Verde</h1>
         <p class="lead">Instructores activos que acompañan la formación teórica y práctica de sus estudiantes.</p>
       </header>
 
@@ -119,7 +119,7 @@ export class PublicInstructorsPage implements OnInit {
     this.title.setTitle(brandPageTitle('Instructores'));
     this.meta.updateTag({
       name: 'description',
-      content: 'Instructores de formación vial en Mi CALE.'
+      content: 'Instructores de formación vial en Luz Verde.'
     });
 
     this.api.listInstructors().subscribe({

@@ -393,7 +393,7 @@ internal static class PptxSlideIO
 
         tree.Append(shape);
 
-        var label = hasMedia ? "▶ Video (Mi CALE)" : "▶ Video no disponible";
+        var label = hasMedia ? "▶ Video (Luz Verde)" : "▶ Video no disponible";
         AppendTextShape(tree, label, x + 16, y + h / 2 - 20, w - 32, 40, 22, true, ref shapeId);
     }
 

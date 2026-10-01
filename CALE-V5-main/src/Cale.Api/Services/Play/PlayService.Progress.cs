@@ -207,7 +207,7 @@ public sealed partial class PlayService
         }
 
         scopes.AddRange(groups.Select(g => new RankingScopeDto("group", g.Name, g.Id)));
-        scopes.Add(new RankingScopeDto("global", "Todo Mi CALE", null));
+        scopes.Add(new RankingScopeDto("global", "Todo Luz Verde", null));
 
         var resolved = scope?.ToLowerInvariant() switch
         {
@@ -263,7 +263,7 @@ public sealed partial class PlayService
         {
             "school" => "Mi escuela",
             "group" => selectedGroup?.Name ?? "Mi grupo",
-            _ => "Todo Mi CALE"
+            _ => "Todo Luz Verde"
         };
 
         return new RankingDto(

@@ -40,7 +40,7 @@ public static class GameShowQuestionImport
         }
 
         throw new DomainException(
-            "Usa un archivo .json o .csv exportado desde CALE.",
+            "Usa un archivo .json o .csv exportado desde Luz Verde.",
             400,
             "unsupported_import");
     }

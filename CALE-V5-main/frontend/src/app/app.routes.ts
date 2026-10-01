@@ -728,7 +728,7 @@ export const routes: Routes = [
           roles: ['Admin'],
           roleFilter: 'Teacher',
           title: 'Instructores',
-          subtitle: 'Gestión global de instructores del ecosistema CALE.'
+          subtitle: 'Gestión global de instructores de Luz Verde.'
         },
         loadComponent: () =>
           import('./features/admin/pages/admin-role-users.page')

@@ -148,7 +148,7 @@ type Tab = 'queue' | 'schools';
         <ui-page-header
           eyebrow="Escuelas de Manejo"
           title="Directorio de escuelas"
-          subtitle="CALE es gratis: las escuelas no necesitan plan. Aquí revisas, suspendes o reactivas cada escuela." />
+          subtitle="Luz Verde es gratis: las escuelas no necesitan plan. Aquí revisas, suspendes o reactivas cada escuela." />
       } @else {
         <ui-page-header
           eyebrow="Escuelas de Manejo"

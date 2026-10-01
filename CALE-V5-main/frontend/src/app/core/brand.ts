@@ -1,18 +1,18 @@
 /** Product brand — keep UI copy in sync with this source. */
 export const BRAND = {
   /** Primary product name (hero / logo wordmark). */
-  name: 'Mi CALE',
+  name: 'Luz Verde',
   /** Short tagline for tight UI (sidebar, nav). */
-  sloganShort: 'en tu CEA',
+  sloganShort: 'Formación vial',
   /** Full tagline for auth, footer, meta. */
-  slogan: 'tu CALE, en tu CEA',
+  slogan: 'Formación que impulsa tu camino.',
   /** Compact mark inside the round logo. */
-  mark: 'C',
+  mark: 'L',
   /** Document / SEO fallback title. */
-  seoTitle: 'Mi CALE — tu CALE, en tu CEA',
+  seoTitle: 'Luz Verde — Formación que impulsa tu camino.',
   /** Document / SEO fallback description. */
   seoDescription:
-    'Mi CALE: tu CALE, en tu CEA. Formación vial con tu centro de enseñanza automovilística.',
+    'Luz Verde: practica gratis el simulacro del examen CALE todas las veces que quieras y sigue tu formación vial con tu escuela.',
   /** PWA / favicon paths (public/). */
   icon192: '/icons/icon-192.png',
   icon512: '/icons/icon-512.png',

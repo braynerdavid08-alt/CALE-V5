@@ -45,7 +45,7 @@ public sealed class ImportExamFromWordHandler
         if (parsed.Questions.Count == 0)
         {
             throw new DomainException(
-                "No se encontraron preguntas con opciones A–D. Usa la plantilla Word de Mi CALE.",
+                "No se encontraron preguntas con opciones A–D. Usa la plantilla Word de Luz Verde.",
                 400,
                 "empty_exam_import");
         }

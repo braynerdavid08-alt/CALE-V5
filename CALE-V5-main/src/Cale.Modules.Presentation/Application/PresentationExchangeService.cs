@@ -71,7 +71,7 @@ public sealed class PresentationExchangeService
             var main = doc.AddMainDocumentPart();
             main.Document = new W.Document(new W.Body());
             var body = main.Document.Body!;
-            AppendWordHeading(body, "Plantilla Mi CALE — Presentaciones", 1);
+            AppendWordHeading(body, "Plantilla Luz Verde — Presentaciones", 1);
             AppendWordParagraph(body, "Escribe cada diapositiva con un título (Estilo Título 1 o Título 2) y párrafos debajo para el contenido. Las notas del instructor van entre corchetes al final, por ejemplo [Nota: repasar examen].");
             AppendWordHeading(body, "Diapositiva 1 — Introducción", 2);
             AppendWordParagraph(body, "Bienvenida a la clase de hoy.");
@@ -380,7 +380,7 @@ public sealed class PresentationExchangeService
         if (slides.Count == 0)
         {
             throw new InvalidOperationException(
-                "No se encontraron diapositivas. Usa Título 1/Título 2 en Word o la plantilla de Mi CALE.");
+                "No se encontraron diapositivas. Usa Título 1/Título 2 en Word o la plantilla de Luz Verde.");
         }
 
         return slides;

@@ -171,7 +171,7 @@ interface SchoolJoinRequestDto {
       <div class="grid-3">
         <ui-card>
           <h2>Crear cuenta nueva</h2>
-          <p class="hint">Para personas que aún no tienen usuario en CALE.</p>
+          <p class="hint">Para personas que aún no tienen usuario en Luz Verde.</p>
           <form class="stack" [formGroup]="form" (ngSubmit)="create()">
             <label class="field">
               Tipo

@@ -53,7 +53,7 @@ interface PilotMetricsDto {
     <ui-page-header
       eyebrow="Reportes"
       title="Actividad de la plataforma"
-      subtitle="Resumen claro del uso real en CALE. La gestión de escuelas está en Escuelas de Manejo." />
+      subtitle="Resumen claro del uso real en Luz Verde. La gestión de escuelas está en Escuelas de Manejo." />
 
     @if (loading()) {
       <ui-loading />

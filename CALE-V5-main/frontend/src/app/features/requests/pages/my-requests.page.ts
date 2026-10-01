@@ -117,7 +117,7 @@ import {
     <section class="wrap">
       <ui-page-header
         title="Proponer y sugerir"
-        subtitle="Envía preguntas CALE o ideas al administrador. Él revisa cada solicitud y decide si la agrega." />
+        subtitle="Envía preguntas tipo examen CALE o ideas al administrador. Él revisa cada solicitud y decide si la agrega." />
       @if (ok()) { <ui-success [message]="ok()" /> }
       @if (error()) { <ui-error [message]="error()" /> }
 

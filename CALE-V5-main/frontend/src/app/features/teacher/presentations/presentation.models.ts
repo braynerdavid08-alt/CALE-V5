@@ -155,7 +155,7 @@ export const PRESENTATION_CATEGORIES = [
 
 export const TEMPLATE_OPTIONS: { key: string; label: string }[] = [
   { key: 'blank', label: 'En blanco' },
-  { key: 'cover', label: 'Portada Mi CALE' },
+  { key: 'cover', label: 'Portada Luz Verde' },
   { key: 'title-content', label: 'Título + contenido' },
   { key: 'signal', label: 'Señal de tránsito' },
   { key: 'case', label: 'Caso práctico' },

@@ -34,7 +34,7 @@ export function buildSlideFromTemplate(templateKey: string, slideNumber: number)
       return slide(
         'Portada',
         parseBackground('{"type":"solid","color":"#0B1F33"}'),
-        `[{"id":"el-brand","type":"text","x":80,"y":120,"w":800,"h":40,"rotation":0,"z":1,"props":{"text":"Mi CALE · en tu CEA","fontSize":18,"fontWeight":600,"color":"#7EC8E3","align":"left","fontFamily":"Segoe UI, sans-serif"}},{"id":"el-title","type":"text","x":80,"y":200,"w":800,"h":100,"rotation":0,"z":2,"props":{"text":"Título de la clase","fontSize":48,"fontWeight":700,"color":"#FFFFFF","align":"left","fontFamily":"Segoe UI, sans-serif"}},{"id":"el-sub","type":"text","x":80,"y":320,"w":700,"h":60,"rotation":0,"z":3,"props":{"text":"Normas · Señales · Conducción segura","fontSize":22,"fontWeight":400,"color":"#C9D6E3","align":"left","fontFamily":"Segoe UI, sans-serif"}},{"id":"el-bar","type":"shape","x":80,"y":400,"w":160,"h":8,"rotation":0,"z":4,"props":{"shape":"rect","fill":"#2BB0ED","stroke":"transparent","strokeWidth":0,"opacity":1}}]`
+        `[{"id":"el-brand","type":"text","x":80,"y":120,"w":800,"h":40,"rotation":0,"z":1,"props":{"text":"Luz Verde · Formación vial","fontSize":18,"fontWeight":600,"color":"#7EC8E3","align":"left","fontFamily":"Segoe UI, sans-serif"}},{"id":"el-title","type":"text","x":80,"y":200,"w":800,"h":100,"rotation":0,"z":2,"props":{"text":"Título de la clase","fontSize":48,"fontWeight":700,"color":"#FFFFFF","align":"left","fontFamily":"Segoe UI, sans-serif"}},{"id":"el-sub","type":"text","x":80,"y":320,"w":700,"h":60,"rotation":0,"z":3,"props":{"text":"Normas · Señales · Conducción segura","fontSize":22,"fontWeight":400,"color":"#C9D6E3","align":"left","fontFamily":"Segoe UI, sans-serif"}},{"id":"el-bar","type":"shape","x":80,"y":400,"w":160,"h":8,"rotation":0,"z":4,"props":{"shape":"rect","fill":"#2BB0ED","stroke":"transparent","strokeWidth":0,"opacity":1}}]`
       );
     case 'title-content':
     case 'titulo-contenido':
@@ -84,7 +84,7 @@ export function buildSlideFromTemplate(templateKey: string, slideNumber: number)
       return slide(
         'Cierre',
         parseBackground('{"type":"solid","color":"#0B1F33"}'),
-        `[{"id":"el-title","type":"text","x":80,"y":180,"w":800,"h":80,"rotation":0,"z":1,"props":{"text":"¡Buen viaje y manejo seguro!","fontSize":40,"fontWeight":700,"color":"#FFFFFF","align":"center","fontFamily":"Segoe UI, sans-serif"}},{"id":"el-sub","type":"text","x":80,"y":280,"w":800,"h":60,"rotation":0,"z":2,"props":{"text":"Mi CALE · tu CALE, en tu CEA","fontSize":20,"fontWeight":400,"color":"#7EC8E3","align":"center","fontFamily":"Segoe UI, sans-serif"}}]`
+        `[{"id":"el-title","type":"text","x":80,"y":180,"w":800,"h":80,"rotation":0,"z":1,"props":{"text":"¡Buen viaje y manejo seguro!","fontSize":40,"fontWeight":700,"color":"#FFFFFF","align":"center","fontFamily":"Segoe UI, sans-serif"}},{"id":"el-sub","type":"text","x":80,"y":280,"w":800,"h":60,"rotation":0,"z":2,"props":{"text":"Luz Verde · Formación que impulsa tu camino.","fontSize":20,"fontWeight":400,"color":"#7EC8E3","align":"center","fontFamily":"Segoe UI, sans-serif"}}]`
       );
     default:
       return slide(

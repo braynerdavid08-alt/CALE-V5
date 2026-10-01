@@ -15,7 +15,7 @@ import { PublicHomeApi } from './public-home.api';
     <div class="page">
       <header class="head">
         <p class="eyebrow">Contacto</p>
-        <h1>Habla con el equipo de Mi CALE</h1>
+        <h1>Habla con el equipo de Luz Verde</h1>
         <p class="lead">Estamos para ayudarte con escuelas, cuentas y formación.</p>
       </header>
 
@@ -119,7 +119,7 @@ export class PublicContactPage implements OnInit {
     this.title.setTitle(brandPageTitle('Contacto'));
     this.meta.updateTag({
       name: 'description',
-      content: 'Contacto del equipo Mi CALE para formación vial.'
+      content: 'Contacto del equipo Luz Verde para formación vial.'
     });
 
     this.api.getHome().subscribe({

@@ -332,7 +332,7 @@ public static class ExamWordImportParser
         {
             var main = doc.AddMainDocumentPart();
             main.Document = new Document(new Body(
-                P("Plantilla de examen Mi CALE"),
+                P("Plantilla de examen Luz Verde"),
                 P("Puedes pegar una imagen debajo del enunciado; se vinculará a esa pregunta."),
                 P("1. ¿Cuál es la respuesta correcta de ejemplo?"),
                 P("*A. Opción correcta (marca con * la letra). B. Opción incorrecta. C. Otra incorrecta. D. Otra incorrecta."),
@@ -359,7 +359,7 @@ public static class ExamWordImportParser
                    true))
         {
             var body = new Body();
-            body.AppendChild(P(string.IsNullOrWhiteSpace(title) ? "Examen Mi CALE" : title.Trim()));
+            body.AppendChild(P(string.IsNullOrWhiteSpace(title) ? "Examen Luz Verde" : title.Trim()));
             body.AppendChild(P(""));
 
             var keyParts = new List<string>();

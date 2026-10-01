@@ -31,7 +31,7 @@ import {
     <ui-page-header
       eyebrow="Administración"
       title="Página de inicio"
-      subtitle="Edita el contenido público de la landing CALE." />
+      subtitle="Edita el contenido público de la landing de Luz Verde." />
 
     <ui-error [message]="error()" />
     <ui-success [message]="success()" />

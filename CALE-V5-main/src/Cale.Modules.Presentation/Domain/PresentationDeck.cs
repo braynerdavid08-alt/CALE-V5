@@ -2,7 +2,7 @@ using Cale.BuildingBlocks.Domain.Exceptions;
 
 namespace Cale.Modules.Presentation.Domain;
 
-/// <summary>Instructor-owned slide deck (Mi CALE Presentaciones).</summary>
+/// <summary>Instructor-owned slide deck (Luz Verde Presentaciones).</summary>
 public sealed class PresentationDeck
 {
     public int Id { get; private set; }

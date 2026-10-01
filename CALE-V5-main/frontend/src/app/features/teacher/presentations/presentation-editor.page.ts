@@ -1137,7 +1137,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       rotation: 0,
       z: this.nextZ(),
       props: {
-        text: 'Mi CALE',
+        text: 'Luz Verde',
         fontSize: 18,
         fontWeight: 700,
         color: '#2BB0ED',

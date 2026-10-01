@@ -27,7 +27,7 @@ export interface NavOptions {
   freeAccess?: boolean;
 }
 
-const DONATE_ITEM: NavItem = { label: 'Apoyar CALE', path: '/donaciones', icon: 'heart', exact: true };
+const DONATE_ITEM: NavItem = { label: 'Apoyar Luz Verde', path: '/donaciones', icon: 'heart', exact: true };
 const REQUESTS_ITEM: NavItem = { label: 'Proponer y sugerir', path: '/solicitudes', icon: 'idea', exact: true };
 
 export function navChildActive(url: string, child: NavChild): boolean {
