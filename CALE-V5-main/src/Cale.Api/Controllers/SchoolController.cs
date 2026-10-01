@@ -1,4 +1,5 @@
 using Cale.Api.Extensions;
+using Cale.Api.Services;
 using Cale.Modules.Identity.Application.Commands;
 using Cale.Modules.Identity.Application.DTOs;
 using Cale.Modules.Identity.Application.Queries;
@@ -147,11 +148,13 @@ public sealed class SchoolController : ControllerBase
     [HttpPut("billing")]
     public async Task<ActionResult<SchoolProfileDto>> UpdateBilling(
         UpdateSchoolBillingRequest request,
-        CancellationToken ct) =>
-        Ok(await _managePlan.UpdateBillingAsync(
-            CurrentUser.GetId(User),
-            request,
-            ct));
+        [FromServices] HomepageService homepage,
+        CancellationToken ct)
+    {
+        var dto = await _managePlan.UpdateBillingAsync(CurrentUser.GetId(User), request, ct);
+        homepage.InvalidatePublicCache();
+        return Ok(dto);
+    }
 
     /// <summary>
     /// Schools cannot activate their own membership.

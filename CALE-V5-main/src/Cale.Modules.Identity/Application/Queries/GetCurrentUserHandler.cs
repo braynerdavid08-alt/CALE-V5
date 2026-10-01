@@ -50,7 +50,8 @@ public sealed class GetCurrentUserHandler
             user.CreatedAt,
             user.MustChangePassword,
             school,
-            FreeAccessPolicy.Enabled);
+            FreeAccessPolicy.Enabled,
+            user.PhotoUrl);
     }
 
     private async Task<MeSchoolContextDto?> MapSchoolAsync(

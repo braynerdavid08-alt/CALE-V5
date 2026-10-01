@@ -2154,6 +2154,11 @@ namespace Cale.Api.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("PhotoUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("FotoUrl");
+
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasMaxLength(32)

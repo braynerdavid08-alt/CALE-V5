@@ -18,6 +18,7 @@ public sealed class User
     public bool EmailConfirmed { get; private set; }
     public string? EmailConfirmationCodeHash { get; private set; }
     public DateTime? EmailConfirmationExpiresAt { get; private set; }
+    public string? PhotoUrl { get; private set; }
 
     private User()
     {
@@ -83,6 +84,9 @@ public sealed class User
         Name = name.Trim();
         Email = email;
     }
+
+    public void SetPhoto(string? url) =>
+        PhotoUrl = string.IsNullOrWhiteSpace(url) ? null : url.Trim();
 
     public void ChangeRole(string role) => Role = role;
 

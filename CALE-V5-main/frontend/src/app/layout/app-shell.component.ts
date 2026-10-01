@@ -28,6 +28,7 @@ import { pollWhileVisible } from '../core/rxjs/poll-while-visible';
 import { PlayFxService } from '../features/play/play-fx.service';
 import { PushPromptComponent } from './push-prompt.component';
 import { SessionStore } from '../core/auth/session.store';
+import { resolveMediaUrl } from '../core/media/resolve-media-url';
 import { BRAND } from '../core/brand';
 import { AuthFacade } from '../features/auth/application/auth.facade';
 import { UiBadgeComponent } from '../shared/ui/ui-badge.component';
@@ -126,6 +127,10 @@ export class AppShellComponent implements OnInit {
       hasSchool: !!user?.schoolId || user?.role === 'School',
       freeAccess: this.session.freeAccess()
     });
+  }
+
+  get photoSrc(): string {
+    return resolveMediaUrl(this.session.user()?.photoUrl);
   }
 
   get initials(): string {

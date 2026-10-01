@@ -18,6 +18,9 @@ public sealed class SchoolProfile
 {
     public const int ExpiringWithinDays = 14;
 
+    /// <summary>Placeholder for contact/location fields the school has not filled in yet.</summary>
+    public const string NotRegistered = "Sin registrar";
+
     public int Id { get; private set; }
     public int UserId { get; private set; }
     public string LegalName { get; private set; } = "";
@@ -95,10 +98,10 @@ public sealed class SchoolProfile
             LegalName = name,
             TaxId = "PENDIENTE",
             BillingEmail = email.Trim().ToLowerInvariant(),
-            Phone = "Sin registrar",
-            Address = "Sin registrar",
-            City = "Sin registrar",
-            Department = "Sin registrar",
+            Phone = NotRegistered,
+            Address = NotRegistered,
+            City = NotRegistered,
+            Department = NotRegistered,
             PlanCode = plan.Code,
             PlanPriceCop = plan.PriceCop,
             RequestedPlanCode = null,
@@ -668,23 +671,34 @@ public sealed class SchoolProfile
         string city,
         string department)
     {
-        if (string.IsNullOrWhiteSpace(legalName))
+        LegalName = Required(legalName, 250, "Escribe el nombre de la escuela.", "invalid_legal_name");
+        TaxId = Required(taxId, 32, "Escribe el NIT de la escuela.", "invalid_tax_id");
+        BillingEmail = Optional(billingEmail, 320, "invalid_billing_email").ToLowerInvariant();
+        Phone = Optional(phone, 40, "invalid_phone");
+        Address = Optional(address, 300, "invalid_address");
+        City = Required(city, 120, "Escribe la ciudad de la escuela.", "invalid_city");
+        Department = Required(department, 120, "Elige el departamento de la escuela.", "invalid_department");
+    }
+
+    private static string Required(string? value, int max, string message, string code)
+    {
+        if (string.IsNullOrWhiteSpace(value))
         {
-            throw new DomainException("Legal name is required.", 400, "invalid_legal_name");
+            throw new DomainException(message, 400, code);
         }
 
-        if (string.IsNullOrWhiteSpace(taxId))
+        return Optional(value, max, code);
+    }
+
+    private static string Optional(string? value, int max, string code)
+    {
+        var trimmed = (value ?? "").Trim();
+        if (trimmed.Length > max)
         {
-            throw new DomainException("Tax ID (NIT) is required.", 400, "invalid_tax_id");
+            throw new DomainException($"El texto es muy largo (máximo {max} caracteres).", 400, code);
         }
 
-        LegalName = legalName.Trim();
-        TaxId = taxId.Trim();
-        BillingEmail = billingEmail.Trim().ToLowerInvariant();
-        Phone = phone.Trim();
-        Address = address.Trim();
-        City = city.Trim();
-        Department = department.Trim();
+        return trimmed;
     }
 
     private void AbsorbRenewalIntoMainRequest(DateTime utcNow)

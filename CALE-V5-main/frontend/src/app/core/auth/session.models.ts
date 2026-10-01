@@ -9,6 +9,7 @@ export interface SessionUser {
   planLabel?: string | null;
   /** App gratis para todos: sin membresía ni escuela obligatoria. */
   freeAccess?: boolean;
+  photoUrl?: string | null;
 }
 
 export interface AuthResponse {
@@ -42,4 +43,5 @@ export interface MeResponse {
   mustChangePassword?: boolean;
   school?: MeSchoolContext | null;
   freeAccess?: boolean;
+  photoUrl?: string | null;
 }

@@ -37,6 +37,9 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .HasMaxLength(128);
         builder.Property(x => x.EmailConfirmationExpiresAt)
             .HasColumnName("EmailCodigoExpiraEn");
+        builder.Property(x => x.PhotoUrl)
+            .HasColumnName("FotoUrl")
+            .HasMaxLength(300);
         builder.HasIndex(x => x.Email).IsUnique();
         builder.HasIndex(x => x.SchoolId);
         builder.HasIndex(x => x.LastLoginAt);

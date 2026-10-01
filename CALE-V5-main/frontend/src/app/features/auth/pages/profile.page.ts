@@ -2,7 +2,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MeResponse } from '../../../core/auth/session.models';
 import { SessionStore } from '../../../core/auth/session.store';
 import { peekReturnUrl, takeReturnUrl } from '../../../core/auth/return-url';
@@ -20,6 +20,11 @@ import { roleLabel } from '../../../shared/utils/role-label';
 import { AuthApi } from '../api/auth.api';
 import { AuthFacade } from '../application/auth.facade';
 import { PushSettingsComponent } from '../components/push-settings.component';
+import { ProfilePhotoComponent } from '../components/profile-photo.component';
+import {
+  SchoolInfo,
+  SchoolInfoFormComponent
+} from '../../school/components/school-info-form.component';
 
 type ProfileTab = 'account' | 'preferences' | 'security' | 'context';
 
@@ -43,8 +48,10 @@ interface SchoolJoinRequestDto {
   standalone: true,
   imports: [
     DatePipe,
+    ProfilePhotoComponent,
     PushSettingsComponent,
     ReactiveFormsModule,
+    SchoolInfoFormComponent,
     RouterLink,
     UiBadgeComponent,
     UiButtonComponent,
@@ -62,6 +69,7 @@ export class ProfilePage implements OnInit {
   private readonly api = inject(AuthApi);
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   readonly session = inject(SessionStore);
   readonly auth = inject(AuthFacade);
   readonly theme = inject(ThemeService);
@@ -75,6 +83,7 @@ export class ProfilePage implements OnInit {
   readonly me = signal<MeResponse | null>(null);
   readonly tab = signal<ProfileTab>('account');
   readonly joinRequests = signal<SchoolJoinRequestDto[]>([]);
+  readonly schoolInfo = signal<SchoolInfo | null>(null);
 
   readonly profileForm = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(200)]],
@@ -97,12 +106,16 @@ export class ProfilePage implements OnInit {
 
   readonly contextTitle = computed(() => {
     const role = this.role();
-    if (role === 'School') return 'Tu institución';
+    if (role === 'School') return 'Mi escuela';
     if (role === 'Teacher' || role === 'Student') return 'Tu escuela';
     return 'Contexto';
   });
 
   ngOnInit(): void {
+    const requested = this.route.snapshot.queryParamMap.get('tab');
+    if (requested === 'account' || requested === 'preferences' || requested === 'security' || requested === 'context') {
+      this.tab.set(requested);
+    }
     this.reload();
   }
 
@@ -118,7 +131,8 @@ export class ProfilePage implements OnInit {
           name: dto.name,
           email: dto.email,
           role: dto.role,
-          mustChangePassword: !!dto.mustChangePassword
+          mustChangePassword: !!dto.mustChangePassword,
+          photoUrl: dto.photoUrl ?? null
         });
         this.session.applySchoolContext(dto.school ?? null, dto.freeAccess);
         if (dto.mustChangePassword) {
@@ -128,11 +142,28 @@ export class ProfilePage implements OnInit {
         if (dto.role === 'Teacher' && !dto.school) {
           this.loadJoinRequests();
         }
+        if (dto.role === 'School') {
+          this.loadSchoolInfo();
+        }
       },
       error: (err) => {
         this.loading.set(false);
         this.error.set(mapApiError(err));
       }
+    });
+  }
+
+  loadSchoolInfo(): void {
+    this.http.get<SchoolInfo>(`${env.apiUrl}/api/school/profile`).subscribe({
+      next: (dto) => this.schoolInfo.set(dto),
+      error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  onSchoolSaved(): void {
+    this.api.me().subscribe({
+      next: (dto) => this.me.set(dto),
+      error: () => { /* the form already confirmed the save */ }
     });
   }
 
