@@ -234,6 +234,7 @@ public sealed class UserRequestService
                 ct);
             finalPayload = JsonSerializer.Serialize(draft, Json);
             _cache.Remove("play:official-questions");
+            _cache.Remove("play:signs-questions");
             _cache.Remove("play:official-blocks");
         }
 
