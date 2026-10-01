@@ -54,10 +54,10 @@ const TIPS: Record<OnboardingRole, OnboardingTip[]> = {
   ],
   School: [
     {
-      title: 'Aprendices',
+      title: 'Estudiantes',
       text: 'Revisa progreso, saldos y autorizaciones de tus estudiantes.',
       link: '/school/apprentices',
-      linkLabel: 'Aprendices'
+      linkLabel: 'Estudiantes'
     },
     {
       title: 'Resultados',

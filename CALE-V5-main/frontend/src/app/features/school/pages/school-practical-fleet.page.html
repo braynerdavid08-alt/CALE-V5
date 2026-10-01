@@ -1,8 +1,8 @@
 <div class="school-page school-page--wide fleet">
   <ui-page-header
     eyebrow="Escuela"
-    title="Flota práctica — Hoy"
-    subtitle="Tablero del día: vehículo, instructor, aprendiz y asistencia de manejo." />
+    title="Vehículos de hoy"
+    subtitle="Tablero del día: vehículo, instructor, estudiante y asistencia de manejo." />
 
   <div class="toolbar">
     <label class="day-field">
@@ -51,7 +51,7 @@
         <p class="muted empty">
           @if (!dayLessons().length) {
             No hay clases de manejo este día.
-            <a routerLink="/school/practical">Programar en Práctica vehicular</a>.
+            <a routerLink="/school/practical">Programar en Clases de manejo</a>.
           } @else {
             No hay filas en este filtro.
             <button type="button" class="linkish" (click)="setFilter('all')">Ver todas</button>
@@ -65,7 +65,7 @@
                 <th>Hora</th>
                 <th>Vehículo</th>
                 <th>Instructor</th>
-                <th>Aprendiz</th>
+                <th>Estudiante</th>
                 <th>Estado</th>
                 <th>Acciones</th>
               </tr>

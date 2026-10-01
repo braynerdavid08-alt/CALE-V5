@@ -1,8 +1,8 @@
 <div class="school-page school-page--wide">
   <ui-page-header
     eyebrow="Escuela"
-    title="Exámenes teóricos"
-    subtitle="Calendario de citas. Solo aparecen aprendices autorizados con horas completas." />
+    title="Exámenes"
+    subtitle="Calendario de citas. Solo aparecen estudiantes autorizados con horas completas." />
 
   <ui-error [message]="error()" />
 
@@ -10,7 +10,7 @@
     <strong>Dos pasos del examen teórico</strong>
     <ol>
       <li><strong>Cita en calendario</strong> — asignas fecha y hora aquí (como tu Excel).</li>
-      <li><strong>Examen en la plataforma</strong> — el aprendiz lo presenta en Evaluaciones (configúralo en Programación → Ajustes).</li>
+      <li><strong>Examen en la plataforma</strong> — el estudiante lo presenta en Evaluaciones (configúralo en Clases teóricas → Ajustes).</li>
     </ol>
   </div>
 
@@ -20,7 +20,7 @@
       <button type="button" class="school-nav-btn" (click)="nextWeek()">Siguiente semana →</button>
     </div>
     <div class="school-toolbar-actions">
-      <ui-button routerLink="/school/exam-control" type="button">Sala de control</ui-button>
+      <ui-button routerLink="/school/exam-control" type="button">Examen en curso</ui-button>
       <ui-button routerLink="/school/training" type="button" variant="secondary">Autorizar estudiantes</ui-button>
       <ui-button routerLink="/school/import" type="button" variant="secondary">Importar Excel</ui-button>
     </div>
@@ -64,7 +64,7 @@
         <aside class="school-side-panel">
           <h3>{{ dayLabel(form.examDate) }} · {{ form.slotTime }}</h3>
           <label class="school-field">
-            <span class="school-field-label">Buscar aprendiz</span>
+            <span class="school-field-label">Buscar estudiante</span>
             <input
               type="search"
               placeholder="Nombre…"
@@ -72,7 +72,7 @@
               (ngModelChange)="studentSearch.set($event)" />
           </label>
           <label class="school-field">
-            <span class="school-field-label">Aprendiz</span>
+            <span class="school-field-label">Estudiante</span>
             <select [(ngModel)]="form.studentUserId">
               <option [ngValue]="null">Selecciona un estudiante</option>
               @for (s of filteredStudents(); track s.studentUserId) {
@@ -83,7 +83,7 @@
               }
             </select>
             @if (!students().length) {
-              <small class="muted">No hay aprendices listos. Autorízalos en Programación → Estudiantes.</small>
+              <small class="muted">No hay estudiantes listos. Autorízalos en Clases teóricas.</small>
             }
           </label>
           <label class="school-field">

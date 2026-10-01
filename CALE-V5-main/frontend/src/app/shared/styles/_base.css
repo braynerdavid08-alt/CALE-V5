@@ -86,6 +86,17 @@ input[type='file'] {
   }
 }
 
+/* "Letra grande": comfortable tap targets for less experienced users. */
+html[data-size='large'] :is(button, select, input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file'])) {
+  min-height: var(--control-height);
+}
+
+html[data-size='large'] input[type='checkbox'],
+html[data-size='large'] input[type='radio'] {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

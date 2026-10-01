@@ -1,7 +1,7 @@
 <div class="school-page">
   <ui-page-header
     eyebrow="Escuela"
-    title="Aprendices"
+    title="Estudiantes"
     subtitle="Expediente, progreso de formación, pagos y autorizaciones." />
 
   <ui-error [message]="error()" />
@@ -12,7 +12,7 @@
       class="search-input"
       type="search"
       placeholder="Buscar nombre, cédula o celular…"
-      aria-label="Buscar aprendiz por nombre, cédula o celular"
+      aria-label="Buscar estudiante por nombre, cédula o celular"
       [(ngModel)]="search"
       (keyup.enter)="reload()" />
     <label class="school-toolbar-check">
@@ -26,7 +26,7 @@
         variant="secondary"
         (click)="downloadApprentices()"
         [disabled]="exporting()">
-        {{ exporting() ? 'Exportando…' : 'Excel aprendices' }}
+        {{ exporting() ? 'Exportando…' : 'Excel estudiantes' }}
       </ui-button>
       <ui-button
         type="button"
@@ -45,7 +45,7 @@
   } @else {
     @if (!error() && rows().length === 0) {
       <section class="empty-guide school-card" role="status">
-        <h2>Aún no hay aprendices en tu escuela</h2>
+        <h2>Aún no hay estudiantes en tu escuela</h2>
         <p>
           Esta pantalla solo muestra cuentas con rol <strong>Estudiante</strong> vinculadas a tu escuela.
           Si la base está vacía, primero créalos o impórtalos:
@@ -57,25 +57,25 @@
           </li>
           <li>
             <a routerLink="/school/import"><strong>Importar datos</strong></a>
-            — sube el Excel de aprendices o el CSV de usuarios.
+            — sube el Excel de estudiantes o el CSV de usuarios.
           </li>
           <li>
             Vuelve aquí para ver expediente, saldos y autorizaciones.
           </li>
         </ol>
         <p class="muted tip">
-          Nota: “Programación teórica” solo autoriza a quienes ya son estudiantes de la escuela;
-          no da de alta aprendices nuevos.
+          Nota: “Clases teóricas” solo autoriza a quienes ya son estudiantes de la escuela;
+          no da de alta estudiantes nuevos.
         </p>
       </section>
     }
 
     <div class="school-split">
       <section class="school-card">
-        <p class="school-card-title">{{ rows().length }} aprendices registrados</p>
+        <p class="school-card-title">{{ rows().length }} estudiantes registrados</p>
         <div class="school-table-wrap">
           <table class="school-data-table">
-            <caption class="sr-only">Lista de aprendices de la escuela</caption>
+            <caption class="sr-only">Lista de estudiantes de la escuela</caption>
             <thead>
               <tr>
                 <th scope="col">Nombre</th>
@@ -121,7 +121,7 @@
               } @empty {
                 <tr>
                   <td colspan="8" class="muted">
-                    Sin aprendices vinculados. Usa <a routerLink="/school/users">Usuarios</a>
+                    Sin estudiantes vinculados. Usa <a routerLink="/school/users">Usuarios</a>
                     o <a routerLink="/school/import">Importar</a>.
                   </td>
                 </tr>
@@ -180,7 +180,7 @@
                   && d.training.workshopHoursCompleted === 0
                 ) {
                   <li class="warn">
-                    Sin horas registradas. Marca asistencia (Presente/Tarde) en Programación teórica;
+                    Sin horas registradas. Marca asistencia (Presente/Tarde) en Clases teóricas;
                     reservar sola no suma horas.
                   </li>
                 }
@@ -336,7 +336,7 @@
                 <input type="checkbox" [(ngModel)]="s.runtRegistered" />
                 <span>
                   <strong>Inscrito en RUNT</strong>
-                  <small>El aprendiz ya aparece en el sistema RUNT.</small>
+                  <small>El estudiante ya aparece en el sistema RUNT.</small>
                 </span>
               </label>
               <label class="school-flag-field">
@@ -363,7 +363,7 @@
         </aside>
       } @else {
         <aside class="school-card detail-placeholder">
-          <p class="muted">Selecciona un aprendiz de la lista para ver su expediente y autorizaciones.</p>
+          <p class="muted">Selecciona un estudiante de la lista para ver su expediente y autorizaciones.</p>
         </aside>
       }
     </div>

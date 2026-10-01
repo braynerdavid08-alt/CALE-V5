@@ -14,13 +14,10 @@ import {
 import { ApprenticeApi, SchoolOperationsDashboard } from '../api/apprentice.api';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
-import { UiDashBarsComponent, DashBarItem } from '../../../shared/ui/ui-dash-bars.component';
-import { UiDashKpiComponent } from '../../../shared/ui/ui-dash-kpi.component';
 import { UiDashNotifsComponent } from '../../../shared/ui/ui-dash-notifs.component';
 import { InactiveStudentsCardComponent } from '../../play/components/inactive-students-card.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
-import { UiOnboardingComponent } from '../../../shared/ui/ui-onboarding.component';
 
 interface SchoolProfileDto {
   contactName: string;
@@ -38,19 +35,25 @@ interface SchoolProfileDto {
   studentsMax: number;
 }
 
-interface MembershipEventDto {
-  eventType: string;
-  note?: string | null;
-  createdAt: string;
+interface EasyAction {
+  emoji: string;
+  label: string;
+  hint: string;
+  path: string;
+  query?: Record<string, string | boolean>;
 }
 
-interface UserRow {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  isActive: boolean;
+interface TodoItem {
+  key: string;
+  emoji: string;
+  text: string;
+  action: string;
+  link: string | (string | number)[];
+  query?: Record<string, string | boolean>;
+  tone: 'warn' | 'good' | 'info';
 }
+
+const VISIBLE_TODOS = 6;
 
 @Component({
   selector: 'app-school-home-page',
@@ -61,12 +64,9 @@ interface UserRow {
     RouterLink,
     UiBadgeComponent,
     UiButtonComponent,
-    UiDashBarsComponent,
-    UiDashKpiComponent,
     UiDashNotifsComponent,
     UiErrorComponent,
-    UiLoadingComponent,
-    UiOnboardingComponent
+    UiLoadingComponent
   ],
   templateUrl: './school-home.page.html',
   styleUrl: './school-home.page.css'
@@ -82,48 +82,109 @@ export class SchoolHomePage implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly profile = signal<SchoolProfileDto | null>(null);
-  readonly events = signal<MembershipEventDto[]>([]);
-  readonly members = signal<UserRow[]>([]);
   readonly notifs = signal<NotificationDto[]>([]);
   readonly ops = signal<SchoolOperationsDashboard | null>(null);
+  readonly showAllTodos = signal(false);
 
-  readonly seatBars = computed<DashBarItem[]>(() => {
-    const p = this.profile();
-    if (!p) {
-      return [];
+  readonly actions: EasyAction[] = [
+    { emoji: '➕', label: 'Inscribir estudiante', hint: 'Crear la cuenta de un estudiante nuevo', path: '/school/users' },
+    { emoji: '✅', label: 'Tomar asistencia', hint: 'Marcar quién vino hoy', path: '/school/attendance' },
+    { emoji: '💰', label: 'Cobrar saldos', hint: 'Ver quién debe y registrar pagos', path: '/school/apprentices', query: { withBalance: true } },
+    { emoji: '📅', label: 'Programar examen', hint: 'Dar cita de examen teórico', path: '/school/theory-exams' },
+    { emoji: '🚗', label: 'Clases de manejo', hint: 'Programar prácticas en vehículo', path: '/school/practical' },
+    { emoji: '📊', label: 'Ver resultados', hint: 'Notas de exámenes y simulacros', path: '/school/results' }
+  ];
+
+  /** Everything that needs attention, written as plain sentences with one action each. */
+  readonly todos = computed<TodoItem[]>(() => {
+    const o = this.ops();
+    if (!o) return [];
+    const items: TodoItem[] = [];
+    for (const row of o.topBalanceDue) {
+      items.push({
+        key: `bal-${row.studentUserId}`,
+        emoji: '💰',
+        text: `${row.studentName} debe ${this.formatMoney(row.balanceDue)}`,
+        action: 'Cobrar',
+        link: ['/school/apprentices', row.studentUserId],
+        tone: 'warn'
+      });
     }
-    return [
-      {
-        label: 'Cupos instructores',
-        value: p.teachersUsed,
-        max: Math.max(p.teachersMax, 1),
+    if (o.balancePendingCount > o.topBalanceDue.length) {
+      items.push({
+        key: 'bal-more',
+        emoji: '💰',
+        text: `${o.balancePendingCount} estudiantes tienen saldo pendiente (${this.formatMoney(o.balancePendingTotal)} en total)`,
+        action: 'Ver todos',
+        link: '/school/apprentices',
+        query: { withBalance: true },
+        tone: 'warn'
+      });
+    }
+    for (const row of o.topReadyForExam) {
+      items.push({
+        key: `ready-${row.studentUserId}`,
+        emoji: '🎓',
+        text: `${row.studentName} terminó la teoría: ya puedes autorizar su examen`,
+        action: 'Autorizar',
+        link: '/school/training',
+        tone: 'good'
+      });
+    }
+    for (const row of o.topNoExamAppointment) {
+      items.push({
+        key: `noexam-${row.studentUserId}`,
+        emoji: '📅',
+        text: `${row.studentName} está autorizado pero no tiene fecha de examen`,
+        action: 'Dar cita',
+        link: '/school/theory-exams',
+        tone: 'warn'
+      });
+    }
+    if (o.readyForPracticalCount > 0) {
+      items.push({
+        key: 'practical',
+        emoji: '🚗',
+        text: o.readyForPracticalCount === 1
+          ? '1 estudiante aprobó el examen teórico y puede empezar clases de manejo'
+          : `${o.readyForPracticalCount} estudiantes aprobaron el examen teórico y pueden empezar clases de manejo`,
+        action: 'Programar',
+        link: '/school/practical',
+        tone: 'good'
+      });
+    }
+    if (o.pendingEnrollmentCount > 0) {
+      items.push({
+        key: 'enroll',
+        emoji: '📝',
+        text: o.pendingEnrollmentCount === 1
+          ? '1 estudiante está pendiente de enrolar'
+          : `${o.pendingEnrollmentCount} estudiantes están pendientes de enrolar`,
+        action: 'Ver',
+        link: '/school/apprentices',
         tone: 'info'
-      },
-      {
-        label: 'Cupos estudiantes',
-        value: p.studentsUsed,
-        max: Math.max(p.studentsMax, 1),
-        tone: 'primary'
-      }
-    ];
+      });
+    }
+    for (const exam of o.upcomingExams) {
+      items.push({
+        key: `exam-${exam.id}`,
+        emoji: '🗓️',
+        text: `Examen el ${exam.examDate} a las ${exam.slotTime}: ${exam.studentName || exam.studentLabel || 'sin estudiante asignado'}`,
+        action: 'Ver',
+        link: '/school/theory-exams',
+        tone: 'info'
+      });
+    }
+    return items;
   });
 
-  readonly activeTeachers = computed(
-    () => this.members().filter((m) => m.role === 'Teacher' && m.isActive).length
-  );
-  readonly activeStudents = computed(
-    () => this.members().filter((m) => m.role === 'Student' && m.isActive).length
+  readonly visibleTodos = computed(() =>
+    this.showAllTodos() ? this.todos() : this.todos().slice(0, VISIBLE_TODOS)
   );
 
   ngOnInit(): void {
     forkJoin({
       profile: this.http.get<SchoolProfileDto>(`${env.apiUrl}/api/school/profile`),
-      events: this.http
-        .get<MembershipEventDto[]>(`${env.apiUrl}/api/school/plan/history`)
-        .pipe(catchError(() => of([] as MembershipEventDto[]))),
-      members: this.http
-        .get<UserRow[]>(`${env.apiUrl}/api/school/members`)
-        .pipe(catchError(() => of([] as UserRow[]))),
       notifs: this.notificationsApi.list({ take: 5 }).pipe(
         catchError(() => of({ items: [] as NotificationDto[], unreadCount: 0 }))
       ),
@@ -133,8 +194,6 @@ export class SchoolHomePage implements OnInit {
     }).subscribe({
       next: (res) => {
         this.profile.set(res.profile);
-        this.events.set(res.events.slice(0, 6));
-        this.members.set(res.members);
         this.notifs.set(res.notifs.items);
         this.ops.set(res.ops);
         this.loading.set(false);
@@ -167,23 +226,6 @@ export class SchoolHomePage implements OnInit {
       return 'danger';
     }
     return 'neutral';
-  }
-
-  eventLabel(type: string): string {
-    const map: Record<string, string> = {
-      Requested: 'Solicitud creada',
-      ProofSubmitted: 'Comprobante enviado',
-      Activated: 'Membresía activada',
-      Renewed: 'Renovación',
-      Rejected: 'Rechazada',
-      Cancelled: 'Cancelada',
-      Suspended: 'Suspendida',
-      Unsuspended: 'Reactivada',
-      SeatsAdjusted: 'Cupos ajustados',
-      MembershipOverridden: 'Ajuste admin',
-      RequestReopened: 'Solicitud reabierta'
-    };
-    return map[type] || type;
   }
 
   formatMoney(value: number): string {

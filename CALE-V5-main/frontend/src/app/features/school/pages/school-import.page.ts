@@ -204,7 +204,7 @@ export class SchoolImportPage {
   downloadExcelCredentials(): void {
     const result = this.excelCommit();
     if (!result?.credentialsCsv) return;
-    this.saveBlob(new Blob([result.credentialsCsv], { type: 'text/csv;charset=utf-8' }), 'cale-aprendices-credenciales.csv');
+    this.saveBlob(new Blob([result.credentialsCsv], { type: 'text/csv;charset=utf-8' }), 'cale-estudiantes-credenciales.csv');
   }
 
   actionLabel(action: string): string {

@@ -1,278 +1,91 @@
-<section class="dash">
-  <header class="dash-hero">
-    <div class="dash-hero-copy">
-      <p class="dash-kicker">Operaciones de la escuela</p>
-      <h1>{{ profile()?.legalName || 'Tu escuela' }}</h1>
-      <p class="dash-sub">Aprendices, formación y resultados en un solo lugar.</p>
-      @if (profile(); as p) {
-        <div class="dash-pills">
-          @if (free()) {
-            <a class="dash-pill" routerLink="/donaciones" data-tone="success">
-              <strong>CALE gratis</strong> · sin límites
-            </a>
-            <a class="dash-pill" routerLink="/school/users">
-              Estudiantes <strong>{{ p.studentsUsed }}</strong>
-            </a>
-            <a class="dash-pill" routerLink="/school/users">
-              Instructores <strong>{{ p.teachersUsed }}</strong>
-            </a>
-          } @else {
-            <a class="dash-pill" routerLink="/school/membership" [attr.data-tone]="p.isMembershipActive ? 'success' : 'warning'">
-              Plan <strong>{{ p.planLabel }}</strong> · {{ statusLabel(p.displayStatus || p.subscriptionStatus) }}
-            </a>
-            <span class="dash-pill" [attr.data-tone]="p.isMembershipActive ? null : 'warning'">
-              <strong>{{ p.daysRemaining }}</strong> {{ p.daysRemaining === 1 ? 'día restante' : 'días restantes' }}
-            </span>
-            <a class="dash-pill" routerLink="/school/users">
-              Estudiantes <strong>{{ p.studentsUsed }}/{{ p.studentsMax }}</strong>
-            </a>
-            <a class="dash-pill" routerLink="/school/users">
-              Instructores <strong>{{ p.teachersUsed }}/{{ p.teachersMax }}</strong>
-            </a>
-          }
-        </div>
-      }
-    </div>
-    <div class="dash-hero-actions">
-      <ui-button routerLink="/school/apprentices" type="button">Aprendices</ui-button>
-      <ui-button routerLink="/school/attendance" type="button" variant="secondary">Asistencia hoy</ui-button>
-      <ui-button routerLink="/school/exam-control" type="button" variant="secondary">Sala de examen</ui-button>
-    </div>
+<section class="easy">
+  <header class="easy-hello">
+    <p class="easy-kicker">Hola 👋</p>
+    <h1>{{ profile()?.legalName || 'Tu escuela' }}</h1>
+    @if (profile(); as p) {
+      <p class="easy-sub">{{ p.studentsUsed }} estudiantes · {{ p.teachersUsed }} instructores</p>
+    }
   </header>
 
-  <ui-onboarding role="School" />
+  <h2 class="easy-title">¿Qué quieres hacer hoy?</h2>
+  <nav class="easy-actions" aria-label="Tareas principales">
+    @for (a of actions; track a.path + a.label) {
+      <a class="easy-action" [routerLink]="a.path" [queryParams]="a.query || null">
+        <span class="easy-emoji" aria-hidden="true">{{ a.emoji }}</span>
+        <strong>{{ a.label }}</strong>
+        <small>{{ a.hint }}</small>
+      </a>
+    }
+  </nav>
 
   <ui-error [message]="error()" />
 
   @if (loading()) {
     <ui-loading />
-  }
+  } @else {
+    <section class="easy-panel" aria-labelledby="todo-title">
+      <h2 id="todo-title">Pendientes de hoy</h2>
+      @if (!todos().length) {
+        <p class="easy-done">✅ Todo al día. No hay nada pendiente.</p>
+      } @else {
+        <ul class="easy-todos">
+          @for (t of visibleTodos(); track t.key) {
+            <li [class]="'easy-todo ' + t.tone">
+              <span class="easy-todo-emoji" aria-hidden="true">{{ t.emoji }}</span>
+              <span class="easy-todo-text">{{ t.text }}</span>
+              <a class="easy-todo-btn" [routerLink]="t.link" [queryParams]="t.query || null">{{ t.action }}</a>
+            </li>
+          }
+        </ul>
+        @if (todos().length > visibleTodos().length) {
+          <button type="button" class="easy-more" (click)="showAllTodos.set(true)">
+            Ver los {{ todos().length }} pendientes
+          </button>
+        }
+      }
+    </section>
 
-  @if (profile(); as p) {
-    @if (ops(); as o) {
-      <div class="dash-kpis">
-        <a routerLink="/school/apprentices" class="kpi-link">
-          <ui-dash-kpi
-            label="Aprendices"
-            [value]="o.apprenticeCount"
-            icon="graduate"
-            tone="primary"
-            hint="Registrados en la escuela" />
-        </a>
-        <a routerLink="/school/apprentices" [queryParams]="{ withBalance: true }" class="kpi-link">
-          <ui-dash-kpi
-            label="Saldos pendientes"
-            [value]="o.balancePendingCount"
-            icon="card"
-            tone="warning"
-            [hint]="formatMoney(o.balancePendingTotal) + ' por cobrar'" />
-        </a>
-        <a routerLink="/school/training" class="kpi-link">
-          <ui-dash-kpi
-            label="Listos para examen"
-            [value]="o.readyForExamCount"
-            icon="exam"
-            [tone]="o.readyForExamCount > 0 ? 'success' : 'info'"
-            hint="Horas completas, por autorizar" />
-        </a>
-        <a routerLink="/school/theory-exams" class="kpi-link">
-          <ui-dash-kpi
-            label="Exámenes en 7 días"
-            [value]="o.examsNext7Days"
-            icon="clock"
-            tone="info"
-            hint="Citas programadas" />
-        </a>
-      </div>
+    <app-inactive-students-card />
 
-      <nav class="todo-strip" aria-label="Pendientes">
-        <a routerLink="/school/theory-exams" class="todo" [class.alert]="o.noExamAppointmentCount > 0">
-          <span class="todo-count">{{ o.noExamAppointmentCount }}</span>
-          <span class="todo-text">
-            <strong>Sin cita de examen</strong>
-            <small>Autorizados sin fecha</small>
-          </span>
-        </a>
-        <a routerLink="/school/training" class="todo" [class.good]="o.readyForPracticalCount > 0">
-          <span class="todo-count">{{ o.readyForPracticalCount }}</span>
-          <span class="todo-text">
-            <strong>Listos para manejo</strong>
-            <small>Aprobaron el examen teórico</small>
-          </span>
-        </a>
-        <a routerLink="/school/apprentices" class="todo" [class.alert]="o.pendingEnrollmentCount > 0">
-          <span class="todo-count">{{ o.pendingEnrollmentCount }}</span>
-          <span class="todo-text">
-            <strong>Sin enrolar</strong>
-            <small>Pendientes de enrolamiento</small>
-          </span>
-        </a>
-      </nav>
+    @if (notifs().length) {
+      <ui-dash-notifs [items]="notifs()" (open)="openNotif($event)" />
     }
 
-
-    <div class="dash-main">
-      <div class="dash-side">
-        @if (ops(); as o) {
-          <section class="dash-panel">
-            <div class="dash-panel-head">
-              <h2>Saldos por cobrar</h2>
-              <a routerLink="/school/apprentices">Ver todos</a>
-            </div>
-            @if (!o.topBalanceDue.length) {
-              <p class="dash-empty">No hay saldos pendientes.</p>
-            } @else {
-              <ul class="dash-feed balance-feed">
-                @for (row of o.topBalanceDue; track row.studentUserId) {
-                  <li>
-                    <a [routerLink]="['/school/apprentices', row.studentUserId]" class="dash-row-link">
-                      <strong>{{ row.studentName }}</strong>
-                      <p class="meta warn">{{ formatMoney(row.balanceDue) }}</p>
-                    </a>
-                  </li>
-                }
-              </ul>
-            }
-          </section>
-
-          <section class="dash-panel">
-            <div class="dash-panel-head">
-              <h2>Listos para autorizar examen</h2>
-              <a routerLink="/school/training">Programación</a>
-            </div>
-            @if (!o.topReadyForExam.length) {
-              <p class="dash-empty">Nadie pendiente de autorización de examen.</p>
-            } @else {
-              <ul class="dash-feed">
-                @for (row of o.topReadyForExam; track row.studentUserId) {
-                  <li>
-                    <a [routerLink]="['/school/apprentices', row.studentUserId]" class="dash-row-link">
-                      <strong>{{ row.studentName }}</strong>
-                      <p class="meta">Teoría y taller completos</p>
-                    </a>
-                  </li>
-                }
-              </ul>
-            }
-          </section>
-
-          <section class="dash-panel">
-            <div class="dash-panel-head">
-              <h2>Sin cita de examen</h2>
-              <a routerLink="/school/theory-exams">Calendario</a>
-            </div>
-            @if (!o.topNoExamAppointment.length) {
-              <p class="dash-empty">Todos los autorizados tienen cita.</p>
-            } @else {
-              <ul class="dash-feed">
-                @for (row of o.topNoExamAppointment; track row.studentUserId) {
-                  <li>
-                    <a [routerLink]="['/school/apprentices', row.studentUserId]" class="dash-row-link">
-                      <strong>{{ row.studentName }}</strong>
-                      <p class="meta warn">Autorizado — falta agendar</p>
-                    </a>
-                  </li>
-                }
-              </ul>
-            }
-          </section>
-
-          <section class="dash-panel">
-            <div class="dash-panel-head">
-              <h2>Próximos exámenes teóricos</h2>
-              <a routerLink="/school/theory-exams">Calendario</a>
-            </div>
-            @if (!o.upcomingExams.length) {
-              <p class="dash-empty">Sin exámenes en los próximos 7 días.</p>
-            } @else {
-              <ul class="dash-feed">
-                @for (exam of o.upcomingExams; track exam.id) {
-                  <li>
-                    <strong>{{ exam.examDate }} · {{ exam.slotTime }}</strong>
-                    <p class="meta">{{ exam.studentName || exam.studentLabel || 'Sin asignar' }}</p>
-                  </li>
-                }
-              </ul>
-            }
-          </section>
-        }
-
-        @if (free()) {
-          <section class="dash-panel donate-panel">
-            <div class="dash-panel-head">
-              <h2>CALE es gratis para tu escuela</h2>
-            </div>
-            <p class="dash-empty">
-              Agrega todos los instructores y estudiantes que necesites, sin planes ni pagos.
-              Si CALE le sirve a tu escuela, puedes apoyarlo con una donación por Nequi.
-            </p>
-            <ui-button routerLink="/donaciones" type="button" variant="secondary">Apoyar CALE</ui-button>
-          </section>
-        } @else {
-          <section class="dash-panel">
-            <div class="dash-panel-head">
-              <h2>Uso de cupos</h2>
-              <a routerLink="/school/users">Gestionar</a>
-            </div>
-            <ui-dash-bars [items]="seatBars()" />
-            <p class="dash-empty">
-              Estado:
-              <ui-badge [tone]="statusTone(p.displayStatus || p.subscriptionStatus)">
-                {{ statusLabel(p.displayStatus || p.subscriptionStatus) }}
-              </ui-badge>
-              @if (p.membershipEndsAt) {
-                · vence {{ p.membershipEndsAt | date:'mediumDate' }}
-              }
-            </p>
-          </section>
-
-          <section class="dash-panel">
-            <div class="dash-panel-head">
-              <h2>Actividad de membresía</h2>
-              <a routerLink="/school/membership">Ver detalle</a>
-            </div>
-            @if (!events().length) {
-              <p class="dash-empty">Aún no hay eventos de plan.</p>
-            } @else {
-              <ul class="dash-feed">
-                @for (e of events(); track e.createdAt + e.eventType) {
-                  <li>
-                    <strong>{{ eventLabel(e.eventType) }}</strong>
-                    <p class="meta">
-                      {{ e.createdAt | date:'short' }}
-                      @if (e.note) { · {{ e.note }} }
-                    </p>
-                  </li>
-                }
-              </ul>
-            }
-          </section>
-        }
-      </div>
-
-      <div class="dash-side">
-        <app-inactive-students-card />
-
-        <ui-dash-notifs [items]="notifs()" (open)="openNotif($event)" />
-
-        <section class="dash-panel">
-          <div class="dash-panel-head">
-            <h2>Accesos rápidos</h2>
-          </div>
-          <div class="row quick-row">
-            <ui-button routerLink="/school/import" type="button">Importar Excel</ui-button>
-            <ui-button routerLink="/school/apprentices" type="button" variant="secondary">Aprendices</ui-button>
-            <ui-button routerLink="/school/training" type="button" variant="secondary">Programación</ui-button>
-            <ui-button routerLink="/school/practical" type="button" variant="secondary">Práctica</ui-button>
-            <ui-button routerLink="/school/theory-exams" type="button" variant="ghost">Exámenes</ui-button>
-            @if (free()) {
-              <ui-button routerLink="/donaciones" type="button" variant="ghost">Apoyar CALE</ui-button>
-            } @else {
-              <ui-button routerLink="/school/membership" type="button" variant="ghost">Membresía</ui-button>
-            }
-          </div>
+    @if (profile(); as p) {
+      @if (free()) {
+        <section class="easy-panel donate-panel">
+          <h2>CALE es gratis para tu escuela</h2>
+          <p class="easy-text">
+            Agrega todos los instructores y estudiantes que necesites, sin planes ni pagos.
+            Si CALE le sirve a tu escuela, puedes apoyarlo con una donación por Nequi.
+          </p>
+          <ui-button routerLink="/donaciones" type="button" variant="secondary">Apoyar CALE</ui-button>
         </section>
+      } @else {
+        <section class="easy-panel">
+          <h2>Tu plan</h2>
+          <p class="easy-text">
+            Plan {{ p.planLabel }}:
+            <ui-badge [tone]="statusTone(p.displayStatus || p.subscriptionStatus)">
+              {{ statusLabel(p.displayStatus || p.subscriptionStatus) }}
+            </ui-badge>
+            · {{ p.daysRemaining }} {{ p.daysRemaining === 1 ? 'día restante' : 'días restantes' }}
+            @if (p.membershipEndsAt) { · vence {{ p.membershipEndsAt | date:'mediumDate' }} }
+          </p>
+          <p class="easy-text">Estudiantes {{ p.studentsUsed }}/{{ p.studentsMax }} · Instructores {{ p.teachersUsed }}/{{ p.teachersMax }}</p>
+          <ui-button routerLink="/school/membership" type="button" variant="secondary">Ver mi plan</ui-button>
+        </section>
+      }
+    }
+
+    <section class="easy-panel">
+      <h2>Otras opciones</h2>
+      <div class="easy-links">
+        <a routerLink="/school/import">📥 Importar estudiantes desde Excel</a>
+        <a routerLink="/school/exam-control">🖥️ Examen en curso</a>
+        <a routerLink="/school/practical-fleet">🚗 Vehículos de hoy</a>
+        <a routerLink="/school/users">👥 Instructores y usuarios</a>
       </div>
-    </div>
+    </section>
   }
 </section>
