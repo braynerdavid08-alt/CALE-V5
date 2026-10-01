@@ -125,8 +125,8 @@
 .easy-links a:hover { border-color: var(--color-primary); color: var(--color-primary); }
 
 .donate-panel {
-  border-color: color-mix(in srgb, #f43f5e 30%, var(--color-border));
-  background: linear-gradient(135deg, color-mix(in srgb, #f43f5e 8%, var(--color-surface)), var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 8%, var(--color-surface)), var(--color-surface));
 }
 .donate-panel ui-button { justify-self: start; }
 

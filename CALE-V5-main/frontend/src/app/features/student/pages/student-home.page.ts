@@ -6,6 +6,7 @@ import { UiIconComponent } from '../../../shared/ui/ui-icon.component';
 import { Badge, PlayApi, PlaySummary } from '../../play/api/play.api';
 import { PlayBadgesToastComponent } from '../../play/components/play-badges-toast.component';
 import { PlayFxService } from '../../play/play-fx.service';
+import { ProgressDashboardComponent } from '../components/progress-dashboard.component';
 
 interface LauncherTile {
   id: string;
@@ -19,7 +20,7 @@ interface LauncherTile {
 @Component({
   selector: 'app-student-home-page',
   standalone: true,
-  imports: [RouterLink, UiButtonComponent, UiIconComponent, PlayBadgesToastComponent],
+  imports: [RouterLink, UiButtonComponent, UiIconComponent, PlayBadgesToastComponent, ProgressDashboardComponent],
   templateUrl: './student-home.page.html',
   styleUrl: './student-home.page.css'
 })

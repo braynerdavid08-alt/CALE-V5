@@ -412,6 +412,10 @@
   margin-bottom: 1.6rem;
 }
 
+.progress-slot {
+  margin-bottom: 0.4rem;
+}
+
 .games-head {
   display: flex;
   align-items: center;
