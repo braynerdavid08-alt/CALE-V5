@@ -13,6 +13,7 @@ import {
   EnrollmentAuthorizationEvent
 } from '../api/apprentice.api';
 import { StudentHoursCardComponent } from '../components/student-hours-card.component';
+import { ProgressDashboardComponent } from '../../student/components/progress-dashboard.component';
 
 type StepState = 'done' | 'active' | 'todo' | 'blocked';
 
@@ -36,6 +37,7 @@ interface TimelineItem {
   imports: [
     DatePipe,
     FormsModule,
+    ProgressDashboardComponent,
     RouterLink,
     StudentHoursCardComponent,
     UiButtonComponent,

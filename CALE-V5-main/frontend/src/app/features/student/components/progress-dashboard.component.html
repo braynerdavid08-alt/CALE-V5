@@ -1,0 +1,194 @@
+<section class="pd" aria-labelledby="pd-title" [attr.aria-busy]="loading()">
+  <header class="pd-head">
+    <div>
+      <h2 id="pd-title">{{ heading }}</h2>
+      <p class="muted">{{ subheading }}</p>
+    </div>
+    @if (data()?.modeCounts?.all) {
+      <div class="pd-filters">
+        <div class="seg" role="group" aria-label="Cuántos intentos ver">
+          @for (o of takeOptions; track o.label) {
+            <button type="button" [attr.aria-pressed]="take() === o.value" (click)="setTake(o.value)">{{ o.label }}</button>
+          }
+        </div>
+        @if (showModes()) {
+          <div class="seg" role="group" aria-label="Tipo de intento">
+            @for (o of modeOptions; track o.value) {
+              <button type="button" [attr.aria-pressed]="mode() === o.value" (click)="setMode(o.value)">{{ o.label }}</button>
+            }
+          </div>
+        }
+      </div>
+    }
+  </header>
+
+  @if (error()) {
+    <p class="pd-error" role="alert">{{ error() }} <button type="button" (click)="load()">Reintentar</button></p>
+  }
+
+  @if (loading() && !data()) {
+    <div class="pd-skeleton" aria-hidden="true">
+      @for (i of [1, 2, 3, 4, 5]; track i) { <span></span> }
+    </div>
+  }
+  @if (data(); as d) {
+    @if (!hasData()) {
+      <div class="pd-empty">
+        <span aria-hidden="true">📈</span>
+        <h3>Todavía no hay intentos terminados</h3>
+        <p>Cuando termines un examen o una práctica, aquí verás tu evolución.</p>
+        @if (emptyLink) {
+          <a class="pd-btn" [routerLink]="emptyLink">Practicar ahora</a>
+        }
+      </div>
+    } @else {
+      <div class="kpis" [class.dim]="loading()">
+        <div class="kpi">
+          <span class="kpi-ico" aria-hidden="true">📝</span>
+          <strong>{{ d.totalAttempts }}</strong>
+          <span>Intentos</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-ico" aria-hidden="true">📊</span>
+          <strong>{{ pct(d.averageScore) }}</strong>
+          <span>Promedio</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-ico" aria-hidden="true">🏆</span>
+          <strong>{{ pct(d.bestScore) }}</strong>
+          <span>Mejor resultado</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-ico" aria-hidden="true">🕒</span>
+          <strong>{{ pct(d.lastScore) }}</strong>
+          <span>Último resultado</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-ico" aria-hidden="true">✅</span>
+          <strong>{{ d.passedAttempts }}/{{ d.totalAttempts }}</strong>
+          <span>Aprobados</span>
+        </div>
+      </div>
+
+      <div class="grid-main" [class.dim]="loading()">
+        <article class="card chart-card">
+          <header class="card-head">
+            <div>
+              <h3>{{ metric() === 'score' ? 'Evolución de resultados' : 'Evolución del tiempo' }}</h3>
+              <p class="muted">{{ metric() === 'score' ? 'Resultado en cada intento' : 'Minutos usados en cada intento' }}</p>
+            </div>
+            <div class="seg small" role="group" aria-label="Qué mostrar en la gráfica">
+              <button type="button" [attr.aria-pressed]="metric() === 'score'" (click)="metric.set('score')">Resultados</button>
+              <button type="button" [attr.aria-pressed]="metric() === 'duration'" (click)="metric.set('duration')">Duración</button>
+            </div>
+          </header>
+          @if (metric() === 'score') {
+            <ui-line-chart
+              [points]="scorePoints()"
+              [min]="0"
+              [max]="100"
+              [height]="280"
+              yTitle="Resultado (%)"
+              [refLabel]="approvalLabel()"
+              [tickFormat]="percentTick"
+              ariaLabel="Gráfica de resultados por intento. Usa Tab para recorrer los puntos." />
+            <ul class="legend">
+              <li><span class="sw success"></span>Aprobado</li>
+              <li><span class="sw warning"></span>Cerca de aprobar</li>
+              <li><span class="sw danger"></span>No aprobado</li>
+              <li><span class="sw line"></span>{{ passRuleText() }}</li>
+            </ul>
+          } @else {
+            <ui-line-chart
+              [points]="durationPoints()"
+              [min]="0"
+              [max]="durationMax()"
+              [height]="280"
+              lineTone="violet"
+              yTitle="Tiempo (min)"
+              [tickFormat]="minutesTick"
+              ariaLabel="Gráfica de tiempo usado por intento. Usa Tab para recorrer los puntos." />
+            @if (d.attemptsWithoutDuration) {
+              <p class="muted small">{{ d.attemptsWithoutDuration }} intento(s) sin tiempo registrado no aparecen en esta gráfica.</p>
+            }
+          }
+        </article>
+
+        <aside class="card summary" aria-labelledby="pd-summary">
+          <h3 id="pd-summary">Resumen de rendimiento</h3>
+          <dl>
+            <div><dt>Promedio general</dt><dd>{{ pct(d.averageScore) }}</dd></div>
+            <div><dt>Mejor resultado</dt><dd>{{ pct(d.bestScore) }}</dd></div>
+            <div><dt>Último resultado</dt><dd>{{ pct(d.lastScore) }}</dd></div>
+            <div><dt>Intentos aprobados</dt><dd>{{ d.passedAttempts }} de {{ d.totalAttempts }}</dd></div>
+            <div><dt>Promedio últimos 5</dt><dd>{{ pct(d.lastFiveAverage) }}</dd></div>
+            <div>
+              <dt>Tendencia</dt>
+              <dd>
+                @if (trendText(); as t) {
+                  <span class="trend" [attr.data-dir]="t.dir">
+                    <span aria-hidden="true">{{ t.dir === 'up' ? '↗' : t.dir === 'down' ? '↘' : '→' }}</span>
+                    {{ t.value }} · {{ t.word }}
+                  </span>
+                } @else { — }
+              </dd>
+            </div>
+            <div><dt>Mejor tiempo</dt><dd>{{ duration(d.bestDurationSeconds) }}</dd></div>
+            <div><dt>Promedio de duración</dt><dd>{{ duration(d.averageDurationSeconds) }}</dd></div>
+          </dl>
+          <p class="muted small">{{ trendExplain() }}</p>
+        </aside>
+      </div>
+
+      <div class="grid-two" [class.dim]="loading()">
+        <article class="card chart-card">
+          <header class="card-head">
+            <div>
+              <h3>{{ metric() === 'score' ? 'Evolución del tiempo' : 'Evolución de resultados' }}</h3>
+              <p class="muted">{{ metric() === 'score' ? 'Minutos usados en cada intento' : 'Resultado en cada intento' }}</p>
+            </div>
+          </header>
+          @if (metric() === 'score') {
+            <ui-line-chart
+              [points]="durationPoints()"
+              [min]="0"
+              [max]="durationMax()"
+              [height]="220"
+              lineTone="violet"
+              [tickFormat]="minutesTick"
+              ariaLabel="Gráfica de tiempo usado por intento." />
+          } @else {
+            <ui-line-chart
+              [points]="scorePoints()"
+              [min]="0"
+              [max]="100"
+              [height]="220"
+              [refLabel]="approvalLabel()"
+              [tickFormat]="percentTick"
+              ariaLabel="Gráfica de resultados por intento." />
+          }
+        </article>
+
+        <article class="card chart-card">
+          <header class="card-head">
+            <div>
+              <h3>Rendimiento semanal</h3>
+              <p class="muted">Primer, último, mejor y peor resultado de cada semana</p>
+            </div>
+          </header>
+          <ui-candle-chart
+            [points]="candles()"
+            [height]="220"
+            [tickFormat]="percentTick"
+            ariaLabel="Velas semanales de resultados. Usa Tab para recorrer las semanas." />
+          <ul class="legend">
+            <li><span class="sw success"></span>Terminó más alto</li>
+            <li><span class="sw danger"></span>Terminó más bajo</li>
+            <li><span class="sw warning"></span>Igual</li>
+            <li><span class="sw primary"></span>1 intento</li>
+          </ul>
+        </article>
+      </div>
+    }
+  }
+</section>

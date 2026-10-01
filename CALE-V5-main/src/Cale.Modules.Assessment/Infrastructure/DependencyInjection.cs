@@ -22,6 +22,7 @@ public static class DependencyInjection
         services.AddScoped<ManageRatingHandler>();
         services.AddScoped<ListRatingsHandler>();
         services.AddScoped<ListResultsHandler>();
+        services.AddScoped<StudentProgressHandler>();
         return services;
     }
 }

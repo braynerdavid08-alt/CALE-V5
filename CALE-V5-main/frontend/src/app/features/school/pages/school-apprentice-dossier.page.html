@@ -65,6 +65,14 @@
         }
       </section>
 
+      @for (id of [studentUserId]; track id) {
+        <app-progress-dashboard
+          [studentUserId]="id"
+          heading="Progreso en exámenes"
+          [subheading]="'Resultados reales de ' + p.studentName + ' en cada intento del simulador.'"
+          [emptyLink]="null" />
+      }
+
       <div class="grid">
         <section class="school-card">
           <h2>Formación</h2>
