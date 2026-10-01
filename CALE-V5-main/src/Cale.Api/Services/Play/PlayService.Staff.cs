@@ -13,14 +13,13 @@ namespace Cale.Api.Services.Play;
 
 public sealed partial class PlayService
 {
-    public async Task<IReadOnlyList<DuelQuestion>> BuildDuelQuestionsAsync(CancellationToken ct)
+    /// <summary>Official questions mixed with the duel creator's school questions.</summary>
+    public async Task<IReadOnlyList<DuelQuestion>> BuildDuelQuestionsAsync(int userId, CancellationToken ct)
     {
-        var pool = await OfficialQuestionIdsAsync(ct);
+        var official = await OfficialQuestionIdsAsync(ct);
+        var school = await SchoolQuestionIdsAsync(userId, ct);
         var seed = Random.Shared.Next();
-        var picked = pool
-            .OrderBy(id => StableHash(seed, id))
-            .Take(DuelService.QuestionCount)
-            .ToList();
+        var picked = MixPools(school, official, seed, DuelService.QuestionCount, DuelSchoolShare);
         var questions = await LoadQuestionsAsync(picked, ct);
         return picked
             .Where(questions.ContainsKey)

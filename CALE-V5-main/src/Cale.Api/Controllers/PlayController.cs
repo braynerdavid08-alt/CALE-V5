@@ -81,7 +81,7 @@ public sealed class PlayController : ControllerBase
     [HttpPost("duel")]
     public async Task<DuelStateDto> CreateDuel(CancellationToken ct)
     {
-        var questions = await _play.BuildDuelQuestionsAsync(ct);
+        var questions = await _play.BuildDuelQuestionsAsync(UserId, ct);
         var name = await _play.GetDisplayNameAsync(UserId, ct);
         return _duels.Create(UserId, name, questions);
     }

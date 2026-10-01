@@ -12,6 +12,7 @@ public sealed partial class PlayService
 {
     public const int DailySchoolShare = 3;
     public const int SignsQuestionCount = 40;
+    public const int DuelSchoolShare = 3;
     private static readonly TimeSpan PoolTtl = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan CatalogTtl = TimeSpan.FromMinutes(5);
 
@@ -110,21 +111,58 @@ public sealed partial class PlayService
             .Select(m => m.GroupId)
             .ToListAsync(ct);
 
-    // ───────────────────────── Señal relámpago: school questions ─────────────────────────
+    /// <summary>
+    /// Up to <paramref name="schoolShare"/> school questions, the rest official, topped up with
+    /// more school questions when the official pool runs short. Order is shuffled by <paramref name="seed"/>.
+    /// </summary>
+    internal static List<int> MixPools(
+        IReadOnlyList<int> school,
+        IReadOnlyList<int> official,
+        int seed,
+        int total,
+        int schoolShare)
+    {
+        var fromSchool = school
+            .Distinct()
+            .OrderBy(id => StableHash(seed, id))
+            .Take(Math.Min(schoolShare, total))
+            .ToList();
+        var taken = fromSchool.ToHashSet();
+        var fromOfficial = official
+            .Where(id => !taken.Contains(id))
+            .Distinct()
+            .OrderBy(id => StableHash(seed, id))
+            .Take(total - fromSchool.Count)
+            .ToList();
+        taken.UnionWith(fromOfficial);
+        return fromSchool
+            .Concat(fromOfficial)
+            .Concat(school.Where(id => !taken.Contains(id)).Distinct().OrderBy(id => StableHash(seed, id)))
+            .Take(total)
+            .OrderBy(id => StableHash(seed ^ 0x5bd1e995, id))
+            .ToList();
+    }
+
+    // ───────────────────────── Señal relámpago: school + official questions ─────────────────────────
+
+    private async Task<HashSet<int>> SignsPoolAsync(int userId, CancellationToken ct)
+    {
+        var pool = (await SchoolQuestionIdsAsync(userId, ct)).ToHashSet();
+        pool.UnionWith(await OfficialQuestionIdsAsync(ct));
+        return pool;
+    }
 
     public async Task<IReadOnlyList<PlayQuestionDto>> GetSignsQuestionsAsync(int userId, CancellationToken ct)
     {
-        var pool = await SchoolQuestionIdsAsync(userId, ct);
-        if (pool.Count == 0)
+        var school = await SchoolQuestionIdsAsync(userId, ct);
+        var official = await OfficialQuestionIdsAsync(ct);
+        if (school.Count == 0 && official.Count == 0)
         {
             return [];
         }
 
         var seed = Random.Shared.Next();
-        var picked = pool
-            .OrderBy(id => StableHash(seed, id))
-            .Take(SignsQuestionCount)
-            .ToList();
+        var picked = MixPools(school, official, seed, SignsQuestionCount, SignsQuestionCount / 2);
         var questions = await LoadQuestionsAsync(picked, ct);
         return picked
             .Where(questions.ContainsKey)
@@ -137,7 +175,7 @@ public sealed partial class PlayService
         PlayAnswerRequest request,
         CancellationToken ct)
     {
-        var pool = await SchoolQuestionIdsAsync(userId, ct);
+        var pool = await SignsPoolAsync(userId, ct);
         if (!pool.Contains(request.QuestionId))
         {
             throw new DomainException("Question is not available for this game.", 400, "question_invalid");
