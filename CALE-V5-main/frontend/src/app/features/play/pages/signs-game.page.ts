@@ -39,20 +39,9 @@ type Round =
       margin: 0.5rem 0 1rem;
     }
     .sign-img img { max-height: 100%; max-width: 70%; object-fit: contain; }
-    .q-tag {
-      display: inline-block;
-      margin: 0.6rem 0 0.4rem;
-      padding: 0.2rem 0.6rem;
-      border-radius: 999px;
-      font-size: var(--text-xs);
-      font-weight: 700;
-      background: var(--color-primary-soft);
-      color: var(--color-primary);
-    }
     .q-text { margin: 0 0 0.9rem; font-size: 1.1rem; font-weight: 700; line-height: 1.4; }
     .q-text.flash-ok { animation: ok 0.3s ease; }
     .q-text.flash-bad { animation: bad 0.3s ease; }
-    .sign-img.small { height: clamp(6rem, 18vw, 9rem); margin: 0 0 0.8rem; }
     .sign-img.flash-ok img { animation: ok 0.3s ease; }
     .sign-img.flash-bad img { animation: bad 0.3s ease; }
     .opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; }
@@ -68,6 +57,7 @@ type Round =
       cursor: pointer;
       transition: border-color 0.12s ease, transform 0.1s ease;
     }
+    .opt-img { display: block; max-height: 5rem; max-width: 100%; margin: 0 auto 0.35rem; object-fit: contain; }
     .opt:hover { border-color: var(--color-primary); transform: translateY(-1px); }
     .opt.ok { border-color: var(--color-success); background: var(--color-success-soft); }
     .opt.bad { border-color: var(--color-danger); background: var(--color-danger-soft); }
@@ -91,9 +81,10 @@ type Round =
             <div class="play-card intro">
               <span class="emoji" aria-hidden="true">⚡🚦</span>
               <h2>¿Listo?</h2>
-              <p>Verás una señal de tránsito y 4 nombres. Toca el correcto lo más rápido que puedas. Los errores no restan, pero te hacen perder tiempo.</p>
               @if (hasSchoolQuestions()) {
-                <p>Cada tanto aparecerá una pregunta CALE del banco oficial o de los exámenes de tu escuela.</p>
+                <p>Verás preguntas con imagen de señales de tránsito. Toca la respuesta correcta lo más rápido que puedas. Los errores no restan, pero te hacen perder tiempo.</p>
+              } @else {
+                <p>Verás una señal de tránsito y 4 nombres. Toca el correcto lo más rápido que puedas. Los errores no restan, pero te hacen perder tiempo.</p>
               }
               <ui-button type="button" (click)="start()">¡Empezar!</ui-button>
             </div>
@@ -123,9 +114,8 @@ type Round =
                     }
                   </div>
                 } @else {
-                  <span class="q-tag">📝 Pregunta CALE</span>
                   @if (r.question.imageUrl) {
-                    <div class="sign-img small">
+                    <div class="sign-img">
                       <img [src]="media(r.question.imageUrl)" alt="Imagen de la pregunta" />
                     </div>
                   }
@@ -139,6 +129,9 @@ type Round =
                         [class.bad]="picked() === '' + o.id && correctKey() !== null && correctKey() !== '' + o.id"
                         [disabled]="!!picked()"
                         (click)="pickOption(o.id)">
+                        @if (o.imageUrl) {
+                          <img class="opt-img" [src]="media(o.imageUrl)" [alt]="o.text || 'Opción'" />
+                        }
                         {{ o.text }}
                       </button>
                     }
@@ -207,8 +200,8 @@ export class SignsGamePage implements OnInit, OnDestroy {
       questions: this.api.signsQuestions().pipe(catchError(() => of([] as PlayQuestion[])))
     }).subscribe({
       next: ({ signs, questions }) => {
-        this.signs = signs.filter((s) => s.imageUrl && s.name);
         this.questions = questions.filter((q) => q.options.length >= 2);
+        this.signs = this.questions.length ? [] : signs.filter((s) => s.imageUrl && s.name);
         this.hasSchoolQuestions.set(this.questions.length > 0);
         this.loading.set(false);
         if (!this.canPlay()) {

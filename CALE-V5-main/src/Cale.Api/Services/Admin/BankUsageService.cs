@@ -57,6 +57,7 @@ public sealed class BankUsageService
 
         _cache.Remove("play:official-banks");
         _cache.Remove("play:official-questions");
+        _cache.Remove("play:signs-questions");
         _cache.Remove("play:official-blocks");
     }
 

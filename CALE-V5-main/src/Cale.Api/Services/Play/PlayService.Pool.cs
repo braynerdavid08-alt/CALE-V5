@@ -1,3 +1,4 @@
+using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Classroom;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.Modules.Catalog.Domain;
@@ -143,26 +144,78 @@ public sealed partial class PlayService
             .ToList();
     }
 
-    // ───────────────────────── Señal relámpago: school + official questions ─────────────────────────
+    // ───────────────────────── Señal relámpago: admin sign questions with images ─────────────────────────
 
-    private async Task<HashSet<int>> SignsPoolAsync(int userId, CancellationToken ct)
+    /// <summary>Admin exams whose name contains one of these fragments feed Señal relámpago.</summary>
+    private static readonly string[] SignsExamKeywords = ["señal", "senal"];
+
+    /// <summary>Questions with an image from the admin's sign exams (e.g. "Examen Señales SR").</summary>
+    internal async Task<List<int>> SignsQuestionIdsAsync(CancellationToken ct)
     {
-        var pool = (await SchoolQuestionIdsAsync(userId, ct)).ToHashSet();
-        pool.UnionWith(await OfficialQuestionIdsAsync(ct));
-        return pool;
+        const string key = "play:signs-questions";
+        if (_cache.TryGetValue(key, out List<int>? cached) && cached is not null)
+        {
+            return cached;
+        }
+
+        var adminIds = await _db.Set<User>().AsNoTracking()
+            .Where(u => u.Role == Roles.Admin)
+            .Select(u => u.Id)
+            .ToListAsync(ct);
+        var exams = (await _db.Set<Exam>().AsNoTracking()
+                .Where(e => e.IsActive && adminIds.Contains(e.CreatedById))
+                .Select(e => new { e.Id, e.Name, e.BankId })
+                .ToListAsync(ct))
+            .Where(e => SignsExamKeywords.Any(k => e.Name.Contains(k, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+        if (exams.Count == 0)
+        {
+            return [];
+        }
+
+        var examIds = exams.Select(e => e.Id).ToList();
+        var picked = await _db.Set<ExamQuestion>().AsNoTracking()
+            .Where(x => examIds.Contains(x.ExamId))
+            .Select(x => new { x.ExamId, x.QuestionId })
+            .ToListAsync(ct);
+        var examsWithList = picked.Select(x => x.ExamId).ToHashSet();
+        var questionIds = picked.Select(x => x.QuestionId).Distinct().ToList();
+        var bankIds = exams
+            .Where(e => e.BankId is not null && !examsWithList.Contains(e.Id))
+            .Select(e => e.BankId!.Value)
+            .Distinct()
+            .ToList();
+
+        var ids = await _db.Set<Question>().AsNoTracking()
+            .Where(q => q.IsActive
+                && (questionIds.Contains(q.Id) || bankIds.Contains(q.BankId))
+                && ((q.ImageUrl != null && q.ImageUrl != "") || q.Options.Any(o => o.ImageUrl != null && o.ImageUrl != ""))
+                && (q.Explanation == null || !q.Explanation.Contains("Importada sin clave"))
+                && q.Options.Count() >= 2
+                && q.Options.Count(o => o.IsCorrect) == 1)
+            .Select(q => q.Id)
+            .ToListAsync(ct);
+        if (ids.Count > 0)
+        {
+            CacheSmall(key, ids, CatalogTtl);
+        }
+
+        return ids;
     }
 
     public async Task<IReadOnlyList<PlayQuestionDto>> GetSignsQuestionsAsync(int userId, CancellationToken ct)
     {
-        var school = await SchoolQuestionIdsAsync(userId, ct);
-        var official = await OfficialQuestionIdsAsync(ct);
-        if (school.Count == 0 && official.Count == 0)
+        var pool = await SignsQuestionIdsAsync(ct);
+        if (pool.Count == 0)
         {
             return [];
         }
 
         var seed = Random.Shared.Next();
-        var picked = MixPools(school, official, seed, SignsQuestionCount, SignsQuestionCount / 2);
+        var picked = pool
+            .OrderBy(id => StableHash(seed, id))
+            .Take(SignsQuestionCount)
+            .ToList();
         var questions = await LoadQuestionsAsync(picked, ct);
         return picked
             .Where(questions.ContainsKey)
@@ -175,7 +228,7 @@ public sealed partial class PlayService
         PlayAnswerRequest request,
         CancellationToken ct)
     {
-        var pool = await SignsPoolAsync(userId, ct);
+        var pool = await SignsQuestionIdsAsync(ct);
         if (!pool.Contains(request.QuestionId))
         {
             throw new DomainException("Question is not available for this game.", 400, "question_invalid");
