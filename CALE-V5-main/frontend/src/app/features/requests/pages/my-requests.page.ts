@@ -9,6 +9,7 @@ import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.compone
 import { UiSuccessComponent } from '../../../shared/ui/ui-success.component';
 import { QuestionDraftEditorComponent } from '../components/question-draft-editor.component';
 import {
+  MyRequestStatus,
   QuestionDraft,
   RequestsApi,
   UserRequestDto,
@@ -75,6 +76,7 @@ import {
     .pill.Accepted { background: var(--color-success-soft); color: var(--color-success); }
     .pill.Rejected { background: color-mix(in srgb, var(--color-danger, #dc2626) 14%, transparent); color: var(--color-danger, #dc2626); }
     .note { margin: 0; padding: 0.6rem 0.8rem; border-radius: 0.7rem; background: var(--color-surface-raised); font-size: var(--text-sm); line-height: 1.45; }
+    .blocked-note { margin: 0 0 1rem; padding: 0.9rem 1rem; background: color-mix(in srgb, var(--color-danger, #dc2626) 10%, transparent); color: var(--color-danger, #b91c1c); overflow-wrap: anywhere; }
     .empty { text-align: center; padding: 1.5rem; color: var(--color-text-secondary); border: 1px dashed var(--color-border); border-radius: 1rem; }
 
     .overlay {
@@ -119,6 +121,12 @@ import {
       @if (ok()) { <ui-success [message]="ok()" /> }
       @if (error()) { <ui-error [message]="error()" /> }
 
+      @if (blocked(); as b) {
+        <p class="note blocked-note" role="status">
+          <strong>El administrador desactivó el envío de solicitudes para tu cuenta.</strong>
+          @if (b.reason) { <br />Motivo: {{ b.reason }} }
+        </p>
+      } @else {
       <div class="actions-grid">
         <button type="button" class="action q" (click)="open('question')">
           <span class="emoji" aria-hidden="true">📝</span>
@@ -134,6 +142,7 @@ import {
         </button>
       </div>
       <p class="how">Recibirás una notificación cuando el administrador acepte o rechace tu solicitud.</p>
+      }
 
       <h2>Mis solicitudes</h2>
       @if (loading()) {
@@ -213,6 +222,7 @@ export class MyRequestsPage implements OnInit {
   readonly mode = signal<UserRequestKind | null>(null);
   readonly sending = signal(false);
   readonly formError = signal<string | null>(null);
+  readonly blocked = signal<MyRequestStatus | null>(null);
 
   draft: QuestionDraft = emptyDraft();
   title = '';
@@ -220,6 +230,7 @@ export class MyRequestsPage implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    this.api.myStatus().subscribe({ next: (s) => this.blocked.set(s.blocked ? s : null) });
   }
 
   @HostListener('document:keydown.escape')

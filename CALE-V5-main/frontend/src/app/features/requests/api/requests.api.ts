@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { tap } from 'rxjs/operators';
+import { switchMap, tap } from 'rxjs/operators';
+import { compressImage } from '../../../core/media/compress-image';
 import { env } from '../../../core/config/env';
 
 export const QUESTION_TYPE_MC = 'Seleccion multiple';
@@ -45,6 +46,19 @@ export interface UserRequestDto {
   reviewedAt: string | null;
   createdQuestionId: number | null;
   createdAt: string;
+}
+
+export interface BlockedUser {
+  userId: number;
+  name: string;
+  email: string;
+  reason: string | null;
+  createdAt: string;
+}
+
+export interface MyRequestStatus {
+  blocked: boolean;
+  reason: string | null;
 }
 
 export interface UserRequestCounts {
@@ -113,6 +127,22 @@ export class RequestsApi {
     return this.http.get<UserRequestDto[]>(`${this.base}/mine`);
   }
 
+  myStatus() {
+    return this.http.get<MyRequestStatus>(`${this.base}/mine/status`);
+  }
+
+  blockedUsers() {
+    return this.http.get<BlockedUser[]>(`${this.base}/admin/blocked`);
+  }
+
+  blockUser(userId: number, reason: string | null) {
+    return this.http.post<{ rejected: number }>(`${this.base}/admin/blocked/${userId}`, { reason });
+  }
+
+  unblockUser(userId: number) {
+    return this.http.delete<void>(`${this.base}/admin/blocked/${userId}`);
+  }
+
   cancel(id: number) {
     return this.http.delete<void>(`${this.base}/${id}`);
   }
@@ -142,8 +172,12 @@ export class RequestsApi {
   }
 
   upload(file: File) {
-    const data = new FormData();
-    data.append('file', file);
-    return this.http.post<{ url: string }>(`${env.apiUrl}/api/media/upload`, data);
+    return compressImage(file).pipe(
+      switchMap((small) => {
+        const data = new FormData();
+        data.append('file', small);
+        return this.http.post<{ url: string }>(`${env.apiUrl}/api/media/upload`, data);
+      })
+    );
   }
 }

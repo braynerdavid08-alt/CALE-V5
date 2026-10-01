@@ -88,3 +88,24 @@ public sealed class UserRequest
         }
     }
 }
+
+/// <summary>A user the admin stopped from sending new requests (abuse or spam).</summary>
+public sealed class UserRequestBlock
+{
+    public int UserId { get; private set; }
+    public int BlockedById { get; private set; }
+    public string? Reason { get; private set; }
+    public DateTime CreatedAt { get; private set; }
+
+    private UserRequestBlock()
+    {
+    }
+
+    public static UserRequestBlock Create(int userId, int blockedById, string? reason, DateTime now) => new()
+    {
+        UserId = userId,
+        BlockedById = blockedById,
+        Reason = reason,
+        CreatedAt = now
+    };
+}

@@ -19,6 +19,8 @@ Fecha: 30 sep 2026. Contexto: la app pasó a ser gratis para todos (PR #129), co
 - Corregida la prueba de arquitectura que fallaba (`SchoolJoinRequestHandler` usaba EF Core directamente).
 - **3.1** Página *Contenido → Señal relámpago*: preguntas en el juego, avance por examen de señales y lista de preguntas que no entran (sin imagen, sin clave, sin una única respuesta correcta) con botón «Editar».
 - **3.2** Contador de solicitudes pendientes en el menú del administrador (se actualiza cada minuto y al aceptar o rechazar).
+- **2.4** Las imágenes se reducen en el navegador antes de subirlas: máximo 1600 px por lado y formato WebP (PNG o JPEG si el navegador no puede). Los GIF no se tocan, y si la versión reducida pesa más se sube la original.
+- **3.3** Bloqueo de usuarios para solicitudes: desde *Solicitudes de usuarios* el administrador puede bloquear a quien abuse (se rechazan sus pendientes y se le avisa) y desbloquearlo después. El usuario bloqueado ve un aviso en lugar del formulario.
 
 **Pendiente de verificar en Render (manual):** que exista la variable `Jwt__Key` con un secreto propio, y revisar en el log si aparece la advertencia de imágenes `/uploads` perdidas.
 

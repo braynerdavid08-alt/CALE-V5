@@ -1,7 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, map, switchMap } from 'rxjs';
 import { env } from '../../../core/config/env';
+import { compressImage } from '../../../core/media/compress-image';
 import { ExamDto } from '../../student/api/exam.api';
 import { ActivityDto, AnnouncementDto, GroupDto } from '../../student/api/student.api';
 
@@ -290,11 +291,12 @@ export class TeacherApi {
   }
 
   upload(file: File) {
-    const data = new FormData();
-    data.append('file', file);
-    return this.http.post<{ url: string }>(
-      `${this.base}/api/media/upload`,
-      data
+    return compressImage(file).pipe(
+      switchMap((small) => {
+        const data = new FormData();
+        data.append('file', small);
+        return this.http.post<{ url: string }>(`${this.base}/api/media/upload`, data);
+      })
     );
   }
 
