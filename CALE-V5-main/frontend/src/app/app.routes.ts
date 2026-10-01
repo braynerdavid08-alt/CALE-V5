@@ -225,6 +225,24 @@ export const routes: Routes = [
             .then((m) => m.SchoolTheoryExamsPage)
       },
       {
+        path: 'school/theory-exams/schedule',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['School'] },
+        loadComponent: () =>
+          import('./features/school/pages/school-exam-schedule.page')
+            .then((m) => m.SchoolExamSchedulePage)
+      },
+      {
+        path: 'school/agenda',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['School'] },
+        loadComponent: () =>
+          import('./features/school/pages/school-agenda.page')
+            .then((m) => m.SchoolAgendaPage)
+      },
+      {
         path: 'school/exam-control',
         pathMatch: 'full',
         canActivate: [roleGuard],
@@ -352,6 +370,15 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/theory/pages/student-training.page')
             .then((m) => m.StudentTrainingPage)
+      },
+      {
+        path: 'student/exam',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['Student'] },
+        loadComponent: () =>
+          import('./features/student/pages/student-exam.page')
+            .then((m) => m.StudentExamPage)
       },
       {
         path: 'donaciones',

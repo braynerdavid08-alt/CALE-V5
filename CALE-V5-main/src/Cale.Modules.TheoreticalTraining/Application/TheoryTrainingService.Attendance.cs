@@ -230,7 +230,8 @@ public sealed partial class TheoryTrainingService
         var appointments = await _db.Set<TheoryExamAppointment>()
             .Where(x => x.ExamDate >= fromDate
                 && x.ExamDate <= toDate
-                && x.StudentUserId != null)
+                && x.StudentUserId != null
+                && x.Status == TheoryExamBookingStatuses.Active)
             .ToListAsync(ct);
 
         foreach (var appointment in appointments)

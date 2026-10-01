@@ -177,7 +177,78 @@ public sealed class TheoryExamAppointmentConfiguration : IEntityTypeConfiguratio
         builder.HasKey(x => x.Id);
         builder.Property(x => x.StudentLabel).HasMaxLength(160);
         builder.Property(x => x.Notes).HasMaxLength(256);
+        builder.Property(x => x.Status)
+            .HasMaxLength(16)
+            .IsRequired()
+            .HasDefaultValue(TheoryExamBookingStatuses.Active);
+        builder.Property(x => x.SeatNumber).HasDefaultValue(1);
         builder.HasIndex(x => new { x.SchoolUserId, x.ExamDate, x.SlotTime });
+        builder.HasIndex(x => new { x.SchoolUserId, x.ExamDate, x.SlotTime, x.SeatNumber })
+            .IsUnique()
+            .HasDatabaseName("UX_TheoryExamAppointments_Seat")
+            .HasFilter("\"Status\" <> 'Cancelled'");
+        builder.HasIndex(x => new { x.SchoolUserId, x.StudentUserId, x.ExamDate, x.SlotTime })
+            .IsUnique()
+            .HasDatabaseName("UX_TheoryExamAppointments_Student")
+            .HasFilter("\"Status\" <> 'Cancelled' AND \"StudentUserId\" IS NOT NULL");
+        builder.HasIndex(x => new { x.SchoolUserId, x.StudentUserId, x.Status });
+    }
+}
+
+public sealed class TheoryExamScheduleTemplateConfiguration
+    : IEntityTypeConfiguration<TheoryExamScheduleTemplate>
+{
+    public void Configure(EntityTypeBuilder<TheoryExamScheduleTemplate> builder)
+    {
+        builder.ToTable("TheoryExamScheduleTemplates");
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => new { x.SchoolUserId, x.DayOfWeek, x.StartTime }).IsUnique();
+    }
+}
+
+public sealed class TheoryExamScheduleOverrideConfiguration
+    : IEntityTypeConfiguration<TheoryExamScheduleOverride>
+{
+    public void Configure(EntityTypeBuilder<TheoryExamScheduleOverride> builder)
+    {
+        builder.ToTable("TheoryExamScheduleOverrides");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Note).HasMaxLength(200);
+        builder.HasIndex(x => new { x.SchoolUserId, x.Date, x.StartTime }).IsUnique();
+    }
+}
+
+public sealed class TrainingHoursAdjustmentConfiguration
+    : IEntityTypeConfiguration<TrainingHoursAdjustment>
+{
+    public void Configure(EntityTypeBuilder<TrainingHoursAdjustment> builder)
+    {
+        builder.ToTable("TrainingHoursAdjustments");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Category).HasMaxLength(16).IsRequired();
+        builder.Property(x => x.DeltaHours).HasPrecision(6, 1);
+        builder.Property(x => x.PreviousHours).HasPrecision(6, 1);
+        builder.Property(x => x.NewHours).HasPrecision(6, 1);
+        builder.Property(x => x.Reason).HasMaxLength(300).IsRequired();
+        builder.HasIndex(x => new { x.SchoolUserId, x.StudentUserId });
+    }
+}
+
+public sealed class SchoolAuditEntryConfiguration : IEntityTypeConfiguration<SchoolAuditEntry>
+{
+    public void Configure(EntityTypeBuilder<SchoolAuditEntry> builder)
+    {
+        builder.ToTable("SchoolAuditEntries");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Area).HasMaxLength(32).IsRequired();
+        builder.Property(x => x.Action).HasMaxLength(48).IsRequired();
+        builder.Property(x => x.EntityType).HasMaxLength(48);
+        builder.Property(x => x.Summary).HasMaxLength(400);
+        builder.Property(x => x.OldValue).HasMaxLength(200);
+        builder.Property(x => x.NewValue).HasMaxLength(200);
+        builder.Property(x => x.Reason).HasMaxLength(300);
+        builder.HasIndex(x => new { x.SchoolUserId, x.CreatedAt });
+        builder.HasIndex(x => new { x.SchoolUserId, x.StudentUserId });
     }
 }
 

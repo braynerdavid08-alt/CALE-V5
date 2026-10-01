@@ -13,6 +13,11 @@ public static class DependencyInjection
         services.AddScoped<ISchoolStudentEnrollmentBootstrap, SchoolStudentEnrollmentBootstrap>();
         services.AddScoped<TheoryTrainingService>();
         services.AddScoped<PracticalTrainingService>();
+        services.AddScoped<IExamBookingEligibility, ExamBookingEligibility>();
+        services.AddScoped<TheoryExamScheduleService>();
+        services.AddScoped<StudentHoursService>();
+        services.AddScoped<SchoolAuditService>();
+        services.AddScoped<SchoolAgendaService>();
         services.AddScoped<ApprenticeRegistryService>();
         services.AddScoped<SchoolExcelImportService>();
         services.AddScoped<SchoolExcelExportService>();

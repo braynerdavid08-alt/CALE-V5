@@ -1,0 +1,95 @@
+<section class="xe-page">
+  <header class="xe-head">
+    <h1>Agenda de la semana</h1>
+    <p class="xe-lead">Todo lo que pasa en tu escuela esta semana: clases teóricas, clases de manejo y exámenes.</p>
+  </header>
+
+  <div class="xe-weeknav">
+    <h2>{{ weekLabel() }}</h2>
+    <div class="xe-actions">
+      <button type="button" class="xe-btn" (click)="goWeek(-1)">← Semana anterior</button>
+      <button type="button" class="xe-btn" [disabled]="isThisWeek()" (click)="goWeek(0)">Esta semana</button>
+      <button type="button" class="xe-btn" (click)="goWeek(1)">Semana siguiente →</button>
+    </div>
+  </div>
+
+  <div class="xe-chips" role="group" aria-label="Qué quieres ver">
+    @for (f of filters; track f.value) {
+      <button type="button" class="xe-chip" [attr.aria-pressed]="filter() === f.value" (click)="filter.set(f.value)">
+        {{ f.label }}
+      </button>
+    }
+  </div>
+
+  <ui-error [message]="error()" />
+
+  @if (loading()) {
+    <ui-loading label="Cargando la agenda…" />
+  } @else if (!error()) {
+    @if (!visibleCount()) {
+      <div class="xe-empty">
+        <span class="xe-empty-emoji" aria-hidden="true">📭</span>
+        <h2>No hay nada programado esta semana</h2>
+        <p>Cuando programes clases o exámenes, aparecerán aquí.</p>
+        <div class="xe-actions">
+          <a class="xe-btn primary" routerLink="/school/training">Programar clases teóricas</a>
+          <a class="xe-btn" routerLink="/school/theory-exams">Ver exámenes</a>
+        </div>
+      </div>
+    } @else {
+      <div class="days">
+        @for (d of days(); track d.date) {
+          <section class="day" [attr.aria-label]="d.title">
+            <h2 class="day-title">{{ d.title }}@if (d.isToday) { <span class="today-tag">Hoy</span> }</h2>
+            @if (!d.items.length) {
+              <p class="xe-text xe-muted">Nada programado.</p>
+            } @else {
+              <ul class="items">
+                @for (it of d.items; track key(it)) {
+                  <li class="item" [attr.data-kind]="it.kind">
+                    <div class="item-top">
+                      <span class="kind" [attr.data-kind]="it.kind">{{ kindLabel(it.kind) }}</span>
+                      <strong class="time">{{ timeRange(it) }}</strong>
+                      @if (it.status) {
+                        <span class="xe-status" [attr.data-tone]="statusTone(it.status)">{{ statusLabel(it.status) }}</span>
+                      }
+                    </div>
+                    <p class="title">{{ it.title }}</p>
+                    <p class="meta">
+                      @if (it.instructorName) { <span>👤 {{ it.instructorName }}</span> }
+                      @if (it.capacity > 0) { <span>🪑 {{ it.occupied }} de {{ it.capacity }} cupos</span> }
+                    </p>
+                    @if (it.students.length) {
+                      <button
+                        type="button"
+                        class="xe-btn small-btn"
+                        [attr.aria-expanded]="isOpen(it)"
+                        (click)="toggle(it)">
+                        {{ isOpen(it) ? 'Ocultar estudiantes' : 'Ver ' + plural(it.students.length, 'estudiante', 'estudiantes') }}
+                      </button>
+                      @if (isOpen(it)) {
+                        <ul class="students">
+                          @for (s of it.students; track $index) {
+                            <li>
+                              <span>{{ s.name }}</span>
+                              @if (s.status) {
+                                <span class="xe-status" [attr.data-tone]="statusTone(s.status)">{{ statusLabel(s.status) }}</span>
+                              }
+                            </li>
+                          }
+                        </ul>
+                      }
+                    } @else if (it.capacity > 0) {
+                      <p class="xe-small xe-muted">Todavía no hay estudiantes.</p>
+                    }
+                    <a class="go" [routerLink]="linkFor(it.kind)">Abrir {{ kindLabel(it.kind).toLowerCase() }} →</a>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+        }
+      </div>
+    }
+  }
+</section>

@@ -473,41 +473,8 @@ public sealed partial class TheoryTrainingService
         int studentUserId,
         CancellationToken ct)
     {
-        var records = await _db.Set<TheoryAttendanceRecord>()
-            .Include(x => x.ClassSession)!.ThenInclude(s => s!.Topic)
-            .Where(x => x.StudentUserId == studentUserId
-                && x.ClassSession != null
-                && x.ClassSession.SchoolUserId == schoolUserId)
-            .ToListAsync(ct);
-        decimal theoryHours = 0;
-        decimal workshopHours = 0;
-        var absences = 0;
-        foreach (var r in records)
-        {
-            if (r.Status is TheoryAttendanceStatuses.Present or TheoryAttendanceStatuses.Late)
-            {
-                var s = r.ClassSession;
-                if (s is not null)
-                {
-                    var duration = (decimal)(s.EndTime - s.StartTime).TotalHours;
-                    var category = s.Topic?.Category ?? TheoryTopicCategories.Theory;
-                    if (category == TheoryTopicCategories.Workshop)
-                    {
-                        workshopHours += duration;
-                    }
-                    else
-                    {
-                        theoryHours += duration;
-                    }
-                }
-            }
-            else if (r.Status == TheoryAttendanceStatuses.Absent)
-            {
-                absences++;
-            }
-        }
-
-        return (Math.Round(theoryHours, 1), Math.Round(workshopHours, 1), absences);
+        var hours = await TrainingHoursCalculator.ComputeAsync(_db, schoolUserId, studentUserId, ct);
+        return (hours.TheoryTotal, hours.WorkshopTotal, hours.Absences);
     }
 
     private async Task<PracticalEligibilityDto> GetPracticalEligibilityAsync(

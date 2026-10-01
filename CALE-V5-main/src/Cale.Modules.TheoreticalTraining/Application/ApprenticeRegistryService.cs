@@ -27,6 +27,7 @@ public sealed class ApprenticeRegistryService
     private readonly ISchoolMembershipGuard _membership;
     private readonly IConfiguration _config;
     private readonly ILogger<ApprenticeRegistryService> _logger;
+    private readonly TheoryExamScheduleService _examSchedule;
 
     public ApprenticeRegistryService(
         CaleDbContext db,
@@ -38,7 +39,8 @@ public sealed class ApprenticeRegistryService
         ITrainingEligibilityService eligibility,
         ISchoolMembershipGuard membership,
         IConfiguration config,
-        ILogger<ApprenticeRegistryService> logger)
+        ILogger<ApprenticeRegistryService> logger,
+        TheoryExamScheduleService examSchedule)
     {
         _db = db;
         _users = users;
@@ -50,6 +52,7 @@ public sealed class ApprenticeRegistryService
         _membership = membership;
         _config = config;
         _logger = logger;
+        _examSchedule = examSchedule;
     }
 
     private bool AllowRequestPathRepair =>
@@ -171,10 +174,11 @@ public sealed class ApprenticeRegistryService
         ApprenticeExamSummaryDto? nextExam = null;
         try
         {
-            var today = DateOnly.FromDateTime(_clock.UtcNow.Date);
+            var today = ColombiaTime.TodayInColombia();
             var exam = await _db.Set<TheoryExamAppointment>()
                 .Where(x => x.SchoolUserId == schoolUserId
                     && x.StudentUserId == studentUserId
+                    && x.Status == TheoryExamBookingStatuses.Active
                     && x.ExamDate >= today)
                 .OrderBy(x => x.ExamDate)
                 .ThenBy(x => x.SlotTime)
@@ -470,10 +474,11 @@ public sealed class ApprenticeRegistryService
         var balancePendingTotal = balanceRows.Sum(x => x.BalanceDue);
         var pendingEnrollmentCount = profiles.Count(x => !x.IsEnrolled);
 
-        var today = DateOnly.FromDateTime(_clock.UtcNow.Date);
+        var today = ColombiaTime.TodayInColombia();
         var weekEnd = today.AddDays(7);
         var examSlots = await _db.Set<TheoryExamAppointment>()
             .Where(x => x.SchoolUserId == schoolUserId
+                && x.Status != TheoryExamBookingStatuses.Cancelled
                 && x.ExamDate >= today
                 && x.ExamDate <= weekEnd)
             .OrderBy(x => x.ExamDate)
@@ -660,10 +665,11 @@ public sealed class ApprenticeRegistryService
         DateOnly? to,
         CancellationToken ct)
     {
-        var start = from ?? DateOnly.FromDateTime(DateTime.UtcNow.Date);
+        var start = from ?? ColombiaTime.TodayInColombia();
         var end = to ?? start.AddDays(30);
         var slots = await _db.Set<TheoryExamAppointment>()
             .Where(x => x.SchoolUserId == schoolUserId
+                && x.Status != TheoryExamBookingStatuses.Cancelled
                 && x.ExamDate >= start
                 && x.ExamDate <= end)
             .OrderBy(x => x.ExamDate)
@@ -730,127 +736,58 @@ public sealed class ApprenticeRegistryService
         return result.OrderBy(x => x.StudentName).ToList();
     }
 
+    /// <summary>
+    /// Legacy calendar endpoint. Creating goes through the capacity rules of
+    /// <see cref="TheoryExamScheduleService"/>; editing changes the student or moves the booking.
+    /// </summary>
     public async Task<TheoryExamSlotDto> SaveExamSlotAsync(
         int schoolUserId,
         int? id,
         SaveTheoryExamSlotRequest request,
         CancellationToken ct)
     {
-        await _membership.EnsureActiveAsync(schoolUserId, ct);
-        var now = _clock.UtcNow;
-        var start = ParseTime(request.SlotTime);
-
-        if (request.StudentUserId is int studentId)
-        {
-            var enrollment = await _db.Set<SchoolStudentEnrollment>()
-                .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
-                    && x.StudentUserId == studentId, ct)
-                ?? throw new DomainException(
-                    "El estudiante no está inscrito en la escuela.",
-                    400,
-                    "student_not_enrolled");
-
-            if (!StudentEnrollmentStatuses.CanReserve.Contains(enrollment.Status))
-            {
-                throw new DomainException(
-                    "El estudiante debe estar autorizado en Programación.",
-                    400,
-                    "student_not_authorized");
-            }
-
-            if (!enrollment.TheoryExamAuthorized)
-            {
-                throw new DomainException(
-                    "El estudiante no está autorizado para examen teórico.",
-                    400,
-                    "theory_exam_not_authorized");
-            }
-
-            await _eligibility.EnsureNoBalanceDueAsync(schoolUserId, studentId, ct);
-
-            var eligibility = await _theory.GetPracticalEligibilityAsync(
-                schoolUserId,
-                studentId,
-                ct);
-            if (eligibility.TheoryExamPassed)
-            {
-                throw new DomainException(
-                    "El estudiante ya aprobó el examen teórico.",
-                    400,
-                    "theory_exam_already_passed");
-            }
-
-            if (!eligibility.TheoryHoursComplete || !eligibility.WorkshopHoursComplete)
-            {
-                throw new DomainException(
-                    "El estudiante debe completar las horas de teoría y taller.",
-                    400,
-                    "theory_hours_incomplete");
-            }
-
-            var studentConflict = await _db.Set<TheoryExamAppointment>()
-                .AnyAsync(x => x.SchoolUserId == schoolUserId
-                    && x.StudentUserId == studentId
-                    && x.ExamDate == request.ExamDate
-                    && x.SlotTime == start
-                    && (id == null || x.Id != id.Value), ct);
-            if (studentConflict)
-            {
-                throw new DomainException(
-                    "El estudiante ya tiene cita de examen en ese horario.",
-                    400,
-                    "exam_slot_conflict");
-            }
-        }
-
         TheoryExamAppointment entity;
-        int? previousStudentId = null;
         if (id is > 0)
         {
-            entity = await _db.Set<TheoryExamAppointment>()
-                .FirstOrDefaultAsync(x => x.Id == id && x.SchoolUserId == schoolUserId, ct)
-                ?? throw new NotFoundException("Cita no encontrada.", "slot_not_found");
-            previousStudentId = entity.StudentUserId;
+            entity = await _examSchedule.UpdateBookingAsync(
+                schoolUserId,
+                schoolUserId,
+                id.Value,
+                request.ExamDate,
+                request.SlotTime,
+                request.StudentUserId,
+                request.StudentLabel,
+                request.Notes,
+                ct);
         }
         else
         {
-            entity = new TheoryExamAppointment
-            {
-                SchoolUserId = schoolUserId,
-                CreatedAt = now
-            };
-            await _db.Set<TheoryExamAppointment>().AddAsync(entity, ct);
-        }
-
-        entity.ExamDate = request.ExamDate;
-        entity.SlotTime = start;
-        entity.StudentUserId = request.StudentUserId;
-        entity.StudentLabel = string.IsNullOrWhiteSpace(request.StudentLabel)
-            ? null
-            : request.StudentLabel.Trim();
-        entity.Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
-        entity.UpdatedAt = now;
-        await _db.SaveChangesAsync(ct);
-
-        if (entity.StudentUserId is int assignedStudentId
-            && assignedStudentId != previousStudentId)
-        {
-            await _notifications.NotifyUsersAsync(
-                [assignedStudentId],
-                new NotificationDraft(
-                    "Cita de examen teórico",
-                    $"Tu examen teórico está programado para el {entity.ExamDate:dd/MM/yyyy} a las {entity.SlotTime:HH:mm}.",
-                    NotificationTypes.TheoryClass,
-                    RelatedEntity: "theory_exam_appointment",
-                    RelatedId: entity.Id,
-                    Link: "/student/training"),
+            var slot = await _examSchedule.BookAsSchoolAsync(
+                schoolUserId,
+                schoolUserId,
+                new SchoolBookExamRequest(
+                    request.ExamDate,
+                    request.SlotTime,
+                    request.StudentUserId,
+                    request.StudentLabel,
+                    request.Notes),
                 ct);
+            var bookingId = slot.Bookings
+                .Where(b => request.StudentUserId is int sid
+                    ? b.StudentUserId == sid
+                    : b.StudentUserId == null)
+                .OrderByDescending(b => b.Id)
+                .Select(b => b.Id)
+                .First();
+            entity = await _db.Set<TheoryExamAppointment>()
+                .AsNoTracking()
+                .FirstAsync(x => x.Id == bookingId, ct);
         }
 
         string? studentName = null;
-        if (entity.StudentUserId is int sid)
+        if (entity.StudentUserId is int sid2)
         {
-            studentName = (await _users.GetByIdAsync(sid, ct))?.Name;
+            studentName = (await _users.GetByIdAsync(sid2, ct))?.Name;
         }
 
         return new TheoryExamSlotDto(
@@ -863,29 +800,25 @@ public sealed class ApprenticeRegistryService
             entity.Notes);
     }
 
-    public async Task DeleteExamSlotAsync(int schoolUserId, int id, CancellationToken ct)
-    {
-        await _membership.EnsureActiveAsync(schoolUserId, ct);
-        var entity = await _db.Set<TheoryExamAppointment>()
-            .FirstOrDefaultAsync(x => x.Id == id && x.SchoolUserId == schoolUserId, ct)
-            ?? throw new NotFoundException("Cita no encontrada.", "slot_not_found");
-        _db.Remove(entity);
-        await _db.SaveChangesAsync(ct);
-    }
+    /// <summary>Cancels (never deletes) the booking so its history and audit trail are kept.</summary>
+    public async Task DeleteExamSlotAsync(int schoolUserId, int id, CancellationToken ct) =>
+        await _examSchedule.CancelAsSchoolAsync(schoolUserId, schoolUserId, id, null, ct);
 
     public async Task<TheoryExamControlBoardDto> GetExamControlBoardAsync(
         int schoolUserId,
         DateOnly? date,
         CancellationToken ct)
     {
-        var day = date ?? DateOnly.FromDateTime(_clock.UtcNow.Date);
+        var day = date ?? ColombiaTime.TodayInColombia();
         var settings = await _db.Set<TheoryTrainingSettings>()
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId, ct);
         var officialExamId = settings?.TheoryExamId;
 
         var appointments = await _db.Set<TheoryExamAppointment>()
-            .Where(x => x.SchoolUserId == schoolUserId && x.ExamDate == day)
+            .Where(x => x.SchoolUserId == schoolUserId
+                && x.ExamDate == day
+                && x.Status != TheoryExamBookingStatuses.Cancelled)
             .OrderBy(x => x.SlotTime)
             .ThenBy(x => x.Id)
             .ToListAsync(ct);
@@ -992,17 +925,20 @@ public sealed class ApprenticeRegistryService
     {
         await _membership.EnsureActiveAsync(schoolUserId, ct);
         var entity = await _db.Set<TheoryExamAppointment>()
-            .FirstOrDefaultAsync(x => x.Id == appointmentId && x.SchoolUserId == schoolUserId, ct)
+            .FirstOrDefaultAsync(x => x.Id == appointmentId
+                && x.SchoolUserId == schoolUserId
+                && x.Status != TheoryExamBookingStatuses.Cancelled, ct)
             ?? throw new NotFoundException("Cita no encontrada.", "slot_not_found");
 
         if (entity.StudentUserId is null)
         {
-            throw new DomainException("La cita no tiene aprendiz asignado.", 400, "slot_unassigned");
+            throw new DomainException("La cita no tiene estudiante asignado.", 400, "slot_unassigned");
         }
 
         var now = _clock.UtcNow;
         entity.CheckedInAt = now;
         entity.NoShow = false;
+        entity.Status = TheoryExamBookingStatuses.Active;
         entity.UpdatedAt = now;
         await _db.SaveChangesAsync(ct);
 
@@ -1017,12 +953,15 @@ public sealed class ApprenticeRegistryService
     {
         await _membership.EnsureActiveAsync(schoolUserId, ct);
         var entity = await _db.Set<TheoryExamAppointment>()
-            .FirstOrDefaultAsync(x => x.Id == appointmentId && x.SchoolUserId == schoolUserId, ct)
+            .FirstOrDefaultAsync(x => x.Id == appointmentId
+                && x.SchoolUserId == schoolUserId
+                && x.Status != TheoryExamBookingStatuses.Cancelled, ct)
             ?? throw new NotFoundException("Cita no encontrada.", "slot_not_found");
 
         var now = _clock.UtcNow;
         entity.NoShow = true;
         entity.CheckedInAt = null;
+        entity.Status = TheoryExamBookingStatuses.NoShow;
         entity.UpdatedAt = now;
         await _db.SaveChangesAsync(ct);
 
@@ -1123,15 +1062,5 @@ public sealed class ApprenticeRegistryService
 
         return await _db.Set<SchoolStudentEnrollment>()
             .AnyAsync(x => x.SchoolUserId == schoolUserId && x.StudentUserId == studentUserId, ct);
-    }
-
-    private static TimeOnly ParseTime(string value)
-    {
-        if (TimeOnly.TryParse(value.Trim(), out var time))
-        {
-            return time;
-        }
-
-        throw new DomainException("La hora no es válida.", 400, "invalid_time");
     }
 }

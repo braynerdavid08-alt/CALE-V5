@@ -1,102 +1,199 @@
-<div class="school-page school-page--wide">
-  <ui-page-header
-    eyebrow="Escuela"
-    title="Exámenes"
-    subtitle="Calendario de citas. Solo aparecen estudiantes autorizados con horas completas." />
+<section class="xe-page">
+  <header class="xe-head">
+    <h1>Exámenes teóricos</h1>
+    <p class="xe-lead">Aquí ves los horarios de examen de cada semana, cuántos cupos quedan y quién está agendado.</p>
+  </header>
 
+  <nav class="xe-actions" aria-label="Opciones de exámenes">
+    <a class="xe-btn primary" routerLink="/school/theory-exams/schedule">🗓️ Horarios semanales</a>
+    <a class="xe-btn" routerLink="/school/exam-control">🖥️ Examen en curso</a>
+    <a class="xe-btn" routerLink="/school/import">📥 Importar Excel</a>
+  </nav>
+
+  <div class="xe-weeknav">
+    <h2>{{ weekLabel() }}</h2>
+    <div class="xe-actions">
+      <button type="button" class="xe-btn" (click)="goWeek(-1)">← Semana anterior</button>
+      <button type="button" class="xe-btn" [disabled]="isThisWeek()" (click)="goWeek(0)">Esta semana</button>
+      <button type="button" class="xe-btn" (click)="goWeek(1)">Semana siguiente →</button>
+    </div>
+  </div>
+
+  @if (notice()) {
+    <p class="xe-banner success" role="status"><span>✅ {{ notice() }}</span></p>
+  }
   <ui-error [message]="error()" />
 
-  <div class="info-banner">
-    <strong>Dos pasos del examen teórico</strong>
-    <ol>
-      <li><strong>Cita en calendario</strong> — asignas fecha y hora aquí (como tu Excel).</li>
-      <li><strong>Examen en la plataforma</strong> — el estudiante lo presenta en Evaluaciones (configúralo en Clases teóricas → Ajustes).</li>
-    </ol>
-  </div>
-
-  <div class="school-toolbar">
-    <div class="school-toolbar-actions" style="margin-left: 0;">
-      <button type="button" class="school-nav-btn" (click)="prevWeek()">← Semana anterior</button>
-      <button type="button" class="school-nav-btn" (click)="nextWeek()">Siguiente semana →</button>
-    </div>
-    <div class="school-toolbar-actions">
-      <ui-button routerLink="/school/exam-control" type="button">Examen en curso</ui-button>
-      <ui-button routerLink="/school/training" type="button" variant="secondary">Autorizar estudiantes</ui-button>
-      <ui-button routerLink="/school/import" type="button" variant="secondary">Importar Excel</ui-button>
-    </div>
-  </div>
-
   @if (loading()) {
-    <ui-loading />
-  } @else {
-    <div class="exam-layout">
-      <div class="school-grid-wrap">
-        <table class="exam-grid">
-          <thead>
-            <tr>
-              <th class="date-col">Fecha</th>
-              @for (t of slots; track t) { <th>{{ t }}</th> }
-            </tr>
-          </thead>
-          <tbody>
-            @for (date of dayDates(); track date) {
-              <tr>
-                <th class="date-col">{{ dayLabel(date) }}</th>
-                @for (t of slots; track t) {
-                  <td>
-                    @if (slotAt(date, t); as slot) {
-                      <button type="button" class="cell filled" (click)="openForm(date, t)">
-                        {{ slot.studentName || slot.studentLabel }}
-                      </button>
-                      <button type="button" class="mini danger" (click)="remove(slot)">×</button>
-                    } @else {
-                      <button type="button" class="cell" (click)="openForm(date, t)">+</button>
-                    }
-                  </td>
-                }
-              </tr>
-            }
-          </tbody>
-        </table>
+    <ui-loading label="Cargando los exámenes de la semana…" />
+  }
+  @if (!loading() && week(); as w) {
+    @if (!w.hasTemplates && !hasAnything()) {
+      <div class="xe-empty">
+        <span class="xe-empty-emoji" aria-hidden="true">🗓️</span>
+        <h2>Todavía no has configurado tus horarios de examen</h2>
+        <p>Dinos qué días y a qué horas haces exámenes. Solo lo haces una vez y se repite todas las semanas.</p>
+        <a class="xe-btn primary big" routerLink="/school/theory-exams/schedule">Configurar horarios</a>
       </div>
-
-      @if (form.examDate) {
-        <aside class="school-side-panel">
-          <h3>{{ dayLabel(form.examDate) }} · {{ form.slotTime }}</h3>
-          <label class="school-field">
-            <span class="school-field-label">Buscar estudiante</span>
-            <input
-              type="search"
-              placeholder="Nombre…"
-              [ngModel]="studentSearch()"
-              (ngModelChange)="studentSearch.set($event)" />
-          </label>
-          <label class="school-field">
-            <span class="school-field-label">Estudiante</span>
-            <select [(ngModel)]="form.studentUserId">
-              <option [ngValue]="null">Selecciona un estudiante</option>
-              @for (s of filteredStudents(); track s.studentUserId) {
-                <option [ngValue]="s.studentUserId">
-                  {{ s.studentName }}
-                  @if (s.licenseCategories) { · {{ s.licenseCategories }} }
-                </option>
+    } @else {
+      <div class="days">
+        @for (d of days(); track d.date) {
+          @if (!d.slots.length && !d.day?.isClosed) {
+            <div class="day-none" [class.past]="d.isPast">
+              <span class="day-none-title">{{ d.title }}@if (d.isToday) { <span class="today-tag">Hoy</span> }</span>
+              <span class="xe-muted">Sin exámenes</span>
+              @if (!d.isPast) {
+                <button type="button" class="xe-btn ghost small-btn" (click)="openExtra(d.date)">+ Horario extra</button>
               }
-            </select>
-            @if (!students().length) {
-              <small class="muted">No hay estudiantes listos. Autorízalos en Clases teóricas.</small>
-            }
-          </label>
-          <label class="school-field">
-            <span class="school-field-label">Notas</span>
-            <input [(ngModel)]="form.notes" placeholder="Observaciones opcionales" />
-          </label>
-          <ui-button type="button" (click)="save()">Guardar cita</ui-button>
-        </aside>
+            </div>
+          } @else {
+            <section class="day" [class.past]="d.isPast" [attr.aria-label]="d.title">
+              <header class="day-head">
+                <h3>{{ d.title }}@if (d.isToday) { <span class="today-tag">Hoy</span> }</h3>
+                @if (!d.isPast && !d.day?.isClosed) {
+                  <div class="day-actions">
+                    <button type="button" class="xe-btn small-btn" (click)="openExtra(d.date)">+ Horario extra</button>
+                    <button type="button" class="xe-btn danger-soft small-btn" (click)="openCloseDay(d.date)">Cerrar este día</button>
+                  </div>
+                }
+              </header>
+
+              @if (d.day?.isClosed) {
+                <div class="xe-banner danger">
+                  <strong>Día cerrado</strong>
+                  <p>{{ d.day?.closureNote || 'Este día no hay exámenes.' }}</p>
+                  @if (!d.isPast) {
+                    <div class="xe-actions">
+                      <button type="button" class="xe-btn" [disabled]="busy()" (click)="reopenDay(d.date)">Reabrir día</button>
+                    </div>
+                  }
+                </div>
+              }
+
+              @if (d.slots.length) {
+                <table class="slots">
+                  <thead>
+                    <tr>
+                      <th scope="col">Hora</th>
+                      <th scope="col">Capacidad</th>
+                      <th scope="col">Ocupados</th>
+                      <th scope="col">Disponibles</th>
+                      <th scope="col">Estado</th>
+                      <th scope="col">Estudiantes</th>
+                      <th scope="col"><span class="sr-only">Acción</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (s of d.slots; track s.time) {
+                      @let n = names(s);
+                      <tr [attr.data-status]="s.status" (click)="openSlot(s)">
+                        <td class="c-time">{{ time12(s.time) }}</td>
+                        <td class="c-num">{{ s.capacity }}</td>
+                        <td class="c-num">{{ s.occupied }}</td>
+                        <td class="c-num">{{ s.available }}</td>
+                        <td class="c-status">
+                          <span class="xe-status" [attr.data-tone]="statusTone(s.status)">{{ statusLabel(s.status) }}</span>
+                        </td>
+                        <td class="c-summary">
+                          {{ s.occupied }} de {{ s.capacity }} cupos ocupados · {{ plural(s.available, 'disponible', 'disponibles') }}
+                        </td>
+                        <td class="c-names">
+                          @if (n.shown) {
+                            {{ n.shown }}@if (n.more) { <span class="more"> +{{ n.more }}</span> }
+                          } @else {
+                            <span class="xe-muted">—</span>
+                          }
+                        </td>
+                        <td class="c-act">
+                          <button
+                            type="button"
+                            class="xe-btn small-btn"
+                            [attr.aria-label]="'Ver ' + time12(s.time) + ' del ' + d.title"
+                            (click)="$event.stopPropagation(); openSlot(s)">
+                            {{ d.isPast || s.status === 'Past' ? 'Ver' : 'Ver y cambiar' }}
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              }
+            </section>
+          }
+        }
+      </div>
+    }
+  }
+</section>
+
+<ui-sheet
+  [open]="!!selectedSlot()"
+  [title]="selectedSlot() ? time12(selectedSlot()!.time) + ' · ' + dayTitle(selectedSlot()!.date) : ''"
+  (close)="closeSlot()">
+  @if (selectedSlot(); as s) {
+    <app-exam-slot-detail
+      [slot]="s"
+      [readOnly]="selectedReadOnly()"
+      [students]="students()"
+      [studentsLoading]="studentsLoading()"
+      (needStudents)="loadStudents()"
+      (dayUpdated)="applyDay($event)"
+      (slotUpdated)="applySlot($event)"
+      (reload)="load(true)" />
+  }
+</ui-sheet>
+
+<ui-sheet [open]="!!extraDate()" title="Agregar horario extra" (close)="extraDate.set(null)">
+  @if (extraDate(); as date) {
+    <form class="xe-form" (ngSubmit)="saveExtra()">
+      <p class="xe-text">Este horario es solo para el <strong>{{ dayTitle(date) }}</strong>. Las demás semanas no cambian.</p>
+      <div class="xe-row">
+        <label class="xe-field">
+          <span>Hora</span>
+          <input type="time" step="900" required [(ngModel)]="extraTime" name="extraTime" />
+        </label>
+        <label class="xe-field">
+          <span>Cupos</span>
+          <input type="number" min="1" step="1" inputmode="numeric" required [(ngModel)]="extraCapacity" name="extraCapacity" />
+          <small>Cuántos estudiantes pueden presentar a esa hora.</small>
+        </label>
+      </div>
+      <ui-error [message]="extraError()" />
+      <div class="xe-actions">
+        <button type="submit" class="xe-btn primary" [disabled]="busy()">Agregar horario</button>
+        <button type="button" class="xe-btn" (click)="extraDate.set(null)">Cancelar</button>
+      </div>
+    </form>
+  }
+</ui-sheet>
+
+<ui-sheet [open]="!!closeDate()" title="Cerrar el día" (close)="closeDate.set(null)">
+  @if (closeDate(); as date) {
+    <div class="xe-form">
+      <p class="xe-text">El <strong>{{ dayTitle(date) }}</strong> no habrá exámenes. Las demás semanas siguen igual.</p>
+      <label class="xe-field">
+        <span>Motivo (opcional)</span>
+        <textarea [(ngModel)]="closeNote" name="closeNote" rows="2" placeholder="Ejemplo: día festivo"></textarea>
+        <small>Lo verás en la lista para recordar por qué cerraste.</small>
+      </label>
+      <ui-error [message]="closeError()" />
+      @if (closeNeedsConfirm()) {
+        <div class="xe-banner danger" role="alert">
+          <strong>Hay {{ plural(closeDayBookings(), 'estudiante agendado', 'estudiantes agendados') }}.</strong>
+          <p>¿Cancelar sus citas y cerrar el día?</p>
+          <div class="xe-actions">
+            <button type="button" class="xe-btn danger" [disabled]="busy()" (click)="confirmCloseDay(true)">
+              Sí, cancelar citas y cerrar
+            </button>
+            <button type="button" class="xe-btn" (click)="closeDate.set(null)">No, dejar como está</button>
+          </div>
+        </div>
       } @else {
-        <aside class="school-side-panel detail-placeholder">
-          <p class="muted">Haz clic en una celda del calendario para asignar o editar una cita de examen.</p>
-        </aside>
+        <div class="xe-actions">
+          <button type="button" class="xe-btn danger" [disabled]="busy()" (click)="confirmCloseDay()">Cerrar este día</button>
+          <button type="button" class="xe-btn" (click)="closeDate.set(null)">Cancelar</button>
+        </div>
       }
     </div>
   }
-</div>
+</ui-sheet>

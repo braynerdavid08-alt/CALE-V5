@@ -12,6 +12,7 @@ import {
   ApprenticeDetail,
   EnrollmentAuthorizationEvent
 } from '../api/apprentice.api';
+import { StudentHoursCardComponent } from '../components/student-hours-card.component';
 
 type StepState = 'done' | 'active' | 'todo' | 'blocked';
 
@@ -36,6 +37,7 @@ interface TimelineItem {
     DatePipe,
     FormsModule,
     RouterLink,
+    StudentHoursCardComponent,
     UiButtonComponent,
     UiErrorComponent,
     UiLoadingComponent,
@@ -90,6 +92,14 @@ export class SchoolApprenticeDossierPage implements OnInit {
         this.loading.set(false);
         this.error.set(mapApiError(err));
       }
+    });
+  }
+
+  /** Re-fetches the dossier without hiding the page (keeps child cards mounted). */
+  refreshDetail(): void {
+    this.api.getDetail(this.studentUserId).subscribe({
+      next: (detail) => this.detail.set(detail),
+      error: (err) => this.error.set(mapApiError(err))
     });
   }
 

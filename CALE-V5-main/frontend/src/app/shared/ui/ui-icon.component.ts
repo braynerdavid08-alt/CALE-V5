@@ -76,6 +76,10 @@ import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
           <circle cx="12" cy="12" r="9"/>
           <path d="M12 7v5l3 2"/>
         }
+        @case ('calendar') {
+          <rect x="3" y="5" width="18" height="16" rx="2"/>
+          <path d="M3 10h18M8 3v4M16 3v4M7 14h3M14 14h3M7 18h3"/>
+        }
         @case ('bank') {
           <path d="M3 10h18M5 10v8M19 10v8M9 10v8M15 10v8M2 18h20M12 3l9 7H3z"/>
         }

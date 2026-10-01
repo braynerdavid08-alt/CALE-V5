@@ -103,6 +103,14 @@ export class StudentHomePage implements OnInit {
       tone: 'green'
     },
     {
+      id: 'exam',
+      label: 'Mi examen teórico',
+      hint: 'Agendar o ver mi cita',
+      path: '/student/exam',
+      icon: 'calendar',
+      tone: 'green'
+    },
+    {
       id: 'profile',
       label: 'Mi perfil',
       hint: 'Ver mis datos',

@@ -67,6 +67,9 @@
         <article class="card highlight exam-card">
           <h2>Cita de examen teórico</h2>
           <p class="when">{{ exam.examDate | date:'EEEE d MMM':'':'es' }} · {{ exam.slotTime }}</p>
+          @if (!dash.practicalEligibility?.theoryExamPassed) {
+            <a class="exam-book-btn" routerLink="/student/exam">📅 Ver o cambiar mi cita</a>
+          }
           @if (dash.platformExam && !dash.practicalEligibility?.theoryExamPassed) {
             <p class="meta">
               También debes aprobar <strong>{{ dash.platformExam.name }}</strong> en Practicar examen.
@@ -80,7 +83,14 @@
         <article class="card exam-card">
           <h2>Examen teórico pendiente</h2>
           <p class="meta">Tu escuela te autorizó. Presenta <strong>{{ dash.platformExam.name }}</strong> en Practicar examen.</p>
-          <ui-button routerLink="/student/simulator" type="button">Practicar examen</ui-button>
+          <a class="exam-book-btn" routerLink="/student/exam">📅 Agendar mi examen</a>
+          <ui-button routerLink="/student/simulator" type="button" variant="secondary">Practicar examen</ui-button>
+        </article>
+      } @else if (dash.practicalEligibility?.theoryExamAuthorized && !dash.practicalEligibility?.theoryExamPassed) {
+        <article class="card exam-card">
+          <h2>Examen teórico pendiente</h2>
+          <p class="meta">Tu escuela te autorizó para el examen teórico. Elige el día y la hora.</p>
+          <a class="exam-book-btn" routerLink="/student/exam">📅 Agendar mi examen</a>
         </article>
       }
 

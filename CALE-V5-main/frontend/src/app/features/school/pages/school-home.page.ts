@@ -90,7 +90,7 @@ export class SchoolHomePage implements OnInit {
     { emoji: '➕', label: 'Inscribir estudiante', hint: 'Crear la cuenta de un estudiante nuevo', path: '/school/users' },
     { emoji: '✅', label: 'Tomar asistencia', hint: 'Marcar quién vino hoy', path: '/school/attendance' },
     { emoji: '💰', label: 'Cobrar saldos', hint: 'Ver quién debe y registrar pagos', path: '/school/apprentices', query: { withBalance: true } },
-    { emoji: '📅', label: 'Programar examen', hint: 'Dar cita de examen teórico', path: '/school/theory-exams' },
+    { emoji: '📅', label: 'Exámenes', hint: 'Ver cupos de la semana y dar citas de examen', path: '/school/theory-exams' },
     { emoji: '🚗', label: 'Clases de manejo', hint: 'Programar prácticas en vehículo', path: '/school/practical' },
     { emoji: '📊', label: 'Ver resultados', hint: 'Notas de exámenes y simulacros', path: '/school/results' }
   ];
