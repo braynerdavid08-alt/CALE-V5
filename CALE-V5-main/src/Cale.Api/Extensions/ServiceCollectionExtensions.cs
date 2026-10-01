@@ -123,6 +123,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<Cale.Api.Services.Play.PlayService>();
         services.AddScoped<Cale.Api.Services.Admin.CatalogPurgeService>();
         services.AddScoped<Cale.Api.Services.Admin.BankUsageService>();
+        services.AddScoped<Cale.Api.Services.Requests.UserRequestService>();
         services.AddHostedService<Cale.Api.Services.Play.PlayNudgeService>();
         services.AddScoped<Cale.Api.Services.AuthCookieService>();
         services.AddCaleAuth(config);

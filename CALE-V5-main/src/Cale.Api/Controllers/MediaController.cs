@@ -1,5 +1,7 @@
 using Cale.Api.Extensions;
+using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Exceptions;
+using Microsoft.Extensions.Caching.Memory;
 using Cale.Modules.Catalog.Application.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,6 +18,8 @@ public sealed class MediaController : ControllerBase
         ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"
     };
 
+    private const int MaxDailyUploadsForOthers = 20;
+
     private readonly ICatalogMediaStore _media;
 
     public MediaController(ICatalogMediaStore media) => _media = media;
@@ -25,13 +29,36 @@ public sealed class MediaController : ControllerBase
     /// Returns a stable public URL like /api/media/{guid}.
     /// </summary>
     [HttpPost("upload")]
-    [Authorize(Policy = "TeacherOrAdmin")]
+    [Authorize]
     [Consumes("multipart/form-data")]
-    public async Task<IActionResult> Upload([FromForm] IFormFile? file, CancellationToken ct)
+    public async Task<IActionResult> Upload(
+        [FromForm] IFormFile? file,
+        [FromServices] IMemoryCache cache,
+        CancellationToken ct)
     {
         if (file is null || file.Length == 0)
         {
             throw new DomainException("Selecciona una imagen.", 400, "invalid_file");
+        }
+
+        if (!User.IsInRole(Roles.Admin) && !User.IsInRole(Roles.Teacher))
+        {
+            // Students/schools upload images only for question proposals: cap per day.
+            var key = $"media-upload:{CurrentUser.GetId(User)}:{DateTime.UtcNow:yyyyMMdd}";
+            var used = cache.GetOrCreate(key, e =>
+            {
+                e.AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(1);
+                return 0;
+            });
+            if (used >= MaxDailyUploadsForOthers)
+            {
+                throw new DomainException(
+                    "Alcanzaste el máximo de imágenes por hoy. Intenta mañana.",
+                    429,
+                    "upload_limit_reached");
+            }
+
+            cache.Set(key, used + 1, TimeSpan.FromDays(1));
         }
 
         if (file.Length > 5 * 1024 * 1024)

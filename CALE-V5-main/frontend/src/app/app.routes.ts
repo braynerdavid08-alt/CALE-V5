@@ -361,6 +361,22 @@ export const routes: Routes = [
             .then((m) => m.StudentDonationsPage)
       },
       {
+        path: 'solicitudes',
+        pathMatch: 'full',
+        loadComponent: () =>
+          import('./features/requests/pages/my-requests.page')
+            .then((m) => m.MyRequestsPage)
+      },
+      {
+        path: 'admin/requests',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['Admin'] },
+        loadComponent: () =>
+          import('./features/admin/pages/admin-requests.page')
+            .then((m) => m.AdminRequestsPage)
+      },
+      {
         path: 'student/donaciones',
         pathMatch: 'full',
         redirectTo: '/donaciones'
