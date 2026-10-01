@@ -15,7 +15,7 @@
 
   <ui-onboarding role="Teacher" />
 
-  @if (membershipHint()) {
+  @if (membershipHint() && !session.freeAccess()) {
     <div class="membership-banner" role="status">
       <strong>Necesitas membresía activa</strong>
       <p>
@@ -149,12 +149,16 @@
           </div>
           @if (d.school; as school) {
             <p class="school-name">{{ school.legalName }}</p>
-            <div class="dash-inline">
-              <ui-badge [tone]="statusTone(school.subscriptionStatus)">
-                {{ statusLabel(school.subscriptionStatus) }}
-              </ui-badge>
-              <span class="meta">Plan {{ school.planLabel }}</span>
-            </div>
+            @if (!session.freeAccess()) {
+              <div class="dash-inline">
+                <ui-badge [tone]="statusTone(school.subscriptionStatus)">
+                  {{ statusLabel(school.subscriptionStatus) }}
+                </ui-badge>
+                <span class="meta">Plan {{ school.planLabel }}</span>
+              </div>
+            }
+          } @else if (session.freeAccess()) {
+            <p class="dash-empty">Trabajas por tu cuenta: tienes acceso completo y gratis a CALE.</p>
           } @else {
             <p class="dash-empty">Aún no perteneces a una escuela.</p>
           }

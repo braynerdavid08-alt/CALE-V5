@@ -80,6 +80,10 @@ export class AuthApi {
     return this.http.get<SchoolPlanDto[]>(`${this.base}/school-plans`);
   }
 
+  accessMode() {
+    return this.http.get<{ freeAccess: boolean }>(`${this.base}/access-mode`);
+  }
+
   me() {
     return this.http.get<MeResponse>(`${this.base}/me`, { withCredentials: true });
   }

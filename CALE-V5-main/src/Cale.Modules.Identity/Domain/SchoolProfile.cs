@@ -1,3 +1,4 @@
+using Cale.BuildingBlocks.Domain.Access;
 using Cale.BuildingBlocks.Domain.Exceptions;
 
 namespace Cale.Modules.Identity.Domain;
@@ -134,8 +135,12 @@ public sealed class SchoolProfile
         return SubscriptionStatus;
     }
 
+    /// <summary>Product access gate (free-for-all mode bypasses the paid membership).</summary>
     public bool CanOperateProduct(DateTime utcNow) =>
-        IsCommerciallyActive(utcNow);
+        FreeAccessPolicy.Enabled || IsCommerciallyActive(utcNow);
+
+    /// <summary>Seat caps apply only when the paid model is on.</summary>
+    public static bool SeatLimitsEnforced => !FreeAccessPolicy.Enabled;
 
     /// <summary>School starts or updates a plan request (never self-activates).</summary>
     public void RequestMembership(SchoolPlanInfo plan, DateTime utcNow)

@@ -155,6 +155,11 @@ public sealed class AuthController : ControllerBase
     public ActionResult<IReadOnlyList<SchoolPlanDto>> SchoolPlans() =>
         Ok(_plans.Handle());
 
+    [HttpGet("access-mode")]
+    [AllowAnonymous]
+    public IActionResult AccessMode() =>
+        Ok(new { freeAccess = Cale.BuildingBlocks.Domain.Access.FreeAccessPolicy.Enabled });
+
     [HttpGet("me")]
     [Authorize]
     public async Task<ActionResult<MeResponse>> Me(CancellationToken ct) =>

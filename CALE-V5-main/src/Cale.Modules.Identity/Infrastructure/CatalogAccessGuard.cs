@@ -1,4 +1,5 @@
 using Cale.BuildingBlocks.Domain.Abstractions;
+using Cale.BuildingBlocks.Domain.Access;
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Time;
@@ -107,6 +108,11 @@ public sealed class CatalogAccessGuard : ICatalogAccessGuard
         var user = await _users.GetByIdAsync(userId, ct)
             ?? throw new NotFoundException("Usuario no encontrado.", "user_not_found");
 
+        if (FreeAccessPolicy.Enabled)
+        {
+            return;
+        }
+
         if (user.SchoolId is null)
         {
             throw new ForbiddenException(
@@ -124,6 +130,6 @@ public sealed class CatalogAccessGuard : ICatalogAccessGuard
     private bool IsCommerciallyActive(SchoolProfile profile)
     {
         profile.RefreshStatus(_clock.UtcNow);
-        return profile.IsCommerciallyActive(_clock.UtcNow);
+        return profile.CanOperateProduct(_clock.UtcNow);
     }
 }

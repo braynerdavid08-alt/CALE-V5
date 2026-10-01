@@ -34,6 +34,7 @@ export class RegisterSchoolPage implements OnInit {
 
   readonly plans = signal<SchoolPlanDto[]>([]);
   readonly plansError = signal<string | null>(null);
+  readonly free = signal(true);
 
   readonly form = this.fb.nonNullable.group({
     contactName: ['', [Validators.required, Validators.maxLength(200)]],
@@ -50,6 +51,18 @@ export class RegisterSchoolPage implements OnInit {
   });
 
   ngOnInit(): void {
+    this.api.accessMode().subscribe({
+      next: (mode) => {
+        this.free.set(mode.freeAccess);
+        if (!mode.freeAccess) {
+          this.loadPlans();
+        }
+      },
+      error: () => this.free.set(true)
+    });
+  }
+
+  private loadPlans(): void {
     this.api.schoolPlans().subscribe({
       next: (plans) => this.plans.set(plans),
       error: () => this.plansError.set('No se pudieron cargar los planes.')

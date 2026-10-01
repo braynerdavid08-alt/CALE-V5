@@ -19,7 +19,11 @@ export interface NavItem {
 
 export interface NavOptions {
   hasSchool?: boolean;
+  /** App gratis: oculta planes/membresía y muestra donaciones. */
+  freeAccess?: boolean;
 }
+
+const DONATE_ITEM: NavItem = { label: 'Apoyar CALE', path: '/donaciones', icon: 'heart', exact: true };
 
 export function navChildActive(url: string, child: NavChild): boolean {
   const [pathPart, query = ''] = url.split('?');
@@ -41,6 +45,7 @@ export function navChildActive(url: string, child: NavChild): boolean {
 
 /** Role navigation — ordered by daily workflow. */
 export function navForRole(role?: string, options?: NavOptions): NavItem[] {
+  const free = options?.freeAccess !== false;
   if (role === 'Admin') {
     return [
       { label: 'Inicio', path: '/admin', icon: 'home', exact: true },
@@ -48,7 +53,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
         label: 'Escuelas',
         icon: 'building',
         children: [
-          { label: 'Solicitudes', path: '/admin/schools/queue', exact: true },
+          { label: free ? 'Directorio' : 'Solicitudes', path: '/admin/schools/queue', exact: true },
           { label: 'Usuarios', path: '/admin/users', exact: true },
           { label: 'Instructores', path: '/admin/instructors', exact: true },
           { label: 'Estudiantes', path: '/admin/students', exact: true }
@@ -120,11 +125,14 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
       {
         label: 'Administración',
         icon: 'settings',
-        children: [
-          { label: 'Usuarios', path: '/school/users', exact: true },
-          { label: 'Pagos y membresía', path: '/school/membership', exact: true }
-        ]
-      }
+        children: free
+          ? [{ label: 'Usuarios', path: '/school/users', exact: true }]
+          : [
+              { label: 'Usuarios', path: '/school/users', exact: true },
+              { label: 'Pagos y membresía', path: '/school/membership', exact: true }
+            ]
+      },
+      ...(free ? [DONATE_ITEM] : [])
     ];
   }
 
@@ -151,7 +159,8 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
           { label: 'Preguntas', path: '/teacher/questions', exact: true }
         ]
       },
-      { label: 'Informes', path: '/teacher/results', icon: 'chart', exact: true }
+      { label: 'Informes', path: '/teacher/results', icon: 'chart', exact: true },
+      DONATE_ITEM
     ];
   }
 
@@ -171,7 +180,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
     { label: 'Mi proceso', path: '/student/progress', icon: 'chart', exact: true },
     { label: 'Mensajes', path: '/notifications', icon: 'bell', exact: true },
     { label: 'Perfil', path: '/profile', icon: 'users', exact: true },
-    { label: 'Apoya Mi CALE', path: '/student/donaciones', icon: 'heart', exact: true }
+    DONATE_ITEM
   ];
 
   return studentNav.filter((item) => !item.requiresSchool || hasSchool);

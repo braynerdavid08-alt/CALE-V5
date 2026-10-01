@@ -1,6 +1,13 @@
 .dash-panel ui-badge {
   vertical-align: middle;
 }
+.donate-panel {
+  border: 1px solid color-mix(in srgb, #f43f5e 30%, var(--color-border));
+  background: linear-gradient(135deg, color-mix(in srgb, #f43f5e 8%, var(--color-surface)), var(--color-surface));
+}
+.donate-panel .dash-empty {
+  margin-bottom: 0.75rem;
+}
 .dash-kicker {
   margin: 0 0 0.2rem;
   color: var(--color-text-secondary);

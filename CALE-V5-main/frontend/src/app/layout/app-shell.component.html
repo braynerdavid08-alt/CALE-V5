@@ -107,8 +107,8 @@
           </a>
           <a
             class="student-home-btn student-donate-btn"
-            routerLink="/student/donaciones"
-            title="Apoya Mi CALE">
+            routerLink="/donaciones"
+            title="Apoyar CALE">
             <ui-icon name="heart" />
             <span>Donar</span>
           </a>
@@ -124,6 +124,12 @@
       <ui-motivation class="top-motivation" [role]="role" />
 
       <span class="spacer" aria-hidden="true"></span>
+      @if (!isStudentShell && role !== 'Admin' && !mustChangePassword) {
+        <a class="student-home-btn student-donate-btn staff-donate-btn" routerLink="/donaciones" title="Apoyar CALE">
+          <ui-icon name="heart" />
+          <span>Donar</span>
+        </a>
+      }
       @if (!isStudentShell) {
         <ui-theme-toggle />
       }

@@ -124,8 +124,12 @@ public sealed class ImportSchoolMembersHandler
 
         var teachersUsed = await _users.CountBySchoolAndRoleAsync(schoolUserId, Roles.Teacher, ct);
         var studentsUsed = await _users.CountBySchoolAndRoleAsync(schoolUserId, Roles.Student, ct);
-        var teachersBudget = profile.EffectiveMaxTeachers(plan) - teachersUsed;
-        var studentsBudget = profile.EffectiveMaxStudents(plan) - studentsUsed;
+        var teachersBudget = SchoolProfile.SeatLimitsEnforced
+            ? profile.EffectiveMaxTeachers(plan) - teachersUsed
+            : int.MaxValue;
+        var studentsBudget = SchoolProfile.SeatLimitsEnforced
+            ? profile.EffectiveMaxStudents(plan) - studentsUsed
+            : int.MaxValue;
 
         var seenEmails = new HashSet<string>(StringComparer.Ordinal);
         var rows = new List<ParsedImportRow>(parsed.Count);
@@ -222,6 +226,11 @@ public sealed class ImportSchoolMembersHandler
 
             await SchoolSeatGuard.EnsureCanAddAsync(
                 _users, _profiles, _clock, schoolUserId, role, ct);
+            if (!SchoolProfile.SeatLimitsEnforced)
+            {
+                continue;
+            }
+
             var used = await _users.CountBySchoolAndRoleAsync(schoolUserId, role, ct);
             var profile = await _profiles.GetTrackedByUserIdAsync(schoolUserId, ct);
             var plan = SchoolPlans.Find(profile!.PlanCode)!;

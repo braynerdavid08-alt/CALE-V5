@@ -37,12 +37,17 @@ internal static class SchoolSeatGuard
         }
 
         profile.RefreshStatus(clock.UtcNow);
-        if (!profile.IsCommerciallyActive(clock.UtcNow))
+        if (!profile.CanOperateProduct(clock.UtcNow))
         {
             throw new DomainException(
                 "Tu membresía no está activa. Solicita un plan, sube el comprobante y espera la verificación del administrador.",
                 400,
                 "membership_inactive");
+        }
+
+        if (!SchoolProfile.SeatLimitsEnforced)
+        {
+            return;
         }
 
         var plan = SchoolPlans.Find(profile.PlanCode)

@@ -66,7 +66,7 @@ public sealed class GetSchoolProfileHandler
             user.Id, Roles.Student, ct);
         var days = profile.DaysRemaining(_clock.UtcNow);
         var now = _clock.UtcNow;
-        var active = profile.IsCommerciallyActive(now);
+        var active = profile.CanOperateProduct(now);
 
         return new SchoolProfileDto(
             user.Id,

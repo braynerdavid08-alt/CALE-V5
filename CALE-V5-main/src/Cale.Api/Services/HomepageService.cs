@@ -275,7 +275,7 @@ public sealed class HomepageService
         var now = _clock.UtcNow;
         var profiles = await _db.Set<SchoolProfile>().AsNoTracking().ToListAsync(ct);
         var active = profiles
-            .Where(p => p.IsCommerciallyActive(now))
+            .Where(p => IsListedSchool(p, now))
             .OrderBy(p => p.LegalName)
             .Take(Math.Clamp(take, 1, 50))
             .ToList();
@@ -288,6 +288,13 @@ public sealed class HomepageService
             p.Department,
             "/escuelas")).ToList();
     }
+
+    private static bool IsListedSchool(SchoolProfile profile, DateTime now) =>
+        profile.CanOperateProduct(now)
+        && profile.SubscriptionStatus is not (
+            SchoolSubscriptionStatus.Suspended
+            or SchoolSubscriptionStatus.Rejected
+            or SchoolSubscriptionStatus.Cancelled);
 
     public async Task<IReadOnlyList<PublicInstructorCardDto>> ListPublicInstructorsAsync(
         int take,
@@ -455,7 +462,7 @@ public sealed class HomepageService
         var students = users.Count(u => u.IsActive && Roles.Normalize(u.Role) == Roles.Student);
         var teachers = users.Count(u => u.IsActive && Roles.Normalize(u.Role) == Roles.Teacher);
         var profiles = await _db.Set<SchoolProfile>().AsNoTracking().ToListAsync(ct);
-        var schools = profiles.Count(p => p.IsCommerciallyActive(now));
+        var schools = profiles.Count(p => IsListedSchool(p, now));
 
         var ratings = new List<int>();
         try

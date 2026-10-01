@@ -42,6 +42,11 @@ if (useEphemeralDataProtection)
     builder.Logging.AddFilter("Microsoft.AspNetCore.DataProtection", LogLevel.Error);
 }
 
+Cale.BuildingBlocks.Domain.Access.FreeAccessPolicy.Enabled =
+    builder.Configuration.GetValue(
+        Cale.BuildingBlocks.Domain.Access.FreeAccessPolicy.ConfigKey,
+        true);
+
 builder.AddCaleServices();
 
 var app = builder.Build();

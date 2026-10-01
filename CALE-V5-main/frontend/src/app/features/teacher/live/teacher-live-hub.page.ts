@@ -115,7 +115,7 @@ export class TeacherLiveHubPage implements OnInit {
       return null;
     }
     const user = this.session.user();
-    if (!user || user.role === 'Admin') {
+    if (!user || user.role === 'Admin' || this.session.freeAccess()) {
       return null;
     }
     if (user.role === 'School') {
@@ -182,7 +182,7 @@ export class TeacherLiveHubPage implements OnInit {
           role: dto.role,
           mustChangePassword: !!dto.mustChangePassword
         });
-        this.session.applySchoolContext(dto.school ?? null);
+        this.session.applySchoolContext(dto.school ?? null, dto.freeAccess);
         this.contextReady.set(true);
       },
       error: () => this.contextReady.set(true)

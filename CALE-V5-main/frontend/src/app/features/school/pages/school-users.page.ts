@@ -3,6 +3,7 @@ import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
+import { SessionStore } from '../../../core/auth/session.store';
 import { env } from '../../../core/config/env';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
@@ -101,15 +102,21 @@ interface SchoolJoinRequestDto {
       <ui-loading />
     } @else {
       <div class="grid-stats">
-        <ui-stat
-          label="Instructores"
-          [value]="(profile()?.teachersUsed ?? 0) + ' / ' + (profile()?.teachersMax ?? 0)"
-          tone="primary" />
-        <ui-stat
-          label="Estudiantes"
-          [value]="(profile()?.studentsUsed ?? 0) + ' / ' + (profile()?.studentsMax ?? 0)"
-          tone="success" />
-        <ui-stat label="Plan" [value]="profile()?.planLabel || '—'" />
+        @if (session.freeAccess()) {
+          <ui-stat label="Instructores" [value]="profile()?.teachersUsed ?? 0" tone="primary" />
+          <ui-stat label="Estudiantes" [value]="profile()?.studentsUsed ?? 0" tone="success" />
+          <ui-stat label="Cupos" value="Sin límite" />
+        } @else {
+          <ui-stat
+            label="Instructores"
+            [value]="(profile()?.teachersUsed ?? 0) + ' / ' + (profile()?.teachersMax ?? 0)"
+            tone="primary" />
+          <ui-stat
+            label="Estudiantes"
+            [value]="(profile()?.studentsUsed ?? 0) + ' / ' + (profile()?.studentsMax ?? 0)"
+            tone="success" />
+          <ui-stat label="Plan" [value]="profile()?.planLabel || '—'" />
+        }
       </div>
 
       @if (joinRequests().length) {
@@ -382,6 +389,7 @@ interface SchoolJoinRequestDto {
 export class SchoolUsersPage implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly fb = inject(FormBuilder);
+  readonly session = inject(SessionStore);
 
   readonly roleLabel = roleLabel;
   readonly loading = signal(true);

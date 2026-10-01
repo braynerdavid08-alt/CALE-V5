@@ -133,7 +133,7 @@ export class AuthFacade {
     this.motivation.clearSession();
     this.session.set(res);
     this.api.me().subscribe({
-      next: (me) => this.session.applySchoolContext(me.school ?? null),
+      next: (me) => this.session.applySchoolContext(me.school ?? null, me.freeAccess),
       error: () => { /* membership gates fall back to API errors */ }
     });
     this.motivation.ensureSessionTip(res.role);
