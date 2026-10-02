@@ -1,136 +1,157 @@
 <section class="xe-page">
-  <header class="xe-head">
-    <h1>Horarios semanales de examen</h1>
-    <p class="xe-lead">Estos horarios se repiten todas las semanas. Para cambiar un solo día usa la vista de Exámenes.</p>
+  <header class="top">
+    <div class="xe-head">
+      <h1>Horarios semanales de examen</h1>
+      <p class="xe-lead">Se repiten todas las semanas. Para cambiar un solo día usa la vista de Exámenes.</p>
+    </div>
+    <a class="xe-btn back" routerLink="/school/theory-exams">← Volver a Exámenes</a>
   </header>
-
-  <nav class="xe-actions" aria-label="Navegación">
-    <a class="xe-btn" routerLink="/school/theory-exams">← Volver a Exámenes</a>
-  </nav>
 
   @if (notice()) {
     <p class="xe-banner success" role="status"><span>✅ {{ notice() }}</span></p>
   }
   <ui-error [message]="error()" />
 
-  <form class="xe-panel" (ngSubmit)="add()" aria-labelledby="add-title">
+  <form class="xe-panel add" (ngSubmit)="add()" aria-labelledby="add-title">
     <h2 id="add-title">Agregar horario</h2>
 
-    <fieldset class="days-field">
-      <legend class="xe-label">¿Qué días?</legend>
-      <div class="xe-actions">
-        <button type="button" class="xe-chip" [attr.aria-pressed]="sameDays([1,2,3,4,5])" (click)="setDays([1,2,3,4,5])">
-          Lunes a viernes
-        </button>
-        <button type="button" class="xe-chip" [attr.aria-pressed]="sameDays([1,2,3,4,5,6])" (click)="setDays([1,2,3,4,5,6])">
-          Lunes a sábado
-        </button>
+    <div class="add-days" role="group" aria-labelledby="days-label">
+      <div class="add-days-head">
+        <span id="days-label" class="xe-label">Días</span>
+        <span class="quick">
+          <button type="button" class="quick-btn" [attr.aria-pressed]="sameDays([1,2,3,4,5])" (click)="setDays([1,2,3,4,5])">Lun a Vie</button>
+          <button type="button" class="quick-btn" [attr.aria-pressed]="sameDays([1,2,3,4,5,6])" (click)="setDays([1,2,3,4,5,6])">Lun a Sáb</button>
+        </span>
       </div>
-      <div class="day-checks">
+      <div class="day-pills">
         @for (d of dayChoices; track d.value) {
-          <label class="day-check" [class.on]="isDayChecked(d.value)">
-            <input
-              type="checkbox"
-              [checked]="isDayChecked(d.value)"
-              (change)="toggleDay(d.value, $any($event.target).checked)" />
-            <span>{{ d.name }}</span>
-          </label>
+          <button
+            type="button"
+            class="day-pill"
+            [attr.aria-pressed]="isDayChecked(d.value)"
+            [attr.aria-label]="d.name"
+            (click)="toggleDay(d.value, !isDayChecked(d.value))">
+            {{ d.short }}
+          </button>
         }
       </div>
-    </fieldset>
+    </div>
 
-    <div class="xe-row">
+    <div class="add-row">
       <label class="xe-field">
         <span>Hora</span>
         <input type="time" step="900" required [(ngModel)]="newTime" name="newTime" />
       </label>
-      <label class="xe-field">
-        <span>Cupos</span>
-        <input type="number" min="1" step="1" inputmode="numeric" required [(ngModel)]="newCapacity" name="newCapacity" />
-        <small>Cuántos estudiantes pueden presentar el examen a esa hora.</small>
-      </label>
+      <div class="xe-field">
+        <span id="cap-label">Cupos</span>
+        <div class="stepper" role="group" aria-labelledby="cap-label">
+          <button type="button" aria-label="Menos cupos" [disabled]="newCapacity <= 1" (click)="newCapacity = newCapacity - 1">−</button>
+          <input type="number" min="1" step="1" inputmode="numeric" required aria-labelledby="cap-label" [(ngModel)]="newCapacity" name="newCapacity" />
+          <button type="button" aria-label="Más cupos" (click)="newCapacity = newCapacity + 1">+</button>
+        </div>
+      </div>
+      <button type="submit" class="xe-btn primary add-btn" [disabled]="busy()">Agregar</button>
     </div>
-
     <ui-error [message]="formError()" />
-    <div class="xe-actions">
-      <button type="submit" class="xe-btn primary big" [disabled]="busy()">Agregar horario</button>
-    </div>
   </form>
 
   @if (loading()) {
     <ui-loading label="Cargando tus horarios…" />
-  } @else {
-    @if (!templates().length) {
-      <div class="xe-empty">
-        <span class="xe-empty-emoji" aria-hidden="true">⏰</span>
-        <h2>Todavía no tienes horarios</h2>
-        <p>
-          Agrega tus horarios con el formulario de arriba, o usa el horario típico:
-          9, 10 y 11 de la mañana de lunes a sábado, y 2 y 3 de la tarde de lunes a viernes, con 1 cupo cada uno.
-        </p>
-        <button type="button" class="xe-btn primary big" [disabled]="busy()" (click)="useTypical()">Usar horario típico</button>
-      </div>
-    }
-
-    <div class="sections">
-      @for (sec of sections(); track sec.dayOfWeek) {
-        <section class="xe-panel day-sec" [attr.aria-label]="sec.name">
-          <h2>{{ sec.name }}</h2>
-          @if (!sec.templates.length) {
-            <p class="xe-text xe-muted">No hay exámenes este día.</p>
-          } @else {
-            <ul class="tpl-list">
-              @for (t of sec.templates; track t.id) {
-                <li class="tpl" [class.off]="!t.isActive">
-                  @if (editingId() === t.id) {
-                    <div class="edit-box">
-                      <div class="xe-row">
-                        <label class="xe-field">
-                          <span>Hora</span>
-                          <input type="time" step="900" [(ngModel)]="editTime" [name]="'editTime' + t.id" />
-                        </label>
-                        <label class="xe-field">
-                          <span>Cupos</span>
-                          <input type="number" min="1" step="1" inputmode="numeric" [(ngModel)]="editCapacity" [name]="'editCap' + t.id" />
-                        </label>
-                      </div>
-                      <ui-error [message]="editError()" />
-                      <div class="xe-actions">
-                        <button type="button" class="xe-btn primary" [disabled]="busy()" (click)="saveEdit(t)">Guardar</button>
-                        <button type="button" class="xe-btn" (click)="editingId.set(null)">Cancelar</button>
-                      </div>
-                    </div>
-                  } @else {
-                    <div class="tpl-main">
-                      <strong>{{ time12(t.time) }}</strong>
-                      <span>— {{ plural(t.capacity, 'cupo', 'cupos') }}</span>
-                      <span class="xe-status" [attr.data-tone]="t.isActive ? 'success' : 'neutral'">
-                        {{ t.isActive ? 'Activo' : 'Inactivo' }}
-                      </span>
-                    </div>
-                    <div class="tpl-actions">
-                      <button
-                        type="button"
-                        class="xe-btn"
-                        role="switch"
-                        [attr.aria-checked]="t.isActive"
-                        [disabled]="busy()"
-                        (click)="toggleActive(t)">
-                        {{ t.isActive ? 'Desactivar' : 'Activar' }}
-                      </button>
-                      <button type="button" class="xe-btn" (click)="startEdit(t)">Cambiar</button>
-                      <button type="button" class="xe-btn danger-soft" (click)="deleting.set(t)">Borrar</button>
-                    </div>
-                  }
-                </li>
-              }
-            </ul>
-          }
-        </section>
-      }
+  } @else if (!templates().length) {
+    <div class="xe-empty">
+      <span class="xe-empty-emoji" aria-hidden="true">⏰</span>
+      <h2>Todavía no tienes horarios</h2>
+      <p>
+        Agrega tus horarios arriba, o usa el horario típico: 9, 10 y 11 de la mañana de lunes a sábado,
+        y 2 y 3 de la tarde de lunes a viernes, con 1 cupo cada uno.
+      </p>
+      <button type="button" class="xe-btn primary big" [disabled]="busy()" (click)="useTypical()">Usar horario típico</button>
     </div>
+  } @else {
+    <section class="xe-panel week" aria-labelledby="week-title">
+      <header class="week-head">
+        <h2 id="week-title">Tu semana</h2>
+        <p class="xe-muted summary">
+          {{ plural(activeCount(), 'horario', 'horarios') }} · {{ plural(weeklySeats(), 'cupo', 'cupos') }} por semana
+        </p>
+      </header>
+      <p class="xe-muted xe-small hint">Toca una hora para cambiarla, pausarla o borrarla.</p>
+
+      <div class="week-grid">
+        @for (sec of sections(); track sec.dayOfWeek) {
+          <div class="day-col" [class.empty]="!sec.templates.length">
+            <h3 class="day-name">
+              <span class="long">{{ sec.name }}</span>
+              <span class="short">{{ sec.short }}</span>
+            </h3>
+            <div class="slots">
+              @for (t of sec.templates; track t.id) {
+                <button
+                  type="button"
+                  class="slot"
+                  [class.off]="!t.isActive"
+                  [attr.aria-label]="sec.name + ' ' + time12(t.time) + ', ' + plural(t.capacity, 'cupo', 'cupos') + (t.isActive ? '' : ', pausado')"
+                  (click)="open(t)">
+                  <strong>{{ time12(t.time) }}</strong>
+                  <small>{{ t.isActive ? plural(t.capacity, 'cupo', 'cupos') : 'Pausado' }}</small>
+                </button>
+              } @empty {
+                <span class="none">Sin exámenes</span>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </section>
   }
 </section>
+
+<ui-sheet [open]="!!selected()" [title]="sheetTitle()" (close)="closeSheet()">
+  @if (selected(); as t) {
+    @if (editing()) {
+      <div class="sheet-body">
+        <div class="xe-row">
+          <label class="xe-field">
+            <span>Hora</span>
+            <input type="time" step="900" [(ngModel)]="editTime" name="editTime" />
+          </label>
+          <div class="xe-field">
+            <span id="edit-cap-label">Cupos</span>
+            <div class="stepper" role="group" aria-labelledby="edit-cap-label">
+              <button type="button" aria-label="Menos cupos" [disabled]="editCapacity <= 1" (click)="editCapacity = editCapacity - 1">−</button>
+              <input type="number" min="1" step="1" inputmode="numeric" aria-labelledby="edit-cap-label" [(ngModel)]="editCapacity" name="editCapacity" />
+              <button type="button" aria-label="Más cupos" (click)="editCapacity = editCapacity + 1">+</button>
+            </div>
+          </div>
+        </div>
+        <ui-error [message]="editError()" />
+        <div class="sheet-actions">
+          <button type="button" class="xe-btn primary" [disabled]="busy()" (click)="saveEdit(t)">Guardar</button>
+          <button type="button" class="xe-btn" (click)="editing.set(false)">Cancelar</button>
+        </div>
+      </div>
+    } @else {
+      <div class="sheet-body">
+        <dl class="xe-facts">
+          <div><dt>Hora</dt><dd>{{ time12(t.time) }}</dd></div>
+          <div><dt>Cupos</dt><dd>{{ t.capacity }}</dd></div>
+          <div>
+            <dt>Estado</dt>
+            <dd><span class="xe-status" [attr.data-tone]="t.isActive ? 'success' : 'neutral'">{{ t.isActive ? 'Activo' : 'Pausado' }}</span></dd>
+          </div>
+        </dl>
+        <ui-error [message]="editError()" />
+        <div class="sheet-actions">
+          <button type="button" class="xe-btn primary" (click)="startEdit(t)">Cambiar hora o cupos</button>
+          <button type="button" class="xe-btn" [disabled]="busy()" (click)="toggleActive(t)">
+            {{ t.isActive ? 'Pausar este horario' : 'Volver a activar' }}
+          </button>
+          <button type="button" class="xe-btn danger-soft" (click)="deleting.set(t)">Borrar</button>
+        </div>
+      </div>
+    }
+  }
+</ui-sheet>
 
 <ui-dialog
   [open]="!!deleting()"

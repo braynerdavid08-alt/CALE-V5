@@ -6,6 +6,7 @@ import { mapApiError } from '../../../core/http/map-api-error';
 import { UiDialogComponent } from '../../../shared/ui/ui-dialog.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
+import { UiSheetComponent } from '../../../shared/ui/ui-sheet.component';
 import { DAY_NAMES, WEEK_ORDER, hhmm, time12 } from '../../../shared/utils/wall-clock';
 import { ExamScheduleApi, ExamTemplateDto } from '../api/exam-schedule.api';
 import { plural } from '../utils/exam-labels';
@@ -13,9 +14,11 @@ import { plural } from '../utils/exam-labels';
 interface DaySection {
   dayOfWeek: number;
   name: string;
+  short: string;
   templates: ExamTemplateDto[];
 }
 
+const DAY_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const MON_FRI = [1, 2, 3, 4, 5];
 const MON_SAT = [1, 2, 3, 4, 5, 6];
 
@@ -31,7 +34,7 @@ const TYPICAL: { time: string; days: number[] }[] = [
 @Component({
   selector: 'app-school-exam-schedule-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, UiDialogComponent, UiErrorComponent, UiLoadingComponent],
+  imports: [FormsModule, RouterLink, UiDialogComponent, UiErrorComponent, UiLoadingComponent, UiSheetComponent],
   templateUrl: './school-exam-schedule.page.html',
   styleUrls: ['../../../shared/styles/easy-schedule.css', './school-exam-schedule.page.css']
 })
@@ -44,13 +47,14 @@ export class SchoolExamSchedulePage implements OnInit {
   readonly busy = signal(false);
   readonly templates = signal<ExamTemplateDto[]>([]);
 
-  readonly dayChoices = WEEK_ORDER.map((d) => ({ value: d, name: DAY_NAMES[d] }));
+  readonly dayChoices = WEEK_ORDER.map((d) => ({ value: d, name: DAY_NAMES[d], short: DAY_SHORT[d] }));
   readonly newDays = signal<number[]>([...MON_FRI]);
   newTime = '09:00';
   newCapacity = 1;
   readonly formError = signal<string | null>(null);
 
-  readonly editingId = signal<number | null>(null);
+  readonly selected = signal<ExamTemplateDto | null>(null);
+  readonly editing = signal(false);
   editTime = '';
   editCapacity = 1;
   readonly editError = signal<string | null>(null);
@@ -61,11 +65,22 @@ export class SchoolExamSchedulePage implements OnInit {
     WEEK_ORDER.map((day) => ({
       dayOfWeek: day,
       name: DAY_NAMES[day],
+      short: DAY_SHORT[day],
       templates: this.templates()
         .filter((t) => t.dayOfWeek === day)
         .sort((a, b) => hhmm(a.time).localeCompare(hhmm(b.time)))
     }))
   );
+
+  readonly activeCount = computed(() => this.templates().filter((t) => t.isActive).length);
+  readonly weeklySeats = computed(() =>
+    this.templates().filter((t) => t.isActive).reduce((sum, t) => sum + t.capacity, 0)
+  );
+
+  readonly sheetTitle = computed(() => {
+    const t = this.selected();
+    return t ? `${DAY_NAMES[t.dayOfWeek]} · ${time12(t.time)}` : '';
+  });
 
   readonly time12 = time12;
   readonly plural = plural;
@@ -79,6 +94,8 @@ export class SchoolExamSchedulePage implements OnInit {
     this.api.listTemplates().subscribe({
       next: (rows) => {
         this.templates.set(rows);
+        const current = this.selected();
+        if (current) this.selected.set(rows.find((r) => r.id === current.id) ?? null);
         this.loading.set(false);
       },
       error: (err) => {
@@ -140,14 +157,24 @@ export class SchoolExamSchedulePage implements OnInit {
     }, (msg) => this.error.set(msg));
   }
 
-  // ── Edit / toggle / delete ────────────────────────────────
+  // ── Sheet: edit / pause / delete ──────────────────────────
+
+  open(t: ExamTemplateDto): void {
+    this.selected.set(t);
+    this.editing.set(false);
+    this.editError.set(null);
+  }
+
+  closeSheet(): void {
+    this.selected.set(null);
+    this.editing.set(false);
+  }
 
   startEdit(t: ExamTemplateDto): void {
-    this.editingId.set(t.id);
     this.editTime = hhmm(t.time);
     this.editCapacity = t.capacity;
     this.editError.set(null);
-    this.notice.set(null);
+    this.editing.set(true);
   }
 
   saveEdit(t: ExamTemplateDto): void {
@@ -163,7 +190,7 @@ export class SchoolExamSchedulePage implements OnInit {
     this.run(
       this.api.updateTemplate(t.id, { time: this.editTime, capacity, isActive: t.isActive }),
       () => {
-        this.editingId.set(null);
+        this.closeSheet();
         this.notice.set('Listo. Guardamos el cambio.');
       },
       (msg) => this.editError.set(msg)
@@ -173,12 +200,15 @@ export class SchoolExamSchedulePage implements OnInit {
   toggleActive(t: ExamTemplateDto): void {
     this.run(
       this.api.updateTemplate(t.id, { time: hhmm(t.time), capacity: t.capacity, isActive: !t.isActive }),
-      () => this.notice.set(
-        t.isActive
-          ? `El horario de las ${time12(t.time)} del ${DAY_NAMES[t.dayOfWeek].toLowerCase()} quedó inactivo.`
-          : `El horario de las ${time12(t.time)} del ${DAY_NAMES[t.dayOfWeek].toLowerCase()} quedó activo.`
-      ),
-      (msg) => this.error.set(msg)
+      () => {
+        this.closeSheet();
+        this.notice.set(
+          t.isActive
+            ? `El horario de las ${time12(t.time)} del ${DAY_NAMES[t.dayOfWeek].toLowerCase()} quedó pausado.`
+            : `El horario de las ${time12(t.time)} del ${DAY_NAMES[t.dayOfWeek].toLowerCase()} volvió a estar activo.`
+        );
+      },
+      (msg) => this.editError.set(msg)
     );
   }
 
@@ -192,6 +222,7 @@ export class SchoolExamSchedulePage implements OnInit {
     const t = this.deleting();
     if (!t) return;
     this.deleting.set(null);
+    this.closeSheet();
     this.run(this.api.deleteTemplate(t.id), () => {
       this.notice.set('Listo. Borramos el horario.');
     }, (msg) => this.error.set(msg));
