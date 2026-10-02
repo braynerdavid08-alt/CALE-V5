@@ -30,6 +30,7 @@ export class StudentHoursCardComponent implements OnChanges {
   readonly error = signal<string | null>(null);
   readonly hours = signal<StudentHoursDto | null>(null);
   readonly notice = signal<string | null>(null);
+  readonly showAllHistory = signal(false);
 
   readonly formOpen = signal(false);
   readonly saving = signal(false);

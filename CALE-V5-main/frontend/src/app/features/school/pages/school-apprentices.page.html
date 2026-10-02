@@ -4,41 +4,45 @@
     title="Estudiantes"
     subtitle="Expediente, progreso de formación, pagos y autorizaciones." />
 
-  <ui-error [message]="error()" />
-  <ui-success [message]="saveOk()" />
+  @if (!selected()) {
+    <ui-error [message]="error()" />
+    <ui-success [message]="saveOk()" />
+  }
 
-  <div class="school-toolbar">
-    <input
-      class="search-input"
-      type="search"
-      placeholder="Buscar nombre, cédula o celular…"
-      aria-label="Buscar estudiante por nombre, cédula o celular"
-      [(ngModel)]="search"
-      (keyup.enter)="reload()" />
-    <label class="school-toolbar-check">
-      <input type="checkbox" [(ngModel)]="onlyBalance" (change)="reload()" />
-      Solo con saldo
-    </label>
-    <div class="school-toolbar-actions">
-      <ui-button type="button" variant="secondary" (click)="reload()">Buscar</ui-button>
+  <section class="tools school-card" aria-label="Buscar y opciones">
+    <div class="search-row">
+      <input
+        class="search-input"
+        type="search"
+        placeholder="Buscar nombre, cédula o celular…"
+        aria-label="Buscar estudiante por nombre, cédula o celular"
+        [(ngModel)]="search"
+        (keyup.enter)="reload()" />
+      <ui-button type="button" (click)="reload()">Buscar</ui-button>
+      <label class="check">
+        <input type="checkbox" [(ngModel)]="onlyBalance" (change)="reload()" />
+        Solo con saldo
+      </label>
+    </div>
+    <div class="action-row">
+      <ui-button routerLink="/school/import" type="button" variant="secondary">Importar Excel</ui-button>
+      <ui-button routerLink="/school/users" type="button" variant="secondary">Crear / vincular</ui-button>
       <ui-button
         type="button"
-        variant="secondary"
+        variant="ghost"
         (click)="downloadApprentices()"
         [disabled]="exporting()">
-        {{ exporting() ? 'Exportando…' : 'Excel estudiantes' }}
+        {{ exporting() ? 'Exportando…' : 'Descargar estudiantes' }}
       </ui-button>
       <ui-button
         type="button"
-        variant="secondary"
+        variant="ghost"
         (click)="downloadPayments()"
         [disabled]="exporting()">
-        Excel cartera
+        Descargar cartera
       </ui-button>
-      <ui-button routerLink="/school/users" type="button" variant="secondary">Crear / vincular</ui-button>
-      <ui-button routerLink="/school/import" type="button">Importar Excel</ui-button>
     </div>
-  </div>
+  </section>
 
   @if (loading()) {
     <ui-loading />
@@ -68,11 +72,12 @@
           no da de alta estudiantes nuevos.
         </p>
       </section>
-    }
-
-    <div class="school-split">
-      <section class="school-card">
-        <p class="school-card-title">{{ rows().length }} estudiantes registrados</p>
+    } @else {
+      <section class="school-card list-card">
+        <header class="list-head">
+          <p class="school-card-title">{{ rows().length }} estudiantes registrados</p>
+          <p class="muted">Toca un estudiante para ver y editar sus datos.</p>
+        </header>
         <div class="school-table-wrap">
           <table class="school-data-table">
             <caption class="sr-only">Lista de estudiantes de la escuela</caption>
@@ -96,11 +101,11 @@
                   tabindex="0"
                   role="button"
                   [attr.aria-pressed]="selected()?.studentUserId === r.studentUserId"
-                  [attr.aria-label]="'Seleccionar a ' + r.studentName"
+                  [attr.aria-label]="'Ver datos de ' + r.studentName"
                   (click)="select(r)"
                   (keydown.enter)="select(r)"
                   (keydown.space)="$event.preventDefault(); select(r)">
-                  <td>
+                  <td class="name-cell">
                     <strong>{{ r.studentName }}</strong>
                     <div class="school-badge-row">
                       @for (badge of studentBadges(r, p); track badge.label) {
@@ -108,12 +113,12 @@
                       }
                     </div>
                   </td>
-                  <td>{{ r.documentNumber || '—' }}</td>
-                  <td [class.ok]="p?.theoryHoursComplete">{{ formatHours(p) }}</td>
-                  <td [class.ok]="p?.theoryExamPassed">{{ formatExamStatus(p) }}</td>
-                  <td [class.ok]="r.practicalAuthorized || p?.canBookPractical">{{ formatPracticalStatus(r, p) }}</td>
-                  <td>{{ formatMoney(r.amountPaid) }}</td>
-                  <td [class.warn]="r.balanceDue > 0">{{ formatMoney(r.balanceDue) }}</td>
+                  <td data-label="Documento">{{ r.documentNumber || '—' }}</td>
+                  <td data-label="Teoría" [class.ok]="p?.theoryHoursComplete">{{ formatHours(p) }}</td>
+                  <td data-label="Examen" [class.ok]="p?.theoryExamPassed">{{ formatExamStatus(p) }}</td>
+                  <td data-label="Manejo" [class.ok]="r.practicalAuthorized || p?.canBookPractical">{{ formatPracticalStatus(r, p) }}</td>
+                  <td data-label="Pagado">{{ formatMoney(r.amountPaid) }}</td>
+                  <td data-label="Saldo" [class.warn]="r.balanceDue > 0">{{ formatMoney(r.balanceDue) }}</td>
                   <td class="row-actions" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
                     <a [routerLink]="['/school/apprentices', r.studentUserId]" class="dossier-link">Expediente</a>
                   </td>
@@ -130,43 +135,64 @@
           </table>
         </div>
       </section>
+    }
+  }
 
-      @if (selected(); as s) {
-        @let d = detail();
-        <aside class="school-card school-panel-scroll">
-          <div class="detail-head">
-            <div>
-              <h2>{{ s.studentName }}</h2>
-              <p class="login-hint muted">Acceso app: <strong>{{ s.studentEmail || '—' }}</strong></p>
-            </div>
-            <ui-button [routerLink]="['/school/apprentices', s.studentUserId]" type="button" variant="secondary">Ver expediente</ui-button>
+  @if (selected(); as s) {
+    @let d = detail();
+    <div class="drawer-overlay" (click)="closeDetail()">
+      <aside
+        class="drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="drawer-title"
+        (click)="$event.stopPropagation()">
+        <header class="drawer-head">
+          <div class="who">
+            <h2 id="drawer-title">{{ s.studentName }}</h2>
+            <p class="muted">Acceso app: <strong>{{ s.studentEmail || '—' }}</strong></p>
           </div>
+          <button type="button" class="x" aria-label="Cerrar" (click)="closeDetail()">✕</button>
+          <ui-button
+            class="dossier-btn"
+            [routerLink]="['/school/apprentices', s.studentUserId]"
+            type="button">
+            Ver expediente completo
+          </ui-button>
+        </header>
 
+        <div class="drawer-body">
           @if (detailLoading()) {
             <ui-loading />
           } @else if (detailError()) {
             <p class="detail-warn muted">{{ detailError() }}</p>
           } @else if (d) {
-            <section class="school-summary">
+            <section class="block">
               <h3>Progreso de formación</h3>
-              <ul class="school-summary-list">
+              <ul class="progress-list">
                 <li [class.ok]="d.training.theoryHoursComplete">
-                  Teoría: {{ d.training.theoryHoursCompleted }}/{{ d.training.theoryHoursRequired }} h
+                  <span>Teoría</span>
+                  <strong>{{ d.training.theoryHoursCompleted }}/{{ d.training.theoryHoursRequired }} h</strong>
                 </li>
                 <li [class.ok]="d.training.workshopHoursComplete">
-                  Taller: {{ d.training.workshopHoursCompleted }}/{{ d.training.workshopHoursRequired }} h
+                  <span>Taller</span>
+                  <strong>{{ d.training.workshopHoursCompleted }}/{{ d.training.workshopHoursRequired }} h</strong>
                 </li>
                 <li [class.ok]="d.training.theoryExamPassed">
-                  Examen teórico: {{ d.training.theoryExamPassed ? 'Aprobado' : 'Pendiente' }}
+                  <span>Examen teórico</span>
+                  <strong>{{ d.training.theoryExamPassed ? 'Aprobado' : 'Pendiente' }}</strong>
                 </li>
                 <li [class.ok]="d.practical.completedLessons >= d.practical.requiredLessons">
-                  Práctica: {{ d.practical.completedLessons }}/{{ d.practical.requiredLessons }} clases
-                  @if (d.practical.scheduledLessons > 0) {
-                    · {{ d.practical.scheduledLessons }} programada(s)
-                  }
+                  <span>Práctica</span>
+                  <strong>{{ d.practical.completedLessons }}/{{ d.practical.requiredLessons }} clases</strong>
                 </li>
+              </ul>
+              <ul class="notes">
+                @if (d.practical.scheduledLessons > 0) {
+                  <li>{{ d.practical.scheduledLessons }} clase(s) de manejo programada(s).</li>
+                }
                 @if (d.nextExam) {
-                  <li class="ok">Cita examen: {{ d.nextExam.examDate }} {{ d.nextExam.slotTime }}</li>
+                  <li class="ok">Cita de examen: {{ d.nextExam.examDate }} {{ d.nextExam.slotTime }}</li>
                 }
                 @if (d.practical.nextLessonDate) {
                   <li>Próxima práctica: {{ d.practical.nextLessonDate }} {{ d.practical.nextLessonTime }}</li>
@@ -185,7 +211,7 @@
                   </li>
                 }
               </ul>
-              <div class="school-quick-links">
+              <div class="quick-links">
                 <ui-button routerLink="/school/training" type="button" variant="secondary">Programación</ui-button>
                 <ui-button routerLink="/school/practical" type="button" variant="secondary">Práctica</ui-button>
                 <ui-button routerLink="/school/theory-exams" type="button" variant="secondary">Exámenes</ui-button>
@@ -193,9 +219,9 @@
             </section>
           }
 
-          <fieldset class="school-field-group">
-            <legend>Autorizaciones</legend>
-            <p class="muted auth-override-hint">
+          <section class="block">
+            <h3>Autorizaciones</h3>
+            <p class="muted hint">
               Puedes autorizar aunque el contador de horas no cuadre. La escuela confirma bajo su responsabilidad.
             </p>
             <div class="school-flag-list">
@@ -221,27 +247,24 @@
                 </span>
               </label>
             </div>
-          </fieldset>
+            @if (d && d.authorizationHistory?.length) {
+              <details class="history">
+                <summary>Ver historial de autorizaciones ({{ d.authorizationHistory!.length }})</summary>
+                <ul class="auth-history">
+                  @for (ev of d.authorizationHistory!; track ev.createdAt + ev.authorizationType + ev.action) {
+                    <li>
+                      <strong>{{ authEventLabel(ev) }}</strong>
+                      <small>{{ ev.performedByName }} · {{ ev.createdAt | date:'short' }}</small>
+                    </li>
+                  }
+                </ul>
+              </details>
+            }
+          </section>
 
-          @if (d && d.authorizationHistory?.length) {
-            <fieldset class="school-field-group">
-              <legend>Historial de autorizaciones</legend>
-              <ul class="auth-history">
-                @for (ev of d.authorizationHistory!; track ev.createdAt + ev.authorizationType + ev.action) {
-                  <li>
-                    <strong>{{ authEventLabel(ev) }}</strong>
-                    <small>{{ ev.performedByName }} · {{ ev.createdAt | date:'short' }}</small>
-                  </li>
-                }
-              </ul>
-            </fieldset>
-          }
-
-          <h3 class="school-section-title">Expediente</h3>
-
-          <fieldset class="school-field-group">
-            <legend>Identificación</legend>
-            <div class="school-form-grid">
+          <section class="block">
+            <h3>Identificación y contacto</h3>
+            <div class="form-grid">
               <label class="school-field">
                 <span class="school-field-label">Tipo de documento</span>
                 <input [(ngModel)]="s.documentType" placeholder="CC, CE, TI…" />
@@ -250,12 +273,6 @@
                 <span class="school-field-label">Número de documento</span>
                 <input [(ngModel)]="s.documentNumber" placeholder="Sin puntos ni espacios" />
               </label>
-            </div>
-          </fieldset>
-
-          <fieldset class="school-field-group">
-            <legend>Contacto</legend>
-            <div class="school-form-grid">
               <label class="school-field">
                 <span class="school-field-label">Celular</span>
                 <input [(ngModel)]="s.phone" type="tel" placeholder="300 123 4567" />
@@ -269,11 +286,11 @@
                 <input [(ngModel)]="s.address" placeholder="Barrio, ciudad" />
               </label>
             </div>
-          </fieldset>
+          </section>
 
-          <fieldset class="school-field-group">
-            <legend>Matrícula y curso</legend>
-            <div class="school-form-grid">
+          <section class="block">
+            <h3>Matrícula y curso</h3>
+            <div class="form-grid">
               <label class="school-field">
                 <span class="school-field-label">Categoría de licencia</span>
                 <select [(ngModel)]="s.licenseCategories">
@@ -300,16 +317,31 @@
                 <input [(ngModel)]="s.enrollmentPin" placeholder="Código RUNT / escuela" />
               </label>
             </div>
-          </fieldset>
+            <div class="school-flag-list">
+              <label class="school-flag-field">
+                <input type="checkbox" [(ngModel)]="s.runtRegistered" />
+                <span>
+                  <strong>Inscrito en RUNT</strong>
+                  <small>El estudiante ya aparece en el sistema RUNT.</small>
+                </span>
+              </label>
+              <label class="school-flag-field">
+                <input type="checkbox" [(ngModel)]="s.isEnrolled" />
+                <span>
+                  <strong>Enrolado en la escuela</strong>
+                  <small>Marcado como matriculado en tu expediente.</small>
+                </span>
+              </label>
+            </div>
+          </section>
 
-          <fieldset class="school-field-group">
-            <legend>Pagos</legend>
-            <p class="muted tip" style="margin: 0 0 0.75rem">
-              Para registrar abonos con historial, usa
-              <a [routerLink]="['/school/apprentices', s.studentUserId]">Expediente</a>.
-              Aquí ajustas el valor del curso y totales.
+          <section class="block">
+            <h3>Pagos</h3>
+            <p class="muted hint">
+              Aquí ajustas el valor del curso y los totales. Para registrar abonos con historial, usa
+              <a [routerLink]="['/school/apprentices', s.studentUserId]">el expediente completo</a>.
             </p>
-            <div class="school-form-grid">
+            <div class="form-grid">
               <label class="school-field">
                 <span class="school-field-label">Valor a pagar (COP)</span>
                 <input type="number" [(ngModel)]="s.amountDue" min="0" />
@@ -327,45 +359,26 @@
                 <input [(ngModel)]="s.receiptNumber" placeholder="Recibo o factura" />
               </label>
             </div>
-          </fieldset>
+          </section>
 
-          <fieldset class="school-field-group">
-            <legend>Estado administrativo</legend>
-            <div class="school-flag-list">
-              <label class="school-flag-field">
-                <input type="checkbox" [(ngModel)]="s.runtRegistered" />
-                <span>
-                  <strong>Inscrito en RUNT</strong>
-                  <small>El estudiante ya aparece en el sistema RUNT.</small>
-                </span>
-              </label>
-              <label class="school-flag-field">
-                <input type="checkbox" [(ngModel)]="s.isEnrolled" />
-                <span>
-                  <strong>Enrolado en la escuela</strong>
-                  <small>Marcado como matriculado en tu expediente.</small>
-                </span>
-              </label>
-            </div>
-          </fieldset>
-
-          <fieldset class="school-field-group">
-            <legend>Notas internas</legend>
+          <section class="block">
+            <h3>Notas internas</h3>
             <label class="school-field full">
-              <span class="school-field-label">Observaciones</span>
+              <span class="school-field-label">Observaciones (solo las ve la escuela)</span>
               <textarea rows="3" [(ngModel)]="s.notes" placeholder="Anotaciones visibles solo para la escuela"></textarea>
             </label>
-          </fieldset>
+          </section>
+        </div>
 
-          <div class="school-form-actions">
+        <footer class="drawer-foot">
+          <ui-error [message]="error()" />
+          <ui-success [message]="saveOk()" />
+          <div class="foot-actions">
+            <ui-button type="button" variant="ghost" (click)="closeDetail()">Cerrar</ui-button>
             <ui-button type="button" [loading]="saving()" (click)="save()">Guardar cambios</ui-button>
           </div>
-        </aside>
-      } @else {
-        <aside class="school-card detail-placeholder">
-          <p class="muted">Selecciona un estudiante de la lista para ver su expediente y autorizaciones.</p>
-        </aside>
-      }
+        </footer>
+      </aside>
     </div>
   }
 </div>

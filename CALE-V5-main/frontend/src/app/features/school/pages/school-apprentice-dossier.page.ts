@@ -6,7 +6,6 @@ import { mapApiError } from '../../../core/http/map-api-error';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
-import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
 import {
   ApprenticeApi,
   ApprenticeDetail,
@@ -39,8 +38,7 @@ interface TimelineItem {
     StudentHoursCardComponent,
     UiButtonComponent,
     UiErrorComponent,
-    UiLoadingComponent,
-    UiPageHeaderComponent
+    UiLoadingComponent
   ],
   templateUrl: './school-apprentice-dossier.page.html',
   styleUrl: './school-apprentice-dossier.page.css'

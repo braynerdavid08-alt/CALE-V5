@@ -35,6 +35,7 @@
 .hist-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.3rem 0.8rem; }
 .hist-top time { font-size: var(--text-sm); color: var(--color-text-secondary); }
 .history small { font-size: var(--text-sm); }
+.hist-more { justify-self: start; }
 
 .current { margin: 0; font-size: var(--text-lg); }
 

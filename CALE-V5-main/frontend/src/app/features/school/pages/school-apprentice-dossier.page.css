@@ -9,20 +9,25 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
+  align-items: flex-end;
   gap: 1rem 1.5rem;
   margin-bottom: 1rem;
 }
 
+.hero-main { min-width: 0; flex: 1 1 22rem; }
+
 .hero h1 {
   margin: 0 0 0.35rem;
-  font-size: clamp(1.35rem, 2vw, 1.75rem);
+  overflow-wrap: anywhere;
 }
+
+.hero .muted { margin: 0; overflow-wrap: anywhere; }
 
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
-  align-items: flex-start;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 .pill-row {
@@ -137,12 +142,36 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-areas:
+    "hours hours"
+    "formacion contact"
+    "cartera cartera"
+    "timeline timeline";
   gap: 1rem;
+  align-items: start;
 }
 
-.hours-slot {
-  grid-column: 1 / -1;
-  min-width: 0;
+.hours-slot { grid-area: hours; min-width: 0; }
+.formacion-card { grid-area: formacion; align-self: stretch; }
+.contact-card { grid-area: contact; align-self: stretch; }
+.cartera-card { grid-area: cartera; }
+.timeline-card { grid-area: timeline; }
+
+.cartera-card {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 1.5rem;
+  align-items: start;
+}
+
+.cartera-card > h2,
+.cartera-card > .money,
+.cartera-card > .facts { grid-column: 1 / -1; }
+
+.cartera-card > .facts.tight {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.5rem;
 }
 
 .facts {
@@ -312,7 +341,17 @@
 .ok { color: var(--color-success, #15803d); }
 
 @media (max-width: 900px) {
-  .grid { grid-template-columns: 1fr; }
+  .grid {
+    grid-template-columns: 1fr;
+    grid-template-areas: "hours" "formacion" "contact" "cartera" "timeline";
+  }
+  .cartera-card { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
   .money { grid-template-columns: 1fr; }
   .abono-grid { grid-template-columns: 1fr; }
+  .hero-actions { width: 100%; }
+  .hero-actions ui-button { flex: 1 1 calc(50% - 0.5rem); }
+  .dossier .toolbar ui-button { flex: 1 1 auto; }
 }
