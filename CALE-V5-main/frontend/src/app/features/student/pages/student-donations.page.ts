@@ -23,9 +23,9 @@ const SHARE_TEXT =
       padding: clamp(1.4rem, 4vw, 2.4rem);
       color: #fff;
       background:
-        radial-gradient(120% 90% at 0% 0%, rgba(244, 63, 94, 0.38), transparent 60%),
-        radial-gradient(90% 80% at 100% 100%, rgba(16, 185, 129, 0.28), transparent 60%),
-        linear-gradient(150deg, #13263a, #0a1a2b);
+        radial-gradient(120% 90% at 0% 0%, rgba(74, 222, 128, 0.32), transparent 60%),
+        radial-gradient(90% 80% at 100% 100%, rgba(250, 204, 21, 0.16), transparent 60%),
+        linear-gradient(150deg, #14532d, #0b2416);
     }
     .kicker {
       margin: 0 0 0.45rem;
@@ -33,7 +33,7 @@ const SHARE_TEXT =
       font-weight: 800;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: #fda4af;
+      color: #86efac;
     }
     .hero h1 { margin: 0 0 0.6rem; font-size: clamp(1.7rem, 4.5vw, 2.5rem); line-height: 1.12; color: #fff; }
     .hero p { margin: 0; max-width: 44rem; line-height: 1.6; color: rgba(226, 239, 247, 0.92); }
@@ -67,9 +67,9 @@ const SHARE_TEXT =
       justify-items: center;
       gap: 0.85rem;
       text-align: center;
-      border-color: color-mix(in srgb, #da0081 30%, var(--color-border));
+      border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
       background:
-        radial-gradient(120% 70% at 50% 0%, color-mix(in srgb, #da0081 10%, transparent), transparent 70%),
+        radial-gradient(120% 70% at 50% 0%, color-mix(in srgb, var(--color-primary) 12%, transparent), transparent 70%),
         var(--color-surface);
     }
     .qr-title { margin: 0; font-size: var(--text-xl); }
@@ -88,9 +88,9 @@ const SHARE_TEXT =
       border-radius: 999px;
       font-size: var(--text-sm);
       font-weight: 700;
-      background: color-mix(in srgb, #da0081 10%, var(--color-surface));
+      background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
       color: var(--color-text);
-      border: 1px solid color-mix(in srgb, #da0081 25%, var(--color-border));
+      border: 1px solid color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
     }
     .hint { margin: 0; color: var(--color-text-secondary); font-size: var(--text-sm); line-height: 1.5; }
     .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; width: 100%; }
@@ -108,8 +108,8 @@ const SHARE_TEXT =
       cursor: pointer;
       border: 1px solid transparent;
     }
-    .btn-primary { color: #fff; background: linear-gradient(135deg, #da0081, #f43f5e); }
-    .btn-primary:hover { filter: brightness(1.08); }
+    .btn-primary { color: var(--color-on-primary); background: var(--color-primary); }
+    .btn-primary:hover { background: var(--color-primary-hover); }
     .btn-ghost { color: var(--color-text); background: transparent; border-color: var(--color-border); }
     .btn-ghost:hover { background: color-mix(in srgb, var(--color-primary) 8%, transparent); }
     h2 { margin: 0 0 0.8rem; font-size: var(--text-lg); }
@@ -122,8 +122,8 @@ const SHARE_TEXT =
       height: 2rem;
       border-radius: 50%;
       font-weight: 800;
-      color: #fff;
-      background: linear-gradient(135deg, #da0081, #f43f5e);
+      color: var(--color-on-primary);
+      background: var(--color-primary);
     }
     .uses li { display: flex; gap: 0.6rem; line-height: 1.5; }
     .uses span[aria-hidden] { font-size: 1.2rem; line-height: 1.3; }
@@ -149,8 +149,8 @@ const SHARE_TEXT =
       text-align: center;
       padding: 1.1rem;
       border-radius: 1.1rem;
-      background: color-mix(in srgb, #f43f5e 10%, var(--color-surface));
-      border: 1px solid color-mix(in srgb, #f43f5e 30%, var(--color-border));
+      background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
+      border: 1px solid color-mix(in srgb, var(--color-primary) 30%, var(--color-border));
       line-height: 1.55;
     }
     .thanks p { margin: 0; }
