@@ -27,6 +27,7 @@ import { PushService } from '../core/notifications/push.service';
 import { pollWhileVisible } from '../core/rxjs/poll-while-visible';
 import { PlayFxService } from '../features/play/play-fx.service';
 import { PushPromptComponent } from './push-prompt.component';
+import { AssistantWidgetComponent } from './assistant-widget.component';
 import { SessionStore } from '../core/auth/session.store';
 import { resolveMediaUrl } from '../core/media/resolve-media-url';
 import { BRAND } from '../core/brand';
@@ -56,6 +57,7 @@ const SIDEBAR_COLLAPSED_KEY = 'cale.sidebar.collapsed';
     RouterOutlet,
     RouterLink,
     PushPromptComponent,
+    AssistantWidgetComponent,
     UiBadgeComponent,
     UiButtonComponent,
     UiIconComponent,

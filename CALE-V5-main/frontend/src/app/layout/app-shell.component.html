@@ -238,4 +238,7 @@
       <router-outlet />
     </main>
   </div>
+  @if (!mustChangePassword && (role === 'Student' || role === 'School')) {
+    <app-assistant-widget [role]="role" />
+  }
 </div>

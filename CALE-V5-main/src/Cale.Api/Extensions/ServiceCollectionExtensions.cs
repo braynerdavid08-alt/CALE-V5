@@ -159,6 +159,11 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<Cale.Api.Services.Admin.WeeklySummaryService>();
         services.AddHostedService<Cale.Api.Services.Media.LegacyUploadMigrationService>();
         services.AddScoped<Cale.Api.Services.AuthCookieService>();
+        services.Configure<Cale.Api.Services.Assistant.AssistantOptions>(
+            config.GetSection(Cale.Api.Services.Assistant.AssistantOptions.Section));
+        services.AddHttpClient<Cale.Api.Services.Assistant.IAssistantLlm, Cale.Api.Services.Assistant.AssistantLlmClient>();
+        services.AddScoped<Cale.Api.Services.Assistant.IAssistantToolbox, Cale.Api.Services.Assistant.AssistantToolbox>();
+        services.AddScoped<Cale.Api.Services.Assistant.AssistantService>();
         services.AddCaleAuth(config);
         services.AddCaleCors(config);
         return builder;

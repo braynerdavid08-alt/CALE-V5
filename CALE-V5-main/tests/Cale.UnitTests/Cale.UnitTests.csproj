@@ -34,6 +34,7 @@
     <ProjectReference Include="..\..\src\Cale.Modules.LiveClassroom\Cale.Modules.LiveClassroom.csproj" />
     <ProjectReference Include="..\..\src\Cale.Modules.GameShow\Cale.Modules.GameShow.csproj" />
     <ProjectReference Include="..\..\src\Cale.Modules.TheoreticalTraining\Cale.Modules.TheoreticalTraining.csproj" />
+    <ProjectReference Include="..\..\src\Cale.Api\Cale.Api.csproj" />
   </ItemGroup>
 
 </Project>
