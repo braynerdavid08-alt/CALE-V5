@@ -40,7 +40,7 @@
         <p class="xe-text xe-muted">No se han hecho cambios a mano.</p>
       } @else {
         <ul>
-          @for (a of h.history; track a.id) {
+          @for (a of (showAllHistory() ? h.history : h.history.slice(0, 3)); track a.id) {
             <li>
               <div class="hist-top">
                 <strong>{{ categoryLabel(a.category) }}: {{ hoursLabel(a.previousHours) }} → {{ hoursLabel(a.newHours) }}</strong>
@@ -51,6 +51,11 @@
             </li>
           }
         </ul>
+        @if (h.history.length > 3) {
+          <button type="button" class="xe-btn hist-more" (click)="showAllHistory.set(!showAllHistory())">
+            {{ showAllHistory() ? 'Ver menos' : 'Ver todos (' + h.history.length + ')' }}
+          </button>
+        }
       }
     </div>
   }

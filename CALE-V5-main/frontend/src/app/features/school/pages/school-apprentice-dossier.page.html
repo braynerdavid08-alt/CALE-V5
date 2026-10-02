@@ -1,9 +1,4 @@
 <div class="school-page school-page--wide dossier">
-  <ui-page-header
-    eyebrow="Escuela"
-    title="Expediente"
-    subtitle="Vista unificada: matrícula, horas, pagos, examen y práctica." />
-
   <div class="toolbar">
     <ui-button routerLink="/school/apprentices" type="button" variant="secondary">← Estudiantes</ui-button>
     <ui-button type="button" variant="ghost" (click)="reload()" [disabled]="loading()">
@@ -24,8 +19,9 @@
       @let cartera = d.cartera;
       @let abonos = cartera?.abonos ?? [];
 
-      <header class="hero school-card">
-        <div>
+      <header class="hero page-banner">
+        <div class="hero-main">
+          <p class="eyebrow">Expediente del estudiante</p>
           <h1>{{ p.studentName }}</h1>
           <p class="muted">
             {{ p.documentType || 'Doc.' }} {{ p.documentNumber || '—' }}
@@ -66,7 +62,7 @@
       </section>
 
       <div class="grid">
-        <section class="school-card">
+        <section class="school-card formacion-card">
           <h2>Formación</h2>
           <ul class="facts">
             <li [class.ok]="t.theoryHoursComplete">
@@ -200,7 +196,7 @@
           </div>
         </section>
 
-        <section class="school-card">
+        <section class="school-card contact-card">
           <h2>Contacto y horario</h2>
           <ul class="facts">
             <li>Celular: {{ p.phone || '—' }}</li>

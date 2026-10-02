@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -204,6 +204,17 @@ export class SchoolApprenticesPage implements OnInit {
         this.detailError.set(mapApiError(err));
       }
     });
+  }
+
+  closeDetail(): void {
+    this.selected.set(null);
+    this.detail.set(null);
+    this.detailError.set(null);
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.selected()) this.closeDetail();
   }
 
   save(): void {

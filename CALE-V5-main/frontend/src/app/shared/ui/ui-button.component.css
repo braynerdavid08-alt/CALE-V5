@@ -1,4 +1,5 @@
 :host { display: inline-flex; }
+:host > .btn { flex: 1 1 auto; }
 
 .btn {
   display: inline-flex;
