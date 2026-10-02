@@ -116,6 +116,40 @@ public sealed class AssistantServiceTests
         Assert.Equal("sig123", echoed!["extra_content"]!["google"]!["thought_signature"]!.GetValue<string>());
     }
 
+    [Fact]
+    public async Task Quick_questions_skip_the_provider_and_spend_no_messages()
+    {
+        var llm = new ScriptedLlm();
+        var service = Create(llm, new FakeToolbox(), o => o.DailyMessagesPerUser = 5);
+
+        var result = await service.QuickAsync(Student, "progreso", default);
+
+        Assert.StartsWith("Horas 10/20", result.Reply);
+        Assert.Equal(5, result.RemainingToday);
+        Assert.Equal(0, llm.Calls);
+        await Assert.ThrowsAsync<Cale.BuildingBlocks.Domain.Exceptions.DomainException>(
+            () => service.QuickAsync(Student, "resumen", default));
+    }
+
+    [Fact]
+    public void Clean_for_user_hides_internal_ids()
+    {
+        const string text = """
+            clase_id=5 | lunes 2026-10-05 07:00-09:00 | Normas | cupos 3/20 | YA RESERVADA reserva_id=9
+            Listos para examen: Ana (estudiante_id=12), Juan (estudiante_id=13)
+            Examen teórico: autorizado=sí, aprobado=no.
+            Cita de examen cita_id=4: 2026-10-05 11:00.
+            """;
+
+        var clean = AssistantService.CleanForUser(text);
+
+        Assert.DoesNotContain("_id", clean);
+        Assert.Contains("lunes 2026-10-05 07:00-09:00 | Normas | cupos 3/20 | ya la tienes reservada", clean);
+        Assert.Contains("Listos para examen: Ana, Juan", clean);
+        Assert.Contains("autorizado: sí, aprobado: no", clean);
+        Assert.Contains("Cita de examen: 2026-10-05 11:00.", clean);
+    }
+
     private static AssistantService Create(
         IAssistantLlm llm,
         IAssistantToolbox toolbox,

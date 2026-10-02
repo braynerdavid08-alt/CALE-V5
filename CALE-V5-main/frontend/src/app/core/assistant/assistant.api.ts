@@ -41,6 +41,10 @@ export class AssistantApi {
     return this.http.post<AssistantChatResult>(`${this.base}/chat`, { messages });
   }
 
+  quick(key: string) {
+    return this.http.get<AssistantChatResult>(`${this.base}/quick/${encodeURIComponent(key)}`);
+  }
+
   confirm(actionId: string) {
     return this.http.post<AssistantActionResult>(`${this.base}/actions/${actionId}/confirm`, {});
   }

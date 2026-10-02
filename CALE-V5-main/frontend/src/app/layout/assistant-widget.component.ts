@@ -8,18 +8,24 @@ import {
 import { BRAND } from '../core/brand';
 import { mapApiError } from '../core/http/map-api-error';
 
-const SUGGESTIONS: Record<string, string[]> = {
+interface QuickQuestion {
+  key: string;
+  label: string;
+}
+
+/** Answered from the database without the AI, so they don't spend messages. */
+const QUICK: Record<string, QuickQuestion[]> = {
   Student: [
-    '¿Cuántas horas me faltan?',
-    'Quiero reservar una clase teórica',
-    '¿Hay cupos para el examen?',
-    'Quiero una clase de manejo'
+    { key: 'progreso', label: '¿Cuántas horas me faltan?' },
+    { key: 'clases_teoricas', label: 'Clases teóricas de la semana' },
+    { key: 'cupos_examen', label: 'Cupos para el examen' },
+    { key: 'clases_manejo', label: 'Clases de manejo' }
   ],
   School: [
-    '¿Cómo van mis estudiantes?',
-    '¿Quiénes están listos para el examen?',
-    '¿Qué hay en la agenda de esta semana?',
-    '¿Quiénes tienen saldo pendiente?'
+    { key: 'resumen', label: '¿Cómo van mis estudiantes?' },
+    { key: 'listos_examen', label: 'Listos para el examen' },
+    { key: 'agenda', label: 'Agenda de esta semana' },
+    { key: 'con_saldo', label: 'Con saldo pendiente' }
   ]
 };
 
@@ -46,12 +52,9 @@ const SUGGESTIONS: Record<string, string[]> = {
 
           <div class="messages" #scroller aria-live="polite">
             @if (!messages().length) {
-              <p class="bubble bot">Hola. ¿Qué necesitas hoy? Puedes escribirme o tocar una opción.</p>
-              <div class="chips">
-                @for (s of suggestions; track s) {
-                  <button type="button" (click)="send(s)" [disabled]="busy()">{{ s }}</button>
-                }
-              </div>
+              <p class="bubble bot">
+                Hola. ¿Qué necesitas hoy? Toca una consulta rápida (no gasta mensajes) o escríbeme para reservar, cancelar o agendar.
+              </p>
             }
             @for (m of messages(); track $index) {
               <p class="bubble" [class.bot]="m.role === 'assistant'" [class.me]="m.role === 'user'">{{ m.content }}</p>
@@ -73,6 +76,13 @@ const SUGGESTIONS: Record<string, string[]> = {
             }
           </div>
 
+          @if (quick.length) {
+            <div class="chips" aria-label="Consultas rápidas">
+              @for (q of quick; track q.key) {
+                <button type="button" (click)="ask(q)" [disabled]="busy()">{{ q.label }}</button>
+              }
+            </div>
+          }
           <form class="composer" (ngSubmit)="send(draft)">
             <textarea
               rows="2"
@@ -117,8 +127,9 @@ const SUGGESTIONS: Record<string, string[]> = {
     .me { align-self: flex-end; background: color-mix(in srgb, var(--color-primary) 22%, transparent); }
     .typing { opacity: 0.75; font-style: italic; }
     .err { align-self: stretch; max-width: none; color: var(--color-danger, #f87171); border: 1px solid currentColor; }
-    .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-    .chips button { min-height: 2.75rem; padding: 0.4rem 0.85rem; border-radius: 999px; border: 1px solid var(--color-border); background: transparent; color: inherit; font: inherit; cursor: pointer; text-align: left; }
+    .chips { display: flex; gap: 0.5rem; overflow-x: auto; padding: 0.6rem 0.75rem 0; border-top: 1px solid var(--color-border); scrollbar-width: thin; }
+    .chips button { flex: none; min-height: 2.75rem; padding: 0.4rem 0.85rem; border-radius: 999px; border: 1px solid var(--color-border); background: transparent; color: inherit; font: inherit; cursor: pointer; white-space: nowrap; }
+    .chips + .composer { border-top: 0; }
     .action { border: 2px solid var(--color-primary); border-radius: 0.9rem; padding: 0.85rem; display: grid; gap: 0.65rem; }
     .action p { margin: 0; line-height: 1.45; font-size: 1.02rem; }
     .action-btns { display: flex; gap: 0.5rem; }
@@ -152,8 +163,8 @@ export class AssistantWidgetComponent implements OnInit {
   readonly remaining = signal(0);
   draft = '';
 
-  get suggestions(): string[] {
-    return SUGGESTIONS[this.role ?? ''] ?? [];
+  get quick(): QuickQuestion[] {
+    return QUICK[this.role ?? ''] ?? [];
   }
 
   ngOnInit(): void {
@@ -196,6 +207,27 @@ export class AssistantWidgetComponent implements OnInit {
         this.busy.set(false);
         this.messages.update((list) => [...list, { role: 'assistant', content: r.reply }]);
         this.action.set(r.action);
+        this.remaining.set(r.remainingToday);
+        this.scrollSoon();
+      },
+      error: (err) => {
+        this.busy.set(false);
+        this.error.set(mapApiError(err));
+        this.scrollSoon();
+      }
+    });
+  }
+
+  ask(q: QuickQuestion): void {
+    if (this.busy()) return;
+    this.error.set(null);
+    this.messages.update((list) => [...list, { role: 'user', content: q.label }]);
+    this.busy.set(true);
+    this.scrollSoon();
+    this.api.quick(q.key).subscribe({
+      next: (r) => {
+        this.busy.set(false);
+        this.messages.update((list) => [...list, { role: 'assistant', content: r.reply }]);
         this.remaining.set(r.remainingToday);
         this.scrollSoon();
       },

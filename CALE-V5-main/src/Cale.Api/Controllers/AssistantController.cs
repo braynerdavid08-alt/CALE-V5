@@ -31,6 +31,10 @@ public sealed class AssistantController : ControllerBase
     public async Task<IActionResult> Chat(AssistantChatRequest request, CancellationToken ct) =>
         Ok(await _assistant.ChatAsync(await CurrentAsync(ct), request.Messages ?? [], ct));
 
+    [HttpGet("quick/{key}")]
+    public async Task<IActionResult> Quick(string key, CancellationToken ct) =>
+        Ok(await _assistant.QuickAsync(await CurrentAsync(ct), key, ct));
+
     [HttpPost("actions/{id}/confirm")]
     public async Task<IActionResult> Confirm(string id, CancellationToken ct) =>
         Ok(await _assistant.ConfirmAsync(await CurrentAsync(ct), id, ct));
