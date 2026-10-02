@@ -17,6 +17,8 @@ Fecha: 30 sep 2026. Contexto: la app pasó a ser gratis para todos (PR #129), co
 - Migración automática al arrancar: las imágenes `/uploads/...` de preguntas y respuestas se copian a la base de datos si el archivo aún existe. Las que ya se perdieron quedan listadas en el log como advertencia.
 - Aviso crítico en el log si `Jwt:Key` es la clave de ejemplo o tiene menos de 32 caracteres.
 - Corregida la prueba de arquitectura que fallaba (`SchoolJoinRequestHandler` usaba EF Core directamente).
+- **3.1** Página *Contenido → Señal relámpago*: preguntas en el juego, avance por examen de señales y lista de preguntas que no entran (sin imagen, sin clave, sin una única respuesta correcta) con botón «Editar».
+- **3.2** Contador de solicitudes pendientes en el menú del administrador (se actualiza cada minuto y al aceptar o rechazar).
 
 **Pendiente de verificar en Render (manual):** que exista la variable `Jwt__Key` con un secreto propio, y revisar en el log si aparece la advertencia de imágenes `/uploads` perdidas.
 

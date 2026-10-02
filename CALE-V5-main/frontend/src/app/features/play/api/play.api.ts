@@ -216,6 +216,29 @@ export interface InactiveStudent {
   daysInactive?: number | null;
 }
 
+export interface SignsExamReport {
+  examId: number;
+  name: string;
+  adminOwned: boolean;
+  questions: number;
+  inGame: number;
+  notOfficial: number;
+}
+
+export interface SignsIssue {
+  questionId: number;
+  text: string;
+  examName: string;
+  reason: string;
+}
+
+export interface SignsReport {
+  inGame: number;
+  candidates: number;
+  exams: SignsExamReport[];
+  issues: SignsIssue[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class PlayApi {
   private readonly http = inject(HttpClient);
@@ -255,6 +278,10 @@ export class PlayApi {
 
   signsQuestions() {
     return this.http.get<PlayQuestion[]>(`${this.base}/signs/questions`);
+  }
+
+  signsReport() {
+    return this.http.get<SignsReport>(`${env.apiUrl}/api/admin/play/signs-report`);
   }
 
   checkSignsQuestion(questionId: number, optionId: number) {

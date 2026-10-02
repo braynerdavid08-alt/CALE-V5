@@ -51,6 +51,9 @@
                   (click)="toggleGroup(item, $event)">
                   <ui-icon [name]="item.icon" />
                   <span class="nav-label">{{ item.label }}</span>
+                  @if (groupBadge(item); as n) {
+                    <span class="nav-count" [attr.aria-label]="n + ' pendientes'">{{ n }}</span>
+                  }
                   <ui-icon name="chevron" class="nav-chevron" />
                 </button>
                 <div class="nav-sub">
@@ -62,6 +65,9 @@
                       [class.on]="isChildOn(child)"
                       [attr.title]="child.label">
                       <span class="nav-label">{{ child.label }}</span>
+                      @if (badgeCount(child.badge); as n) {
+                        <span class="nav-count" [attr.aria-label]="n + ' pendientes'">{{ n }}</span>
+                      }
                     </a>
                   }
                 </div>

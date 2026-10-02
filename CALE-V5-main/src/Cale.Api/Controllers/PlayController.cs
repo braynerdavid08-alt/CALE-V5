@@ -1,5 +1,6 @@
 using Cale.Api.Extensions;
 using Cale.Api.Services.Play;
+using Cale.BuildingBlocks.Domain.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -107,6 +108,19 @@ public sealed class PlayController : ControllerBase
         _duels.Cancel(UserId, code);
         return NoContent();
     }
+}
+
+[ApiController]
+[Authorize(Roles = Roles.Admin)]
+[Route("api/admin/play")]
+public sealed class AdminPlayController : ControllerBase
+{
+    private readonly PlayService _play;
+
+    public AdminPlayController(PlayService play) => _play = play;
+
+    [HttpGet("signs-report")]
+    public Task<SignsReportDto> SignsReport(CancellationToken ct) => _play.GetSignsReportAsync(ct);
 }
 
 [ApiController]

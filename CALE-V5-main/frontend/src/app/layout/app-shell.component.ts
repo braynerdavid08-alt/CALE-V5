@@ -35,7 +35,9 @@ import { UiButtonComponent } from '../shared/ui/ui-button.component';
 import { UiIconComponent } from '../shared/ui/ui-icon.component';
 import { UiMotivationComponent } from '../shared/ui/ui-motivation.component';
 import { UiThemeToggleComponent } from '../shared/ui/ui-theme-toggle.component';
+import { RequestsApi } from '../features/requests/api/requests.api';
 import {
+  NavBadge,
   NavChild,
   NavItem,
   navChildActive,
@@ -70,7 +72,9 @@ export class AppShellComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly push = inject(PushService);
   private readonly fx = inject(PlayFxService);
+  private readonly requestsApi = inject(RequestsApi);
 
+  readonly pendingRequests = this.requestsApi.pendingCount;
   readonly menuOpen = signal(false);
   readonly panelOpen = signal(false);
   readonly unread = signal(0);
@@ -138,6 +142,11 @@ export class AppShellComponent implements OnInit {
     )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe();
+    if (this.role === 'Admin') {
+      pollWhileVisible(60000, () => this.fetchPendingRequests())
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe();
+    }
     this.router.events
       .pipe(
         filter((e) => e instanceof NavigationEnd),
@@ -150,7 +159,23 @@ export class AppShellComponent implements OnInit {
         this.url.set(nextUrl);
         this.syncOpenGroups(nextUrl);
         this.refreshUnread();
+        if (this.role === 'Admin') {
+          this.fetchPendingRequests().subscribe();
+        }
       });
+  }
+
+  badgeCount(badge: NavBadge | undefined): number {
+    return badge === 'pendingRequests' ? this.pendingRequests() : 0;
+  }
+
+  /** Sum of child counters, shown on the collapsed group header. */
+  groupBadge(item: NavItem): number {
+    return (item.children ?? []).reduce((sum, c) => sum + this.badgeCount(c.badge), 0);
+  }
+
+  private fetchPendingRequests() {
+    return this.requestsApi.adminCounts().pipe(catchError(() => of(null)));
   }
 
   isNavOn(item: NavItem): boolean {

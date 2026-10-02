@@ -165,42 +165,17 @@ public sealed partial class PlayService
             return cached;
         }
 
-        var adminIds = (await _db.Set<User>().AsNoTracking()
-                .Where(u => u.Role == Roles.Admin)
-                .Select(u => u.Id)
-                .ToListAsync(ct))
-            .ToHashSet();
-        var exams = (await _db.Set<Exam>().AsNoTracking()
-                .Where(e => e.IsActive)
-                .Select(e => new { e.Id, e.Name, e.BankId, e.CreatedById })
-                .ToListAsync(ct))
-            .Where(e => SignsExamKeywords.Any(k => e.Name.Contains(k, StringComparison.OrdinalIgnoreCase)))
+        var candidates = (await SignsCandidatesAsync(ct))
+            .SelectMany(e => e.QuestionIds)
+            .Distinct()
             .ToList();
-        if (exams.Count == 0)
+        if (candidates.Count == 0)
         {
             return [];
         }
 
-        var examIds = exams.Select(e => e.Id).ToList();
-        var picked = await _db.Set<ExamQuestion>().AsNoTracking()
-            .Where(x => examIds.Contains(x.ExamId))
-            .Select(x => new { x.ExamId, x.QuestionId })
-            .ToListAsync(ct);
-        var examsWithList = picked.Select(x => x.ExamId).ToHashSet();
-        var adminExamIds = exams.Where(e => adminIds.Contains(e.CreatedById)).Select(e => e.Id).ToHashSet();
-
-        var trustedQuestionIds = picked.Where(x => adminExamIds.Contains(x.ExamId)).Select(x => x.QuestionId).Distinct().ToList();
-        var otherQuestionIds = picked.Where(x => !adminExamIds.Contains(x.ExamId)).Select(x => x.QuestionId).Distinct().ToList();
-        var bankOnly = exams.Where(e => e.BankId is not null && !examsWithList.Contains(e.Id)).ToList();
-        var trustedBankIds = bankOnly.Where(e => adminExamIds.Contains(e.Id)).Select(e => e.BankId!.Value).Distinct().ToList();
-        var otherBankIds = bankOnly.Where(e => !adminExamIds.Contains(e.Id)).Select(e => e.BankId!.Value).Distinct().ToList();
-        var officialBanks = await OfficialBankIdsAsync(ct);
-
         var ids = await _db.Set<Question>().AsNoTracking()
-            .Where(q => q.IsActive
-                && (trustedQuestionIds.Contains(q.Id)
-                    || trustedBankIds.Contains(q.BankId)
-                    || ((otherQuestionIds.Contains(q.Id) || otherBankIds.Contains(q.BankId)) && officialBanks.Contains(q.BankId)))
+            .Where(q => candidates.Contains(q.Id)
                 && ((q.ImageUrl != null && q.ImageUrl != "") || q.Options.Any(o => o.ImageUrl != null && o.ImageUrl != ""))
                 && (q.Explanation == null || !q.Explanation.Contains("Importada sin clave"))
                 && q.Options.Count() >= 2
@@ -213,6 +188,137 @@ public sealed partial class PlayService
         }
 
         return ids;
+    }
+
+    private sealed record SignsExamCandidates(
+        int ExamId,
+        string Name,
+        bool AdminOwned,
+        List<int> QuestionIds,
+        int NotOfficial);
+
+    /// <summary>
+    /// Active questions of each sign exam that the admin controls (see <see cref="SignsQuestionIdsAsync"/>),
+    /// before the image and answer-key checks.
+    /// </summary>
+    private async Task<List<SignsExamCandidates>> SignsCandidatesAsync(CancellationToken ct)
+    {
+        var adminIds = (await _db.Set<User>().AsNoTracking()
+                .Where(u => u.Role == Roles.Admin)
+                .Select(u => u.Id)
+                .ToListAsync(ct))
+            .ToHashSet();
+        var exams = (await _db.Set<Exam>().AsNoTracking()
+                .Where(e => e.IsActive)
+                .Select(e => new { e.Id, e.Name, e.BankId, e.CreatedById })
+                .ToListAsync(ct))
+            .Where(e => SignsExamKeywords.Any(k => e.Name.Contains(k, StringComparison.OrdinalIgnoreCase)))
+            .OrderBy(e => e.Name)
+            .ToList();
+        if (exams.Count == 0)
+        {
+            return [];
+        }
+
+        var examIds = exams.Select(e => e.Id).ToList();
+        var picked = await _db.Set<ExamQuestion>().AsNoTracking()
+            .Where(x => examIds.Contains(x.ExamId))
+            .Select(x => new { x.ExamId, x.QuestionId })
+            .ToListAsync(ct);
+        var listed = picked
+            .GroupBy(x => x.ExamId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.QuestionId).ToHashSet());
+        var pickedIds = picked.Select(x => x.QuestionId).Distinct().ToList();
+        var bankIds = exams
+            .Where(e => e.BankId is not null && !listed.ContainsKey(e.Id))
+            .Select(e => e.BankId!.Value)
+            .Distinct()
+            .ToList();
+
+        var questions = await _db.Set<Question>().AsNoTracking()
+            .Where(q => q.IsActive && (pickedIds.Contains(q.Id) || bankIds.Contains(q.BankId)))
+            .Select(q => new { q.Id, q.BankId })
+            .ToListAsync(ct);
+        var officialBanks = (await OfficialBankIdsAsync(ct)).ToHashSet();
+
+        var result = new List<SignsExamCandidates>(exams.Count);
+        foreach (var exam in exams)
+        {
+            var own = listed.TryGetValue(exam.Id, out var set)
+                ? questions.Where(q => set.Contains(q.Id)).ToList()
+                : questions.Where(q => q.BankId == exam.BankId).ToList();
+            var adminOwned = adminIds.Contains(exam.CreatedById);
+            var allowed = adminOwned ? own : own.Where(q => officialBanks.Contains(q.BankId)).ToList();
+            result.Add(new SignsExamCandidates(
+                exam.Id,
+                exam.Name,
+                adminOwned,
+                allowed.Select(q => q.Id).ToList(),
+                own.Count - allowed.Count));
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Admin view of Señal relámpago: how many questions are playable per sign exam and which
+    /// allowed questions are left out (no image, no single correct answer, imported without key).
+    /// </summary>
+    public async Task<SignsReportDto> GetSignsReportAsync(CancellationToken ct)
+    {
+        var exams = await SignsCandidatesAsync(ct);
+        var candidateIds = exams.SelectMany(e => e.QuestionIds).Distinct().ToList();
+        var inGame = (await SignsQuestionIdsAsync(ct)).ToHashSet();
+        var leftOut = candidateIds.Where(id => !inGame.Contains(id)).ToList();
+
+        var details = await _db.Set<Question>().AsNoTracking()
+                .Where(q => leftOut.Contains(q.Id))
+                .Select(q => new
+                {
+                    q.Id,
+                    q.Text,
+                    HasImage = (q.ImageUrl != null && q.ImageUrl != "")
+                        || q.Options.Any(o => o.ImageUrl != null && o.ImageUrl != ""),
+                    NoKey = q.Explanation != null && q.Explanation.Contains("Importada sin clave"),
+                    Options = q.Options.Count(),
+                    Correct = q.Options.Count(o => o.IsCorrect)
+                })
+                .ToListAsync(ct);
+
+        var examByQuestion = new Dictionary<int, string>();
+        foreach (var exam in exams)
+        {
+            foreach (var id in exam.QuestionIds)
+            {
+                examByQuestion.TryAdd(id, exam.Name);
+            }
+        }
+
+        var issues = details
+            .Select(d => new SignsIssueDto(
+                d.Id,
+                d.Text,
+                examByQuestion.GetValueOrDefault(d.Id, ""),
+                !d.HasImage ? "Sin imagen"
+                    : d.NoKey ? "Importada sin clave"
+                    : d.Options < 2 ? "Menos de 2 opciones"
+                    : "Sin una única respuesta correcta"))
+            .OrderBy(i => i.ExamName)
+            .ThenBy(i => i.QuestionId)
+            .ToList();
+
+        return new SignsReportDto(
+            inGame.Count,
+            candidateIds.Count,
+            exams.Select(e => new SignsExamReportDto(
+                    e.ExamId,
+                    e.Name,
+                    e.AdminOwned,
+                    e.QuestionIds.Count,
+                    e.QuestionIds.Count(inGame.Contains),
+                    e.NotOfficial))
+                .ToList(),
+            issues);
     }
 
     public async Task<IReadOnlyList<PlayQuestionDto>> GetSignsQuestionsAsync(int userId, CancellationToken ct)
