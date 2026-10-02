@@ -20,7 +20,7 @@ import { PlayFxService } from '../play-fx.service';
         {{ fx.muted() ? '🔇 Sonido apagado' : '🔊 Sonido activado' }}
       </button>
     </header>
-    <div class="head">
+    <div class="head page-banner">
       <h1>{{ title }}</h1>
       @if (subtitle) {
         <p>{{ subtitle }}</p>

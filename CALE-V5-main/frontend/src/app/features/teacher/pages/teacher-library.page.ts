@@ -9,6 +9,7 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiEmptyComponent } from '../../../shared/ui/ui-empty.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiIconComponent } from '../../../shared/ui/ui-icon.component';
+import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
 import { UiSuccessComponent } from '../../../shared/ui/ui-success.component';
 import { ExamDto } from '../../student/api/exam.api';
 import { GroupDto } from '../../student/api/student.api';
@@ -23,6 +24,7 @@ type ViewMode = 'grid' | 'list';
   imports: [
     DatePipe,
     FormsModule,
+    UiPageHeaderComponent,
     UiBadgeComponent,
     UiButtonComponent,
     UiEmptyComponent,

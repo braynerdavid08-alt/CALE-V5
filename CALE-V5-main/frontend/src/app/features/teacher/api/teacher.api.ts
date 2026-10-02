@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map, switchMap } from 'rxjs';
 import { env } from '../../../core/config/env';
 import { compressImage } from '../../../core/media/compress-image';
+import { ResultAttempt } from '../../../shared/ui/ui-results-by-student.component';
 import { ExamDto } from '../../student/api/exam.api';
 import { ActivityDto, AnnouncementDto, GroupDto } from '../../student/api/student.api';
 
@@ -428,15 +429,7 @@ export class TeacherApi {
   }
 
   results() {
-    return this.http.get<
-      Array<{
-        attemptId: number;
-        userName: string;
-        percent: number;
-        passed: boolean;
-        mode: string;
-      }>
-    >(`${this.base}/api/teacher/results`);
+    return this.http.get<ResultAttempt[]>(`${this.base}/api/teacher/results`);
   }
 
   banks(activeOnly = false, includeThemes = false) {
