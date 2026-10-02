@@ -138,10 +138,13 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<UploadStorage>();
         services.AddScoped<ILiveSessionBroadcaster, LiveSessionBroadcaster>();
         services.AddScoped<Cale.Modules.GameShow.Application.Abstractions.IGameShowBroadcaster, GameShowBroadcaster>();
+        var mediaCacheMb = Math.Max(16, config.GetValue("Cache:MediaMegabytes", 96));
         services.AddMemoryCache(options =>
         {
-            // Presentation media cache entries set Size = byte length.
-            options.SizeLimit = 400L * 1024 * 1024;
+            // Presentation media cache entries set Size = byte length; small hosts (512 MB)
+            // get recycled if this grows close to the container limit.
+            options.SizeLimit = mediaCacheMb * 1024L * 1024;
+            options.CompactionPercentage = 0.25;
         });
         services.AddScoped<Cale.Api.Services.PilotMetricsService>();
         services.AddScoped<Cale.Api.Services.HomepageService>();
