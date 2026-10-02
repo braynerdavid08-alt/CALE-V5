@@ -7,6 +7,9 @@ import { RouterLink } from '@angular/router';
   imports: [RouterLink],
   template: `<a routerLink="/" class="back-home">← Volver al inicio</a>`,
   styles: `
+    :host {
+      display: contents;
+    }
     .back-home {
       position: absolute;
       top: var(--spacing-md);
