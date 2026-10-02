@@ -1,7 +1,7 @@
 <div class="school-page school-page--wide hoy">
   <ui-page-header
     eyebrow="Escuela"
-    title="Asistencia del día"
+    title="Asistencia de hoy"
     subtitle="Tablero por aula. Solo Presente o Tarde suma horas de teoría/taller." />
 
   <div class="toolbar">
@@ -11,7 +11,7 @@
     </label>
     <ui-button type="button" variant="secondary" (click)="goToday()">Hoy</ui-button>
     <ui-button type="button" variant="ghost" (click)="reload()" [disabled]="loading()">Actualizar</ui-button>
-    <ui-button routerLink="/school/training" type="button" variant="ghost">Programación teórica</ui-button>
+    <ui-button routerLink="/school/training" type="button" variant="ghost">Clases teóricas</ui-button>
   </div>
 
   <ui-error [message]="error()" />

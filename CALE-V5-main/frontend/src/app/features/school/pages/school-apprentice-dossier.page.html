@@ -5,7 +5,7 @@
     subtitle="Vista unificada: matrícula, horas, pagos, examen y práctica." />
 
   <div class="toolbar">
-    <ui-button routerLink="/school/apprentices" type="button" variant="secondary">← Aprendices</ui-button>
+    <ui-button routerLink="/school/apprentices" type="button" variant="secondary">← Estudiantes</ui-button>
     <ui-button type="button" variant="ghost" (click)="reload()" [disabled]="loading()">
       Actualizar
     </ui-button>
@@ -50,7 +50,7 @@
       </header>
 
       <section class="pipeline school-card" aria-label="Pipeline de formación">
-        <h2>Camino del aprendiz</h2>
+        <h2>Camino del estudiante</h2>
         <ol class="steps">
           @for (step of pipeline(); track step.id) {
             <li [attr.data-state]="step.state">
@@ -166,7 +166,7 @@
             @if (abonos.length === 0) {
               <p class="muted tip">
                 Aún no hay movimientos registrados. Los abonos nuevos quedan aquí;
-                el valor del curso se edita en Aprendices.
+                el valor del curso se edita en Estudiantes.
               </p>
             } @else {
               <ul class="abonos">
@@ -213,7 +213,7 @@
         <section class="school-card timeline-card">
           <h2>Línea de tiempo</h2>
           @if (!timeline().length) {
-            <p class="muted">Aún no hay eventos registrados para este aprendiz.</p>
+            <p class="muted">Aún no hay eventos registrados para este estudiante.</p>
           } @else {
             <ol class="timeline">
               @for (item of timeline(); track item.title + item.at) {

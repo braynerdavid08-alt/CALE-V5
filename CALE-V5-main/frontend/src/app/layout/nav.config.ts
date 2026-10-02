@@ -99,46 +99,27 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
   }
 
   if (role === 'School') {
+    // Flat menu with everyday words: school owners are often older and less used to apps.
     return [
       { label: 'Inicio', path: '/school', icon: 'home', exact: true },
+      { label: 'Estudiantes', path: '/school/apprentices', icon: 'graduate', exact: true },
+      { label: 'Asistencia de hoy', path: '/school/attendance', icon: 'list', exact: true },
+      { label: 'Clases teóricas', path: '/school/training', icon: 'clock', exact: true },
+      { label: 'Exámenes', path: '/school/theory-exams', icon: 'exam', exact: true },
+      { label: 'Clases de manejo', path: '/school/practical', icon: 'play', exact: true },
+      { label: 'Resultados', path: '/school/results', icon: 'chart', exact: true },
+      { label: 'Instructores y usuarios', path: '/school/users', icon: 'instructor', exact: true },
+      ...(free ? [] : [{ label: 'Pagos y membresía', path: '/school/membership', icon: 'card', exact: true }]),
       {
-        label: 'Operaciones',
-        icon: 'graduate',
+        label: 'Más opciones',
+        icon: 'grid',
         children: [
-          { label: 'Aprendices', path: '/school/apprentices', exact: true },
-          { label: 'Resultados', path: '/school/results', exact: true },
-          { label: 'Importar datos', path: '/school/import', exact: true }
+          { label: 'Examen en curso', path: '/school/exam-control', exact: true },
+          { label: 'Vehículos de hoy', path: '/school/practical-fleet', exact: true },
+          { label: 'Importar estudiantes', path: '/school/import', exact: true },
+          { label: 'Ver preguntas', path: '/school/questions', exact: true },
+          { label: 'Ver bancos de preguntas', path: '/school/banks', exact: true }
         ]
-      },
-      {
-        label: 'Formación',
-        icon: 'exam',
-        children: [
-          { label: 'Asistencia del día', path: '/school/attendance', exact: true },
-          { label: 'Programación teórica', path: '/school/training', exact: true },
-          { label: 'Exámenes teóricos', path: '/school/theory-exams', exact: true },
-          { label: 'Sala de control examen', path: '/school/exam-control', exact: true },
-          { label: 'Práctica vehicular', path: '/school/practical', exact: true },
-          { label: 'Flota práctica (hoy)', path: '/school/practical-fleet', exact: true }
-        ]
-      },
-      {
-        label: 'Catálogo',
-        icon: 'book',
-        children: [
-          { label: 'Preguntas (lectura)', path: '/school/questions', exact: true },
-          { label: 'Bancos (lectura)', path: '/school/banks', exact: true }
-        ]
-      },
-      {
-        label: 'Administración',
-        icon: 'settings',
-        children: free
-          ? [{ label: 'Usuarios', path: '/school/users', exact: true }]
-          : [
-              { label: 'Usuarios', path: '/school/users', exact: true },
-              { label: 'Pagos y membresía', path: '/school/membership', exact: true }
-            ]
       },
       REQUESTS_ITEM,
       ...(free ? [DONATE_ITEM] : [])

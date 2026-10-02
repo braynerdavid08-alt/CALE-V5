@@ -131,6 +131,36 @@
   }
 }
 
+/* "Letra grande": everything is in rem, so the root size scales text, spacing and controls. */
+html[data-size='large'] {
+  font-size: 112.5%;
+  --text-xs: 0.9rem;
+  --text-sm: 1rem;
+  --text-base: 1.0625rem;
+  --text-md: 1.125rem;
+  --control-height: 3rem;
+  --sidebar-width: 300px;
+}
+
+html[data-size='large'][data-theme='light'],
+html[data-size='large']:not([data-theme]) {
+  --color-text: #0b1720;
+  --color-text-secondary: #2f3f4b;
+  --color-border: #b9c6d2;
+  --color-sidebar-text: #dbe5ec;
+}
+
+html[data-size='large'][data-theme='dark'] {
+  --color-text: #f5f8fa;
+  --color-text-secondary: #cad6df;
+  --color-border: #3b4d5c;
+  --color-sidebar-text: #d6e1e9;
+}
+
+@media (max-width: 900px) {
+  html[data-size='large'] { --sidebar-width: 0px; }
+}
+
 /* Notch / home indicator — PWA & mobile browsers */
 @supports (padding: env(safe-area-inset-top)) {
   :root,

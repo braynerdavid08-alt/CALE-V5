@@ -35,6 +35,8 @@ import { UiButtonComponent } from '../shared/ui/ui-button.component';
 import { UiIconComponent } from '../shared/ui/ui-icon.component';
 import { UiMotivationComponent } from '../shared/ui/ui-motivation.component';
 import { UiThemeToggleComponent } from '../shared/ui/ui-theme-toggle.component';
+import { UiTextSizeToggleComponent } from '../shared/ui/ui-text-size-toggle.component';
+import { TextSizeService } from '../core/theme/text-size.service';
 import { RequestsApi } from '../features/requests/api/requests.api';
 import {
   NavBadge,
@@ -57,7 +59,8 @@ const SIDEBAR_COLLAPSED_KEY = 'cale.sidebar.collapsed';
     UiButtonComponent,
     UiIconComponent,
     UiMotivationComponent,
-    UiThemeToggleComponent
+    UiThemeToggleComponent,
+    UiTextSizeToggleComponent
   ],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.css'
@@ -73,6 +76,7 @@ export class AppShellComponent implements OnInit {
   private readonly push = inject(PushService);
   private readonly fx = inject(PlayFxService);
   private readonly requestsApi = inject(RequestsApi);
+  private readonly textSize = inject(TextSizeService);
 
   readonly pendingRequests = this.requestsApi.pendingCount;
   readonly menuOpen = signal(false);
@@ -88,6 +92,11 @@ export class AppShellComponent implements OnInit {
   constructor() {
     effect(() => syncAppBadge(this.unread()));
     this.destroyRef.onDestroy(() => syncAppBadge(0));
+    effect(() => {
+      const user = this.session.user();
+      this.textSize.init(user?.id, user?.role);
+    }, { allowSignalWrites: true });
+    this.destroyRef.onDestroy(() => this.textSize.reset());
   }
 
   get role(): string | undefined {

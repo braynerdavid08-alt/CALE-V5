@@ -194,7 +194,7 @@ interface SchoolJoinRequestDto {
             </label>
 
             @if (form.controls.role.value === 'Student') {
-              <p class="hint">Expediente del aprendiz (queda listo en Aprendices):</p>
+              <p class="hint">Expediente del estudiante (queda listo en Estudiantes):</p>
               <label class="field">
                 Tipo de documento
                 <select formControlName="documentType">
@@ -583,7 +583,7 @@ export class SchoolUsersPage implements OnInit {
           this.saving.set(false);
           this.ok.set(
             raw.role === 'Student'
-              ? `Estudiante ${created.name} creado. Revisa su expediente en Aprendices.`
+              ? `Estudiante ${created.name} creado. Revisa su expediente en Estudiantes.`
               : `${roleLabel(created.role)} ${created.name} creado.`
           );
           this.refreshSeats();

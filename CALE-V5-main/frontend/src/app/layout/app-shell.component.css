@@ -253,6 +253,11 @@
   gap: 0.2rem;
 }
 
+:host-context(html[data-size='large']) .nav-link {
+  min-height: 3.1rem;
+  font-size: 1.02rem;
+}
+
 .nav-link {
   display: flex;
   align-items: center;
@@ -569,6 +574,10 @@
 
   .student-profile-link {
     padding-inline: 0.15rem;
+  }
+
+  .staff-donate-btn span {
+    display: none;
   }
 
   .content {

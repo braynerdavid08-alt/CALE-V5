@@ -116,8 +116,8 @@ export class SchoolApprenticesPage implements OnInit {
       .subscribe({
         next: (blob) => {
           this.exporting.set(false);
-          this.saveBlob(blob, 'cale-aprendices.xlsx');
-          this.saveOk.set('Excel de aprendices descargado.');
+          this.saveBlob(blob, 'cale-estudiantes.xlsx');
+          this.saveOk.set('Excel de estudiantes descargado.');
         },
         error: (err) => {
           this.exporting.set(false);
@@ -330,8 +330,8 @@ export class SchoolApprenticesPage implements OnInit {
     }
     return confirm(
       kind === 'examen'
-        ? 'El aprendiz no cumple todos los requisitos automáticos (horas/saldo). ¿Autorizar examen teórico de todas formas?'
-        : 'El aprendiz no cumple todos los requisitos automáticos (examen/saldo). ¿Autorizar clases de manejo de todas formas?'
+        ? 'El estudiante no cumple todos los requisitos automáticos (horas/saldo). ¿Autorizar examen teórico de todas formas?'
+        : 'El estudiante no cumple todos los requisitos automáticos (examen/saldo). ¿Autorizar clases de manejo de todas formas?'
     );
   }
 

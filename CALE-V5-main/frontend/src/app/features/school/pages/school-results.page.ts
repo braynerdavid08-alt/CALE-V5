@@ -25,7 +25,7 @@ import {
     <ui-page-header
       eyebrow="Escuela"
       title="Resultados"
-      subtitle="Intentos finalizados de tus aprendices, agrupados por estudiante y ordenados por fecha." />
+      subtitle="Intentos finalizados de tus estudiantes, agrupados por estudiante y ordenados por fecha." />
 
     <ui-error [message]="error()" />
 
@@ -34,7 +34,7 @@ import {
     } @else if (!items().length) {
       <ui-empty
         title="Sin resultados"
-        message="Cuando tus aprendices terminen evaluaciones o el simulador, verás los puntajes aquí." />
+        message="Cuando tus estudiantes terminen evaluaciones o el simulador, verás los puntajes aquí." />
     } @else {
       <ui-results-by-student [items]="items()" csvName="resultados-escuela.csv" />
     }
