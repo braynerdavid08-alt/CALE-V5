@@ -45,6 +45,41 @@ public sealed class HomepageSettings
 
     public DateTime UpdatedAt { get; set; }
     public int? UpdatedByUserId { get; set; }
+
+    /// <summary>
+    /// Swaps texts that still hold the untouched "Mi CALE" defaults for the current brand defaults.
+    /// Anything the admin wrote is left as is.
+    /// </summary>
+    public bool ReplaceLegacyBrandDefaults()
+    {
+        var current = new HomepageSettings();
+        var changed = false;
+
+        string Swap(string value, string legacy, string replacement)
+        {
+            if (!string.Equals(value, legacy, StringComparison.Ordinal)) return value;
+            changed = true;
+            return replacement;
+        }
+
+        HeroDescription = Swap(
+            HeroDescription,
+            "Mi CALE te acompaña en tu CEA: estudia, practica y aprueba con las mejores escuelas e instructores.",
+            current.HeroDescription);
+        HeroImageAlt = Swap(HeroImageAlt, "Mi CALE — formación vial", current.HeroImageAlt);
+        StepsSectionTitle = Swap(StepsSectionTitle, "¿Cómo funciona Mi CALE?", current.StepsSectionTitle);
+        SeoTitle = Swap(SeoTitle, "Mi CALE — tu CALE, en tu CEA", current.SeoTitle);
+        SeoDescription = Swap(
+            SeoDescription,
+            "Mi CALE: tu CALE, en tu CEA. Formación vial con tu centro de enseñanza automovilística.",
+            current.SeoDescription);
+        AboutHtml = Swap(
+            AboutHtml,
+            "<p><strong>Mi CALE</strong> — tu CALE, en tu CEA. Formación teórica, práctica y evaluación en un solo lugar, junto a tu centro de enseñanza automovilística.</p>",
+            current.AboutHtml);
+
+        return changed;
+    }
 }
 
 public sealed class HomepageStatSetting

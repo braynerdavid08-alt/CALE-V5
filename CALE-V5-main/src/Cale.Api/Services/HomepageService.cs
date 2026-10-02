@@ -512,6 +512,12 @@ public sealed class HomepageService
         var row = await _db.Set<HomepageSettings>().FirstOrDefaultAsync(ct);
         if (row is not null)
         {
+            if (row.ReplaceLegacyBrandDefaults())
+            {
+                row.UpdatedAt = _clock.UtcNow;
+                await _db.SaveChangesAsync(ct);
+            }
+
             return row;
         }
 
