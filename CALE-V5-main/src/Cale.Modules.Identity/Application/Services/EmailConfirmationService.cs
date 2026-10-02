@@ -52,13 +52,13 @@ public sealed class EmailConfirmationService
 
         var body =
             $"Hola {user.Name},\n\n" +
-            $"Tu código de verificación de Mi CALE es: {code}\n\n" +
+            $"Tu código de verificación de Luz Verde es: {code}\n\n" +
             $"Caduca en {minutes} minutos.\n" +
             "Si no creaste esta cuenta, ignora este mensaje.\n";
 
         await _email.SendAsync(
             user.Email,
-            "Código de verificación — Mi CALE",
+            "Código de verificación — Luz Verde",
             body,
             ct);
 

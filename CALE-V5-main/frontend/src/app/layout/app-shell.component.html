@@ -38,7 +38,7 @@
             <ui-icon name="settings" />
             <span class="nav-label">Cambiar contraseña</span>
           </a>
-          <p class="nav-hint">Debes actualizar tu clave temporal antes de usar el resto de Mi CALE.</p>
+          <p class="nav-hint">Debes actualizar tu clave temporal antes de usar el resto de Luz Verde.</p>
         } @else {
           @for (item of items; track item.label + (item.path || '')) {
             @if (item.children?.length) {
@@ -114,7 +114,7 @@
           <a
             class="student-home-btn student-donate-btn"
             routerLink="/donaciones"
-            title="Apoyar CALE">
+            title="Apoyar Luz Verde">
             <ui-icon name="heart" />
             <span>Donar</span>
           </a>
@@ -131,7 +131,7 @@
 
       <span class="spacer" aria-hidden="true"></span>
       @if (!isStudentShell && role !== 'Admin' && !mustChangePassword) {
-        <a class="student-home-btn student-donate-btn staff-donate-btn" routerLink="/donaciones" title="Apoyar CALE">
+        <a class="student-home-btn student-donate-btn staff-donate-btn" routerLink="/donaciones" title="Apoyar Luz Verde">
           <ui-icon name="heart" />
           <span>Donar</span>
         </a>

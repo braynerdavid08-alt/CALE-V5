@@ -9,20 +9,20 @@ public sealed class HomepageSettings
     public string HeroTitle { get; set; } = "Aprende a conducir de";
     public string HeroTitleHighlight { get; set; } = "manera segura y responsable";
     public string HeroDescription { get; set; } =
-        "Mi CALE te acompaña en tu CEA: estudia, practica y aprueba con las mejores escuelas e instructores.";
+        "Practica gratis el simulacro del examen CALE todas las veces que quieras y sigue tu formación con las mejores escuelas e instructores.";
     public string HeroCtaPrimaryLabel { get; set; } = "Comenzar ahora";
     public string HeroCtaPrimaryPath { get; set; } = "/register";
     public string HeroCtaSecondaryLabel { get; set; } = "Ver video";
     public string? HeroVideoUrl { get; set; }
     public string? HeroImageUrl { get; set; }
     public string? HeroImageUrlMobile { get; set; }
-    public string HeroImageAlt { get; set; } = "Mi CALE — formación vial";
+    public string HeroImageAlt { get; set; } = "Luz Verde — formación vial";
     public bool HeroImageEnabled { get; set; } = true;
     public bool HeroVisible { get; set; } = true;
 
     public string BenefitsJson { get; set; } = "[]";
     public string StepsJson { get; set; } = "[]";
-    public string StepsSectionTitle { get; set; } = "¿Cómo funciona Mi CALE?";
+    public string StepsSectionTitle { get; set; } = "¿Cómo funciona Luz Verde?";
     public string StepsSectionSubtitle { get; set; } =
         "Cuatro pasos claros para completar tu formación vial.";
 
@@ -32,14 +32,14 @@ public sealed class HomepageSettings
     public bool BenefitsSectionVisible { get; set; } = true;
     public bool StepsSectionVisible { get; set; } = true;
 
-    public string SeoTitle { get; set; } = "Mi CALE — tu CALE, en tu CEA";
+    public string SeoTitle { get; set; } = "Luz Verde — Formación que impulsa tu camino.";
     public string SeoDescription { get; set; } =
-        "Mi CALE: tu CALE, en tu CEA. Formación vial con tu centro de enseñanza automovilística.";
+        "Luz Verde: practica gratis el simulacro del examen CALE todas las veces que quieras y sigue tu formación vial con tu escuela.";
 
     public string ContactEmail { get; set; } = "contacto@cale.local";
     public string ContactPhone { get; set; } = "";
     public string AboutHtml { get; set; } =
-        "<p><strong>Mi CALE</strong> — tu CALE, en tu CEA. Formación teórica, práctica y evaluación en un solo lugar, junto a tu centro de enseñanza automovilística.</p>";
+        "<p><strong>Luz Verde</strong> — Formación que impulsa tu camino. Simulacros gratis e ilimitados, formación teórica, práctica y evaluación en un solo lugar, junto a tu centro de enseñanza automovilística.</p>";
     public string BlogIntro { get; set; } =
         "Pronto publicaremos artículos sobre formación vial. Mientras tanto, explora cursos y escuelas.";
 

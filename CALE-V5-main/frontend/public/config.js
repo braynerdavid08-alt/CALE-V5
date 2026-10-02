@@ -1,4 +1,4 @@
-/* Runtime config for Mi CALE.
+/* Runtime config for Luz Verde.
  * Same-origin (recommended): leave apiUrl as "".
  * Split API host: set apiUrl to "https://api.tudominio.com" (no trailing slash).
  */

@@ -39,7 +39,7 @@ type PromptKind = 'ask' | 'ios';
           <h2 id="push-title">Recibe avisos en tu iPhone</h2>
           <p>
             Toca <b>Compartir</b> y luego <b>“Agregar a pantalla de inicio”</b>.
-            Abre Mi CALE desde ese ícono y activa las notificaciones en <b>Mi perfil</b>.
+            Abre Luz Verde desde ese ícono y activa las notificaciones en <b>Mi perfil</b>.
           </p>
           <div class="actions">
             <ui-button (click)="later()">Entendido</ui-button>

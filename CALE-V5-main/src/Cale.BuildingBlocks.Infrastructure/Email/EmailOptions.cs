@@ -7,7 +7,7 @@ public sealed class EmailOptions
     /// <summary>From address shown to recipients.</summary>
     public string From { get; set; } = "noreply@micale.app";
 
-    public string FromName { get; set; } = "Mi CALE";
+    public string FromName { get; set; } = "Luz Verde";
 
     /// <summary>When false or SMTP host empty, codes are logged (Development).</summary>
     public bool Enabled { get; set; }

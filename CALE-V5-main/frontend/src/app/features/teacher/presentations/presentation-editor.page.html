@@ -81,7 +81,7 @@
           </button>
           @if (toolbarMenu() === 'insert') {
             <div class="tb-dropdown" (click)="$event.stopPropagation()">
-              <button type="button" (click)="addLogo(); closeFloatingMenus()">Logo CALE</button>
+              <button type="button" (click)="addLogo(); closeFloatingMenus()">Logo Luz Verde</button>
               <button type="button" (click)="openSignPicker(); closeFloatingMenus()">Biblioteca de señales</button>
               <button type="button" (click)="addQuestion('mcq'); closeFloatingMenus()">Pregunta A–D</button>
               <button type="button" (click)="addQuestion('vf'); closeFloatingMenus()">Verdadero / Falso</button>
@@ -413,7 +413,7 @@
                 <input type="color" [ngModel]="slide.background.color" (ngModelChange)="updateBgColor($event)" />
               </label>
               <div class="row">
-                <button type="button" (click)="updateBgGradient('#0B1F33', '#2BB0ED')">Gradiente CALE</button>
+                <button type="button" (click)="updateBgGradient('#0B1F33', '#2BB0ED')">Gradiente azul</button>
                 <button type="button" (click)="updateBgColor('#F7F9FC')">Claro</button>
                 <button type="button" (click)="triggerBgImage()">Imagen fondo</button>
                 @if (slide.background.type === 'image') {

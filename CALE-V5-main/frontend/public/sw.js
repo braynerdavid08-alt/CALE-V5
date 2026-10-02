@@ -44,7 +44,7 @@ self.addEventListener('push', (event) => {
   } catch {
     data = { body: event.data ? event.data.text() : '' };
   }
-  const title = data.title || 'Mi CALE';
+  const title = data.title || 'Luz Verde';
   const badgeCount = Number(data.badge) || 0;
 
   event.waitUntil((async () => {

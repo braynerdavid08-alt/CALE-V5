@@ -59,7 +59,7 @@ public sealed class LiveSessionHandler
         var code = await GenerateUniqueCodeAsync(ct);
         var session = LiveSession.Create(
             hostUserId,
-            request.Title ?? "CALE Aula en Vivo",
+            request.Title ?? "Aula en Vivo",
             code,
             request.Mode,
             bankIds[0],

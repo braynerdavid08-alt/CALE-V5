@@ -52,7 +52,7 @@ public sealed class LiveSession
         return new LiveSession
         {
             HostUserId = hostUserId,
-            Title = string.IsNullOrWhiteSpace(title) ? "CALE Aula en Vivo" : title.Trim(),
+            Title = string.IsNullOrWhiteSpace(title) ? "Aula en Vivo" : title.Trim(),
             JoinCode = joinCode.Trim().ToUpperInvariant(),
             Status = LiveSessionStatuses.Lobby,
             Mode = NormalizeMode(mode),

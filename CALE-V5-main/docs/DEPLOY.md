@@ -135,7 +135,7 @@ Para enviar códigos de verdad (Gmail):
 ```env
 Email__Enabled=true
 Email__From=tu@gmail.com
-Email__FromName=Mi CALE
+Email__FromName=Luz Verde
 Email__Smtp__Host=smtp.gmail.com
 Email__Smtp__Port=587
 Email__Smtp__User=tu@gmail.com

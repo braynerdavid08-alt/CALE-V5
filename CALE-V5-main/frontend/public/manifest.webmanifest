@@ -1,7 +1,7 @@
 {
-  "name": "Mi CALE",
-  "short_name": "Mi CALE",
-  "description": "Mi CALE: tu CALE, en tu CEA. Formación vial con tu centro de enseñanza automovilística.",
+  "name": "Luz Verde",
+  "short_name": "Luz Verde",
+  "description": "Luz Verde: practica gratis el simulacro del examen CALE todas las veces que quieras y sigue tu formación vial con tu escuela.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

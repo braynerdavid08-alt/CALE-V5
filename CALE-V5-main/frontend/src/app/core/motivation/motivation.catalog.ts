@@ -119,7 +119,7 @@ export const MOTIVATION_CATALOG: readonly MotivationTip[] = [
   },
   {
     id: 'learn-practice',
-    headline: 'Practicar en CALE refuerza lo que un día te protegerá en la calle.',
+    headline: 'Practicar en Luz Verde refuerza lo que un día te protegerá en la calle.',
     detail: 'Cada pregunta y cada simulacro entrenan decisiones que no puedes improvisar en tráfico real.',
     category: 'formacion',
     audience: 'Student',

@@ -44,7 +44,7 @@ interface CertificateItem {
     } @else {
       <ui-card class="notice">
         <p class="lead">
-          Estos registros son solo para tu seguimiento en Mi CALE.
+          Estos registros son solo para tu seguimiento en Luz Verde.
           Tu escuela es quien acredita horas, exámenes RUNT y habilitaciones.
         </p>
         <ui-button routerLink="/student/progress" type="button" variant="secondary">Ver mi progreso</ui-button>

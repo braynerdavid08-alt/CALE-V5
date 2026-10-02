@@ -18,7 +18,7 @@ import { PublicSchoolCardDto } from './public.models';
       <header class="head">
         <p class="eyebrow">Escuelas</p>
         <h1>Escuelas de manejo aliadas</h1>
-        <p class="lead">Centros de enseñanza automovilística que ya forman a sus estudiantes con Mi CALE.</p>
+        <p class="lead">Centros de enseñanza automovilística que ya forman a sus estudiantes con Luz Verde.</p>
       </header>
 
       @if (loading()) {
@@ -106,7 +106,7 @@ export class PublicSchoolsPage implements OnInit {
     this.title.setTitle(brandPageTitle('Escuelas'));
     this.meta.updateTag({
       name: 'description',
-      content: 'Escuelas de manejo aliadas de Mi CALE.'
+      content: 'Escuelas de manejo aliadas de Luz Verde.'
     });
 
     this.api.listSchools().subscribe({

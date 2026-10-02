@@ -23,7 +23,7 @@ import { PublicHomeApi } from './public-home.api';
     <div class="page">
       <header class="head">
         <p class="eyebrow">Cursos</p>
-        <h1>Formación vial con Mi CALE</h1>
+        <h1>Formación vial con Luz Verde</h1>
         <p class="lead">
           El catálogo completo de cursos, simuladores y evaluaciones está disponible
           después de iniciar sesión.
@@ -112,7 +112,7 @@ export class PublicCoursesPage implements OnInit {
     this.title.setTitle(brandPageTitle('Cursos'));
     this.meta.updateTag({
       name: 'description',
-      content: 'Accede al catálogo de formación vial de Mi CALE al iniciar sesión.'
+      content: 'Accede al catálogo de formación vial de Luz Verde al iniciar sesión.'
     });
 
     this.api.getHome().subscribe({

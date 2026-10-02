@@ -140,7 +140,7 @@
 
       <ui-card>
         <h2>Accesos rápidos</h2>
-        <p class="muted">Atajos según tu rol en CALE.</p>
+        <p class="muted">Atajos según tu rol en Luz Verde.</p>
         <div class="row actions">
           <ui-button [routerLink]="homeLink()" type="button" variant="secondary">Ir al inicio</ui-button>
           @if (role() === 'School') {
@@ -150,7 +150,7 @@
             <ui-button routerLink="/school/users" type="button" variant="ghost">Usuarios</ui-button>
           }
           @if (role() !== 'Admin') {
-            <ui-button routerLink="/donaciones" type="button" variant="ghost">Apoyar CALE</ui-button>
+            <ui-button routerLink="/donaciones" type="button" variant="ghost">Apoyar Luz Verde</ui-button>
           }
           @if (role() === 'Teacher') {
             <ui-button routerLink="/teacher/groups" type="button" variant="ghost">Grupos</ui-button>
@@ -217,7 +217,7 @@
         </p>
         <div class="meta">
           @if (session.freeAccess()) {
-            <ui-badge tone="success">CALE gratis</ui-badge>
+            <ui-badge tone="success">Luz Verde gratis</ui-badge>
           } @else {
             <ui-badge [tone]="statusTone(school.subscriptionStatus)">
               {{ statusLabel(school.subscriptionStatus) }}
@@ -240,7 +240,7 @@
         <p class="muted">
           Todavía no estás vinculado a una escuela.
           @if (session.freeAccess()) {
-            No hace falta: puedes usar todo CALE gratis por tu cuenta.
+            No hace falta: puedes usar todo Luz Verde gratis por tu cuenta.
           }
         </p>
         @if (role() === 'Teacher') {

@@ -242,7 +242,7 @@ public sealed class AdminInsightsService
         await _notifications.NotifyUsersAsync(
             adminIds,
             new NotificationDraft(
-                "Resumen semanal de CALE",
+                "Resumen semanal de Luz Verde",
                 message,
                 NotificationTypes.Admin,
                 Link: "/admin/usage",

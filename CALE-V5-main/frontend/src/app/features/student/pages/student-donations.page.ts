@@ -2,7 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { SessionStore } from '../../../core/auth/session.store';
 
 const SHARE_TEXT =
-  'Estoy usando CALE para prepararme para el examen de conducción. Es gratis para estudiantes, instructores y escuelas:';
+  'Estoy usando Luz Verde para practicar gratis el examen de conducción. Es gratis para estudiantes, instructores y escuelas:';
 
 @Component({
   selector: 'app-student-donations-page',
@@ -166,12 +166,12 @@ const SHARE_TEXT =
   template: `
     <section class="donate">
       <header class="hero">
-        <p class="kicker">Apoyar CALE</p>
-        <h1>CALE es gratis para todos 💙</h1>
+        <p class="kicker">Apoyar Luz Verde</p>
+        <h1>Luz Verde es gratis para todos 💚</h1>
         <p>
           Estudiantes, instructores y escuelas usan todas las funciones sin pagar nada.
           Mantener la app en línea cuesta dinero cada mes (servidor, base de datos y dominio),
-          así que CALE vive de las donaciones de quienes la usan.
+          así que Luz Verde vive de las donaciones de quienes la usan.
         </p>
         <div class="chips">
           <span class="chip">✅ Todo gratis</span>
@@ -185,7 +185,7 @@ const SHARE_TEXT =
           <h2 class="qr-title">Dona con Nequi</h2>
           <p class="qr-sub">Escanea el código y escribe el valor que quieras</p>
           <div class="qr-frame">
-            <img src="donations/nequi-qr.png" alt="Código QR para donar a CALE con Nequi o Bre-B" width="300" height="356" />
+            <img src="donations/nequi-qr.png" alt="Código QR para donar a Luz Verde con Nequi o Bre-B" width="300" height="356" />
           </div>
           <div class="amounts" aria-label="Ideas de aporte">
             <span class="amount">$5.000</span>
@@ -195,7 +195,7 @@ const SHARE_TEXT =
           </div>
           <p class="hint">Funciona con Nequi y con cualquier banco compatible con Bre-B.</p>
           <div class="actions">
-            <a class="btn btn-primary" href="donations/nequi-qr.png" download="donar-cale-nequi.png">⬇ Descargar QR</a>
+            <a class="btn btn-primary" href="donations/nequi-qr.png" download="donar-luz-verde-nequi.png">⬇ Descargar QR</a>
           </div>
         </div>
 
@@ -211,7 +211,7 @@ const SHARE_TEXT =
           <div class="section">
             <h2>¿En qué se usa tu donación?</h2>
             <ul class="uses">
-              <li><span aria-hidden="true">🖥️</span><span>Pagar el servidor y la base de datos para que CALE no se caiga.</span></li>
+              <li><span aria-hidden="true">🖥️</span><span>Pagar el servidor y la base de datos para que Luz Verde no se caiga.</span></li>
               <li><span aria-hidden="true">📚</span><span>Agregar más preguntas, señales y material de estudio.</span></li>
               <li><span aria-hidden="true">🎮</span><span>Crear nuevos juegos y herramientas para clase.</span></li>
             </ul>
@@ -224,11 +224,11 @@ const SHARE_TEXT =
 
       <div class="card share">
         <div>
-          <h2>¿No puedes donar? Comparte CALE</h2>
+          <h2>¿No puedes donar? Comparte Luz Verde</h2>
           <p class="hint">Recomendar la app a otros estudiantes, instructores o escuelas también ayuda muchísimo.</p>
         </div>
         <div class="actions" style="width: auto;">
-          <button type="button" class="btn btn-ghost" (click)="share()">📣 Compartir CALE</button>
+          <button type="button" class="btn btn-ghost" (click)="share()">📣 Compartir Luz Verde</button>
           @if (copied()) {
             <span class="copied" role="status">Enlace copiado</span>
           }
@@ -248,12 +248,12 @@ export class StudentDonationsPage {
   readonly roleNote = computed(() => {
     const role = this.session.user()?.role;
     if (role === 'School') {
-      return 'Si tu escuela usa CALE con sus aprendices e instructores, un aporte mensual nos ayuda a mantenerla gratis y sin límites para todos.';
+      return 'Si tu escuela usa Luz Verde con sus aprendices e instructores, un aporte mensual nos ayuda a mantenerla gratis y sin límites para todos.';
     }
     if (role === 'Teacher') {
-      return 'Si usas CALE en tus clases (Aula en Vivo, 100 Estudiantes Dijeron, presentaciones), tu apoyo mantiene esas herramientas gratis.';
+      return 'Si usas Luz Verde en tus clases (Aula en Vivo, 100 Estudiantes Dijeron, presentaciones), tu apoyo mantiene esas herramientas gratis.';
     }
-    return 'Si CALE te está ayudando a prepararte para el examen, cualquier aporte, por pequeño que sea, hace la diferencia.';
+    return 'Si Luz Verde te está ayudando a prepararte para el examen, cualquier aporte, por pequeño que sea, hace la diferencia.';
   });
 
   async share(): Promise<void> {
@@ -261,7 +261,7 @@ export class StudentDonationsPage {
     const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> };
     if (nav.share) {
       try {
-        await nav.share({ title: 'CALE', text: SHARE_TEXT, url });
+        await nav.share({ title: 'Luz Verde', text: SHARE_TEXT, url });
         return;
       } catch (err) {
         if ((err as DOMException)?.name === 'AbortError') {

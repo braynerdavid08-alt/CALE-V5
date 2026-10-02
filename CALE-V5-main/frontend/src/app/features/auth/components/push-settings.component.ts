@@ -44,7 +44,7 @@ type PushState = 'loading' | 'on' | 'off' | 'blocked' | 'ios' | 'unsupported';
         }
         @case ('ios') {
           <p class="muted small">
-            En iPhone primero toca <b>Compartir</b> → <b>“Agregar a pantalla de inicio”</b>, abre Mi CALE
+            En iPhone primero toca <b>Compartir</b> → <b>“Agregar a pantalla de inicio”</b>, abre Luz Verde
             desde ese ícono y vuelve aquí para activarlas.
           </p>
         }

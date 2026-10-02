@@ -159,7 +159,7 @@ import { formatStatDisplay } from './public-stat.util';
                     <li><span class="check" aria-hidden="true">✓</span>{{ f }}</li>
                   }
                 </ul>
-                <ui-button routerLink="/contacto" variant="secondary">Quiero Mi CALE para mi escuela</ui-button>
+                <ui-button routerLink="/contacto" variant="secondary">Quiero Luz Verde para mi escuela</ui-button>
               </article>
             </div>
           </div>
@@ -341,7 +341,7 @@ import { formatStatDisplay } from './public-stat.util';
             </div>
             <div class="cta-row">
               <ui-button routerLink="/register">Registrarme gratis</ui-button>
-              <a class="ghost-btn" routerLink="/apoyar">Apoyar CALE</a>
+              <a class="ghost-btn" routerLink="/apoyar">Apoyar Luz Verde</a>
             </div>
           </div>
         </section>
@@ -386,15 +386,15 @@ export class LandingPage implements OnInit {
   readonly faqs = [
     {
       q: '¿Qué es el examen CALE?',
-      a: 'Es la evaluación teórica que debes aprobar para obtener tu licencia de conducción en Colombia. En Mi CALE practicas con preguntas del mismo estilo y ves en qué temas debes mejorar.'
+      a: 'Es la evaluación teórica que debes aprobar para obtener tu licencia de conducción en Colombia. En Luz Verde practicas gratis, todas las veces que quieras, con preguntas del mismo estilo y ves en qué temas debes mejorar.'
     },
     {
       q: '¿Cuánto cuesta?',
-      a: 'Nada. Mi CALE es gratis para estudiantes, instructores y escuelas, con acceso completo a simulacros, juegos, clases y contenidos. No necesitas pertenecer a una escuela para usarla.'
+      a: 'Nada. Luz Verde es gratis para estudiantes, instructores y escuelas, con acceso completo a simulacros, juegos, clases y contenidos. No necesitas pertenecer a una escuela para usarla.'
     },
     {
       q: 'Si es gratis, ¿cómo se mantiene?',
-      a: 'Con donaciones voluntarias de quienes la usan. Si la app te ayuda, puedes apoyarla con el QR de Nequi en la sección «Apoyar CALE».'
+      a: 'Con donaciones voluntarias de quienes la usan. Si la app te ayuda, puedes apoyarla con el QR de Nequi en la sección «Apoyar Luz Verde».'
     },
     {
       q: '¿Cuántas preguntas puedo fallar en el examen?',
@@ -406,7 +406,7 @@ export class LandingPage implements OnInit {
     },
     {
       q: '¿Funciona en el celular?',
-      a: 'Sí. Mi CALE funciona en cualquier navegador y puedes instalarla en tu celular como una aplicación.'
+      a: 'Sí. Luz Verde funciona en cualquier navegador y puedes instalarla en tu celular como una aplicación.'
     }
   ];
 
@@ -484,7 +484,7 @@ export class LandingPage implements OnInit {
         { id: 'b4', title: 'Certificación', description: 'Cumple los requisitos y completa tu proceso de formación.', icon: 'star', tone: 'yellow', sortOrder: 4, active: true }
       ],
       stepsVisible: true,
-      stepsTitle: '¿Cómo funciona Mi CALE?',
+      stepsTitle: '¿Cómo funciona Luz Verde?',
       stepsSubtitle: 'Cuatro pasos claros para completar tu formación vial.',
       steps: [
         { id: 's1', number: 1, title: 'Regístrate', description: 'Crea tu cuenta y vincúlate a tu escuela de conducción.', icon: 'users', tone: 'blue', sortOrder: 1, active: true },

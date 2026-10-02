@@ -1,7 +1,7 @@
-# CALE v5
+# Luz Verde (código: CALE v5)
 
-Plataforma educativa: simulador de conducción + aula virtual.
-**Mi CALE** — tu CALE, en tu CEA.
+Plataforma de formación vial: simulacros gratis e ilimitados del examen CALE, clases, horas, agendas y progreso con la escuela.
+**Luz Verde** — Formación que impulsa tu camino.
 
 ## Stack
 

@@ -463,9 +463,9 @@ public sealed class UserRequestService
 
         var what = entity.Kind switch
         {
-            UserRequestKinds.Question => "Tu pregunta fue aceptada y ya forma parte de CALE. ¡Gracias por aportar!",
+            UserRequestKinds.Question => "Tu pregunta fue aceptada y ya forma parte de Luz Verde. ¡Gracias por aportar!",
             UserRequestKinds.Report => $"Revisamos la pregunta que reportaste («{entity.Title}»). ¡Gracias por avisar!",
-            _ => "Tu idea fue aceptada. ¡Gracias por ayudar a mejorar CALE!"
+            _ => "Tu idea fue aceptada. ¡Gracias por ayudar a mejorar Luz Verde!"
         };
         await NotifyRequesterAsync(entity, "Solicitud aceptada ✅", Append(what, note), ct);
         return Map(entity);

@@ -22,7 +22,7 @@ export function parseGameShowImport(text: string, fileName: string): CreateGameS
     return parseCsv(raw);
   }
 
-  throw new GameShowImportError('Usa un archivo .json o .csv exportado desde CALE.');
+  throw new GameShowImportError('Usa un archivo .json o .csv exportado desde Luz Verde.');
 }
 
 function parseJson(raw: string): CreateGameShowBody {

@@ -48,7 +48,7 @@ export async function renderShareCard(data: ShareCardData): Promise<Blob> {
   g.textBaseline = 'alphabetic';
 
   g.font = '700 44px system-ui, "Segoe UI", sans-serif';
-  g.fillText('Mi CALE', WIDTH / 2, 150);
+  g.fillText('Luz Verde', WIDTH / 2, 150);
 
   g.globalAlpha = 0.85;
   g.font = '600 40px system-ui, "Segoe UI", sans-serif';
@@ -84,12 +84,12 @@ export async function renderShareCard(data: ShareCardData): Promise<Blob> {
 export async function shareCard(data: ShareCardData): Promise<'shared' | 'downloaded' | 'cancelled'> {
   const blob = await renderShareCard(data);
   const file = new File([blob], 'mi-cale-logro.png', { type: 'image/png' });
-  const text = `${data.title} · ${data.headline} — Mi CALE`;
+  const text = `${data.title} · ${data.headline} — Luz Verde`;
 
   const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
   if (nav.share && nav.canShare?.({ files: [file] })) {
     try {
-      await nav.share({ files: [file], title: 'Mi CALE', text });
+      await nav.share({ files: [file], title: 'Luz Verde', text });
       return 'shared';
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return 'cancelled';

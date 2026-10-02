@@ -55,7 +55,7 @@ export class TeacherLiveHubPage implements OnInit {
   private pendingAutoCreate = false;
 
   readonly form = this.fb.nonNullable.group({
-    title: ['CALE Aula en Vivo'],
+    title: ['Aula en Vivo'],
     mode: ['Exam', Validators.required],
     questionCount: [10, [Validators.required, Validators.min(1), Validators.max(100)]],
     secondsPerQuestion: [30, [Validators.required, Validators.min(5), Validators.max(600)]],
