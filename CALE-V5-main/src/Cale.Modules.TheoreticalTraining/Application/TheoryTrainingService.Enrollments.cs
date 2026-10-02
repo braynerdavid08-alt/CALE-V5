@@ -21,13 +21,20 @@ public sealed partial class TheoryTrainingService
 {
     // ── Enrollments ─────────────────────────────────────────────────────
 
+    public Task<IReadOnlyList<EnrollmentDto>> ListEnrollmentsAsync(
+        int schoolUserId,
+        CancellationToken ct) =>
+        ListEnrollmentsAsync(schoolUserId, null, ct);
+
+    /// <param name="studentIds">When set, only these students are listed (progress is costly per student).</param>
     public async Task<IReadOnlyList<EnrollmentDto>> ListEnrollmentsAsync(
         int schoolUserId,
+        IReadOnlyCollection<int>? studentIds,
         CancellationToken ct)
     {
         try
         {
-            return await ListEnrollmentsCoreAsync(schoolUserId, ct);
+            return await ListEnrollmentsCoreAsync(schoolUserId, studentIds, ct);
         }
         catch (Exception ex)
         {
@@ -42,26 +49,31 @@ public sealed partial class TheoryTrainingService
                 schoolUserId);
             await FeatureSchema.EnsureTheoryTrainingColumnsAsync(_db, ct);
             _db.ChangeTracker.Clear();
-            return await ListEnrollmentsCoreAsync(schoolUserId, ct);
+            return await ListEnrollmentsCoreAsync(schoolUserId, studentIds, ct);
         }
     }
 
     private async Task<IReadOnlyList<EnrollmentDto>> ListEnrollmentsCoreAsync(
         int schoolUserId,
+        IReadOnlyCollection<int>? studentIds,
         CancellationToken ct)
     {
         var settings = await GetOrCreateSettingsAsync(schoolUserId, ct);
         var students = (await _users.ListBySchoolAsync(schoolUserId, ct))
             .Where(x => x.Role == Roles.Student)
+            .Where(x => studentIds is null || studentIds.Contains(x.Id))
             .OrderBy(x => x.Name)
             .ToList();
+        var ids = students.Select(x => x.Id).ToList();
         var items = (await _db.Set<SchoolStudentEnrollment>()
-                .Where(x => x.SchoolUserId == schoolUserId)
+                .AsNoTracking()
+                .Where(x => x.SchoolUserId == schoolUserId && ids.Contains(x.StudentUserId))
                 .ToListAsync(ct))
             .GroupBy(x => x.StudentUserId)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.Id).First());
         var balances = (await _db.Set<SchoolApprenticeProfile>()
-                .Where(x => x.SchoolUserId == schoolUserId)
+                .AsNoTracking()
+                .Where(x => x.SchoolUserId == schoolUserId && ids.Contains(x.StudentUserId))
                 .ToListAsync(ct))
             .GroupBy(x => x.StudentUserId)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.Id).First().BalanceDue);
@@ -225,8 +237,6 @@ public sealed partial class TheoryTrainingService
         {
             if (theoryExamAuthorized && !enrollment.TheoryExamAuthorized)
             {
-                await _eligibility.EnsureTheoryExamConfiguredAsync(schoolUserId, ct);
-
                 // School may override hours/balance when the counter is wrong;
                 // only block if the student already passed the official exam.
                 var hoursCheck = await GetPracticalEligibilityAsync(
@@ -258,7 +268,6 @@ public sealed partial class TheoryTrainingService
         {
             if (practicalAuthorized && !enrollment.PracticalAuthorized)
             {
-                await _eligibility.EnsureTheoryExamConfiguredAsync(schoolUserId, ct);
                 // Manual override allowed: school confirms even if hours/exam gate disagree.
                 notifyPractical = true;
             }

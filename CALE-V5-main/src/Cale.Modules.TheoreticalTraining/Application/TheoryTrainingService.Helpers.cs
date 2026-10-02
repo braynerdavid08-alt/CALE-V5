@@ -503,10 +503,16 @@ public sealed partial class TheoryTrainingService
             licenseCategories);
         var theoryComplete = theoryHours >= requiredTheoryHours;
         var workshopComplete = workshopHours >= requiredWorkshopHours;
-        var canBook = theoryExamPassed && theoryComplete && workshopComplete && practicalAuthorized;
+        // The school's practical authorization is the gate: it confirms the
+        // exam/hours even when the platform counters disagree.
+        var canBook = practicalAuthorized;
 
-        string? blockReason = null;
-        if (!theoryComplete)
+        string? blockReason;
+        if (practicalAuthorized)
+        {
+            blockReason = null;
+        }
+        else if (!theoryComplete)
         {
             blockReason = $"Te faltan horas de teoría ({theoryHours}/{requiredTheoryHours}).";
         }
@@ -514,17 +520,15 @@ public sealed partial class TheoryTrainingService
         {
             blockReason = $"Te faltan horas de taller ({workshopHours}/{requiredWorkshopHours}).";
         }
-        else if (settings.TheoryExamId is null)
+        else if (!theoryExamAuthorized && !theoryExamPassed)
         {
-            blockReason = "Tu escuela debe configurar el examen teórico oficial en Ajustes.";
+            blockReason = "Tu escuela debe autorizarte para presentar el examen teórico.";
         }
         else if (!theoryExamPassed)
         {
-            blockReason = theoryExamAuthorized
-                ? "Debes aprobar el examen teórico en la plataforma."
-                : "Tu escuela debe autorizarte para presentar el examen teórico.";
+            blockReason = "Presenta y aprueba el examen teórico para seguir a clases de manejo.";
         }
-        else if (!practicalAuthorized)
+        else
         {
             blockReason = "Tu escuela debe autorizarte para clases de manejo.";
         }

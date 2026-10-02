@@ -337,8 +337,9 @@ export class TheoryApi {
     );
   }
 
-  listEnrollments() {
-    return this.http.get<EnrollmentDto[]>(`${this.schoolBase}/enrollments`);
+  listEnrollments(studentIds?: number[]) {
+    const params = studentIds?.length ? { studentIds: studentIds.join(',') } : undefined;
+    return this.http.get<EnrollmentDto[]>(`${this.schoolBase}/enrollments`, { params });
   }
 
   updateEnrollment(
