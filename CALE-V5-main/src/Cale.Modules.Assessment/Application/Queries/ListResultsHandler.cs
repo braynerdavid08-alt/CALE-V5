@@ -47,6 +47,7 @@ public sealed class ListResultsHandler
             attempt.Percent,
             attempt.Passed,
             attempt.StartedAt,
-            attempt.FinishedAt)).ToList();
+            attempt.FinishedAt,
+            attempt.TimeSeconds > 0 ? attempt.TimeSeconds : null)).ToList();
     }
 }

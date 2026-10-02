@@ -1,5 +1,6 @@
 using Cale.Api.Extensions;
 using Cale.BuildingBlocks.Domain.Auth;
+using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.Modules.Assessment.Application.Queries;
 using Cale.Modules.Classroom.Application.Queries;
 using Cale.Modules.Identity.Application.Abstractions;
@@ -15,15 +16,18 @@ public sealed class DashboardsController : ControllerBase
 {
     private readonly ClassroomQueryHandler _classroom;
     private readonly ListResultsHandler _results;
+    private readonly StudentProgressHandler _progress;
     private readonly IUserStore _users;
 
     public DashboardsController(
         ClassroomQueryHandler classroom,
         ListResultsHandler results,
+        StudentProgressHandler progress,
         IUserStore users)
     {
         _classroom = classroom;
         _results = results;
+        _progress = progress;
         _users = users;
     }
 
@@ -47,6 +51,32 @@ public sealed class DashboardsController : ControllerBase
     [HttpGet("student/results")]
     public async Task<IActionResult> MyResults(CancellationToken ct) =>
         Ok(await _results.HandleAsync(CurrentUser.GetId(User), null, ct));
+
+    [HttpGet("student/progress")]
+    public async Task<IActionResult> MyProgress(
+        [FromQuery] string? mode,
+        [FromQuery] int? take,
+        CancellationToken ct) =>
+        Ok(await _progress.HandleAsync(CurrentUser.GetId(User), mode, take, ct));
+
+    [HttpGet("school/apprentices/{studentUserId:int}/progress")]
+    [Authorize(Policy = "SchoolOnly")]
+    public async Task<IActionResult> StudentProgress(
+        int studentUserId,
+        [FromQuery] string? mode,
+        [FromQuery] int? take,
+        CancellationToken ct)
+    {
+        var student = await _users.GetByIdAsync(studentUserId, ct);
+        if (student is null
+            || student.SchoolId != CurrentUser.GetId(User)
+            || Roles.Normalize(student.Role) != Roles.Student)
+        {
+            throw new NotFoundException("Estudiante no encontrado.", "student_not_found");
+        }
+
+        return Ok(await _progress.HandleAsync(studentUserId, mode, take, ct));
+    }
 
     [HttpGet("admin/results")]
     [Authorize(Policy = "AdminOnly")]

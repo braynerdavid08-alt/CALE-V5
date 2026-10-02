@@ -186,6 +186,50 @@ public sealed class AttemptStore : IAttemptStore
             .OrderByDescending(x => x.FinishedAt)
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<AttemptProgressRow>> ListFinishedForProgressAsync(
+        int userId,
+        IReadOnlyCollection<string>? modes,
+        int maxRows,
+        CancellationToken ct)
+    {
+        var query = _db.Set<Attempt>()
+            .AsNoTracking()
+            .Where(x => x.UserId == userId && x.FinishedAt != null);
+        if (modes is { Count: > 0 })
+        {
+            query = query.Where(x => modes.Contains(x.Mode));
+        }
+
+        var latest = await query
+            .OrderByDescending(x => x.FinishedAt)
+            .ThenByDescending(x => x.Id)
+            .Take(maxRows)
+            .Select(x => new AttemptProgressRow(
+                x.Id,
+                x.Mode,
+                x.TotalQuestions,
+                x.CorrectCount,
+                x.Percent,
+                x.Passed,
+                x.TimeSeconds,
+                x.StartedAt,
+                x.FinishedAt!.Value))
+            .ToListAsync(ct);
+
+        latest.Reverse();
+        return latest;
+    }
+
+    public async Task<IReadOnlyDictionary<string, int>> CountFinishedByModeAsync(
+        int userId,
+        CancellationToken ct) =>
+        await _db.Set<Attempt>()
+            .AsNoTracking()
+            .Where(x => x.UserId == userId && x.FinishedAt != null)
+            .GroupBy(x => x.Mode)
+            .Select(g => new { Mode = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Mode, x => x.Count, ct);
+
     public async Task<IReadOnlyList<Attempt>> ListAllAsync(CancellationToken ct) =>
         await _db.Set<Attempt>()
             .AsNoTracking()

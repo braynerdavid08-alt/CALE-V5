@@ -129,6 +129,7 @@ export class StudentApi {
       passed: boolean;
       mode: string;
       finishedAt?: string | null;
+      timeSeconds?: number | null;
     }>>(`${this.base}/api/student/results`);
   }
 }

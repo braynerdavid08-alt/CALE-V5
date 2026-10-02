@@ -96,4 +96,5 @@ public sealed record ResultRowDto(
     decimal Percent,
     bool Passed,
     DateTime StartedAt,
-    DateTime? FinishedAt);
+    DateTime? FinishedAt,
+    int? TimeSeconds = null);

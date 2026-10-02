@@ -10,6 +10,7 @@ import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
 import { ExamApi, ReviewResponse } from '../api/exam.api';
 import { StudentApi } from '../api/student.api';
+import { ProgressDashboardComponent } from '../components/progress-dashboard.component';
 
 interface ResultRow {
   attemptId: number;
@@ -17,6 +18,7 @@ interface ResultRow {
   passed: boolean;
   mode: string;
   finishedAt?: string | null;
+  timeSeconds?: number | null;
 }
 
 @Component({
@@ -29,7 +31,8 @@ interface ResultRow {
     UiEmptyComponent,
     UiErrorComponent,
     UiLoadingComponent,
-    UiPageHeaderComponent
+    UiPageHeaderComponent,
+    ProgressDashboardComponent
   ],
   template: `
     <ui-page-header
@@ -42,6 +45,10 @@ interface ResultRow {
     <div class="actions">
       <ui-button routerLink="/student/simulator" type="button">Abrir simulador</ui-button>
     </div>
+
+    <app-progress-dashboard />
+
+    <h2 class="history-title">Historial de intentos</h2>
 
     @if (loading()) {
       <ui-loading />
@@ -66,7 +73,10 @@ interface ResultRow {
             <li>
               <div>
                 <strong>{{ modeLabel(r.mode) }}</strong>
-                <p class="meta">{{ formatDate(r.finishedAt) }}</p>
+                <p class="meta">
+                  {{ formatDate(r.finishedAt) }} · {{ formatTime(r.finishedAt) }}
+                  @if (r.timeSeconds) { · {{ formatDuration(r.timeSeconds) }} }
+                </p>
               </div>
               <div class="right">
                 <span class="score">{{ r.percent }}%</span>
@@ -141,6 +151,7 @@ interface ResultRow {
   `,
   styles: [`
     .actions { margin: 0 0 1rem; }
+    .history-title { margin: 0.5rem 0 0.75rem; font-size: var(--text-xl); }
     .panel {
       background: var(--color-surface);
       border: 1px solid var(--color-border);
@@ -297,10 +308,25 @@ export class StudentEvaluationsPage implements OnInit {
     if (!value) return 'Sin fecha';
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return value;
-    return d.toLocaleDateString('es-ES', {
+    return d.toLocaleDateString('es-CO', {
+      timeZone: 'America/Bogota',
       year: 'numeric',
       month: 'short',
       day: 'numeric'
     });
+  }
+
+  formatTime(value?: string | null): string {
+    if (!value) return '';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleTimeString('es-CO', { timeZone: 'America/Bogota', hour: 'numeric', minute: '2-digit' });
+  }
+
+  formatDuration(seconds: number): string {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    if (m === 0) return `${s} s`;
+    return s ? `${m} min ${s} s` : `${m} min`;
   }
 }

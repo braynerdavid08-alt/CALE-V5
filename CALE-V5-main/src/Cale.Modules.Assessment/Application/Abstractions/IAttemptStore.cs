@@ -51,6 +51,18 @@ public interface IAttemptStore
         IReadOnlyList<int> userIds,
         CancellationToken ct);
     Task<IReadOnlyList<Attempt>> ListFinishedAsync(CancellationToken ct);
+
+    /// <summary>
+    /// Latest finished attempts of one user (projection only), oldest first.
+    /// <paramref name="modes"/> null means every mode.
+    /// </summary>
+    Task<IReadOnlyList<AttemptProgressRow>> ListFinishedForProgressAsync(
+        int userId,
+        IReadOnlyCollection<string>? modes,
+        int maxRows,
+        CancellationToken ct);
+
+    Task<IReadOnlyDictionary<string, int>> CountFinishedByModeAsync(int userId, CancellationToken ct);
     Task<IReadOnlyList<Attempt>> ListAllAsync(CancellationToken ct);
     Task<IReadOnlyList<Attempt>> ListStartedSinceAsync(
         DateTime utcFrom,
