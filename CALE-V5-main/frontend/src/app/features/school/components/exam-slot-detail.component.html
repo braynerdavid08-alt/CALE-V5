@@ -1,0 +1,182 @@
+<div class="detail">
+  <dl class="xe-facts">
+    <div><dt>Fecha</dt><dd>{{ dayTitle(slot.date) }}</dd></div>
+    <div><dt>Hora</dt><dd>{{ time12(slot.time) }}</dd></div>
+    <div><dt>Cupos</dt><dd>{{ slot.capacity }}</dd></div>
+    <div><dt>Ocupados</dt><dd>{{ slot.occupied }}</dd></div>
+    <div><dt>Disponibles</dt><dd>{{ slot.available }}</dd></div>
+    <div>
+      <dt>Estado</dt>
+      <dd><span class="xe-status" [attr.data-tone]="statusTone(slot.status)">{{ statusLabel(slot.status) }}</span></dd>
+    </div>
+  </dl>
+
+  @if (slot.note) {
+    <p class="xe-text"><strong>Nota:</strong> {{ slot.note }}</p>
+  }
+
+  @if (readOnly) {
+    <p class="xe-banner"><span>Este horario ya pasó. Solo puedes mirarlo.</span></p>
+  } @else if (slot.isOverridden && slot.overrideId) {
+    <div class="xe-banner warn">
+      <p>
+        @if (isClosed) {
+          Esta hora está cerrada solo para este día.
+        } @else if (slot.source === 'extra') {
+          Este es un horario extra que agregaste solo para este día.
+        } @else {
+          Esta hora tiene un cambio solo para este día.
+        }
+      </p>
+      <div class="xe-actions">
+        <button type="button" class="xe-btn" [disabled]="busy()" (click)="revert()">
+          @if (isClosed) { Reabrir esta hora }
+          @else if (slot.source === 'extra') { Quitar este horario extra }
+          @else { Volver a lo normal }
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (notice()) {
+    <p class="xe-banner success" role="status"><span>✅ {{ notice() }}</span></p>
+  }
+  <ui-error [message]="error()" />
+
+  <section class="block" aria-labelledby="students-title">
+    <h3 id="students-title">Estudiantes agendados</h3>
+    @if (!bookings().length) {
+      <p class="xe-text xe-muted">Nadie está agendado en esta hora.</p>
+    } @else {
+      <ul class="people">
+        @for (b of bookings(); track b.id) {
+          <li>
+            <div class="person">
+              <div class="person-main">
+                <strong>{{ b.studentName }}</strong>
+                <small>{{ bookedByLabel(b) }}</small>
+              </div>
+              <span class="xe-status" [attr.data-tone]="bookingTone(b)">{{ bookingLabel(b) }}</span>
+            </div>
+            @if (!readOnly && b.status === 'Active' && !b.checkedInAt) {
+              @if (cancelling() === b.id) {
+                <div class="confirm-box">
+                  <p class="xe-text"><strong>¿Cancelar la cita de {{ b.studentName }}?</strong></p>
+                  <label class="xe-field">
+                    <span>Motivo (opcional)</span>
+                    <textarea
+                      [(ngModel)]="cancelReason"
+                      name="cancelReason"
+                      rows="2"
+                      placeholder="Ejemplo: el estudiante pidió otra fecha"></textarea>
+                  </label>
+                  <div class="xe-actions">
+                    <button type="button" class="xe-btn danger" [disabled]="busy()" (click)="confirmCancel(b)">
+                      Sí, cancelar la cita
+                    </button>
+                    <button type="button" class="xe-btn" (click)="cancelling.set(null)">No, dejarla</button>
+                  </div>
+                </div>
+              } @else {
+                <button type="button" class="xe-btn danger-soft person-btn" (click)="askCancel(b)">
+                  Cancelar cita
+                </button>
+              }
+            }
+          </li>
+        }
+      </ul>
+    }
+    @if (cancelledCount() > 0) {
+      <p class="xe-small xe-muted">{{ plural(cancelledCount(), 'cita cancelada', 'citas canceladas') }} en esta hora.</p>
+    }
+
+    @if (canAdd) {
+      @if (!adding()) {
+        <button type="button" class="xe-btn primary" (click)="startAdd()">➕ Agregar estudiante</button>
+      } @else {
+        <div class="add-box">
+          <label class="xe-field">
+            <span>Buscar estudiante por nombre</span>
+            <input
+              type="search"
+              placeholder="Escribe el nombre…"
+              [ngModel]="search()"
+              (ngModelChange)="search.set($event)"
+              name="studentSearch"
+              autocomplete="off" />
+          </label>
+          @if (studentsLoading) {
+            <ui-loading label="Buscando estudiantes…" />
+          } @else if (!filteredStudents().length) {
+            <p class="xe-text xe-muted">
+              @if (search().trim()) {
+                No encontramos estudiantes con ese nombre.
+              } @else {
+                No hay estudiantes listos para examen. Primero autorízalos en Clases teóricas.
+              }
+            </p>
+          } @else {
+            <ul class="pick-list" role="list">
+              @for (s of filteredStudents(); track s.studentUserId) {
+                <li>
+                  <button
+                    type="button"
+                    class="pick"
+                    [attr.aria-pressed]="pickedStudent()?.studentUserId === s.studentUserId"
+                    (click)="pickedStudent.set(s)">
+                    <strong>{{ s.studentName }}</strong>
+                    @if (s.licenseCategories) { <small>Categoría {{ s.licenseCategories }}</small> }
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+          <div class="xe-actions">
+            <button type="button" class="xe-btn primary" [disabled]="busy() || !pickedStudent()" (click)="confirmAdd()">
+              @if (pickedStudent(); as p) { Agendar a {{ p.studentName }} } @else { Agendar }
+            </button>
+            <button type="button" class="xe-btn" (click)="adding.set(false)">Cancelar</button>
+          </div>
+        </div>
+      }
+    } @else if (!readOnly && !isClosed && slot.available <= 0) {
+      <p class="xe-text xe-muted">No quedan cupos. Para agregar a alguien más, aumenta los cupos de este día.</p>
+    }
+  </section>
+
+  @if (!readOnly && !isClosed) {
+    <section class="block" aria-labelledby="capacity-title">
+      <h3 id="capacity-title">Cupos para esta fecha</h3>
+      <p class="xe-small xe-muted">Este cambio es solo para {{ dayTitle(slot.date) }}. Las demás semanas siguen igual.</p>
+      <div class="inline-form">
+        <label class="xe-field">
+          <span>Número de cupos</span>
+          <input type="number" min="1" step="1" inputmode="numeric" [(ngModel)]="capacity" name="slotCapacity" />
+        </label>
+        <button type="button" class="xe-btn primary" [disabled]="busy()" (click)="saveCapacity()">Guardar cupos</button>
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="close-title">
+      <h3 id="close-title">Cerrar esta hora</h3>
+      @if (confirmCloseWithBookings()) {
+        <div class="xe-banner danger" role="alert">
+          <strong>Hay {{ plural(bookings().length, 'estudiante agendado', 'estudiantes agendados') }}.</strong>
+          <p>¿Cancelar sus citas y cerrar esta hora?</p>
+          <div class="xe-actions">
+            <button type="button" class="xe-btn danger" [disabled]="busy()" (click)="closeHour(true)">
+              Sí, cancelar citas y cerrar
+            </button>
+            <button type="button" class="xe-btn" (click)="confirmCloseWithBookings.set(false)">No, dejar como está</button>
+          </div>
+        </div>
+      } @else {
+        <p class="xe-small xe-muted">Nadie podrá agendar a esta hora ese día. Las demás semanas siguen igual.</p>
+        <button type="button" class="xe-btn danger-soft" [disabled]="busy()" (click)="closeHour()">
+          Cerrar esta hora solo este día
+        </button>
+      }
+    </section>
+  }
+</div>

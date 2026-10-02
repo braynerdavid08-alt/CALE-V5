@@ -99,6 +99,11 @@
           </ul>
         </section>
 
+        <app-student-hours-card
+          class="hours-slot"
+          [studentUserId]="studentUserId"
+          (changed)="refreshDetail()" />
+
         <section class="school-card cartera-card">
           <h2>Cartera</h2>
           <div class="money">

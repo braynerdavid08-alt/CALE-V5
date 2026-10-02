@@ -260,6 +260,16 @@ public sealed class TheoryExamAppointment
     public string? Notes { get; set; }
     public DateTime? CheckedInAt { get; set; }
     public bool NoShow { get; set; }
+
+    /// <summary>See <see cref="TheoryExamBookingStatuses"/>. Cancelled rows free their seat.</summary>
+    public string Status { get; set; } = TheoryExamBookingStatuses.Active;
+
+    /// <summary>1..capacity; unique per slot among non-cancelled rows so a seat can't be sold twice.</summary>
+    public int SeatNumber { get; set; } = 1;
+
+    public DateTime? CancelledAt { get; set; }
+    public int? CancelledByUserId { get; set; }
+    public int? BookedByUserId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

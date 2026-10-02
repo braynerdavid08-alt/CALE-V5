@@ -1,0 +1,92 @@
+<section class="xe-panel hours" aria-labelledby="hours-title">
+  <header class="hours-head">
+    <h2 id="hours-title">Horas</h2>
+    @if (hours()) {
+      <button type="button" class="xe-btn primary" (click)="openForm()">Corregir horas</button>
+    }
+  </header>
+
+  @if (notice()) {
+    <p class="xe-banner success" role="status"><span>✅ {{ notice() }}</span></p>
+  }
+  <ui-error [message]="error()" />
+
+  @if (loading()) {
+    <ui-loading label="Cargando horas…" />
+  }
+  @if (!loading() && hours(); as h) {
+    <div class="lines">
+      @for (cat of ['Theory', 'Workshop']; track cat) {
+        @let l = line(cat);
+        @if (l) {
+          <div class="line" [class.done]="l.pending <= 0">
+            <h3>{{ categoryLabel(cat) }}</h3>
+            <dl class="xe-facts">
+              <div><dt>Requeridas</dt><dd>{{ hoursLabel(l.required) }}</dd></div>
+              <div><dt>Registradas</dt><dd>{{ hoursLabel(l.total) }}</dd></div>
+              <div><dt>Pendientes</dt><dd>{{ l.pending > 0 ? hoursLabel(l.pending) : '✅ Completas' }}</dd></div>
+            </dl>
+            @if (l.adjusted !== 0) {
+              <p class="xe-small xe-muted">Incluye {{ hoursLabel(l.adjusted) }} ajustadas a mano.</p>
+            }
+          </div>
+        }
+      }
+    </div>
+
+    <div class="history">
+      <h3>Cambios hechos a mano</h3>
+      @if (!h.history.length) {
+        <p class="xe-text xe-muted">No se han hecho cambios a mano.</p>
+      } @else {
+        <ul>
+          @for (a of h.history; track a.id) {
+            <li>
+              <div class="hist-top">
+                <strong>{{ categoryLabel(a.category) }}: {{ hoursLabel(a.previousHours) }} → {{ hoursLabel(a.newHours) }}</strong>
+                <time>{{ formatInstant(a.createdAt) }}</time>
+              </div>
+              <span>{{ a.reason }}</span>
+              @if (a.performedBy) { <small class="xe-muted">Lo hizo: {{ a.performedBy }}</small> }
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  }
+</section>
+
+<ui-sheet [open]="formOpen()" title="Corregir horas" (close)="formOpen.set(false)">
+  <form class="xe-form" (ngSubmit)="submit()">
+    <p class="xe-text">Usa esto cuando el estudiante hizo horas que no quedaron registradas en la app.</p>
+    <label class="xe-field">
+      <span>Tipo de horas</span>
+      <select [(ngModel)]="category" name="category" (ngModelChange)="onCategoryChange()">
+        <option value="Theory">Teoría</option>
+        <option value="Workshop">Taller</option>
+      </select>
+    </label>
+    <p class="current">Horas actuales: <strong>{{ hoursLabel(currentTotal()) }}</strong></p>
+    <label class="xe-field">
+      <span>Nuevo total de horas</span>
+      <input type="number" min="0" step="0.5" inputmode="decimal" required [(ngModel)]="newHours" name="newHours" />
+      <small>Escribe el total que debe quedar, no la diferencia.</small>
+    </label>
+    <label class="xe-field">
+      <span>Motivo</span>
+      <textarea
+        required
+        rows="3"
+        [(ngModel)]="reason"
+        name="reason"
+        placeholder="Ejemplo: Registro de horas realizadas externamente"></textarea>
+    </label>
+    <ui-error [message]="formError()" />
+    <div class="xe-actions">
+      <button type="submit" class="xe-btn primary big" [disabled]="saving()">
+        {{ saving() ? 'Guardando…' : 'Confirmar cambio' }}
+      </button>
+      <button type="button" class="xe-btn" (click)="formOpen.set(false)">Cancelar</button>
+    </div>
+  </form>
+</ui-sheet>

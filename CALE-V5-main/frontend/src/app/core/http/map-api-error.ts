@@ -153,8 +153,33 @@ const messages: Record<string, string> = {
   requests_blocked: 'El administrador desactivó el envío de solicitudes para tu cuenta.',
   cannot_block_admin: 'No puedes bloquear a un administrador.',
   already_reported: 'Ya reportaste esta pregunta. El administrador la está revisando.',
-  invalid_report: 'Cuéntanos qué está mal en la pregunta.'
+  invalid_report: 'Cuéntanos qué está mal en la pregunta.',
+  exam_slot_full: 'El horario ya no tiene cupos disponibles.',
+  exam_slot_closed: 'Ese horario de examen está cerrado. Elige otra hora.',
+  exam_slot_not_found: 'Ese horario de examen ya no existe. Recarga la página.',
+  exam_slot_past: 'Ese horario ya pasó. Elige una fecha y hora futuras.',
+  exam_already_booked: 'Ya hay una cita de examen activa para este estudiante. Cancela esa cita antes de pedir otra.',
+  exam_template_duplicate: 'Ya existe un horario ese mismo día a esa misma hora.',
+  capacity_invalid: 'Los cupos deben ser un número entero, mínimo 1.',
+  capacity_below_bookings: 'No puedes poner menos cupos que los estudiantes que ya están agendados.',
+  slot_has_bookings: 'Hay estudiantes agendados en ese horario.',
+  exam_cancel_too_late: 'Ya no se puede cancelar esta cita porque el plazo para cancelar terminó. Comunícate con tu escuela.',
+  booking_not_found: 'No encontramos esa cita. Puede que ya esté cancelada.',
+  hours_reason_required: 'Escribe el motivo del cambio de horas.',
+  hours_invalid: 'El número de horas no es válido.',
+  hours_unchanged: 'El nuevo total es igual al actual. No hay nada que cambiar.',
+  exam_booking_too_soon: 'Ese horario es demasiado pronto. Elige una fecha con más días de anticipación.',
+  exam_booking_too_far: 'Esa fecha está demasiado lejos. Elige una fecha más cercana.'
 };
+
+/** Machine error code sent by the API (`detail` of the problem response), if any. */
+export function apiErrorCode(error: unknown): string | null {
+  if (!(error instanceof HttpErrorResponse)) {
+    return null;
+  }
+  const detail = error.error?.detail;
+  return typeof detail === 'string' ? detail : null;
+}
 
 function withSupportCode(message: string, error: unknown): string {
   const traceId = extractTraceId(error);

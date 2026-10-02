@@ -224,6 +224,170 @@ namespace Cale.Api.Persistence.Migrations
                     b.ToTable("Valoraciones", (string)null);
                 });
 
+            modelBuilder.Entity("Cale.Modules.Assessment.Domain.Gamification.DailyChallenge", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AnswersJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateOnly>("ChallengeDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CorrectCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("QuestionIdsJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "ChallengeDate")
+                        .IsUnique();
+
+                    b.ToTable("RetosDiarios", (string)null);
+                });
+
+            modelBuilder.Entity("Cale.Modules.Assessment.Domain.Gamification.GameResult", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Correct")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Game")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int?>("OpponentId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("PlayedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Total")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Won")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlayedAt");
+
+                    b.HasIndex("UserId", "Game");
+
+                    b.ToTable("PartidasJuego", (string)null);
+                });
+
+            modelBuilder.Entity("Cale.Modules.Assessment.Domain.Gamification.MistakeReview", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Box")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("LastWrongAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Mastered")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("NextDueAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("QuestionId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "NextDueAt");
+
+                    b.HasIndex("UserId", "QuestionId")
+                        .IsUnique();
+
+                    b.ToTable("RepasoErrores", (string)null);
+                });
+
+            modelBuilder.Entity("Cale.Modules.Assessment.Domain.Gamification.PlayerProfile", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("ShowInRanking")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("PerfilJuego", (string)null);
+                });
+
+            modelBuilder.Entity("Cale.Modules.Assessment.Domain.Gamification.UserAchievement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<DateTime>("EarnedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Code")
+                        .IsUnique();
+
+                    b.ToTable("LogrosUsuario", (string)null);
+                });
+
             modelBuilder.Entity("Cale.Modules.Catalog.Domain.Bank", b =>
                 {
                     b.Property<int>("Id")
@@ -1212,6 +1376,162 @@ namespace Cale.Api.Persistence.Migrations
                     b.ToTable("NotificationPreferences", (string)null);
                 });
 
+            modelBuilder.Entity("Cale.Modules.Engagement.Domain.PushSubscription", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Auth")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Endpoint")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("P256dh")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Endpoint")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("SuscripcionesPush", (string)null);
+                });
+
+            modelBuilder.Entity("Cale.Modules.Engagement.Domain.PushVapidKeys", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PrivateKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PublicKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ClavesPush", (string)null);
+                });
+
+            modelBuilder.Entity("Cale.Modules.Engagement.Domain.UserRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdminNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CreatedQuestionId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("PayloadJson")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ReviewedById")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("UserRole")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.ToTable("SolicitudesUsuario", (string)null);
+                });
+
+            modelBuilder.Entity("Cale.Modules.Engagement.Domain.UserRequestBlock", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("BlockedById")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("BloqueosSolicitudes", (string)null);
+                });
+
             modelBuilder.Entity("Cale.Modules.GameShow.Domain.GameShowAttempt", b =>
                 {
                     b.Property<int>("Id")
@@ -1296,6 +1616,53 @@ namespace Cale.Api.Persistence.Migrations
                     b.ToTable("GameShowBoardAnswers", (string)null);
                 });
 
+            modelBuilder.Entity("Cale.Modules.GameShow.Domain.GameShowPack", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("OwnerUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("RoundCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SchoolUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("SchoolUserId");
+
+                    b.HasIndex("UpdatedAt");
+
+                    b.ToTable("GameShowPacks", (string)null);
+                });
+
             modelBuilder.Entity("Cale.Modules.GameShow.Domain.GameShowPlayer", b =>
                 {
                     b.Property<int>("Id")
@@ -1304,9 +1671,15 @@ namespace Cale.Api.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("BuzzWins")
+                        .HasColumnType("integer");
+
                     b.Property<string>("ConnectionId")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
+
+                    b.Property<int>("CorrectAnswers")
+                        .HasColumnType("integer");
 
                     b.Property<string>("DisplayName")
                         .IsRequired()
@@ -1323,6 +1696,9 @@ namespace Cale.Api.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<int>("SessionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("StealsWon")
                         .HasColumnType("integer");
 
                     b.Property<string>("Team")
@@ -1351,6 +1727,12 @@ namespace Cale.Api.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("ActivePlayerId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("AnswerDeadlineUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime?>("BuzzOpenedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1374,6 +1756,12 @@ namespace Cale.Api.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(600)
                         .HasColumnType("character varying(600)");
+
+                    b.Property<int>("RoundChampionCorrectAnswers")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("RoundChampionPlayerId")
+                        .HasColumnType("integer");
 
                     b.Property<int>("RoundPointsForController")
                         .HasColumnType("integer");
@@ -1426,7 +1814,18 @@ namespace Cale.Api.Persistence.Migrations
                         .HasMaxLength(12)
                         .HasColumnType("character varying(12)");
 
+                    b.Property<DateTime?>("LightningUntilUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int?>("SchoolUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SettingsJson")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)");
+
+                    b.Property<int?>("SourcePackId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("StartedAt")
@@ -1468,6 +1867,29 @@ namespace Cale.Api.Persistence.Migrations
                     b.HasIndex("SchoolUserId");
 
                     b.ToTable("GameShowSessions", (string)null);
+                });
+
+            modelBuilder.Entity("Cale.Modules.GameShow.Domain.GameShowSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("UpdatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("GameShowSettings", (string)null);
                 });
 
             modelBuilder.Entity("Cale.Modules.Identity.Domain.MembershipEvent", b =>
@@ -2472,6 +2894,68 @@ namespace Cale.Api.Persistence.Migrations
                     b.ToTable("SchoolApprenticeProfiles", (string)null);
                 });
 
+            modelBuilder.Entity("Cale.Modules.TheoreticalTraining.Domain.SchoolAuditEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(48)
+                        .HasColumnType("character varying(48)");
+
+                    b.Property<int?>("ActorUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Area")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("EntityId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EntityType")
+                        .HasMaxLength(48)
+                        .HasColumnType("character varying(48)");
+
+                    b.Property<string>("NewValue")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("OldValue")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<int>("SchoolUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("StudentUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SchoolUserId", "CreatedAt");
+
+                    b.HasIndex("SchoolUserId", "StudentUserId");
+
+                    b.ToTable("SchoolAuditEntries", (string)null);
+                });
+
             modelBuilder.Entity("Cale.Modules.TheoreticalTraining.Domain.SchoolStudentEnrollment", b =>
                 {
                     b.Property<int>("Id")
@@ -2768,6 +3252,15 @@ namespace Cale.Api.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("BookedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CancelledByUserId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("CheckedInAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -2787,8 +3280,20 @@ namespace Cale.Api.Persistence.Migrations
                     b.Property<int>("SchoolUserId")
                         .HasColumnType("integer");
 
+                    b.Property<int>("SeatNumber")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
                     b.Property<TimeOnly>("SlotTime")
                         .HasColumnType("time without time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("Active");
 
                     b.Property<string>("StudentLabel")
                         .HasMaxLength(160)
@@ -2804,7 +3309,103 @@ namespace Cale.Api.Persistence.Migrations
 
                     b.HasIndex("SchoolUserId", "ExamDate", "SlotTime");
 
+                    b.HasIndex("SchoolUserId", "StudentUserId", "Status");
+
+                    b.HasIndex("SchoolUserId", "ExamDate", "SlotTime", "SeatNumber")
+                        .IsUnique()
+                        .HasDatabaseName("UX_TheoryExamAppointments_Seat")
+                        .HasFilter("\"Status\" <> 'Cancelled'");
+
+                    b.HasIndex("SchoolUserId", "StudentUserId", "ExamDate", "SlotTime")
+                        .IsUnique()
+                        .HasDatabaseName("UX_TheoryExamAppointments_Student")
+                        .HasFilter("\"Status\" <> 'Cancelled' AND \"StudentUserId\" IS NOT NULL");
+
                     b.ToTable("TheoryExamAppointments", (string)null);
+                });
+
+            modelBuilder.Entity("Cale.Modules.TheoreticalTraining.Domain.TheoryExamScheduleOverride", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("Capacity")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CreatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("IsClosed")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsWholeDay")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("SchoolUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SchoolUserId", "Date", "StartTime")
+                        .IsUnique();
+
+                    b.ToTable("TheoryExamScheduleOverrides", (string)null);
+                });
+
+            modelBuilder.Entity("Cale.Modules.TheoreticalTraining.Domain.TheoryExamScheduleTemplate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Capacity")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SchoolUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SchoolUserId", "DayOfWeek", "StartTime")
+                        .IsUnique();
+
+                    b.ToTable("TheoryExamScheduleTemplates", (string)null);
                 });
 
             modelBuilder.Entity("Cale.Modules.TheoreticalTraining.Domain.TheoryTopic", b =>
@@ -2938,6 +3539,55 @@ namespace Cale.Api.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("TheoryTrainingSettings", (string)null);
+                });
+
+            modelBuilder.Entity("Cale.Modules.TheoreticalTraining.Domain.TrainingHoursAdjustment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("DeltaHours")
+                        .HasPrecision(6, 1)
+                        .HasColumnType("numeric(6,1)");
+
+                    b.Property<decimal>("NewHours")
+                        .HasPrecision(6, 1)
+                        .HasColumnType("numeric(6,1)");
+
+                    b.Property<int?>("PerformedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("PreviousHours")
+                        .HasPrecision(6, 1)
+                        .HasColumnType("numeric(6,1)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<int>("SchoolUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("StudentUserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SchoolUserId", "StudentUserId");
+
+                    b.ToTable("TrainingHoursAdjustments", (string)null);
                 });
 
             modelBuilder.Entity("Cale.Modules.Catalog.Domain.QuestionOption", b =>

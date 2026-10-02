@@ -2422,6 +2422,11 @@ public static class FeatureSchema
         {
             await TryPostgresRepairAsync(db, sql, ct);
         }
+
+        foreach (var sql in ExamScheduleSchemaGuard.PostgresStatements)
+        {
+            await TryPostgresRepairAsync(db, sql, ct);
+        }
     }
 
     private static async Task TryPostgresRepairAsync(

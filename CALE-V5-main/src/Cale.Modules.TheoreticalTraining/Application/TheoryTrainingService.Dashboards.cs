@@ -175,6 +175,7 @@ public sealed partial class TheoryTrainingService
         var examSlot = await _db.Set<TheoryExamAppointment>()
             .Where(x => x.SchoolUserId == schoolUserId
                 && x.StudentUserId == studentUserId
+                && x.Status == TheoryExamBookingStatuses.Active
                 && x.ExamDate >= today)
             .OrderBy(x => x.ExamDate)
             .ThenBy(x => x.SlotTime)
@@ -351,9 +352,10 @@ public sealed partial class TheoryTrainingService
             .GroupBy(x => x.StudentUserId)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.Id).First().BalanceDue);
 
-        var today = DateOnly.FromDateTime(_clock.UtcNow.Date);
+        var today = ColombiaTime.TodayInColombia();
         var studentsWithAppointment = await _db.Set<TheoryExamAppointment>()
             .Where(x => x.SchoolUserId == schoolUserId
+                && x.Status == TheoryExamBookingStatuses.Active
                 && x.ExamDate >= today
                 && x.StudentUserId != null)
             .Select(x => x.StudentUserId!.Value)

@@ -108,6 +108,8 @@ public sealed class SchoolExcelImportService
     private readonly INotificationPublisher _notifications;
     private readonly ITrainingEligibilityService _eligibility;
     private readonly ISchoolMembershipGuard _membership;
+    private readonly IExamBookingEligibility _examEligibility;
+    private readonly TheoryExamScheduleService _examSchedule;
 
     public SchoolExcelImportService(
         CaleDbContext db,
@@ -119,7 +121,9 @@ public sealed class SchoolExcelImportService
         TheoryTrainingService theory,
         INotificationPublisher notifications,
         ITrainingEligibilityService eligibility,
-        ISchoolMembershipGuard membership)
+        ISchoolMembershipGuard membership,
+        IExamBookingEligibility examEligibility,
+        TheoryExamScheduleService examSchedule)
     {
         _db = db;
         _users = users;
@@ -131,6 +135,8 @@ public sealed class SchoolExcelImportService
         _notifications = notifications;
         _eligibility = eligibility;
         _membership = membership;
+        _examEligibility = examEligibility;
+        _examSchedule = examSchedule;
     }
 
     public async Task<ExcelImportPreviewDto> PreviewAsync(
@@ -495,47 +501,31 @@ public sealed class SchoolExcelImportService
         TheoryExamImportPayload payload,
         CancellationToken ct)
     {
-        var now = _clock.UtcNow;
         var studentUserId = await TryMatchStudentByNameAsync(schoolUserId, payload.StudentLabel, ct);
-
         if (studentUserId is int studentId)
         {
-            await ValidateExamSlotStudentAsync(schoolUserId, studentId, ct);
+            await _examEligibility.EnsureEligibleAsync(schoolUserId, studentId, ct);
         }
 
-        var existing = await _db.Set<TheoryExamAppointment>()
-            .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
-                && x.ExamDate == payload.ExamDate
-                && x.SlotTime == payload.SlotTime, ct);
+        var previous = studentUserId is int sid
+            ? await _db.Set<TheoryExamAppointment>()
+                .AsNoTracking()
+                .AnyAsync(x => x.SchoolUserId == schoolUserId
+                    && x.StudentUserId == sid
+                    && x.ExamDate == payload.ExamDate
+                    && x.SlotTime == payload.SlotTime
+                    && x.Status != TheoryExamBookingStatuses.Cancelled, ct)
+            : true;
 
-        var previousStudentId = existing?.StudentUserId;
-        TheoryExamAppointment entity;
+        var entity = await _examSchedule.ImportBookingAsync(
+            schoolUserId,
+            payload.ExamDate,
+            payload.SlotTime,
+            studentUserId,
+            payload.StudentLabel,
+            ct);
 
-        if (existing is null)
-        {
-            entity = new TheoryExamAppointment
-            {
-                SchoolUserId = schoolUserId,
-                ExamDate = payload.ExamDate,
-                SlotTime = payload.SlotTime,
-                StudentUserId = studentUserId,
-                StudentLabel = payload.StudentLabel,
-                CreatedAt = now,
-                UpdatedAt = now
-            };
-            await _db.Set<TheoryExamAppointment>().AddAsync(entity, ct);
-        }
-        else
-        {
-            entity = existing;
-            entity.StudentUserId = studentUserId;
-            entity.StudentLabel = payload.StudentLabel;
-            entity.UpdatedAt = now;
-        }
-
-        await _db.SaveChangesAsync(ct);
-
-        if (entity.StudentUserId is int assignedId && assignedId != previousStudentId)
+        if (entity.StudentUserId is int assignedId && !previous)
         {
             await _notifications.NotifyUsersAsync(
                 [assignedId],
@@ -545,59 +535,16 @@ public sealed class SchoolExcelImportService
                     NotificationTypes.TheoryClass,
                     RelatedEntity: "theory_exam_appointment",
                     RelatedId: entity.Id,
-                    Link: "/student/training"),
+                    Link: "/student/exam"),
                 ct);
         }
     }
 
-    private async Task ValidateExamSlotStudentAsync(
+    private Task ValidateExamSlotStudentAsync(
         int schoolUserId,
         int studentId,
-        CancellationToken ct)
-    {
-        var enrollment = await _db.Set<SchoolStudentEnrollment>()
-            .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
-                && x.StudentUserId == studentId, ct)
-            ?? throw new DomainException(
-                "El estudiante no está inscrito en la escuela.",
-                400,
-                "student_not_enrolled");
-
-        if (!StudentEnrollmentStatuses.CanReserveStatuses.Contains(enrollment.Status))
-        {
-            throw new DomainException(
-                "El estudiante debe estar activo en Programación.",
-                400,
-                "student_not_authorized");
-        }
-
-        if (!enrollment.TheoryExamAuthorized)
-        {
-            throw new DomainException(
-                "El estudiante no está autorizado para examen teórico.",
-                400,
-                "theory_exam_not_authorized");
-        }
-
-        await _eligibility.EnsureNoBalanceDueAsync(schoolUserId, studentId, ct);
-
-        var eligibility = await _theory.GetPracticalEligibilityAsync(schoolUserId, studentId, ct);
-        if (eligibility.TheoryExamPassed)
-        {
-            throw new DomainException(
-                "El estudiante ya aprobó el examen teórico.",
-                400,
-                "theory_exam_already_passed");
-        }
-
-        if (!eligibility.TheoryHoursComplete || !eligibility.WorkshopHoursComplete)
-        {
-            throw new DomainException(
-                "El estudiante debe completar las horas de teoría y taller.",
-                400,
-                "theory_hours_incomplete");
-        }
-    }
+        CancellationToken ct) =>
+        _examEligibility.EnsureEligibleAsync(schoolUserId, studentId, ct);
 
     private async Task<ParsedExcelRow> ClassifyTheoryExamRowAsync(
         int schoolUserId,

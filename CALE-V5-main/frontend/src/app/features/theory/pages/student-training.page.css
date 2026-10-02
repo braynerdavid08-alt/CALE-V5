@@ -90,6 +90,22 @@
 }
 .exam-card .ok { color: var(--color-success); font-weight: 700; margin: 0.5rem 0 0; }
 .exam-card ui-button { margin-top: 0.5rem; }
+.exam-book-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.25rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem 1.2rem;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: var(--text-md);
+  font-weight: 800;
+  text-decoration: none;
+}
+.exam-book-btn:hover,
+.exam-book-btn:focus-visible { background: var(--color-primary-hover); color: var(--color-on-primary); }
 .card { border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1rem; background: var(--color-surface); }
 .card.highlight { border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border)); }
 .topic { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; border-left: 4px solid; padding-left: 0.5rem; }

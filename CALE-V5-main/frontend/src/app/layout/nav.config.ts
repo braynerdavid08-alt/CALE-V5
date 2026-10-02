@@ -102,6 +102,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
     // Flat menu with everyday words: school owners are often older and less used to apps.
     return [
       { label: 'Inicio', path: '/school', icon: 'home', exact: true },
+      { label: 'Agenda de la semana', path: '/school/agenda', icon: 'calendar', exact: true },
       { label: 'Estudiantes', path: '/school/apprentices', icon: 'graduate', exact: true },
       { label: 'Asistencia de hoy', path: '/school/attendance', icon: 'list', exact: true },
       { label: 'Clases teóricas', path: '/school/training', icon: 'clock', exact: true },
@@ -114,6 +115,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
         label: 'Más opciones',
         icon: 'grid',
         children: [
+          { label: 'Horarios de examen', path: '/school/theory-exams/schedule', exact: true },
           { label: 'Examen en curso', path: '/school/exam-control', exact: true },
           { label: 'Vehículos de hoy', path: '/school/practical-fleet', exact: true },
           { label: 'Importar estudiantes', path: '/school/import', exact: true },
@@ -167,6 +169,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
     { label: 'Biblioteca Jurídica', path: '/student/normas-transito', icon: 'book' },
     { label: 'Mis Clases', path: '/student/classes', icon: 'book', exact: true },
     { label: 'Teoría', path: '/student/training', icon: 'exam', exact: true, requiresSchool: true },
+    { label: 'Agendar examen', path: '/student/exam', icon: 'calendar', exact: true, requiresSchool: true },
     { label: 'Clases de manejo', path: '/student/practical', icon: 'exam', exact: true, requiresSchool: true },
     { label: 'Mi proceso', path: '/student/progress', icon: 'chart', exact: true },
     { label: 'Mensajes', path: '/notifications', icon: 'bell', exact: true },

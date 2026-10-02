@@ -1,0 +1,245 @@
+/* Shared look for the simple scheduling screens (exams, agenda, hours). Big targets, plain layout. */
+
+:host { display: block; }
+
+.xe-page {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.xe-head { display: grid; gap: 0.35rem; }
+.xe-head h1 {
+  margin: 0;
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.xe-lead {
+  margin: 0;
+  font-size: var(--text-md);
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  max-width: 46rem;
+}
+
+.xe-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+/* Buttons and button-looking links */
+.xe-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 3rem;
+  padding: 0.55rem 1.15rem;
+  border: 2px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-md);
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+.xe-btn:hover,
+.xe-btn:focus-visible {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.xe-btn:focus-visible { outline: 3px solid color-mix(in srgb, var(--color-primary) 45%, transparent); outline-offset: 2px; }
+.xe-btn.primary {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+.xe-btn.primary:hover,
+.xe-btn.primary:focus-visible {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+  color: var(--color-on-primary);
+}
+.xe-btn.danger {
+  border-color: var(--color-danger);
+  background: var(--color-danger);
+  color: #fff;
+}
+.xe-btn.danger:hover,
+.xe-btn.danger:focus-visible { background: var(--color-danger-hover); border-color: var(--color-danger-hover); color: #fff; }
+.xe-btn.danger-soft {
+  border-color: color-mix(in srgb, var(--color-danger) 45%, var(--color-border));
+  color: var(--color-danger);
+}
+.xe-btn.danger-soft:hover,
+.xe-btn.danger-soft:focus-visible { background: var(--color-danger-soft); color: var(--color-danger); border-color: var(--color-danger); }
+.xe-btn.ghost { border-color: transparent; background: transparent; }
+.xe-btn.big { min-height: 3.75rem; font-size: var(--text-lg); padding-inline: 1.5rem; }
+.xe-btn.block { width: 100%; }
+.xe-btn:disabled,
+.xe-btn[aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Week navigation */
+.xe-weeknav {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--color-border);
+  border-radius: 1.1rem;
+  background: var(--color-surface);
+}
+.xe-weeknav h2 { margin: 0; font-size: var(--text-xl); line-height: 1.25; }
+.xe-weeknav .xe-actions .xe-btn { flex: 1 1 10rem; }
+
+/* Panels */
+.xe-panel {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1.15rem 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: 1.1rem;
+  background: var(--color-surface);
+  min-width: 0;
+}
+.xe-panel > h2,
+.xe-panel > header h2 { margin: 0; font-size: var(--text-xl); line-height: 1.25; }
+.xe-text { margin: 0; font-size: var(--text-md); line-height: 1.5; }
+.xe-muted { color: var(--color-text-secondary); }
+.xe-small { font-size: var(--text-sm); }
+
+/* Empty state */
+.xe-empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.85rem;
+  padding: 2rem 1.25rem;
+  border: 2px dashed var(--color-border);
+  border-radius: 1.1rem;
+  background: var(--color-surface);
+  text-align: center;
+}
+.xe-empty .xe-empty-emoji { font-size: 2.6rem; line-height: 1; }
+.xe-empty h2 { margin: 0; font-size: var(--text-xl); line-height: 1.3; }
+.xe-empty p { margin: 0; font-size: var(--text-md); color: var(--color-text-secondary); max-width: 34rem; line-height: 1.5; }
+
+/* Banners */
+.xe-banner {
+  --tone: var(--color-info);
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.9rem 1rem;
+  border-left: 6px solid var(--tone);
+  border-radius: 0.9rem;
+  background: color-mix(in srgb, var(--tone) 10%, var(--color-surface));
+  font-size: var(--text-md);
+  line-height: 1.45;
+}
+.xe-banner strong { font-size: var(--text-lg); }
+.xe-banner p { margin: 0; }
+.xe-banner.danger { --tone: var(--color-danger); }
+.xe-banner.success { --tone: var(--color-success); }
+.xe-banner.warn { --tone: var(--color-warning); }
+
+/* Form fields */
+.xe-form { display: grid; gap: 0.9rem; }
+.xe-field { display: grid; gap: 0.4rem; min-width: 0; }
+.xe-field > span,
+.xe-label { font-size: var(--text-md); font-weight: 800; }
+.xe-field small { font-size: var(--text-sm); color: var(--color-text-secondary); line-height: 1.4; }
+.xe-field input,
+.xe-field select,
+.xe-field textarea {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.6rem 0.8rem;
+  border: 2px solid var(--color-border);
+  border-radius: 0.8rem;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-md);
+  box-sizing: border-box;
+}
+.xe-field textarea { min-height: 5.5rem; resize: vertical; line-height: 1.45; }
+.xe-field input:focus,
+.xe-field select:focus,
+.xe-field textarea:focus {
+  outline: 3px solid color-mix(in srgb, var(--color-primary) 40%, transparent);
+  border-color: var(--color-primary);
+}
+.xe-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.9rem; }
+
+/* Facts (label / value) */
+.xe-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: 0.6rem; margin: 0; }
+.xe-facts > div {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.8rem;
+  background: var(--color-surface-raised);
+}
+.xe-facts dt { font-size: var(--text-sm); color: var(--color-text-secondary); font-weight: 700; }
+.xe-facts dd { margin: 0; font-size: var(--text-lg); font-weight: 800; }
+
+/* Status pills */
+.xe-status {
+  --tone: var(--color-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2rem;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tone) 14%, var(--color-surface));
+  color: var(--tone);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  white-space: nowrap;
+}
+.xe-status[data-tone='success'] { --tone: var(--color-success); }
+.xe-status[data-tone='danger'] { --tone: var(--color-danger); }
+.xe-status[data-tone='warning'] { --tone: var(--color-warning); }
+.xe-status[data-tone='primary'] { --tone: var(--color-primary); }
+
+/* Filter chips */
+.xe-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.xe-chip {
+  min-height: 3rem;
+  padding: 0 1.1rem;
+  border: 2px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-md);
+  font-weight: 800;
+  cursor: pointer;
+}
+.xe-chip[aria-pressed='true'] {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+.xe-chip:focus-visible { outline: 3px solid color-mix(in srgb, var(--color-primary) 45%, transparent); outline-offset: 2px; }
+
+.xe-ok { margin: 0; font-size: var(--text-md); font-weight: 700; color: var(--color-success); }
+
+@media (max-width: 600px) {
+  .xe-row { grid-template-columns: 1fr; }
+  .xe-actions > .xe-btn { flex: 1 1 100%; }
+  .xe-panel { padding: 1rem; }
+}

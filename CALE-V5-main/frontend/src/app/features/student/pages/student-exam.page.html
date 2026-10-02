@@ -1,0 +1,160 @@
+<section class="xe-page">
+  <header class="xe-head">
+    <h1>Agendar examen teórico</h1>
+    <p class="xe-lead">Elige el día y la hora en que vas a presentar tu examen teórico en la escuela.</p>
+  </header>
+
+  <nav class="xe-actions" aria-label="Navegación">
+    <a class="xe-btn" routerLink="/student/training">← Volver a Teoría</a>
+  </nav>
+
+  @if (notice()) {
+    <p class="xe-banner success" role="status"><span>✅ {{ notice() }}</span></p>
+  }
+  <ui-error [message]="error()" />
+
+  @if (loading()) {
+    <ui-loading label="Buscando horarios disponibles…" />
+  }
+  @if (!loading() && data(); as d) {
+    @if (myBooking(); as b) {
+      <section class="mine" aria-labelledby="mine-title">
+        <p class="mine-kicker">📅 Tu examen</p>
+        <h2 id="mine-title">{{ dayTitle(b.date) }}, {{ time12(b.time) }}</h2>
+        <p class="xe-text">Llega unos minutos antes a tu escuela.</p>
+        @if (b.canCancel) {
+          <p class="xe-text xe-muted">
+            Si necesitas cambiar la hora, primero cancela esta cita y luego elige otra.
+            @if (b.cancelDeadline) { Puedes cancelar hasta el {{ formatDeadline(b.cancelDeadline) }}. }
+          </p>
+          <div class="xe-actions">
+            <button type="button" class="xe-btn danger-soft big" [disabled]="cancelling()" (click)="confirmCancel.set(true)">
+              {{ cancelling() ? 'Cancelando…' : 'Cancelar cita' }}
+            </button>
+          </div>
+        } @else {
+          <p class="xe-banner warn">
+            <span>
+              Ya no puedes cancelar esta cita por tu cuenta.
+              @if (b.cancelDeadline) {
+                El plazo para cancelar terminó el {{ formatDeadline(b.cancelDeadline) }}.
+              } @else if (d.minCancelHours > 0) {
+                Solo se puede cancelar hasta {{ d.minCancelHours }} horas antes del examen.
+              }
+              Si tienes un problema, habla con tu escuela.
+            </span>
+          </p>
+        }
+      </section>
+    }
+
+    @if (!d.canBook && !myBooking()) {
+      <div class="xe-banner">
+        <strong>Todavía no puedes agendar tu examen</strong>
+        <p>{{ d.blockReason || 'Tu escuela aún no te ha habilitado para el examen teórico.' }}</p>
+      </div>
+    }
+
+    <div class="xe-weeknav">
+      <h2>{{ weekLabel() }}</h2>
+      <div class="xe-actions">
+        <button type="button" class="xe-btn" [disabled]="isFirstWeek()" (click)="goWeek(-1)">← Semana anterior</button>
+        <button type="button" class="xe-btn" (click)="goWeek(1)">Semana siguiente →</button>
+      </div>
+    </div>
+
+    @if (canPick()) {
+      <p class="xe-text">Toca una hora <strong>disponible</strong> para agendarla.</p>
+    }
+
+    @if (!days().length) {
+      <div class="xe-empty">
+        <span class="xe-empty-emoji" aria-hidden="true">🗓️</span>
+        <h2>No hay horarios esta semana</h2>
+        <p>Mira la semana siguiente para ver más fechas.</p>
+        <button type="button" class="xe-btn primary big" (click)="goWeek(1)">Ver semana siguiente →</button>
+      </div>
+    } @else {
+      <div class="days">
+        @for (day of days(); track day.date) {
+          <section class="xe-panel" [attr.aria-label]="day.title">
+            <h2>{{ day.title }}</h2>
+            <ul class="slots">
+              @for (s of day.slots; track s.time) {
+                <li>
+                  @if (isFull(s)) {
+                    <button type="button" class="slot full" disabled>
+                      <span class="slot-time">{{ time12(s.time) }}</span>
+                      <span class="slot-state">🔴 Agotado</span>
+                    </button>
+                  } @else {
+                    <button
+                      type="button"
+                      class="slot"
+                      [disabled]="!canPick()"
+                      [attr.aria-label]="'Agendar ' + day.title + ' a las ' + time12(s.time) + ', ' + cuposLabel(s.available) + ' disponibles'"
+                      (click)="pick(s)">
+                      <span class="slot-time">{{ time12(s.time) }}</span>
+                      <span class="slot-state">🟢 Disponible — {{ cuposLabel(s.available) }}</span>
+                    </button>
+                  }
+                </li>
+              }
+            </ul>
+          </section>
+        }
+      </div>
+    }
+  }
+</section>
+
+<ui-dialog
+  [open]="confirmCancel()"
+  title="¿Cancelar tu examen?"
+  [message]="cancelMessage(myBooking())"
+  confirmLabel="Sí, cancelar"
+  cancelLabel="No, mantener"
+  [danger]="true"
+  (confirm)="doCancel()"
+  (cancel)="confirmCancel.set(false)" />
+
+<ui-sheet
+  [open]="!!picked()"
+  [title]="sheetState() === 'success' ? '¡Examen agendado!' : 'Confirma tu examen'"
+  (close)="closeSheet()">
+  @if (picked(); as s) {
+    @switch (sheetState()) {
+      @case ('success') {
+        <div class="xe-form">
+          <p class="xe-banner success">
+            <span>✅ Listo. Tu examen quedó para el <strong>{{ dayTitle(booked()?.date || s.date) }}</strong>
+              a las <strong>{{ time12(booked()?.time || s.time) }}</strong>.</span>
+          </p>
+          <p class="xe-text">Llega unos minutos antes a tu escuela.</p>
+          <button type="button" class="xe-btn primary big block" (click)="closeSheet()">Entendido</button>
+        </div>
+      }
+      @case ('full') {
+        <div class="xe-form">
+          <ui-error [message]="sheetError()" />
+          <p class="xe-text">Otra persona tomó el último cupo. Ya actualizamos la lista: elige otra hora.</p>
+          <button type="button" class="xe-btn primary big block" (click)="closeSheet()">Elegir otra hora</button>
+        </div>
+      }
+      @default {
+        <div class="xe-form">
+          <dl class="xe-facts">
+            <div><dt>Fecha</dt><dd>{{ dayTitle(s.date) }}</dd></div>
+            <div><dt>Hora</dt><dd>{{ time12(s.time) }}</dd></div>
+            <div><dt>Cupos disponibles</dt><dd>{{ s.available }}</dd></div>
+          </dl>
+          <ui-error [message]="sheetError()" />
+          <button type="button" class="xe-btn primary big block confirm" [disabled]="booking()" (click)="book()">
+            {{ booking() ? 'Agendando…' : 'CONFIRMAR EXAMEN' }}
+          </button>
+          <button type="button" class="xe-btn block" (click)="closeSheet()">Volver</button>
+        </div>
+      }
+    }
+  }
+</ui-sheet>
