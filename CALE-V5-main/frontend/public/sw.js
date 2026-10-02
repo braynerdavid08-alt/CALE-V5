@@ -1,5 +1,5 @@
 /* Service worker — install to home screen (PWA) and Web Push notifications. */
-const CACHE = 'mi-cale-shell-v8';
+const CACHE = 'mi-cale-shell-v9';
 const SHELL = ['/', '/index.html', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {

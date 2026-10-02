@@ -15,11 +15,8 @@
           [routerLink]="mustChangePassword ? '/profile' : session.homeRoute()"
           [queryParams]="mustChangePassword ? { mustChange: 1 } : {}"
           [attr.title]="brand.name">
+          <img class="logo-wide" [src]="brand.logoWide" [alt]="brand.name + ' — ' + brand.slogan" width="790" height="316" />
           <img class="logo-img" [src]="brand.icon192" [alt]="brand.name" width="40" height="40" />
-          <span class="brand-text">
-            <span class="brand-name">{{ brand.name }}</span>
-            <span class="brand-tag">{{ brand.sloganShort }}</span>
-          </span>
         </a>
         <button
           type="button"
@@ -99,8 +96,7 @@
           </a>
         } @else {
           <a class="student-brand" routerLink="/student" [attr.title]="brand.name">
-            <img class="logo-img" [src]="brand.icon192" [alt]="brand.name" width="36" height="36" />
-            <span class="student-brand-name">{{ brand.name }}</span>
+            <img class="logo-wide" [src]="brand.logoWide" [alt]="brand.name + ' — ' + brand.slogan" width="790" height="316" />
           </a>
         }
         @if (!mustChangePassword) {

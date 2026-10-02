@@ -22,11 +22,7 @@ import { UiThemeToggleComponent } from '../../shared/ui/ui-theme-toggle.componen
       <header class="top">
         <div class="top-inner">
           <a routerLink="/" class="brand" (click)="closeMenu()">
-            <img class="brand-mark" [src]="brand.icon192" [alt]="brand.name" width="36" height="36" />
-            <span class="brand-stack">
-              <span class="brand-name">{{ brand.name }}</span>
-              <span class="brand-tag">{{ brand.sloganShort }}</span>
-            </span>
+            <img class="brand-logo" [src]="brand.logoWide" [alt]="brand.name + ' — ' + brand.slogan" width="790" height="316" />
           </a>
 
           <nav class="nav desktop" aria-label="Principal">
@@ -97,8 +93,9 @@ import { UiThemeToggleComponent } from '../../shared/ui/ui-theme-toggle.componen
 
       <footer class="foot">
         <div class="foot-inner">
-          <p class="foot-brand">{{ brand.name }}</p>
-          <p class="foot-copy">{{ brand.slogan }}</p>
+          <a routerLink="/" class="foot-brand">
+            <img [src]="brand.logoWide" [alt]="brand.name + ' — ' + brand.slogan" width="790" height="316" loading="lazy" />
+          </a>
           <nav class="foot-nav" aria-label="Pie">
             @for (link of links; track link.path) {
               <a [routerLink]="link.path">{{ link.label }}</a>

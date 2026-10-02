@@ -13,15 +13,15 @@ export const BRAND = {
   /** Document / SEO fallback description. */
   seoDescription:
     'Luz Verde: practica gratis el simulacro del examen CALE todas las veces que quieras y sigue tu formación vial con tu escuela.',
-  /** Full horizontal logo (traffic light + wordmark + slogan) on a black background. */
-  logoWide: '/brand/luz-verde-logo.jpg',
+  /** Full horizontal logo (traffic light + wordmark + slogan) on a transparent background; its dark text needs a light surface behind it. */
+  logoWide: '/brand/luz-verde-logo.png',
   /** PWA / favicon paths (public/). */
   icon192: '/icons/icon-192.png',
   icon512: '/icons/icon-512.png',
   appleTouchIcon: '/icons/apple-touch-icon.png',
   favicon: '/icons/favicon.png',
   themeColor: '#070b09',
-  pwaBackground: '#000000'
+  pwaBackground: '#ffffff'
 } as const;
 
 export function brandPageTitle(page: string): string {
