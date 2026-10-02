@@ -10,23 +10,20 @@ import {
 } from '@angular/core';
 import { ChartTone } from './ui-line-chart.component';
 
-export interface CandlePoint {
+export interface BarPoint {
   label: string;
   sublabel: string;
-  open: number;
-  close: number;
-  high: number;
-  low: number;
+  value: number;
   tone: ChartTone;
   title: string;
   lines: string[];
 }
 
-const PAD = { top: 14, right: 12, bottom: 44, left: 44 };
+const PAD = { top: 24, right: 12, bottom: 44, left: 44 };
 
-/** Responsive SVG candlestick chart (body = open→close, wick = low→high). */
+/** Responsive SVG bar chart with the value printed above each bar. */
 @Component({
-  selector: 'ui-candle-chart',
+  selector: 'ui-bar-chart',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -36,30 +33,32 @@ const PAD = { top: 14, right: 12, bottom: 44, left: 44 };
           <line class="grid" [attr.x1]="padLeft" [attr.x2]="width() - padRight" [attr.y1]="t.y" [attr.y2]="t.y" />
           <text class="tick" [attr.x]="padLeft - 8" [attr.y]="t.y + 4" text-anchor="end">{{ t.label }}</text>
         }
-        @for (c of candles(); track c.index) {
+        @for (b of bars(); track b.index) {
           <g
-            class="candle"
-            [class.on]="active() === c.index"
+            class="bar"
+            [class.on]="active() === b.index"
             tabindex="0"
             role="button"
-            [attr.aria-label]="c.point.title + '. ' + c.point.lines.join('. ')"
-            [style.--tone]="'var(--chart-' + c.point.tone + ')'"
-            (mouseenter)="active.set(c.index)"
-            (focus)="active.set(c.index)"
+            [attr.aria-label]="b.point.title + '. ' + b.point.lines.join('. ')"
+            [style.--tone]="'var(--chart-' + b.point.tone + ')'"
+            (mouseenter)="active.set(b.index)"
+            (focus)="active.set(b.index)"
             (blur)="active.set(null)"
-            (click)="active.set(active() === c.index ? null : c.index)">
-            <rect class="hit" [attr.x]="c.x - c.slot / 2" [attr.y]="padTop" [attr.width]="c.slot" [attr.height]="plotH()" />
-            <line class="wick" [attr.x1]="c.x" [attr.x2]="c.x" [attr.y1]="c.yHigh" [attr.y2]="c.yLow" />
-            <rect class="body" [attr.x]="c.x - c.bodyW / 2" [attr.y]="c.yTop" [attr.width]="c.bodyW" [attr.height]="c.bodyH" rx="3" />
-            <text class="tick label" [attr.x]="c.x" [attr.y]="height - 26" text-anchor="middle">{{ c.point.label }}</text>
-            <text class="tick sub" [attr.x]="c.x" [attr.y]="height - 10" text-anchor="middle">{{ c.point.sublabel }}</text>
+            (click)="active.set(active() === b.index ? null : b.index)">
+            <rect class="hit" [attr.x]="b.x - b.slot / 2" [attr.y]="padTop" [attr.width]="b.slot" [attr.height]="plotH()" />
+            <rect class="body" [attr.x]="b.x - b.barW / 2" [attr.y]="b.y" [attr.width]="b.barW" [attr.height]="b.h" rx="6" />
+            <text class="value" [attr.x]="b.x" [attr.y]="b.y - 6" text-anchor="middle">{{ valueFormat(b.point.value) }}</text>
+            <text class="tick label" [attr.x]="b.x" [attr.y]="height - 26" text-anchor="middle">{{ b.point.label }}</text>
+            @if (b.slot >= 96) {
+              <text class="tick sub" [attr.x]="b.x" [attr.y]="height - 10" text-anchor="middle">{{ b.point.sublabel }}</text>
+            }
           </g>
         }
       </svg>
-      @if (activeCandle(); as ac) {
-        <div class="tip" role="status" [style.left.px]="tipLeft(ac.x)" [style.top.px]="8">
-          <strong>{{ ac.point.title }}</strong>
-          @for (line of ac.point.lines; track $index) {
+      @if (activeBar(); as ab) {
+        <div class="tip" role="status" [style.left.px]="tipLeft(ab.x)" [style.top.px]="8">
+          <strong>{{ ab.point.title }}</strong>
+          @for (line of ab.point.lines; track $index) {
             <span>{{ line }}</span>
           }
         </div>
@@ -79,11 +78,11 @@ const PAD = { top: 14, right: 12, bottom: 44, left: 44 };
     .grid { stroke: var(--color-border); opacity: 0.7; }
     .tick { fill: var(--color-text-secondary); font-size: 0.72rem; font-weight: 600; }
     .tick.label { fill: var(--color-text); font-weight: 800; }
-    .candle { cursor: pointer; outline: none; }
+    .value { fill: var(--color-text); font-size: 0.85rem; font-weight: 800; }
+    .bar { cursor: pointer; outline: none; }
     .hit { fill: transparent; }
-    .candle.on .hit, .candle:focus-visible .hit { fill: color-mix(in srgb, var(--color-text) 6%, transparent); }
-    .wick { stroke: var(--tone); stroke-width: 2.5; stroke-linecap: round; }
-    .body { fill: var(--tone); stroke: color-mix(in srgb, var(--tone) 70%, #000); stroke-width: 1; }
+    .bar.on .hit, .bar:focus-visible .hit { fill: color-mix(in srgb, var(--color-text) 6%, transparent); }
+    .body { fill: var(--tone); }
     .tip {
       position: absolute;
       z-index: 2;
@@ -104,15 +103,16 @@ const PAD = { top: 14, right: 12, bottom: 44, left: 44 };
     .tip span { color: var(--color-text-secondary); }
   `]
 })
-export class UiCandleChartComponent implements AfterViewInit, OnDestroy {
-  private readonly pointsSig = signal<CandlePoint[]>([]);
+export class UiBarChartComponent implements AfterViewInit, OnDestroy {
+  private readonly pointsSig = signal<BarPoint[]>([]);
 
-  @Input() set points(value: CandlePoint[]) { this.pointsSig.set(value ?? []); }
+  @Input() set points(value: BarPoint[]) { this.pointsSig.set(value ?? []); }
   @Input() height = 240;
   @Input() min = 0;
   @Input() max = 100;
   @Input() ariaLabel = '';
   @Input() tickFormat: (value: number) => string = (v) => `${v}`;
+  @Input() valueFormat: (value: number) => string = (v) => `${v}`;
 
   readonly padTop = PAD.top;
   readonly padLeft = PAD.left;
@@ -154,33 +154,29 @@ export class UiCandleChartComponent implements AfterViewInit, OnDestroy {
     })
   );
 
-  readonly candles = computed(() => {
+  readonly bars = computed(() => {
     const pts = this.pointsSig();
     const plotW = this.width() - PAD.left - PAD.right;
     const slot = plotW / Math.max(1, pts.length);
-    const bodyW = Math.max(10, Math.min(34, slot * 0.42));
+    const barW = Math.max(14, Math.min(56, slot * 0.55));
+    const base = this.yAt(this.min);
     return pts.map((point, index) => {
-      const x = PAD.left + slot * (index + 0.5);
-      const yOpen = this.yAt(point.open);
-      const yClose = this.yAt(point.close);
-      const yTop = Math.min(yOpen, yClose);
+      const y = this.yAt(point.value);
       return {
         index,
         point,
-        x,
+        x: PAD.left + slot * (index + 0.5),
         slot,
-        bodyW,
-        yTop,
-        bodyH: Math.max(3, Math.abs(yOpen - yClose)),
-        yHigh: this.yAt(point.high),
-        yLow: this.yAt(point.low)
+        barW,
+        y: Math.min(y, base - 3),
+        h: Math.max(3, base - y)
       };
     });
   });
 
-  readonly activeCandle = computed(() => {
+  readonly activeBar = computed(() => {
     const idx = this.active();
-    return idx === null ? null : this.candles()[idx] ?? null;
+    return idx === null ? null : this.bars()[idx] ?? null;
   });
 
   tipLeft(x: number): number {

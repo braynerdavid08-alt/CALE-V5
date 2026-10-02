@@ -172,20 +172,20 @@
         <article class="card chart-card">
           <header class="card-head">
             <div>
-              <h3>Rendimiento semanal</h3>
-              <p class="muted">Primer, último, mejor y peor resultado de cada semana</p>
+              <h3>Promedio por semana</h3>
+              <p class="muted">Tu resultado promedio de cada semana</p>
             </div>
           </header>
-          <ui-candle-chart
-            [points]="candles()"
+          <ui-bar-chart
+            [points]="weekBars()"
             [height]="220"
             [tickFormat]="percentTick"
-            ariaLabel="Velas semanales de resultados. Usa Tab para recorrer las semanas." />
+            [valueFormat]="pctValue"
+            ariaLabel="Barras con el promedio de cada semana. Usa Tab para recorrer las semanas." />
           <ul class="legend">
-            <li><span class="sw success"></span>Terminó más alto</li>
-            <li><span class="sw danger"></span>Terminó más bajo</li>
-            <li><span class="sw warning"></span>Igual</li>
-            <li><span class="sw primary"></span>1 intento</li>
+            <li><span class="sw success"></span>Alcanza para aprobar</li>
+            <li><span class="sw warning"></span>Cerca de aprobar</li>
+            <li><span class="sw danger"></span>Todavía no alcanza</li>
           </ul>
         </article>
       </div>
