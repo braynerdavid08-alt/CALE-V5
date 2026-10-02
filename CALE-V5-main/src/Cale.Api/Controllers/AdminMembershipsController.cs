@@ -14,13 +14,16 @@ public sealed class AdminMembershipsController : ControllerBase
 {
     private readonly ManageSchoolPlanHandler _managePlan;
     private readonly PilotMetricsService _metrics;
+    private readonly HomepageService _homepage;
 
     public AdminMembershipsController(
         ManageSchoolPlanHandler managePlan,
-        PilotMetricsService metrics)
+        PilotMetricsService metrics,
+        HomepageService homepage)
     {
         _managePlan = managePlan;
         _metrics = metrics;
+        _homepage = homepage;
     }
 
     [HttpGet("memberships/pending")]
@@ -44,6 +47,17 @@ public sealed class AdminMembershipsController : ControllerBase
         int schoolUserId,
         CancellationToken ct) =>
         Ok(await _managePlan.ListHistoryAsync(schoolUserId, ct));
+
+    [HttpPut("schools/{schoolUserId:int}/billing")]
+    public async Task<ActionResult<SchoolProfileDto>> UpdateBilling(
+        int schoolUserId,
+        UpdateSchoolBillingRequest request,
+        CancellationToken ct)
+    {
+        var dto = await _managePlan.UpdateBillingAsync(schoolUserId, request, ct);
+        _homepage.InvalidatePublicCache();
+        return Ok(dto);
+    }
 
     [HttpPut("schools/{schoolUserId:int}/seats")]
     public async Task<ActionResult<SchoolProfileDto>> SetSeats(

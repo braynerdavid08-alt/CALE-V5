@@ -14,6 +14,7 @@ import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
 import { UiStatComponent } from '../../../shared/ui/ui-stat.component';
 import { UiSuccessComponent } from '../../../shared/ui/ui-success.component';
+import { SchoolInfoFormComponent } from '../../school/components/school-info-form.component';
 
 interface MembershipRequestDto {
   userId: number;
@@ -140,7 +141,8 @@ type Tab = 'queue' | 'schools';
     UiLoadingComponent,
     UiPageHeaderComponent,
     UiStatComponent,
-    UiSuccessComponent
+    UiSuccessComponent,
+    SchoolInfoFormComponent
   ],
   template: `
     @if (!embedded()) {
@@ -309,7 +311,8 @@ type Tab = 'queue' | 'schools';
                 </div>
               </dl>
               <div class="row actions">
-                <ui-button type="button" (click)="openSchool(s.userId)">Editar control</ui-button>
+                <ui-button type="button" (click)="editInfo(s.userId)">Editar datos</ui-button>
+                <ui-button type="button" variant="secondary" (click)="openSchool(s.userId)">Editar control</ui-button>
                 <ui-button type="button" variant="ghost" (click)="loadDetail(s.userId)">
                   Ver ficha completa
                 </ui-button>
@@ -378,8 +381,19 @@ type Tab = 'queue' | 'schools';
                 <div class="detail">
                   @if (detailLoading()) {
                     <ui-loading />
+                  } @else if (detail() && editingInfo()) {
+                    <h3>Editar datos de la escuela</h3>
+                    <app-school-info-form
+                      [info]="detail()!"
+                      [endpoint]="'/api/admin/schools/' + s.userId + '/billing'"
+                      [cancellable]="true"
+                      (saved)="onInfoSaved(s.userId)"
+                      (cancelled)="editingInfo.set(false)" />
                   } @else if (detail()) {
-                    <h3>Datos de la escuela</h3>
+                    <div class="head">
+                      <h3>Datos de la escuela</h3>
+                      <ui-button type="button" variant="secondary" (click)="editingInfo.set(true)">Editar datos</ui-button>
+                    </div>
                     <dl class="facts">
                       <div><dt>Razón social</dt><dd>{{ detail()!.legalName }}</dd></div>
                       <div><dt>NIT</dt><dd>{{ detail()!.taxId }}</dd></div>
@@ -520,6 +534,7 @@ export class AdminMembershipsPage implements OnInit {
   readonly detailId = signal<number | null>(null);
   readonly detailLoading = signal(false);
   readonly detail = signal<SchoolDetailDto | null>(null);
+  readonly editingInfo = signal(false);
 
   readonly rejectForm = this.fb.nonNullable.group({
     note: ['', [Validators.required, Validators.minLength(3)]]
@@ -761,7 +776,19 @@ export class AdminMembershipsPage implements OnInit {
     });
   }
 
+  editInfo(userId: number): void {
+    this.loadDetail(userId);
+    this.editingInfo.set(true);
+  }
+
+  onInfoSaved(userId: number): void {
+    this.ok.set('Datos de la escuela actualizados.');
+    this.reload();
+    this.loadDetail(userId);
+  }
+
   loadDetail(userId: number): void {
+    this.editingInfo.set(false);
     this.detailId.set(userId);
     this.detailLoading.set(true);
     this.detail.set(null);

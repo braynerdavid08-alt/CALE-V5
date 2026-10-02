@@ -64,4 +64,19 @@ public sealed class UpdateMyProfileHandler
         await _users.SaveChangesAsync(ct);
         return await _me.HandleAsync(userId, ct);
     }
+
+    /// <summary>Sets or clears the profile photo; returns the previous URL so its blob can be removed.</summary>
+    public async Task<(MeResponse Me, string? PreviousUrl)> SetPhotoAsync(
+        int userId,
+        string? photoUrl,
+        CancellationToken ct)
+    {
+        var user = await _users.GetByIdAsync(userId, ct)
+            ?? throw new NotFoundException("Usuario no encontrado.", "user_not_found");
+
+        var previous = user.PhotoUrl;
+        user.SetPhoto(photoUrl);
+        await _users.SaveChangesAsync(ct);
+        return (await _me.HandleAsync(userId, ct), previous);
+    }
 }

@@ -21,6 +21,16 @@
   color: #fff;
 }
 
+app-profile-photo {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.school-edit {
+  display: block;
+  margin-top: 1rem;
+}
+
 .facts {
   margin: 0;
   display: grid;

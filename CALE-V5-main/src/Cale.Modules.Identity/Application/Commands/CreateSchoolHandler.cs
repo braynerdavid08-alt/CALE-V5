@@ -74,8 +74,8 @@ public sealed class CreateSchoolHandler
             billingEmail,
             string.IsNullOrWhiteSpace(request.Phone) ? "0000000000" : request.Phone.Trim(),
             string.IsNullOrWhiteSpace(request.Address) ? "Por definir" : request.Address.Trim(),
-            string.IsNullOrWhiteSpace(request.City) ? "Bogotá" : request.City.Trim(),
-            string.IsNullOrWhiteSpace(request.Department) ? "Cundinamarca" : request.Department.Trim(),
+            string.IsNullOrWhiteSpace(request.City) ? SchoolProfile.NotRegistered : request.City.Trim(),
+            string.IsNullOrWhiteSpace(request.Department) ? SchoolProfile.NotRegistered : request.Department.Trim(),
             plan,
             _clock.UtcNow);
 

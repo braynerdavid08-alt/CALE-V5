@@ -115,6 +115,7 @@ export class SessionStore {
     mustChangePassword?: boolean;
     school?: MeSchoolContext | null;
     freeAccess?: boolean;
+    photoUrl?: string | null;
   }): void {
     const current = this.user();
     const user: SessionUser = {
@@ -126,7 +127,8 @@ export class SessionStore {
       schoolId: me.school?.schoolId ?? current?.schoolId ?? null,
       isMembershipActive: me.school?.isMembershipActive ?? current?.isMembershipActive,
       planLabel: me.school?.planLabel ?? current?.planLabel ?? null,
-      freeAccess: me.freeAccess ?? current?.freeAccess
+      freeAccess: me.freeAccess ?? current?.freeAccess,
+      photoUrl: me.photoUrl ?? null
     };
     this.user.set(user);
     this.persist(user, this.cookieAuth() ? null : this.token());

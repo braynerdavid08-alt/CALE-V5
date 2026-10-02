@@ -284,10 +284,13 @@ public sealed class HomepageService
         return active.Select(p => new PublicSchoolCardDto(
             p.UserId,
             p.LegalName,
-            p.City,
-            p.Department,
+            PublicLocationPart(p.City),
+            PublicLocationPart(p.Department),
             "/escuelas")).ToList();
     }
+
+    private static string PublicLocationPart(string value) =>
+        value == SchoolProfile.NotRegistered ? "" : value;
 
     private static bool IsListedSchool(SchoolProfile profile, DateTime now) =>
         profile.CanOperateProduct(now)

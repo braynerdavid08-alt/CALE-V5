@@ -346,7 +346,8 @@ public sealed record MeResponse(
     DateTime CreatedAt,
     bool MustChangePassword,
     MeSchoolContextDto? School,
-    bool FreeAccess = false);
+    bool FreeAccess = false,
+    string? PhotoUrl = null);
 
 public sealed record MeSchoolContextDto(
     int SchoolId,

@@ -134,6 +134,15 @@ import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
         @case ('moon') {
           <path d="M21 14.5A8.5 8.5 0 1 1 9.5 3 7 7 0 0 0 21 14.5z"/>
         }
+        @case ('camera') {
+          <path d="M3 8a2 2 0 0 1 2-2h2.5l1.5-2h6l1.5 2H19a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        }
+        @case ('image') {
+          <rect x="3" y="4" width="18" height="16" rx="2"/>
+          <circle cx="9" cy="10" r="2"/>
+          <path d="m21 16-5-5-9 9"/>
+        }
       }
     </svg>
   `,

@@ -206,7 +206,13 @@
         routerLink="/profile"
         [attr.title]="session.user()?.name"
         [attr.aria-label]="'Mi perfil, ' + (session.user()?.name || '')">
-        <span class="avatar" aria-hidden="true">{{ initials }}</span>
+        <span class="avatar" aria-hidden="true">
+          @if (photoSrc) {
+            <img [src]="photoSrc" alt="" />
+          } @else {
+            {{ initials }}
+          }
+        </span>
         @if (isStudentShell) {
           <span class="topbar-label">Mi perfil</span>
         }

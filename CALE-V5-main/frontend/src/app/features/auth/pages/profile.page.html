@@ -58,6 +58,7 @@
   </div>
 
   @if (tab() === 'account') {
+    <app-profile-photo />
     <div class="grid-2">
       <ui-card>
         <h2>Datos de la cuenta</h2>
@@ -293,5 +294,17 @@
         <p class="muted">No hay contexto institucional para este rol.</p>
       }
     </ui-card>
+
+    @if (role() === 'School') {
+      <ui-card class="school-edit">
+        <h2>Editar datos de la escuela</h2>
+        <p class="muted">El nombre, la ciudad y el departamento se ven en la página pública de escuelas aliadas.</p>
+        @if (schoolInfo(); as info) {
+          <app-school-info-form [info]="info" endpoint="/api/school/billing" (saved)="onSchoolSaved()" />
+        } @else {
+          <ui-loading />
+        }
+      </ui-card>
+    }
   }
 }
