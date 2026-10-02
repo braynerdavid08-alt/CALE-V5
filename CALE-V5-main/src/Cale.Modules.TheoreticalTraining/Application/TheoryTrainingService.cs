@@ -28,6 +28,7 @@ public sealed partial class TheoryTrainingService
     private readonly ISchoolMembershipGuard _membership;
     private readonly IConfiguration _config;
     private readonly ILogger<TheoryTrainingService> _logger;
+    private readonly TheoryExamAutoAuthorizer _autoAuthorizer;
 
     public TheoryTrainingService(
         CaleDbContext db,
@@ -38,8 +39,10 @@ public sealed partial class TheoryTrainingService
         ITrainingEligibilityService eligibility,
         ISchoolMembershipGuard membership,
         IConfiguration config,
-        ILogger<TheoryTrainingService> logger)
+        ILogger<TheoryTrainingService> logger,
+        TheoryExamAutoAuthorizer autoAuthorizer)
     {
+        _autoAuthorizer = autoAuthorizer;
         _db = db;
         _users = users;
         _catalog = catalog;

@@ -28,6 +28,7 @@ public sealed class ApprenticeRegistryService
     private readonly IConfiguration _config;
     private readonly ILogger<ApprenticeRegistryService> _logger;
     private readonly TheoryExamScheduleService _examSchedule;
+    private readonly TheoryExamAutoAuthorizer _autoAuthorizer;
 
     public ApprenticeRegistryService(
         CaleDbContext db,
@@ -40,8 +41,10 @@ public sealed class ApprenticeRegistryService
         ISchoolMembershipGuard membership,
         IConfiguration config,
         ILogger<ApprenticeRegistryService> logger,
-        TheoryExamScheduleService examSchedule)
+        TheoryExamScheduleService examSchedule,
+        TheoryExamAutoAuthorizer autoAuthorizer)
     {
+        _autoAuthorizer = autoAuthorizer;
         _db = db;
         _users = users;
         _clock = clock;
@@ -325,6 +328,7 @@ public sealed class ApprenticeRegistryService
         profile.UpdatedAt = now;
 
         await _db.SaveChangesAsync(ct);
+        await _autoAuthorizer.TryAuthorizeAsync(schoolUserId, studentUserId, ct);
         return await BuildCarteraAsync(schoolUserId, studentUserId, profile, ct);
     }
 
@@ -658,6 +662,7 @@ public sealed class ApprenticeRegistryService
         profile.UpdatedAt = now;
 
         await _db.SaveChangesAsync(ct);
+        await _autoAuthorizer.TryAuthorizeAsync(schoolUserId, studentUserId, ct);
         return MapDto(studentUserId, user.Name, user.Email ?? "", profile, enrollment);
     }
 

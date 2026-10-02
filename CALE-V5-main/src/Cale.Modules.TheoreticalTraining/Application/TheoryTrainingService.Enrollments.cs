@@ -302,6 +302,8 @@ public sealed partial class TheoryTrainingService
         {
             await NotifyPracticalAuthorizedAsync(studentUserId, enrollment.Id, ct);
         }
+
+        await _autoAuthorizer.TryAuthorizeAsync(schoolUserId, studentUserId, ct);
         var eligibility = await GetPracticalEligibilityAsync(
             schoolUserId,
             studentUserId,

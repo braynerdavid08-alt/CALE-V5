@@ -1,5 +1,6 @@
 ui-error:empty,
-ui-success:empty {
+ui-success:empty,
+app-next-step-banner:empty {
   display: none;
 }
 

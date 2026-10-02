@@ -17,6 +17,7 @@ public sealed partial class TheoryExamScheduleService
         CancellationToken ct)
     {
         var schoolUserId = await ResolveStudentSchoolAsync(studentUserId, ct);
+        await _autoAuthorizer.TryAuthorizeAsync(schoolUserId, studentUserId, ct);
         var today = TodayColombia();
         var lastDay = today.AddDays(StudentMaxDaysAhead);
         var start = from is { } f && f > today ? f : today;

@@ -61,6 +61,9 @@ public sealed partial class TheoryTrainingService
         CancellationToken ct)
     {
         var (schoolUserId, _) = await ResolveStudentSchoolAsync(studentUserId, ct);
+        // Catch-all for hour changes that don't pass through attendance/corrections/payments
+        // (edited or deleted sessions, topic category changes).
+        await _autoAuthorizer.TryAuthorizeAsync(schoolUserId, studentUserId, ct);
         try
         {
             return await BuildStudentDashboardAsync(schoolUserId, studentUserId, ct);

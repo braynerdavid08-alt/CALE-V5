@@ -9,6 +9,8 @@
   @if (loading()) {
     <ui-loading />
   } @else {
+    <app-next-step-banner [theory]="theory()" />
+
     <section class="summary school-card">
       <div>
         <p class="muted">Pendientes</p>
