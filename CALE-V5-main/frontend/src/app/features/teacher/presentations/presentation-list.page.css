@@ -42,7 +42,7 @@
   border-radius: 12px;
   padding: 1.25rem;
   margin-bottom: 1.5rem;
-  background: linear-gradient(160deg, color-mix(in srgb, var(--color-surface) 88%, #2bb0ed), var(--color-surface));
+  background: linear-gradient(160deg, color-mix(in srgb, var(--color-surface) 88%, #4ade80), var(--color-surface));
 }
 
 .create-panel h2 {
@@ -141,7 +141,7 @@
 .thumb {
   display: block;
   aspect-ratio: 16 / 9;
-  background: linear-gradient(135deg, #0b1f33, #1a4a6e 50%, #2bb0ed);
+  background: linear-gradient(135deg, #0d1410, #1a4a6e 50%, #4ade80);
   text-decoration: none;
   color: #fff;
 }
@@ -197,7 +197,7 @@
   background: none;
   border: none;
   padding: 0;
-  color: var(--color-primary, #2bb0ed);
+  color: var(--color-primary, #4ade80);
   cursor: pointer;
   font: inherit;
   font-size: 0.85rem;

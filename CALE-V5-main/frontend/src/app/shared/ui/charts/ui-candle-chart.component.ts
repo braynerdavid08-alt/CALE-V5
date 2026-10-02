@@ -72,7 +72,7 @@ const PAD = { top: 14, right: 12, bottom: 44, left: 44 };
       --chart-success: var(--color-success, #22c55e);
       --chart-warning: var(--color-warning, #eab308);
       --chart-danger: var(--color-danger, #ef4444);
-      --chart-primary: var(--color-primary, #4eb6d4);
+      --chart-primary: var(--color-primary, #4ade80);
     }
     .wrap { position: relative; width: 100%; }
     svg { display: block; overflow: visible; }

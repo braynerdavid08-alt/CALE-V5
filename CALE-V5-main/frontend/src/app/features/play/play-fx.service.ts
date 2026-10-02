@@ -4,7 +4,7 @@ import { playAnswerSound, preloadAnswerSounds } from '../../core/sound/answer-so
 export type PlaySound = 'correct' | 'wrong' | 'win' | 'badge' | 'tick' | 'start' | 'notify';
 
 const MUTE_KEY = 'cale.play.muted';
-const CONFETTI_COLORS = ['#1a6b8a', '#4eb6d4', '#f59e0b', '#22c55e', '#ef4444', '#8b5cf6', '#facc15'];
+const CONFETTI_COLORS = ['#15803d', '#4ade80', '#f59e0b', '#22c55e', '#ef4444', '#8b5cf6', '#facc15'];
 
 interface Particle {
   x: number;

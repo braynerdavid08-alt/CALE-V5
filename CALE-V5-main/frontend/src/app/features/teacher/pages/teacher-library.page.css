@@ -315,7 +315,7 @@
   border-radius: 14px 14px 0 0;
   background:
     radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.35), transparent 45%),
-    linear-gradient(145deg, #1a6b8a, #0f3d52);
+    linear-gradient(145deg, #15803d, #0f3d52);
 }
 
 .thumb.tone-1 {
@@ -491,7 +491,7 @@
   width: 3.2rem;
   height: 2.3rem;
   border-radius: 8px;
-  background: linear-gradient(145deg, #1a6b8a, #0f3d52);
+  background: linear-gradient(145deg, #15803d, #0f3d52);
 }
 
 .row-thumb.tone-1 { background: linear-gradient(145deg, #0f7a4d, #0a4a32); }

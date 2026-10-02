@@ -108,7 +108,7 @@ const PAD = { top: 16, right: 18, bottom: 34, left: 48 };
       --chart-success: var(--color-success, #22c55e);
       --chart-warning: var(--color-warning, #eab308);
       --chart-danger: var(--color-danger, #ef4444);
-      --chart-primary: var(--color-primary, #4eb6d4);
+      --chart-primary: var(--color-primary, #4ade80);
       --chart-violet: #a78bfa;
     }
     .wrap { position: relative; width: 100%; }
