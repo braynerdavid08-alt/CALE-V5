@@ -527,7 +527,7 @@
 }
 
 @media (max-width: 600px) {
-  .school-kpis { grid-template-columns: 1fr; }
+  .school-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .school-tabs button { padding: 0.45rem 0.7rem; font-size: var(--text-xs); }
   .school-toolbar { padding: 0.75rem; }
 }
