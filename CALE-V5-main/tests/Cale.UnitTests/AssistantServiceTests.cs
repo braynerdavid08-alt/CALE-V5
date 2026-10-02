@@ -96,6 +96,26 @@ public sealed class AssistantServiceTests
         Assert.Equal("mi_progreso", call.Name);
     }
 
+    [Fact]
+    public async Task Gemini_thought_signature_is_sent_back_with_the_tool_call()
+    {
+        const string json = """
+            {"choices":[{"message":{"role":"assistant","content":null,
+              "tool_calls":[{"id":"call_1","type":"function","function":{"name":"mi_progreso","arguments":"{}"},
+                "extra_content":{"google":{"thought_signature":"sig123"}}}]}}]}
+            """;
+        var llm = new ScriptedLlm(AssistantLlmClient.Parse(json), new LlmReply("Te faltan 10 horas.", []));
+        var service = Create(llm, new FakeToolbox());
+
+        var result = await service.ChatAsync(Student, [new("user", "¿Cuántas horas me faltan?")], default);
+
+        Assert.Equal("Te faltan 10 horas.", result.Reply);
+        var echoed = llm.LastMessages!
+            .Select(m => m?["tool_calls"]?[0])
+            .First(c => c is not null);
+        Assert.Equal("sig123", echoed!["extra_content"]!["google"]!["thought_signature"]!.GetValue<string>());
+    }
+
     private static AssistantService Create(
         IAssistantLlm llm,
         IAssistantToolbox toolbox,
@@ -115,10 +135,12 @@ public sealed class AssistantServiceTests
 
         public int Calls { get; private set; }
         public string LastToolResult { get; private set; } = "";
+        public JsonArray? LastMessages { get; private set; }
 
         public Task<LlmReply> CompleteAsync(JsonArray messages, JsonArray tools, CancellationToken ct)
         {
             Calls++;
+            LastMessages = (JsonArray)messages.DeepClone();
             var last = messages[^1];
             if (last?["role"]?.GetValue<string>() == "tool")
             {

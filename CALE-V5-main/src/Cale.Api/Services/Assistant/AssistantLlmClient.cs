@@ -7,7 +7,8 @@ using Microsoft.Extensions.Options;
 
 namespace Cale.Api.Services.Assistant;
 
-public sealed record LlmToolCall(string Id, string Name, string ArgumentsJson);
+/// <param name="ExtraContent">Provider data that must be echoed back verbatim (Gemini thought_signature).</param>
+public sealed record LlmToolCall(string Id, string Name, string ArgumentsJson, JsonNode? ExtraContent = null);
 
 public sealed record LlmReply(string? Content, IReadOnlyList<LlmToolCall> ToolCalls);
 
@@ -59,26 +60,13 @@ public sealed class AssistantLlmClient : IAssistantLlm
             body["tool_choice"] = "auto";
         }
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, _options.Endpoint)
+        var payload = body.ToJsonString();
+        var response = await SendAsync(payload, ct);
+        if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
         {
-            Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json")
-        };
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-        HttpResponseMessage response;
-        try
-        {
-            response = await _http.SendAsync(request, ct);
-        }
-        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
-        {
-            throw new AssistantProviderException("El asistente tardó demasiado en responder.");
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger.LogWarning(ex, "Assistant provider unreachable");
-            throw new AssistantProviderException("No se pudo conectar con el asistente.");
+            response.Dispose();
+            await Task.Delay(TimeSpan.FromSeconds(2), ct);
+            response = await SendAsync(payload, ct);
         }
 
         using (response)
@@ -89,6 +77,13 @@ public sealed class AssistantLlmClient : IAssistantLlm
                 throw new AssistantProviderException(
                     "El asistente llegó a su límite gratuito por ahora. Intenta más tarde.",
                     rateLimited: true);
+            }
+
+            if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
+            {
+                _logger.LogWarning("Assistant provider overloaded (503): {Body}", text.Length > 300 ? text[..300] : text);
+                throw new AssistantProviderException(
+                    "El asistente está muy ocupado en este momento. Intenta de nuevo en un minuto.");
             }
 
             if (!response.IsSuccessStatusCode)
@@ -116,6 +111,30 @@ public sealed class AssistantLlmClient : IAssistantLlm
                     text.Length > 500 ? text[..500] : text);
                 throw new AssistantProviderException("El asistente no está disponible en este momento.");
             }
+        }
+    }
+
+    private async Task<HttpResponseMessage> SendAsync(string payload, CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, _options.Endpoint)
+        {
+            Content = new StringContent(payload, Encoding.UTF8, "application/json")
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+        try
+        {
+            return await _http.SendAsync(request, ct);
+        }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new AssistantProviderException("El asistente tardó demasiado en responder.");
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(ex, "Assistant provider unreachable");
+            throw new AssistantProviderException("No se pudo conectar con el asistente.");
         }
     }
 
@@ -162,7 +181,8 @@ public sealed class AssistantLlmClient : IAssistantLlm
                 calls.Add(new LlmToolCall(
                     call?["id"]?.GetValue<string>() ?? Guid.NewGuid().ToString("N"),
                     name,
-                    fn?["arguments"]?.GetValue<string>() ?? "{}"));
+                    fn?["arguments"]?.GetValue<string>() ?? "{}",
+                    call?["extra_content"]?.DeepClone()));
             }
         }
 
