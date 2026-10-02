@@ -29,6 +29,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.IdentityModel.Tokens;
@@ -60,12 +61,21 @@ public static class ServiceCollectionExtensions
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-            options.AddFixedWindowLimiter("login", limiter =>
+            options.OnRejected = async (context, ct) =>
             {
-                limiter.Window = TimeSpan.FromMinutes(1);
-                limiter.PermitLimit = 12;
-                limiter.QueueLimit = 0;
-            });
+                context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                await context.HttpContext.Response.WriteAsJsonAsync(new
+                {
+                    title = "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.",
+                    status = StatusCodes.Status429TooManyRequests,
+                    detail = "too_many_requests"
+                }, ct);
+            };
+            // Limits are per client IP (behind Render's proxy, ForwardedHeaders resolves the real IP).
+            AddPerIpLimiter(options, RateLimitPolicies.Login, permits: 10, window: TimeSpan.FromMinutes(1));
+            AddPerIpLimiter(options, RateLimitPolicies.Register, permits: 20, window: TimeSpan.FromMinutes(10));
+            AddPerIpLimiter(options, RateLimitPolicies.EmailCode, permits: 10, window: TimeSpan.FromMinutes(10));
+            AddPerIpLimiter(options, RateLimitPolicies.ClientErrors, permits: 30, window: TimeSpan.FromMinutes(1));
         });
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
@@ -125,11 +135,26 @@ public static class ServiceCollectionExtensions
         services.AddScoped<Cale.Api.Services.Admin.BankUsageService>();
         services.AddScoped<Cale.Api.Services.Requests.UserRequestService>();
         services.AddHostedService<Cale.Api.Services.Play.PlayNudgeService>();
+        services.AddHostedService<Cale.Api.Services.Media.LegacyUploadMigrationService>();
         services.AddScoped<Cale.Api.Services.AuthCookieService>();
         services.AddCaleAuth(config);
         services.AddCaleCors(config);
         return builder;
     }
+
+    private static void AddPerIpLimiter(
+        RateLimiterOptions options,
+        string policy,
+        int permits,
+        TimeSpan window) =>
+        options.AddPolicy(policy, http => RateLimitPartition.GetFixedWindowLimiter(
+            http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = permits,
+                Window = window,
+                QueueLimit = 0
+            }));
 
     private static void AddCaleAuth(
         this IServiceCollection services,

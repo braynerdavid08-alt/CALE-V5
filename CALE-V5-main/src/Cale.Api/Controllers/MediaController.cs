@@ -1,10 +1,12 @@
 using Cale.Api.Extensions;
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Exceptions;
-using Microsoft.Extensions.Caching.Memory;
+using Cale.BuildingBlocks.Infrastructure.Persistence;
 using Cale.Modules.Catalog.Application.Abstractions;
+using Cale.Modules.Catalog.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Cale.Api.Controllers;
 
@@ -33,7 +35,7 @@ public sealed class MediaController : ControllerBase
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> Upload(
         [FromForm] IFormFile? file,
-        [FromServices] IMemoryCache cache,
+        [FromServices] CaleDbContext db,
         CancellationToken ct)
     {
         if (file is null || file.Length == 0)
@@ -41,15 +43,13 @@ public sealed class MediaController : ControllerBase
             throw new DomainException("Selecciona una imagen.", 400, "invalid_file");
         }
 
+        var userId = CurrentUser.GetId(User);
         if (!User.IsInRole(Roles.Admin) && !User.IsInRole(Roles.Teacher))
         {
             // Students/schools upload images only for question proposals: cap per day.
-            var key = $"media-upload:{CurrentUser.GetId(User)}:{DateTime.UtcNow:yyyyMMdd}";
-            var used = cache.GetOrCreate(key, e =>
-            {
-                e.AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(1);
-                return 0;
-            });
+            var since = DateTime.UtcNow.AddHours(-24);
+            var used = await db.Set<CatalogMediaBlob>().AsNoTracking()
+                .CountAsync(b => b.OwnerId == userId && b.CreatedAt >= since, ct);
             if (used >= MaxDailyUploadsForOthers)
             {
                 throw new DomainException(
@@ -57,8 +57,6 @@ public sealed class MediaController : ControllerBase
                     429,
                     "upload_limit_reached");
             }
-
-            cache.Set(key, used + 1, TimeSpan.FromDays(1));
         }
 
         if (file.Length > 5 * 1024 * 1024)
@@ -78,7 +76,7 @@ public sealed class MediaController : ControllerBase
             stream,
             $"{Guid.NewGuid():N}{safeExt}",
             file.ContentType,
-            CurrentUser.GetId(User),
+            userId,
             ct);
         return Ok(new { url });
     }

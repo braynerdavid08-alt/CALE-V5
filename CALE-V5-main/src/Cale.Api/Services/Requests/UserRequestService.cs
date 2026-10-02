@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Cale.BuildingBlocks.Domain.Abstractions;
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Catalog;
@@ -6,8 +7,10 @@ using Cale.BuildingBlocks.Domain.Engagement;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Time;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
+using Cale.Modules.Catalog.Application.Abstractions;
 using Cale.Modules.Catalog.Application.Commands;
 using Cale.Modules.Catalog.Application.DTOs;
+using Cale.Modules.Catalog.Domain;
 using Cale.Modules.Engagement.Domain;
 using Cale.Modules.Identity.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -71,19 +74,22 @@ public sealed class UserRequestService
     private readonly INotificationPublisher _notifications;
     private readonly SaveQuestionHandler _saveQuestion;
     private readonly IMemoryCache _cache;
+    private readonly ICatalogMediaStore _media;
 
     public UserRequestService(
         CaleDbContext db,
         IClock clock,
         INotificationPublisher notifications,
         SaveQuestionHandler saveQuestion,
-        IMemoryCache cache)
+        IMemoryCache cache,
+        ICatalogMediaStore media)
     {
         _db = db;
         _clock = clock;
         _notifications = notifications;
         _saveQuestion = saveQuestion;
         _cache = cache;
+        _media = media;
     }
 
     public async Task<UserRequestDto> CreateAsync(int userId, CreateUserRequest request, CancellationToken ct)
@@ -168,8 +174,10 @@ public sealed class UserRequestService
             throw new DomainException("Solo puedes retirar solicitudes pendientes.", 400, "request_not_pending");
         }
 
+        var draft = ParseDraft(entity.PayloadJson);
         _db.Remove(entity);
         await _db.SaveChangesAsync(ct);
+        await DeleteUnusedImagesAsync(userId, ImageUrls(draft), ct);
     }
 
     public async Task<IReadOnlyList<UserRequestDto>> ListForAdminAsync(string? status, string? kind, CancellationToken ct)
@@ -208,6 +216,7 @@ public sealed class UserRequestService
         var note = Clip(request.Note, 1000);
         int? questionId = null;
         string? finalPayload = null;
+        List<string> droppedImages = [];
 
         if (entity.Kind == UserRequestKinds.Question)
         {
@@ -216,8 +225,10 @@ public sealed class UserRequestService
                 throw new DomainException("Elige el banco y el bloque donde irá la pregunta.", 400, "bank_required");
             }
 
-            var draft = Normalize(request.Question ?? ParseDraft(entity.PayloadJson)
+            var original = ParseDraft(entity.PayloadJson);
+            var draft = Normalize(request.Question ?? original
                 ?? throw new DomainException("La solicitud no tiene pregunta.", 400, "invalid_question"));
+            droppedImages = ImageUrls(original).Except(ImageUrls(draft)).ToList();
             questionId = await _saveQuestion.CreateAsync(
                 new SaveQuestionRequest(
                     bankId,
@@ -240,6 +251,7 @@ public sealed class UserRequestService
 
         entity.Accept(adminId, note, questionId, finalPayload, _clock.UtcNow);
         await _db.SaveChangesAsync(ct);
+        await DeleteUnusedImagesAsync(entity.UserId, droppedImages, ct);
 
         var what = entity.Kind == UserRequestKinds.Question
             ? "Tu pregunta fue aceptada y ya forma parte de CALE. ¡Gracias por aportar!"
@@ -252,8 +264,20 @@ public sealed class UserRequestService
     {
         var entity = await RequirePendingAsync(id, ct);
         var note = Clip(request.Note, 1000);
-        entity.Reject(adminId, note, _clock.UtcNow);
+        var draft = ParseDraft(entity.PayloadJson);
+        var images = ImageUrls(draft).ToList();
+        var stripped = draft is not null && images.Count > 0
+            ? JsonSerializer.Serialize(
+                draft with
+                {
+                    ImageUrl = null,
+                    Options = draft.Options.Select(o => o with { ImageUrl = null }).ToList()
+                },
+                Json)
+            : null;
+        entity.Reject(adminId, note, _clock.UtcNow, stripped);
         await _db.SaveChangesAsync(ct);
+        await DeleteUnusedImagesAsync(entity.UserId, images, ct);
         await NotifyRequesterAsync(
             entity,
             "Solicitud revisada",
@@ -397,6 +421,67 @@ public sealed class UserRequestService
         r.ReviewedAt,
         r.CreatedQuestionId,
         r.CreatedAt);
+
+    private static readonly Regex MediaUrl = new(
+        @"/api/media/(?<id>[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12})",
+        RegexOptions.Compiled);
+
+    private static IEnumerable<string> ImageUrls(QuestionDraft? draft)
+    {
+        if (draft is null)
+        {
+            return [];
+        }
+
+        return new[] { draft.ImageUrl }
+            .Concat(draft.Options.Select(o => o.ImageUrl))
+            .Where(u => !string.IsNullOrWhiteSpace(u))
+            .Select(u => u!.Trim())
+            .Distinct();
+    }
+
+    /// <summary>
+    /// Deletes images the requester uploaded for a proposal once nothing references them,
+    /// so rejected or withdrawn proposals do not keep growing the database.
+    /// </summary>
+    private async Task DeleteUnusedImagesAsync(int ownerId, IEnumerable<string> urls, CancellationToken ct)
+    {
+        var candidates = urls
+            .Select(u => MediaUrl.Match(u))
+            .Where(m => m.Success && Guid.TryParse(m.Groups["id"].Value, out _))
+            .Select(m => Guid.Parse(m.Groups["id"].Value))
+            .Distinct()
+            .ToList();
+        if (candidates.Count == 0)
+        {
+            return;
+        }
+
+        var stillUsed = new HashSet<Guid>();
+        foreach (var id in candidates)
+        {
+            var key = id.ToString("D");
+            var keyN = id.ToString("N");
+            var used = await _db.Set<Question>().AsNoTracking()
+                    .AnyAsync(q => q.ImageUrl != null && (q.ImageUrl.Contains(key) || q.ImageUrl.Contains(keyN)), ct)
+                || await _db.Set<QuestionOption>().AsNoTracking()
+                    .AnyAsync(o => o.ImageUrl != null && (o.ImageUrl.Contains(key) || o.ImageUrl.Contains(keyN)), ct)
+                || await _db.Set<UserRequest>().AsNoTracking()
+                    .AnyAsync(r => r.PayloadJson != null && (r.PayloadJson.Contains(key) || r.PayloadJson.Contains(keyN)), ct);
+            if (used)
+            {
+                stillUsed.Add(id);
+            }
+        }
+
+        var ids = candidates.Where(id => !stillUsed.Contains(id)).ToList();
+        if (ids.Count == 0)
+        {
+            return;
+        }
+
+        await _media.DeleteOwnedAsync(ids, ownerId, ct);
+    }
 
     private static string Append(string message, string? note) =>
         string.IsNullOrWhiteSpace(note) ? message : $"{message} Nota del administrador: {note}";

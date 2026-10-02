@@ -7,7 +7,6 @@ using Cale.BuildingBlocks.Domain.Validation;
 using Cale.Modules.Identity.Application.Abstractions;
 using Cale.Modules.Identity.Application.DTOs;
 using Cale.Modules.Identity.Domain;
-using Microsoft.EntityFrameworkCore;
 
 namespace Cale.Modules.Identity.Application.Commands;
 
@@ -19,7 +18,6 @@ public sealed class SchoolJoinRequestHandler
     private readonly IMembershipEventStore _events;
     private readonly INotificationPublisher _notifications;
     private readonly IClock _clock;
-    private readonly Cale.BuildingBlocks.Infrastructure.Persistence.CaleDbContext _db;
 
     public SchoolJoinRequestHandler(
         IUserStore users,
@@ -27,8 +25,7 @@ public sealed class SchoolJoinRequestHandler
         ISchoolJoinRequestStore requests,
         IMembershipEventStore events,
         INotificationPublisher notifications,
-        IClock clock,
-        Cale.BuildingBlocks.Infrastructure.Persistence.CaleDbContext db)
+        IClock clock)
     {
         _users = users;
         _profiles = profiles;
@@ -36,7 +33,6 @@ public sealed class SchoolJoinRequestHandler
         _events = events;
         _notifications = notifications;
         _clock = clock;
-        _db = db;
     }
 
     public async Task<SchoolJoinRequestDto> RequestAsync(
@@ -270,9 +266,8 @@ public sealed class SchoolJoinRequestHandler
         if (query.Contains('@'))
         {
             var email = EmailAddress.Normalize(query);
-            var byBilling = await _db.Set<SchoolProfile>()
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.BillingEmail == email, ct);
+            var byBilling = (await _profiles.ListAllAsync(ct))
+                .FirstOrDefault(x => x.BillingEmail == email);
             if (byBilling is not null)
             {
                 return byBilling;
@@ -293,7 +288,7 @@ public sealed class SchoolJoinRequestHandler
             return null;
         }
 
-        var profiles = await _db.Set<SchoolProfile>().AsNoTracking().ToListAsync(ct);
+        var profiles = await _profiles.ListAllAsync(ct);
         return profiles.FirstOrDefault(p => NormalizeTaxId(p.TaxId) == tax);
     }
 

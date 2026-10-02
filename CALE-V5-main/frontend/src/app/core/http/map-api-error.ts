@@ -147,7 +147,9 @@ const messages: Record<string, string> = {
   duel_not_playing: 'El duelo no está en curso.',
   duel_question_invalid: 'Esa pregunta no es parte del duelo.',
   duel_already_answered: 'Ya respondiste esa pregunta del duelo.',
-  duel_not_found: 'No encontramos ese duelo o ya expiró. Revisa el código.'
+  duel_not_found: 'No encontramos ese duelo o ya expiró. Revisa el código.',
+  too_many_requests: 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.',
+  upload_limit_reached: 'Alcanzaste el máximo de imágenes por hoy. Intenta mañana.'
 };
 
 function withSupportCode(message: string, error: unknown): string {

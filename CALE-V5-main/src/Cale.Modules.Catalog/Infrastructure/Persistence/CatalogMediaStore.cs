@@ -93,6 +93,27 @@ public sealed class CatalogMediaStore : ICatalogMediaStore
         return entry;
     }
 
+    public async Task<int> DeleteOwnedAsync(
+        IReadOnlyCollection<Guid> ids,
+        int ownerId,
+        CancellationToken ct = default)
+    {
+        if (ids.Count == 0)
+        {
+            return 0;
+        }
+
+        var deleted = await _db.Set<CatalogMediaBlob>()
+            .Where(b => ids.Contains(b.Id) && b.OwnerId == ownerId)
+            .ExecuteDeleteAsync(ct);
+        foreach (var id in ids)
+        {
+            _cache.Remove(CacheKey(id));
+        }
+
+        return deleted;
+    }
+
     public async Task<(byte[] Data, string ContentType, string FileName)?> TryReadLegacyDiskAsync(
         string fileName,
         CancellationToken ct = default)
