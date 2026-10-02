@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
 
@@ -99,7 +100,21 @@ public sealed class AssistantLlmClient : IAssistantLlm
                 throw new AssistantProviderException("El asistente no está disponible en este momento.");
             }
 
-            return Parse(text);
+            try
+            {
+                return Parse(text);
+            }
+            catch (Exception ex) when (ex is JsonException or InvalidOperationException)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Assistant provider returned unreadable body ({Status}, {ContentType}) from {Endpoint}: {Body}",
+                    (int)response.StatusCode,
+                    response.Content.Headers.ContentType?.ToString(),
+                    _options.Endpoint,
+                    text.Length > 500 ? text[..500] : text);
+                throw new AssistantProviderException("El asistente no está disponible en este momento.");
+            }
         }
     }
 
