@@ -16,6 +16,11 @@ public sealed class UserLookupService : IUserLookup
         return user?.Name;
     }
 
+    public Task<IReadOnlyDictionary<int, string>> GetNamesAsync(
+        IReadOnlyCollection<int> userIds,
+        CancellationToken ct) =>
+        _users.GetNamesAsync(userIds, ct);
+
     public async Task<int?> FindIdByEmailAsync(string email, CancellationToken ct)
     {
         var normalized = EmailAddress.Normalize(email);

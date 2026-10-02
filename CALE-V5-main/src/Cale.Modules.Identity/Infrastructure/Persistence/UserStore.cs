@@ -17,6 +17,23 @@ public sealed class UserStore : IUserStore
     public Task<User?> GetByIdAsync(int id, CancellationToken ct) =>
         _db.Set<User>().FirstOrDefaultAsync(x => x.Id == id, ct);
 
+    public async Task<IReadOnlyDictionary<int, string>> GetNamesAsync(
+        IReadOnlyCollection<int> ids,
+        CancellationToken ct)
+    {
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, string>();
+        }
+
+        var distinct = ids.Distinct().ToList();
+        return await _db.Set<User>()
+            .AsNoTracking()
+            .Where(x => distinct.Contains(x.Id))
+            .Select(x => new { x.Id, x.Name })
+            .ToDictionaryAsync(x => x.Id, x => x.Name ?? "", ct);
+    }
+
     public Task<bool> ExistsByEmailAsync(string email, CancellationToken ct) =>
         _db.Set<User>().AnyAsync(x => x.Email == email, ct);
 

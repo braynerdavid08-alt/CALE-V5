@@ -167,6 +167,7 @@ public sealed class AttemptStore : IAttemptStore
         int userId,
         CancellationToken ct) =>
         await _db.Set<Attempt>()
+            .AsNoTracking()
             .Where(x => x.UserId == userId)
             .OrderByDescending(x => x.StartedAt)
             .ToListAsync(ct);
@@ -175,6 +176,7 @@ public sealed class AttemptStore : IAttemptStore
         IReadOnlyList<int> userIds,
         CancellationToken ct) =>
         await _db.Set<Attempt>()
+            .AsNoTracking()
             .Where(x => userIds.Contains(x.UserId))
             .OrderByDescending(x => x.StartedAt)
             .ToListAsync(ct);
@@ -182,9 +184,50 @@ public sealed class AttemptStore : IAttemptStore
     public async Task<IReadOnlyList<Attempt>> ListFinishedAsync(
         CancellationToken ct) =>
         await _db.Set<Attempt>()
+            .AsNoTracking()
             .Where(x => x.FinishedAt != null)
             .OrderByDescending(x => x.FinishedAt)
             .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<AttemptResultRow>> ListResultRowsAsync(
+        int? userId,
+        IReadOnlyCollection<int>? userIds,
+        int maxRows,
+        CancellationToken ct)
+    {
+        if (userIds is { Count: 0 })
+        {
+            return [];
+        }
+
+        var query = _db.Set<Attempt>()
+            .AsNoTracking()
+            .Where(x => x.FinishedAt != null);
+        if (userId is not null)
+        {
+            query = query.Where(x => x.UserId == userId.Value);
+        }
+        else if (userIds is not null)
+        {
+            var ids = userIds.Distinct().ToList();
+            query = query.Where(x => ids.Contains(x.UserId));
+        }
+
+        return await query
+            .OrderByDescending(x => x.FinishedAt)
+            .ThenByDescending(x => x.Id)
+            .Take(maxRows)
+            .Select(x => new AttemptResultRow(
+                x.Id,
+                x.UserId,
+                x.Mode,
+                x.Percent,
+                x.Passed,
+                x.TimeSeconds,
+                x.StartedAt,
+                x.FinishedAt!.Value))
+            .ToListAsync(ct);
+    }
 
     public async Task<IReadOnlyList<AttemptProgressRow>> ListFinishedForProgressAsync(
         int userId,

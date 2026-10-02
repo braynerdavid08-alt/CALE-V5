@@ -236,50 +236,52 @@ public sealed class ClassroomQueryHandler
         var groupDtos = new List<GroupDto>();
         var activityIds = new List<int>();
         var memberIds = new List<int>();
+        var activityGroup = new Dictionary<int, int>();
         foreach (var group in groups)
         {
             groupDtos.Add(await MapGroup(group, ct));
             var activities = await _store.ListActivitiesAsync(group.Id, ct);
             activityIds.AddRange(activities.Select(x => x.Id));
+            foreach (var activity in activities)
+            {
+                activityGroup[activity.Id] = group.Id;
+            }
             var members = await _store.ListMembersAsync(group.Id, ct);
             memberIds.AddRange(members.Where(x => x.IsActive).Select(x => x.UserId));
         }
 
         var ungraded = await _store.ListUngradedAsync(activityIds, ct);
-        var pending = new List<SubmissionDto>();
-        var activityGroup = new Dictionary<int, int>();
-        foreach (var group in groups)
-        {
-            var activities = await _store.ListActivitiesAsync(group.Id, ct);
-            foreach (var activity in activities)
-            {
-                activityGroup[activity.Id] = group.Id;
-            }
-        }
-
-        foreach (var item in ungraded)
-        {
-            var name = await _users.GetNameAsync(item.UserId, ct) ?? "";
-            activityGroup.TryGetValue(item.ActivityId, out var groupId);
-            pending.Add(MapSubmission(item, name, groupId));
-        }
-
         var attempts = memberIds.Count == 0
             ? []
             : await _attempts.ListByUsersAsync(memberIds.Distinct().ToList(), ct);
-        var low = new List<ResultHintDto>();
-        foreach (var attempt in attempts.Where(x => x.FinishedAt is not null && !x.Passed)
-                     .Take(10))
+        var lowAttempts = attempts
+            .Where(x => x.FinishedAt is not null && !x.Passed)
+            .Take(10)
+            .ToList();
+        var names = await _users.GetNamesAsync(
+            ungraded.Select(x => x.UserId)
+                .Concat(lowAttempts.Select(x => x.UserId))
+                .Append(userId)
+                .Distinct()
+                .ToList(),
+            ct);
+
+        var pending = new List<SubmissionDto>();
+        foreach (var item in ungraded)
         {
-            var name = await _users.GetNameAsync(attempt.UserId, ct) ?? "";
-            low.Add(new ResultHintDto(
-                attempt.UserId,
-                name,
-                attempt.Percent,
-                attempt.Passed));
+            activityGroup.TryGetValue(item.ActivityId, out var groupId);
+            pending.Add(MapSubmission(item, names.GetValueOrDefault(item.UserId, ""), groupId));
         }
 
-        var teacherName = await _users.GetNameAsync(userId, ct) ?? "";
+        var low = lowAttempts
+            .Select(attempt => new ResultHintDto(
+                attempt.UserId,
+                names.GetValueOrDefault(attempt.UserId, ""),
+                attempt.Percent,
+                attempt.Passed))
+            .ToList();
+
+        var teacherName = names.GetValueOrDefault(userId, "");
         var affiliation = await _schools.GetForMemberAsync(userId, ct);
         TeacherSchoolDto? school = affiliation is null
             ? null
