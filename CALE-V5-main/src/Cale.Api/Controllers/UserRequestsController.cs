@@ -23,6 +23,31 @@ public sealed class UserRequestsController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<UserRequestDto>>> Mine(CancellationToken ct) =>
         Ok(await _service.ListMineAsync(CurrentUser.GetId(User), ct));
 
+    [HttpGet("mine/status")]
+    public async Task<ActionResult<MyRequestStatusDto>> MyStatus(CancellationToken ct) =>
+        Ok(await _service.MyStatusAsync(CurrentUser.GetId(User), ct));
+
+    [HttpGet("admin/blocked")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<ActionResult<IReadOnlyList<BlockedUserDto>>> Blocked(CancellationToken ct) =>
+        Ok(await _service.ListBlockedAsync(ct));
+
+    [HttpPost("admin/blocked/{userId:int}")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> Block(int userId, BlockUserRequest request, CancellationToken ct)
+    {
+        var rejected = await _service.BlockAsync(CurrentUser.GetId(User), userId, request, ct);
+        return Ok(new { rejected });
+    }
+
+    [HttpDelete("admin/blocked/{userId:int}")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> Unblock(int userId, CancellationToken ct)
+    {
+        await _service.UnblockAsync(userId, ct);
+        return NoContent();
+    }
+
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Cancel(int id, CancellationToken ct)
     {

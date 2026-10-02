@@ -21,3 +21,14 @@ public sealed class UserRequestConfiguration : IEntityTypeConfiguration<UserRequ
         builder.HasIndex(x => x.UserId);
     }
 }
+
+public sealed class UserRequestBlockConfiguration : IEntityTypeConfiguration<UserRequestBlock>
+{
+    public void Configure(EntityTypeBuilder<UserRequestBlock> builder)
+    {
+        builder.ToTable("BloqueosSolicitudes");
+        builder.HasKey(x => x.UserId);
+        builder.Property(x => x.UserId).ValueGeneratedNever();
+        builder.Property(x => x.Reason).HasMaxLength(500);
+    }
+}

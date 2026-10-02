@@ -12,6 +12,7 @@ import { roleLabel } from '../../../shared/utils/role-label';
 import { TeacherApi } from '../../teacher/api/teacher.api';
 import { QuestionDraftEditorComponent } from '../../requests/components/question-draft-editor.component';
 import {
+  BlockedUser,
   QuestionDraft,
   RequestsApi,
   UserRequestCounts,
@@ -89,6 +90,14 @@ type KindFilter = '' | 'question' | 'idea';
     .note { margin: 0; padding: 0.55rem 0.75rem; border-radius: 0.6rem; background: var(--color-surface-raised); font-size: var(--text-sm); }
     .row-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
     .reject-box { display: grid; gap: 0.5rem; padding: 0.75rem; border-radius: 0.75rem; border: 1px dashed var(--color-border); }
+    .tag.blocked { margin-left: 0.35rem; background: var(--color-danger-soft, #fee2e2); color: var(--color-danger, #b91c1c); }
+    .user-actions { display: flex; justify-content: flex-end; border-top: 1px dashed var(--color-border); padding-top: 0.5rem; }
+    .link-btn { border: 0; background: transparent; padding: 0.35rem 0; color: var(--color-primary); font: inherit; font-size: var(--text-sm); font-weight: 700; cursor: pointer; }
+    .link-btn.danger { color: var(--color-danger, #b91c1c); }
+    .link-btn:disabled { opacity: 0.6; cursor: default; }
+    .blocked-list { margin-top: 2rem; }
+    .blocked-list h2 { margin: 0 0 0.75rem; font-size: var(--text-lg); }
+    .blocked-row { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; justify-content: space-between; overflow-wrap: anywhere; }
     .empty { text-align: center; padding: 1.5rem; color: var(--color-text-secondary); border: 1px dashed var(--color-border); border-radius: 1rem; }
 
     .overlay { position: fixed; inset: 0; z-index: var(--z-modal, 1000); background: var(--color-scrim, rgba(0,0,0,.5)); display: grid; place-items: center; padding: 1rem; }
@@ -146,7 +155,10 @@ type KindFilter = '' | 'question' | 'idea';
               <h3 class="title">{{ r.question?.text || r.title }}</h3>
               <span class="tag" [class]="'tag ' + r.kind">{{ r.kind === 'question' ? 'Pregunta' : 'Idea' }}</span>
             </div>
-            <span class="meta">{{ r.userName }} · {{ role(r.userRole) }} · {{ r.createdAt | date:'d MMM y, h:mm a' }}</span>
+            <span class="meta">
+              {{ r.userName }} · {{ role(r.userRole) }} · {{ r.createdAt | date:'d MMM y, h:mm a' }}
+              @if (isBlocked(r.userId)) { <span class="tag blocked">Bloqueado</span> }
+            </span>
 
             @if (r.kind === 'question' && r.question; as q) {
               @if (q.imageUrl) {
@@ -201,9 +213,48 @@ type KindFilter = '' | 'question' | 'idea';
                 </div>
               }
             }
+
+            @if (blockingUserId() === r.userId && blockingFrom() === r.id) {
+              <div class="reject-box">
+                <p class="meta" style="margin:0">{{ r.userName }} no podrá enviar más preguntas ni ideas, y se rechazarán las que tenga pendientes.</p>
+                <label class="field">Motivo (se le envía al usuario, opcional)
+                  <input [(ngModel)]="blockReason" name="blockReason" maxlength="500" placeholder="Ej. Envía contenido repetido o sin sentido" />
+                </label>
+                <div class="row-actions">
+                  <ui-button type="button" variant="danger" [loading]="blockBusy()" (click)="block(r)">Bloquear</ui-button>
+                  <ui-button type="button" variant="ghost" (click)="blockingUserId.set(null)">Cancelar</ui-button>
+                </div>
+              </div>
+            } @else if (r.userRole !== 'Admin') {
+              <div class="user-actions">
+                @if (isBlocked(r.userId)) {
+                  <button type="button" class="link-btn" [disabled]="blockBusy()" (click)="unblock(r.userId, r.userName)">Permitir de nuevo sus solicitudes</button>
+                } @else {
+                  <button type="button" class="link-btn danger" (click)="startBlock(r)">Bloquear a este usuario</button>
+                }
+              </div>
+            }
           </li>
         }
       </ul>
+    }
+
+    @if (blocked().length) {
+      <section class="blocked-list">
+        <h2>Usuarios bloqueados ({{ blocked().length }})</h2>
+        <ul class="list">
+          @for (b of blocked(); track b.userId) {
+            <li class="card blocked-row">
+              <div>
+                <strong>{{ b.name }}</strong>
+                <span class="meta"> · {{ b.email }} · desde {{ b.createdAt | date:'d MMM y' }}</span>
+                @if (b.reason) { <p class="meta" style="margin:0.2rem 0 0">Motivo: {{ b.reason }}</p> }
+              </div>
+              <ui-button type="button" variant="ghost" [loading]="blockBusy()" (click)="unblock(b.userId, b.name)">Desbloquear</ui-button>
+            </li>
+          }
+        </ul>
+      </section>
     }
 
     @if (reviewing(); as r) {
@@ -267,7 +318,12 @@ export class AdminRequestsPage implements OnInit {
   readonly banks = signal<Array<{ id: number; name: string }>>([]);
   readonly blocks = signal<Array<{ id: number; name: string }>>([]);
   readonly media = resolveMediaUrl;
+  readonly blocked = signal<BlockedUser[]>([]);
+  readonly blockingUserId = signal<number | null>(null);
+  readonly blockingFrom = signal<number | null>(null);
+  readonly blockBusy = signal(false);
 
+  blockReason = '';
   rejectNote = '';
   acceptNote = '';
   bankId = 0;
@@ -276,6 +332,7 @@ export class AdminRequestsPage implements OnInit {
 
   ngOnInit(): void {
     this.reload();
+    this.loadBlocked();
     this.teacherApi.banks(false).subscribe({ next: (b) => this.banks.set(b) });
     this.teacherApi.blocks().subscribe({
       next: (b) => {
@@ -403,5 +460,55 @@ export class AdminRequestsPage implements OnInit {
 
   private loadCounts(): void {
     this.api.adminCounts().subscribe({ next: (c) => this.counts.set(c) });
+  }
+
+  isBlocked(userId: number): boolean {
+    return this.blocked().some((b) => b.userId === userId);
+  }
+
+  startBlock(r: UserRequestDto): void {
+    this.blockReason = '';
+    this.blockingFrom.set(r.id);
+    this.blockingUserId.set(r.userId);
+  }
+
+  block(r: UserRequestDto): void {
+    this.blockBusy.set(true);
+    this.api.blockUser(r.userId, this.blockReason.trim() || null).subscribe({
+      next: (res) => {
+        this.blockBusy.set(false);
+        this.blockingUserId.set(null);
+        this.ok.set(
+          res.rejected > 0
+            ? `${r.userName} quedó bloqueado y se rechazaron ${res.rejected} solicitudes pendientes.`
+            : `${r.userName} quedó bloqueado para enviar solicitudes.`
+        );
+        this.loadBlocked();
+        this.reload();
+      },
+      error: (err) => {
+        this.blockBusy.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  unblock(userId: number, name: string): void {
+    this.blockBusy.set(true);
+    this.api.unblockUser(userId).subscribe({
+      next: () => {
+        this.blockBusy.set(false);
+        this.ok.set(`${name} puede volver a enviar solicitudes.`);
+        this.blocked.update((list) => list.filter((b) => b.userId !== userId));
+      },
+      error: (err) => {
+        this.blockBusy.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  private loadBlocked(): void {
+    this.api.blockedUsers().subscribe({ next: (list) => this.blocked.set(list) });
   }
 }

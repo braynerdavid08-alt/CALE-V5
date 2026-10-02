@@ -59,6 +59,12 @@ public sealed record UserRequestDto(
 
 public sealed record UserRequestCountsDto(int Pending, int Accepted, int Rejected);
 
+public sealed record BlockUserRequest(string? Reason);
+
+public sealed record BlockedUserDto(int UserId, string Name, string Email, string? Reason, DateTime CreatedAt);
+
+public sealed record MyRequestStatusDto(bool Blocked, string? Reason);
+
 /// <summary>
 /// Proposals sent by users to the admin (CALE question drafts and ideas).
 /// The admin decides; accepting a question creates it in the chosen bank.
@@ -100,6 +106,14 @@ public sealed class UserRequestService
         if (!UserRequestKinds.IsValid(kind))
         {
             throw new DomainException("Tipo de solicitud inválido.", 400, "invalid_request_kind");
+        }
+
+        if (await _db.Set<UserRequestBlock>().AnyAsync(b => b.UserId == userId, ct))
+        {
+            throw new DomainException(
+                "El administrador desactivó el envío de solicitudes para tu cuenta.",
+                403,
+                "requests_blocked");
         }
 
         var now = _clock.UtcNow;
@@ -197,6 +211,89 @@ public sealed class UserRequestService
         return rows.Select(Map).ToList();
     }
 
+    public async Task<MyRequestStatusDto> MyStatusAsync(int userId, CancellationToken ct)
+    {
+        var block = await _db.Set<UserRequestBlock>().AsNoTracking().FirstOrDefaultAsync(b => b.UserId == userId, ct);
+        return new MyRequestStatusDto(block is not null, block?.Reason);
+    }
+
+    public async Task<IReadOnlyList<BlockedUserDto>> ListBlockedAsync(CancellationToken ct)
+    {
+        var blocks = await _db.Set<UserRequestBlock>().AsNoTracking()
+            .OrderByDescending(b => b.CreatedAt)
+            .ToListAsync(ct);
+        var ids = blocks.Select(b => b.UserId).ToList();
+        var users = await _db.Set<User>().AsNoTracking()
+            .Where(u => ids.Contains(u.Id))
+            .Select(u => new { u.Id, u.Name, u.Email })
+            .ToDictionaryAsync(u => u.Id, ct);
+        return blocks
+            .Select(b => users.TryGetValue(b.UserId, out var u)
+                ? new BlockedUserDto(b.UserId, u.Name, u.Email, b.Reason, b.CreatedAt)
+                : new BlockedUserDto(b.UserId, $"Usuario #{b.UserId}", string.Empty, b.Reason, b.CreatedAt))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Stops a user from sending requests and rejects everything they still have pending.
+    /// Returns how many pending requests were rejected.
+    /// </summary>
+    public async Task<int> BlockAsync(int adminId, int userId, BlockUserRequest request, CancellationToken ct)
+    {
+        var role = await _db.Set<User>().AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => u.Role)
+            .FirstOrDefaultAsync(ct)
+            ?? throw new NotFoundException("Usuario no encontrado.", "user_not_found");
+        if (Roles.Normalize(role) == Roles.Admin)
+        {
+            throw new DomainException("No puedes bloquear a un administrador.", 400, "cannot_block_admin");
+        }
+
+        var reason = Clip(request.Reason, 500);
+        if (!await _db.Set<UserRequestBlock>().AnyAsync(b => b.UserId == userId, ct))
+        {
+            _db.Add(UserRequestBlock.Create(userId, adminId, reason, _clock.UtcNow));
+        }
+
+        var pending = await _db.Set<UserRequest>()
+            .Where(r => r.UserId == userId && r.Status == UserRequestStatuses.Pending)
+            .ToListAsync(ct);
+        var images = new List<string>();
+        foreach (var entity in pending)
+        {
+            var draft = ParseDraft(entity.PayloadJson);
+            images.AddRange(ImageUrls(draft));
+            entity.Reject(adminId, "Envío de solicitudes desactivado.", _clock.UtcNow, StripImages(draft));
+        }
+
+        await _db.SaveChangesAsync(ct);
+        await DeleteUnusedImagesAsync(userId, images, ct);
+
+        try
+        {
+            await _notifications.NotifyUsersAsync(
+                [userId],
+                new NotificationDraft(
+                    "Solicitudes desactivadas",
+                    Append("El administrador desactivó el envío de preguntas e ideas para tu cuenta.", reason),
+                    NotificationTypes.System,
+                    Link: "/solicitudes"),
+                ct);
+        }
+        catch
+        {
+            // Best-effort.
+        }
+
+        return pending.Count;
+    }
+
+    public async Task UnblockAsync(int userId, CancellationToken ct)
+    {
+        await _db.Set<UserRequestBlock>().Where(b => b.UserId == userId).ExecuteDeleteAsync(ct);
+    }
+
     public async Task<UserRequestCountsDto> CountsAsync(CancellationToken ct)
     {
         var groups = await _db.Set<UserRequest>().AsNoTracking()
@@ -266,16 +363,7 @@ public sealed class UserRequestService
         var note = Clip(request.Note, 1000);
         var draft = ParseDraft(entity.PayloadJson);
         var images = ImageUrls(draft).ToList();
-        var stripped = draft is not null && images.Count > 0
-            ? JsonSerializer.Serialize(
-                draft with
-                {
-                    ImageUrl = null,
-                    Options = draft.Options.Select(o => o with { ImageUrl = null }).ToList()
-                },
-                Json)
-            : null;
-        entity.Reject(adminId, note, _clock.UtcNow, stripped);
+        entity.Reject(adminId, note, _clock.UtcNow, StripImages(draft));
         await _db.SaveChangesAsync(ct);
         await DeleteUnusedImagesAsync(entity.UserId, images, ct);
         await NotifyRequesterAsync(
@@ -425,6 +513,18 @@ public sealed class UserRequestService
     private static readonly Regex MediaUrl = new(
         @"/api/media/(?<id>[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12})",
         RegexOptions.Compiled);
+
+    /// <summary>Payload without image URLs, or null when there is nothing to strip.</summary>
+    private static string? StripImages(QuestionDraft? draft) =>
+        draft is not null && ImageUrls(draft).Any()
+            ? JsonSerializer.Serialize(
+                draft with
+                {
+                    ImageUrl = null,
+                    Options = draft.Options.Select(o => o with { ImageUrl = null }).ToList()
+                },
+                Json)
+            : null;
 
     private static IEnumerable<string> ImageUrls(QuestionDraft? draft)
     {

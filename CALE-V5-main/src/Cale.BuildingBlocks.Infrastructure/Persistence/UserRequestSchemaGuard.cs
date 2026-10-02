@@ -30,7 +30,15 @@ public static class UserRequestSchemaGuard
         );
         """,
         """CREATE INDEX IF NOT EXISTS "IX_SolicitudesUsuario_Status_CreatedAt" ON "SolicitudesUsuario" ("Status", "CreatedAt");""",
-        """CREATE INDEX IF NOT EXISTS "IX_SolicitudesUsuario_UserId" ON "SolicitudesUsuario" ("UserId");"""
+        """CREATE INDEX IF NOT EXISTS "IX_SolicitudesUsuario_UserId" ON "SolicitudesUsuario" ("UserId");""",
+        """
+        CREATE TABLE IF NOT EXISTS "BloqueosSolicitudes" (
+            "UserId" integer PRIMARY KEY,
+            "BlockedById" integer NOT NULL,
+            "Reason" varchar(500) NULL,
+            "CreatedAt" timestamp with time zone NOT NULL
+        );
+        """
     ];
 
     private static readonly string[] SqliteStatements =
@@ -54,7 +62,15 @@ public static class UserRequestSchemaGuard
         );
         """,
         """CREATE INDEX IF NOT EXISTS "IX_SolicitudesUsuario_Status_CreatedAt" ON "SolicitudesUsuario" ("Status", "CreatedAt");""",
-        """CREATE INDEX IF NOT EXISTS "IX_SolicitudesUsuario_UserId" ON "SolicitudesUsuario" ("UserId");"""
+        """CREATE INDEX IF NOT EXISTS "IX_SolicitudesUsuario_UserId" ON "SolicitudesUsuario" ("UserId");""",
+        """
+        CREATE TABLE IF NOT EXISTS "BloqueosSolicitudes" (
+            "UserId" INTEGER NOT NULL PRIMARY KEY,
+            "BlockedById" INTEGER NOT NULL,
+            "Reason" TEXT NULL,
+            "CreatedAt" TEXT NOT NULL
+        );
+        """
     ];
 
     public static async Task EnsureAsync(CaleDbContext db, ILogger? logger = null, CancellationToken ct = default)
@@ -94,7 +110,7 @@ public static class UserRequestSchemaGuard
 
         if (failures == 0)
         {
-            logger?.LogInformation("UserRequestSchemaGuard applied (SolicitudesUsuario).");
+            logger?.LogInformation("UserRequestSchemaGuard applied (SolicitudesUsuario, BloqueosSolicitudes).");
         }
     }
 }

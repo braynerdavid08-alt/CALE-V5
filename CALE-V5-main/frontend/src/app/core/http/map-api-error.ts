@@ -149,7 +149,9 @@ const messages: Record<string, string> = {
   duel_already_answered: 'Ya respondiste esa pregunta del duelo.',
   duel_not_found: 'No encontramos ese duelo o ya expiró. Revisa el código.',
   too_many_requests: 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.',
-  upload_limit_reached: 'Alcanzaste el máximo de imágenes por hoy. Intenta mañana.'
+  upload_limit_reached: 'Alcanzaste el máximo de imágenes por hoy. Intenta mañana.',
+  requests_blocked: 'El administrador desactivó el envío de solicitudes para tu cuenta.',
+  cannot_block_admin: 'No puedes bloquear a un administrador.'
 };
 
 function withSupportCode(message: string, error: unknown): string {
