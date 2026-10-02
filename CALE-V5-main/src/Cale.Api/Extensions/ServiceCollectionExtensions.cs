@@ -1,4 +1,6 @@
+using System.IO.Compression;
 using System.Text;
+using Microsoft.AspNetCore.ResponseCompression;
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Infrastructure;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
@@ -53,6 +55,21 @@ public static class ServiceCollectionExtensions
         {
             options.MultipartBodyLengthLimit = UploadLimits.PresentationImportBytes;
         });
+
+        services.AddResponseCompression(options =>
+        {
+            options.EnableForHttps = true;
+            options.Providers.Add<BrotliCompressionProvider>();
+            options.Providers.Add<GzipCompressionProvider>();
+            options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+            [
+                "application/manifest+json",
+                "image/svg+xml",
+                "application/problem+json"
+            ]);
+        });
+        services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
+        services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
 
         services.AddControllers()
             .AddJsonOptions(options => ConfigureJson(options.JsonSerializerOptions));

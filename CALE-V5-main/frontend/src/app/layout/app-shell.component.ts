@@ -172,12 +172,19 @@ export class AppShellComponent implements OnInit {
         const nextUrl = (e as NavigationEnd).urlAfterRedirects;
         this.url.set(nextUrl);
         this.syncOpenGroups(nextUrl);
+        const now = Date.now();
+        if (now - this.lastNavRefresh < 15000) {
+          return;
+        }
+        this.lastNavRefresh = now;
         this.refreshUnread();
         if (this.role === 'Admin') {
           this.fetchPendingRequests().subscribe();
         }
       });
   }
+
+  private lastNavRefresh = Date.now();
 
   badgeCount(badge: NavBadge | undefined): number {
     return badge === 'pendingRequests' ? this.pendingRequests() : 0;
