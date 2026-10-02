@@ -81,6 +81,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
         icon: 'chart',
         children: [
           { label: 'Actividad', path: '/admin/metrics', exact: true },
+          { label: 'Uso de la app', path: '/admin/usage', exact: true },
           { label: 'Resultados', path: '/admin/results', exact: true },
           { label: 'Valoraciones', path: '/admin/ratings', exact: true }
         ]

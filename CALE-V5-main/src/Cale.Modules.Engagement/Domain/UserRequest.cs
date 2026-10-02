@@ -4,8 +4,10 @@ public static class UserRequestKinds
 {
     public const string Question = "question";
     public const string Idea = "idea";
+    /// <summary>A user flags an existing question as wrong or confusing.</summary>
+    public const string Report = "report";
 
-    public static bool IsValid(string? kind) => kind is Question or Idea;
+    public static bool IsValid(string? kind) => kind is Question or Idea or Report;
 }
 
 public static class UserRequestStatuses

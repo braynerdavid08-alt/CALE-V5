@@ -151,7 +151,9 @@ const messages: Record<string, string> = {
   too_many_requests: 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.',
   upload_limit_reached: 'Alcanzaste el máximo de imágenes por hoy. Intenta mañana.',
   requests_blocked: 'El administrador desactivó el envío de solicitudes para tu cuenta.',
-  cannot_block_admin: 'No puedes bloquear a un administrador.'
+  cannot_block_admin: 'No puedes bloquear a un administrador.',
+  already_reported: 'Ya reportaste esta pregunta. El administrador la está revisando.',
+  invalid_report: 'Cuéntanos qué está mal en la pregunta.'
 };
 
 function withSupportCode(message: string, error: unknown): string {

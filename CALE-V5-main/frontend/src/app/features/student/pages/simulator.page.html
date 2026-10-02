@@ -415,6 +415,7 @@
         @if (q.explanation) {
           <p class="muted">{{ q.explanation }}</p>
         }
+        <app-report-question [questionId]="q.id" [questionText]="q.text" />
       </ui-card>
     }
     <ui-button type="button" (click)="goHome()">Volver al panel</ui-button>

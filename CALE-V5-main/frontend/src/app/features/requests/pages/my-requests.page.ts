@@ -154,11 +154,11 @@ import {
           @for (r of items(); track r.id) {
             <li class="item">
               <div class="item-head">
-                <span class="item-title">{{ r.kind === 'question' ? '📝' : '💡' }} {{ r.title }}</span>
-                <span [class]="'pill ' + r.status">{{ statusLabel(r.status) }}</span>
+                <span class="item-title">{{ r.kind === 'question' ? '📝' : r.kind === 'report' ? '🚩' : '💡' }} {{ r.title }}</span>
+                <span [class]="'pill ' + r.status">{{ statusLabel(r.status, r.kind) }}</span>
               </div>
               <span class="meta">
-                {{ r.kind === 'question' ? 'Pregunta propuesta' : 'Idea' }} · {{ r.createdAt | date:'d MMM y, h:mm a' }}
+                {{ r.kind === 'question' ? 'Pregunta propuesta' : r.kind === 'report' ? 'Reporte de pregunta' : 'Idea' }} · {{ r.createdAt | date:'d MMM y, h:mm a' }}
               </span>
               @if (r.adminNote) {
                 <p class="note"><strong>Respuesta del administrador:</strong> {{ r.adminNote }}</p>
@@ -296,7 +296,11 @@ export class MyRequestsPage implements OnInit {
     });
   }
 
-  statusLabel(status: string): string {
+  statusLabel(status: string, kind?: string): string {
+    if (kind === 'report') {
+      if (status === 'Accepted') return 'Corregida';
+      if (status === 'Rejected') return 'Sin error';
+    }
     if (status === 'Accepted') return 'Aceptada';
     if (status === 'Rejected') return 'No aceptada';
     return 'En revisión';

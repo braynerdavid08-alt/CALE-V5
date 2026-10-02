@@ -377,6 +377,15 @@ export const routes: Routes = [
             .then((m) => m.AdminRequestsPage)
       },
       {
+        path: 'admin/usage',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['Admin'] },
+        loadComponent: () =>
+          import('./features/admin/pages/admin-usage.page')
+            .then((m) => m.AdminUsagePage)
+      },
+      {
         path: 'admin/signs-game',
         pathMatch: 'full',
         canActivate: [roleGuard],

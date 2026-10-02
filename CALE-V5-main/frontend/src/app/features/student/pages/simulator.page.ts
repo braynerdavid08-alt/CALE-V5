@@ -25,6 +25,7 @@ import {
   TakeQuestionDto
 } from '../api/exam.api';
 import { PlayFxService } from '../../play/play-fx.service';
+import { ReportQuestionComponent } from '../../requests/components/report-question.component';
 import { shareCard } from '../../play/share-card';
 
 /** Regla fija de CALE (ScoringRules.MaxIncorrectAnswers). */
@@ -83,7 +84,8 @@ const PRESETS: PracticePreset[] = [
     UiLoadingComponent,
     UiPageHeaderComponent,
     UiStatComponent,
-    UiSuccessComponent
+    UiSuccessComponent,
+    ReportQuestionComponent
   ],
   templateUrl: './simulator.page.html',
   styleUrl: './simulator.page.css'

@@ -27,6 +27,11 @@ public sealed class UserRequestsController : ControllerBase
     public async Task<ActionResult<MyRequestStatusDto>> MyStatus(CancellationToken ct) =>
         Ok(await _service.MyStatusAsync(CurrentUser.GetId(User), ct));
 
+    [HttpPost("admin/similar")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<ActionResult<IReadOnlyList<SimilarQuestionDto>>> Similar(SimilarQuestionsRequest request, CancellationToken ct) =>
+        Ok(await _service.FindSimilarAsync(request, ct));
+
     [HttpGet("admin/blocked")]
     [Authorize(Policy = "AdminOnly")]
     public async Task<ActionResult<IReadOnlyList<BlockedUserDto>>> Blocked(CancellationToken ct) =>
