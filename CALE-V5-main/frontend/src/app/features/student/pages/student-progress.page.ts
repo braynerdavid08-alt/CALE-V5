@@ -12,6 +12,7 @@ import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
 import { StudentTheoryApi, TheoryStudentDashboardDto } from '../api/student-theory.api';
+import { NextStepBannerComponent } from '../components/next-step-banner.component';
 
 type ItemState = 'done' | 'todo' | 'blocked' | 'info';
 
@@ -29,6 +30,7 @@ interface ChecklistItem {
   standalone: true,
   imports: [
     RouterLink,
+    NextStepBannerComponent,
     UiButtonComponent,
     UiErrorComponent,
     UiLoadingComponent,
@@ -130,14 +132,19 @@ export class StudentProgressPage implements OnInit {
     });
 
     const examAuth = !!pe?.theoryExamAuthorized || !!pe?.theoryExamPassed;
+    const hoursDone = theoryDone && !!pe?.workshopHoursComplete;
     items.push({
       id: 'exam-auth',
       title: 'Autorización de examen teórico',
       detail: pe?.theoryExamPassed
         ? 'Ya no es necesaria (examen aprobado)'
         : examAuth
-          ? 'Autorizado por tu escuela'
-          : 'Tu escuela debe autorizarte',
+          ? 'Habilitado: ya puedes agendar tu examen'
+          : !hoursDone
+            ? 'Se habilita sola al completar tus horas de teoría y taller'
+            : balanceDue > 0
+              ? 'Ponte al día con el saldo y quedarás habilitado'
+              : 'Tu escuela debe autorizarte',
       state: examAuth ? 'done' : 'blocked'
     });
 
@@ -146,16 +153,18 @@ export class StudentProgressPage implements OnInit {
       ? 'Aprobado'
       : theory?.nextExamAppointment
         ? `Cita ${theory.nextExamAppointment.examDate} ${theory.nextExamAppointment.slotTime}`
-        : theory?.platformExam
-          ? `Presenta «${theory.platformExam.name}» con Practicar examen`
-          : 'Sin cita ni examen configurado';
+        : examAuth
+          ? 'Agenda tu cita de examen'
+          : theory?.platformExam
+            ? `Presenta «${theory.platformExam.name}» con Practicar examen`
+            : 'Sin cita ni examen configurado';
     items.push({
       id: 'exam-pass',
       title: 'Aprobar examen teórico',
       detail: examDetail,
       state: examPassed ? 'done' : examAuth ? 'todo' : 'blocked',
-      ctaLabel: examPassed || !examAuth ? undefined : 'Practicar examen',
-      ctaLink: examPassed || !examAuth ? undefined : '/student/simulator'
+      ctaLabel: examPassed || !examAuth ? undefined : theory?.nextExamAppointment ? 'Ver mi cita' : 'Agendar examen',
+      ctaLink: examPassed || !examAuth ? undefined : '/student/exam'
     });
 
     const practicalAuth = !!pe?.practicalAuthorized;

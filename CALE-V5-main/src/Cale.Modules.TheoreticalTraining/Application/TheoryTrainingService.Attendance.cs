@@ -109,6 +109,7 @@ public sealed partial class TheoryTrainingService
         reservation.UpdatedAt = now;
 
         await _db.SaveChangesAsync(ct);
+        await _autoAuthorizer.TryAuthorizeAsync(schoolUserId, request.StudentUserId, ct);
     }
 
     public async Task MarkAttendanceBatchAsync(

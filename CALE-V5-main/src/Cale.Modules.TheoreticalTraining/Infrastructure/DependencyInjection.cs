@@ -11,6 +11,7 @@ public static class DependencyInjection
     {
         services.AddScoped<ITrainingEligibilityService, TrainingEligibilityService>();
         services.AddScoped<ISchoolStudentEnrollmentBootstrap, SchoolStudentEnrollmentBootstrap>();
+        services.AddScoped<TheoryExamAutoAuthorizer>();
         services.AddScoped<TheoryTrainingService>();
         services.AddScoped<PracticalTrainingService>();
         services.AddScoped<IExamBookingEligibility, ExamBookingEligibility>();

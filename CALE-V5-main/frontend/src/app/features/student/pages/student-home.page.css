@@ -642,3 +642,8 @@
     transition: none;
   }
 }
+
+app-next-step-banner {
+  display: block;
+  margin-bottom: var(--spacing-md);
+}

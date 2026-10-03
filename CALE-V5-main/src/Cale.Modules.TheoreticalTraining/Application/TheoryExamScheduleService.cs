@@ -31,14 +31,17 @@ public sealed partial class TheoryExamScheduleService
     private readonly ISchoolMembershipGuard _membership;
     private readonly INotificationPublisher _notifications;
     private readonly IExamBookingEligibility _eligibility;
+    private readonly TheoryExamAutoAuthorizer _autoAuthorizer;
 
     public TheoryExamScheduleService(
         CaleDbContext db,
         IClock clock,
         ISchoolMembershipGuard membership,
         INotificationPublisher notifications,
-        IExamBookingEligibility eligibility)
+        IExamBookingEligibility eligibility,
+        TheoryExamAutoAuthorizer autoAuthorizer)
     {
+        _autoAuthorizer = autoAuthorizer;
         _db = db;
         _clock = clock;
         _membership = membership;

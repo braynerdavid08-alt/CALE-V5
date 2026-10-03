@@ -20,13 +20,16 @@ public sealed class StudentHoursService
     private readonly IClock _clock;
     private readonly ISchoolMembershipGuard _membership;
     private readonly INotificationPublisher _notifications;
+    private readonly TheoryExamAutoAuthorizer _autoAuthorizer;
 
     public StudentHoursService(
         CaleDbContext db,
         IClock clock,
         ISchoolMembershipGuard membership,
-        INotificationPublisher notifications)
+        INotificationPublisher notifications,
+        TheoryExamAutoAuthorizer autoAuthorizer)
     {
+        _autoAuthorizer = autoAuthorizer;
         _db = db;
         _clock = clock;
         _membership = membership;
@@ -159,6 +162,7 @@ public sealed class StudentHoursService
             // Best effort; the change is saved and audited.
         }
 
+        await _autoAuthorizer.TryAuthorizeAsync(schoolUserId, studentUserId, ct);
         return await GetAsync(schoolUserId, studentUserId, ct);
     }
 

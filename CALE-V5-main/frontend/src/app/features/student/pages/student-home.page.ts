@@ -7,6 +7,8 @@ import { Badge, PlayApi, PlaySummary } from '../../play/api/play.api';
 import { PlayBadgesToastComponent } from '../../play/components/play-badges-toast.component';
 import { PlayFxService } from '../../play/play-fx.service';
 import { ProgressDashboardComponent } from '../components/progress-dashboard.component';
+import { NextStepBannerComponent } from '../components/next-step-banner.component';
+import { StudentTheoryApi, TheoryStudentDashboardDto } from '../api/student-theory.api';
 
 interface LauncherTile {
   id: string;
@@ -20,7 +22,14 @@ interface LauncherTile {
 @Component({
   selector: 'app-student-home-page',
   standalone: true,
-  imports: [RouterLink, UiButtonComponent, UiIconComponent, PlayBadgesToastComponent, ProgressDashboardComponent],
+  imports: [
+    RouterLink,
+    UiButtonComponent,
+    UiIconComponent,
+    PlayBadgesToastComponent,
+    ProgressDashboardComponent,
+    NextStepBannerComponent
+  ],
   templateUrl: './student-home.page.html',
   styleUrl: './student-home.page.css'
 })
@@ -28,8 +37,10 @@ export class StudentHomePage implements OnInit {
   readonly session = inject(SessionStore);
   private readonly play = inject(PlayApi);
   private readonly fx = inject(PlayFxService);
+  private readonly theoryApi = inject(StudentTheoryApi);
 
   readonly summary = signal<PlaySummary | null>(null);
+  readonly theory = signal<TheoryStudentDashboardDto | null>(null);
   readonly newBadges = signal<Badge[]>([]);
 
   readonly greetingName = computed(
@@ -59,6 +70,12 @@ export class StudentHomePage implements OnInit {
       },
       error: () => this.summary.set(null)
     });
+    if (this.session.user()?.schoolId) {
+      this.theoryApi.dashboard().subscribe({
+        next: (t) => this.theory.set(t),
+        error: () => this.theory.set(null)
+      });
+    }
   }
 
   /** Large shortcuts — home is only a launcher for seniors. */

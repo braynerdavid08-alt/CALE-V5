@@ -9,6 +9,7 @@ using Cale.Modules.TheoreticalTraining.Infrastructure.Persistence;
 using Cale.UnitTests.Fakes;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Cale.UnitTests.ExamScheduling;
 
@@ -80,14 +81,18 @@ public sealed class ExamSchedulingFixture : IDisposable
             options,
             new MappingAssemblies(
                 typeof(UserConfiguration).Assembly,
-                typeof(TheoryExamAppointmentConfiguration).Assembly));
+                typeof(TheoryExamAppointmentConfiguration).Assembly,
+                typeof(Cale.Modules.Assessment.Infrastructure.Persistence.AttemptConfiguration).Assembly));
     }
 
     public TheoryExamScheduleService Exams(CaleDbContext db) =>
-        new(db, Clock, new AlwaysActiveMembership(), Notifications, Eligibility);
+        new(db, Clock, new AlwaysActiveMembership(), Notifications, Eligibility, AutoAuthorizer(db));
 
     public StudentHoursService Hours(CaleDbContext db) =>
-        new(db, Clock, new AlwaysActiveMembership(), Notifications);
+        new(db, Clock, new AlwaysActiveMembership(), Notifications, AutoAuthorizer(db));
+
+    public TheoryExamAutoAuthorizer AutoAuthorizer(CaleDbContext db) =>
+        new(db, Clock, new AlwaysActiveMembership(), Notifications, NullLogger<TheoryExamAutoAuthorizer>.Instance);
 
     public void Dispose()
     {
