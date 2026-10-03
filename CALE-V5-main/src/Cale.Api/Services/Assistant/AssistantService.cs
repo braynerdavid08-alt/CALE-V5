@@ -234,16 +234,25 @@ public sealed class AssistantService
         var tools = new JsonArray();
         foreach (var t in _toolbox.ToolsFor(role))
         {
-            tools.Add(new JsonObject
+            var function = new JsonObject
             {
-                ["type"] = "function",
-                ["function"] = new JsonObject
+                ["name"] = t.Name,
+                ["description"] = t.Description
+            };
+
+            // Gemini rejects object schemas with no properties; parameters is optional in the OpenAI format.
+            if (t.Parameters["properties"] is JsonObject { Count: > 0 })
+            {
+                var parameters = (JsonObject)t.Parameters.DeepClone();
+                if (parameters["required"] is JsonArray { Count: 0 })
                 {
-                    ["name"] = t.Name,
-                    ["description"] = t.Description,
-                    ["parameters"] = t.Parameters.DeepClone()
+                    parameters.Remove("required");
                 }
-            });
+
+                function["parameters"] = parameters;
+            }
+
+            tools.Add(new JsonObject { ["type"] = "function", ["function"] = function });
         }
 
         return tools;
