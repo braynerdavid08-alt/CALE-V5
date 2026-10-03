@@ -5,7 +5,7 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
-import { PlayApi, SignsReport } from '../../play/api/play.api';
+import { PlayApi, SignImageReport, SignsReport } from '../../play/api/play.api';
 
 @Component({
   selector: 'app-admin-signs-game-page',
@@ -52,6 +52,7 @@ import { PlayApi, SignsReport } from '../../play/api/play.api';
     }
     .empty { text-align: center; padding: 1.25rem; color: var(--color-text-secondary); border: 1px dashed var(--color-border); border-radius: 1rem; }
     .actions { display: flex; justify-content: flex-end; margin-bottom: 0.75rem; }
+    .thumb { width: 3.5rem; height: 3.5rem; object-fit: contain; border-radius: 0.5rem; background: #fff; flex: none; }
     @media (max-width: 640px) {
       .stats { grid-template-columns: 1fr 1fr; }
       .stats .stat:first-child { grid-column: 1 / -1; }
@@ -124,12 +125,42 @@ import { PlayApi, SignsReport } from '../../play/api/play.api';
         }
       }
     }
+
+    <h2>Imágenes en cursos y bancos</h2>
+    <p class="hint">Las señales de los cursos y de los bancos usan las imágenes de tus exámenes de señales (creados por el administrador). Cada imagen se asigna a la señal cuyo nombre coincide con la respuesta correcta.</p>
+    @if (images(); as im) {
+      <div class="stats">
+        <div class="stat good"><strong>{{ im.matched.length }}</strong><span>señales con tu imagen</span></div>
+        <div class="stat" [class.warn]="im.unmatched.length > 0"><strong>{{ im.unmatched.length }}</strong><span>preguntas sin señal asignada</span></div>
+        <div class="stat"><strong>{{ im.missingCodes.length }}</strong><span>señales aún con dibujo genérico</span></div>
+      </div>
+      <p class="meta">Exámenes usados: {{ im.exams.length ? im.exams.join(', ') : 'ninguno' }}</p>
+      @if (im.unmatched.length) {
+        <p class="hint">Estas respuestas no coinciden con ningún nombre del catálogo. Escribe el nombre oficial de la señal (por ejemplo «Fin de la prohibición de adelantar») o su código (por ejemplo «SR-26A»).</p>
+        <ul class="list">
+          @for (u of im.unmatched; track u.questionId) {
+            <li class="row">
+              <img class="thumb" [src]="u.imageUrl" alt="" loading="lazy" />
+              <div class="row-main">
+                <p class="row-title">{{ u.answer }}</p>
+                <span class="meta">#{{ u.questionId }} · {{ u.examName }}</span>
+              </div>
+              <a class="edit" [routerLink]="['/admin/questions', u.questionId]">Editar</a>
+            </li>
+          }
+        </ul>
+      }
+      @if (im.missingCodes.length) {
+        <p class="meta" style="margin-top: 0.8rem">Sin imagen: {{ im.missingCodes.join(', ') }}</p>
+      }
+    }
   `
 })
 export class AdminSignsGamePage implements OnInit {
   private readonly api = inject(PlayApi);
 
   readonly report = signal<SignsReport | null>(null);
+  readonly images = signal<SignImageReport | null>(null);
   readonly loading = signal(false);
   readonly error = signal('');
   readonly showAll = signal(false);
@@ -145,6 +176,10 @@ export class AdminSignsGamePage implements OnInit {
   load(): void {
     this.loading.set(true);
     this.error.set('');
+    this.api.signImages(true).subscribe({
+      next: (r) => this.images.set(r),
+      error: (err) => this.error.set(mapApiError(err))
+    });
     this.api.signsReport().subscribe({
       next: (r) => {
         this.report.set(r);
