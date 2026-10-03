@@ -103,7 +103,11 @@ public sealed class CourseServiceTests : IDisposable
         Assert.DoesNotContain("correct", student);
         Assert.DoesNotContain("Porque", student);
         Assert.Equal(2, CourseContent.QuizCount(json));
-        Assert.Equal(50, CourseContent.Score(json, Answers((1, 1), (2, 0))));
+        var shown = CourseContent.ForStudent(json);
+        int Shown(int block, string option) =>
+            shown[block]!["options"]!.AsArray().Select(o => o!.GetValue<string>()).ToList().IndexOf(option);
+        Assert.Equal(50, CourseContent.Score(json, Answers((1, Shown(1, "B")), (2, Shown(2, "A")))));
+        Assert.Equal(Shown(2, "C"), CourseContent.Check(json, 2, 0).CorrectIndex);
         Assert.Equal(100, CourseContent.Score(CourseContent.Normalize(Blocks(new { type = "tip", body = "x" })), null));
     }
 
@@ -142,25 +146,49 @@ public sealed class CourseServiceTests : IDisposable
 
         var shownItems = student[3]!["items"]!.AsArray().Select(i => i!["text"]!.GetValue<string>()).ToList();
         var groups = shownItems.Select(t => t == "Curva" ? 1 : 0).ToArray();
+        var shownChoices = student[4]!["choices"]!.AsArray().Select(c => c!["text"]!.GetValue<string>()).ToList();
+        var brake = shownChoices.IndexOf("Freno");
+        var honk = shownChoices.IndexOf("Pito");
 
         var all = Answers(
             (0, 0),
             (1, new[] { "uno", "Dos ", "TRES", "Cuatro" }),
             (2, new[] { "30", "Cincuenta" }),
             (3, groups),
-            (4, 1));
+            (4, brake));
         Assert.Equal(100, CourseContent.Score(json, all));
 
         var wrongOrder = CourseContent.Check(json, 1, 0, JsonSerializer.SerializeToElement(new[] { "Dos", "Uno", "Tres", "Cuatro" }));
         Assert.False(wrongOrder.Correct);
         Assert.Equal("Uno", wrongOrder.Solution![0]!.GetValue<string>());
 
-        var badChoice = CourseContent.Check(json, 4, 0);
+        var badChoice = CourseContent.Check(json, 4, honk);
         Assert.False(badChoice.Correct);
-        Assert.Equal(1, badChoice.CorrectIndex);
+        Assert.Equal(brake, badChoice.CorrectIndex);
         Assert.Equal("Mal", badChoice.Explanation);
+        Assert.Equal("Bien", badChoice.Solution![brake]!.GetValue<string>());
 
         Assert.Throws<DomainException>(() => CourseContent.Check(json, 5, 0));
+    }
+
+    [Fact]
+    public void Quiz_options_are_shuffled_except_positional_answers()
+    {
+        var quizzes = Enumerable.Range(0, 12)
+            .Select(i => (object)new { type = "quiz", question = $"Pregunta {i}", options = new[] { "Mal", "Bien", "Peor", "Nunca" }, correct = 1 })
+            .Append(new { type = "quiz", question = "¿Cuáles?", options = new[] { "Uno", "Dos", "Todas las anteriores" }, correct = 2 })
+            .ToArray();
+        var json = CourseContent.Normalize(Blocks(quizzes));
+        var student = CourseContent.ForStudent(json);
+
+        var positions = Enumerable.Range(0, 12)
+            .Select(i => student[i]!["options"]!.AsArray().Select(o => o!.GetValue<string>()).ToList().IndexOf("Bien"))
+            .ToList();
+        Assert.True(positions.Distinct().Count() > 1);
+        Assert.All(Enumerable.Range(0, 12), i => Assert.True(CourseContent.Check(json, i, positions[i]).Correct));
+
+        Assert.Equal("Todas las anteriores", student[12]!["options"]![2]!.GetValue<string>());
+        Assert.True(CourseContent.Check(json, 12, 2).Correct);
     }
 
     [Fact]
@@ -232,7 +260,9 @@ public sealed class CourseServiceTests : IDisposable
         await seed.EnsureAsync(null);
 
         var courses = await _service.ListForStudentAsync(_student.Id, default);
-        Assert.Equal(2, courses.Count);
+        Assert.Equal(4, courses.Count);
+        Assert.Equal(5, Assert.Single(courses, c => c.Title == "Señalización vial e infraestructura").TotalLessons);
+        Assert.Equal(6, Assert.Single(courses, c => c.Title == "Primeros auxilios en la vía").TotalLessons);
         var signs = Assert.Single(courses, c => c.Title == "Señales de tránsito");
         Assert.True(signs.TotalLessons >= 4);
         var rules = Assert.Single(courses, c => c.Title == "Normas de tránsito básicas");

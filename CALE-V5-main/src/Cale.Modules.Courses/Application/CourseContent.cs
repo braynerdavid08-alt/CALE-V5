@@ -136,7 +136,8 @@ public static partial class CourseContent
         {
             case "quiz":
             {
-                var correct = block["correct"]!.GetValue<int>();
+                var order = QuizOrder(block, index);
+                var correct = order.IndexOf(block["correct"]!.GetValue<int>());
                 return (AsInt(answer) == correct, correct, explanation, null);
             }
             case "truefalse":
@@ -146,8 +147,9 @@ public static partial class CourseContent
             }
             case "scenario":
             {
-                var choices = (JsonArray)block["choices"]!;
-                var best = choices.Select((c, i) => (c, i)).First(x => x.c!["best"]!.GetValue<bool>()).i;
+                var original = ((JsonArray)block["choices"]!).OfType<JsonObject>().ToList();
+                var choices = ShuffledOrder(original.Count, Seed(block, index), avoidIdentity: false).Select(o => original[o]).ToList();
+                var best = choices.FindIndex(c => c["best"]!.GetValue<bool>());
                 var chosen = AsInt(answer);
                 var outcomes = new JsonArray(choices.Select(c => (JsonNode?)JsonValue.Create(c!["outcome"]!.GetValue<string>())).ToArray());
                 var ok = chosen >= 0 && chosen < choices.Count && choices[chosen]!["best"]!.GetValue<bool>();
@@ -189,18 +191,25 @@ public static partial class CourseContent
         switch (Type(block))
         {
             case "quiz":
+            {
+                var options = Strings((JsonArray)source["options"]!);
+                block["options"] = new JsonArray(QuizOrder(source, index).Select(o => (JsonNode?)JsonValue.Create(options[o])).ToArray());
                 block.Remove("correct");
                 block.Remove("explanation");
                 break;
+            }
             case "truefalse":
                 block.Remove("answer");
                 block.Remove("explanation");
                 break;
             case "scenario":
-                block["choices"] = new JsonArray(((JsonArray)source["choices"]!)
-                    .Select(c => (JsonNode?)new JsonObject { ["text"] = c!["text"]!.GetValue<string>() })
+            {
+                var choices = (JsonArray)source["choices"]!;
+                block["choices"] = new JsonArray(ShuffledOrder(choices.Count, Seed(source, index), avoidIdentity: false)
+                    .Select(o => (JsonNode?)new JsonObject { ["text"] = choices[o]!["text"]!.GetValue<string>() })
                     .ToArray());
                 break;
+            }
             case "order":
             {
                 var steps = Strings((JsonArray)source["steps"]!);
@@ -265,6 +274,18 @@ public static partial class CourseContent
             return (int)(hash ^ (uint)index);
         }
     }
+
+    /// <summary>Options as the student sees them; answers like «todas las anteriores» depend on position, so those quizzes keep their order.</summary>
+    private static List<int> QuizOrder(JsonObject block, int index)
+    {
+        var options = Strings((JsonArray)block["options"]!);
+        return options.Any(o => PositionalOption().IsMatch(Fold(o)))
+            ? Enumerable.Range(0, options.Count).ToList()
+            : ShuffledOrder(options.Count, Seed(block, index), avoidIdentity: false);
+    }
+
+    [GeneratedRegex(@"\b(anteriores|todas las opciones|ambas)\b")]
+    private static partial Regex PositionalOption();
 
     private static List<int> ShuffledOrder(int count, int seed, bool avoidIdentity)
     {

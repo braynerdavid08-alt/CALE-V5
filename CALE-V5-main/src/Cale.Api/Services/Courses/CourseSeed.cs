@@ -11,6 +11,8 @@ public sealed partial class CourseSeed
 {
     public const string SignsSlug = "senales-transito";
     public const string RulesSlug = "normas-transito";
+    public const string SignageSlug = "senalizacion-infraestructura";
+    public const string FirstAidSlug = "primeros-auxilios";
 
     private readonly CaleDbContext _db;
 
@@ -34,6 +36,24 @@ public sealed partial class CourseSeed
             "Normas de tránsito",
             "/signals/SR-30.svg",
             RulesLessons,
+            logger,
+            ct);
+        await EnsureCourseAsync(
+            SignageSlug,
+            "Señalización vial e infraestructura",
+            "Las familias de señales verticales, las líneas del pavimento, las marcas en los cruces y los dispositivos que te guían en la vía.",
+            "Señales de tránsito",
+            LinesImage,
+            SignageLessons,
+            logger,
+            ct);
+        await EnsureCourseAsync(
+            FirstAidSlug,
+            "Primeros auxilios en la vía",
+            "Qué hacer si eres el primero en llegar a un siniestro: proteger, avisar al 123, valorar a la víctima, controlar sangrados, atender quemaduras y atragantamientos.",
+            "Primeros auxilios",
+            "/signals/SI-16.svg",
+            FirstAidLessons,
             logger,
             ct);
     }
