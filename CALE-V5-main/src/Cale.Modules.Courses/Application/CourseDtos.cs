@@ -122,11 +122,12 @@ public sealed record StudentLessonDto(
     int? PreviousLessonId,
     int? NextLessonId);
 
-public sealed record QuizCheckRequest(int BlockIndex, int Option);
+/// <summary><c>Option</c> for single-choice activities; <c>Answer</c> (array) for order, fill-in and classify.</summary>
+public sealed record QuizCheckRequest(int BlockIndex, int Option, JsonElement? Answer = null);
 
-public sealed record QuizCheckResult(bool Correct, int CorrectIndex, string? Explanation);
+public sealed record QuizCheckResult(bool Correct, int CorrectIndex, string? Explanation, JsonNode? Solution = null);
 
-public sealed record LessonCompleteRequest(IReadOnlyDictionary<int, int>? Answers);
+public sealed record LessonCompleteRequest(IReadOnlyDictionary<int, JsonElement>? Answers);
 
 public sealed record LessonCompleteResult(
     int Score,

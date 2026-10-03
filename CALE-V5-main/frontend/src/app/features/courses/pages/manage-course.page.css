@@ -349,6 +349,48 @@
   align-items: center;
 }
 
+.radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.danger-text {
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
+.hs-edit {
+  position: relative;
+  cursor: crosshair;
+  user-select: none;
+}
+
+.hs-edit img {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-md);
+}
+
+.hs-dot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  color: #fff;
+  background: var(--color-primary);
+  font-weight: 800;
+  font-size: var(--text-sm);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
 .add-blocks {
   display: grid;
   gap: 0.6rem;

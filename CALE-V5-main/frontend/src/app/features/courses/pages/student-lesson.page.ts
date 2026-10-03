@@ -7,8 +7,8 @@ import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import { Badge } from '../../play/api/play.api';
 import { PlayBadgesToastComponent } from '../../play/components/play-badges-toast.component';
 import { PlayFxService } from '../../play/play-fx.service';
-import { LessonCompleteResult, StudentCoursesApi, StudentLesson } from '../api/courses.api';
-import { LessonBlocksComponent, QuizChecker } from '../components/lesson-blocks.component';
+import { ActivityAnswer, LessonCompleteResult, StudentCoursesApi, StudentLesson } from '../api/courses.api';
+import { ActivityAnswered, LessonBlocksComponent, QuizChecker } from '../components/lesson-blocks.component';
 
 @Component({
   selector: 'app-student-lesson-page',
@@ -62,8 +62,8 @@ import { LessonBlocksComponent, QuizChecker } from '../components/lesson-blocks.
           <div class="panel" style="display: grid; gap: 0.6rem">
             @if (l.quizCount) {
               <p class="muted" style="margin: 0">
-                Respondiste {{ answeredCount() }} de {{ l.quizCount }} preguntas.
-                @if (answeredCount() < l.quizCount) { Puedes terminar igual, pero las preguntas sin responder cuentan como incorrectas. }
+                Respondiste {{ answeredCount() }} de {{ l.quizCount }} actividades.
+                @if (answeredCount() < l.quizCount) { Puedes terminar igual, pero las actividades sin responder cuentan como incorrectas. }
               </p>
             }
             <div class="player-nav">
@@ -94,12 +94,9 @@ export class StudentLessonPage implements OnInit {
   readonly result = signal<LessonCompleteResult | null>(null);
   readonly newBadges = signal<Badge[]>([]);
   readonly answeredCount = signal(0);
-  private answers: Record<number, number> = {};
+  private answers: Record<number, ActivityAnswer> = {};
 
-  readonly checker: QuizChecker = (blockIndex, option) => {
-    const l = this.lesson();
-    return this.api.check(l!.id, blockIndex, option);
-  };
+  readonly checker: QuizChecker = (blockIndex, answer) => this.api.check(this.lesson()!.id, blockIndex, answer);
 
   ngOnInit(): void {
     this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
@@ -107,8 +104,8 @@ export class StudentLessonPage implements OnInit {
     });
   }
 
-  onAnswered(e: { blockIndex: number; option: number; correct: boolean }): void {
-    this.answers[e.blockIndex] = e.option;
+  onAnswered(e: ActivityAnswered): void {
+    this.answers[e.blockIndex] = e.value;
     this.answeredCount.set(Object.keys(this.answers).length);
     this.fx.play(e.correct ? 'correct' : 'wrong');
   }

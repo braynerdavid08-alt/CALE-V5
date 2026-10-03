@@ -245,6 +245,151 @@
                     <textarea rows="2" [(ngModel)]="asQuiz(block).explanation" maxlength="6000"></textarea>
                   </label>
                 }
+                @case ('truefalse') {
+                  <label class="field">Afirmación <textarea rows="2" [(ngModel)]="asTf(block).statement" maxlength="800"
+                    placeholder="Ej.: En zona escolar la velocidad máxima es 30 km/h."></textarea></label>
+                  <ng-container *ngTemplateOutlet="imageField; context: { $implicit: asTf(block), label: 'Imagen (opcional)' }" />
+                  <div class="field">
+                    Respuesta correcta
+                    <div class="cover-row">
+                      <label class="radio"><input type="radio" [name]="'tf-' + i" [checked]="asTf(block).answer === true" (change)="asTf(block).answer = true" /> Verdadero</label>
+                      <label class="radio"><input type="radio" [name]="'tf-' + i" [checked]="asTf(block).answer === false" (change)="asTf(block).answer = false" /> Falso</label>
+                    </div>
+                  </div>
+                  <label class="field">Explicación (se muestra después de responder)
+                    <textarea rows="2" [(ngModel)]="asTf(block).explanation" maxlength="6000"></textarea>
+                  </label>
+                }
+                @case ('scenario') {
+                  <label class="field">Situación <textarea rows="3" [(ngModel)]="asScenario(block).situation" maxlength="1200"
+                    placeholder="Ej.: Vas a 50 km/h y un balón sale rodando a la calle entre dos carros parqueados…"></textarea></label>
+                  <ng-container *ngTemplateOutlet="imageField; context: { $implicit: asScenario(block), label: 'Imagen de la situación (opcional)' }" />
+                  @for (ch of asScenario(block).choices; track trackIndex(ci); let ci = $index) {
+                    <div class="sub-card">
+                      <div class="sub-head">
+                        <label class="radio"><input type="radio" [name]="'best-' + i" [checked]="ch.best" (change)="setBest(asScenario(block), ci)" />
+                          <strong>Decisión {{ letters[ci] }}</strong> {{ ch.best ? '(la mejor)' : '' }}</label>
+                        <button type="button" class="link-btn danger" [disabled]="asScenario(block).choices.length <= 2"
+                          (click)="asScenario(block).choices.splice(ci, 1)">Quitar</button>
+                      </div>
+                      <label class="field">Qué hace el conductor <input [(ngModel)]="ch.text" maxlength="400" /></label>
+                      <label class="field">Qué pasa después <textarea rows="2" [(ngModel)]="ch.outcome" maxlength="800"></textarea></label>
+                    </div>
+                  }
+                  @if (asScenario(block).choices.length < 4) {
+                    <div><button type="button" class="link-btn" (click)="asScenario(block).choices.push({ text: '', outcome: '', best: false })">+ Agregar decisión</button></div>
+                  }
+                }
+                @case ('order') {
+                  <label class="field">Instrucción <input [(ngModel)]="asOrder(block).instructions" maxlength="400" placeholder="Ej.: ¿En qué orden actúas si ves un accidente?" /></label>
+                  <div class="field">
+                    Pasos en el orden correcto
+                    @for (st of asOrder(block).steps; track trackIndex(si); let si = $index; let first = $first; let last = $last) {
+                      <div class="option-row">
+                        <span class="letter">{{ si + 1 }}</span>
+                        <input [(ngModel)]="asOrder(block).steps[si]" maxlength="400" [attr.aria-label]="'Paso ' + (si + 1)" />
+                        <span class="block-tools">
+                          <button type="button" [disabled]="first" (click)="moveItem(asOrder(block).steps, si, -1)" aria-label="Subir paso">▲</button>
+                          <button type="button" [disabled]="last" (click)="moveItem(asOrder(block).steps, si, 1)" aria-label="Bajar paso">▼</button>
+                          <button type="button" class="danger" [disabled]="asOrder(block).steps.length <= 3" (click)="asOrder(block).steps.splice(si, 1)" aria-label="Quitar paso">✕</button>
+                        </span>
+                      </div>
+                    }
+                    @if (asOrder(block).steps.length < 8) {
+                      <div><button type="button" class="link-btn" (click)="asOrder(block).steps.push('')">+ Agregar paso</button></div>
+                    }
+                  </div>
+                  <label class="field">Explicación (opcional) <textarea rows="2" [(ngModel)]="asOrder(block).explanation" maxlength="6000"></textarea></label>
+                }
+                @case ('fillblank') {
+                  <label class="field">Frase con espacios
+                    <textarea rows="3" [(ngModel)]="asFill(block).text" maxlength="1200"
+                      placeholder="En vías urbanas la velocidad máxima es [[50]] km/h y en zonas escolares [[30]] km/h."></textarea>
+                  </label>
+                  <small [class.muted]="blankCount(asFill(block)) > 0" [class.danger-text]="blankCount(asFill(block)) === 0">
+                    {{ blankCount(asFill(block)) === 0 ? 'Aún no hay espacios: escribe la respuesta entre [[ ]].' : blankCount(asFill(block)) + ' espacio(s) para completar.' }}
+                  </small>
+                  <div class="field">
+                    Palabras distractoras (opcional; aparecen junto a las respuestas)
+                    @for (d of asFill(block).distractors ?? []; track trackIndex(di); let di = $index) {
+                      <div class="option-row">
+                        <input [(ngModel)]="asFill(block).distractors![di]" maxlength="400" [attr.aria-label]="'Distractor ' + (di + 1)" />
+                        <button type="button" class="link-btn danger" (click)="asFill(block).distractors!.splice(di, 1)" aria-label="Quitar">✕</button>
+                      </div>
+                    }
+                    @if ((asFill(block).distractors ?? []).length < 6) {
+                      <div><button type="button" class="link-btn" (click)="(asFill(block).distractors = asFill(block).distractors ?? []).push('')">+ Agregar distractor</button></div>
+                    }
+                  </div>
+                  <label class="field">Explicación (opcional) <textarea rows="2" [(ngModel)]="asFill(block).explanation" maxlength="6000"></textarea></label>
+                }
+                @case ('classify') {
+                  <label class="field">Instrucción <input [(ngModel)]="asClassify(block).instructions" maxlength="400" placeholder="Ej.: ¿Qué tipo de señal es cada una?" /></label>
+                  <div class="field">
+                    Grupos
+                    @for (g of asClassify(block).groups; track trackIndex(gi); let gi = $index) {
+                      <div class="option-row">
+                        <input [(ngModel)]="asClassify(block).groups[gi]" maxlength="400" [placeholder]="'Grupo ' + (gi + 1)" [attr.aria-label]="'Grupo ' + (gi + 1)" />
+                        <button type="button" class="link-btn danger" [disabled]="asClassify(block).groups.length <= 2" (click)="removeGroup(asClassify(block), gi)" aria-label="Quitar grupo">✕</button>
+                      </div>
+                    }
+                    @if (asClassify(block).groups.length < 4) {
+                      <div><button type="button" class="link-btn" (click)="asClassify(block).groups.push('')">+ Agregar grupo</button></div>
+                    }
+                  </div>
+                  @for (it of asClassify(block).items; track trackIndex(ii); let ii = $index) {
+                    <div class="sub-card">
+                      <div class="sub-head">
+                        <strong>Elemento {{ ii + 1 }}</strong>
+                        <button type="button" class="link-btn danger" [disabled]="asClassify(block).items.length <= 2"
+                          (click)="asClassify(block).items.splice(ii, 1)">Quitar</button>
+                      </div>
+                      <div class="meta-grid">
+                        <label class="field">Texto (opcional si pones imagen) <input [(ngModel)]="it.text" maxlength="400" /></label>
+                        <label class="field">Grupo correcto
+                          <select [(ngModel)]="it.group">
+                            @for (g of asClassify(block).groups; track trackIndex(gi); let gi = $index) {
+                              <option [ngValue]="gi">{{ g || 'Grupo ' + (gi + 1) }}</option>
+                            }
+                          </select>
+                        </label>
+                      </div>
+                      <ng-container *ngTemplateOutlet="imageField; context: { $implicit: it, label: 'Imagen (opcional)' }" />
+                    </div>
+                  }
+                  @if (asClassify(block).items.length < 16) {
+                    <div><button type="button" class="link-btn" (click)="asClassify(block).items.push({ text: '', imageUrl: null, group: 0 })">+ Agregar elemento</button></div>
+                  }
+                  <label class="field">Explicación (opcional) <textarea rows="2" [(ngModel)]="asClassify(block).explanation" maxlength="6000"></textarea></label>
+                }
+                @case ('hotspot') {
+                  <label class="field">Instrucción <input [(ngModel)]="asHotspot(block).instructions" maxlength="400" placeholder="Ej.: Encuentra los puntos ciegos del carro." /></label>
+                  <div class="cover-row">
+                    <label class="file-btn">
+                      {{ busy() === 'upload' ? 'Subiendo…' : (asHotspot(block).imageUrl ? 'Cambiar imagen' : 'Subir imagen') }}
+                      <input type="file" accept="image/*" (change)="uploadInto($event, asHotspot(block), 'imageUrl')" [disabled]="busy() === 'upload'" />
+                    </label>
+                  </div>
+                  @if (asHotspot(block).imageUrl) {
+                    <p class="hint" style="margin: 0">Toca la imagen para agregar un punto.</p>
+                    <div class="hs-edit" (click)="addSpot(asHotspot(block), $event)">
+                      <img [src]="url(asHotspot(block).imageUrl)" alt="" draggable="false" />
+                      @for (sp of asHotspot(block).spots; track trackIndex(pi); let pi = $index) {
+                        <span class="hs-dot" [style.left.%]="sp.x" [style.top.%]="sp.y">{{ pi + 1 }}</span>
+                      }
+                    </div>
+                    @for (sp of asHotspot(block).spots; track trackIndex(pi); let pi = $index) {
+                      <div class="option-row">
+                        <span class="letter">{{ pi + 1 }}</span>
+                        <div class="sign-fields">
+                          <input [(ngModel)]="sp.label" maxlength="400" placeholder="Qué es (ej.: Espejo retrovisor)" [attr.aria-label]="'Nombre del punto ' + (pi + 1)" />
+                          <input [(ngModel)]="sp.note" maxlength="800" placeholder="Nota opcional" [attr.aria-label]="'Nota del punto ' + (pi + 1)" />
+                        </div>
+                        <button type="button" class="link-btn danger" (click)="asHotspot(block).spots.splice(pi, 1)" aria-label="Quitar punto">✕</button>
+                      </div>
+                    }
+                  }
+                }
                 @case ('flipcards') {
                   <label class="field">Título (opcional) <input [(ngModel)]="asCards(block).title" maxlength="400" /></label>
                   @for (card of asCards(block).cards; track trackIndex(ci); let ci = $index) {

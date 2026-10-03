@@ -24,6 +24,44 @@ export interface FlipcardsBlock { type: 'flipcards'; title?: string | null; card
 export interface MatchPair { left?: string | null; imageUrl?: string | null; right: string; }
 export interface MatchBlock { type: 'match'; instructions?: string | null; pairs: MatchPair[]; }
 
+export interface TrueFalseBlock {
+  type: 'truefalse';
+  statement: string;
+  imageUrl?: string | null;
+  /** Editor only. */
+  answer?: boolean;
+  explanation?: string | null;
+}
+export interface OrderBlock {
+  type: 'order';
+  instructions?: string | null;
+  /** Editor: correct order. Student: shuffled. */
+  steps: string[];
+  explanation?: string | null;
+}
+export interface HotspotItem { x: number; y: number; label: string; note?: string | null; }
+export interface HotspotBlock { type: 'hotspot'; instructions?: string | null; imageUrl: string; spots: HotspotItem[]; }
+export interface ScenarioChoice { text: string; outcome?: string; best?: boolean; }
+export interface ScenarioBlock { type: 'scenario'; situation: string; imageUrl?: string | null; choices: ScenarioChoice[]; }
+export interface FillBlankBlock {
+  type: 'fillblank';
+  /** Editor only: sentence with [[answer]] or [[answer|alternative]]. */
+  text?: string;
+  distractors?: string[];
+  explanation?: string | null;
+  /** Student only: text around the blanks and the word bank. */
+  parts?: string[];
+  bank?: string[];
+}
+export interface ClassifyItem { text?: string | null; imageUrl?: string | null; group?: number; }
+export interface ClassifyBlock {
+  type: 'classify';
+  instructions?: string | null;
+  groups: string[];
+  items: ClassifyItem[];
+  explanation?: string | null;
+}
+
 export type LessonBlock =
   | TextBlock
   | TipBlock
@@ -31,7 +69,16 @@ export type LessonBlock =
   | SignsBlock
   | QuizBlock
   | FlipcardsBlock
-  | MatchBlock;
+  | MatchBlock
+  | TrueFalseBlock
+  | OrderBlock
+  | HotspotBlock
+  | ScenarioBlock
+  | FillBlankBlock
+  | ClassifyBlock;
+
+/** Answer sent for a graded activity: option index, or a list for order, fill-in and classify. */
+export type ActivityAnswer = number | string[] | number[];
 
 export type BlockType = LessonBlock['type'];
 
@@ -169,6 +216,8 @@ export interface QuizCheckResult {
   correct: boolean;
   correctIndex: number;
   explanation?: string | null;
+  /** Order: correct steps. Fill-in: answers. Classify: group per item. Scenario: outcome per choice. */
+  solution?: (string | number)[] | null;
 }
 
 export interface LessonCompleteResult {
@@ -263,11 +312,14 @@ export class StudentCoursesApi {
     return this.http.get<StudentLesson>(`${this.base}/lessons/${lessonId}`);
   }
 
-  check(lessonId: number, blockIndex: number, option: number) {
-    return this.http.post<QuizCheckResult>(`${this.base}/lessons/${lessonId}/check`, { blockIndex, option });
+  check(lessonId: number, blockIndex: number, answer: ActivityAnswer) {
+    const body = typeof answer === 'number'
+      ? { blockIndex, option: answer }
+      : { blockIndex, option: -1, answer };
+    return this.http.post<QuizCheckResult>(`${this.base}/lessons/${lessonId}/check`, body);
   }
 
-  complete(lessonId: number, answers: Record<number, number>) {
+  complete(lessonId: number, answers: Record<number, ActivityAnswer>) {
     return this.http.post<LessonCompleteResponse>(`${this.base}/lessons/${lessonId}/complete`, { answers });
   }
 }

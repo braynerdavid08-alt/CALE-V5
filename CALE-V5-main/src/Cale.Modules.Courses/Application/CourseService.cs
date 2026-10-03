@@ -350,8 +350,9 @@ public sealed class CourseService
     {
         var lesson = await Lessons.AsNoTracking().FirstOrDefaultAsync(l => l.Id == lessonId, ct) ?? throw LessonNotFound();
         await StudentCourseAsync(studentUserId, lesson.CourseId, ct);
-        var (correct, correctIndex, explanation) = CourseContent.Check(lesson.ContentJson, request.BlockIndex, request.Option);
-        return new QuizCheckResult(correct, correctIndex, explanation);
+        var (correct, correctIndex, explanation, solution) =
+            CourseContent.Check(lesson.ContentJson, request.BlockIndex, request.Option, request.Answer);
+        return new QuizCheckResult(correct, correctIndex, explanation, solution);
     }
 
     public async Task<LessonCompleteResult> CompleteAsync(int studentUserId, int lessonId, LessonCompleteRequest request, CancellationToken ct)
