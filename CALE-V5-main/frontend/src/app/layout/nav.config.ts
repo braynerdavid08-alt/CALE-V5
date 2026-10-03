@@ -143,6 +143,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
           { label: 'Grupos', path: '/teacher/groups', exact: true }
         ]
       },
+      { label: 'Cursos virtuales', path: '/teacher/cursos', icon: 'book' },
       {
         label: 'Biblioteca',
         icon: 'book',

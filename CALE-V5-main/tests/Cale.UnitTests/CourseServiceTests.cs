@@ -216,6 +216,27 @@ public sealed class CourseServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Teacher_edits_school_courses_but_platform_original_stays_read_only()
+    {
+        var platform = await _service.CreateAsync(Admin, new CourseSaveRequest("Plataforma", null, null, null, false), default);
+        var teacher = new CourseActor(9999, Roles.Teacher, _school.Id);
+
+        Assert.Contains(await _service.ListManageAsync(teacher, default), c => c.Id == platform.Id && !c.CanEdit);
+        await Assert.ThrowsAsync<ForbiddenException>(() =>
+            _service.UpdateAsync(teacher, platform.Id, new CourseSaveRequest("Hack", null, null, null, false), default));
+
+        var copy = await _service.DuplicateAsync(teacher, platform.Id, default);
+        Assert.True(copy.CanEdit);
+        await _service.UpdateAsync(School, copy.Id, new CourseSaveRequest("Ajustado por la escuela", null, null, null, false), default);
+        var created = await _service.CreateAsync(School, new CourseSaveRequest("De la escuela", null, null, null, false), default);
+        await _service.UpdateAsync(teacher, created.Id, new CourseSaveRequest("Ajustado por el instructor", null, null, null, false), default);
+
+        Assert.Equal("Plataforma", (await _service.GetManageAsync(Admin, platform.Id, default)).Title);
+        await Assert.ThrowsAsync<ForbiddenException>(() =>
+            _service.ListManageAsync(new CourseActor(9998, Roles.Teacher, null), default));
+    }
+
+    [Fact]
     public async Task School_course_is_invisible_to_other_school_and_its_students()
     {
         var (courseId, _) = await PublishedSchoolCourseAsync(new { type = "text", body = "Hola" });

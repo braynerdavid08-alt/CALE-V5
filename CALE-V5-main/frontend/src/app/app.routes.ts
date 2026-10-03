@@ -323,6 +323,23 @@ export const routes: Routes = [
             .then((m) => m.ManageCoursePage)
       },
       {
+        path: 'teacher/cursos',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['Teacher'], base: '/teacher/cursos' },
+        loadComponent: () =>
+          import('./features/courses/pages/manage-courses.page')
+            .then((m) => m.ManageCoursesPage)
+      },
+      {
+        path: 'teacher/cursos/:id',
+        canActivate: [roleGuard],
+        data: { roles: ['Teacher'], base: '/teacher/cursos' },
+        loadComponent: () =>
+          import('./features/courses/pages/manage-course.page')
+            .then((m) => m.ManageCoursePage)
+      },
+      {
         path: 'admin/cursos-virtuales',
         pathMatch: 'full',
         canActivate: [roleGuard],
