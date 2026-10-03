@@ -163,7 +163,7 @@ public sealed partial class CourseSeed
         (
             "Velocidad segura y adaptación al entorno",
             "La diferencia entre el límite de velocidad y la velocidad segura, y los límites que fija la ley.",
-            12,
+            17,
             [
                 Text(
                     "Los límites de la ley",
@@ -179,6 +179,8 @@ public sealed partial class CourseSeed
                     + "Piensa en la Circunvalar en un día despejado y en una calle residencial a la salida del colegio: el límite puede parecer similar, pero el riesgo no. "
                     + "Por eso hay intervenciones como los radares pedagógicos de la carrera 65A con calle 99: buscan proteger a peatones, ciclistas y conductores."),
                 Tip("Más riesgo significa menos margen para reaccionar. Y menos margen significa que debes ir más despacio."),
+                Video("experimento-30-kmh.mp4", "Experimento real: 30 kilómetros por hora hacen la diferencia."),
+                Video("exceso-velocidad.mp4", "Exceso de velocidad: un factor de riesgo que sí podemos controlar."),
                 new
                 {
                     type = "signs",
@@ -361,7 +363,7 @@ public sealed partial class CourseSeed
         (
             "Restricciones urbanas y conducta de los demás",
             "Medidas locales que cambian, cómo verificarlas, y cómo anticipar los errores de otros actores viales.",
-            12,
+            14,
             [
                 Text(
                     "Las reglas de la ciudad cambian",
@@ -383,6 +385,7 @@ public sealed partial class CourseSeed
                     "La conducción preventiva no espera que todos se comporten perfecto: asume que alguien puede equivocarse y deja margen para reaccionar.\n\n"
                     + "Fíjate en las pistas: ¿hacia dónde apuntan las ruedas del carro parqueado?, ¿el peatón miró antes de bajar del andén?, ¿la moto puso direccional o ya está cambiando de trayectoria?, "
                     + "¿tienes un espacio de escape si algo sale mal? Anticipa el error sin justificarlo y sin confrontar al otro."),
+                Video("puntos-ciegos.mp4", "Puntos ciegos: lo que el conductor de un vehículo grande no alcanza a ver."),
                 Scenario(
                     "Vas por una calle comercial. Un carro parqueado tiene las ruedas giradas hacia la vía y el conductor acaba de subirse. ¿Qué haces?",
                     [
@@ -413,7 +416,7 @@ public sealed partial class CourseSeed
         (
             "Factores humanos, alcohol y sustancias",
             "Fatiga, sueño, estrés y alimentación; y por qué con alcohol o sustancias la única decisión segura es no conducir.",
-            12,
+            75,
             [
                 Text(
                     "El primer sistema de seguridad eres tú",
@@ -447,6 +450,11 @@ public sealed partial class CourseSeed
                     + "En todos los casos se retiene la licencia y el vehículo se inmoviliza. Si te niegas a hacer la prueba, te cancelan la licencia "
                     + "y la multa es de 1.440 salarios mínimos diarios. Las multas por alcohol no tienen el descuento por hacer el curso."),
                 Tip("No intentes calcular cuándo «ya puedes» manejar, y no confíes en sentirte bien. Si vas a tomar, planea desde antes cómo vas a volver."),
+                Video("clase-alcoholemia-0.mp4", "Clase de alcoholemia y pruebas, parte 1 de 5."),
+                Video("clase-alcoholemia-1.mp4", "Clase de alcoholemia y pruebas, parte 2 de 5."),
+                Video("clase-alcoholemia-2.mp4", "Clase de alcoholemia y pruebas, parte 3 de 5."),
+                Video("clase-alcoholemia-3.mp4", "Clase de alcoholemia y pruebas, parte 4 de 5."),
+                Video("clase-alcoholemia-4.mp4", "Clase de alcoholemia y pruebas, parte 5 de 5."),
                 FillBlank(
                     "El grado cero de alcoholemia empieza en [[20]] mg de etanol por 100 ml de sangre. El tercer grado empieza en [[150]] mg.",
                     ["0", "50", "100"],
