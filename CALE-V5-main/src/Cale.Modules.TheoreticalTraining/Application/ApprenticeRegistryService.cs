@@ -71,12 +71,14 @@ public sealed class ApprenticeRegistryService
             .GroupBy(x => x.Id)
             .ToDictionary(g => g.Key, g => g.First());
         var enrollments = await _db.Set<SchoolStudentEnrollment>()
+            .AsNoTracking()
             .Where(x => x.SchoolUserId == schoolUserId)
             .ToListAsync(ct);
         var enrollmentMap = enrollments
             .GroupBy(x => x.StudentUserId)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.Id).First());
         var profiles = await _db.Set<SchoolApprenticeProfile>()
+            .AsNoTracking()
             .Where(x => x.SchoolUserId == schoolUserId)
             .ToListAsync(ct);
         var profileMap = profiles

@@ -6,6 +6,7 @@ using Cale.BuildingBlocks.Infrastructure.Persistence;
 using Cale.Modules.Catalog.Infrastructure;
 using Cale.Modules.Identity.Domain;
 using Cale.Modules.Identity.Infrastructure;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 
@@ -33,6 +34,7 @@ public static class WebApplicationExtensions
             app.UseHttpsRedirection();
         }
 
+        app.UseResponseCompression();
         app.UseMiddleware<RequestTelemetryMiddleware>();
         app.UseMiddleware<ExceptionHandlingMiddleware>();
         app.UseMiddleware<LegacyPresentationUploadMiddleware>();
@@ -47,7 +49,8 @@ public static class WebApplicationExtensions
         app.UseCors("Cale");
         app.UseRateLimiter();
         app.UseDefaultFiles();
-        app.UseStaticFiles();
+        var spaFiles = new StaticFileOptions { OnPrepareResponse = ctx => ApplySpaCacheHeaders(ctx.Context) };
+        app.UseStaticFiles(spaFiles);
         app.UseAuthentication();
         app.UseAuthorization();
         app.UseMiddleware<MustChangePasswordMiddleware>();
@@ -56,7 +59,7 @@ public static class WebApplicationExtensions
         app.MapHub<Cale.Api.Hubs.GameShowHub>("/hubs/game-show");
 
         // Angular SPA deep links (keep /api/* on controllers).
-        app.MapFallbackToFile("index.html");
+        app.MapFallbackToFile("index.html", spaFiles);
 
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<CaleDbContext>();
@@ -255,5 +258,19 @@ public static class WebApplicationExtensions
             catalogLogger,
             allowPartialRebuild: allowPartialRebuild,
             allowReplaceExisting: allowReplaceExisting);
+    }
+
+    private static readonly Regex HashedAsset = new(
+        @"^/(?:(?:chunk|main|polyfills|styles)-[A-Z0-9]{8}\.(?:js|css)|media/.+)$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    // Angular content-hashes bundle names, so they never change once deployed; everything
+    // else (index.html, config.js, sw.js, uploads) must be revalidated to pick up new deploys.
+    private static void ApplySpaCacheHeaders(HttpContext http)
+    {
+        var path = http.Request.Path.Value ?? "";
+        http.Response.Headers.CacheControl = HashedAsset.IsMatch(path)
+            ? "public, max-age=31536000, immutable"
+            : "no-cache";
     }
 }
