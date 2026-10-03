@@ -177,6 +177,9 @@ public sealed partial class CourseSeed
 
     private static object Tip(string body) => new { type = "tip", body };
 
+    private static object Video(string file, string caption) =>
+        new { type = "video", url = $"/courses/videos/{file}", caption };
+
     private static object Sign(string code, string name, string note) => new { code, name, note };
 
     private static object Quiz(string question, string? imageUrl, string[] options, int correct, string explanation) =>
