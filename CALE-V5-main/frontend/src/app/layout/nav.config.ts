@@ -72,6 +72,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
           { label: 'Bancos', path: '/admin/banks', exact: true },
           { label: 'Exámenes', path: '/admin/exams', exact: true },
           { label: 'Cursos / Clases', path: '/admin/courses', exact: true },
+          { label: 'Cursos virtuales', path: '/admin/cursos-virtuales' },
           { label: 'Solicitudes de usuarios', path: '/admin/requests', exact: true, badge: 'pendingRequests' },
           { label: 'Señal relámpago', path: '/admin/signs-game', exact: true }
         ]
@@ -106,6 +107,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
       { label: 'Estudiantes', path: '/school/apprentices', icon: 'graduate', exact: true },
       { label: 'Asistencia de hoy', path: '/school/attendance', icon: 'list', exact: true },
       { label: 'Clases teóricas', path: '/school/training', icon: 'clock', exact: true },
+      { label: 'Cursos virtuales', path: '/school/cursos', icon: 'book' },
       { label: 'Exámenes', path: '/school/theory-exams', icon: 'exam', exact: true },
       { label: 'Clases de manejo', path: '/school/practical', icon: 'play', exact: true },
       { label: 'Resultados', path: '/school/results', icon: 'chart', exact: true },
@@ -163,6 +165,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
     { label: 'Aula en Vivo', path: '/live/join', icon: 'exam', exact: true },
     { label: 'Mis Evaluaciones', path: '/student/evaluations', icon: 'exam', exact: true },
     { label: 'Simulador', path: '/student/simulator', icon: 'exam', exact: true },
+    { label: 'Cursos virtuales', path: '/student/cursos', icon: 'book' },
     { label: 'Reto diario', path: '/student/play/daily', icon: 'star', exact: true },
     { label: 'Juegos y ranking', path: '/student/play/ranking', icon: 'play' },
     { label: 'Mis logros', path: '/student/play/achievements', icon: 'star', exact: true },

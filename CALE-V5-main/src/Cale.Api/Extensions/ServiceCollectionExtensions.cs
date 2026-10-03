@@ -125,7 +125,8 @@ public static class ServiceCollectionExtensions
                 typeof(PresentationDeckConfiguration).Assembly,
                 typeof(LiveSessionConfiguration).Assembly,
                 typeof(GameShowSessionConfiguration).Assembly,
-                typeof(TheoryTopicConfiguration).Assembly));
+                typeof(TheoryTopicConfiguration).Assembly,
+                typeof(Cale.Modules.Courses.Infrastructure.Persistence.CourseConfiguration).Assembly));
         services.AddIdentityModule();
         services.AddCatalogModule();
         services.AddAssessmentModule();
@@ -135,6 +136,7 @@ public static class ServiceCollectionExtensions
         services.AddTheoreticalTrainingModule();
         services.AddEngagementModule();
         services.AddPresentationModule();
+        Cale.Modules.Courses.Infrastructure.DependencyInjection.AddCoursesModule(services);
         services.AddSingleton<UploadStorage>();
         services.AddScoped<ILiveSessionBroadcaster, LiveSessionBroadcaster>();
         services.AddScoped<Cale.Modules.GameShow.Application.Abstractions.IGameShowBroadcaster, GameShowBroadcaster>();
@@ -151,6 +153,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<Cale.Api.Services.Play.PlayContent>();
         services.AddSingleton<Cale.Api.Services.Play.DuelService>();
         services.AddScoped<Cale.Api.Services.Play.PlayService>();
+        services.AddScoped<Cale.Api.Services.Courses.CourseSeed>();
         services.AddScoped<Cale.Api.Services.Admin.CatalogPurgeService>();
         services.AddScoped<Cale.Api.Services.Admin.BankUsageService>();
         services.AddScoped<Cale.Api.Services.Requests.UserRequestService>();

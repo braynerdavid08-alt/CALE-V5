@@ -12,6 +12,7 @@
     <ProjectReference Include="..\Cale.Modules.LiveClassroom\Cale.Modules.LiveClassroom.csproj" />
     <ProjectReference Include="..\Cale.Modules.TheoreticalTraining\Cale.Modules.TheoreticalTraining.csproj" />
     <ProjectReference Include="..\Cale.Modules.GameShow\Cale.Modules.GameShow.csproj" />
+    <ProjectReference Include="..\Cale.Modules.Courses\Cale.Modules.Courses.csproj" />
   </ItemGroup>
 
   <ItemGroup>

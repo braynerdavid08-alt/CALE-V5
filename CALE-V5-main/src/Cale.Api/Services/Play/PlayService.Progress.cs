@@ -5,6 +5,7 @@ using Cale.BuildingBlocks.Domain.Engagement;
 using Cale.Modules.Assessment.Domain;
 using Cale.Modules.Assessment.Domain.Gamification;
 using Cale.Modules.Classroom.Domain;
+using Cale.Modules.Courses.Application;
 using Cale.Modules.Identity.Domain;
 using Cale.Modules.TheoreticalTraining.Application;
 using Microsoft.EntityFrameworkCore;
@@ -42,6 +43,7 @@ public sealed partial class PlayService
             .Select(x => new { x.Game, x.Score, x.Correct, x.Won })
             .ToListAsync(ct);
         var streak = await GetStreakAsync(userId, ct);
+        var courses = await CourseService.CompletionCountsAsync(_db, userId, ct);
 
         var signs = games.Where(g => g.Game == GameKinds.Signs).ToList();
         var duels = games.Where(g => g.Game == GameKinds.Duel).ToList();
@@ -58,7 +60,9 @@ public sealed partial class PlayService
             signs.Select(s => s.Score).DefaultIfEmpty(0).Max(),
             signs.Sum(s => s.Correct),
             duels.Count(d => d.Won),
-            duels.Count);
+            duels.Count,
+            courses.Lessons,
+            courses.Courses);
         return (stats, streak);
     }
 

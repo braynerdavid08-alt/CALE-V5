@@ -12,7 +12,9 @@ public sealed record PlayStats(
     int SignsBest,
     int SignsCorrect,
     int DuelWins,
-    int DuelPlayed)
+    int DuelPlayed,
+    int LessonsCompleted = 0,
+    int CoursesCompleted = 0)
 {
     public int Xp =>
         TotalCorrect * XpRules.AttemptCorrect
@@ -22,7 +24,9 @@ public sealed record PlayStats(
         + MistakesMastered * XpRules.MistakeMastered
         + SignsCorrect * XpRules.SignCorrect
         + DuelWins * XpRules.DuelWon
-        + DuelPlayed * XpRules.DuelPlayed;
+        + DuelPlayed * XpRules.DuelPlayed
+        + LessonsCompleted * XpRules.LessonCompleted
+        + CoursesCompleted * XpRules.CourseCompleted;
 }
 
 public static class XpRules
@@ -35,6 +39,8 @@ public static class XpRules
     public const int SignCorrect = 1;
     public const int DuelWon = 20;
     public const int DuelPlayed = 5;
+    public const int LessonCompleted = 10;
+    public const int CourseCompleted = 50;
 }
 
 public sealed record BadgeDef(
@@ -61,6 +67,8 @@ public static class BadgeCatalog
         new("senales_20", "Ojo de águila", "Acierta 20 señales en una partida de Señal relámpago.", "play", 20, s => s.SignsBest),
         new("duelista", "Primer duelo ganado", "Gana un duelo 1 contra 1.", "users", 1, s => s.DuelWins),
         new("duelo_10", "Campeón de duelos", "Gana 10 duelos.", "users", 10, s => s.DuelWins),
+        new("curso_1", "Estudiante virtual", "Termina tu primer curso virtual.", "book", 1, s => s.CoursesCompleted),
+        new("lecciones_20", "Lector vial", "Completa 20 lecciones de cursos virtuales.", "book", 20, s => s.LessonsCompleted),
         new("cien_aciertos", "Cien respuestas", "Acierta 100 preguntas en simulacros.", "graduate", 100, s => s.TotalCorrect),
         new("mil_aciertos", "Enciclopedia vial", "Acierta 1.000 preguntas en simulacros.", "graduate", 1000, s => s.TotalCorrect)
     ];
