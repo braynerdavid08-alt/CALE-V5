@@ -232,6 +232,13 @@ export interface SignsIssue {
   reason: string;
 }
 
+export interface SignImageReport {
+  exams: string[];
+  matched: { code: string; name: string; imageUrl: string; questionId: number; answer: string }[];
+  unmatched: { questionId: number; examName: string; answer: string; imageUrl: string }[];
+  missingCodes: string[];
+}
+
 export interface SignsReport {
   inGame: number;
   candidates: number;
@@ -282,6 +289,10 @@ export class PlayApi {
 
   signsReport() {
     return this.http.get<SignsReport>(`${env.apiUrl}/api/admin/play/signs-report`);
+  }
+
+  signImages(refresh = false) {
+    return this.http.get<SignImageReport>(`${env.apiUrl}/api/admin/signal-images`, { params: { refresh } });
   }
 
   checkSignsQuestion(questionId: number, optionId: number) {
