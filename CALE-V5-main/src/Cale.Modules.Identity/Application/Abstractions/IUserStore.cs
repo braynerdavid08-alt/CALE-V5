@@ -6,6 +6,7 @@ public interface IUserStore
 {
     Task<User?> FindByEmailAsync(string email, CancellationToken ct);
     Task<User?> GetByIdAsync(int id, CancellationToken ct);
+    Task<IReadOnlyDictionary<int, string>> GetNamesAsync(IReadOnlyCollection<int> ids, CancellationToken ct);
     Task<bool> ExistsByEmailAsync(string email, CancellationToken ct);
     Task<bool> ExistsByEmailAsync(string email, int excludingUserId, CancellationToken ct);
     Task AddAsync(User user, CancellationToken ct);

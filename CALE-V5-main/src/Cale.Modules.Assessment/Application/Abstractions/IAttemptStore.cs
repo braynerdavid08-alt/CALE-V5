@@ -53,6 +53,16 @@ public interface IAttemptStore
     Task<IReadOnlyList<Attempt>> ListFinishedAsync(CancellationToken ct);
 
     /// <summary>
+    /// Latest finished attempts (projection only), newest first. Both filters null means
+    /// every user; an empty <paramref name="userIds"/> returns nothing.
+    /// </summary>
+    Task<IReadOnlyList<AttemptResultRow>> ListResultRowsAsync(
+        int? userId,
+        IReadOnlyCollection<int>? userIds,
+        int maxRows,
+        CancellationToken ct);
+
+    /// <summary>
     /// Latest finished attempts of one user (projection only), oldest first.
     /// <paramref name="modes"/> null means every mode.
     /// </summary>
