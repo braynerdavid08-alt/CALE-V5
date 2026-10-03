@@ -1,0 +1,325 @@
+@for (block of view; track $index; let i = $index) {
+  <section class="blk" [attr.data-type]="block.type">
+    @switch (block.type) {
+      @case ('text') {
+        @if (asText(block).title) {
+          <h2>{{ asText(block).title }}</h2>
+        }
+        @for (p of paragraphs(asText(block).body); track $index) {
+          <p class="para">{{ p }}</p>
+        }
+      }
+      @case ('tip') {
+        <aside class="tip"><span aria-hidden="true">💡</span><p>{{ asText(block).body }}</p></aside>
+      }
+      @case ('image') {
+        <figure>
+          <img [src]="url(asMedia(block).url)" [alt]="asMedia(block).caption || ''" loading="lazy" />
+          @if (asMedia(block).caption) { <figcaption>{{ asMedia(block).caption }}</figcaption> }
+        </figure>
+      }
+      @case ('video') {
+        <figure>
+          @if (youtube(asMedia(block).url); as yt) {
+            <iframe class="video" [src]="yt" title="Video" allowfullscreen
+              allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"></iframe>
+          } @else {
+            <video class="video" [src]="url(asMedia(block).url)" controls preload="metadata" playsinline></video>
+          }
+          @if (asMedia(block).caption) { <figcaption>{{ asMedia(block).caption }}</figcaption> }
+        </figure>
+      }
+      @case ('audio') {
+        <figure class="audio">
+          <audio [src]="url(asMedia(block).url)" controls preload="none"></audio>
+          @if (asMedia(block).caption) { <figcaption>{{ asMedia(block).caption }}</figcaption> }
+        </figure>
+      }
+      @case ('signs') {
+        @if (asSigns(block).title) { <h2>{{ asSigns(block).title }}</h2> }
+        <div class="signs">
+          @for (s of asSigns(block).items; track s.code) {
+            <article class="sign">
+              <img [src]="url('/signals/' + s.code + '.svg')" [alt]="s.name" loading="lazy" />
+              <div>
+                <strong>{{ s.name }}</strong>
+                <small class="code">{{ s.code }}</small>
+                @if (s.note) { <p>{{ s.note }}</p> }
+              </div>
+            </article>
+          }
+        </div>
+      }
+      @case ('quiz') {
+        <div class="activity">
+          <p class="kicker">Pregunta</p>
+          <h3>{{ asQuiz(block).question }}</h3>
+          @if (asQuiz(block).imageUrl) {
+            <img class="act-img" [src]="url(asQuiz(block).imageUrl)" alt="" loading="lazy" />
+          }
+          <ng-container *ngTemplateOutlet="choices; context: { i: i, options: asQuiz(block).options }" />
+          <ng-container *ngTemplateOutlet="feedback; context: { i: i }" />
+        </div>
+      }
+      @case ('truefalse') {
+        <div class="activity">
+          <p class="kicker">Verdadero o falso</p>
+          <h3>{{ asTf(block).statement }}</h3>
+          @if (asTf(block).imageUrl) {
+            <img class="act-img" [src]="url(asTf(block).imageUrl)" alt="" loading="lazy" />
+          }
+          <div class="tf-row">
+            <ng-container *ngTemplateOutlet="choices; context: { i: i, options: tfOptions, noLetters: true }" />
+          </div>
+          <ng-container *ngTemplateOutlet="feedback; context: { i: i }" />
+        </div>
+      }
+      @case ('scenario') {
+        <div class="activity scenario">
+          <p class="kicker">Situación de manejo · ¿Qué harías?</p>
+          @if (asScenario(block).imageUrl) {
+            <img class="act-img wide" [src]="url(asScenario(block).imageUrl)" alt="" loading="lazy" />
+          }
+          <p class="situation">{{ asScenario(block).situation }}</p>
+          <ng-container *ngTemplateOutlet="choices; context: { i: i, options: choiceTexts(asScenario(block)) }" />
+          @if (act(i)?.result; as r) {
+            <div class="feedback" [class.ok]="r.correct" role="status">
+              <strong>{{ r.correct ? '¡Buena decisión!' : 'Esa no es la mejor decisión.' }}</strong>
+              @if (r.explanation) { <p>{{ r.explanation }}</p> }
+              @if (!r.correct && r.solution?.[r.correctIndex]) {
+                <p class="best">
+                  <b>Mejor decisión:</b> {{ asScenario(block).choices[r.correctIndex].text }}.
+                  {{ r.solution![r.correctIndex] }}
+                </p>
+              }
+            </div>
+          }
+        </div>
+      }
+      @case ('order') {
+        <div class="activity">
+          <p class="kicker">Ordena los pasos</p>
+          <h3>{{ asOrder(block).instructions || 'Pon los pasos en el orden correcto.' }}</h3>
+          <ol class="order-list">
+            @for (step of act(i)?.items ?? []; track $index; let k = $index; let first = $first; let last = $last) {
+              <li class="order-item" [class.is-right]="stepRight(i, k) === true" [class.is-wrong]="stepRight(i, k) === false">
+                <span class="letter">{{ k + 1 }}</span>
+                <span class="grow">{{ step }}</span>
+                @if (!act(i)?.result) {
+                  <span class="move">
+                    <button type="button" [disabled]="first" (click)="move(i, k, -1)" [attr.aria-label]="'Subir: ' + step">▲</button>
+                    <button type="button" [disabled]="last" (click)="move(i, k, 1)" [attr.aria-label]="'Bajar: ' + step">▼</button>
+                  </span>
+                }
+              </li>
+            }
+          </ol>
+          @if (!act(i)?.result) {
+            <button type="button" class="check-btn" [disabled]="act(i)?.busy" (click)="check(i)">Comprobar</button>
+          }
+          @if (act(i)?.result; as r) {
+            <div class="feedback" [class.ok]="r.correct" role="status">
+              <strong>{{ r.correct ? '¡Orden correcto!' : 'El orden no es correcto.' }}</strong>
+              @if (!r.correct) {
+                <p>El orden correcto es:</p>
+                <ol class="solution">
+                  @for (s of r.solution ?? []; track $index) { <li>{{ s }}</li> }
+                </ol>
+              }
+              @if (r.explanation) { <p>{{ r.explanation }}</p> }
+            </div>
+          }
+        </div>
+      }
+      @case ('fillblank') {
+        <div class="activity">
+          <p class="kicker">Completa la frase</p>
+          <p class="fill-text">
+            @for (part of asFill(block).parts ?? []; track $index; let k = $index; let last = $last) {
+              <span>{{ part }}</span>
+              @if (!last) {
+                <input
+                  class="blank"
+                  [class.is-right]="blankRight(i, k) === true"
+                  [class.is-wrong]="blankRight(i, k) === false"
+                  [class.focus]="!act(i)?.result && act(i)?.focus === k"
+                  [value]="act(i)?.values?.[k] ?? ''"
+                  [disabled]="!!act(i)?.result"
+                  (input)="setFill(i, k, $event)"
+                  (focus)="focusFill(i, k)"
+                  [attr.aria-label]="'Espacio ' + (k + 1)"
+                  autocomplete="off" />
+              }
+            }
+          </p>
+          @if (!act(i)?.result && (asFill(block).bank ?? []).length) {
+            <div class="bank" aria-label="Palabras para completar">
+              @for (w of asFill(block).bank ?? []; track w) {
+                <button type="button" class="chip-btn" (click)="useWord(i, w)">{{ w }}</button>
+              }
+            </div>
+          }
+          @if (!act(i)?.result) {
+            <button type="button" class="check-btn" [disabled]="act(i)?.busy" (click)="check(i)">Comprobar</button>
+          }
+          @if (act(i)?.result; as r) {
+            <div class="feedback" [class.ok]="r.correct" role="status">
+              <strong>{{ r.correct ? '¡Correcto!' : 'Revisa las respuestas.' }}</strong>
+              @if (!r.correct) {
+                <p>Respuesta: {{ (r.solution ?? []).join(' · ') }}</p>
+              }
+              @if (r.explanation) { <p>{{ r.explanation }}</p> }
+            </div>
+          }
+        </div>
+      }
+      @case ('classify') {
+        <div class="activity">
+          <p class="kicker">Clasifica</p>
+          <h3>{{ asClassify(block).instructions || 'Elige el grupo de cada elemento.' }}</h3>
+          <div class="class-list">
+            @for (item of asClassify(block).items; track $index; let k = $index) {
+              <div class="class-item" [class.is-right]="classifyRight(i, k) === true" [class.is-wrong]="classifyRight(i, k) === false">
+                <div class="class-what">
+                  @if (item.imageUrl) { <img [src]="url(item.imageUrl)" [alt]="item.text || 'Elemento ' + (k + 1)" loading="lazy" /> }
+                  @if (item.text) { <span>{{ item.text }}</span> }
+                </div>
+                <div class="groups" role="radiogroup" [attr.aria-label]="'Grupo para ' + (item.text || 'elemento ' + (k + 1))">
+                  @for (g of asClassify(block).groups; track $index; let gi = $index) {
+                    <button type="button" class="chip-btn"
+                      [class.on]="act(i)?.choice?.[k] === gi"
+                      [disabled]="!!act(i)?.result"
+                      [attr.aria-pressed]="act(i)?.choice?.[k] === gi"
+                      (click)="classify(i, k, gi)">{{ g }}</button>
+                  }
+                </div>
+                @if (classifyRight(i, k) === false) {
+                  <small class="correction">Va en: {{ asClassify(block).groups[expectedGroup(i, k)] }}</small>
+                }
+              </div>
+            }
+          </div>
+          @if (!act(i)?.result) {
+            <button type="button" class="check-btn" [disabled]="act(i)?.busy || !classifyReady(i)" (click)="check(i)">Comprobar</button>
+          }
+          @if (act(i)?.result; as r) {
+            <div class="feedback" [class.ok]="r.correct" role="status">
+              <strong>{{ r.correct ? '¡Todo bien clasificado!' : 'Hay elementos en el grupo equivocado.' }}</strong>
+              @if (r.explanation) { <p>{{ r.explanation }}</p> }
+            </div>
+          }
+        </div>
+      }
+      @case ('hotspot') {
+        @if (hot(i); as h) {
+          <div class="activity">
+            <p class="kicker">Explora la imagen</p>
+            <h3>{{ asHotspot(block).instructions || 'Toca las partes importantes de la imagen.' }}</h3>
+            <div class="hs" (click)="tapImage(i, $event)">
+              <img [src]="url(asHotspot(block).imageUrl)" alt="" draggable="false" />
+              @for (s of asHotspot(block).spots; track $index; let k = $index) {
+                @if (spotVisible(i, k)) {
+                  <span class="hs-dot" [style.left.%]="s.x" [style.top.%]="s.y">{{ k + 1 }}</span>
+                }
+              }
+              @if (h.miss) {
+                <span class="hs-miss" [style.left.%]="h.miss.x" [style.top.%]="h.miss.y" aria-hidden="true">✕</span>
+              }
+            </div>
+            <p class="hint">
+              Encontraste {{ h.found.size }} de {{ asHotspot(block).spots.length }}.
+              @if (!h.showAll && h.found.size < asHotspot(block).spots.length) {
+                <button type="button" class="link" (click)="showAllSpots(i)">Mostrar todos</button>
+              }
+            </p>
+            <ol class="hs-list">
+              @for (s of asHotspot(block).spots; track $index; let k = $index) {
+                @if (spotVisible(i, k)) {
+                  <li><strong>{{ k + 1 }}. {{ s.label }}</strong>@if (s.note) { — {{ s.note }} }</li>
+                }
+              }
+            </ol>
+          </div>
+        }
+      }
+      @case ('flipcards') {
+        @if (asCards(block).title) { <h2>{{ asCards(block).title }}</h2> }
+        <div class="cards">
+          @for (c of asCards(block).cards; track $index; let ci = $index) {
+            <button type="button" class="card" [class.flipped]="isFlipped(i, ci)" (click)="flip(i, ci)"
+              [attr.aria-label]="isFlipped(i, ci) ? c.back : c.front + '. Toca para ver la respuesta'">
+              <span class="face front">
+                @if (c.imageUrl) { <img [src]="url(c.imageUrl)" alt="" loading="lazy" /> }
+                <strong>{{ c.front }}</strong>
+                <small>Toca para voltear</small>
+              </span>
+              <span class="face back"><span>{{ c.back }}</span></span>
+            </button>
+          }
+        </div>
+      }
+      @case ('match') {
+        @if (matchState(i); as m) {
+          <p class="kicker">Actividad</p>
+          <h3>{{ asMatch(block).instructions || 'Une cada elemento con su pareja.' }}</h3>
+          <div class="match">
+            <div class="col">
+              @for (p of asMatch(block).pairs; track $index; let li = $index) {
+                <button type="button" class="m-item left"
+                  [class.done]="m.matched.has(li)"
+                  [class.picked]="m.pickedLeft === li"
+                  [disabled]="m.matched.has(li)"
+                  (click)="pickLeft(i, li)">
+                  @if (p.imageUrl) { <img [src]="url(p.imageUrl)" [alt]="p.left || 'Imagen ' + (li + 1)" /> }
+                  @if (p.left) { <span>{{ p.left }}</span> }
+                </button>
+              }
+            </div>
+            <div class="col">
+              @for (ri of m.order; track ri) {
+                <button type="button" class="m-item right"
+                  [class.done]="m.matched.has(ri)"
+                  [class.wrong]="m.wrongRight === ri"
+                  [disabled]="m.matched.has(ri) || m.pickedLeft === null"
+                  (click)="pickRight(i, ri)">
+                  {{ asMatch(block).pairs[ri].right }}
+                </button>
+              }
+            </div>
+          </div>
+          @if (m.matched.size === asMatch(block).pairs.length) {
+            <p class="feedback ok" role="status"><strong>¡Muy bien!</strong> Uniste todas las parejas.</p>
+          } @else {
+            <p class="hint">Toca un elemento de la izquierda y luego su pareja de la derecha.</p>
+          }
+        }
+      }
+    }
+  </section>
+}
+
+<ng-template #choices let-i="i" let-options="options" let-noLetters="noLetters">
+  <div class="options">
+    @for (opt of options; track $index; let o = $index) {
+      <button
+        type="button"
+        class="opt"
+        [class.is-right]="act(i)?.result && act(i)!.result!.correctIndex === o"
+        [class.is-wrong]="act(i)?.result && !act(i)!.result!.correct && act(i)!.chosen === o"
+        [disabled]="!!act(i)?.result || act(i)?.busy"
+        (click)="choose(i, o)">
+        @if (!noLetters) { <span class="letter">{{ letters[o] }}</span> }
+        <span>{{ opt }}</span>
+      </button>
+    }
+  </div>
+</ng-template>
+
+<ng-template #feedback let-i="i">
+  @if (act(i)?.result; as r) {
+    <p class="feedback" [class.ok]="r.correct" role="status">
+      <strong>{{ r.correct ? '¡Correcto!' : 'No es correcto.' }}</strong>
+      @if (r.explanation) { {{ r.explanation }} }
+    </p>
+  }
+</ng-template>

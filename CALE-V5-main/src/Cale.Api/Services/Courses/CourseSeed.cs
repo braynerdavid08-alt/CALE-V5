@@ -7,9 +7,10 @@ using Microsoft.EntityFrameworkCore;
 namespace Cale.Api.Services.Courses;
 
 /// <summary>Creates the built-in Luz Verde courses once. Texts are original; images come from our own signal catalog.</summary>
-public sealed class CourseSeed
+public sealed partial class CourseSeed
 {
     public const string SignsSlug = "senales-transito";
+    public const string RulesSlug = "normas-transito";
 
     private readonly CaleDbContext _db;
 
@@ -17,42 +18,67 @@ public sealed class CourseSeed
 
     public async Task EnsureAsync(ILogger? logger, CancellationToken ct = default)
     {
+        await EnsureCourseAsync(
+            SignsSlug,
+            "Señales de tránsito",
+            "Aprende a reconocer las señales reglamentarias, preventivas e informativas de Colombia con ejemplos, tarjetas y preguntas cortas.",
+            "Señales de tránsito",
+            "/signals/SR-01.svg",
+            SignsLessons,
+            logger,
+            ct);
+        await EnsureCourseAsync(
+            RulesSlug,
+            "Normas de tránsito básicas",
+            "Velocidades, prelación, adelantamiento, estacionamiento, documentos, alcohol y comparendos, explicados con situaciones reales y actividades interactivas.",
+            "Normas de tránsito",
+            "/signals/SR-30.svg",
+            RulesLessons,
+            logger,
+            ct);
+    }
+
+    private async Task EnsureCourseAsync(
+        string slug,
+        string title,
+        string description,
+        string category,
+        string coverUrl,
+        Func<List<(string Title, string Summary, int Minutes, object[] Blocks)>> buildLessons,
+        ILogger? logger,
+        CancellationToken ct)
+    {
         try
         {
-            if (await _db.Set<Course>().AnyAsync(c => c.Slug == SignsSlug, ct))
+            if (await _db.Set<Course>().AnyAsync(c => c.Slug == slug, ct))
             {
                 return;
             }
 
             var now = DateTime.UtcNow;
-            var course = Course.Create(
-                null,
-                0,
-                "Señales de tránsito",
-                "Aprende a reconocer las señales reglamentarias, preventivas e informativas de Colombia con ejemplos, tarjetas y preguntas cortas.",
-                "Señales de tránsito",
-                "/signals/SR-01.svg",
-                now,
-                SignsSlug);
+            var lessons = buildLessons()
+                .Select(l => (l.Title, l.Summary, l.Minutes, Content: CourseContent.Normalize(JsonSerializer.SerializeToElement(l.Blocks))))
+                .ToList();
+            var course = Course.Create(null, 0, title, description, category, coverUrl, now, slug);
             _db.Set<Course>().Add(course);
             await _db.SaveChangesAsync(ct);
 
-            var lessons = SignsLessons();
             for (var i = 0; i < lessons.Count; i++)
             {
-                var (title, summary, minutes, blocks) = lessons[i];
-                var lesson = CourseLesson.Create(course.Id, i, title, now);
-                lesson.Update(title, summary, minutes, CourseContent.Normalize(JsonSerializer.SerializeToElement(blocks)), now);
+                var l = lessons[i];
+                var lesson = CourseLesson.Create(course.Id, i, l.Title, now);
+                lesson.Update(l.Title, l.Summary, l.Minutes, l.Content, now);
                 _db.Set<CourseLesson>().Add(lesson);
             }
 
             course.Update(course.Title, course.Description, course.Category, course.CoverUrl, true, now);
             await _db.SaveChangesAsync(ct);
-            logger?.LogInformation("Seeded platform course {Slug}", SignsSlug);
+            logger?.LogInformation("Seeded platform course {Slug}", slug);
         }
         catch (Exception ex)
         {
-            logger?.LogError(ex, "Could not seed platform course {Slug}", SignsSlug);
+            _db.ChangeTracker.Clear();
+            logger?.LogError(ex, "Could not seed platform course {Slug}", slug);
         }
     }
 

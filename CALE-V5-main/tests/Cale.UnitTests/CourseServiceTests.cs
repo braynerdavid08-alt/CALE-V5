@@ -64,6 +64,9 @@ public sealed class CourseServiceTests : IDisposable
 
     private static JsonElement Blocks(params object[] blocks) => JsonSerializer.SerializeToElement(blocks);
 
+    private static Dictionary<int, JsonElement> Answers(params (int Block, object Value)[] answers) =>
+        answers.ToDictionary(a => a.Block, a => JsonSerializer.SerializeToElement(a.Value));
+
     private static object QuizBlock(int correct = 1) => new
     {
         type = "quiz",
@@ -99,8 +102,64 @@ public sealed class CourseServiceTests : IDisposable
         Assert.DoesNotContain("correct", student);
         Assert.DoesNotContain("Porque", student);
         Assert.Equal(2, CourseContent.QuizCount(json));
-        Assert.Equal(50, CourseContent.Score(json, new Dictionary<int, int> { [1] = 1, [2] = 0 }));
+        Assert.Equal(50, CourseContent.Score(json, Answers((1, 1), (2, 0))));
         Assert.Equal(100, CourseContent.Score(CourseContent.Normalize(Blocks(new { type = "tip", body = "x" })), null));
+    }
+
+    [Fact]
+    public void New_activities_hide_answers_and_are_graded_on_the_server()
+    {
+        var json = CourseContent.Normalize(Blocks(
+            new { type = "truefalse", statement = "El PARE exige detenerse", answer = true, explanation = "Siempre." },
+            new { type = "order", steps = new[] { "Uno", "Dos", "Tres", "Cuatro" } },
+            new { type = "fillblank", text = "En zona escolar el límite es [[30]] km/h y en ciudad [[50|cincuenta]].", distractors = new[] { "60" } },
+            new
+            {
+                type = "classify",
+                groups = new[] { "Reglamentaria", "Preventiva" },
+                items = new object[] { new { text = "Pare", group = 0 }, new { text = "Curva", group = 1 }, new { text = "No pase", group = 0 } }
+            },
+            new
+            {
+                type = "scenario",
+                situation = "Un peatón cruza",
+                choices = new object[] { new { text = "Pito", outcome = "Mal", best = false }, new { text = "Freno", outcome = "Bien", best = true } }
+            },
+            new { type = "hotspot", imageUrl = "/x.png", spots = new object[] { new { x = 10, y = 20, label = "Espejo" } } }));
+
+        var student = CourseContent.ForStudent(json);
+        var text = student.ToJsonString();
+        Assert.DoesNotContain("\"answer\"", text);
+        Assert.DoesNotContain("\"group\"", text);
+        Assert.DoesNotContain("\"best\"", text);
+        Assert.DoesNotContain("[[", text);
+        Assert.Equal(5, CourseContent.QuizCount(json));
+
+        var shownSteps = student[1]!["steps"]!.AsArray().Select(s => s!.GetValue<string>()).ToArray();
+        Assert.NotEqual(new[] { "Uno", "Dos", "Tres", "Cuatro" }, shownSteps);
+        Assert.Contains("60", student[2]!["bank"]!.AsArray().Select(s => s!.GetValue<string>()));
+
+        var shownItems = student[3]!["items"]!.AsArray().Select(i => i!["text"]!.GetValue<string>()).ToList();
+        var groups = shownItems.Select(t => t == "Curva" ? 1 : 0).ToArray();
+
+        var all = Answers(
+            (0, 0),
+            (1, new[] { "uno", "Dos ", "TRES", "Cuatro" }),
+            (2, new[] { "30", "Cincuenta" }),
+            (3, groups),
+            (4, 1));
+        Assert.Equal(100, CourseContent.Score(json, all));
+
+        var wrongOrder = CourseContent.Check(json, 1, 0, JsonSerializer.SerializeToElement(new[] { "Dos", "Uno", "Tres", "Cuatro" }));
+        Assert.False(wrongOrder.Correct);
+        Assert.Equal("Uno", wrongOrder.Solution![0]!.GetValue<string>());
+
+        var badChoice = CourseContent.Check(json, 4, 0);
+        Assert.False(badChoice.Correct);
+        Assert.Equal(1, badChoice.CorrectIndex);
+        Assert.Equal("Mal", badChoice.Explanation);
+
+        Assert.Throws<DomainException>(() => CourseContent.Check(json, 5, 0));
     }
 
     [Fact]
@@ -149,12 +208,12 @@ public sealed class CourseServiceTests : IDisposable
         Assert.False(check.Correct);
         Assert.Equal(1, check.CorrectIndex);
 
-        var first = await _service.CompleteAsync(_student.Id, lessonId, new LessonCompleteRequest(new Dictionary<int, int> { [1] = 1 }), default);
+        var first = await _service.CompleteAsync(_student.Id, lessonId, new LessonCompleteRequest(Answers((1, 1))), default);
         Assert.Equal(100, first.Score);
         Assert.True(first.FirstCompletion);
         Assert.True(first.CourseCompleted);
 
-        var second = await _service.CompleteAsync(_student.Id, lessonId, new LessonCompleteRequest(new Dictionary<int, int> { [1] = 0 }), default);
+        var second = await _service.CompleteAsync(_student.Id, lessonId, new LessonCompleteRequest(Answers((1, 0))), default);
         Assert.Equal(0, second.Score);
         Assert.Equal(100, second.BestScore);
         Assert.False(second.FirstCompletion);
@@ -165,15 +224,17 @@ public sealed class CourseServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task Seed_creates_published_signs_course_once()
+    public async Task Seed_creates_published_platform_courses_once()
     {
         var seed = new CourseSeed(_db);
         await seed.EnsureAsync(null);
         await seed.EnsureAsync(null);
 
         var courses = await _service.ListForStudentAsync(_student.Id, default);
-        var signs = Assert.Single(courses);
-        Assert.Equal("Señales de tránsito", signs.Title);
+        Assert.Equal(2, courses.Count);
+        var signs = Assert.Single(courses, c => c.Title == "Señales de tránsito");
         Assert.True(signs.TotalLessons >= 4);
+        var rules = Assert.Single(courses, c => c.Title == "Normas de tránsito básicas");
+        Assert.Equal(7, rules.TotalLessons);
     }
 }

@@ -10,7 +10,13 @@ import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import {
   BlockType,
   CatalogSign,
+  ClassifyBlock,
   CourseManageDetail,
+  FillBlankBlock,
+  HotspotBlock,
+  OrderBlock,
+  ScenarioBlock,
+  TrueFalseBlock,
   CourseProgressReport,
   CoursesManageApi,
   FlipcardsBlock,
@@ -48,6 +54,12 @@ export const BLOCK_LABELS: Record<BlockType, { label: string; icon: string; hint
   audio: { label: 'Audio', icon: '🔊', hint: 'Sube un audio (mp3, m4a, ogg, wav).' },
   signs: { label: 'Señales', icon: '🚦', hint: 'Elige señales del catálogo y agrega una nota corta.' },
   quiz: { label: 'Pregunta', icon: '❓', hint: 'Pregunta de selección; marca la opción correcta.' },
+  truefalse: { label: 'Verdadero o falso', icon: '✅', hint: 'Una afirmación corta; marca si es verdadera o falsa.' },
+  scenario: { label: 'Situación de manejo', icon: '🚗', hint: 'Describe una situación real; cada decisión muestra lo que pasaría. Marca la mejor.' },
+  order: { label: 'Ordenar pasos', icon: '🔢', hint: 'Escribe los pasos en el orden correcto; al estudiante le salen mezclados.' },
+  fillblank: { label: 'Completar la frase', icon: '✏️', hint: 'Pon cada respuesta entre doble corchete: «El límite en zona escolar es [[30]] km/h». Para aceptar varias respuestas: [[50|cincuenta]].' },
+  classify: { label: 'Clasificar', icon: '🗂️', hint: 'Crea 2 a 4 grupos y elige a cuál pertenece cada elemento.' },
+  hotspot: { label: 'Tocar la imagen', icon: '👆', hint: 'Sube una imagen y toca sobre ella para marcar los puntos que el estudiante debe encontrar.' },
   flipcards: { label: 'Tarjetas', icon: '🃏', hint: 'Tarjetas que se voltean: frente y respuesta.' },
   match: { label: 'Unir parejas', icon: '🔗', hint: 'El estudiante une cada elemento con su pareja.' }
 };
@@ -267,6 +279,47 @@ export class ManageCoursePage implements OnInit {
   asQuiz(b: LessonBlock): QuizBlock { return b as QuizBlock; }
   asCards(b: LessonBlock): FlipcardsBlock { return b as FlipcardsBlock; }
   asMatch(b: LessonBlock): MatchBlock { return b as MatchBlock; }
+  asTf(b: LessonBlock): TrueFalseBlock { return b as TrueFalseBlock; }
+  asScenario(b: LessonBlock): ScenarioBlock { return b as ScenarioBlock; }
+  asOrder(b: LessonBlock): OrderBlock { return b as OrderBlock; }
+  asFill(b: LessonBlock): FillBlankBlock { return b as FillBlankBlock; }
+  asClassify(b: LessonBlock): ClassifyBlock { return b as ClassifyBlock; }
+  asHotspot(b: LessonBlock): HotspotBlock { return b as HotspotBlock; }
+
+  /** Moves an item inside any list of a block (steps, options, cards…). */
+  moveItem<T>(list: T[], k: number, delta: number): void {
+    const to = k + delta;
+    if (to < 0 || to >= list.length) return;
+    [list[k], list[to]] = [list[to], list[k]];
+  }
+
+  setBest(s: ScenarioBlock, k: number): void {
+    s.choices.forEach((c, i) => (c.best = i === k));
+  }
+
+  blankCount(f: FillBlankBlock): number {
+    return ((f.text ?? '').match(/\[\[(.+?)\]\]/g) ?? []).length;
+  }
+
+  removeGroup(c: ClassifyBlock, g: number): void {
+    if (c.groups.length <= 2) return;
+    c.groups.splice(g, 1);
+    c.items.forEach((it) => {
+      if ((it.group ?? 0) === g) it.group = 0;
+      else if ((it.group ?? 0) > g) it.group = (it.group ?? 0) - 1;
+    });
+  }
+
+  addSpot(h: HotspotBlock, event: MouseEvent): void {
+    if (h.spots.length >= 8) {
+      this.flash('Máximo 8 puntos por imagen.');
+      return;
+    }
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = Math.round(((event.clientX - rect.left) / rect.width) * 1000) / 10;
+    const y = Math.round(((event.clientY - rect.top) / rect.height) * 1000) / 10;
+    h.spots.push({ x, y, label: '', note: '' });
+  }
 
   mediaAccept(type: BlockType): string {
     return type === 'video' ? 'video/*' : type === 'audio' ? 'audio/*' : 'image/*';
@@ -392,6 +445,23 @@ export class ManageCoursePage implements OnInit {
         instructions: '',
         pairs: [{ left: '', imageUrl: null, right: '' }, { left: '', imageUrl: null, right: '' }]
       };
+      case 'truefalse': return { type, statement: '', imageUrl: null, answer: true, explanation: '' };
+      case 'scenario': return {
+        type,
+        situation: '',
+        imageUrl: null,
+        choices: [{ text: '', outcome: '', best: true }, { text: '', outcome: '', best: false }]
+      };
+      case 'order': return { type, instructions: '', steps: ['', '', ''], explanation: '' };
+      case 'fillblank': return { type, text: '', distractors: [], explanation: '' };
+      case 'classify': return {
+        type,
+        instructions: '',
+        groups: ['', ''],
+        items: [{ text: '', imageUrl: null, group: 0 }, { text: '', imageUrl: null, group: 1 }],
+        explanation: ''
+      };
+      case 'hotspot': return { type, instructions: '', imageUrl: '', spots: [] };
     }
   }
 
