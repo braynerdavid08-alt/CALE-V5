@@ -246,6 +246,15 @@ public static class WebApplicationExtensions
             .GetRequiredService<ILoggerFactory>()
             .CreateLogger("CatalogSeed");
 
+        try
+        {
+            await CatalogSeed.ApplyErrataAsync(db, catalogLogger);
+        }
+        catch (Exception ex)
+        {
+            catalogLogger.LogError(ex, "Could not apply catalog errata.");
+        }
+
         // Off in production: banks the admin deletes must not come back on every deploy.
         if (!app.Configuration.GetValue("Seed:Catalog:OfficialBanks", !app.Environment.IsProduction()))
         {

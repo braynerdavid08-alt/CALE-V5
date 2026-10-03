@@ -62,6 +62,41 @@ public static class CatalogSeed
             ct);
     }
 
+    /// <summary>Corrects seeded questions already stored in existing databases (the JSON only feeds new installs).</summary>
+    public static async Task ApplyErrataAsync(CaleDbContext db, ILogger logger, CancellationToken ct = default)
+    {
+        const string urbanLimitQuestion =
+            "Si no hay señalización específica, ¿cuál es el límite general de velocidad en vías urbanas para automóviles?";
+        const string urbanLimitExplanation =
+            "Desde la Ley 2251 de 2022, en vías urbanas el límite nunca puede superar los 50 km/h; en zonas escolares y residenciales es hasta 30 km/h.";
+
+        var urbanIds = await db.Set<Question>()
+            .Where(q => q.Text == urbanLimitQuestion && q.Explanation != urbanLimitExplanation)
+            .Select(q => q.Id)
+            .ToListAsync(ct);
+        if (urbanIds.Count > 0)
+        {
+            await db.Set<Question>()
+                .Where(q => urbanIds.Contains(q.Id))
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(q => q.Explanation, urbanLimitExplanation)
+                    .SetProperty(q => q.Source, "Ley 769 de 2002, art. 106 (modificado por la Ley 2251 de 2022)"), ct);
+            await db.Set<QuestionOption>()
+                .Where(o => urbanIds.Contains(o.QuestionId) && o.Text == "60 km/h.")
+                .ExecuteUpdateAsync(s => s.SetProperty(o => o.Text, "50 km/h."), ct);
+        }
+
+        var schoolZone = await db.Set<QuestionOption>()
+            .Where(o => o.Text.StartsWith("Mantener 60 km/h porque"))
+            .ExecuteUpdateAsync(s => s.SetProperty(o => o.Text, o => o.Text.Replace("Mantener 60 km/h", "Mantener 50 km/h")), ct);
+
+        if (urbanIds.Count > 0 || schoolZone > 0)
+        {
+            logger.LogInformation("Applied catalog errata: urban speed limit 60 → 50 km/h ({Questions} questions, {Options} options).",
+                urbanIds.Count, schoolZone);
+        }
+    }
+
     private static async Task ImportBankFileAsync(
         CaleDbContext db,
         IClock clock,
