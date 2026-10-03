@@ -97,7 +97,8 @@ public sealed class AssistantLlmClient : IAssistantLlm
                     "Assistant provider returned {Status}: {Body}",
                     (int)response.StatusCode,
                     text.Length > 500 ? text[..500] : text);
-                throw new AssistantProviderException("El asistente no está disponible en este momento.");
+                throw new AssistantProviderException(
+                    $"El asistente no está disponible en este momento. (Detalle {(int)response.StatusCode}: {ProviderReason(text)})");
             }
 
             try
@@ -116,6 +117,25 @@ public sealed class AssistantLlmClient : IAssistantLlm
                 throw new AssistantProviderException("El asistente no está disponible en este momento.");
             }
         }
+    }
+
+    /// <summary>Short provider error text, safe to show (providers never echo the API key).</summary>
+    private static string ProviderReason(string body)
+    {
+        string? reason = null;
+        try
+        {
+            var root = JsonNode.Parse(body);
+            var error = (root is JsonArray arr ? arr.FirstOrDefault() : root)?["error"];
+            reason = error is JsonValue ? error.GetValue<string>() : error?["message"]?.GetValue<string>();
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException)
+        {
+        }
+
+        reason = string.IsNullOrWhiteSpace(reason) ? body : reason;
+        reason = reason.ReplaceLineEndings(" ").Trim();
+        return reason.Length > 180 ? reason[..180] + "…" : reason;
     }
 
     public static LlmReply Parse(string json)
