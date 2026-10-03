@@ -123,6 +123,10 @@ public static class WebApplicationExtensions
             await UserPhotoSchemaGuard.EnsureAsync(db, bootLogger);
             await Cale.Modules.GameShow.Infrastructure.Persistence.GameShowPackSchemaGuard
                 .EnsureAsync(db, bootLogger);
+            await Cale.Modules.Courses.Infrastructure.Persistence.CourseSchemaGuard.EnsureAsync(db, bootLogger);
+            await scope.ServiceProvider
+                .GetRequiredService<Cale.Api.Services.Courses.CourseSeed>()
+                .EnsureAsync(bootLogger);
 
             if (!useEfMigrations && applyFeatureSchema)
             {

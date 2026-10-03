@@ -30,7 +30,8 @@ public sealed class CaleDbContextFactory : IDesignTimeDbContextFactory<CaleDbCon
             typeof(PresentationDeckConfiguration).Assembly,
             typeof(LiveSessionConfiguration).Assembly,
             typeof(GameShowSessionConfiguration).Assembly,
-            typeof(TheoryTopicConfiguration).Assembly);
+            typeof(TheoryTopicConfiguration).Assembly,
+            typeof(Cale.Modules.Courses.Infrastructure.Persistence.CourseConfiguration).Assembly);
 
         var options = new DbContextOptionsBuilder<CaleDbContext>()
             .UseNpgsql(

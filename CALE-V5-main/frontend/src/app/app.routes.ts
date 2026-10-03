@@ -306,6 +306,65 @@ export const routes: Routes = [
             .then((m) => m.SchoolAttendanceTodayPage)
       },
       {
+        path: 'school/cursos',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['School'], base: '/school/cursos' },
+        loadComponent: () =>
+          import('./features/courses/pages/manage-courses.page')
+            .then((m) => m.ManageCoursesPage)
+      },
+      {
+        path: 'school/cursos/:id',
+        canActivate: [roleGuard],
+        data: { roles: ['School'], base: '/school/cursos' },
+        loadComponent: () =>
+          import('./features/courses/pages/manage-course.page')
+            .then((m) => m.ManageCoursePage)
+      },
+      {
+        path: 'admin/cursos-virtuales',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['Admin'], base: '/admin/cursos-virtuales' },
+        loadComponent: () =>
+          import('./features/courses/pages/manage-courses.page')
+            .then((m) => m.ManageCoursesPage)
+      },
+      {
+        path: 'admin/cursos-virtuales/:id',
+        canActivate: [roleGuard],
+        data: { roles: ['Admin'], base: '/admin/cursos-virtuales' },
+        loadComponent: () =>
+          import('./features/courses/pages/manage-course.page')
+            .then((m) => m.ManageCoursePage)
+      },
+      {
+        path: 'student/cursos',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['Student'] },
+        loadComponent: () =>
+          import('./features/courses/pages/student-courses.page')
+            .then((m) => m.StudentCoursesPage)
+      },
+      {
+        path: 'student/cursos/leccion/:lessonId',
+        canActivate: [roleGuard],
+        data: { roles: ['Student'] },
+        loadComponent: () =>
+          import('./features/courses/pages/student-lesson.page')
+            .then((m) => m.StudentLessonPage)
+      },
+      {
+        path: 'student/cursos/:id',
+        canActivate: [roleGuard],
+        data: { roles: ['Student'] },
+        loadComponent: () =>
+          import('./features/courses/pages/student-course.page')
+            .then((m) => m.StudentCoursePage)
+      },
+      {
         path: 'student/simulator',
         canActivate: [roleGuard, simulacroAccessGuard],
         data: { roles: ['Student', 'Teacher', 'Admin'] },

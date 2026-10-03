@@ -1,0 +1,383 @@
+<section class="courses-page editor-page">
+  <a class="back-link" [routerLink]="base">← Todos los cursos</a>
+
+  @if (loading()) {
+    <ui-loading />
+  }
+  @if (!loading() && course(); as c) {
+    <header class="panel editor-head">
+      <div class="head-text">
+        <div class="card-actions" style="margin: 0">
+          <span class="tag" [class.gray]="!c.isPublished">{{ c.isPublished ? 'Publicado' : 'Borrador' }}</span>
+          @if (c.isPlatform) { <span class="tag">Curso de Luz Verde</span> }
+        </div>
+        <h1>{{ c.title }}</h1>
+      </div>
+      <div class="card-actions">
+        @if (c.canEdit) {
+          <ui-button [variant]="c.isPublished ? 'secondary' : 'primary'" [loading]="busy() === 'meta'" (click)="togglePublish()">
+            {{ c.isPublished ? 'Pasar a borrador' : 'Publicar curso' }}
+          </ui-button>
+          <ui-button variant="danger" [loading]="busy() === 'delete'" (click)="deleteCourse()">Eliminar</ui-button>
+        } @else {
+          <ui-button [loading]="busy() === 'duplicate'" (click)="duplicate()">Hacer una copia para mi escuela</ui-button>
+        }
+      </div>
+    </header>
+
+    @if (!c.canEdit) {
+      <p class="info-msg">Este curso es de Luz Verde y tus estudiantes ya lo ven. Para cambiarlo, haz una copia: la copia es tuya y puedes editarla como quieras.</p>
+    }
+
+    @if (error()) {
+      <p class="alert" role="alert">{{ error() }}</p>
+    }
+    @if (notice()) {
+      <p class="ok-msg" role="status">{{ notice() }}</p>
+    }
+
+    @if (c.canEdit) {
+      <details class="panel meta" [open]="!c.lessons.length || c.title.endsWith('(copia)')">
+        <summary>Datos del curso <small class="muted">(nombre, descripción, categoría y portada)</small></summary>
+        <div class="meta-grid">
+          <label class="field">
+            Nombre
+            <input [(ngModel)]="meta.title" maxlength="160" />
+          </label>
+          <label class="field">
+            Categoría
+            <select [(ngModel)]="meta.category">
+              @for (cat of c.categories; track cat) {
+                <option [value]="cat">{{ cat }}</option>
+              }
+            </select>
+          </label>
+          <label class="field span-2">
+            Descripción corta
+            <textarea rows="2" [(ngModel)]="meta.description" maxlength="1000"
+              placeholder="¿Qué va a aprender el estudiante?"></textarea>
+          </label>
+          <div class="field span-2">
+            Portada
+            <div class="cover-row">
+              @if (meta.coverUrl) {
+                <img class="cover-thumb" [src]="url(meta.coverUrl)" alt="Portada" />
+              }
+              <label class="file-btn">
+                Subir imagen
+                <input type="file" accept="image/*" (change)="uploadCover($event)" />
+              </label>
+              <button type="button" class="link-btn" (click)="pickCover()">Usar una señal</button>
+              @if (meta.coverUrl) {
+                <button type="button" class="link-btn danger" (click)="meta.coverUrl = ''">Quitar</button>
+              }
+            </div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <ui-button [disabled]="!metaDirty()" [loading]="busy() === 'meta'" (click)="saveMeta()">Guardar datos del curso</ui-button>
+        </div>
+      </details>
+    }
+
+    <div class="editor-layout">
+      <aside class="panel lessons-side">
+        <h2>Lecciones</h2>
+        <ol class="side-list">
+          @for (l of c.lessons; track l.id; let first = $first; let last = $last) {
+            <li [class.active]="l.id === selectedId()">
+              <button type="button" class="side-item" (click)="selectLesson(l.id)">
+                <span class="lesson-num">{{ l.position + 1 }}</span>
+                <span class="side-title">{{ l.title }}</span>
+              </button>
+              @if (c.canEdit) {
+                <span class="side-move">
+                  <button type="button" [disabled]="first || !!busy()" (click)="moveLesson(l, -1)" aria-label="Subir lección">▲</button>
+                  <button type="button" [disabled]="last || !!busy()" (click)="moveLesson(l, 1)" aria-label="Bajar lección">▼</button>
+                </span>
+              }
+            </li>
+          }
+        </ol>
+        @if (c.canEdit) {
+          <ui-button variant="secondary" [loading]="busy() === 'lesson-add'" (click)="addLesson()">+ Agregar lección</ui-button>
+        }
+      </aside>
+
+      <div class="lesson-main">
+        <nav class="tabs" role="tablist">
+          @if (c.canEdit) {
+            <button type="button" role="tab" [class.on]="tab() === 'edit'" (click)="setTab('edit')">Editar</button>
+          }
+          <button type="button" role="tab" [class.on]="tab() === 'preview'" (click)="setTab('preview')">Vista del estudiante</button>
+          <button type="button" role="tab" [class.on]="tab() === 'progress'" (click)="setTab('progress')">Avance de estudiantes</button>
+        </nav>
+
+        @if (tab() === 'progress') {
+          <div class="panel">
+            @if (busy() === 'progress') {
+              <ui-loading />
+            }
+            @if (busy() !== 'progress' && progress(); as p) {
+              @if (!p.students.length) {
+                <p class="muted" style="margin: 0">Todavía ningún estudiante ha empezado este curso.</p>
+              } @else {
+                <div class="table-wrap">
+                  <table class="data">
+                    <thead>
+                      <tr><th>Estudiante</th><th>Lecciones</th><th>Avance</th><th>Nota promedio</th><th>Última vez</th></tr>
+                    </thead>
+                    <tbody>
+                      @for (s of p.students; track s.studentUserId) {
+                        <tr>
+                          <td>{{ s.studentName }}</td>
+                          <td>{{ s.completedLessons }} / {{ s.totalLessons }}</td>
+                          <td>
+                            <span class="bar mini"><span [style.width.%]="s.percent"></span></span>
+                            {{ s.percent }}%
+                          </td>
+                          <td>{{ s.completedLessons ? s.averageScore + '%' : '—' }}</td>
+                          <td>{{ s.lastActivityAt ? (s.lastActivityAt | date: 'd MMM, h:mm a') : '—' }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            }
+          </div>
+        } @else if (!selected()) {
+          <div class="panel empty">
+            <p class="muted">Este curso no tiene lecciones. Agrega la primera con el botón «Agregar lección».</p>
+          </div>
+        } @else if (tab() === 'preview') {
+          <div class="panel">
+            <h2 style="margin-top: 0">{{ draft?.title || selected()!.title }}</h2>
+            @if (!previewBlocks.length) {
+              <p class="muted">Esta lección todavía no tiene contenido.</p>
+            } @else {
+              <course-lesson-blocks [blocks]="previewBlocks" />
+            }
+          </div>
+        } @else if (draft) {
+          <div class="panel lesson-form">
+            <div class="meta-grid">
+              <label class="field">
+                Título de la lección
+                <input [(ngModel)]="draft.title" maxlength="160" />
+              </label>
+              <label class="field">
+                Minutos aproximados
+                <input type="number" min="1" max="240" [(ngModel)]="draft.estimatedMinutes" />
+              </label>
+              <label class="field span-2">
+                Resumen (opcional)
+                <input [(ngModel)]="draft.summary" maxlength="500" placeholder="Una frase sobre lo que verá el estudiante" />
+              </label>
+            </div>
+          </div>
+
+          @for (block of draft.content; track trackIndex($index); let i = $index; let first = $first; let last = $last) {
+            <article class="panel block-card">
+              <header class="block-head">
+                <strong>{{ labels[block.type].icon }} {{ labels[block.type].label }}</strong>
+                <span class="block-tools">
+                  <button type="button" [disabled]="first" (click)="moveBlock(i, -1)" aria-label="Subir bloque">▲</button>
+                  <button type="button" [disabled]="last" (click)="moveBlock(i, 1)" aria-label="Bajar bloque">▼</button>
+                  <button type="button" class="danger" (click)="removeBlock(i)" aria-label="Quitar bloque">✕</button>
+                </span>
+              </header>
+              <p class="hint">{{ labels[block.type].hint }}</p>
+
+              @switch (block.type) {
+                @case ('text') {
+                  <label class="field">Título (opcional) <input [(ngModel)]="asText(block).title" maxlength="400" /></label>
+                  <label class="field">Texto <textarea rows="6" [(ngModel)]="asText(block).body" maxlength="6000"></textarea></label>
+                }
+                @case ('tip') {
+                  <label class="field">Texto del consejo <textarea rows="3" [(ngModel)]="asText(block).body" maxlength="6000"></textarea></label>
+                }
+                @case ('image') {
+                  <ng-container *ngTemplateOutlet="mediaFields; context: { $implicit: asMedia(block) }" />
+                }
+                @case ('video') {
+                  <ng-container *ngTemplateOutlet="mediaFields; context: { $implicit: asMedia(block) }" />
+                }
+                @case ('audio') {
+                  <ng-container *ngTemplateOutlet="mediaFields; context: { $implicit: asMedia(block) }" />
+                }
+                @case ('signs') {
+                  <label class="field">Título (opcional) <input [(ngModel)]="asSigns(block).title" maxlength="400" /></label>
+                  <div class="sign-rows">
+                    @for (s of asSigns(block).items; track s.code; let si = $index) {
+                      <div class="sign-row">
+                        <img [src]="url('/signals/' + s.code + '.svg')" [alt]="s.name" />
+                        <div class="sign-fields">
+                          <input [(ngModel)]="s.name" maxlength="400" aria-label="Nombre de la señal" />
+                          <input [(ngModel)]="s.note" maxlength="400" placeholder="Nota corta: qué debe hacer el conductor" aria-label="Nota" />
+                        </div>
+                        <button type="button" class="link-btn danger" (click)="asSigns(block).items.splice(si, 1)">Quitar</button>
+                      </div>
+                    }
+                  </div>
+                  <div><button type="button" class="link-btn" (click)="addSigns(asSigns(block))">+ Elegir señales del catálogo</button></div>
+                }
+                @case ('quiz') {
+                  <label class="field">Pregunta <textarea rows="2" [(ngModel)]="asQuiz(block).question" maxlength="800"></textarea></label>
+                  <ng-container *ngTemplateOutlet="imageField; context: { $implicit: asQuiz(block), label: 'Imagen de la pregunta (opcional)' }" />
+                  <div class="field">
+                    Opciones <small class="muted">(marca la correcta)</small>
+                    @for (opt of asQuiz(block).options; track trackIndex(o); let o = $index) {
+                      <div class="option-row">
+                        <input type="radio" [name]="'correct-' + i" [checked]="asQuiz(block).correct === o"
+                          (change)="asQuiz(block).correct = o" [attr.aria-label]="'Opción ' + letters[o] + ' es la correcta'" />
+                        <span class="letter">{{ letters[o] }}</span>
+                        <input [(ngModel)]="asQuiz(block).options[o]" maxlength="400" [attr.aria-label]="'Opción ' + letters[o]" />
+                        <button type="button" class="link-btn danger" [disabled]="asQuiz(block).options.length <= 2"
+                          (click)="removeOption(asQuiz(block), o)" aria-label="Quitar opción">✕</button>
+                      </div>
+                    }
+                    @if (asQuiz(block).options.length < 6) {
+                      <div><button type="button" class="link-btn" (click)="addOption(asQuiz(block))">+ Agregar opción</button></div>
+                    }
+                  </div>
+                  <label class="field">Explicación (se muestra después de responder)
+                    <textarea rows="2" [(ngModel)]="asQuiz(block).explanation" maxlength="6000"></textarea>
+                  </label>
+                }
+                @case ('flipcards') {
+                  <label class="field">Título (opcional) <input [(ngModel)]="asCards(block).title" maxlength="400" /></label>
+                  @for (card of asCards(block).cards; track trackIndex(ci); let ci = $index) {
+                    <div class="sub-card">
+                      <div class="sub-head">
+                        <strong>Tarjeta {{ ci + 1 }}</strong>
+                        <button type="button" class="link-btn danger" [disabled]="asCards(block).cards.length <= 1"
+                          (click)="asCards(block).cards.splice(ci, 1)">Quitar</button>
+                      </div>
+                      <label class="field">Frente <input [(ngModel)]="card.front" maxlength="400" /></label>
+                      <label class="field">Reverso (respuesta) <textarea rows="2" [(ngModel)]="card.back" maxlength="800"></textarea></label>
+                      <ng-container *ngTemplateOutlet="imageField; context: { $implicit: card, label: 'Imagen del frente (opcional)' }" />
+                    </div>
+                  }
+                  @if (asCards(block).cards.length < 20) {
+                    <div><button type="button" class="link-btn" (click)="asCards(block).cards.push({ front: '', back: '', imageUrl: null })">+ Agregar tarjeta</button></div>
+                  }
+                }
+                @case ('match') {
+                  <label class="field">Instrucción <input [(ngModel)]="asMatch(block).instructions" maxlength="400" placeholder="Une cada señal con su significado." /></label>
+                  @for (pair of asMatch(block).pairs; track trackIndex(pi); let pi = $index) {
+                    <div class="sub-card">
+                      <div class="sub-head">
+                        <strong>Pareja {{ pi + 1 }}</strong>
+                        <button type="button" class="link-btn danger" [disabled]="asMatch(block).pairs.length <= 2"
+                          (click)="asMatch(block).pairs.splice(pi, 1)">Quitar</button>
+                      </div>
+                      <div class="meta-grid">
+                        <label class="field">Izquierda (texto, opcional si pones imagen) <input [(ngModel)]="pair.left" maxlength="400" /></label>
+                        <label class="field">Derecha (pareja correcta) <input [(ngModel)]="pair.right" maxlength="400" /></label>
+                      </div>
+                      <ng-container *ngTemplateOutlet="imageField; context: { $implicit: pair, label: 'Imagen de la izquierda (opcional)' }" />
+                    </div>
+                  }
+                  @if (asMatch(block).pairs.length < 10) {
+                    <div><button type="button" class="link-btn" (click)="asMatch(block).pairs.push({ left: '', imageUrl: null, right: '' })">+ Agregar pareja</button></div>
+                  }
+                }
+              }
+            </article>
+          }
+
+          <div class="panel add-blocks">
+            <strong>Agregar a la lección:</strong>
+            <div class="add-grid">
+              @for (t of blockTypes; track t) {
+                <button type="button" class="add-btn" (click)="addBlock(t)" [title]="labels[t].hint">
+                  <span aria-hidden="true">{{ labels[t].icon }}</span> {{ labels[t].label }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="save-bar" [class.dirty]="lessonDirty()">
+            <span>{{ lessonDirty() ? 'Tienes cambios sin guardar.' : 'Todo guardado.' }}</span>
+            <span class="card-actions" style="margin: 0">
+              <button type="button" class="link-btn danger" (click)="deleteLesson()">Eliminar lección</button>
+              <ui-button [disabled]="!lessonDirty()" [loading]="busy() === 'lesson'" (click)="saveLesson()">Guardar lección</ui-button>
+            </span>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <ng-template #mediaFields let-m>
+    @if (m.url) {
+      @if (m.type === 'image') {
+        <img class="media-thumb" [src]="url(m.url)" alt="" />
+      } @else {
+        <p class="muted file-name">Archivo: {{ m.url }}</p>
+      }
+    }
+    <div class="cover-row">
+      <label class="file-btn">
+        {{ busy() === 'upload' ? 'Subiendo…' : 'Subir archivo' }}
+        <input type="file" [accept]="mediaAccept(m.type)" (change)="uploadInto($event, m, 'url')" [disabled]="busy() === 'upload'" />
+      </label>
+      <input class="input grow" [(ngModel)]="m.url" placeholder="o pega un enlace https://…" aria-label="Enlace" />
+    </div>
+    <label class="field">Pie de foto o descripción (opcional) <input [(ngModel)]="m.caption" maxlength="400" /></label>
+  </ng-template>
+
+  <ng-template #imageField let-t let-label="label">
+    <div class="field">
+      {{ label }}
+      <div class="cover-row">
+        @if (t.imageUrl) {
+          <img class="small-thumb" [src]="url(t.imageUrl)" alt="" />
+        }
+        <button type="button" class="link-btn" (click)="pickSignInto(t)">Elegir señal</button>
+        <label class="file-btn small">
+          Subir imagen
+          <input type="file" accept="image/*" (change)="uploadInto($event, t, 'imageUrl')" />
+        </label>
+        @if (t.imageUrl) {
+          <button type="button" class="link-btn danger" (click)="t.imageUrl = null">Quitar</button>
+        }
+      </div>
+    </div>
+  </ng-template>
+
+  @if (pickerOpen()) {
+    <div class="picker-backdrop" (click)="closePicker()">
+      <div class="picker" role="dialog" aria-modal="true" aria-label="Elegir señal" (click)="$event.stopPropagation()">
+        <header class="picker-head">
+          <strong>Elegir señal</strong>
+          <button type="button" class="link-btn" (click)="closePicker()">Listo</button>
+        </header>
+        <div class="picker-filters">
+          <input class="input grow" [(ngModel)]="pickerSearch" placeholder="Buscar por nombre o código (ej.: pare, SP-25)" aria-label="Buscar señal" />
+          <select class="select" [(ngModel)]="pickerFamily" aria-label="Tipo de señal">
+            <option value="">Todas</option>
+            @for (f of families(); track f) {
+              <option [value]="f">{{ f }}</option>
+            }
+          </select>
+        </div>
+        @if (notice()) {
+          <p class="ok-msg">{{ notice() }}</p>
+        }
+        <div class="picker-grid">
+          @for (s of filteredSigns(); track s.code) {
+            <button type="button" class="pick" (click)="choose(s)" [title]="s.name">
+              <img [src]="url(s.imageUrl)" [alt]="s.name" loading="lazy" />
+              <small>{{ s.code }}</small>
+              <span>{{ niceName(s.name) }}</span>
+            </button>
+          } @empty {
+            <p class="muted">{{ signs().length ? 'No encontramos señales con ese nombre.' : 'Cargando señales…' }}</p>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</section>
