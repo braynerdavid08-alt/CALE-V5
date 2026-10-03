@@ -62,10 +62,12 @@ public sealed class AssistantLlmClient : IAssistantLlm
 
         var payload = body.ToJsonString();
         var response = await SendAsync(payload, ct);
-        if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
+        if (response.StatusCode is HttpStatusCode.ServiceUnavailable or HttpStatusCode.TooManyRequests)
         {
+            // Free tiers cap requests per minute; a short pause usually clears it.
+            var wait = response.StatusCode == HttpStatusCode.TooManyRequests ? 6 : 2;
             response.Dispose();
-            await Task.Delay(TimeSpan.FromSeconds(2), ct);
+            await Task.Delay(TimeSpan.FromSeconds(wait), ct);
             response = await SendAsync(payload, ct);
         }
 
@@ -74,8 +76,9 @@ public sealed class AssistantLlmClient : IAssistantLlm
             var text = await response.Content.ReadAsStringAsync(ct);
             if (response.StatusCode == HttpStatusCode.TooManyRequests)
             {
+                _logger.LogWarning("Assistant provider rate limited (429): {Body}", text.Length > 300 ? text[..300] : text);
                 throw new AssistantProviderException(
-                    "El asistente llegó a su límite gratuito por ahora. Intenta más tarde.",
+                    "El asistente recibió muchas preguntas seguidas. Espera un minuto e intenta de nuevo.",
                     rateLimited: true);
             }
 
