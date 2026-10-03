@@ -16,8 +16,10 @@ WORKDIR /src
 COPY CALE-V5-main/Cale.sln ./
 COPY CALE-V5-main/src/ ./src/
 COPY CALE-V5-main/tests/ ./tests/
-RUN dotnet restore src/Cale.Api/Cale.Api.csproj
-RUN dotnet publish src/Cale.Api/Cale.Api.csproj -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet restore src/Cale.Api/Cale.Api.csproj -r linux-x64 -p:PublishReadyToRun=true
+# ReadyToRun precompiles to native code so cold starts (instance waking up) skip most JIT work.
+RUN dotnet publish src/Cale.Api/Cale.Api.csproj -c Release -r linux-x64 --self-contained false \
+    --no-restore -p:PublishReadyToRun=true -o /app/publish /p:UseAppHost=false
 
 # Copy Angular browser output into API wwwroot (same-origin SPA)
 COPY --from=frontend /src/frontend/dist/frontend/browser/ /app/publish/wwwroot/
