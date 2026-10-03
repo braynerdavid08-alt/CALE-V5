@@ -4,6 +4,7 @@ using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
 using Cale.Modules.Courses.Application;
+using Cale.Modules.Courses.Domain;
 using Cale.Modules.Courses.Infrastructure.Persistence;
 using Cale.Modules.Identity.Domain;
 using Cale.Modules.Identity.Infrastructure.Persistence;
@@ -235,6 +236,36 @@ public sealed class CourseServiceTests : IDisposable
         var signs = Assert.Single(courses, c => c.Title == "Señales de tránsito");
         Assert.True(signs.TotalLessons >= 4);
         var rules = Assert.Single(courses, c => c.Title == "Normas de tránsito básicas");
-        Assert.Equal(7, rules.TotalLessons);
+        Assert.Equal(9, rules.TotalLessons);
+    }
+
+    [Fact]
+    public async Task Seed_upgrades_untouched_platform_courses_and_respects_edits()
+    {
+        var seed = new CourseSeed(_db);
+        await seed.EnsureAsync(null);
+        var course = await _db.Set<Course>().SingleAsync(c => c.Slug == CourseSeed.RulesSlug);
+        var lessons = await _db.Set<CourseLesson>().Where(l => l.CourseId == course.Id).OrderBy(l => l.Position).ToListAsync();
+        var first = lessons[0];
+
+        // An older seed version: different content in the first lesson, one lesson fewer, same stamps.
+        _db.Entry(first).Property(l => l.ContentJson).CurrentValue = "[]";
+        _db.Set<CourseLesson>().Remove(lessons[^1]);
+        _db.Set<CourseLessonProgress>().Add(CourseLessonProgress.Create(course.Id, first.Id, _student.Id, 100, DateTime.UtcNow));
+        await _db.SaveChangesAsync();
+
+        await seed.EnsureAsync(null);
+        var upgraded = await _db.Set<CourseLesson>().Where(l => l.CourseId == course.Id).OrderBy(l => l.Position).ToListAsync();
+        Assert.Equal(9, upgraded.Count);
+        Assert.Equal(first.Id, upgraded[0].Id);
+        Assert.NotEqual("[]", upgraded[0].ContentJson);
+        Assert.True(await _db.Set<CourseLessonProgress>().AnyAsync(p => p.LessonId == first.Id));
+
+        // Once an editor touches the course, the seed leaves it alone.
+        _db.Entry(upgraded[0]).Property(l => l.ContentJson).CurrentValue = "[]";
+        course.Touch(DateTime.UtcNow.AddMinutes(5));
+        await _db.SaveChangesAsync();
+        await seed.EnsureAsync(null);
+        Assert.Equal("[]", (await _db.Set<CourseLesson>().SingleAsync(l => l.Id == first.Id)).ContentJson);
     }
 }
