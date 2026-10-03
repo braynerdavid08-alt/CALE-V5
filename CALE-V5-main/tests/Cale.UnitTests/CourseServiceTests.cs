@@ -59,9 +59,9 @@ public sealed class CourseServiceTests : IDisposable
 
     private CourseActor Admin => new(_admin.Id, Roles.Admin, null);
 
-    private CourseActor School => new(_school.Id, Roles.School, _school.Id);
+    private CourseActor Teacher => new(9999, Roles.Teacher, _school.Id);
 
-    private CourseActor OtherSchool => new(_otherSchool.Id, Roles.School, _otherSchool.Id);
+    private CourseActor OtherTeacher => new(9998, Roles.Teacher, _otherSchool.Id);
 
     private static JsonElement Blocks(params object[] blocks) => JsonSerializer.SerializeToElement(blocks);
 
@@ -79,10 +79,10 @@ public sealed class CourseServiceTests : IDisposable
 
     private async Task<(int CourseId, int LessonId)> PublishedSchoolCourseAsync(params object[] blocks)
     {
-        var course = await _service.CreateAsync(School, new CourseSaveRequest("Curso escuela", null, null, null, false), default);
+        var course = await _service.CreateAsync(Teacher, new CourseSaveRequest("Curso escuela", null, null, null, false), default);
         var lessonId = course.Lessons[0].Id;
-        await _service.UpdateLessonAsync(School, lessonId, new LessonSaveRequest("Lección", null, 5, Blocks(blocks)), default);
-        await _service.UpdateAsync(School, course.Id, new CourseSaveRequest("Curso escuela", null, null, null, true), default);
+        await _service.UpdateLessonAsync(Teacher, lessonId, new LessonSaveRequest("Lección", null, 5, Blocks(blocks)), default);
+        await _service.UpdateAsync(Teacher, course.Id, new CourseSaveRequest("Curso escuela", null, null, null, true), default);
         return (course.Id, lessonId);
     }
 
@@ -194,46 +194,41 @@ public sealed class CourseServiceTests : IDisposable
     [Fact]
     public async Task Cannot_publish_course_without_content()
     {
-        var course = await _service.CreateAsync(School, new CourseSaveRequest("Vacío", null, null, null, false), default);
+        var course = await _service.CreateAsync(Teacher, new CourseSaveRequest("Vacío", null, null, null, false), default);
 
         var ex = await Assert.ThrowsAsync<DomainException>(() =>
-            _service.UpdateAsync(School, course.Id, new CourseSaveRequest("Vacío", null, null, null, true), default));
+            _service.UpdateAsync(Teacher, course.Id, new CourseSaveRequest("Vacío", null, null, null, true), default));
         Assert.Equal("course_empty", ex.ErrorCode);
     }
 
     [Fact]
-    public async Task School_cannot_edit_platform_course_but_can_duplicate_it()
+    public async Task Teacher_cannot_edit_platform_original_but_can_copy_and_edit_it()
     {
         var platform = await _service.CreateAsync(Admin, new CourseSaveRequest("Plataforma", null, null, null, false), default);
 
+        Assert.Contains(await _service.ListManageAsync(Teacher, default), c => c.Id == platform.Id && !c.CanEdit);
         await Assert.ThrowsAsync<ForbiddenException>(() =>
-            _service.UpdateAsync(School, platform.Id, new CourseSaveRequest("Hack", null, null, null, false), default));
+            _service.UpdateAsync(Teacher, platform.Id, new CourseSaveRequest("Hack", null, null, null, false), default));
 
-        var copy = await _service.DuplicateAsync(School, platform.Id, default);
+        var copy = await _service.DuplicateAsync(Teacher, platform.Id, default);
         Assert.True(copy.CanEdit);
         Assert.False(copy.IsPlatform);
         Assert.Single(copy.Lessons);
+        await _service.UpdateAsync(Teacher, copy.Id, new CourseSaveRequest("Ajustada", null, null, null, false), default);
+
+        Assert.Equal("Plataforma", (await _service.GetManageAsync(Admin, platform.Id, default)).Title);
     }
 
     [Fact]
-    public async Task Teacher_edits_school_courses_but_platform_original_stays_read_only()
+    public async Task School_and_teacher_without_school_cannot_manage_courses()
     {
-        var platform = await _service.CreateAsync(Admin, new CourseSaveRequest("Plataforma", null, null, null, false), default);
-        var teacher = new CourseActor(9999, Roles.Teacher, _school.Id);
+        var school = new CourseActor(_school.Id, Roles.School, _school.Id);
 
-        Assert.Contains(await _service.ListManageAsync(teacher, default), c => c.Id == platform.Id && !c.CanEdit);
+        await Assert.ThrowsAsync<ForbiddenException>(() => _service.ListManageAsync(school, default));
         await Assert.ThrowsAsync<ForbiddenException>(() =>
-            _service.UpdateAsync(teacher, platform.Id, new CourseSaveRequest("Hack", null, null, null, false), default));
-
-        var copy = await _service.DuplicateAsync(teacher, platform.Id, default);
-        Assert.True(copy.CanEdit);
-        await _service.UpdateAsync(School, copy.Id, new CourseSaveRequest("Ajustado por la escuela", null, null, null, false), default);
-        var created = await _service.CreateAsync(School, new CourseSaveRequest("De la escuela", null, null, null, false), default);
-        await _service.UpdateAsync(teacher, created.Id, new CourseSaveRequest("Ajustado por el instructor", null, null, null, false), default);
-
-        Assert.Equal("Plataforma", (await _service.GetManageAsync(Admin, platform.Id, default)).Title);
+            _service.CreateAsync(school, new CourseSaveRequest("Nuevo", null, null, null, false), default));
         await Assert.ThrowsAsync<ForbiddenException>(() =>
-            _service.ListManageAsync(new CourseActor(9998, Roles.Teacher, null), default));
+            _service.ListManageAsync(new CourseActor(9997, Roles.Teacher, null), default));
     }
 
     [Fact]
@@ -241,7 +236,7 @@ public sealed class CourseServiceTests : IDisposable
     {
         var (courseId, _) = await PublishedSchoolCourseAsync(new { type = "text", body = "Hola" });
 
-        await Assert.ThrowsAsync<DomainException>(() => _service.GetManageAsync(OtherSchool, courseId, default));
+        await Assert.ThrowsAsync<DomainException>(() => _service.GetManageAsync(OtherTeacher, courseId, default));
         Assert.Empty(await _service.ListForStudentAsync(_otherStudent.Id, default));
         Assert.Single(await _service.ListForStudentAsync(_student.Id, default));
     }
@@ -269,7 +264,7 @@ public sealed class CourseServiceTests : IDisposable
         Assert.False(second.FirstCompletion);
 
         Assert.Equal((1, 1), await _service.CompletionCountsAsync(_student.Id, default));
-        var report = await _service.ProgressReportAsync(School, courseId, default);
+        var report = await _service.ProgressReportAsync(Teacher, courseId, default);
         Assert.Equal(100, report.Students.Single(s => s.StudentUserId == _student.Id).Percent);
     }
 
