@@ -151,15 +151,15 @@
       "difficulty": "Media",
       "type": "Seleccion multiple",
       "text": "Si no hay señalización específica, ¿cuál es el límite general de velocidad en vías urbanas para automóviles?",
-      "explanation": "En zona urbana el límite general para automóviles es 60 km/h, salvo señalización distinta.",
-      "source": "Ley 769 de 2002 — Código Nacional de Tránsito; buenas prácticas CEA",
+      "explanation": "Desde la Ley 2251 de 2022, en vías urbanas el límite nunca puede superar los 50 km/h; en zonas escolares y residenciales es hasta 30 km/h.",
+      "source": "Ley 769 de 2002, art. 106 (modificado por la Ley 2251 de 2022)",
       "options": [
         {
           "text": "100 km/h si la vía es amplia.",
           "isCorrect": false
         },
         {
-          "text": "60 km/h.",
+          "text": "50 km/h.",
           "isCorrect": true
         },
         {
@@ -187,7 +187,7 @@
           "isCorrect": false
         },
         {
-          "text": "Mantener 60 km/h porque “es el máximo urbano”. Además, esa idea no está respaldada por la norma aplicable.",
+          "text": "Mantener 50 km/h porque “es el máximo urbano”. Además, esa idea no está respaldada por la norma aplicable.",
           "isCorrect": false
         },
         {
