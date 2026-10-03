@@ -13,7 +13,10 @@ import { TheoryStudentDashboardDto } from '../api/student-theory.api';
         <span class="icon" aria-hidden="true">🎉</span>
         <div class="text">
           <strong>¡Ya puedes agendar tu examen teórico!</strong>
-          <p>Completaste tus horas de teoría y taller y quedaste habilitado. Escoge el día y la hora de tu examen.</p>
+          <p>
+            {{ hoursDone() ? 'Completaste tus horas de teoría y taller y quedaste habilitado.' : 'Tu escuela te habilitó.' }}
+            Escoge el día y la hora de tu examen.
+          </p>
         </div>
         <a class="cta" routerLink="/student/exam">Agendar mi examen</a>
       </section>
@@ -61,6 +64,11 @@ import { TheoryStudentDashboardDto } from '../api/student-theory.api';
 })
 export class NextStepBannerComponent {
   readonly theory = input<TheoryStudentDashboardDto | null>(null);
+
+  readonly hoursDone = computed(() => {
+    const t = this.theory();
+    return !!t && t.hoursCompleted >= t.hoursRequired && t.workshopHoursCompleted >= t.workshopHoursRequired;
+  });
 
   readonly show = computed(() => {
     const t = this.theory();
