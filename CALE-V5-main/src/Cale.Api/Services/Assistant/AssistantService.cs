@@ -331,12 +331,18 @@ public sealed class AssistantService
         var calls = new JsonArray();
         foreach (var c in reply.ToolCalls)
         {
-            calls.Add(new JsonObject
+            var call = new JsonObject
             {
                 ["id"] = c.Id,
                 ["type"] = "function",
                 ["function"] = new JsonObject { ["name"] = c.Name, ["arguments"] = c.ArgumentsJson }
-            });
+            };
+            if (c.ExtraContent is not null)
+            {
+                call["extra_content"] = c.ExtraContent.DeepClone();
+            }
+
+            calls.Add(call);
         }
 
         return new JsonObject { ["role"] = "assistant", ["content"] = reply.Content, ["tool_calls"] = calls };
