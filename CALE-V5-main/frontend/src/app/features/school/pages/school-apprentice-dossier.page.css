@@ -128,6 +128,32 @@
   font-size: 0.9rem;
 }
 
+.step-action {
+  margin-top: 0.35rem;
+  align-self: end;
+}
+
+.step-action ::ng-deep button,
+.step-action ::ng-deep a {
+  width: 100%;
+  min-height: 2.75rem;
+}
+
+.step-undo {
+  margin-top: 0.35rem;
+  align-self: end;
+  justify-self: start;
+  min-height: 2.25rem;
+  padding: 0.25rem 0.5rem;
+  border: 0;
+  background: none;
+  color: var(--color-text-secondary);
+  text-decoration: underline;
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
 .steps small {
   color: var(--color-text-secondary);
   font-size: 0.75rem;

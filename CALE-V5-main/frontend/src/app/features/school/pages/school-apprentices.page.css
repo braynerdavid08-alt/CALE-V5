@@ -45,6 +45,19 @@
 .list-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.25rem 1rem; align-items: baseline; }
 .list-head p { margin: 0; }
 .list-head .muted { font-size: var(--text-sm); }
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem 1rem;
+  padding-top: 0.5rem;
+}
+.pager-info { font-weight: 700; }
+@media (max-width: 480px) {
+  .pager ui-button { flex: 1 1 40%; }
+  .pager-info { order: -1; flex-basis: 100%; text-align: center; }
+}
 .row-actions { text-align: right; white-space: nowrap; }
 .dossier-link {
   display: inline-block;

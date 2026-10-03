@@ -137,8 +137,22 @@ public sealed class SchoolTheoryController : ControllerBase
     }
 
     [HttpGet("enrollments")]
-    public async Task<IActionResult> Enrollments(CancellationToken ct) =>
-        Ok(await _service.ListEnrollmentsAsync(SchoolId, ct));
+    public async Task<IActionResult> Enrollments([FromQuery] string? studentIds, CancellationToken ct)
+    {
+        IReadOnlyCollection<int>? ids = null;
+        if (!string.IsNullOrWhiteSpace(studentIds))
+        {
+            ids = studentIds
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(x => int.TryParse(x, out var id) ? id : 0)
+                .Where(x => x > 0)
+                .Distinct()
+                .Take(200)
+                .ToList();
+        }
+
+        return Ok(await _service.ListEnrollmentsAsync(SchoolId, ids, ct));
+    }
 
     [HttpPut("enrollments/{id:int}")]
     public async Task<IActionResult> UpdateEnrollment(

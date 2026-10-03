@@ -12,6 +12,7 @@ import {
   EnrollmentAuthorizationEvent
 } from '../api/apprentice.api';
 import { StudentHoursCardComponent } from '../components/student-hours-card.component';
+import { TheoryApi } from '../../theory/api/theory.api';
 type StepState = 'done' | 'active' | 'todo' | 'blocked';
 
 interface PipelineStep {
@@ -45,6 +46,7 @@ interface TimelineItem {
 })
 export class SchoolApprenticeDossierPage implements OnInit {
   private readonly api = inject(ApprenticeApi);
+  private readonly theoryApi = inject(TheoryApi);
   private readonly route = inject(ActivatedRoute);
 
   readonly loading = signal(true);
@@ -53,6 +55,9 @@ export class SchoolApprenticeDossierPage implements OnInit {
   readonly savingAbono = signal(false);
   readonly abonoError = signal<string | null>(null);
   readonly abonoOk = signal<string | null>(null);
+  readonly authSaving = signal<'theory' | 'practical' | null>(null);
+  readonly authMsg = signal<string | null>(null);
+  readonly authError = signal<string | null>(null);
   studentUserId = 0;
 
   abonoDate = '';
@@ -161,19 +166,50 @@ export class SchoolApprenticeDossierPage implements OnInit {
   }
 
   authEventLabel(ev: EnrollmentAuthorizationEvent): string {
+    const kind = ev.authorizationType?.toLowerCase();
     const type =
-      ev.authorizationType === 'TheoryExam'
+      kind === 'theory_exam' || kind === 'theoryexam'
         ? 'Examen teórico'
-        : ev.authorizationType === 'Practical'
+        : kind === 'practical'
           ? 'Clases de manejo'
           : ev.authorizationType;
-    const action =
-      ev.action === 'Granted'
-        ? 'autorizado'
-        : ev.action === 'Revoked'
-          ? 'revocado'
-          : ev.action;
+    const act = ev.action?.toLowerCase();
+    const action = act === 'granted' ? 'autorizado' : act === 'revoked' ? 'revocado' : ev.action;
     return `${type}: ${action}`;
+  }
+
+  setAuthorization(kind: 'theory' | 'practical', authorized: boolean): void {
+    const d = this.detail();
+    if (!d || this.authSaving()) return;
+    if (!authorized) {
+      const what = kind === 'theory' ? 'el examen teórico' : 'las clases de manejo';
+      if (!confirm(`¿Quitar la autorización para ${what}?`)) return;
+    }
+    this.authSaving.set(kind);
+    this.authMsg.set(null);
+    this.authError.set(null);
+    this.theoryApi
+      .updateEnrollment(this.studentUserId, {
+        status: d.profile.enrollmentStatus,
+        ...(kind === 'theory' ? { theoryExamAuthorized: authorized } : { practicalAuthorized: authorized })
+      })
+      .subscribe({
+        next: () => {
+          this.authSaving.set(null);
+          this.authMsg.set(
+            authorized
+              ? kind === 'theory'
+                ? 'Listo: ya puede agendar su examen teórico. Le avisamos al estudiante.'
+                : 'Listo: ya puede programar y reservar clases de manejo. Le avisamos al estudiante.'
+              : 'Autorización quitada.'
+          );
+          this.refreshDetail();
+        },
+        error: (err) => {
+          this.authSaving.set(null);
+          this.authError.set(mapApiError(err));
+        }
+      });
   }
 
   private resetAbonoForm(): void {
@@ -240,18 +276,16 @@ export class SchoolApprenticeDossierPage implements OnInit {
         label: 'Autoriz. manejo',
         detail: p.practicalAuthorized
           ? 'Autorizado'
-          : !examPassed
-            ? 'Requiere examen'
-            : p.balanceDue > 0
-              ? 'Saldo pendiente'
+          : p.balanceDue > 0
+            ? 'Saldo pendiente'
+            : examPassed
+              ? 'Listo para autorizar'
               : 'Sin autorizar',
         state: p.practicalAuthorized
           ? 'done'
-          : examPassed
-            ? p.balanceDue > 0
-              ? 'blocked'
-              : 'todo'
-            : 'blocked'
+          : p.balanceDue > 0
+            ? 'blocked'
+            : 'todo'
       },
       {
         id: 'practical',

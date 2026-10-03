@@ -53,10 +53,45 @@
               <span class="step-dot" aria-hidden="true"></span>
               <strong>{{ step.label }}</strong>
               <small>{{ step.detail }}</small>
+              @switch (step.id) {
+                @case ('exam-auth') {
+                  @if (!t.theoryExamPassed) {
+                    @if (p.theoryExamAuthorized) {
+                      <button type="button" class="step-undo" [disabled]="!!authSaving()" (click)="setAuthorization('theory', false)">Quitar</button>
+                    } @else {
+                      <ui-button class="step-action" type="button" [loading]="authSaving() === 'theory'" [disabled]="!!authSaving()" (click)="setAuthorization('theory', true)">
+                        Habilitar examen
+                      </ui-button>
+                    }
+                  }
+                }
+                @case ('practical-auth') {
+                  @if (p.practicalAuthorized) {
+                    <button type="button" class="step-undo" [disabled]="!!authSaving()" (click)="setAuthorization('practical', false)">Quitar</button>
+                  } @else {
+                    <ui-button class="step-action" type="button" [loading]="authSaving() === 'practical'" [disabled]="!!authSaving()" (click)="setAuthorization('practical', true)">
+                      Habilitar manejo
+                    </ui-button>
+                  }
+                }
+                @case ('practical') {
+                  @if (p.practicalAuthorized) {
+                    <ui-button class="step-action" type="button" variant="secondary" routerLink="/school/practical">
+                      Programar clases
+                    </ui-button>
+                  }
+                }
+              }
             </li>
           }
         </ol>
-        @if (!t.canBookPractical && t.blockReason) {
+        @if (authMsg()) {
+          <p class="block-hint ok" role="status">{{ authMsg() }}</p>
+        }
+        <ui-error [message]="authError()" />
+        @if (p.practicalAuthorized && p.balanceDue > 0) {
+          <p class="block-hint warn">Tiene saldo pendiente: no podrá reservar clases de manejo hasta ponerse al día.</p>
+        } @else if (!t.canBookPractical && t.blockReason && !authMsg()) {
           <p class="block-hint warn">{{ t.blockReason }}</p>
         }
       </section>

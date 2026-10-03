@@ -76,7 +76,12 @@
       <section class="school-card list-card">
         <header class="list-head">
           <p class="school-card-title">{{ rows().length }} estudiantes registrados</p>
-          <p class="muted">Toca un estudiante para ver y editar sus datos.</p>
+          <p class="muted">
+            Toca un estudiante para ver y editar sus datos.
+            @if (totalPages() > 1) {
+              Viendo {{ pageFrom() }} a {{ pageTo() }}.
+            }
+          </p>
         </header>
         <div class="school-table-wrap">
           <table class="school-data-table">
@@ -94,7 +99,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (r of rows(); track r.studentUserId) {
+              @for (r of pageRows(); track r.studentUserId) {
                 @let p = progressOf(r);
                 <tr
                   [class.is-selected]="selected()?.studentUserId === r.studentUserId"
@@ -134,6 +139,17 @@
             </tbody>
           </table>
         </div>
+        @if (totalPages() > 1) {
+          <nav class="pager" aria-label="Páginas de estudiantes">
+            <ui-button type="button" variant="secondary" [disabled]="page() === 0" (click)="goToPage(page() - 1)">
+              ← Anteriores
+            </ui-button>
+            <span class="pager-info">Página {{ page() + 1 }} de {{ totalPages() }}</span>
+            <ui-button type="button" variant="secondary" [disabled]="page() >= totalPages() - 1" (click)="goToPage(page() + 1)">
+              Siguientes →
+            </ui-button>
+          </nav>
+        }
       </section>
     }
   }

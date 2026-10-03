@@ -194,18 +194,6 @@ public sealed class PracticalTrainingService
 
         await _eligibility.EnsureNoBalanceDueAsync(schoolUserId, request.StudentUserId, ct);
 
-        var eligibility = await _theory.GetPracticalEligibilityAsync(
-            schoolUserId,
-            request.StudentUserId,
-            ct);
-        if (!eligibility.TheoryExamPassed)
-        {
-            throw new DomainException(
-                "El estudiante debe aprobar el examen teórico.",
-                400,
-                "theory_exam_required");
-        }
-
         var start = ParseTime(request.StartTime);
         var end = ParseTime(request.EndTime);
         if (end <= start)

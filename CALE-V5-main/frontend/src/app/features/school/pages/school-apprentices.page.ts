@@ -1,8 +1,8 @@
-import { Component, HostListener, OnInit, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { forkJoin, of } from 'rxjs';
+import { of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
@@ -48,6 +48,16 @@ export class SchoolApprenticesPage implements OnInit {
   readonly saveOk = signal<string | null>(null);
   readonly rows = signal<ApprenticeDto[]>([]);
   readonly progressByStudent = signal<Record<number, PracticalEligibilityDto>>({});
+  readonly progressLoading = signal(false);
+  readonly pageSize = 20;
+  readonly page = signal(0);
+  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.rows().length / this.pageSize)));
+  readonly pageRows = computed(() => {
+    const start = this.page() * this.pageSize;
+    return this.rows().slice(start, start + this.pageSize);
+  });
+  readonly pageFrom = computed(() => (this.rows().length ? this.page() * this.pageSize + 1 : 0));
+  readonly pageTo = computed(() => Math.min(this.rows().length, (this.page() + 1) * this.pageSize));
   readonly selected = signal<ApprenticeDto | null>(null);
   readonly detail = signal<ApprenticeDetail | null>(null);
   readonly detailLoading = signal(false);
@@ -75,30 +85,48 @@ export class SchoolApprenticesPage implements OnInit {
   reload(focusStudentUserId?: number): void {
     this.loading.set(true);
     this.error.set(null);
-    forkJoin({
-      rows: this.api.list(this.search || undefined, undefined, this.onlyBalance || undefined),
-      enrollments: this.theoryApi.listEnrollments().pipe(
-        catchError((err) => {
-          this.error.set(mapApiError(err));
-          return of([] as EnrollmentDto[]);
-        })
-      )
-    }).subscribe({
-      next: ({ rows, enrollments }) => {
+    this.api.list(this.search || undefined, undefined, this.onlyBalance || undefined).subscribe({
+      next: (rows) => {
         this.rows.set(rows);
-        this.progressByStudent.set(this.mapEnrollmentProgress(enrollments));
+        this.progressByStudent.set({});
+        const focusIndex = focusStudentUserId
+          ? rows.findIndex((r) => r.studentUserId === focusStudentUserId)
+          : -1;
+        this.page.set(focusIndex >= 0 ? Math.floor(focusIndex / this.pageSize) : 0);
         this.loading.set(false);
-        if (focusStudentUserId) {
-          const hit = rows.find((r) => r.studentUserId === focusStudentUserId);
-          if (hit) {
-            this.select(hit);
-          }
+        this.loadPageProgress();
+        if (focusIndex >= 0) {
+          this.select(rows[focusIndex]);
         }
       },
       error: (err) => {
         this.loading.set(false);
         this.error.set(mapApiError(err));
       }
+    });
+  }
+
+  goToPage(index: number): void {
+    const next = Math.min(Math.max(index, 0), this.totalPages() - 1);
+    if (next === this.page()) return;
+    this.page.set(next);
+    this.loadPageProgress();
+    document.querySelector('.list-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /** Progress (hours/exam) is costly per student, so it is fetched only for the visible page. */
+  private loadPageProgress(): void {
+    const known = this.progressByStudent();
+    const ids = this.pageRows()
+      .map((r) => r.studentUserId)
+      .filter((id) => !known[id]);
+    if (!ids.length) return;
+    this.progressLoading.set(true);
+    this.theoryApi.listEnrollments(ids).pipe(
+      catchError(() => of([] as EnrollmentDto[]))
+    ).subscribe((enrollments) => {
+      this.progressByStudent.update((map) => ({ ...map, ...this.mapEnrollmentProgress(enrollments) }));
+      this.progressLoading.set(false);
     });
   }
 
