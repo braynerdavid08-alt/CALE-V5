@@ -306,23 +306,6 @@ export const routes: Routes = [
             .then((m) => m.SchoolAttendanceTodayPage)
       },
       {
-        path: 'school/cursos',
-        pathMatch: 'full',
-        canActivate: [roleGuard],
-        data: { roles: ['School'], base: '/school/cursos' },
-        loadComponent: () =>
-          import('./features/courses/pages/manage-courses.page')
-            .then((m) => m.ManageCoursesPage)
-      },
-      {
-        path: 'school/cursos/:id',
-        canActivate: [roleGuard],
-        data: { roles: ['School'], base: '/school/cursos' },
-        loadComponent: () =>
-          import('./features/courses/pages/manage-course.page')
-            .then((m) => m.ManageCoursePage)
-      },
-      {
         path: 'teacher/cursos',
         pathMatch: 'full',
         canActivate: [roleGuard],

@@ -107,7 +107,6 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
       { label: 'Estudiantes', path: '/school/apprentices', icon: 'graduate', exact: true },
       { label: 'Asistencia de hoy', path: '/school/attendance', icon: 'list', exact: true },
       { label: 'Clases teóricas', path: '/school/training', icon: 'clock', exact: true },
-      { label: 'Cursos virtuales', path: '/school/cursos', icon: 'book' },
       { label: 'Exámenes', path: '/school/theory-exams', icon: 'exam', exact: true },
       { label: 'Clases de manejo', path: '/school/practical', icon: 'play', exact: true },
       { label: 'Resultados', path: '/school/results', icon: 'chart', exact: true },

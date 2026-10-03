@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Cale.Api.Controllers;
 
 [ApiController]
-[Authorize(Roles = Roles.Admin + "," + Roles.School + "," + Roles.Teacher)]
+[Authorize(Roles = Roles.Admin + "," + Roles.Teacher)]
 [Route("api/courses")]
 public sealed class CoursesController : ControllerBase
 {
@@ -142,11 +142,7 @@ public sealed class CoursesController : ControllerBase
         var userId = CurrentUser.GetId(User);
         var role = CurrentUser.GetRole(User);
         int? schoolUserId = null;
-        if (role == Roles.School)
-        {
-            schoolUserId = userId;
-        }
-        else if (role != Roles.Admin)
+        if (role != Roles.Admin)
         {
             schoolUserId = (await _users.GetByIdAsync(userId, ct))?.SchoolId;
         }

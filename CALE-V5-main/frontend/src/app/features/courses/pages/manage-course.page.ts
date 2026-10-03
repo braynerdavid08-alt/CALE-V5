@@ -76,7 +76,7 @@ export class ManageCoursePage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
-  readonly base: string = this.route.snapshot.data['base'] ?? '/school/cursos';
+  readonly base: string = this.route.snapshot.data['base'] ?? '/teacher/cursos';
   readonly blockTypes = Object.keys(BLOCK_LABELS) as BlockType[];
   readonly labels = BLOCK_LABELS;
   readonly letters = ['A', 'B', 'C', 'D', 'E', 'F'];

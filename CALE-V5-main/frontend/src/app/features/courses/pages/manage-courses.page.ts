@@ -101,7 +101,7 @@ export class ManageCoursesPage implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
-  readonly base: string = this.route.snapshot.data['base'] ?? '/school/cursos';
+  readonly base: string = this.route.snapshot.data['base'] ?? '/teacher/cursos';
   readonly isAdmin = this.base.startsWith('/admin');
 
   readonly loading = signal(true);
