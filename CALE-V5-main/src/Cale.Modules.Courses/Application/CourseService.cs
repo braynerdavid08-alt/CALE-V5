@@ -211,7 +211,7 @@ public sealed class CourseService
         var rows = await Progress.AsNoTracking().Where(p => p.CourseId == courseId).ToListAsync(ct);
 
         List<(int Id, string Name)> students;
-        if (actor.Role == Roles.School && actor.SchoolUserId is int schoolId)
+        if (actor.Role is Roles.School or Roles.Teacher && actor.SchoolUserId is int schoolId)
         {
             students = (await _users.ListBySchoolAsync(schoolId, ct))
                 .Where(u => u.IsActive && Roles.Normalize(u.Role) == Roles.Student)
@@ -444,12 +444,12 @@ public sealed class CourseService
             return;
         }
 
-        if (actor.Role == Roles.School && actor.SchoolUserId is not null)
+        if (actor.Role is Roles.School or Roles.Teacher && actor.SchoolUserId is not null)
         {
             return;
         }
 
-        throw new ForbiddenException("Solo la escuela o el administrador pueden gestionar cursos.", "course_forbidden");
+        throw new ForbiddenException("Solo la escuela, sus instructores o el administrador pueden gestionar cursos.", "course_forbidden");
     }
 
     private static bool CanEdit(CourseActor actor, Course course) =>

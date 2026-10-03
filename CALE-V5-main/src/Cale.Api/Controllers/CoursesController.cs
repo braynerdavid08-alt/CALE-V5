@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Cale.Api.Controllers;
 
 [ApiController]
-[Authorize(Roles = Roles.Admin + "," + Roles.School)]
+[Authorize(Roles = Roles.Admin + "," + Roles.School + "," + Roles.Teacher)]
 [Route("api/courses")]
 public sealed class CoursesController : ControllerBase
 {
