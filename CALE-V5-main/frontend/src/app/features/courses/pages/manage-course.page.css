@@ -142,7 +142,9 @@
   position: sticky;
   top: 1rem;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.75rem;
+  min-width: 0;
 }
 
 .lessons-side h2 {
@@ -161,6 +163,7 @@
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  min-width: 0;
   border-radius: var(--radius-md);
 }
 
@@ -184,6 +187,7 @@
 }
 
 .side-item .lesson-num {
+  flex: none;
   width: 1.8rem;
   height: 1.8rem;
   font-size: var(--text-sm);
@@ -195,9 +199,9 @@
 }
 
 .side-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+  text-align: left;
+  overflow-wrap: anywhere;
 }
 
 .side-move,
