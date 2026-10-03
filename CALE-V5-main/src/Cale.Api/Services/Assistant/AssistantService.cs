@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.Modules.TheoreticalTraining.Application;
@@ -132,6 +133,55 @@ public sealed class AssistantService
         }
 
         return new AssistantChatResult("No pude terminar esa consulta. Intenta preguntarlo más corto.", pending, RemainingFor(user.UserId));
+    }
+
+    /// <summary>
+    /// Fixed questions answered straight from the database, without the AI provider,
+    /// so they cost no messages and keep working when the free tier is saturated.
+    /// </summary>
+    public async Task<AssistantChatResult> QuickAsync(AssistantUser user, string key, CancellationToken ct)
+    {
+        EnsureEnabled(user);
+        if (!QuickQuestions.TryGetValue((user.Role, key), out var quick))
+        {
+            throw new DomainException("Esa consulta rápida no existe.", 404, "assistant_quick_unknown");
+        }
+
+        try
+        {
+            var text = await _toolbox.ReadAsync(user, quick.Tool, quick.Args(), ct);
+            var reply = CleanForUser(text) + "\n\nSi quieres reservar, cancelar o cambiar algo, escríbeme.";
+            return new AssistantChatResult(reply, null, RemainingFor(user.UserId));
+        }
+        catch (Exception ex) when (ex is DomainException or AssistantToolException)
+        {
+            return new AssistantChatResult(ex.Message, null, RemainingFor(user.UserId));
+        }
+    }
+
+    private sealed record QuickQuestion(string Tool, Func<JsonObject> Args);
+
+    private static readonly Dictionary<(string Role, string Key), QuickQuestion> QuickQuestions = new()
+    {
+        [(Roles.Student, "progreso")] = new("mi_progreso", () => new JsonObject()),
+        [(Roles.Student, "clases_teoricas")] = new("clases_teoricas", () => new JsonObject()),
+        [(Roles.Student, "cupos_examen")] = new("cupos_examen", () => new JsonObject()),
+        [(Roles.Student, "clases_manejo")] = new("clases_manejo", () => new JsonObject()),
+        [(Roles.School, "resumen")] = new("resumen_escuela", () => new JsonObject()),
+        [(Roles.School, "listos_examen")] = new("progreso_estudiantes", () => new JsonObject { ["filtro"] = "listos_examen" }),
+        [(Roles.School, "agenda")] = new("agenda_escuela", () => new JsonObject()),
+        [(Roles.School, "con_saldo")] = new("progreso_estudiantes", () => new JsonObject { ["filtro"] = "con_saldo" })
+    };
+
+    /// <summary>Tool text is written for the model; hide internal ids and key=value noise.</summary>
+    public static string CleanForUser(string text)
+    {
+        var s = Regex.Replace(text, @"\s*\((?:\w+_id)=\d+\)", "");
+        s = Regex.Replace(s, @"(?m)^\w+_id=\d+\s*\|\s*", "");
+        s = Regex.Replace(s, @"\s*\|?\s*YA RESERVADA \w+_id=\d+", " | ya la tienes reservada");
+        s = Regex.Replace(s, @"\s*\w+_id=\d+", "");
+        s = Regex.Replace(s, @"(\p{L}[\p{L} ]*?)=(sí|no)\b", "$1: $2");
+        return s.Trim();
     }
 
     public async Task<AssistantActionResult> ConfirmAsync(AssistantUser user, string actionId, CancellationToken ct)
