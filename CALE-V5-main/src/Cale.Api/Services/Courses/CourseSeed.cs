@@ -50,15 +50,18 @@ public sealed partial class CourseSeed
     {
         try
         {
-            if (await _db.Set<Course>().AnyAsync(c => c.Slug == slug, ct))
-            {
-                return;
-            }
-
             var now = DateTime.UtcNow;
             var lessons = buildLessons()
                 .Select(l => (l.Title, l.Summary, l.Minutes, Content: CourseContent.Normalize(JsonSerializer.SerializeToElement(l.Blocks))))
                 .ToList();
+
+            var existing = await _db.Set<Course>().FirstOrDefaultAsync(c => c.Slug == slug, ct);
+            if (existing is not null)
+            {
+                await UpgradeIfUntouchedAsync(existing, description, lessons, now, logger, ct);
+                return;
+            }
+
             var course = Course.Create(null, 0, title, description, category, coverUrl, now, slug);
             _db.Set<Course>().Add(course);
             await _db.SaveChangesAsync(ct);
@@ -80,6 +83,72 @@ public sealed partial class CourseSeed
             _db.ChangeTracker.Clear();
             logger?.LogError(ex, "Could not seed platform course {Slug}", slug);
         }
+    }
+
+    /// <summary>
+    /// Brings a seeded course up to date with the current seed, but only while nobody has edited it:
+    /// seeding stamps the course and every lesson with the same instant, and every editor action changes the course stamp.
+    /// Lessons are updated in place so student progress keeps pointing at them.
+    /// </summary>
+    private async Task UpgradeIfUntouchedAsync(
+        Course course,
+        string description,
+        List<(string Title, string Summary, int Minutes, string Content)> lessons,
+        DateTime now,
+        ILogger? logger,
+        CancellationToken ct)
+    {
+        if (!course.IsActive || !course.IsPublished)
+        {
+            return;
+        }
+
+        var stored = await _db.Set<CourseLesson>()
+            .Where(l => l.CourseId == course.Id)
+            .OrderBy(l => l.Position)
+            .ToListAsync(ct);
+        if (stored.Any(l => l.UpdatedAt != course.UpdatedAt))
+        {
+            return;
+        }
+
+        var same = stored.Count == lessons.Count
+            && course.Description == description
+            && stored.Zip(lessons).All(p => p.First.Title == p.Second.Title
+                && p.First.Summary == p.Second.Summary
+                && p.First.EstimatedMinutes == p.Second.Minutes
+                && p.First.ContentJson == p.Second.Content);
+        if (same)
+        {
+            return;
+        }
+
+        for (var i = 0; i < lessons.Count; i++)
+        {
+            var l = lessons[i];
+            var lesson = i < stored.Count ? stored[i] : null;
+            if (lesson is null)
+            {
+                lesson = CourseLesson.Create(course.Id, i, l.Title, now);
+                _db.Set<CourseLesson>().Add(lesson);
+            }
+
+            lesson.MoveTo(i, now);
+            lesson.Update(l.Title, l.Summary, l.Minutes, l.Content, now);
+        }
+
+        var removed = stored.Skip(lessons.Count).ToList();
+        if (removed.Count > 0)
+        {
+            var removedIds = removed.Select(l => l.Id).ToList();
+            _db.Set<CourseLessonProgress>().RemoveRange(
+                await _db.Set<CourseLessonProgress>().Where(p => removedIds.Contains(p.LessonId)).ToListAsync(ct));
+            _db.Set<CourseLesson>().RemoveRange(removed);
+        }
+
+        course.Update(course.Title, description, course.Category, course.CoverUrl, true, now);
+        await _db.SaveChangesAsync(ct);
+        logger?.LogInformation("Updated platform course {Slug} to the current seed ({Count} lessons)", course.Slug, lessons.Count);
     }
 
     private static string Img(string code) => $"/signals/{code}.svg";
