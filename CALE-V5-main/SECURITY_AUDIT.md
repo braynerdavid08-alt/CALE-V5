@@ -108,7 +108,7 @@ Leyenda de estado: ✅ corregido en este cambio · ⚠️ mitigado parcialmente 
 | L6 | CORS con dominios de ejemplo en `appsettings` | ✅ Fase 2: eliminados `tudominio.com` (registrable por terceros) |
 | L7 | Cuotas del asistente IA en memoria (se reinician con cada despliegue) | ⚠️ Añadido límite 20/min por usuario |
 | L8 | Endpoint de suscripción push acepta URLs arbitrarias (SSRF limitado) | ✅ Fase 2 (P-B1): solo hosts de servicios push reales |
-| L9 | Cambio de correo sin verificación del nuevo correo | ⏳ |
+| L9 | Cambio de correo sin verificación del nuevo correo | ✅ El correo de acceso ya no se puede cambiar (ver P-M8) |
 | L10 | Borradores en `localStorage` no se borran al cerrar sesión | ⏳ |
 | L11 | `X-Request-Id` sin límite de longitud | ⏳ |
 
