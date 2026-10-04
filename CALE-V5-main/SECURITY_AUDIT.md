@@ -86,7 +86,7 @@ Leyenda de estado: ✅ corregido en este cambio · ⚠️ mitigado parcialmente 
 | M8 | Inyección de fórmulas en CSV exportados (`=HYPERLINK(...)` en nombres) | `LiveSessionHandler.ExportResultsCsvAsync`, `GameShowHandler` export | ✅ `CsvCell.Escape` antepone `'` a celdas que empiezan por `= + - @` |
 | M9 | `bypassSecurityTrustHtml` en la página "Nosotros" (HTML editable por Admin sin sanear) | `frontend/src/app/features/public/public-about.page.ts` | ✅ Se usa el saneador de Angular |
 | M10 | Aula en vivo devuelve `isCorrect` al participante incluso en modo examen | `LiveSessionHandler` (respuesta a `answer`) | ⏳ Bajo impacto (preguntas ya visibles en pantalla); revisar al rediseñar modo examen |
-| M11 | Puntaje de juegos (señales/duelos) lo envía el cliente | `Api/Services/Play/PlayService.cs` | ⏳ Solo afecta rankings de gamificación, no certificaciones |
+| M11 | Puntaje de juegos (señales/duelos) lo envía el cliente | `Api/Services/Play/PlayService.cs` | ⏳ Solo afecta rankings de gamificación, no certificaciones (ver Fase 2, P-B6) |
 | M12 | Lecciones: se pueden completar sin responder y `check` revela soluciones | `CourseService` | ⏳ Función pedagógica; no otorga certificados |
 | M13 | GET anónimo de "100 Estudiantes Dijeron" expone código de unión e IDs | `GET /api/game-show/{id}` | ⏳ Las acciones de host sí exigen ser el dueño |
 | M14 | Fuerza bruta de códigos de confirmación de correo | `POST /api/auth/confirm-email` | ⚠️ 10 intentos / 10 min por IP; falta bloqueo por cuenta |
@@ -101,13 +101,13 @@ Leyenda de estado: ✅ corregido en este cambio · ⚠️ mitigado parcialmente 
 | ID | Hallazgo | Estado |
 |----|----------|--------|
 | L1 | Enumeración de usuarios por mensajes distintos en registro/recuperación | ⏳ |
-| L2 | No hay detección de reutilización de refresh token (rotación con gracia de 60 s) | ⏳ |
+| L2 | No hay detección de reutilización de refresh token (rotación con gracia de 60 s) | ✅ Fase 2 (P-A2): máx. 2 reusos en la gracia; reuso posterior revoca todas las sesiones |
 | L3 | `POST /api/auth/logout` exigía token válido: con el access token vencido no se revocaba el refresh | ✅ Ahora es anónimo y revoca usando la cookie |
-| L4 | CSRF: cookie de acceso `SameSite=Lax` | ⚠️ Mitigado (API JSON, CORS restringido, refresh `Strict`) |
+| L4 | CSRF: cookie de acceso `SameSite=Lax` | ✅ Fase 2 (P-M1): `CsrfOriginMiddleware` valida `Origin`/`Sec-Fetch-Site` |
 | L5 | En el flujo de autoconfirmación el JWT puede quedar en `localStorage` | ⏳ |
-| L6 | CORS con dominios de ejemplo en `appsettings` | ⏳ Revisar `Cors__AllowedOrigins` en Render |
+| L6 | CORS con dominios de ejemplo en `appsettings` | ✅ Fase 2: eliminados `tudominio.com` (registrable por terceros) |
 | L7 | Cuotas del asistente IA en memoria (se reinician con cada despliegue) | ⚠️ Añadido límite 20/min por usuario |
-| L8 | Endpoint de suscripción push acepta URLs arbitrarias (SSRF limitado) | ⏳ |
+| L8 | Endpoint de suscripción push acepta URLs arbitrarias (SSRF limitado) | ✅ Fase 2 (P-B1): solo hosts de servicios push reales |
 | L9 | Cambio de correo sin verificación del nuevo correo | ⏳ |
 | L10 | Borradores en `localStorage` no se borran al cerrar sesión | ⏳ |
 | L11 | `X-Request-Id` sin límite de longitud | ⏳ |
@@ -124,6 +124,92 @@ Leyenda de estado: ✅ corregido en este cambio · ⚠️ mitigado parcialmente 
 - Contraseñas con hash (PBKDF2 de ASP.NET Identity); refresh tokens guardados como SHA-256.
 - Cookies de sesión `HttpOnly`, `Secure` en HTTPS.
 - Sin `eval` ni `new Function` en el bundle de producción; source maps desactivados en producción.
+
+---
+
+## Fase 2 — Auditoría profunda post-implementación
+
+Modelo de atacante: controla todo el navegador (DevTools, Burp, cURL), tiene una cuenta legítima de cualquier rol y
+modifica IDs, roles, cuerpos y cabeceras a mano. Se probó contra el pipeline HTTP real (`WebApplicationFactory`) sobre una
+base SQLite desechable, con las cuentas `Student_A_School_1`, `Student_B_School_1`, `Student_C_School_2`, `Teacher_School_1`,
+`Teacher_School_2`, `School_Admin_1`, `School_Admin_2`, `Admin_Global` y un estudiante desactivado. Matriz completa en
+[`SECURITY_TEST_MATRIX.md`](SECURITY_TEST_MATRIX.md). No se proporcionó archivo HAR; el análisis se hizo sobre el bundle compilado y
+el tráfico real de la API.
+
+> **Incidente durante la auditoría (ya resuelto).** La primera ejecución del arnés usó el entorno `Development`, y
+> `Program.cs` carga `appsettings.Development.local.json`, que apunta a la base **de producción** de Render. Se crearon 8
+> usuarios `@pruebas.test` (IDs 128–135), 2 intentos, 1 banco, 1 pregunta, 2 grupos y 1 notificación. Se borraron
+> todos en una transacción filtrando por esos IDs y correos (verificado: 0 restantes). El arnés ahora usa el entorno
+> `Testing`, fuerza SQLite y se niega a sembrar datos si la conexión no es el archivo temporal.
+> **Recomendación:** que `appsettings.Development.local.json` apunte a una base de desarrollo, no a producción; si ese archivo
+> se compartió alguna vez, rotar la contraseña de la base en Render.
+
+### CRÍTICO
+
+**P-C1 — Los juegos de práctica revelaban la respuesta correcta de preguntas de un examen abierto** ✅
+- **Dónde:** `Api/Services/Play/PlayService.cs` (`SyncMistakesAsync`, `AnswerMistakeAsync`, `AnswerDailyAsync`) y `PlayService.Pool.cs` (`CheckSignsQuestionAsync`).
+- **Riesgo:** durante un examen (incluido el teórico oficial de la escuela) el estudiante respondía una pregunta, `GET /api/student/play/mistakes` la listaba si estaba mal, `POST /api/student/play/mistakes/answer` devolvía `correctOptionId`, y el estudiante cambiaba su respuesta del examen. Así sacaba 100 % en cualquier examen.
+- **Reproducir:** Student_A inicia un examen, responde Q mal y llama `POST /api/student/play/mistakes/answer {questionId:Q, optionId:0}`. Antes: 200 con la clave. Ahora: **409 `question_in_open_attempt`**.
+- **Corrección:** los errores solo se sincronizan desde intentos **terminados**, y los tres endpoints que revelan la clave rechazan preguntas que estén en un intento abierto del usuario.
+- **Prueba:** `SessionAndRequestForgeryTests.Practice_mistakes_never_reveal_the_key_of_a_question_in_an_open_exam`.
+
+### ALTO
+
+**P-A1 — El refresh cerraba la conexión de la base del request (`ObjectDisposedException: NpgsqlConnection`)** ✅
+- **Dónde:** `Modules.Identity/Infrastructure/Persistence/RefreshTokenStore.cs` (`await using var conn = _db.Database.GetDbConnection()`).
+- **Riesgo:** el `await using` dispone la conexión del `DbContext`; la siguiente consulta del mismo request fallaba con 500 **después** de revocar el token, y el usuario quedaba deslogueado. Es el error que se vio en producción. Además un `catch {}` vacío ocultaba fallos de base como "token inválido".
+- **Reproducir:** iniciar sesión y llamar `POST /api/auth/refresh` en PostgreSQL.
+- **Corrección:** `OpenConnectionAsync`/`CloseConnectionAsync` de EF (sin disponer), `catch` limitado a `DbException` con log.
+- **Prueba:** `Refresh_rotates_and_the_new_cookie_works` (refresh encadenado dos veces sobre el mismo host).
+
+**P-A2 — Refresh reutilizable sin límite durante 60 s y sin detección de robo** ✅
+- **Dónde:** `RefreshTokenStore.ConsumeAsync`; columnas nuevas `RotatedAt`, `GraceUses` (`RefreshTokenSchemaGuard`, también corre en producción con `ApplyFeatureSchema=false`).
+- **Riesgo:** un token recién rotado se podía canjear ilimitadamente durante la gracia; cada canje creaba una sesión de 365 días independiente. Un token robado y rotado por el atacante no dejaba rastro.
+- **Reproducir:** canjear la misma cookie `cale_refresh` 4 veces seguidas; o canjear un token rotado hace más de 60 s.
+- **Corrección:** máximo 2 reusos dentro de la gracia (pestañas simultáneas). Si un token rotado aparece **fuera** de la gracia, se revocan todas las sesiones del usuario y se registra `Refresh token reuse detected` (una sola vez por token, para que una cookie vieja no cierre sesiones nuevas una y otra vez).
+- **Pruebas:** `Rotated_refresh_is_only_accepted_a_couple_of_times_inside_the_grace_window`, `Replaying_a_rotated_refresh_after_the_grace_window_revokes_every_session_of_that_user`, `Refresh_after_logout_is_401`, `Garbage_refresh_cookie_is_401`.
+
+### MEDIO
+
+| ID | Hallazgo | Dónde | Estado / prueba |
+|----|----------|-------|-----------------|
+| P-M1 | CSRF dependía solo de `SameSite=Lax` | `Api/Middleware/CsrfOriginMiddleware.cs` (nuevo) | ✅ POST/PUT/PATCH/DELETE en `/api` con cookies se rechazan (403 `csrf_origin_rejected`) si `Origin` no es el propio sitio o un origen CORS, o si `Sec-Fetch-Site: cross-site`. Bearer y clientes sin esas cabeceras no se afectan. Pruebas `Cross_origin_state_change_with_cookies_is_rejected`, `Cross_site_fetch_metadata_is_rejected_even_without_origin`, `Same_origin_state_change_is_allowed` |
+| P-M2 | Simulacro personalizado (mezcla) evitaba la restricción del examen oficial y permitía revisar sin límite la clave de exámenes de 1 intento | `Modules.Assessment/.../StartExamHandler.cs` | ✅ Usa `GetSchoolOfficialTheoryExamIdAsync` (antes solo bloqueaba si el estudiante ya estaba autorizado) y rechaza exámenes de un solo intento. El selector del simulador ya no los muestra |
+| P-M3 | Reto diario usaba preguntas del examen oficial y de exámenes de 1 intento (devolvía la clave) | `PlayService.Pool.cs` `LoadSchoolQuestionIdsAsync` | ✅ Excluidos |
+| P-M4 | Respuestas de `/api` sin `Cache-Control` (datos personales cacheables) | `SecurityHeadersMiddleware.cs` | ✅ `no-store` + `Pragma: no-cache` salvo que el endpoint fije su propia caché (medios públicos). Prueba `Private_api_responses_are_not_cacheable` |
+| P-M5 | Rutas `/api` desconocidas devolvían `index.html` con 200 | `WebApplicationExtensions.cs` | ✅ 404 `application/problem+json`. Prueba `Unknown_api_route_is_a_json_problem` |
+| P-M6 | Presupuesto diario del asistente IA compartido por todas las escuelas (2 cuentas lo agotaban) | `Api/Services/Assistant/AssistantService.cs`, `AssistantOptions.cs` | ✅ Topes de llamadas al proveedor por usuario (40/día) y por escuela (60/día), además del global. La API key sigue solo en servidor |
+| P-M7 | Una escuela puede vincular por correo a cualquier estudiante/instructor sin escuela, sin su consentimiento, y los errores distinguen si el correo existe | `SchoolMemberHandlers.cs` (`attach`), `ImportSchoolMembersHandler.cs` | ⏳ **Decisión de negocio**: convertirlo en invitación que el usuario acepta rompería el flujo actual de las escuelas. Recomendado: invitación + mensaje de error único |
+| P-M8 | Cambio de correo de acceso sin contraseña ni verificación del nuevo correo | `UpdateMyProfileHandler.cs` | ⏳ Requiere cambio de UI (pedir contraseña y código). Mitigado: el access token dura 60 min y las sesiones se revalidan en cada request |
+
+### BAJO
+
+| ID | Hallazgo | Estado |
+|----|----------|--------|
+| P-B1 | SSRF ciego vía suscripción push (`https://host-interno/`) | ✅ `PushController.IsValidEndpoint`: solo FCM, Mozilla, WNS y Apple, sin IPs ni puertos. Prueba `Push_subscription_to_an_internal_host_is_rejected` |
+| P-B2 | Otro usuario podía quedarse con la suscripción push de un dispositivo conociendo su endpoint | ✅ `PushServices.SubscribeAsync` solo reasigna si las claves del navegador coinciden |
+| P-B3 | `TimeMinutes` sin tope: un instructor podía guardar un examen que da 500 a todos (desbordamiento) | ✅ `Exam.Validate`: 1–1440 min |
+| P-B4 | Estudiante retirado de un grupo seguía viendo la lista de exámenes del grupo | ✅ `ExamsController.Published` usa solo membresías activas |
+| P-B5 | `client-errors` registraba URLs con query string (códigos/tokens) | ✅ Se recorta `?` y `#` antes de registrar |
+| P-B6 | Puntaje del juego de señales lo envía el cliente; `signs/check` repetible | ⏳ Solo gamificación; el riesgo de clave durante examen queda cubierto por P-C1 |
+| P-B7 | Medios públicos con `Cache-Control: public, immutable` (URLs con GUID) | ⏳ Las URLs no son adivinables; evaluar URLs firmadas para medios privados |
+| P-B8 | Comprobantes de pago no ligados a la escuela que los subió | ⏳ Solo Admin/Escuela pueden descargarlos (prueba `Payment_receipts_require_admin_or_school`); nombres GUID |
+| P-B9 | Error de librería devuelto al importar Word | ✅ Mensaje fijo salvo errores propios del parser |
+| P-B10 | Sin `kid` ni rotación de clave JWT; access token válido hasta 60 min tras logout | ⏳ Mitigado: cada request revalida usuario activo y rol (`MustChangePasswordMiddleware`). Prueba `Valid_token_of_a_deactivated_user_is_401` |
+| P-B11 | Si `Cors:Origins` se configura como `*` se abre a todo origen (sin credenciales) | ⏳ Configuración; no usar `*` en producción |
+| P-B12 | Perfil de usuario y token de jugador de "100 Estudiantes" en `localStorage` | ⏳ Sin tokens de sesión (cookies HttpOnly); mover a `sessionStorage` en una próxima versión |
+
+### INFORMATIVO (verificado correcto en Fase 2)
+
+- **BOLA/IDOR:** ningún ID cambiado dio acceso a datos ajenos: intentos (`review`, `answer`, `finish`), grupos y miembros, preguntas privadas, miembros de otra escuela, exámenes, cursos, progreso, notificaciones, asistente.
+- **Multi-tenant:** escuela A no lista ni edita miembros de escuela B; instructor no mete estudiantes de otra escuela en su grupo.
+- **JWT:** rol editado, otra clave, `alg: none`, otra audiencia y token vencido → 401. Solo HS256; clave débil bloquea el arranque.
+- **Mass assignment:** `role`, `schoolId`, `isPaid`, `isActive` extra en el cuerpo se ignoran; `score` en `finish` se ignora (nota calculada en servidor).
+- **Pagos:** la escuela no puede activarse plan (403); precios y estados salen del servidor.
+- **Cifrado de respuestas (`X-Cale-Wire`):** confirmado que **no es un control**: sin la cabecera la API responde JSON plano. La seguridad depende de la autorización en servidor.
+- **Bundle:** sin source maps, sin `sourceMappingURL`, sin claves de API, cadenas de conexión ni llaves privadas.
+- **Rate limit:** login 10/min por IP → 429 (prueba `Brute_force_login_gets_429`).
+- **Logs:** no se registran contraseñas, JWT, refresh tokens ni API keys; se registran reutilización de refresh y CSRF bloqueado.
 
 ---
 

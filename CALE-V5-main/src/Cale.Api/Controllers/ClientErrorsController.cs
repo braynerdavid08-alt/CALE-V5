@@ -48,13 +48,25 @@ public sealed class ClientErrorsController : ControllerBase
         _logger.LogError(
             "Client error source={Source} url={Url} message={Message} RequestId={RequestId} UserId={UserId} stack={Stack}",
             report?.Source ?? "unknown",
-            report?.Url ?? "-",
+            StripQuery(report?.Url),
             report?.Message ?? "client_error",
             traceId,
             userId,
             Truncate(report?.Stack, 1500));
 
         return Accepted(new { received = true, traceId });
+    }
+
+    // Query strings and fragments can carry reset codes or tokens; never log them.
+    internal static string StripQuery(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return "-";
+        }
+
+        var cut = url.IndexOfAny(['?', '#']);
+        return cut < 0 ? url : url[..cut];
     }
 
     private static string Truncate(string? value, int max) =>

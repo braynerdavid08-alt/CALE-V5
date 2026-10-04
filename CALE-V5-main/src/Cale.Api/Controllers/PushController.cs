@@ -62,11 +62,26 @@ public sealed class PushController : ControllerBase
         return Accepted();
     }
 
-    private static bool IsValidEndpoint(string? endpoint) =>
+    // The server POSTs to this URL, so only real browser push services are accepted (no internal hosts).
+    private static readonly string[] PushHostSuffixes =
+    [
+        "fcm.googleapis.com",
+        "android.googleapis.com",
+        "push.services.mozilla.com",
+        "notify.windows.com",
+        "push.apple.com"
+    ];
+
+    internal static bool IsValidEndpoint(string? endpoint) =>
         !string.IsNullOrWhiteSpace(endpoint)
         && endpoint.Length <= 1000
         && Uri.TryCreate(endpoint, UriKind.Absolute, out var uri)
-        && uri.Scheme == Uri.UriSchemeHttps;
+        && uri.Scheme == Uri.UriSchemeHttps
+        && uri.IsDefaultPort
+        && uri.HostNameType == UriHostNameType.Dns
+        && PushHostSuffixes.Any(suffix =>
+            uri.Host.Equals(suffix, StringComparison.OrdinalIgnoreCase)
+            || uri.Host.EndsWith("." + suffix, StringComparison.OrdinalIgnoreCase));
 }
 
 public sealed record PushSubscribeKeys(string? P256dh, string? Auth);

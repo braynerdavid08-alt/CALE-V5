@@ -4,6 +4,8 @@ namespace Cale.Modules.Catalog.Domain;
 
 public sealed class Exam
 {
+    public const int MaxTimeMinutes = 1440;
+
     public int Id { get; private set; }
     public string Name { get; private set; } = "";
     public string? Description { get; private set; }
@@ -127,10 +129,10 @@ public sealed class Exam
                 "invalid_count");
         }
 
-        if (timeMinutes < 1)
+        if (timeMinutes < 1 || timeMinutes > MaxTimeMinutes)
         {
             throw new DomainException(
-                "Time must be at least 1 minute.",
+                $"Time must be between 1 and {MaxTimeMinutes} minutes.",
                 400,
                 "invalid_time");
         }

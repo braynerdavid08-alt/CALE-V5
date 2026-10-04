@@ -40,6 +40,21 @@ public sealed class SecurityHeadersMiddleware
             headers[_mode == "report-only" ? "Content-Security-Policy-Report-Only" : "Content-Security-Policy"] = policy;
         }
 
+        if (context.Request.Path.StartsWithSegments("/api"))
+        {
+            context.Response.OnStarting(static state =>
+            {
+                var response = (HttpResponse)state;
+                if (string.IsNullOrEmpty(response.Headers.CacheControl))
+                {
+                    response.Headers.CacheControl = "no-store";
+                    response.Headers.Pragma = "no-cache";
+                }
+
+                return Task.CompletedTask;
+            }, context.Response);
+        }
+
         return _next(context);
     }
 

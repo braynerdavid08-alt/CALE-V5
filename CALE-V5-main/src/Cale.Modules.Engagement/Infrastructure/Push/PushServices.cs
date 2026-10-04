@@ -135,9 +135,14 @@ public sealed class PushSubscriptionService
         {
             _db.Set<DeviceSubscription>().Add(DeviceSubscription.Create(userId, endpoint, p256dh, auth, ua, now));
         }
+        else if (existing.UserId == userId || (existing.P256dh == p256dh && existing.Auth == auth))
+        {
+            // Another user may only take over a device that proves it is the same browser subscription.
+            existing.Refresh(userId, p256dh, auth, ua, now);
+        }
         else
         {
-            existing.Refresh(userId, p256dh, auth, ua, now);
+            return;
         }
 
         await _db.SaveChangesAsync(ct);

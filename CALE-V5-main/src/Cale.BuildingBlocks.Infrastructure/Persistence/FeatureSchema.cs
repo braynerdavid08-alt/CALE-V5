@@ -827,6 +827,14 @@ public static class FeatureSchema
                     ON "AuthRefreshTokens" ("UserId");
                 """,
                 ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "AuthRefreshTokens" ADD COLUMN "RotatedAt" TEXT NULL;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "AuthRefreshTokens" ADD COLUMN "GraceUses" INTEGER NOT NULL DEFAULT 0;""",
+                ct);
 
             return;
         }
@@ -1583,6 +1591,12 @@ public static class FeatureSchema
                 ct);
             await TryPostgresAsync(db,
                 """CREATE INDEX IF NOT EXISTS "IX_AuthRefreshTokens_UserId" ON "AuthRefreshTokens" ("UserId");""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "AuthRefreshTokens" ADD COLUMN IF NOT EXISTS "RotatedAt" timestamp with time zone NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "AuthRefreshTokens" ADD COLUMN IF NOT EXISTS "GraceUses" integer NOT NULL DEFAULT 0;""",
                 ct);
 
             // Homepage CMS tables are not created by EnsureCreated on existing DBs.

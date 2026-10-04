@@ -21,6 +21,12 @@ public sealed class AssistantOptions
     /// <summary>Provider calls for the whole app per day (free tiers cap requests, not users).</summary>
     public int DailyRequestBudget { get; set; } = 140;
 
+    /// <summary>Provider calls one school (its staff and students together) may spend per day.</summary>
+    public int DailyRequestsPerSchool { get; set; } = 60;
+
+    /// <summary>Provider calls one user may spend per day (each message can take several tool rounds).</summary>
+    public int DailyRequestsPerUser { get; set; } = 40;
+
     public int MaxToolRounds { get; set; } = 4;
     public int MaxOutputTokens { get; set; } = 600;
     public int TimeoutSeconds { get; set; } = 40;

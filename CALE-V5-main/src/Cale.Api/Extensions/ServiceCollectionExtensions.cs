@@ -316,9 +316,7 @@ public static class ServiceCollectionExtensions
         });
     }
 
-    private static void AddCaleCors(
-        this IServiceCollection services,
-        IConfiguration config)
+    public static string[] ResolveCorsOrigins(IConfiguration config)
     {
         var origins = config.GetSection("Cors:Origins").Get<string[]>()
             ?? ["http://localhost:4200", "http://127.0.0.1:4200"];
@@ -331,6 +329,15 @@ public static class ServiceCollectionExtensions
             origins = fromEnv
                 .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         }
+
+        return origins;
+    }
+
+    private static void AddCaleCors(
+        this IServiceCollection services,
+        IConfiguration config)
+    {
+        var origins = ResolveCorsOrigins(config);
 
         services.AddCors(options =>
         {

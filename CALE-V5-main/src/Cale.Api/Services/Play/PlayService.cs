@@ -100,6 +100,7 @@ public sealed partial class PlayService
             throw new DomainException("Question already answered.", 409, "daily_already_answered");
         }
 
+        await EnsureNotInOpenAttemptAsync(userId, request.QuestionId, ct);
         var question = await LoadQuestionAsync(request.QuestionId, ct);
         var correctId = CorrectOptionId(question);
         var correct = correctId == request.OptionId;
@@ -288,6 +289,7 @@ public sealed partial class PlayService
             .FirstOrDefaultAsync(x => x.UserId == userId && x.QuestionId == request.QuestionId, ct)
             ?? throw new DomainException("Question is not in your review list.", 404, "mistake_not_found");
 
+        await EnsureNotInOpenAttemptAsync(userId, request.QuestionId, ct);
         var question = await LoadQuestionAsync(request.QuestionId, ct);
         var correctId = CorrectOptionId(question);
         var correct = correctId == request.OptionId;
@@ -333,8 +335,8 @@ public sealed partial class PlayService
                 from ans in _db.Set<AttemptAnswer>().AsNoTracking()
                 join at in _db.Set<Attempt>().AsNoTracking() on ans.AttemptId equals at.Id
                 join q in _db.Set<Question>().AsNoTracking() on ans.QuestionId equals q.Id
-                where at.UserId == userId && !ans.IsCorrect && ans.OptionId != null
-                select new { ans.QuestionId, When = at.FinishedAt ?? at.StartedAt })
+                where at.UserId == userId && at.FinishedAt != null && !ans.IsCorrect && ans.OptionId != null
+                select new { ans.QuestionId, When = at.FinishedAt!.Value })
             .ToListAsync(ct);
         if (wrong.Count == 0)
         {
@@ -640,6 +642,29 @@ public sealed partial class PlayService
             .Include(q => q.Options)
             .Where(q => ids.Contains(q.Id) && (includeInactive || q.IsActive))
             .ToDictionaryAsync(q => q.Id, ct);
+    }
+
+    // Practice games reveal the correct option; never for a question the student still has to answer
+    // in an unfinished exam attempt (they could read the key and then change their exam answer).
+    private async Task EnsureNotInOpenAttemptAsync(int userId, int questionId, CancellationToken ct)
+    {
+        var cutoff = _clock.UtcNow.AddMinutes(-1);
+        var inOpenAttempt = await (
+                from aq in _db.Set<AttemptQuestion>().AsNoTracking()
+                join at in _db.Set<Attempt>().AsNoTracking() on aq.AttemptId equals at.Id
+                where at.UserId == userId
+                    && aq.QuestionId == questionId
+                    && at.FinishedAt == null
+                    && (at.ExpiresAt == null || at.ExpiresAt > cutoff)
+                select aq.Id)
+            .AnyAsync(ct);
+        if (inOpenAttempt)
+        {
+            throw new DomainException(
+                "Finish your open exam before practising this question.",
+                409,
+                "question_in_open_attempt");
+        }
     }
 
     private async Task<Question> LoadQuestionAsync(int id, CancellationToken ct) =>

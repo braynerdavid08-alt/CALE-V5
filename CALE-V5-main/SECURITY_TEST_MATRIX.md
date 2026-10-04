@@ -1,0 +1,102 @@
+# Matriz de ataque controlado — Luz Verde (CALE-V5)
+
+Cada fila es una prueba automática que levanta la API real (middleware, controladores, autorización) sobre una base
+SQLite temporal y envía la petición "a mano", como lo haría un atacante con DevTools, Burp o cURL. **Nunca toca datos
+reales:** el arnés usa el entorno `Testing`, fuerza SQLite y se niega a sembrar si la conexión no es el archivo temporal.
+
+- Código: `tests/Cale.UnitTests/Security/Integration/` (`AttackMatrixTests`, `SessionAndRequestForgeryTests`, `RateLimitTests`).
+- Ejecutar: `dotnet test tests/Cale.UnitTests --filter "FullyQualifiedName~Security.Integration"`.
+- Último resultado: **45/45 superadas** (suite completa: 339 pruebas unitarias + 4 de arquitectura).
+
+**Cuentas de prueba** (contraseña común solo en la base temporal):
+
+| Cuenta | Rol | Escuela |
+|--------|-----|---------|
+| Admin_Global | Admin | — |
+| School_Admin_1 / School_Admin_2 | School (es el tenant) | 1 / 2 |
+| Teacher_School_1 / Teacher_School_2 | Teacher | 1 / 2 |
+| Student_A_School_1 / Student_B_School_1 | Student | 1 |
+| Student_C_School_2 | Student | 2 |
+| Student_Inactive_School_1 | Student desactivado | 1 |
+
+Datos: banco y pregunta **privados** de Teacher_School_2 (con solucionario), grupo de Teacher_School_2, intento abierto de
+Student_A con esa pregunta, y la misma pregunta en la lista de "errores" de Student_A.
+
+## Escalada vertical
+
+| Petición | Usuario | Esperado | Actual | Estado | Severidad si fallara |
+|----------|---------|----------|--------|--------|-----------|
+| `GET /api/admin/users` | anónimo | 401 | 401 | ✅ | Crítica |
+| `GET /api/admin/users` | Student_A / Teacher_1 / School_1 | 403 | 403 | ✅ | Crítica |
+| `GET /api/admin/users` | Admin_Global | 200 | 200 | ✅ | — (control positivo) |
+| `GET /api/school/members` | Student_A / Teacher_1 | 403 | 403 | ✅ | Alta |
+| `POST /api/groups` | Student_A | 403 | 403 | ✅ | Media |
+| `GET /api/questions/{id}` | Student_A | 403 | 403 | ✅ | Alta |
+
+## JWT y sesión
+
+| Petición | Usuario | Esperado | Actual | Estado | Severidad |
+|----------|---------|----------|--------|--------|-----------|
+| JWT con rol editado a `Admin` (firma original) | Student_A | 401 | 401 | ✅ | Crítica |
+| JWT firmado con otra clave | atacante | 401 | 401 | ✅ | Crítica |
+| JWT `alg: none` sin firma | atacante | 401 | 401 | ✅ | Crítica |
+| JWT con otra audiencia | Student_A | 401 | 401 | ✅ | Alta |
+| JWT vencido | Student_A | 401 | 401 | ✅ | Alta |
+| JWT válido de usuario desactivado | Student_Inactive | 401 | 401 | ✅ | Alta |
+| `POST /api/auth/refresh` encadenado (rota y la nueva cookie sirve) | Teacher_1 | 200, 200 | 200, 200 | ✅ | Alta (P-A1) |
+| Misma cookie de refresh canjeada 4 veces seguidas | Teacher_1 | 200, 200, 200, 401 | igual | ✅ | Media (P-A2) |
+| Refresh rotado reutilizado tras la gracia de 60 s | Teacher_2 | 401 y **todas** sus sesiones revocadas | igual | ✅ | Alta (P-A2) |
+| Refresh después de `logout` | Teacher_1 | 401 | 401 | ✅ | Alta |
+| Cookie de refresh inventada | atacante | 401 | 401 | ✅ | Media |
+| `POST /api/auth/login` ×12 con contraseña errónea | atacante | 429 al superar 10/min | 429 | ✅ | Media |
+
+## Multi-tenant y BOLA/IDOR
+
+| Petición | Usuario | Esperado | Actual | Estado | Severidad |
+|----------|---------|----------|--------|--------|-----------|
+| `GET /api/school/members` | School_1 | sin correos de escuela 2 | sin correos de escuela 2 | ✅ | Alta |
+| `PUT /api/school/members/{Student_C}` (nombre + contraseña) | School_1 | 403/404, sin cambios | 403/404, sin cambios | ✅ | Crítica |
+| `GET /api/questions/{privada}` | Teacher_1 | 404 | 404 | ✅ | Alta |
+| `GET /api/questions?bankId={privado}` | Teacher_1 | sin el texto privado | sin el texto privado | ✅ | Alta |
+| `GET /api/questions/{privada}` | Teacher_2 (dueño) | 200 | 200 | ✅ | — (control positivo) |
+| `GET /api/groups/{grupo T2}` y sus miembros | Teacher_1 | 403/404 | 403/404 | ✅ | Media |
+| `POST /api/groups/{grupo T2}/members` | Teacher_1 | 403/404 | 403/404 | ✅ | Media |
+| `POST /api/groups/{grupo propio}/members` con Student_C | Teacher_1 | 403 | 403 | ✅ | Media |
+| `GET /api/exams/{intento A}/review` | Student_B | 403/404 | 403/404 | ✅ | Alta |
+| `POST /api/exams/{intento A}/answer` y `/finish` | Student_B | 403/404 | 403/404 | ✅ | Alta |
+
+## Manipulación de datos (mass assignment)
+
+| Petición | Usuario | Esperado | Actual | Estado | Severidad |
+|----------|---------|----------|--------|--------|-----------|
+| `POST /api/exams/{id}/finish` con `score`, `percent`, `passed` falsos | Student_B | ignorado, nota del servidor | `passed=false`, `percent=0` | ✅ | Crítica |
+| `PUT /api/auth/me` con `role=Admin`, `schoolId`, `isPaid`, `isActive` | Student_B | ignorados | rol y escuela sin cambios | ✅ | Crítica |
+| `POST /api/school/plan/activate` y `PUT /api/school/plan` con `plan`, `isPaid` | School_1 | 403 | 403 | ✅ | Alta |
+
+## Fugas de respuestas y archivos
+
+| Petición | Usuario | Esperado | Actual | Estado | Severidad |
+|----------|---------|----------|--------|--------|-----------|
+| `POST /api/student/play/mistakes/answer` con pregunta de un examen abierto | Student_A | 409, sin clave ni solucionario | 409 | ✅ | **Crítica (P-C1)** |
+| `GET /uploads/receipts/{guid}.png` | Student_A | 403 | 403 | ✅ | Alta |
+
+## CSRF, cabeceras y respuestas seguras
+
+| Petición | Usuario | Esperado | Actual | Estado | Severidad |
+|----------|---------|----------|--------|--------|-----------|
+| `POST /api/auth/logout` con `Origin: https://evil.example` | navegador víctima | 403 | 403 | ✅ | Media (P-M1) |
+| `POST /api/auth/logout` con `Sec-Fetch-Site: cross-site` | navegador víctima | 403 | 403 | ✅ | Media |
+| `POST /api/auth/logout` desde el mismo origen | usuario | 204 | 204 | ✅ | — (control positivo) |
+| `GET /api/auth/me` con Bearer y `Origin` ajeno | Student_A | 200 (lecturas no se bloquean) | 200 | ✅ | — |
+| `GET /api/auth/me` | Student_A | `Cache-Control: no-store` | `no-store` | ✅ | Media (P-M4) |
+| `GET /api/esto-no-existe/26`, `POST /api/no-existe/26` | cualquiera | 404 `application/problem+json` | igual | ✅ | Media (P-M5) |
+| `GET /api/auth/me` sin cabecera `X-Cale-Wire` | Student_A | JSON plano (el cifrado **no** es un control) | JSON plano | ✅ | Informativo |
+| `POST /api/push/subscriptions` a `https://10.0.0.5:8443/` | Student_A | 400 | 400 | ✅ | Baja (P-B1) |
+
+## Pendientes sin prueba automática (decisión de negocio o cambio de UI)
+
+| Caso | Motivo |
+|------|--------|
+| Escuela vincula por correo a un usuario sin escuela sin su consentimiento (P-M7) | Cambiar a invitación altera el flujo de las escuelas |
+| Cambio de correo sin contraseña ni verificación (P-M8) | Requiere campos nuevos en el perfil |
+| Puntaje del juego de señales enviado por el cliente (P-B6) | Solo gamificación |

@@ -443,7 +443,7 @@ public sealed class StartExamHandler
 
         var groupIds = (await _groups.GetActiveGroupIdsAsync(userId, ct)).ToHashSet();
         var officialExamId =
-            await _trainingEligibility.GetAuthorizedSchoolOfficialTheoryExamIdAsync(userId, ct);
+            await _trainingEligibility.GetSchoolOfficialTheoryExamIdAsync(userId, ct);
         var exams = new List<Exam>();
         foreach (var examId in examIds)
         {
@@ -466,6 +466,14 @@ public sealed class StartExamHandler
                 throw new ForbiddenException(
                     "El examen teórico oficial de tu escuela no se puede usar en un simulacro personalizado.",
                     "official_exam_not_mixable");
+            }
+
+            // A single-attempt exam is graded; mixing it would allow unlimited reviews of its key.
+            if (exam.AllowedAttempts <= 1)
+            {
+                throw new ForbiddenException(
+                    "Los exámenes de un solo intento no se pueden usar en un simulacro personalizado.",
+                    "single_attempt_exam_not_mixable");
             }
 
             if (!assignedNow)

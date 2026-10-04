@@ -34,10 +34,14 @@ public sealed class ImportExamFromWordHandler
         {
             parsed = ExamWordImportParser.Parse(file);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            throw new DomainException($"No se pudo leer el Word: {ex.Message}", 400, "invalid_exam_word");
+        }
+        catch (Exception)
         {
             throw new DomainException(
-                $"No se pudo leer el Word: {ex.Message}",
+                "No se pudo leer el Word. Verifica que sea un .docx válido basado en la plantilla.",
                 400,
                 "invalid_exam_word");
         }

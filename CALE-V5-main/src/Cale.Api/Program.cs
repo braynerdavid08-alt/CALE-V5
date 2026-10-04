@@ -52,3 +52,5 @@ builder.AddCaleServices();
 var app = builder.Build();
 await app.UseCalePipelineAsync();
 app.Run();
+
+public partial class Program;
