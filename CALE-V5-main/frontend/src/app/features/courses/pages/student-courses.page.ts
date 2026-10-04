@@ -17,7 +17,7 @@ import { StudentCourseItem, StudentCoursesApi } from '../api/courses.api';
       <ui-page-header
         eyebrow="Aprende a tu ritmo"
         title="Cursos virtuales"
-        subtitle="Lecciones cortas con señales, tarjetas y preguntas para reforzar lo que ves en clase. Ganas experiencia por cada lección." />
+        subtitle="Están organizados por núcleo. Cada uno tiene lecciones cortas, con señales, tarjetas y preguntas. Ganas experiencia por cada lección." />
 
       @if (error()) {
         <p class="alert" role="alert">{{ error() }}</p>
@@ -31,8 +31,12 @@ import { StudentCourseItem, StudentCoursesApi } from '../api/courses.api';
           <p class="muted">Cuando tu escuela o Luz Verde publiquen un curso, aparecerá aquí.</p>
         </div>
       } @else {
-        <div class="course-grid">
-          @for (c of courses(); track c.id) {
+        @for (group of groups(); track group.title) {
+          <section class="nucleus">
+            <h2>{{ group.title }}</h2>
+            <p class="muted lede">{{ group.summary }}</p>
+            <div class="course-grid">
+          @for (c of group.courses; track c.id) {
             <article class="course-card">
               <a class="cover" [routerLink]="['/student/cursos', c.id]" [attr.aria-label]="c.title">
                 @if (c.coverUrl) {
@@ -62,7 +66,9 @@ import { StudentCourseItem, StudentCoursesApi } from '../api/courses.api';
               </div>
             </article>
           }
-        </div>
+            </div>
+          </section>
+        }
       }
     </section>
   `
@@ -90,4 +96,61 @@ export class StudentCoursesPage implements OnInit {
   url(path?: string | null): string {
     return resolveMediaUrl(path);
   }
+
+  groups(): Array<{ title: string; summary: string; courses: StudentCourseItem[] }> {
+    const used = new Set<number>();
+    const grouped = NUCLEI.map((nucleus) => {
+      const courses = this.courses().filter((course) =>
+        nucleus.match.some((prefix) => course.title.startsWith(prefix)));
+      courses.forEach((course) => used.add(course.id));
+      return { title: nucleus.title, summary: nucleus.summary, courses };
+    }).filter((group) => group.courses.length > 0);
+    const other = this.courses().filter((course) => !used.has(course.id));
+    if (other.length > 0) {
+      grouped.push({
+        title: 'Otros cursos',
+        summary: 'Cursos publicados por tu escuela.',
+        courses: other
+      });
+    }
+    return grouped;
+  }
 }
+
+const NUCLEI: Array<{ title: string; summary: string; match: string[] }> = [
+  {
+    title: 'Movilidad segura y sostenible',
+    summary: 'Sistema Seguro, Visión Cero, víctimas, usuarios vulnerables, emergencias y eco-conducción.',
+    match: ['Movilidad segura', 'Primeros auxilios']
+  },
+  {
+    title: 'Normas de tránsito',
+    summary: 'Código, documentos, velocidad, prelación, maniobras, carga e infracciones.',
+    match: ['Normas de tránsito']
+  },
+  {
+    title: 'Señalización e infraestructura vial',
+    summary: 'Señales, demarcación, semáforos, la vía, ciclistas y espacio público.',
+    match: ['Señales de tránsito', 'Señalización vial', 'La vía y el espacio']
+  },
+  {
+    title: 'El vehículo',
+    summary: 'Sistemas, revisión, seguridad activa y pasiva, y qué hacer ante una avería.',
+    match: ['El vehículo']
+  },
+  {
+    title: 'Motocicleta (A2)',
+    summary: 'Protección, revisión, frenado, curvas, clima, acompañante y carga.',
+    match: ['Conducción segura en motocicleta']
+  },
+  {
+    title: 'Automóvil (B1)',
+    summary: 'Puesto de conducción, cambios, frenado, estacionamiento y giros.',
+    match: ['Dominio seguro del automóvil']
+  },
+  {
+    title: 'Servicio público (C1)',
+    summary: 'Documentos del servicio, atención al usuario, fatiga y rutas de Barranquilla.',
+    match: ['Conducción profesional de servicio público']
+  }
+];

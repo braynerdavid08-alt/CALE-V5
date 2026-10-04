@@ -260,6 +260,63 @@ public sealed partial class CourseSeed
                         Choice("Espero un momento a ver si se le pasa solo.", "Sin aire, cada segundo cuenta. Si no puede toser ni hablar, hay que actuar ya.")
                     ])
             ]
+        ),
+        (
+            "Actuación ante derrames o peligros en la vía",
+            "Qué hacer si hay combustible, aceite u otro líquido peligroso en la calzada, sin intentar limpiarlo ni cruzarlo.",
+            12,
+            [
+                Text(
+                    "Un charco desconocido no se cruza",
+                    "Un derrame de gasolina, aceite, ácido de batería o cualquier líquido que no identificas es un peligro distinto a la lluvia. "
+                    + "Quita adherencia a las llantas, puede incendiarse y, si es químico, lastima la piel y las vías respiratorias. "
+                    + "Tu trabajo no es recogerlo ni lavarlo hacia la alcantarilla: es no convertirse en otra víctima y avisar."),
+                Order(
+                    "Ves un charco brillante y hueles a gasolina en tu carril. Ordena lo que haces.",
+                    [
+                        "Dejo de acelerar y no entro al derrame",
+                        "Enciendo las luces de emergencia y aviso a quienes vienen detrás",
+                        "Me detengo en un lugar seguro, lejos del líquido y a favor del viento",
+                        "Apago el motor y pido que nadie prenda fósforos ni fume",
+                        "Llamo al 123 y describo el lugar, el olor y si hay heridos"
+                    ],
+                    "Primero te proteges y proteges a los que vienen. El líquido lo atienden los bomberos, no el conductor."),
+                Classify(
+                    "¿Esta acción es segura ante un derrame de combustible?",
+                    ["Segura", "Peligrosa"],
+                    [
+                        ("Detenerte lejos y llamar al 123", 0),
+                        ("Alejar a las personas del charco", 0),
+                        ("Apagar el motor", 0),
+                        ("Echarle agua para diluirlo", 1),
+                        ("Cruzarlo despacio porque «es poco»", 1),
+                        ("Prender un cigarrillo mientras esperas", 1),
+                        ("Empujar el líquido hacia la alcantarilla", 1)
+                    ],
+                    "El agua no apaga un derrame de gasolina y puede llevarlo a los drenajes. Cruzarlo arriesga un resbalón y una chispa."),
+                Text(
+                    "Si el derrame sale de tu vehículo",
+                    "Huele a gasolina dentro o debajo del carro, o ves líquido cayendo: detente, apaga el motor, baja a todos por el lado alejado del tráfico "
+                    + "y aléjalos. No vuelvas a dar contacto. Señala la escena como en cualquier varada y espera a la grúa o a los bomberos.\n\n"
+                    + "Esto no es un arroyo de lluvia. El agua de un aguacero se evita por profundidad y corriente; un derrame se evita por fuego y por pérdida de agarre."),
+                Scenario(
+                    "En la Circunvalar un camión dejó un reguero oscuro y resbaloso. Los carros de adelante lo están cruzando despacio. ¿Qué haces?",
+                    [
+                        Choice("Lo cruzo también, siguiendo la huella de los demás.", "Que otros lo crucen no lo vuelve seguro: una llanta puede patinar o una chispa puede encender el combustible."),
+                        Choice("No entro, aviso con las luces y busco cómo salir de ese carril sin frenar encima del líquido.", "Correcto: te mantienes fuera del derrame y evitas que quien viene detrás te encuentre frenado encima.", true),
+                        Choice("Me bajo a ver qué es y lo tapo con tierra.", "Acercarte al líquido te expone al fuego y a los carros que siguen llegando.")
+                    ]),
+                TrueFalse(
+                    "Un derrame de gasolina se limpia echándole agua para que se diluya.",
+                    false,
+                    "Falso: el agua esparce el combustible y puede llevarlo a los drenajes. Lo atienden los bomberos."),
+                Quiz(
+                    "¿Cuál es tu papel ante un derrame en la vía?",
+                    null,
+                    ["Limpiarlo antes de que llegue otro carro", "No cruzarlo, alejar a las personas y avisar al 123", "Encender las luces altas y pasar rápido", "Taparlo con la llanta de repuesto"],
+                    1,
+                    "Proteges, avisas y no intentas una maniobra para la que no estás equipado.")
+            ]
         )
     ];
 }

@@ -279,16 +279,16 @@ public sealed class CourseServiceTests : IDisposable
         Assert.Equal(10, courses.Count);
         Assert.Equal(5, Assert.Single(courses, c => c.Title == "Dominio seguro del automóvil (B1)").TotalLessons);
         Assert.Equal(5, Assert.Single(courses, c => c.Title == "Conducción profesional de servicio público (C1)").TotalLessons);
-        Assert.Equal(6, Assert.Single(courses, c => c.Title == "Movilidad segura y sostenible").TotalLessons);
-        Assert.Equal(4, Assert.Single(courses, c => c.Title == "La vía y el espacio público").TotalLessons);
+        Assert.Equal(8, Assert.Single(courses, c => c.Title == "Movilidad segura y sostenible").TotalLessons);
+        Assert.Equal(5, Assert.Single(courses, c => c.Title == "La vía y el espacio público").TotalLessons);
         Assert.Equal(5, Assert.Single(courses, c => c.Title == "El vehículo: conócelo, revísalo y atiéndelo").TotalLessons);
         Assert.Equal(5, Assert.Single(courses, c => c.Title == "Conducción segura en motocicleta (A2)").TotalLessons);
-        Assert.Equal(5, Assert.Single(courses, c => c.Title == "Señalización vial e infraestructura").TotalLessons);
-        Assert.Equal(6, Assert.Single(courses, c => c.Title == "Primeros auxilios en la vía").TotalLessons);
+        Assert.Equal(6, Assert.Single(courses, c => c.Title == "Señalización vial e infraestructura").TotalLessons);
+        Assert.Equal(7, Assert.Single(courses, c => c.Title == "Primeros auxilios en la vía").TotalLessons);
         var signs = Assert.Single(courses, c => c.Title == "Señales de tránsito");
         Assert.True(signs.TotalLessons >= 4);
         var rules = Assert.Single(courses, c => c.Title == "Normas de tránsito básicas");
-        Assert.Equal(9, rules.TotalLessons);
+        Assert.Equal(10, rules.TotalLessons);
     }
 
     [Fact]
@@ -308,7 +308,7 @@ public sealed class CourseServiceTests : IDisposable
 
         await seed.EnsureAsync(null);
         var upgraded = await _db.Set<CourseLesson>().Where(l => l.CourseId == course.Id).OrderBy(l => l.Position).ToListAsync();
-        Assert.Equal(9, upgraded.Count);
+        Assert.Equal(10, upgraded.Count);
         Assert.Equal(first.Id, upgraded[0].Id);
         Assert.NotEqual("[]", upgraded[0].ContentJson);
         Assert.True(await _db.Set<CourseLessonProgress>().AnyAsync(p => p.LessonId == first.Id));

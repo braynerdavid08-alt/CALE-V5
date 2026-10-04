@@ -229,6 +229,57 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "Fases del semáforo vehicular y peatonal",
+            "Qué obliga cada luz del semáforo para vehículos y para peatones, incluidas las intermitentes y las flechas.",
+            12,
+            [
+                Text(
+                    "Cada luz es una orden distinta",
+                    "El semáforo no es solo «rojo y verde». Cada fase dice una cosa diferente, y quien ya está dentro del cruce no se queda atrapado: lo termina. "
+                    + "Si un agente de tránsito indica otra cosa, manda el agente."),
+                Flip(
+                    "Semáforo vehicular",
+                    Card("Rojo", "Detente antes de la línea de pare. No entres al cruce."),
+                    Card("Amarillo fijo", "Prepárate para detenerte. Si ya no alcanzas a parar con seguridad, termina de cruzar. No aceleres para ganarle."),
+                    Card("Verde", "Puedes avanzar si el cruce está despejado. Cede a quien todavía termina de cruzar, sobre todo al peatón."),
+                    Card("Flecha verde", "Puedes hacer el movimiento de la flecha. Mira igual a peatones y a quien sigue derecho."),
+                    Card("Amarillo intermitente", "Hay un riesgo: reduce y pasa solo cuando sea seguro."),
+                    Card("Rojo intermitente", "Trátalo como un pare: detente y continúa cuando no venga nadie.")),
+                Flip(
+                    "Semáforo peatonal",
+                    Card("Silueta en verde", "Puedes empezar a cruzar por la cebra."),
+                    Card("Silueta intermitente", "No empieces a cruzar. Si ya vas en la cebra, termina con calma."),
+                    Card("Mano roja", "No cruces. Espera la siguiente fase en el andén.")),
+                Order(
+                    "El semáforo está en verde para ti y cambia a amarillo cuando todavía no has entrado al cruce. Ordena lo correcto.",
+                    [
+                        "Dejo de acelerar",
+                        "Miro si alcanzo a detenerme antes de la línea",
+                        "Si alcanzo, me detengo",
+                        "Si ya no alcanzo con seguridad, termino de cruzar sin acelerar",
+                        "No me quedo detenido dentro del cruce"
+                    ],
+                    "El amarillo no es una invitación a acelerar. Es el aviso de que el rojo está a punto de llegar."),
+                Scenario(
+                    "Tienes verde, pero un peatón que empezó con su fase todavía va a la mitad de la cebra. Detrás tuyo pitan. ¿Qué haces?",
+                    [
+                        Choice("Avanzo porque mi luz ya está en verde y el de atrás tiene prisa.", "El verde te autoriza a seguir cuando el cruce está libre. El peatón que ya cruza tiene prioridad."),
+                        Choice("Espero a que el peatón termine y después avanzo.", "Correcto: tu fase no borra a quien ya está en la cebra.", true),
+                        Choice("Le pito para que se devuelva al andén.", "Devolver a un peatón a la mitad de la vía lo pone delante de los carros del otro sentido.")
+                    ]),
+                TrueFalse(
+                    "Un semáforo en rojo intermitente significa que puedo pasar sin detenerme, solo reduciendo la velocidad.",
+                    false,
+                    "Falso: el rojo intermitente obliga a detenerse, como un pare, y a seguir solo cuando la vía esté libre. El que permite pasar con precaución es el amarillo intermitente."),
+                Quiz(
+                    "La silueta del semáforo peatonal empieza a parpadear y tú todavía estás en el andén. ¿Qué haces?",
+                    null,
+                    ["Cruzo corriendo", "No empiezo a cruzar y espero la siguiente fase", "Cruzo porque los carros tienen que esperar", "Me paro en la mitad de la cebra"],
+                    1,
+                    "El parpadeo es para quien ya va cruzando. Quien está en el andén espera.")
+            ]
+        ),
+        (
             "Repaso final",
             "Pon a prueba lo que aprendiste sobre señales, líneas y dispositivos.",
             8,
