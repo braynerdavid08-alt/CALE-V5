@@ -38,8 +38,36 @@ public sealed class AttemptQuestionSnapshotTests
         Assert.Equal(3, parsed.Options.Count);
         Assert.Equal(presented[0].Id, parsed.Options[0].Id);
         Assert.Equal(presented[0].Text, parsed.Options[0].Text);
-        Assert.True(parsed.CorrectOption()!.IsCorrect);
-        Assert.Equal("El de la derecha", parsed.CorrectOption()!.Text);
+        Assert.Equal("El de la derecha", parsed.CorrectText());
+        Assert.Null(parsed.Section);
+    }
+
+    [Fact]
+    public void AttitudeSnapshot_ListsEveryAcceptedAnswerAndKeepsSection()
+    {
+        var question = Question.Create(
+            bankId: 1,
+            blockId: 2,
+            createdById: null,
+            text: "Conduzco por el andén cuando no hay peatones.",
+            type: QuestionTypes.Attitude,
+            topic: "Actitudes",
+            imageUrl: null,
+            explanation: null,
+            options:
+            [
+                QuestionOption.Create("Muy en desacuerdo", true, null),
+                QuestionOption.Create("En desacuerdo", true, null),
+                QuestionOption.Create("De acuerdo", false, null),
+                QuestionOption.Create("Muy de acuerdo", false, null)
+            ],
+            utcNow: DateTime.UtcNow);
+
+        var snapshot = AttemptQuestionSnapshot.FromQuestion(question, question.Options.ToList(), "Actitudes");
+        var parsed = AttemptQuestionSnapshot.TryParse(AttemptQuestionSnapshot.Serialize(snapshot));
+
+        Assert.Equal("Muy en desacuerdo o En desacuerdo", parsed!.CorrectText());
+        Assert.Equal("Actitudes", parsed.Section);
     }
 
     [Fact]

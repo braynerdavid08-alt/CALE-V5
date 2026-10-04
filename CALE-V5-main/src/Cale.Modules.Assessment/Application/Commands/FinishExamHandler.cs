@@ -1,5 +1,8 @@
 using Cale.BuildingBlocks.Domain.Abstractions;
+using Cale.BuildingBlocks.Domain.Assessment;
 using Cale.BuildingBlocks.Domain.Engagement;
+using Cale.BuildingBlocks.Domain.Scoring;
+using Cale.Modules.Assessment.Domain;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Time;
 using Cale.Modules.Assessment.Application.Abstractions;
@@ -92,13 +95,16 @@ public sealed class FinishExamHandler
 
                 var parsed = item.ParsedSnapshot();
                 string? questionText = parsed?.Text;
-                string? correctText = parsed?.CorrectOption()?.Text;
+                string? correctText = parsed?.CorrectText();
                 string? questionType = parsed?.Type;
                 if (parsed is null || parsed.Options.Count == 0)
                 {
                     questionsById.TryGetValue(item.QuestionId, out var question);
                     questionText = question?.Text;
-                    correctText = question?.Options.FirstOrDefault(x => x.IsCorrect)?.Text;
+                    correctText = question is null
+                        ? null
+                        : AttemptQuestionSnapshot.JoinCorrect(
+                            question.Options.Where(x => x.IsCorrect).Select(x => x.Text));
                     questionType = question?.Type;
                 }
 
@@ -137,13 +143,14 @@ public sealed class FinishExamHandler
                 }
             }
 
+            var official = ScoreOfficial(attempt, snapshot, answers);
             if (forceExpired)
             {
-                attempt.CloseExpired(correct, _clock.UtcNow);
+                attempt.CloseExpired(correct, _clock.UtcNow, official?.Passed);
             }
             else
             {
-                attempt.Finish(correct, _clock.UtcNow);
+                attempt.Finish(correct, _clock.UtcNow, passed: official?.Passed);
             }
 
             var marked = await _attempts.TryMarkFinishedAsync(
@@ -227,7 +234,8 @@ public sealed class FinishExamHandler
                 attempt,
                 MapBreakdown(byTopic),
                 MapBreakdown(byBlock),
-                best);
+                best,
+                official);
         }
         catch (DomainException ex)
         {
@@ -240,14 +248,15 @@ public sealed class FinishExamHandler
         }
     }
 
-    public static FinishResponse Map(Domain.Attempt attempt) =>
-        Map(attempt, [], [], null);
+    public static FinishResponse Map(Domain.Attempt attempt, OfficialScore? official = null) =>
+        Map(attempt, [], [], null, official);
 
     public static FinishResponse Map(
         Domain.Attempt attempt,
         IReadOnlyList<ScoreBreakdownDto> byTopic,
         IReadOnlyList<ScoreBreakdownDto> byBlock,
-        decimal? bestPercent) => new(
+        decimal? bestPercent,
+        OfficialScore? official = null) => new(
         attempt.Id,
         attempt.ExamId,
         attempt.TotalQuestions,
@@ -257,7 +266,42 @@ public sealed class FinishExamHandler
         attempt.TimeSeconds,
         byTopic,
         byBlock,
-        bestPercent);
+        bestPercent,
+        official is null ? null : MapOfficial(official));
+
+    /// <summary>Knowledge and attitude scores of an official simulacro; null for any other mode.</summary>
+    public static OfficialScore? ScoreOfficial(
+        Domain.Attempt attempt,
+        IReadOnlyList<Domain.AttemptQuestion> snapshot,
+        IEnumerable<Domain.AttemptAnswer> answers)
+    {
+        if (attempt.Mode != AttemptModes.Official)
+        {
+            return null;
+        }
+
+        var correctById = answers
+            .GroupBy(a => a.QuestionId)
+            .ToDictionary(g => g.Key, g => g.Any(a => a.IsCorrect));
+        return OfficialExam.Score(snapshot.Select(item => (
+            item.ParsedSnapshot()?.Section,
+            correctById.GetValueOrDefault(item.QuestionId))));
+    }
+
+    private static OfficialResultDto MapOfficial(OfficialScore score) => new(
+        score.KnowledgeCorrect,
+        score.KnowledgeTotal,
+        Percent(score.KnowledgeCorrect, score.KnowledgeTotal),
+        score.AttitudeCorrect,
+        score.AttitudeTotal,
+        Percent(score.AttitudeCorrect, score.AttitudeTotal),
+        ScoringRules.OfficialPassPercent,
+        score.Sections
+            .Select(s => new ScoreBreakdownDto(s.Name, s.Correct, s.Total, Percent(s.Correct, s.Total)))
+            .ToList());
+
+    private static decimal Percent(int correct, int total) =>
+        total == 0 ? 0 : Math.Round(100m * correct / total, 2);
 
     private static void Accumulate(
         IDictionary<string, (int Correct, int Total)> map,

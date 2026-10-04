@@ -125,6 +125,17 @@ public sealed partial class CourseSeed
                     + "Mantenerlos al día es obligación del propietario, pero quien conduce también responde en un control. "
                     + "Los datos se consultan en el RUNT. Los vehículos de servicio público tienen documentos adicionales, como la tarjeta de operación."),
                 Text(
+                    "Requisitos para obtener la licencia",
+                    "Para conducir un vehículo particular debes saber leer y escribir y tener al menos 16 años. Para servicio público, al menos 18 años.\n\n"
+                    + "Además necesitas el certificado de capacitación de un centro de enseñanza automovilística registrado en el RUNT, "
+                    + "el certificado de aptitud física, mental y de coordinación motriz expedido por un Centro de Reconocimiento de Conductores (CRC), "
+                    + "y aprobar los exámenes teórico y práctico ante una entidad habilitada."),
+                Text(
+                    "Las placas",
+                    "Los carros llevan dos placas iguales, adelante y atrás; las motos, los remolques y los semirremolques llevan una sola. "
+                    + "El color indica el servicio: amarillo para particular, blanco para público y azul para diplomático.\n\n"
+                    + "Las placas deben leerse completas: nada de marcos, suciedad, bicicletas u otros objetos que tapen letras o números, ni distintivos que las imiten."),
+                Text(
                     "¿Cuándo toca la revisión técnico-mecánica?",
                     "Los carros particulares nuevos hacen la primera revisión cuando cumplen cinco años de matriculados. "
                     + "Los vehículos de servicio público y las motocicletas la hacen a los dos años. Después de la primera, se renueva cada año."),

@@ -68,7 +68,8 @@ public sealed class Attempt
         }
     }
 
-    public void Finish(int correctCount, DateTime utcNow, int graceSeconds = 5)
+    /// <param name="passed">Overrides the default rule (max 3 wrong answers), e.g. for the official simulacro.</param>
+    public void Finish(int correctCount, DateTime utcNow, int graceSeconds = 5, bool? passed = null)
     {
         if (FinishedAt is not null)
         {
@@ -84,14 +85,14 @@ public sealed class Attempt
                 "attempt_expired");
         }
 
-        ApplyScore(correctCount, utcNow);
+        ApplyScore(correctCount, utcNow, passed);
     }
 
     /// <summary>
     /// Closes an attempt that already passed the finish grace window
     /// (e.g. reclaim open slot on a new Start). Scores as of ExpiresAt.
     /// </summary>
-    public void CloseExpired(int correctCount, DateTime utcNow)
+    public void CloseExpired(int correctCount, DateTime utcNow, bool? passed = null)
     {
         if (FinishedAt is not null)
         {
@@ -109,7 +110,7 @@ public sealed class Attempt
         }
 
         var end = ExpiresAt ?? utcNow;
-        ApplyScore(correctCount, end);
+        ApplyScore(correctCount, end, passed);
     }
 
     /// <summary>
@@ -120,7 +121,7 @@ public sealed class Attempt
         Id = 0;
     }
 
-    private void ApplyScore(int correctCount, DateTime finishedAt)
+    private void ApplyScore(int correctCount, DateTime finishedAt, bool? passed)
     {
         if (ExpiresAt is { } cap && finishedAt > cap)
         {
@@ -131,7 +132,7 @@ public sealed class Attempt
         Percent = TotalQuestions == 0
             ? 0
             : Math.Round(100m * correctCount / TotalQuestions, 2);
-        Passed = ScoringRules.IsPassed(correctCount, TotalQuestions);
+        Passed = passed ?? ScoringRules.IsPassed(correctCount, TotalQuestions);
         TimeSeconds = (int)Math.Max(0, (finishedAt - StartedAt).TotalSeconds);
         FinishedAt = finishedAt;
     }

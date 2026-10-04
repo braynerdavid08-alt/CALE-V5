@@ -1,0 +1,1735 @@
+{
+  "bankName": "El vehículo (CALE)",
+  "description": "Preguntas tipo CALE (situación + 3 opciones) de redacción propia, basadas en el Manual de referencia para la conducción de vehículos de la ANSV (2026).",
+  "blockName": "Núcleo: El vehículo",
+  "questions": [
+    {
+      "text": "Antes de salir de viaje, ¿qué cinco componentes recomienda el manual revisar en cualquier vehículo motorizado?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Mantenimiento preventivo",
+      "subtopic": "Qué revisar antes de salir",
+      "difficulty": "Baja",
+      "explanation": "Esos cinco componentes aplican a todo vehículo; la moto suma el kit de arrastre.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 65. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Los líquidos, los frenos, el sistema eléctrico, las llantas y los espejos.",
+          "isCorrect": true
+        },
+        {
+          "text": "El radio, el aire acondicionado, la tapicería, los rines y la pintura.",
+          "isCorrect": false
+        },
+        {
+          "text": "Solo el combustible y el aceite.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Si el vehículo es una motocicleta, ¿qué debe revisar además de los cinco componentes básicos?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Mantenimiento preventivo",
+      "subtopic": "Qué revisar antes de salir",
+      "difficulty": "Baja",
+      "explanation": "En motocicleta el kit de arrastre transmite la fuerza a la rueda y su falla puede bloquearla.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 65. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "El nivel del líquido limpiaparabrisas.",
+          "isCorrect": false
+        },
+        {
+          "text": "El kit de arrastre (cadena, piñón y corona).",
+          "isCorrect": true
+        },
+        {
+          "text": "El perno rey y la quinta rueda.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Va a hacer la revisión preoperacional de su vehículo. ¿Cómo debe estar el motor?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Revisión preoperacional",
+      "subtopic": "Estado general, luces, espejos, vidrios, bocina y placas",
+      "difficulty": "Baja",
+      "explanation": "Los componentes de la revisión preoperacional se revisan con el vehículo apagado.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 65. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Encendido y acelerado.",
+          "isCorrect": false
+        },
+        {
+          "text": "Apagado.",
+          "isCorrect": true
+        },
+        {
+          "text": "Encendido, con el vehículo en movimiento lento.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Un conductor dice que no hace la revisión preoperacional porque tarda mucho. ¿Cuánto toma según el manual?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Revisión preoperacional",
+      "subtopic": "Estado general, luces, espejos, vidrios, bocina y placas",
+      "difficulty": "Baja",
+      "explanation": "La revisión toma unos diez minutos y puede ayudar a prevenir un siniestro.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 65. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Medio día en un taller.",
+          "isCorrect": false
+        },
+        {
+          "text": "No más de diez minutos.",
+          "isCorrect": true
+        },
+        {
+          "text": "Al menos una hora.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Conduce un bus de pasajeros. Además de los componentes básicos, ¿qué debe verificar?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Revisión preoperacional",
+      "subtopic": "Estado general, luces, espejos, vidrios, bocina y placas",
+      "difficulty": "Media",
+      "explanation": "En vehículos de cuatro o más ruedas, sobre todo de pasajeros, se revisan también carrocería, puertas y limpiabrisas.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 65. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "La carrocería, el funcionamiento de las puertas, los limpiabrisas y el líquido limpiaparabrisas.",
+          "isCorrect": true
+        },
+        {
+          "text": "La quinta rueda y el perno rey.",
+          "isCorrect": false
+        },
+        {
+          "text": "Solo que el radio funcione.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Durante la revisión preoperacional encuentra que el pedal del freno se hunde más de lo normal. ¿Qué recomienda el manual?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Averías e inmovilización",
+      "subtopic": "Cuándo continuar y cuándo detenerse",
+      "difficulty": "Baja",
+      "explanation": "Si encuentra una anomalía, lo mejor es abstenerse de usar el vehículo hasta solucionarla.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 65. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Salir con cuidado y revisarlo después del viaje.",
+          "isCorrect": false
+        },
+        {
+          "text": "No usar el vehículo hasta corregir la falla en un servicio técnico especializado.",
+          "isCorrect": true
+        },
+        {
+          "text": "Usar solo el freno de mano durante el recorrido.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "¿Qué son los sistemas de seguridad activa de un vehículo?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Seguridad activa",
+      "subtopic": "ABS, estabilidad, tracción y asistencia de frenado",
+      "difficulty": "Baja",
+      "explanation": "La seguridad activa previene el choque; la pasiva reduce sus consecuencias.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 66. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Los que avisan a la aseguradora después del choque.",
+          "isCorrect": false
+        },
+        {
+          "text": "Los que reducen las lesiones cuando el choque ya ocurrió, como el airbag.",
+          "isCorrect": false
+        },
+        {
+          "text": "Los que ayudan a evitar que ocurra el choque, como los frenos, las luces, la dirección y la suspensión.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "¿Cuál de estos es un elemento de seguridad pasiva?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Seguridad pasiva",
+      "subtopic": "Cinturón, airbag, apoyacabezas y sillas infantiles",
+      "difficulty": "Baja",
+      "explanation": "La seguridad pasiva minimiza los efectos de un choque: cinturón, sillas infantiles, apoyacabezas, airbags y habitáculo.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 80. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "El sistema de frenos ABS.",
+          "isCorrect": false
+        },
+        {
+          "text": "Las luces direccionales.",
+          "isCorrect": false
+        },
+        {
+          "text": "El cinturón de seguridad.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Un vendedor le dice que el carro tiene control de estabilidad. ¿Para qué sirve?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Seguridad activa",
+      "subtopic": "ABS, estabilidad, tracción y asistencia de frenado",
+      "difficulty": "Media",
+      "explanation": "El control de estabilidad articula varios sistemas para neutralizar fuerzas que sacarían al vehículo de su trayectoria.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 66. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Mantiene una velocidad fija en carretera.",
+          "isCorrect": false
+        },
+        {
+          "text": "Avisa cuando falta aceite.",
+          "isCorrect": false
+        },
+        {
+          "text": "Combina el frenado y la dirección para estabilizar el vehículo y prevenir volcamientos.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Debe frenar de emergencia en un carro con ABS. ¿Qué ventaja le da este sistema?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Sistema de frenos",
+      "subtopic": "ABS y señales de falla",
+      "difficulty": "Media",
+      "explanation": "El ABS impide el bloqueo de las ruedas en una frenada fuerte, por lo que el conductor conserva el control de la dirección.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 67. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Apaga el motor automáticamente.",
+          "isCorrect": false
+        },
+        {
+          "text": "Hace que el carro frene siempre en la mitad de la distancia.",
+          "isCorrect": false
+        },
+        {
+          "text": "Evita que las ruedas se bloqueen y le permite seguir dirigiendo el vehículo.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Su carro no tiene ABS y debe frenar de emergencia. ¿Qué técnica describe el manual para que las ruedas no se bloqueen?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Sistema de frenos",
+      "subtopic": "ABS y señales de falla",
+      "difficulty": "Alta",
+      "explanation": "Sin ABS, las ruedas bloqueadas hacen que el vehículo siga recto; por eso se dosifica la presión. Es difícil de dominar, por lo que se prefieren vehículos con ABS.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 67. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Aplicar y soltar rápidamente la presión sobre el pedal.",
+          "isCorrect": true
+        },
+        {
+          "text": "Pisar el freno a fondo y mantenerlo sin soltar.",
+          "isCorrect": false
+        },
+        {
+          "text": "Halar el freno de mano con fuerza.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Al encender el carro, el testigo del ABS se prende un momento y luego se apaga. ¿Qué significa?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Sistema eléctrico y electrónico",
+      "subtopic": "Testigos del tablero",
+      "difficulty": "Media",
+      "explanation": "Normalmente el ABS solo se nota por la verificación del testigo al encender el motor.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 67. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Que el ABS está dañado y no debe conducir.",
+          "isCorrect": false
+        },
+        {
+          "text": "Es normal: el sistema hace su verificación al arrancar.",
+          "isCorrect": true
+        },
+        {
+          "text": "Que se acabó el líquido de frenos.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "¿Por qué los vehículos modernos tienen frenos de dos circuitos?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Conocimiento general del vehículo",
+      "subtopic": "Motor, transmisión, dirección, suspensión y frenos",
+      "difficulty": "Media",
+      "explanation": "Con un solo circuito, una fuga dejaría sin frenos todas las ruedas; con dos se mantiene cierto efecto de frenado.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 68. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Para que el freno de mano funcione solo.",
+          "isCorrect": false
+        },
+        {
+          "text": "Para que, si falla un circuito, el otro conserve parte de la capacidad de frenado.",
+          "isCorrect": true
+        },
+        {
+          "text": "Para frenar el doble de rápido en cualquier situación.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Acaba de pasar por un charco profundo y siente que los frenos responden menos. ¿Qué hace?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Sistema de frenos",
+      "subtopic": "Freno de servicio, de estacionamiento, pastillas y líquido",
+      "difficulty": "Media",
+      "explanation": "El agua entre los elementos de fricción reduce el frenado; se elimina frenando varias veces con presión.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 68. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Acelera fuerte para calentarlos.",
+          "isCorrect": false
+        },
+        {
+          "text": "Sigue igual, se secan solos con la velocidad.",
+          "isCorrect": false
+        },
+        {
+          "text": "Frena varias veces con firmeza, verificando que nadie venga detrás, para secarlos.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "¿Cómo funciona por lo general el freno de estacionamiento y cuándo se usa?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Sistema de frenos",
+      "subtopic": "Freno de servicio, de estacionamiento, pastillas y líquido",
+      "difficulty": "Baja",
+      "explanation": "Aunque su uso continuo exige ajustes periódicos, el manual recomienda usarlo siempre que se detenga.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 68. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Actúa sobre las cuatro ruedas y se usa para frenar en marcha.",
+          "isCorrect": false
+        },
+        {
+          "text": "Es mecánico, suele actuar sobre las ruedas traseras y debe usarse siempre que se detenga.",
+          "isCorrect": true
+        },
+        {
+          "text": "Es hidráulico y solo se usa en pendientes muy fuertes.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Completa el líquido de frenos hasta la marca MAX, pero a los pocos días vuelve a estar bajo. ¿Qué significa?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Sistema de frenos",
+      "subtopic": "Freno de servicio, de estacionamiento, pastillas y líquido",
+      "difficulty": "Media",
+      "explanation": "El depósito no debería perder volumen; si sigue bajando, hay una falla que debe revisar un técnico.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 68. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Que hay una pérdida y debe ir de inmediato a un taller especializado.",
+          "isCorrect": true
+        },
+        {
+          "text": "Que es normal, el líquido se evapora con el calor.",
+          "isCorrect": false
+        },
+        {
+          "text": "Que debe cambiar a un aceite de motor más espeso.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Va a mover un carro que lleva más de seis meses guardado. ¿Qué recomienda el manual?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Mantenimiento preventivo",
+      "subtopic": "Mantenimiento y revisión técnico-mecánica",
+      "difficulty": "Media",
+      "explanation": "Tras seis meses quieto, cilindros, tuberías, pastillas o bandas y líquido deben revisarse antes de circular.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 68. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Solo inflar las llantas.",
+          "isCorrect": false
+        },
+        {
+          "text": "Hacer revisar todo el sistema de frenos antes de moverlo.",
+          "isCorrect": true
+        },
+        {
+          "text": "Arrancar y probar los frenos a alta velocidad.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "¿Cuándo deben usarse las luces intermitentes de emergencia (luces de parqueo)?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Seguridad activa",
+      "subtopic": "Iluminación y neumáticos",
+      "difficulty": "Baja",
+      "explanation": "Las intermitentes avisan una obstrucción o un peligro; no autorizan un estacionamiento prohibido.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 72. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Cuando el vehículo está detenido por una falla o para advertir un peligro adelante, nunca como excusa para estacionar mal.",
+          "isCorrect": true
+        },
+        {
+          "text": "Para estacionar un momento en un sitio prohibido.",
+          "isCorrect": false
+        },
+        {
+          "text": "Siempre que llueva, mientras se circula.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Va a cambiar los bombillos de las direccionales. ¿De qué color recomienda el manual que sean?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Revisión preoperacional",
+      "subtopic": "Estado general, luces, espejos, vidrios, bocina y placas",
+      "difficulty": "Baja",
+      "explanation": "Los demás conductores perciben más rápido las direccionales ámbar y no las confunden con el frenado.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 70. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Azules, porque llaman más la atención.",
+          "isCorrect": false
+        },
+        {
+          "text": "Amarillos o ámbar, para que no se confundan con las luces de freno.",
+          "isCorrect": true
+        },
+        {
+          "text": "Rojos, para que se vean más.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Quiere comprobar que sus luces medias no encandilan a los demás. ¿Qué prueba describe el manual?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Seguridad activa",
+      "subtopic": "Iluminación y neumáticos",
+      "difficulty": "Alta",
+      "explanation": "Un mal ajuste puede encandilar a otros o hacer que vea los obstáculos cuando ya los tiene encima.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 70. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Estacionar a 10 metros de una pared y verificar que el haz no quede más alto que el centro de los faros.",
+          "isCorrect": true
+        },
+        {
+          "text": "Pedir a otro conductor que le haga cambio de luces.",
+          "isCorrect": false
+        },
+        {
+          "text": "Encenderlas de día y mirar si se ven desde lejos.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Un conductor maneja de noche solo con las exploradoras encendidas. ¿Por qué es un error?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Seguridad activa",
+      "subtopic": "Iluminación y neumáticos",
+      "difficulty": "Media",
+      "explanation": "Sin las luces de servicio, el conductor solo verá un objeto cuando ya esté encima de él.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 72. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Porque las exploradoras gastan más gasolina.",
+          "isCorrect": false
+        },
+        {
+          "text": "Porque las exploradoras son auxiliares: iluminan una franja corta y deben usarse junto con las luces medias.",
+          "isCorrect": true
+        },
+        {
+          "text": "No es un error, las exploradoras alumbran más que las medias.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Según el artículo 96 del Código Nacional de Tránsito, ¿cuándo debe un motociclista llevar las luces encendidas?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Seguridad activa",
+      "subtopic": "Iluminación y neumáticos",
+      "difficulty": "Baja",
+      "explanation": "La motocicleta es un vehículo angosto que necesita aumentar su visibilidad.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 74. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Solo de noche.",
+          "isCorrect": false
+        },
+        {
+          "text": "Solo en carretera o cuando llueve.",
+          "isCorrect": false
+        },
+        {
+          "text": "Todo el tiempo que circule por vías públicas, de día y de noche.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Hace un viaje nocturno con el baúl muy cargado. ¿Qué pasa con los faros y qué debe hacer?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Seguridad activa",
+      "subtopic": "Iluminación y neumáticos",
+      "difficulty": "Media",
+      "explanation": "Con la parte trasera cargada la trompa se levanta y los faros pueden encandilar a los demás.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 71. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Apuntan más arriba de lo normal; debe ajustar su altura con el mando del tablero.",
+          "isCorrect": true
+        },
+        {
+          "text": "Apuntan más abajo; debe usar luces altas todo el viaje.",
+          "isCorrect": false
+        },
+        {
+          "text": "Nada cambia con la carga.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "¿Para qué sirven los catadióptricos (retrorreflectores) rojos de la parte trasera?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Conocimiento general del vehículo",
+      "subtopic": "Sistema eléctrico, carrocería e instrumentación",
+      "difficulty": "Media",
+      "explanation": "No tienen luz propia: reflejan la de quien se aproxima. Por eso no se deben quitar ni cambiar por piezas sin ellos.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 71. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Iluminan la placa por la noche.",
+          "isCorrect": false
+        },
+        {
+          "text": "Son solo un adorno de la carrocería.",
+          "isCorrect": false
+        },
+        {
+          "text": "Reflejan las luces de otros vehículos y hacen visible el suyo aunque sus luces fallen.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "¿Cuál de estos elementos está prohibido en un vehículo particular?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Conocimiento general del vehículo",
+      "subtopic": "Sistema eléctrico, carrocería e instrumentación",
+      "difficulty": "Baja",
+      "explanation": "Las luces rojas o azules son de uso exclusivo de vehículos de emergencia y de policía.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 85. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Luces rojas o azules de emergencia.",
+          "isCorrect": true
+        },
+        {
+          "text": "Una linterna.",
+          "isCorrect": false
+        },
+        {
+          "text": "Un extintor.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Un conductor quiere instalar luces exploradoras en la parte trasera de su camioneta y un televisor a la vista. ¿Qué dice la norma?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Conocimiento general del vehículo",
+      "subtopic": "Sistema eléctrico, carrocería e instrumentación",
+      "difficulty": "Media",
+      "explanation": "Las exploradoras traseras y un televisor a la vista del conductor están en la lista de equipos no permitidos.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 85. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Ambos están permitidos si los instala un taller.",
+          "isCorrect": false
+        },
+        {
+          "text": "Solo se permite el televisor si es pequeño.",
+          "isCorrect": false
+        },
+        {
+          "text": "Ambos están prohibidos.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Mueve el volante y las ruedas tardan en responder, como con retraso. ¿Qué indica?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Conocimiento general del vehículo",
+      "subtopic": "Motor, transmisión, dirección, suspensión y frenos",
+      "difficulty": "Media",
+      "explanation": "No debe haber juego en el volante; si lo hay, la dirección necesita revisión.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 75. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Juego en la dirección: un desgaste que puede llevar incluso al desprendimiento de una llanta.",
+          "isCorrect": true
+        },
+        {
+          "text": "Que la presión de las llantas es la correcta.",
+          "isCorrect": false
+        },
+        {
+          "text": "Que la dirección está bien lubricada.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "En una vía plana y despejada, a baja velocidad, suelta un momento el volante y el carro se va hacia un lado. ¿Qué indica?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Conocimiento general del vehículo",
+      "subtopic": "Motor, transmisión, dirección, suspensión y frenos",
+      "difficulty": "Media",
+      "explanation": "Si el vehículo tiende a desplazarse hacia un lado, es indicio de falla y su revisión es indispensable.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 75. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Una posible falla en algún elemento de la dirección, que debe revisarse.",
+          "isCorrect": true
+        },
+        {
+          "text": "Que la vía está inclinada y es normal.",
+          "isCorrect": false
+        },
+        {
+          "text": "Que el motor está muy revolucionado.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Al girar bruscamente, la dirección hidráulica produce un gemido. ¿Qué debe revisar?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Motor y fluidos",
+      "subtopic": "Aceite, refrigerante, combustible y sobrecalentamiento",
+      "difficulty": "Media",
+      "explanation": "Un gemido en virajes bruscos puede indicar problemas en la dirección asistida hidráulica.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 75. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "El nivel del fluido de la dirección asistida.",
+          "isCorrect": true
+        },
+        {
+          "text": "El nivel de agua del limpiaparabrisas.",
+          "isCorrect": false
+        },
+        {
+          "text": "La presión de la llanta de repuesto.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Revisa el labrado de sus llantas. ¿Qué profundidad recomienda el manual y cuál es el límite peligroso?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Llantas",
+      "subtopic": "Presión, desgaste, labrado y daños",
+      "difficulty": "Media",
+      "explanation": "Con poco labrado el agua no se evacúa por los surcos y aumenta el riesgo de perder el contacto con el pavimento.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 76. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Se aconseja más de 3 mm; por debajo de 1,6 mm el agarre en piso mojado es peligroso.",
+          "isCorrect": true
+        },
+        {
+          "text": "Basta con 0,5 mm en cualquier clima.",
+          "isCorrect": false
+        },
+        {
+          "text": "Se aconseja 1 mm; por debajo de 0,3 mm es peligroso.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Una llanta está gastada solo en el centro de la banda de rodamiento. ¿Qué indica?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Llantas",
+      "subtopic": "Presión, desgaste, labrado y daños",
+      "difficulty": "Media",
+      "explanation": "Desgaste en el centro: exceso de aire. Desgaste solo en los bordes: falta de aire.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 76. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Que se usó con poca presión.",
+          "isCorrect": false
+        },
+        {
+          "text": "Que la llanta está en perfecto estado.",
+          "isCorrect": false
+        },
+        {
+          "text": "Que se usó con exceso de presión.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Una llanta está gastada solo en los bordes. ¿Qué indica?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Llantas",
+      "subtopic": "Presión, desgaste, labrado y daños",
+      "difficulty": "Media",
+      "explanation": "Rodar con poca presión hace que la llanta se apoye en sus bordes y se desgaste allí.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 76. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Que se usó con exceso de presión.",
+          "isCorrect": false
+        },
+        {
+          "text": "Que se usó con menos presión de la recomendada.",
+          "isCorrect": true
+        },
+        {
+          "text": "Que el vehículo nunca se ha alineado.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "¿Cuándo y con qué frecuencia se debe medir la presión de las llantas?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Llantas",
+      "subtopic": "Presión, desgaste, labrado y daños",
+      "difficulty": "Baja",
+      "explanation": "Con la llanta caliente la lectura es inexacta; por eso se mide en frío y con frecuencia.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 76. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "En frío, al menos cada 7 a 10 días.",
+          "isCorrect": true
+        },
+        {
+          "text": "Solo cuando se ve una llanta desinflada.",
+          "isCorrect": false
+        },
+        {
+          "text": "En caliente, después de un viaje largo, una vez al año.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Una llanta delantera tiene baja presión. ¿Qué efecto produce en la conducción?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Llantas",
+      "subtopic": "Llanta de repuesto y riesgo de baja presión",
+      "difficulty": "Media",
+      "explanation": "La baja presión adelante hace la dirección más pesada y desvía el vehículo hacia el lado afectado.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 76. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "El vehículo tiende a irse hacia ese lado y la dirección se siente más pesada.",
+          "isCorrect": true
+        },
+        {
+          "text": "No produce ningún efecto.",
+          "isCorrect": false
+        },
+        {
+          "text": "El vehículo frena mejor.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "¿Cada cuánto recomienda el manual rotar las llantas?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Llantas",
+      "subtopic": "Presión, desgaste, labrado y daños",
+      "difficulty": "Baja",
+      "explanation": "Rotar las llantas evita un desgaste irregular y alarga su vida útil.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 76. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Cada 10.000 km.",
+          "isCorrect": true
+        },
+        {
+          "text": "Nunca, la rotación no es necesaria.",
+          "isCorrect": false
+        },
+        {
+          "text": "Cada 100.000 km.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Una llanta tiene buen labrado, pero fue montada hace seis años. ¿Qué recomienda el manual?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Llantas",
+      "subtopic": "Presión, desgaste, labrado y daños",
+      "difficulty": "Media",
+      "explanation": "El caucho pierde sus propiedades con el tiempo, aunque el dibujo se vea bien.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 77. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Usarla hasta que el labrado llegue a 1,6 mm.",
+          "isCorrect": false
+        },
+        {
+          "text": "Cambiarla: hacia los cinco años el material envejece aunque la llanta tenga poco uso.",
+          "isCorrect": true
+        },
+        {
+          "text": "Ponerla como repuesto para siempre.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "En la llanta dice 205/55 R16. ¿Qué significa el número 16?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Llantas",
+      "subtopic": "Presión, desgaste, labrado y daños",
+      "difficulty": "Alta",
+      "explanation": "205 es el ancho en milímetros, 55 la relación entre alto y ancho, R indica que es radial y 16 el diámetro del rin.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 77. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "El ancho de la llanta, en centímetros.",
+          "isCorrect": false
+        },
+        {
+          "text": "El diámetro del rin, en pulgadas.",
+          "isCorrect": true
+        },
+        {
+          "text": "La presión máxima, en libras.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "¿Con qué presión debe guardar la llanta de repuesto?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Llantas",
+      "subtopic": "Llanta de repuesto y riesgo de baja presión",
+      "difficulty": "Media",
+      "explanation": "No se sabe cuándo habrá que usarla; con la presión más alta compensa la pérdida natural de aire.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 78. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Con la mitad de la presión normal.",
+          "isCorrect": false
+        },
+        {
+          "text": "Desinflada, para que no se dañe.",
+          "isCorrect": false
+        },
+        {
+          "text": "Con la presión más alta recomendada por el fabricante.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Va a transportar una carga muy pesada en su camioneta. ¿Qué hace con la presión de las llantas?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Llantas",
+      "subtopic": "Llanta de repuesto y riesgo de baja presión",
+      "difficulty": "Media",
+      "explanation": "Con carga pesada se ajusta la presión a lo que indica el fabricante para esa condición.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 78. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "La deja igual; la carga no influye.",
+          "isCorrect": false
+        },
+        {
+          "text": "La aumenta según la tabla del fabricante, que está en el pilar B o en el manual del vehículo.",
+          "isCorrect": true
+        },
+        {
+          "text": "La disminuye para que las llantas agarren más.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Revienta una llanta trasera mientras conduce y la cola del vehículo se desvía. ¿Qué indica el manual?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Llantas",
+      "subtopic": "Reventón",
+      "difficulty": "Alta",
+      "explanation": "Corregir hacia el lado del derrape ayuda a recuperar la trayectoria.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 78. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Frenar a fondo de inmediato.",
+          "isCorrect": false
+        },
+        {
+          "text": "Girar el volante al lado contrario con fuerza.",
+          "isCorrect": false
+        },
+        {
+          "text": "Girar el volante hacia el lado al que se desvía la parte trasera.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Revienta una llanta delantera. ¿Qué debe hacer?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Llantas",
+      "subtopic": "Reventón",
+      "difficulty": "Media",
+      "explanation": "Un frenazo o un giro brusco con una llanta delantera reventada puede hacer perder el control.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 78. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Sostener firme el volante y frenar de forma suave.",
+          "isCorrect": true
+        },
+        {
+          "text": "Soltar el volante para que el carro se acomode solo.",
+          "isCorrect": false
+        },
+        {
+          "text": "Frenar a fondo y girar bruscamente hacia la berma.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Empuja hacia abajo una esquina del carro, la suelta y el vehículo sigue rebotando varias veces. ¿Qué indica?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Conocimiento general del vehículo",
+      "subtopic": "Motor, transmisión, dirección, suspensión y frenos",
+      "difficulty": "Media",
+      "explanation": "Si al soltar el vehículo sigue oscilando, o se oyen chirridos, es hora de cambiar los amortiguadores.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 79. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Que los amortiguadores están en mal estado y deben cambiarse.",
+          "isCorrect": true
+        },
+        {
+          "text": "Que la suspensión está en perfecto estado.",
+          "isCorrect": false
+        },
+        {
+          "text": "Que las llantas tienen demasiado aire.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "¿Qué efecto tienen unos amortiguadores gastados sobre el frenado?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Seguridad activa",
+      "subtopic": "ABS, estabilidad, tracción y asistencia de frenado",
+      "difficulty": "Alta",
+      "explanation": "La suspensión mantiene las llantas en contacto con el piso; sin ese contacto el frenado y el ABS empeoran.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 78. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Aumentan la distancia de frenado y hacen que el ABS pierda efectividad.",
+          "isCorrect": true
+        },
+        {
+          "text": "Mejoran el frenado porque el carro se inclina hacia adelante.",
+          "isCorrect": false
+        },
+        {
+          "text": "Ninguno, solo afectan la comodidad.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Su carro cae seguido en huecos y a veces sube andenes. ¿Cada cuánto recomienda el manual alinearlo y balancearlo?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Mantenimiento preventivo",
+      "subtopic": "Mantenimiento y revisión técnico-mecánica",
+      "difficulty": "Media",
+      "explanation": "La dirección se desalinea más rápido con sobrecargas, huecos y andenes; alinear y balancear evita desgaste y vibraciones.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 79. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Cada dos o tres meses.",
+          "isCorrect": true
+        },
+        {
+          "text": "Cada cinco años.",
+          "isCorrect": false
+        },
+        {
+          "text": "Solo cuando cambie de carro.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "¿A qué altura debe ajustar el apoyacabezas?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Seguridad pasiva",
+      "subtopic": "Cinturón, airbag, apoyacabezas y sillas infantiles",
+      "difficulty": "Baja",
+      "explanation": "Mal ajustado, el apoyacabezas pierde eficacia y puede ser contraproducente en un impacto trasero.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 80. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "A la altura de la cabeza y cerca de ella, para prevenir el latigazo cervical.",
+          "isCorrect": true
+        },
+        {
+          "text": "A la altura del cuello, para descansar.",
+          "isCorrect": false
+        },
+        {
+          "text": "En la posición más baja, para que no estorbe.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Un pasajero dice que no necesita el cinturón porque el carro tiene airbag. ¿Qué responde el manual?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Seguridad pasiva",
+      "subtopic": "Cinturón, airbag, apoyacabezas y sillas infantiles",
+      "difficulty": "Media",
+      "explanation": "El airbag y el cinturón son un conjunto; juntos reducen cerca de un 68 % la posibilidad de muerte.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 81. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Que el airbag se infla a unos 300 km/h y sin cinturón puede causar lesiones graves; funcionan en conjunto.",
+          "isCorrect": true
+        },
+        {
+          "text": "Que el airbag solo funciona si el cinturón está suelto.",
+          "isCorrect": false
+        },
+        {
+          "text": "Que tiene razón: el airbag reemplaza el cinturón.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Según la Organización Mundial de la Salud, ¿cuánto reduce el cinturón de seguridad el riesgo de morir en un siniestro?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Seguridad pasiva",
+      "subtopic": "Cinturón, airbag, apoyacabezas y sillas infantiles",
+      "difficulty": "Media",
+      "explanation": "El cinturón disminuye hasta en un 50 % el riesgo de pérdida de vidas en un siniestro.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 87. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Menos del 5 %.",
+          "isCorrect": false
+        },
+        {
+          "text": "Hasta un 50 %.",
+          "isCorrect": true
+        },
+        {
+          "text": "Nada, sobrevivir depende de la suerte.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Alguien afirma que en un choque es mejor salir disparado del carro. ¿Qué dice el manual?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Seguridad pasiva",
+      "subtopic": "Cinturón, airbag, apoyacabezas y sillas infantiles",
+      "difficulty": "Media",
+      "explanation": "Salir expulsado aumenta mucho el riesgo de lesión de columna y de muerte.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 87. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Es cierto, así se evita quedar atrapado.",
+          "isCorrect": false
+        },
+        {
+          "text": "Es falso: salir expulsado multiplica el riesgo de morir; es mucho más seguro quedar dentro con el cinturón.",
+          "isCorrect": true
+        },
+        {
+          "text": "Solo es cierto en choques a baja velocidad.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Una mujer embarazada pregunta si debe usar el cinturón. ¿Qué indica el manual?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Seguridad pasiva",
+      "subtopic": "Cinturón, airbag, apoyacabezas y sillas infantiles",
+      "difficulty": "Baja",
+      "explanation": "El riesgo de lesión para la madre y el bebé es mayor si no lo usa.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 88. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Sí debe usarlo, con la banda inferior por debajo del abdomen.",
+          "isCorrect": true
+        },
+        {
+          "text": "Solo debe usar la banda del hombro.",
+          "isCorrect": false
+        },
+        {
+          "text": "No debe usarlo porque es peligroso para el bebé.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Un conductor no usa el cinturón en trayectos cortos dentro de la ciudad. ¿Qué le diría el manual?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Seguridad pasiva",
+      "subtopic": "Cinturón, airbag, apoyacabezas y sillas infantiles",
+      "difficulty": "Media",
+      "explanation": "Usted puede ir despacio, pero otro vehículo puede venir rápido; el cinturón se usa en todos los trayectos.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 87. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Que tiene razón, en ciudad la velocidad es baja y no pasa nada.",
+          "isCorrect": false
+        },
+        {
+          "text": "Que solo es obligatorio en carretera.",
+          "isCorrect": false
+        },
+        {
+          "text": "Que cerca de la mitad de los siniestros con víctimas ocurre en zona urbana y un choque a 30 o 40 km/h puede ser mortal.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Va a llevar en su carro a su sobrina de 6 años. ¿Dónde debe viajar?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Seguridad pasiva",
+      "subtopic": "Cinturón, airbag, apoyacabezas y sillas infantiles",
+      "difficulty": "Baja",
+      "explanation": "Los menores de 10 años deben ir atrás y con sistemas de retención infantil.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 106. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "En las piernas de un adulto en el asiento trasero.",
+          "isCorrect": false
+        },
+        {
+          "text": "En el asiento delantero, con el cinturón del adulto.",
+          "isCorrect": false
+        },
+        {
+          "text": "En el asiento trasero, con un sistema de retención infantil adecuado a su edad y tamaño.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Un niño de 7 años y 25 kg ya no cabe en su silla orientada hacia adelante. ¿Qué dispositivo corresponde?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Seguridad pasiva",
+      "subtopic": "Cinturón, airbag, apoyacabezas y sillas infantiles",
+      "difficulty": "Media",
+      "explanation": "El cojín elevador se recomienda entre los 4 y 12 años, de 15 a 36 kg o hasta los 135 a 150 cm de estatura.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 106. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Ninguno, ya puede usar el cinturón como un adulto.",
+          "isCorrect": false
+        },
+        {
+          "text": "Un cojín elevador (booster), preferiblemente con respaldo, para que use bien el cinturón.",
+          "isCorrect": true
+        },
+        {
+          "text": "Una silla para bebé orientada hacia atrás.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "¿Cuánto puede reducir el uso correcto del casco la probabilidad de morir en un siniestro?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Seguridad pasiva",
+      "subtopic": "Casco en motocicleta",
+      "difficulty": "Baja",
+      "explanation": "El uso correcto del casco reduce hasta en un 40 % la probabilidad de muerte.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 92. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Hasta un 40 %.",
+          "isCorrect": true
+        },
+        {
+          "text": "Un 2 %.",
+          "isCorrect": false
+        },
+        {
+          "text": "Nada, si la moto va despacio.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Va a comprar un casco para su moto. ¿Cuál cumple lo que indica el manual?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Seguridad pasiva",
+      "subtopic": "Casco en motocicleta",
+      "difficulty": "Media",
+      "explanation": "El casco debe tener un estándar de calidad reconocido y ser de la talla adecuada al perímetro de la cabeza.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 93. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Uno decorativo tipo gorra, porque es más fresco.",
+          "isCorrect": false
+        },
+        {
+          "text": "Uno certificado (por ejemplo NTC 4533, DOT o ECE 22.05), de su talla y bien abrochado.",
+          "isCorrect": true
+        },
+        {
+          "text": "El más económico, aunque le quede grande.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "¿Cómo debe quedar ajustada la correa (sistema de retención) del casco?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Seguridad pasiva",
+      "subtopic": "Casco en motocicleta",
+      "difficulty": "Media",
+      "explanation": "Una correa bien ajustada evita que el casco salga despedido en un choque.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 93. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Con más o menos un centímetro entre el cuello y la correa.",
+          "isCorrect": true
+        },
+        {
+          "text": "Suelta, para poder respirar mejor.",
+          "isCorrect": false
+        },
+        {
+          "text": "Desabrochada en trayectos cortos.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "¿Cuál de estos elementos hace parte del equipo de carretera obligatorio según el artículo 30 del Código?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Averías e inmovilización",
+      "subtopic": "Proteger la escena con el equipo de carretera",
+      "difficulty": "Media",
+      "explanation": "El equipo incluye gato, cruceta, dos señales reflectivas, botiquín, extintor, dos tacos, herramienta básica, llanta de repuesto y linterna.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 83. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Un parlante portátil.",
+          "isCorrect": false
+        },
+        {
+          "text": "Dos tacos para bloquear el vehículo.",
+          "isCorrect": true
+        },
+        {
+          "text": "Un compresor de aire eléctrico.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Un agente le pide mostrar el equipo de carretera. ¿Cuál lista corresponde a lo que exige el artículo 30 del Código?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Averías e inmovilización",
+      "subtopic": "Proteger la escena con el equipo de carretera",
+      "difficulty": "Media",
+      "explanation": "Son nueve elementos mínimos para atender una emergencia en la vía.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 83. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Botiquín y extintor solamente.",
+          "isCorrect": false
+        },
+        {
+          "text": "Gato, cruceta, chaleco y cables de arranque, nada más.",
+          "isCorrect": false
+        },
+        {
+          "text": "Gato, cruceta, dos señales reflectivas, botiquín, extintor, dos tacos, herramienta básica, llanta de repuesto y linterna.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Se vara en una calle residencial donde nadie debería ir a más de 30 km/h. ¿A qué distancia aproximada pone los triángulos?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Averías e inmovilización",
+      "subtopic": "Proteger la escena con el equipo de carretera",
+      "difficulty": "Alta",
+      "explanation": "A 30 km/h un vehículo recorre unos 8 metros por segundo; 12 metros le dan cerca de segundo y medio para reaccionar.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 84. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "A unos 12 metros.",
+          "isCorrect": true
+        },
+        {
+          "text": "A unos 2 metros.",
+          "isCorrect": false
+        },
+        {
+          "text": "A unos 100 metros.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Se vara en una avenida arteria donde se circula a unos 60 km/h. ¿A qué distancia aproximada pone los triángulos?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Averías e inmovilización",
+      "subtopic": "Proteger la escena con el equipo de carretera",
+      "difficulty": "Alta",
+      "explanation": "A 60 km/h se recorren unos 16 metros por segundo; con segundo y medio de margen son unos 24 metros.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 84. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "A unos 24 metros.",
+          "isCorrect": true
+        },
+        {
+          "text": "A unos 12 metros.",
+          "isCorrect": false
+        },
+        {
+          "text": "A unos 5 metros.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Se vara en una carretera donde los vehículos pasan entre 80 y 120 km/h. ¿A qué distancia aproximada pone los triángulos?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Averías e inmovilización",
+      "subtopic": "Proteger la escena con el equipo de carretera",
+      "difficulty": "Alta",
+      "explanation": "A esas velocidades se recorren entre 22 y 33 metros por segundo, por lo que se toma la mayor distancia.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 84. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "A unos 12 metros.",
+          "isCorrect": false
+        },
+        {
+          "text": "A unos 44 metros o más.",
+          "isCorrect": true
+        },
+        {
+          "text": "A unos 24 metros.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Va a instalar los triángulos después de una avería. ¿Dónde y cómo los coloca?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Averías e inmovilización",
+      "subtopic": "Proteger la escena con el equipo de carretera",
+      "difficulty": "Media",
+      "explanation": "Si tiene linterna, úsela mientras camina a instalarlos y luego entre los triángulos y el vehículo.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 84. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Encima del techo del vehículo.",
+          "isCorrect": false
+        },
+        {
+          "text": "En el carril contrario, para que lo vean los que vienen de frente.",
+          "isCorrect": false
+        },
+        {
+          "text": "En el mismo carril del vehículo detenido, con la cara reflectiva hacia los vehículos que se acercan.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "María sufre una avería en una vía nacional y la reparación tomará cerca de una hora. Según el artículo 79 del Código, ¿qué debe hacer mientras repara?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Averías e inmovilización",
+      "subtopic": "Proteger la escena con el equipo de carretera",
+      "difficulty": "Media",
+      "explanation": "El artículo 79 fija los mínimos para hacer reparaciones de fuerza mayor en la vía pública.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Dejar un espacio de unos cinco metros adelante y atrás.",
+          "isCorrect": false
+        },
+        {
+          "text": "Poner señales visibles entre 50 y 100 metros adelante y atrás del vehículo.",
+          "isCorrect": true
+        },
+        {
+          "text": "Reparar a una distancia de entre cuatro y ocho metros de los demás vehículos.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Sufre un pinchazo en una carretera. ¿Qué hace primero?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Averías e inmovilización",
+      "subtopic": "Cuándo continuar y cuándo detenerse",
+      "difficulty": "Baja",
+      "explanation": "Cambiar una llanta expuesto al tráfico lo pone en riesgo de ser atropellado.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 83. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Salirse de la vía con prudencia, usando los espejos, hasta un lugar donde no quede expuesto al tráfico.",
+          "isCorrect": true
+        },
+        {
+          "text": "Frenar en el carril y cambiar la llanta allí mismo.",
+          "isCorrect": false
+        },
+        {
+          "text": "Seguir rodando con la llanta pinchada hasta el próximo pueblo.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Se sube a un carro prestado. ¿Cómo debe ajustar el asiento según el manual?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Mantenimiento preventivo",
+      "subtopic": "Qué revisar antes de salir",
+      "difficulty": "Baja",
+      "explanation": "Una buena postura mantiene la alerta y el control; también se ajustan espejos, apoyacabezas y cinturón.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 86. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Lo más atrás posible, con los brazos estirados del todo.",
+          "isCorrect": false
+        },
+        {
+          "text": "Lo más adelante posible, con el pecho pegado al volante.",
+          "isCorrect": false
+        },
+        {
+          "text": "Para pisar los pedales hasta el fondo sin moverse y alcanzar sin esfuerzo la parte de arriba del volante.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "¿Por qué no se debe tocar la llave de encendido con el vehículo en movimiento?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Sistema eléctrico y electrónico",
+      "subtopic": "Batería, alternador, fusibles y arranque",
+      "difficulty": "Media",
+      "explanation": "Girar la llave en marcha puede activar el bloqueo de la dirección.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 89. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Porque puede bloquear el volante y hacerle perder el control.",
+          "isCorrect": true
+        },
+        {
+          "text": "Porque se apagan las luces de freno.",
+          "isCorrect": false
+        },
+        {
+          "text": "Porque se descarga la batería.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Va a bajar una pendiente larga en un carro mecánico. ¿Qué es lo correcto?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Conocimiento general del vehículo",
+      "subtopic": "Motor, transmisión, dirección, suspensión y frenos",
+      "difficulty": "Media",
+      "explanation": "En neutro el vehículo toma tanto impulso que los frenos pueden no bastar para detenerlo.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 90. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Bajar en neutro para ahorrar combustible.",
+          "isCorrect": false
+        },
+        {
+          "text": "Bajar en el cambio más alto y frenar todo el tiempo.",
+          "isCorrect": false
+        },
+        {
+          "text": "Bajar con un cambio engranado, el mismo que usaría para subir, y nunca en neutro.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "¿Qué puede pasar si baja una pendiente larga usando solo el freno de servicio?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Sistema de frenos",
+      "subtopic": "Freno de servicio, de estacionamiento, pastillas y líquido",
+      "difficulty": "Media",
+      "explanation": "Por eso se reduce la velocidad al inicio del descenso y se usa el freno de motor.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 90. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "No pasa nada, los frenos están hechos para eso.",
+          "isCorrect": false
+        },
+        {
+          "text": "Los frenos pueden sobrecalentarse y perder fuerza.",
+          "isCorrect": true
+        },
+        {
+          "text": "Los frenos se enfrían y frenan mejor.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "La aguja de temperatura del motor sube a la zona roja mientras conduce. ¿Qué hace?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Motor y fluidos",
+      "subtopic": "Aceite, refrigerante, combustible y sobrecalentamiento",
+      "difficulty": "Media",
+      "explanation": "El sobrecalentamiento puede dañar el motor; el líquido caliente a presión puede causar quemaduras graves.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 65. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Abrir de inmediato la tapa del radiador para que se enfríe.",
+          "isCorrect": false
+        },
+        {
+          "text": "Detenerse en un lugar seguro, apagar el motor y no abrir el radiador en caliente.",
+          "isCorrect": true
+        },
+        {
+          "text": "Seguir hasta el destino y revisar después.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Al mover el carro en la mañana ve una mancha de líquido en el piso donde estuvo estacionado. ¿Qué debe hacer?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Motor y fluidos",
+      "subtopic": "Cómo reconocer una fuga",
+      "difficulty": "Media",
+      "explanation": "Una fuga de frenos, aceite o refrigerante puede causar una falla grave; la revisión de líquidos hace parte de la preoperacional.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 68. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Identificar de qué sistema viene y, si no lo sabe, no arriesgarse y llevarlo a un taller.",
+          "isCorrect": true
+        },
+        {
+          "text": "Echarle agua al depósito que vea más bajo.",
+          "isCorrect": false
+        },
+        {
+          "text": "Ignorarla, todos los carros botan algo de líquido.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Durante la revisión preoperacional, ¿qué debe verificar de los cinturones de seguridad?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Revisión preoperacional",
+      "subtopic": "Fugas y cinturones",
+      "difficulty": "Baja",
+      "explanation": "El cinturón puede salvar la vida y no usarlo acarrea una multa; debe funcionar en todos los puestos.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 86. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Solo el del conductor.",
+          "isCorrect": false
+        },
+        {
+          "text": "Que todos abrochen, se ajusten y no estén rotos ni deshilachados.",
+          "isCorrect": true
+        },
+        {
+          "text": "Nada, los cinturones no hacen parte de la revisión.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "¿Qué es el habitáculo o célula de supervivencia de un vehículo?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Conocimiento general del vehículo",
+      "subtopic": "Sistema eléctrico, carrocería e instrumentación",
+      "difficulty": "Media",
+      "explanation": "Las zonas menos rígidas absorben el golpe; el habitáculo protege a los ocupantes.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 82. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "La estructura rígida donde van los ocupantes, que debe mantenerse intacta en un choque.",
+          "isCorrect": true
+        },
+        {
+          "text": "El compartimiento donde está el motor.",
+          "isCorrect": false
+        },
+        {
+          "text": "El baúl donde se guarda el equipo de carretera.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "¿Por qué debe arrancar acelerando de forma gradual?",
+      "type": "Seleccion multiple",
+      "subject": "El vehículo",
+      "topic": "Conocimiento general del vehículo",
+      "subtopic": "Motor, transmisión, dirección, suspensión y frenos",
+      "difficulty": "Media",
+      "explanation": "Un giro brusco del conjunto motor-transmisión puede inducir giros en la dirección.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 88. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "No importa cómo arranque.",
+          "isCorrect": false
+        },
+        {
+          "text": "Porque así el carro alcanza antes la velocidad máxima.",
+          "isCorrect": false
+        },
+        {
+          "text": "Porque arrancar con mucha potencia puede hacer que el volante gire sin control, sobre todo en piso resbaloso.",
+          "isCorrect": true
+        }
+      ]
+    }
+  ]
+}

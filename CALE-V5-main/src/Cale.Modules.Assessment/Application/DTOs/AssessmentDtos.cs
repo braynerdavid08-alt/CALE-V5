@@ -41,7 +41,19 @@ public sealed record FinishResponse(
     int TimeSeconds,
     IReadOnlyList<ScoreBreakdownDto> ByTopic,
     IReadOnlyList<ScoreBreakdownDto> ByBlock,
-    decimal? BestPercent);
+    decimal? BestPercent,
+    OfficialResultDto? Official = null);
+
+/// <summary>Official simulacro result: knowledge and attitudes are graded apart (80 % each).</summary>
+public sealed record OfficialResultDto(
+    int KnowledgeCorrect,
+    int KnowledgeTotal,
+    decimal KnowledgePercent,
+    int AttitudeCorrect,
+    int AttitudeTotal,
+    decimal AttitudePercent,
+    decimal PassPercent,
+    IReadOnlyList<ScoreBreakdownDto> Sections);
 
 public sealed record ScoreBreakdownDto(
     string Label,

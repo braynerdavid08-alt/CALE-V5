@@ -72,7 +72,9 @@ public sealed class ReviewAttemptHandler
                 : FromSnapshot(item, answer));
         }
 
-        return new ReviewResponse(FinishExamHandler.Map(attempt), questions);
+        return new ReviewResponse(
+            FinishExamHandler.Map(attempt, FinishExamHandler.ScoreOfficial(attempt, snapshot, answers)),
+            questions);
     }
 
     private static ReviewQuestionDto FromImmutableSnapshot(

@@ -169,9 +169,14 @@
   margin: 0 0 0.85rem;
 }
 
-ui-card.mixed-card {
+ui-card.mixed-card,
+ui-card.official-card {
   display: block;
   margin-bottom: 1rem;
+}
+
+.attitude-hint {
+  margin: 0.25rem 0 0.75rem;
 }
 
 .mix-exam-grid {

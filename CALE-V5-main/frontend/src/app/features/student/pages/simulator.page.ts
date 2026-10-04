@@ -120,6 +120,8 @@ export class SimulatorPage implements OnInit, OnDestroy {
   readonly finishing = signal(false);
   readonly sharing = signal(false);
   readonly shareMsg = signal<string | null>(null);
+  /** Simulacro oficial CALE: 28 de conocimiento + 12 de actitudes, aprueba con 80 % en cada parte. */
+  readonly official = signal(false);
   readonly isStudent = computed(() => this.sessionStore.user()?.role === 'Student');
   /** Sin escuela (app gratis): practica con los bancos oficiales. */
   readonly independent = computed(() => !this.sessionStore.user()?.schoolId);
@@ -262,6 +264,16 @@ export class SimulatorPage implements OnInit, OnDestroy {
       questionCount: exam.questionCount,
       mode: 'exam',
       timeMinutes: exam.timeMinutes
+    });
+  }
+
+  startOfficial(): void {
+    this.start({
+      bankId: null,
+      examId: null,
+      questionCount: 40,
+      mode: 'official',
+      timeMinutes: 60
     });
   }
 
@@ -478,6 +490,7 @@ export class SimulatorPage implements OnInit, OnDestroy {
     this.error.set(null);
     this.api.start(body).subscribe({
       next: (session) => {
+        this.official.set(body.mode === 'official');
         this.session.set(session);
         this.current.set(0);
         Object.keys(this.answers).forEach((k) => delete this.answers[Number(k)]);

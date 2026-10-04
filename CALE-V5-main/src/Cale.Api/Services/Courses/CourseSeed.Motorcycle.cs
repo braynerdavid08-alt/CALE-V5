@@ -21,8 +21,8 @@ public sealed partial class CourseSeed
                 Video("ansv-moto-alistamiento.mp4", "Cómo prepararse y alistar la moto antes de un recorrido. Video: Agencia Nacional de Seguridad Vial (ANSV)."),
                 Flip(
                     "Los elementos de protección",
-                    Card("Casco", "Obligatorio para conductor y acompañante. Debe cumplir el reglamento técnico (Resolución 20203040023385 de 2020), tener su certificación y ir siempre abrochado. El integral protege también la mandíbula."),
-                    Card("Prenda reflectiva", "Te hace visible, sobre todo de noche y con lluvia."),
+                    Card("Casco", "Obligatorio para conductor y acompañante. Debe cumplir el reglamento técnico (Resolución 20203040023385 de 2020), tener su certificación (por ejemplo DOT, ECE 22 o NTC 4533) y ser de tu talla. La correa va abrochada, sin pasar por la mandíbula, dejando apenas un centímetro con el cuello: si te lo puedes quitar sin soltarla, está floja. El integral protege también la mandíbula."),
+                    Card("Prenda reflectiva", "Conductor y acompañante deben llevarla entre las 18:00 y las 6:00 y siempre que haya poca visibilidad. De día, la ropa clara y llamativa también ayuda a que te vean."),
                     Card("Guantes", "En una caída, las manos son lo primero que toca el piso. Deben tener protección en palmas y nudillos."),
                     Card("Chaqueta y pantalón con protecciones", "Protegen hombros, codos, espalda, caderas y rodillas de golpes y raspaduras."),
                     Card("Botas", "Que cubran el tobillo y tengan suela antideslizante. Las chanclas y los tenis no protegen."),

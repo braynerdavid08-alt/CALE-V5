@@ -1,0 +1,943 @@
+{
+  "bankName": "Actitudes del conductor (CALE)",
+  "description": "Enunciados de actitudes con escala de cuatro niveles, como en el examen teórico oficial. Redacción propia de Luz Verde.",
+  "blockName": "Actitudes del conductor",
+  "questions": [
+    {
+      "text": "Si voy de afán, puedo pasarme un semáforo en amarillo acelerando.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar en desacuerdo. El amarillo indica que debe prepararse para detenerse; acelerar aumenta el riesgo de choque en el cruce.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Puedo conducir después de tomarme un par de cervezas si me siento bien.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar en desacuerdo. Desde 20 mg de etanol hay sanción, y sentirse bien no significa estar en condiciones de conducir.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Contestar un mensaje en el celular en un semáforo en rojo no tiene riesgo.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Media",
+      "explanation": "La actitud segura es estar en desacuerdo. El celular distrae aun detenido: no se percibe el cambio de luz ni a los peatones que cruzan.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Si un peatón cruza por donde no es, está bien acercarme rápido para que aprenda.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar en desacuerdo. Intimidar a un peatón pone su vida en riesgo; siempre se le da prelación.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Si la calle está vacía, puedo superar el límite de velocidad.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar en desacuerdo. Los límites consideran riesgos que no siempre se ven, como peatones o niños que aparecen de repente.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "El cinturón de seguridad solo hace falta en carretera.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar en desacuerdo. Cerca de la mitad de los siniestros con víctimas ocurre en zona urbana.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Si el trayecto es corto, un niño pequeño puede ir en mis piernas en el puesto delantero.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar en desacuerdo. Los menores de 10 años van atrás y con sistema de retención infantil, sin importar la distancia.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Cuando alguien me cierra el paso, tengo derecho a responderle de la misma forma.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar en desacuerdo. El manejo preventivo pide no agredir ni por provocación ni por venganza.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Si llevo prisa, puedo subirme al andén para salir del trancón.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar en desacuerdo. El andén es exclusivo de los peatones; los vehículos no pueden circular por él.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Las señales de tránsito son sugerencias; lo importante es la experiencia del conductor.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Media",
+      "explanation": "La actitud segura es estar en desacuerdo. Las señales reglamentarias son obligatorias y su violación acarrea sanciones.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Si no hay agentes de tránsito cerca, no pasa nada si incumplo una norma.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Media",
+      "explanation": "La actitud segura es estar en desacuerdo. Las normas se cumplen por autorregulación, porque protegen la vida, no por miedo a la multa.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Cuando tengo sueño, una bebida energizante basta para seguir manejando.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Media",
+      "explanation": "La actitud segura es estar en desacuerdo. Ante la fatiga lo seguro es detenerse y descansar; las bebidas estimulantes no eliminan el riesgo.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Los ciclistas deberían andar por el andén para no estorbar a los carros.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Media",
+      "explanation": "La actitud segura es estar en desacuerdo. La bicicleta es un vehículo con derecho a la vía; el andén es de los peatones.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Puedo adelantar en una curva si conozco bien la vía.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar en desacuerdo. En una curva no hay visibilidad del carril contrario; conocer la vía no elimina el riesgo.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Llevar el casco sin abrochar es suficiente en trayectos cortos.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar en desacuerdo. Un casco sin abrochar sale despedido en un choque y no protege.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Si mi licencia está suspendida, puedo manejar con cuidado mientras me la devuelven.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Media",
+      "explanation": "La actitud segura es estar en desacuerdo. Conducir con la licencia suspendida es una infracción grave y significa conducir sin habilitación.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Si el SOAT se venció hace pocos días, puedo seguir circulando normalmente.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Media",
+      "explanation": "La actitud segura es estar en desacuerdo. Sin SOAT vigente no se puede circular y las víctimas quedan sin esa cobertura.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Estacionar un momento en un espacio para personas con discapacidad no afecta a nadie.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar en desacuerdo. Esos espacios garantizan la movilidad de quien los necesita; ocuparlos lo obliga a exponerse.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "En una discusión de tránsito es válido bajarme del carro a reclamar.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Media",
+      "explanation": "La actitud segura es estar en desacuerdo. Bajarse a reclamar escala el conflicto y expone a todos a riesgos en la vía.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Pitar con insistencia hace que el tráfico avance más rápido.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Media",
+      "explanation": "La actitud segura es estar en desacuerdo. La bocina es para advertir un peligro; usarla sin necesidad genera estrés y conflictos.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Llevar más pasajeros de los permitidos está bien si son familiares.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar en desacuerdo. Cada ocupante necesita su puesto y su cinturón; el parentesco no cambia el riesgo.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Si mis amigos me presionan para ir más rápido, debo complacerlos.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar en desacuerdo. La decisión segura no cambia por la presión del grupo.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Reduzco la velocidad cuando veo niños cerca de la vía, aunque no haya una señal.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar de acuerdo. La presencia de un niño en la calle es en sí misma una señal de alerta.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Antes de salir reviso las llantas, los frenos y las luces.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar de acuerdo. La revisión preoperacional toma pocos minutos y puede prevenir un siniestro.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Si voy a tomar alcohol, dejo el carro o designo un conductor elegido.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar de acuerdo. Planear el regreso con anticipación evita la tentación de conducir bajo efectos del alcohol.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Cedo el paso a los peatones en las cebras aunque tenga prisa.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar de acuerdo. Los peatones tienen prelación en las cebras y son los actores más vulnerables.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Cuando estoy cansado, prefiero detenerme a descansar.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar de acuerdo. La fatiga produce microsueños; descansar es la única medida segura.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Cumplo las normas de tránsito aunque no haya autoridades presentes.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar de acuerdo. La autorregulación protege su vida y la de los demás en todo momento.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Dejo al menos un metro y medio de distancia al adelantar a un ciclista.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Media",
+      "explanation": "La actitud segura es estar de acuerdo. El ciclista puede tambalearse por el viento o el esfuerzo; 1,5 m es el espacio mínimo recomendado.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Guardo el celular donde no lo pueda usar mientras conduzco.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar de acuerdo. Alejar el celular elimina una de las principales distracciones al volante.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Si otro conductor comete un error, procuro evitar el choque en lugar de reclamarle.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Media",
+      "explanation": "La actitud segura es estar de acuerdo. Muchos siniestros se evitan cuando alguien cubre la falta de precaución del otro.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Uso el cinturón en todos los trayectos y pido a mis pasajeros que lo usen.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar de acuerdo. El cinturón reduce hasta un 50 % el riesgo de morir y es obligatorio para todos los ocupantes.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Con lluvia o niebla aumento la distancia con el vehículo de adelante.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar de acuerdo. El piso mojado y la baja visibilidad alargan la distancia necesaria para frenar.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Si presencio un siniestro, primero protejo la escena y luego pido ayuda.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Media",
+      "explanation": "La actitud segura es estar de acuerdo. El protocolo PAS empieza por proteger para evitar más víctimas.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Planeo mis viajes para salir con tiempo y no tener que correr.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar de acuerdo. Salir con tiempo reduce el estrés y la tentación de exceder la velocidad.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Respeto los espacios reservados para personas con discapacidad.",
+      "type": "Actitud",
+      "topic": "Actitudes",
+      "difficulty": "Baja",
+      "explanation": "La actitud segura es estar de acuerdo. Esos espacios garantizan la accesibilidad de quienes más lo necesitan.",
+      "source": "Formato de actitudes del examen teórico (Res. 20253040037125 de 2025, citado en ANSV, Manual de referencia para la conducción de vehículos (2026), p. 112). Enunciado propio de Luz Verde.",
+      "options": [
+        {
+          "text": "Muy en desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "En desacuerdo",
+          "isCorrect": false
+        },
+        {
+          "text": "De acuerdo",
+          "isCorrect": true
+        },
+        {
+          "text": "Muy de acuerdo",
+          "isCorrect": true
+        }
+      ]
+    }
+  ]
+}

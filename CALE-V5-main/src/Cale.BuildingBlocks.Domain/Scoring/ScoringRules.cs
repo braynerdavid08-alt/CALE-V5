@@ -33,6 +33,23 @@ public static class ScoringRules
         return Math.Round(100m * minCorrect / totalQuestions, 1);
     }
 
+    /// <summary>Official CALE theory exam (Res. 20253040037125 de 2025): 80 % in knowledge and 80 % in attitudes.</summary>
+    public const decimal OfficialPassPercent = 80m;
+
+    public static bool IsOfficialPassed(
+        int knowledgeCorrect,
+        int knowledgeTotal,
+        int attitudeCorrect,
+        int attitudeTotal) =>
+        ReachesOfficialPercent(knowledgeCorrect, knowledgeTotal)
+        && ReachesOfficialPercent(attitudeCorrect, attitudeTotal);
+
+    private static bool ReachesOfficialPercent(int correct, int total) =>
+        total > 0
+        && correct >= 0
+        && correct <= total
+        && 100m * correct / total >= OfficialPassPercent;
+
     public static string ResultBand(int correctCount, int totalQuestions)
     {
         if (IsPassed(correctCount, totalQuestions))
