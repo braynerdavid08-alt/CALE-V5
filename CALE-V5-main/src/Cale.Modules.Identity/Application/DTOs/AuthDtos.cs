@@ -379,4 +379,18 @@ public sealed record UpdateUserRequest(
     string Role,
     string? NewPassword);
 
-public sealed record SetUserActiveRequest(bool IsActive);
+public sealed record SetUserActiveRequest(
+    bool IsActive,
+    string? Reason = null,
+    string? Evidence = null,
+    int? DurationDays = null);
+
+public sealed record AccountStatusEventDto(
+    int Id,
+    string Action,
+    string Reason,
+    string? Evidence,
+    DateTime? SuspendedUntil,
+    int? ActorUserId,
+    string? ActorName,
+    DateTime CreatedAt);

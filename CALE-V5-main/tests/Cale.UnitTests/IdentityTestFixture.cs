@@ -39,6 +39,7 @@ public sealed class IdentityTestFixture : IDisposable
             Clock);
         Users = new UserStore(Db);
         Profiles = new SchoolProfileStore(Db);
+        AccountStatus = new AccountStatusStore(Db);
         EmailOptions = Options.Create(new EmailOptions
         {
             Enabled = false,
@@ -55,6 +56,7 @@ public sealed class IdentityTestFixture : IDisposable
     public CaleDbContext Db { get; }
     public UserStore Users { get; }
     public SchoolProfileStore Profiles { get; }
+    public AccountStatusStore AccountStatus { get; }
     public PasswordHasher Hasher { get; }
     public FakeClock Clock { get; }
     public JwtTokenService Tokens { get; }
@@ -68,7 +70,20 @@ public sealed class IdentityTestFixture : IDisposable
         new(Users, Tokens, Clock, EmailConfirmation);
 
     public LoginUserHandler CreateLogin() =>
-        new(Users, Hasher, Tokens, Clock, NullLogger<LoginUserHandler>.Instance);
+        new(Users, Hasher, Tokens, Clock, AccountStatus, NullLogger<LoginUserHandler>.Instance);
+
+    public SetUserActiveHandler CreateSetActive() =>
+        new(Users, new NoopRefreshTokenStore(), AccountStatus, Clock, NullLogger<SetUserActiveHandler>.Instance);
+
+    private sealed class NoopRefreshTokenStore : Cale.Modules.Identity.Application.Abstractions.IRefreshTokenStore
+    {
+        public Task<string> IssueAsync(int userId, DateTime expiresAtUtc, CancellationToken ct = default) =>
+            Task.FromResult("token");
+        public Task<int?> ConsumeAsync(string rawToken, CancellationToken ct = default) =>
+            Task.FromResult<int?>(null);
+        public Task RevokeAsync(string rawToken, CancellationToken ct = default) => Task.CompletedTask;
+        public Task RevokeAllForUserAsync(int userId, CancellationToken ct = default) => Task.CompletedTask;
+    }
 
     public void Dispose() => Db.Dispose();
 }

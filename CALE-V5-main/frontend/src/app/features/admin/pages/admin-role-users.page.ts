@@ -14,6 +14,7 @@ import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
 import { UiStatComponent } from '../../../shared/ui/ui-stat.component';
 import { roleLabel } from '../../../shared/utils/role-label';
+import { AccountStatusSheetComponent, AccountStatusTarget } from '../components/account-status-sheet.component';
 
 interface UserRow {
   id: number;
@@ -37,7 +38,8 @@ interface UserRow {
     UiErrorComponent,
     UiLoadingComponent,
     UiPageHeaderComponent,
-    UiStatComponent
+    UiStatComponent,
+    AccountStatusSheetComponent
   ],
   template: `
     <ui-page-header
@@ -99,8 +101,8 @@ interface UserRow {
                         type="button"
                         variant="ghost"
                         [disabled]="busyId() === u.id || u.id === meId"
-                        (click)="toggleActive(u)">
-                        {{ u.isActive ? 'Desactivar' : 'Activar' }}
+                        (click)="statusTarget.set(u)">
+                        {{ u.isActive ? 'Suspender' : 'Revisar' }}
                       </ui-button>
                     </td>
                 }
@@ -110,6 +112,11 @@ interface UserRow {
         }
       </ui-card>
     }
+
+    <app-account-status-sheet
+      [user]="statusTarget()"
+      (closed)="statusTarget.set(null)"
+      (changed)="statusChanged($event)" />
   `,
   styles: [`
     .grid-stats {
@@ -160,6 +167,7 @@ export class AdminRoleUsersPage implements OnInit {
   readonly items = signal<UserRow[]>([]);
   readonly query = signal('');
   readonly busyId = signal<number | null>(null);
+  readonly statusTarget = signal<AccountStatusTarget | null>(null);
   readonly meId = this.session.user()?.id ?? -1;
 
   readonly filtered = computed(() => {
@@ -199,23 +207,10 @@ export class AdminRoleUsersPage implements OnInit {
     });
   }
 
-  toggleActive(user: UserRow): void {
-    this.busyId.set(user.id);
-    this.http.patch<UserRow>(
-      `${env.apiUrl}/api/admin/users/${user.id}/active`,
-      { isActive: !user.isActive },
-      { withCredentials: true }
-    ).subscribe({
-      next: (updated) => {
-        this.items.update((rows) =>
-          rows.map((r) => (r.id === updated.id ? { ...r, isActive: updated.isActive } : r))
-        );
-        this.busyId.set(null);
-      },
-      error: (err) => {
-        this.busyId.set(null);
-        this.error.set(mapApiError(err));
-      }
-    });
+  statusChanged(updated: AccountStatusTarget): void {
+    this.items.update((rows) =>
+      rows.map((r) => (r.id === updated.id ? { ...r, isActive: updated.isActive } : r))
+    );
+    this.statusTarget.set(null);
   }
 }

@@ -18,6 +18,10 @@ const messages: Record<string, string> = {
   student_not_found: 'Estudiante no encontrado.',
   invalid_student: 'El estudiante no pertenece a tu escuela.',
   cannot_deactivate_self: 'No puedes desactivar tu propia cuenta.',
+  account_suspended: 'Tu cuenta está suspendida. Escribe al correo de contacto de Luz Verde para solicitar la revisión.',
+  suspension_reason_required: 'Explica el motivo de la suspensión (10 a 500 caracteres).',
+  suspension_evidence_too_long: 'La evidencia admite hasta 1000 caracteres.',
+  suspension_duration_invalid: 'La duración debe estar entre 1 y 3650 días.',
   membership_admin_only: 'Solo el administrador puede activar la membresía tras verificar el pago.',
   membership_inactive: 'Tu membresía no está activa. Solicita un plan, sube el comprobante y espera la verificación del administrador.',
   catalog_access_denied: 'No tienes acceso al catálogo de preguntas. Tu escuela necesita un plan activo.',
@@ -212,6 +216,10 @@ export function mapApiError(error: unknown): string {
 
   const detail = typeof error.error?.detail === 'string' ? error.error.detail : null;
   const title = typeof error.error?.title === 'string' ? error.error.title : null;
+
+  if (detail === 'account_suspended' && title && title.trim()) {
+    return title;
+  }
 
   if (detail === 'internal_error'
       && title
