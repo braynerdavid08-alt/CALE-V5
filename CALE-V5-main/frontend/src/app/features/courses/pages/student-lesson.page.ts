@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { mapApiError } from '../../../core/http/map-api-error';
@@ -9,6 +9,34 @@ import { PlayBadgesToastComponent } from '../../play/components/play-badges-toas
 import { PlayFxService } from '../../play/play-fx.service';
 import { ActivityAnswer, LessonCompleteResult, StudentCoursesApi, StudentLesson } from '../api/courses.api';
 import { ActivityAnswered, LessonBlocksComponent, QuizChecker } from '../components/lesson-blocks.component';
+
+const GRADED = new Set<string | undefined>(['quiz', 'truefalse', 'scenario', 'order', 'fillblank', 'classify']);
+const STOPS = new Set<string | undefined>([...GRADED, 'match', 'hotspot', 'flipcards', 'video']);
+
+/** Each step ends at an activity or video; long reading runs are cut every two blocks. */
+export function splitSteps(blocks: { type: string }[]): number[][] {
+  const steps: number[][] = [];
+  let current: number[] = [];
+  let reading = 0;
+  blocks.forEach((b, i) => {
+    current.push(i);
+    if (STOPS.has(b.type)) {
+      steps.push(current);
+      current = [];
+      reading = 0;
+      return;
+    }
+    reading++;
+    const next = blocks[i + 1];
+    if (reading >= 2 && next && !STOPS.has(next.type)) {
+      steps.push(current);
+      current = [];
+      reading = 0;
+    }
+  });
+  if (current.length) steps.push(current);
+  return steps.length ? steps : [[]];
+}
 
 @Component({
   selector: 'app-student-lesson-page',
@@ -38,8 +66,27 @@ import { ActivityAnswered, LessonBlocksComponent, QuizChecker } from '../compone
           }
         </header>
 
+        @if (!allAtOnce() && !result()) {
+          <div class="stepper" role="group" aria-label="Avance de la lección">
+            <div class="step-top">
+              <strong>Paso {{ step() + 1 }} de {{ steps().length }}</strong>
+              <button type="button" class="link-btn" (click)="allAtOnce.set(true)">Ver toda la lección</button>
+            </div>
+            <span class="bar"><span [style.width.%]="((step() + 1) / steps().length) * 100"></span></span>
+          </div>
+
+          <div class="guide" aria-live="polite">
+            <span class="guide-face" aria-hidden="true">🚦</span>
+            <p class="guide-bubble">{{ guideLine() }}</p>
+          </div>
+        }
+
         <div class="panel">
-          <course-lesson-blocks [blocks]="l.content" [checker]="checker" (answered)="onAnswered($event)" />
+          <course-lesson-blocks
+            [blocks]="l.content"
+            [checker]="checker"
+            [only]="allAtOnce() || result() ? null : steps()[step()]"
+            (answered)="onAnswered($event)" />
         </div>
 
         @if (result(); as r) {
@@ -58,6 +105,16 @@ import { ActivityAnswered, LessonBlocksComponent, QuizChecker } from '../compone
               <ui-button variant="secondary" [routerLink]="['/student/cursos', l.courseId]">Ver el curso</ui-button>
             </div>
           </div>
+        } @else if (!allAtOnce() && !lastStep()) {
+          <div class="panel" style="display: grid; gap: 0.6rem">
+            @if (pendingInStep() > 0) {
+              <p class="muted" style="margin: 0">Responde la actividad de este paso para continuar.</p>
+            }
+            <div class="player-nav">
+              <ui-button variant="ghost" [disabled]="step() === 0" (click)="go(-1)">← Atrás</ui-button>
+              <ui-button [disabled]="pendingInStep() > 0" (click)="go(1)">Continuar →</ui-button>
+            </div>
+          </div>
         } @else {
           <div class="panel" style="display: grid; gap: 0.6rem">
             @if (l.quizCount) {
@@ -67,8 +124,10 @@ import { ActivityAnswered, LessonBlocksComponent, QuizChecker } from '../compone
               </p>
             }
             <div class="player-nav">
-              @if (l.previousLessonId) {
-                <ui-button variant="ghost" [routerLink]="['/student/cursos/leccion', l.previousLessonId]">← Anterior</ui-button>
+              @if (!allAtOnce() && step() > 0) {
+                <ui-button variant="ghost" (click)="go(-1)">← Atrás</ui-button>
+              } @else if (l.previousLessonId) {
+                <ui-button variant="ghost" [routerLink]="['/student/cursos/leccion', l.previousLessonId]">← Lección anterior</ui-button>
               } @else {
                 <span></span>
               }
@@ -94,7 +153,46 @@ export class StudentLessonPage implements OnInit {
   readonly result = signal<LessonCompleteResult | null>(null);
   readonly newBadges = signal<Badge[]>([]);
   readonly answeredCount = signal(0);
+  readonly allAtOnce = signal(false);
+  readonly step = signal(0);
+  readonly steps = computed(() => splitSteps(this.lesson()?.content ?? []));
+  readonly lastStep = computed(() => this.step() >= this.steps().length - 1);
+  private readonly answeredSet = signal<Set<number>>(new Set());
+  private readonly feedback = signal<boolean | null>(null);
+  readonly pendingInStep = computed(() => {
+    const blocks = this.lesson()?.content ?? [];
+    const done = this.answeredSet();
+    return (this.steps()[this.step()] ?? []).filter((i) => GRADED.has(blocks[i]?.type) && !done.has(i)).length;
+  });
+  readonly guideLine = computed(() => {
+    const l = this.lesson();
+    if (!l) return '';
+    const fb = this.feedback();
+    if (fb !== null && this.pendingInStep() === 0) {
+      return fb ? '¡Excelente! Lo hiciste muy bien. Continúa cuando quieras.' : 'No pasa nada: lee la explicación con calma y sigue adelante.';
+    }
+    if (this.step() === 0) {
+      return `¡Hola! Soy tu guía de Luz Verde. Vamos paso a paso con «${l.title}». Lee, mira y responde: yo te acompaño.`;
+    }
+    const types = new Set((this.steps()[this.step()] ?? []).map((i) => l.content[i]?.type));
+    if ([...types].some((t) => GRADED.has(t))) return '¡Tu turno! Responde la actividad para seguir avanzando.';
+    if (types.has('video')) return 'Mira el video con atención; luego seguimos.';
+    if (types.has('signs')) return 'Observa bien estas señales: las vas a encontrar en la vía.';
+    if (types.has('flipcards')) return 'Toca cada tarjeta para descubrir lo que hay detrás.';
+    if (types.has('match')) return 'Une cada elemento con su pareja.';
+    if (types.has('hotspot')) return 'Explora la imagen y encuentra los puntos importantes.';
+    if (this.lastStep()) return '¡Último paso! Al terminar, pulsa «Terminar lección».';
+    return 'Lee con calma. Cuando estés listo, continúa.';
+  });
   private answers: Record<number, ActivityAnswer> = {};
+
+  go(delta: number): void {
+    const next = Math.min(Math.max(this.step() + delta, 0), this.steps().length - 1);
+    if (next === this.step()) return;
+    this.step.set(next);
+    this.feedback.set(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
   readonly checker: QuizChecker = (blockIndex, answer) => this.api.check(this.lesson()!.id, blockIndex, answer);
 
@@ -107,6 +205,8 @@ export class StudentLessonPage implements OnInit {
   onAnswered(e: ActivityAnswered): void {
     this.answers[e.blockIndex] = e.value;
     this.answeredCount.set(Object.keys(this.answers).length);
+    this.answeredSet.update((s) => new Set(s).add(e.blockIndex));
+    this.feedback.set(e.correct);
     this.fx.play(e.correct ? 'correct' : 'wrong');
   }
 
@@ -140,6 +240,10 @@ export class StudentLessonPage implements OnInit {
     this.result.set(null);
     this.answers = {};
     this.answeredCount.set(0);
+    this.answeredSet.set(new Set());
+    this.feedback.set(null);
+    this.step.set(0);
+    this.allAtOnce.set(false);
     this.api.lesson(lessonId).subscribe({
       next: (l) => {
         this.lesson.set(l);

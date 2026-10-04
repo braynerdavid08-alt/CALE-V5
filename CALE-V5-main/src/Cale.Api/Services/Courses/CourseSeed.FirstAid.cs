@@ -11,7 +11,7 @@ public sealed partial class CourseSeed
         (
             "El primer respondiente",
             "Quién es el primer respondiente, la regla de oro de no convertirte en otra víctima y el deber de ayudar.",
-            8,
+            16,
             [
                 Text(
                     "Tú puedes ser el primero en llegar",
@@ -25,6 +25,7 @@ public sealed partial class CourseSeed
                     + "Avisar: llama a la línea de emergencias 123 y da información clara.\n"
                     + "Socorrer: solo entonces atiendes a la persona, con lo que sabes hacer."),
                 Tip("Regla de oro: evita ser tú la siguiente víctima. Y si no te sientes capaz de hacer un procedimiento, no lo hagas: avisar y acompañar también salva vidas."),
+                Video("ansv-pas-hora-de-oro.mp4", "El PAS y la hora de oro: cómo ayudar si eres testigo de un siniestro vial. Video: Agencia Nacional de Seguridad Vial (ANSV)."),
                 Text(
                     "Ayudar es un deber",
                     "Negarse a ayudar, sin justa causa, a una persona cuya vida o salud está en grave peligro es un delito en Colombia: la omisión de socorro (artículo 131 del Código Penal), "

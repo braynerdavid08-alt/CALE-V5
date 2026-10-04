@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject, signal } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Observable, of } from 'rxjs';
 import { resolveMediaUrl } from '../../../core/media/resolve-media-url';
@@ -87,6 +87,8 @@ export class LessonBlocksComponent implements OnChanges {
   @Input({ required: true }) blocks: LessonBlock[] = [];
   /** Checks answers on the server. Without it (editor preview) the answers inside the blocks are used. */
   @Input() checker: QuizChecker | null = null;
+  /** Block indexes to show (step-by-step player). Null shows every block. */
+  @Input() only: number[] | null = null;
   @Output() readonly answered = new EventEmitter<ActivityAnswered>();
 
   readonly letters = ['A', 'B', 'C', 'D', 'E', 'F'];
@@ -99,7 +101,8 @@ export class LessonBlocksComponent implements OnChanges {
   private readonly hotspots = signal<Record<number, HotspotState>>({});
   private readonly ytCache = new Map<string, SafeResourceUrl | null>();
 
-  ngOnChanges(): void {
+  ngOnChanges(changes: SimpleChanges): void {
+    if (!changes['blocks'] && !changes['checker']) return;
     this.classifyOrder = {};
     this.view = (this.blocks ?? []).map((b, i) => (this.checker ? b : this.previewBlock(b, i)));
     const acts: Record<number, ActState> = {};

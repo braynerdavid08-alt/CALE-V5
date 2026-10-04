@@ -1,4 +1,5 @@
 @for (block of view; track $index; let i = $index) {
+  @if (!only || only.includes(i)) {
   <section class="blk" [attr.data-type]="block.type">
     @switch (block.type) {
       @case ('text') {
@@ -296,6 +297,7 @@
       }
     }
   </section>
+  }
 }
 
 <ng-template #choices let-i="i" let-options="options" let-noLetters="noLetters">
