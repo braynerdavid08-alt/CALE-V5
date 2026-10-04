@@ -181,6 +181,7 @@ el tráfico real de la API.
 | P-M6 | Presupuesto diario del asistente IA compartido por todas las escuelas (2 cuentas lo agotaban) | `Api/Services/Assistant/AssistantService.cs`, `AssistantOptions.cs` | ✅ Topes de llamadas al proveedor por usuario (40/día) y por escuela (60/día), además del global. La API key sigue solo en servidor |
 | P-M7 | Una escuela puede vincular por correo a cualquier estudiante/instructor sin escuela, sin su consentimiento, y los errores distinguen si el correo existe | `SchoolMemberHandlers.cs` (`attach`), `ImportSchoolMembersHandler.cs` | ✅ Eliminados crear/vincular/import CSV. La escuela ya no crea cuentas (tampoco el import Excel). Vinculación solo con consentimiento: el miembro solicita y la escuela acepta, o la escuela invita y el miembro acepta (`SchoolJoinRequestHandler`, `api/me/school-membership`, `api/school/invitations`). Pruebas: `SchoolLinkingTests` |
 | P-M8 | Cambio de correo de acceso sin contraseña ni verificación del nuevo correo | `UpdateMyProfileHandler.cs` | ✅ Nadie cambia su correo de acceso: `PUT /api/auth/me` y `PUT /api/school/members/{id}` responden 400 `email_change_disabled`. Solo el administrador puede corregirlo como soporte |
+| P-M9 | El duelo devolvía la opción correcta y la explicación de una pregunta que el jugador tenía en un examen abierto (evadía la protección de P-C1; basta un segundo estudiante que acepte el duelo) | `PlayController.AnswerDuel` | ✅ Aplica `EnsureNotInOpenAttemptAsync` como reto diario, errores y señales: 409 `question_in_open_attempt`. Prueba `Duel_does_not_reveal_the_key_of_a_question_in_the_players_open_exam` (falló con 200 antes del arreglo) |
 
 ### BAJO
 
@@ -198,6 +199,9 @@ el tráfico real de la API.
 | P-B10 | Sin `kid` ni rotación de clave JWT; access token válido hasta 60 min tras logout | ⏳ Mitigado: cada request revalida usuario activo y rol (`MustChangePasswordMiddleware`). Prueba `Valid_token_of_a_deactivated_user_is_401` |
 | P-B11 | Si `Cors:Origins` se configura como `*` se abre a todo origen (sin credenciales) | ⏳ Configuración; no usar `*` en producción |
 | P-B12 | Perfil de usuario y token de jugador de "100 Estudiantes" en `localStorage` | ⏳ Sin tokens de sesión (cookies HttpOnly); mover a `sessionStorage` en una próxima versión |
+| P-B13 | `GET /api/public/instructors` (anónimo) lista a todos los instructores activos con id, nombre + inicial y escuela, sin que el instructor lo elija | ⏳ Sin correos ni datos de contacto (barrido `StudentPentestSweepTests`); decidir si debe ser opcional |
+| P-B14 | Ranking "Todo Luz Verde" muestra id y nombre + inicial de estudiantes de otras escuelas | ⏳ Por diseño; existe la opción de ocultarse (`ranking/visibility`). Sin correos (prueba `Ranking_never_exposes_contact_data_and_ignores_foreign_group_ids`) |
+| P-B15 | Hub `GameShowHub.JoinAsScreen(sessionId)` no exige sesión ni ser el dueño | ⏳ Solo recibe la vista pública de la partida (misma que M13). Revisado en código, sin prueba automática (requiere cliente SignalR) |
 
 ### INFORMATIVO (verificado correcto en Fase 2)
 

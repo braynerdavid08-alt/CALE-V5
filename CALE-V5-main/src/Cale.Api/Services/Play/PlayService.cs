@@ -646,7 +646,7 @@ public sealed partial class PlayService
 
     // Practice games reveal the correct option; never for a question the student still has to answer
     // in an unfinished exam attempt (they could read the key and then change their exam answer).
-    private async Task EnsureNotInOpenAttemptAsync(int userId, int questionId, CancellationToken ct)
+    internal async Task EnsureNotInOpenAttemptAsync(int userId, int questionId, CancellationToken ct)
     {
         var cutoff = _clock.UtcNow.AddMinutes(-1);
         var inOpenAttempt = await (
