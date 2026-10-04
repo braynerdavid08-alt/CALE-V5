@@ -31,9 +31,21 @@ public static class CurriculumTree
     }
 
     public static bool Contains(string nucleus, string theme, string subtopic) =>
-        Nuclei.Any(n => Same(n.Name, nucleus)
-            && n.Themes.Any(t => Same(t.Name, theme)
-                && t.Subtopics.Any(s => Same(s.Name, subtopic))));
+        Find(nucleus, theme, subtopic) is not null;
+
+    public static CurriculumSubtopic? Find(string? nucleus, string? theme, string? subtopic)
+    {
+        if (Clean(nucleus) is not { } n || Clean(theme) is not { } t || Clean(subtopic) is not { } s)
+        {
+            return null;
+        }
+
+        return Nuclei.Where(x => Same(x.Name, n))
+            .SelectMany(x => x.Themes)
+            .Where(x => Same(x.Name, t))
+            .SelectMany(x => x.Subtopics)
+            .FirstOrDefault(x => Same(x.Name, s));
+    }
 
     private static bool Same(string left, string right) =>
         left.Equals(right.Trim(), StringComparison.OrdinalIgnoreCase);

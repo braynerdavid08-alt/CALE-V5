@@ -109,6 +109,34 @@ public sealed class CurriculumSyncTests : IDisposable
         Assert.DoesNotContain(left, p => p.LessonId == legacy.RetiredLessonId);
     }
 
+    [Fact]
+    public async Task Lesson_links_find_published_platform_lessons_even_when_retitled()
+    {
+        await new CourseSeed(_db).EnsureAsync(null);
+        var signs = await _db.Set<Course>().SingleAsync(c => c.Slug == CourseSeed.SignsSlug);
+        var lesson = await _db.Set<CourseLesson>().SingleAsync(l => l.SeedKey == $"{CourseSeed.SignsSlug}/preventivas");
+        _db.Entry(lesson).Property(l => l.Title).CurrentValue = "Preventivas (versión de la escuela)";
+        _db.Add(CourseLessonProgress.Create(signs.Id, lesson.Id, _student.Id, 100, Now));
+        var rules = await _db.Set<Course>().SingleAsync(c => c.Slug == CourseSeed.RulesSlug);
+        rules.Update(rules.Title, rules.Description, rules.Category, rules.CoverUrl, false, Now);
+        await _db.SaveChangesAsync();
+
+        var links = await LessonLinks.ResolveAsync(
+            _db,
+            [
+                (CourseSeed.SignsSlug, "Señales preventivas"),
+                (CourseSeed.RulesSlug, "Prelación: quién pasa primero"),
+                (CourseSeed.SignsSlug, "Una lección que no existe")
+            ],
+            _student.Id,
+            default);
+
+        var link = Assert.Single(links).Value;
+        Assert.Equal(lesson.Id, link.LessonId);
+        Assert.Equal("Preventivas (versión de la escuela)", link.LessonTitle);
+        Assert.True(link.Completed);
+    }
+
     private sealed record Legacy(CourseLesson EditedLesson, int RetiredLessonId, int SchoolCourseId);
 
     /// <summary>The platform as an older seed left it: no keys, former titles, retired lessons and one hand edit.</summary>

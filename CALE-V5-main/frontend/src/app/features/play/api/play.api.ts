@@ -61,10 +61,27 @@ export interface DailyChallenge {
   streak: Streak;
 }
 
+export interface LessonLink {
+  lessonId: number;
+  courseId: number;
+  courseTitle: string;
+  lessonTitle: string;
+  completed: boolean;
+}
+
 export interface AnswerFeedback {
   correct: boolean;
   correctOptionId?: number | null;
   explanation?: string | null;
+  /** Lesson that teaches the topic, sent after a wrong answer when one exists. */
+  lesson?: LessonLink | null;
+}
+
+export interface StudyLesson {
+  lesson: LessonLink;
+  answered: number;
+  wrong: number;
+  percent: number;
 }
 
 export interface DailyAnswerResult extends AnswerFeedback {
@@ -106,6 +123,7 @@ export interface Readiness {
   recentAttemptsAverage: number;
   answeredQuestions: number;
   topics: ReadinessTopic[];
+  studyLessons: StudyLesson[];
 }
 
 export interface Achievements {

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { resolveMediaUrl } from '../../../core/media/resolve-media-url';
 import { ReportQuestionComponent } from '../../requests/components/report-question.component';
 import { AnswerFeedback, PlayQuestion } from '../api/play.api';
@@ -7,7 +8,7 @@ import { AnswerFeedback, PlayQuestion } from '../api/play.api';
   selector: 'play-question',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReportQuestionComponent],
+  imports: [ReportQuestionComponent, RouterLink],
   template: `
     <article class="pq">
       @if (question.topic) {
@@ -46,6 +47,11 @@ import { AnswerFeedback, PlayQuestion } from '../api/play.api';
             <p>{{ feedback.explanation }}</p>
           } @else if (!feedback.correct) {
             <p>La respuesta correcta quedó marcada en verde.</p>
+          }
+          @if (feedback.lesson; as lesson) {
+            <a class="pq-lesson" [routerLink]="['/student/cursos/leccion', lesson.lessonId]">
+              📘 Repasa la lección «{{ lesson.lessonTitle }}» · {{ lesson.courseTitle }}
+            </a>
           }
         </div>
         @if (reportable) {
@@ -124,6 +130,7 @@ import { AnswerFeedback, PlayQuestion } from '../api/play.api';
     }
     .pq-feedback.ok { background: var(--color-success-soft); border-color: var(--color-success); }
     .pq-feedback p { margin: 0.35rem 0 0; line-height: 1.45; }
+    .pq-lesson { display: inline-block; margin-top: 0.5rem; font-weight: 600; color: var(--color-primary); }
     @keyframes pq-pop { 50% { transform: scale(1.03); } }
     @keyframes pq-shake {
       25% { transform: translateX(-6px); }

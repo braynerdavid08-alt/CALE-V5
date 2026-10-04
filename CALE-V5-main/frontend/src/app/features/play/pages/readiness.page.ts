@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
@@ -15,7 +16,7 @@ const LEVEL_LABELS: Record<ReadinessTopic['level'], string> = {
 @Component({
   selector: 'app-readiness-page',
   standalone: true,
-  imports: [UiButtonComponent, UiLoadingComponent, PlayTopbarComponent],
+  imports: [RouterLink, UiButtonComponent, UiLoadingComponent, PlayTopbarComponent],
   styleUrl: './play-page.css',
   styles: [`
     .gauge-wrap { display: grid; justify-items: center; gap: 0.75rem; text-align: center; }
@@ -53,6 +54,22 @@ const LEVEL_LABELS: Record<ReadinessTopic['level'], string> = {
     .lvl-bajo span { background: var(--color-danger); }
     .lvl-sin_datos span { background: var(--color-border-strong); }
     h2 { margin: 0 0 0.85rem; font-size: var(--text-lg); }
+    .study-lede { margin: -0.5rem 0 0.85rem; color: var(--color-text-secondary); font-size: var(--text-sm); }
+    .study { display: grid; gap: 0.6rem; }
+    .study-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.75rem 0.9rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      color: inherit;
+      text-decoration: none;
+    }
+    .study-item:hover { border-color: var(--color-primary); }
+    .study-body { display: grid; gap: 0.15rem; }
+    .study-body small { color: var(--color-text-secondary); }
   `],
   template: `
     <section class="play-page">
@@ -86,6 +103,25 @@ const LEVEL_LABELS: Record<ReadinessTopic['level'], string> = {
             <ui-button routerLink="/student/play/mistakes" variant="secondary">Repasar errores</ui-button>
           </div>
         </div>
+
+        @if (d.studyLessons.length) {
+          <div class="play-card">
+            <h2>Lecciones para repasar</h2>
+            <p class="study-lede">Según las preguntas que más fallas en los simulacros.</p>
+            <div class="study">
+              @for (s of d.studyLessons; track s.lesson.lessonId) {
+                <a class="study-item" [routerLink]="['/student/cursos/leccion', s.lesson.lessonId]">
+                  <span class="study-body">
+                    <strong>{{ s.lesson.lessonTitle }}</strong>
+                    <small>{{ s.lesson.courseTitle }}</small>
+                    <small>Fallaste {{ s.wrong }} de {{ s.answered }} preguntas de este tema · {{ s.percent }}% de aciertos</small>
+                  </span>
+                  <span class="chip">{{ s.lesson.completed ? 'Volver a verla' : 'Ver lección' }}</span>
+                </a>
+              }
+            </div>
+          </div>
+        }
 
         @if (d.topics.length) {
           <div class="play-card">
