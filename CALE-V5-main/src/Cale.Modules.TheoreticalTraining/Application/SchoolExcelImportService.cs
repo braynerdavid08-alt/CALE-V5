@@ -465,6 +465,7 @@ public sealed class SchoolExcelImportService
         var hash = _hasher.Hash(tempPassword);
         var now = _clock.UtcNow;
         user = User.RegisterStudent(payload.Name.Trim(), payload.Email.Trim(), hash, now, schoolUserId);
+        user.MarkCreatedBySchool(schoolUserId);
         await _users.AddAsync(user, ct);
         return (user, tempPassword);
     }

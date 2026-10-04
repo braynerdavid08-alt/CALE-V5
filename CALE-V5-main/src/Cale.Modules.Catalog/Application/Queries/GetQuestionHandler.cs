@@ -10,10 +10,20 @@ public sealed class GetQuestionHandler
 
     public GetQuestionHandler(ICatalogStore store) => _store = store;
 
-    public async Task<QuestionDetailDto> HandleAsync(int id, CancellationToken ct)
+    /// <summary>The answer key of a private bank is only shown to its owner (or an admin).</summary>
+    public async Task<QuestionDetailDto> HandleAsync(int id, int viewerUserId, bool viewerIsAdmin, CancellationToken ct)
     {
         var question = await _store.GetQuestionAsync(id, ct)
             ?? throw new NotFoundException("Question not found.", "question_not_found");
+
+        if (!viewerIsAdmin && question.CreatedById != viewerUserId)
+        {
+            var bank = await _store.GetBankAsync(question.BankId, ct);
+            if (bank is null || !bank.IsVisibleTo(viewerUserId, isAdmin: false))
+            {
+                throw new NotFoundException("Question not found.", "question_not_found");
+            }
+        }
 
         return new QuestionDetailDto(
             question.Id,

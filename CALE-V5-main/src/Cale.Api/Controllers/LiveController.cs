@@ -1,11 +1,13 @@
 using Cale.Api.Extensions;
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Exceptions;
+using Cale.Modules.Identity.Application.Abstractions;
 using Cale.Modules.LiveClassroom.Application.Commands;
 using Cale.Modules.LiveClassroom.Application.DTOs;
 using Cale.Modules.Presentation.Application.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Cale.Api.Controllers;
@@ -16,11 +18,13 @@ public sealed class LiveController : ControllerBase
 {
     private readonly LiveSessionHandler _handler;
     private readonly IPresentationStore _presentations;
+    private readonly IUserStore _users;
 
-    public LiveController(LiveSessionHandler handler, IPresentationStore presentations)
+    public LiveController(LiveSessionHandler handler, IPresentationStore presentations, IUserStore users)
     {
         _handler = handler;
         _presentations = presentations;
+        _users = users;
     }
 
     [HttpPost("sessions")]
@@ -29,6 +33,11 @@ public sealed class LiveController : ControllerBase
         [FromBody] CreateLiveSessionRequest request,
         CancellationToken ct)
     {
+        if (request.Config?.PresentationId is int presentationId && presentationId > 0)
+        {
+            await EnsurePresentationAccessAsync(presentationId, ct);
+        }
+
         var lobby = await _handler.CreateAsync(
             request,
             CurrentUser.GetId(User),
@@ -91,6 +100,7 @@ public sealed class LiveController : ControllerBase
     }
 
     [HttpPost("sessions/join")]
+    [EnableRateLimiting(RateLimitPolicies.PublicJoin)]
     [Authorize]
     public async Task<ActionResult<JoinLiveSessionResponse>> Join(
         [FromBody] JoinLiveSessionRequest request,
@@ -211,5 +221,29 @@ public sealed class LiveController : ControllerBase
 
         var req = HttpContext.Request;
         return $"{req.Scheme}://{req.Host.Value}";
+    }
+
+    private async Task EnsurePresentationAccessAsync(int presentationId, CancellationToken ct)
+    {
+        var userId = CurrentUser.GetId(User);
+        var deck = await _presentations.GetWithSlidesAsync(presentationId, ct);
+        if (deck is null || !deck.IsActive)
+        {
+            throw new NotFoundException("Presentación no encontrada.");
+        }
+
+        if (deck.CanManage(userId, CurrentUser.IsAdmin(User)))
+        {
+            return;
+        }
+
+        var user = await _users.GetByIdAsync(userId, ct);
+        int? schoolUserId = user is null
+            ? null
+            : Roles.Normalize(user.Role) == Roles.School ? user.Id : user.SchoolId;
+        if (!await _presentations.UserCanAccessAsync(presentationId, userId, schoolUserId, ct))
+        {
+            throw new ForbiddenException("No tienes permiso para esta presentación.");
+        }
     }
 }

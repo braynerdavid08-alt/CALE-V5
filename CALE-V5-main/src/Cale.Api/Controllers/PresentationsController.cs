@@ -11,6 +11,7 @@ using Cale.Modules.Presentation.Application.DTOs;
 using Cale.Modules.Presentation.Application.Queries;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Cale.Api.Controllers;
 
@@ -250,6 +251,7 @@ public sealed class PresentationsController : ControllerBase
     }
 
     [HttpPost("upload")]
+    [EnableRateLimiting(RateLimitPolicies.Uploads)]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(UploadLimits.PresentationMediaBytes)]
     [RequestFormLimits(MultipartBodyLengthLimit = UploadLimits.PresentationMediaBytes)]
@@ -278,17 +280,9 @@ public sealed class PresentationsController : ControllerBase
             ".mp4", ".webm", ".mov", ".m4v", ".avi"
         };
 
-        var contentTypeHint = (file.ContentType ?? "").Trim().ToLowerInvariant();
-        string mediaType;
-        if (videoExts.Contains(ext) || contentTypeHint.StartsWith("video/", StringComparison.Ordinal))
-        {
-            mediaType = "video";
-        }
-        else if (imageExts.Contains(ext) || contentTypeHint.StartsWith("image/", StringComparison.Ordinal))
-        {
-            mediaType = "image";
-        }
-        else
+        var detected = await MediaSniffer.DetectAsync(file, ct);
+        var extensionAllowed = string.IsNullOrEmpty(ext) || imageExts.Contains(ext) || videoExts.Contains(ext);
+        if (!extensionAllowed || detected is not { Kind: "image" or "video" })
         {
             throw new DomainException(
                 "Usa jpg, png, gif, webp o video mp4/webm/mov.",
@@ -296,40 +290,14 @@ public sealed class PresentationsController : ControllerBase
                 "invalid_file");
         }
 
-        var contentType = file.ContentType;
-        if (string.IsNullOrWhiteSpace(contentType) || contentType == "application/octet-stream")
-        {
-            contentType = mediaType == "video"
-                ? ext.ToLowerInvariant() switch
-                {
-                    ".webm" => "video/webm",
-                    ".mov" => "video/quicktime",
-                    ".m4v" => "video/x-m4v",
-                    ".avi" => "video/x-msvideo",
-                    _ => "video/mp4"
-                }
-                : ext.ToLowerInvariant() switch
-                {
-                    ".png" => "image/png",
-                    ".gif" => "image/gif",
-                    ".webp" => "image/webp",
-                    ".bmp" => "image/bmp",
-                    _ => "image/jpeg"
-                };
-        }
-
-        var safeExt = string.IsNullOrWhiteSpace(ext)
-            ? (mediaType == "video" ? ".mp4" : ".jpg")
-            : ext.ToLowerInvariant();
-
         await using var stream = file.OpenReadStream();
         var url = await _media.SaveAsync(
             stream,
-            $"{Guid.NewGuid():N}{safeExt}",
-            contentType,
+            $"{Guid.NewGuid():N}{detected.Extension}",
+            detected.ContentType,
             CurrentUser.GetId(User),
             ct);
-        return Ok(new { url, mediaType });
+        return Ok(new { url, mediaType = detected.Kind });
     }
 
     [HttpGet("media/{id:guid}")]
@@ -345,7 +313,7 @@ public sealed class PresentationsController : ControllerBase
 
         Response.Headers.CacheControl = "public,max-age=86400,immutable";
         Response.Headers.Append("Accept-Ranges", "bytes");
-        return File(blob.Value.Data, blob.Value.ContentType, enableRangeProcessing: true);
+        return File(blob.Value.Data, SafeMediaResponse.Prepare(Response, blob.Value.ContentType), enableRangeProcessing: true);
     }
 
     [HttpGet("legacy/{fileName}")]
@@ -361,7 +329,7 @@ public sealed class PresentationsController : ControllerBase
 
         Response.Headers.CacheControl = "public,max-age=86400,immutable";
         Response.Headers.Append("Accept-Ranges", "bytes");
-        return File(blob.Value.Data, blob.Value.ContentType, enableRangeProcessing: true);
+        return File(blob.Value.Data, SafeMediaResponse.Prepare(Response, blob.Value.ContentType), enableRangeProcessing: true);
     }
 
     private async Task<int?> ResolveSchoolUserIdAsync(int userId, CancellationToken ct)

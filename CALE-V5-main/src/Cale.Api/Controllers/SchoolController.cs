@@ -1,10 +1,12 @@
 using Cale.Api.Extensions;
+using Cale.Api.Infrastructure;
 using Cale.Api.Services;
 using Cale.Modules.Identity.Application.Commands;
 using Cale.Modules.Identity.Application.DTOs;
 using Cale.Modules.Identity.Application.Queries;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Cale.Api.Controllers;
 
@@ -86,6 +88,7 @@ public sealed class SchoolController : ControllerBase
             ct));
 
     [HttpPost("plan/proof/upload")]
+    [EnableRateLimiting(RateLimitPolicies.Uploads)]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(6_000_000)]
     public async Task<ActionResult<object>> UploadProof(
@@ -113,12 +116,8 @@ public sealed class SchoolController : ControllerBase
             });
         }
 
-        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-        var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf"
-        };
-        if (!allowed.Contains(ext))
+        var detected = await MediaSniffer.DetectAsync(file, ct);
+        if (detected is not { Kind: "image" or "document" })
         {
             return BadRequest(new ProblemDetails
             {
@@ -133,7 +132,7 @@ public sealed class SchoolController : ControllerBase
             : env.WebRootPath;
         var folder = Path.Combine(webRoot, "uploads", "receipts");
         Directory.CreateDirectory(folder);
-        var name = $"{Guid.NewGuid():N}{ext}";
+        var name = $"{Guid.NewGuid():N}{detected.Extension}";
         var path = Path.Combine(folder, name);
         await using var stream = System.IO.File.Create(path);
         await file.CopyToAsync(stream, ct);

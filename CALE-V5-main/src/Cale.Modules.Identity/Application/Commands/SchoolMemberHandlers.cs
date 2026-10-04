@@ -144,6 +144,7 @@ public sealed class CreateSchoolMemberHandler
             user.MarkEmailConfirmed();
         }
 
+        user.MarkCreatedBySchool(schoolId);
         await _users.AddAsync(user, ct);
         await _users.SaveChangesAsync(ct);
 
@@ -357,19 +358,22 @@ public sealed class UpdateSchoolMemberHandler
     private readonly IMembershipEventStore _events;
     private readonly IPasswordHasher _hasher;
     private readonly IClock _clock;
+    private readonly IRefreshTokenStore _refreshTokens;
 
     public UpdateSchoolMemberHandler(
         IUserStore users,
         ISchoolProfileStore profiles,
         IMembershipEventStore events,
         IPasswordHasher hasher,
-        IClock clock)
+        IClock clock,
+        IRefreshTokenStore refreshTokens)
     {
         _users = users;
         _profiles = profiles;
         _events = events;
         _hasher = hasher;
         _clock = clock;
+        _refreshTokens = refreshTokens;
     }
 
     public async Task<UserListItemDto> HandleAsync(
@@ -385,6 +389,17 @@ public sealed class UpdateSchoolMemberHandler
 
         var user = await OwnedMemberAsync(schoolId, memberId, ct);
         var email = EmailAddress.Normalize(request.Email);
+        var changesCredentials = !string.IsNullOrWhiteSpace(request.NewPassword)
+            || !string.Equals(email, user.Email, StringComparison.OrdinalIgnoreCase);
+        if (changesCredentials && !user.CredentialsManagedBy(schoolId))
+        {
+            throw new DomainException(
+                "Esta cuenta fue creada por su dueño y solo se vinculó a tu escuela: no puedes cambiar su correo ni su contraseña. "
+                + "Pídele que lo haga desde su perfil.",
+                403,
+                "credentials_not_managed");
+        }
+
         if (await _users.ExistsByEmailAsync(email, memberId, ct))
         {
             throw new ConflictException(
@@ -410,6 +425,10 @@ public sealed class UpdateSchoolMemberHandler
         }
 
         await _users.SaveChangesAsync(ct);
+        if (changesCredentials)
+        {
+            await _refreshTokens.RevokeAllForUserAsync(user.Id, ct);
+        }
 
         var note = passwordChanged
             ? $"Edición {SchoolSeatGuard.RoleLabelEs(Roles.Normalize(user.Role))}: {previous} → {user.Name} <{user.Email}> (#{user.Id}); contraseña restablecida"

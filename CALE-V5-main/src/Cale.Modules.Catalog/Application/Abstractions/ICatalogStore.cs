@@ -38,7 +38,8 @@ public interface ICatalogStore
         string? search,
         bool? active,
         int? ownerId,
-        CancellationToken ct);
+        CancellationToken ct,
+        int? visibleToUserId = null);
 
     Task<Question?> GetQuestionAsync(int id, CancellationToken ct);
 

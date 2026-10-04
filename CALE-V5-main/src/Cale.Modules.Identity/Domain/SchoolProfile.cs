@@ -198,6 +198,13 @@ public sealed class SchoolProfile
             "invalid_membership_transition");
     }
 
+    /// <summary>Only paths issued by the receipt upload endpoint, so an admin is never sent to an arbitrary page.</summary>
+    public static bool IsIssuedReceiptPath(string url) =>
+        System.Text.RegularExpressions.Regex.IsMatch(
+            url,
+            @"^/uploads/receipts/[0-9a-f]{32}\.(jpg|jpeg|png|gif|webp|bmp|pdf)$",
+            System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
     /// <summary>School uploads payment proof → UnderReview (main or renewal).</summary>
     public void SubmitPaymentProof(string proofUrl, string? paymentReference, DateTime utcNow)
     {
@@ -207,6 +214,14 @@ public sealed class SchoolProfile
                 "Debes adjuntar el comprobante de pago.",
                 400,
                 "payment_proof_required");
+        }
+
+        if (!IsIssuedReceiptPath(proofUrl.Trim()))
+        {
+            throw new DomainException(
+                "Sube el comprobante desde la app; no se aceptan enlaces externos.",
+                400,
+                "invalid_payment_proof");
         }
 
         RefreshStatus(utcNow);

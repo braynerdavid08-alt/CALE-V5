@@ -1,4 +1,4 @@
-﻿using System.IO.Compression;
+using System.IO.Compression;
 using System.Text;
 using Microsoft.AspNetCore.ResponseCompression;
 using Cale.BuildingBlocks.Domain.Auth;
@@ -47,9 +47,14 @@ public static class ServiceCollectionExtensions
         var services = builder.Services;
         var config = builder.Configuration;
 
+        // Default body cap; upload/import endpoints raise it with [RequestSizeLimit].
+        var defaultBodyBytes = Math.Clamp(
+            config.GetValue("Uploads:DefaultMaxBodyMegabytes", 30L),
+            1L,
+            UploadLimits.PresentationImportBytes / (1024 * 1024)) * 1024 * 1024;
         builder.WebHost.ConfigureKestrel(options =>
         {
-            options.Limits.MaxRequestBodySize = UploadLimits.PresentationImportBytes;
+            options.Limits.MaxRequestBodySize = defaultBodyBytes;
         });
         services.Configure<FormOptions>(options =>
         {
@@ -83,7 +88,7 @@ public static class ServiceCollectionExtensions
                 context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
                 await context.HttpContext.Response.WriteAsJsonAsync(new
                 {
-                    title = "Demasiados intentos. Espera unos minutos e intÃ©ntalo de nuevo.",
+                    title = "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.",
                     status = StatusCodes.Status429TooManyRequests,
                     detail = "too_many_requests"
                 }, ct);
@@ -93,6 +98,27 @@ public static class ServiceCollectionExtensions
             AddPerIpLimiter(options, RateLimitPolicies.Register, permits: 20, window: TimeSpan.FromMinutes(10));
             AddPerIpLimiter(options, RateLimitPolicies.EmailCode, permits: 10, window: TimeSpan.FromMinutes(10));
             AddPerIpLimiter(options, RateLimitPolicies.ClientErrors, permits: 30, window: TimeSpan.FromMinutes(1));
+            AddPerIpLimiter(options, RateLimitPolicies.Refresh, permits: 60, window: TimeSpan.FromMinutes(1));
+            AddPerIpLimiter(options, RateLimitPolicies.PublicJoin, permits: 120, window: TimeSpan.FromMinutes(1));
+            AddPerUserLimiter(options, RateLimitPolicies.ChangePassword, permits: 10, window: TimeSpan.FromMinutes(10));
+            AddPerUserLimiter(options, RateLimitPolicies.ExamStart, permits: 30, window: TimeSpan.FromMinutes(10));
+            AddPerUserLimiter(options, RateLimitPolicies.ExamReview, permits: 60, window: TimeSpan.FromMinutes(10));
+            AddPerUserLimiter(options, RateLimitPolicies.Uploads, permits: 40, window: TimeSpan.FromMinutes(10));
+            AddPerUserLimiter(options, RateLimitPolicies.Assistant, permits: 20, window: TimeSpan.FromMinutes(1));
+
+            // Coarse per-IP ceiling for the whole API; generous because a classroom shares one NAT IP.
+            var globalPermits = Math.Max(100, config.GetValue("RateLimiting:GlobalPerIpPerMinute", 3000));
+            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(http =>
+                http.Request.Path.StartsWithSegments("/api")
+                    ? RateLimitPartition.GetFixedWindowLimiter(
+                        http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                        _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = globalPermits,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueLimit = 0
+                        })
+                    : RateLimitPartition.GetNoLimiter("static"));
         });
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
@@ -187,6 +213,22 @@ public static class ServiceCollectionExtensions
                 QueueLimit = 0
             }));
 
+    private static void AddPerUserLimiter(
+        RateLimiterOptions options,
+        string policy,
+        int permits,
+        TimeSpan window) =>
+        options.AddPolicy(policy, http => RateLimitPartition.GetFixedWindowLimiter(
+            http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value is { Length: > 0 } uid
+                ? "u:" + uid
+                : "ip:" + (http.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = permits,
+                Window = window,
+                QueueLimit = 0
+            }));
+
     private static void AddCaleAuth(
         this IServiceCollection services,
         IConfiguration config)
@@ -202,6 +244,11 @@ public static class ServiceCollectionExtensions
                     ValidateIssuer = true,
                     ValidateAudience = true,
                     ValidateIssuerSigningKey = true,
+                    ValidateLifetime = true,
+                    RequireExpirationTime = true,
+                    RequireSignedTokens = true,
+                    ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
+                    ClockSkew = TimeSpan.FromSeconds(30),
                     ValidIssuer = jwt.Issuer,
                     ValidAudience = jwt.Audience,
                     IssuerSigningKey = new SymmetricSecurityKey(
@@ -242,7 +289,7 @@ public static class ServiceCollectionExtensions
                         await context.Response.WriteAsJsonAsync(new ProblemDetails
                         {
                             Status = StatusCodes.Status401Unauthorized,
-                            Title = "Necesitas iniciar sesiÃ³n.",
+                            Title = "Necesitas iniciar sesión.",
                             Detail = "unauthorized",
                             Type = "https://httpstatuses.com/401",
                             Instance = context.Request.Path

@@ -55,7 +55,15 @@ public sealed class QuestionsController : ControllerBase
             CurrentUser.GetRole(User),
             ct);
         return Ok(await _list.HandleAsync(
-            page, pageSize, bankId, search, active, ownerId: null, ct));
+            page,
+            pageSize,
+            bankId,
+            search,
+            active,
+            ownerId: null,
+            CurrentUser.GetId(User),
+            CurrentUser.IsAdmin(User),
+            ct));
     }
 
     [HttpGet("review")]
@@ -105,7 +113,7 @@ public sealed class QuestionsController : ControllerBase
             CurrentUser.GetId(User),
             CurrentUser.GetRole(User),
             ct);
-        return Ok(await _get.HandleAsync(id, ct));
+        return Ok(await _get.HandleAsync(id, CurrentUser.GetId(User), CurrentUser.IsAdmin(User), ct));
     }
 
     [HttpPost]

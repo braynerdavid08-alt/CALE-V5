@@ -131,6 +131,7 @@ public sealed class AuthController : ControllerBase
         Ok(await _resendConfirmation.HandleAsync(request, ct));
 
     [HttpPost("refresh")]
+    [EnableRateLimiting(RateLimitPolicies.Refresh)]
     [AllowAnonymous]
     public async Task<ActionResult<AuthResponse>> Refresh(CancellationToken ct)
     {
@@ -146,7 +147,8 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpPost("logout")]
-    [Authorize]
+    [EnableRateLimiting(RateLimitPolicies.Refresh)]
+    [AllowAnonymous]
     public async Task<IActionResult> Logout(CancellationToken ct)
     {
         Request.Cookies.TryGetValue(AuthCookieNames.Refresh, out var refresh);
@@ -178,6 +180,7 @@ public sealed class AuthController : ControllerBase
         Ok(await _updateMe.HandleAsync(CurrentUser.GetId(User), request, ct));
 
     [HttpPost("change-password")]
+    [EnableRateLimiting(RateLimitPolicies.ChangePassword)]
     [Authorize]
     public async Task<IActionResult> ChangePassword(
         ChangePasswordRequest request,

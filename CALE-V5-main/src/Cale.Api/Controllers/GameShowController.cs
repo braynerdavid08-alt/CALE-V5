@@ -4,6 +4,7 @@ using Cale.Modules.GameShow.Application;
 using Cale.Modules.GameShow.Application.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Cale.Api.Controllers;
 
@@ -59,6 +60,7 @@ public sealed class GameShowController : ControllerBase
     }
 
     [HttpPost("join")]
+    [EnableRateLimiting(RateLimitPolicies.PublicJoin)]
     [AllowAnonymous]
     public async Task<IActionResult> Join(
         [FromBody] JoinGameShowRequest request,
@@ -158,14 +160,14 @@ public sealed class GameShowController : ControllerBase
         Ok(await _handler.GetGlobalSettingsAsync(ct));
 
     [HttpPut("settings")]
-    [Authorize(Policy = "TeacherOrAdmin")]
+    [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> PutGlobalSettings(
         [FromBody] GameShowSettingsDto body,
         CancellationToken ct) =>
         Ok(await _handler.UpdateGlobalSettingsAsync(body, CurrentUser.GetId(User), ct));
 
     [HttpPost("settings/restore")]
-    [Authorize(Policy = "TeacherOrAdmin")]
+    [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> RestoreGlobalSettings(CancellationToken ct) =>
         Ok(await _handler.RestoreGlobalSettingsAsync(CurrentUser.GetId(User), ct));
 

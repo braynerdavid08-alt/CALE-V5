@@ -10,6 +10,7 @@ public sealed class ListQuestionsHandler
 
     public ListQuestionsHandler(ICatalogStore store) => _store = store;
 
+    /// <summary>Non-admins only see questions from official banks and their own banks.</summary>
     public Task<PagedResult<QuestionListDto>> HandleAsync(
         int page,
         int pageSize,
@@ -17,13 +18,16 @@ public sealed class ListQuestionsHandler
         string? search,
         bool? active,
         int? ownerId,
+        int viewerUserId,
+        bool viewerIsAdmin,
         CancellationToken ct) =>
         _store.ListQuestionsAsync(
-            page < 1 ? 1 : page,
+            page is < 1 or > 10_000 ? 1 : page,
             pageSize is < 1 or > 200 ? 20 : pageSize,
             bankId,
-            search,
+            search is { Length: > 200 } ? search[..200] : search,
             active,
             ownerId,
-            ct);
+            ct,
+            viewerIsAdmin ? null : viewerUserId);
 }

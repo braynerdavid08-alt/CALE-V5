@@ -53,7 +53,7 @@ public sealed class LiveSessionHandler
 
         var config = MapConfig(request.Config);
 
-        var bankIds = await ResolveBankIdsAsync(request, ct);
+        var bankIds = await ResolveBankIdsAsync(request, hostUserId, role, ct);
         config.BankIds = bankIds.ToList();
 
         var code = await GenerateUniqueCodeAsync(ct);
@@ -803,11 +803,8 @@ public sealed class LiveSessionHandler
         return (bytes, $"cale-live-{session.Id}-{safe}.csv");
     }
 
-    private static string Csv(string? value)
-    {
-        var v = (value ?? "").Replace("\"", "\"\"");
-        return $"\"{v}\"";
-    }
+    private static string Csv(string? value) =>
+        Cale.BuildingBlocks.Domain.Security.CsvCell.Escape(value);
 
     private async Task QueueSurpriseQuestionAsync(
         LiveSession session,
@@ -1439,12 +1436,18 @@ public sealed class LiveSessionHandler
 
     private async Task<IReadOnlyList<int>> ResolveBankIdsAsync(
         CreateLiveSessionRequest request,
+        int hostUserId,
+        string role,
         CancellationToken ct)
     {
+        var isAdmin = string.Equals(
+            Cale.BuildingBlocks.Domain.Auth.Roles.Normalize(role),
+            Cale.BuildingBlocks.Domain.Auth.Roles.Admin,
+            StringComparison.Ordinal);
         var ids = new List<int>();
         if (request.BankIds is { Count: > 0 })
         {
-            ids.AddRange(request.BankIds.Where(id => id > 0).Distinct());
+            ids.AddRange(request.BankIds.Where(id => id > 0).Distinct().Take(50));
         }
         else if (request.BankId is int bankId && bankId > 0)
         {
@@ -1467,8 +1470,12 @@ public sealed class LiveSessionHandler
 
         foreach (var id in ids)
         {
-            var bank = await _catalog.GetBankAsync(id, ct)
-                ?? throw new NotFoundException("Bank not found.", "bank_not_found");
+            var bank = await _catalog.GetBankAsync(id, ct);
+            if (bank is null || !bank.IsVisibleTo(hostUserId, isAdmin))
+            {
+                throw new NotFoundException("Bank not found.", "bank_not_found");
+            }
+
             if (!bank.IsActive)
             {
                 throw new DomainException(

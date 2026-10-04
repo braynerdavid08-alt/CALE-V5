@@ -20,6 +20,12 @@ public sealed class User
     public DateTime? EmailConfirmationExpiresAt { get; private set; }
     public string? PhotoUrl { get; private set; }
 
+    /// <summary>
+    /// School that created this account. Only that school may reset its password or email;
+    /// accounts a school merely linked keep their owner's credentials.
+    /// </summary>
+    public int? CreatedBySchoolId { get; private set; }
+
     private User()
     {
     }
@@ -101,6 +107,11 @@ public sealed class User
     }
 
     public void LeaveSchool() => SchoolId = null;
+
+    public void MarkCreatedBySchool(int schoolId) => CreatedBySchoolId = schoolId;
+
+    public bool CredentialsManagedBy(int schoolId) =>
+        CreatedBySchoolId == schoolId && SchoolId == schoolId;
 
     public void RecordLogin(DateTime utcNow) => LastLoginAt = utcNow;
 

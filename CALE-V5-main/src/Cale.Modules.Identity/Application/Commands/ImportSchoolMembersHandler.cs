@@ -289,6 +289,7 @@ public sealed class ImportSchoolMembersHandler
                         user.MarkEmailConfirmed();
                     }
                     user.RequirePasswordChange();
+                    user.MarkCreatedBySchool(schoolUserId);
                     await _users.AddAsync(user, ct);
                     if (row.Role == Roles.Student)
                     {

@@ -222,7 +222,9 @@ public static class GameShowQuestionImport
     }
 
     private static string Cell(IReadOnlyList<string> row, int index) =>
-        index >= 0 && index < row.Count ? row[index] : "";
+        index >= 0 && index < row.Count
+            ? Cale.BuildingBlocks.Domain.Security.CsvCell.Unescape(row[index])
+            : "";
 
     private static bool TryInt(string value, out int n) =>
         int.TryParse(value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out n);
