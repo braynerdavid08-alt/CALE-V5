@@ -800,13 +800,8 @@ public static class SchoolRenewalStatus
 
 public static class SchoolPaymentInstructions
 {
-    public const string BankName = "Bancolombia";
-    public const string AccountType = "Ahorros";
-    public const string AccountNumber = "ACCT-000019";
-    public const string AccountHolder = "CALE Formación Vial SAS";
-    public const string HolderTaxId = "901.000.000-1";
-    public const string WhatsApp = "+57 300 000 0000";
-    public const string SupportEmail = "pagos@cale.local";
     public const string Notes =
         "Usa como referencia tu NIT o el correo de la escuela. Sube el comprobante en Membresía para que un administrador verifique el pago.";
+    public const string NotConfiguredNotes =
+        "Los datos de pago de Luz Verde aún no están publicados. No transfieras dinero todavía: un administrador te contactará con las instrucciones oficiales.";
 }

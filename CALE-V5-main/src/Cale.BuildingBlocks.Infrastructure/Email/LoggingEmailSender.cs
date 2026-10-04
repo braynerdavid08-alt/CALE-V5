@@ -1,4 +1,5 @@
 using Cale.BuildingBlocks.Domain.Email;
+using Cale.BuildingBlocks.Domain.Privacy;
 using Microsoft.Extensions.Logging;
 
 namespace Cale.BuildingBlocks.Infrastructure.Email;
@@ -23,7 +24,7 @@ public sealed class LoggingEmailSender : IEmailSender
     {
         _logger.LogWarning(
             "EMAIL (no SMTP configured) to={To} subject={Subject}\n{Body}",
-            toEmail,
+            PersonalData.MaskEmail(toEmail),
             subject,
             plainTextBody);
         return Task.CompletedTask;

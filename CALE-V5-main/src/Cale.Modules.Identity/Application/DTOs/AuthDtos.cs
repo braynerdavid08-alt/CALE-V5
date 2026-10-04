@@ -77,7 +77,8 @@ public sealed record SchoolPaymentInstructionsDto(
     string WhatsApp,
     string SupportEmail,
     string Notes,
-    string PaymentReferenceHint);
+    string PaymentReferenceHint,
+    bool Configured);
 
 public sealed record ChangeSchoolPlanRequest(string PlanCode);
 

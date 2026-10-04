@@ -1,4 +1,5 @@
 using Cale.BuildingBlocks.Domain.Auth;
+using Cale.BuildingBlocks.Domain.Privacy;
 using Cale.BuildingBlocks.Domain.Security;
 using Cale.BuildingBlocks.Domain.Time;
 using Cale.BuildingBlocks.Domain.Validation;
@@ -86,7 +87,7 @@ public static class IdentitySeed
 
         logger?.LogWarning(
             "Bootstrap admin created ({Email}). Sign in and change email + password immediately.",
-            bootstrapEmail);
+            PersonalData.MaskEmail(bootstrapEmail));
     }
 
     /// <summary>
@@ -157,12 +158,12 @@ public static class IdentitySeed
             var removed = await PurgeAllUsersExceptAsync(db, email, ct);
             logger?.LogInformation(
                 "Sole-admin seed: kept {Email}, removed {Count} other account(s).",
-                email,
+                PersonalData.MaskEmail(email),
                 removed);
         }
         else
         {
-            logger?.LogInformation("Sole-admin seed: ensured admin {Email}.", email);
+            logger?.LogInformation("Sole-admin seed: ensured admin {Email}.", PersonalData.MaskEmail(email));
         }
     }
 

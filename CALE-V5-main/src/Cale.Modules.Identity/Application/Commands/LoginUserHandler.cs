@@ -1,5 +1,6 @@
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Exceptions;
+using Cale.BuildingBlocks.Domain.Privacy;
 using Cale.BuildingBlocks.Domain.Security;
 using Cale.BuildingBlocks.Domain.Time;
 using Cale.BuildingBlocks.Domain.Validation;
@@ -43,7 +44,7 @@ public sealed class LoginUserHandler
         {
             _logger.LogWarning(
                 "Login failed invalid_credentials email={Email}",
-                email);
+                PersonalData.MaskEmail(email));
             throw new UnauthorizedException(
                 "Invalid credentials.",
                 "invalid_credentials");
@@ -53,7 +54,7 @@ public sealed class LoginUserHandler
         {
             _logger.LogWarning(
                 "Login failed user_inactive email={Email} userId={UserId}",
-                email,
+                PersonalData.MaskEmail(email),
                 user.Id);
             throw new ForbiddenException(
                 "User is inactive.",
@@ -64,7 +65,7 @@ public sealed class LoginUserHandler
         {
             _logger.LogWarning(
                 "Login failed email_not_confirmed email={Email} userId={UserId}",
-                email,
+                PersonalData.MaskEmail(email),
                 user.Id);
             throw new ForbiddenException(
                 "Confirm your email before signing in.",
@@ -85,7 +86,7 @@ public sealed class LoginUserHandler
         _logger.LogInformation(
             "Login succeeded userId={UserId} email={Email} role={Role}",
             user.Id,
-            email,
+            PersonalData.MaskEmail(email),
             role);
 
         return new AuthResponse(

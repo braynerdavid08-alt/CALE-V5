@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Mail;
 using Cale.BuildingBlocks.Domain.Email;
+using Cale.BuildingBlocks.Domain.Privacy;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -53,11 +54,11 @@ public sealed class SmtpEmailSender : IEmailSender
         try
         {
             await client.SendMailAsync(message, ct);
-            _logger.LogInformation("Email sent to={To} subject={Subject}", toEmail, subject);
+            _logger.LogInformation("Email sent to={To} subject={Subject}", PersonalData.MaskEmail(toEmail), subject);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send email to={To}", toEmail);
+            _logger.LogError(ex, "Failed to send email to={To}", PersonalData.MaskEmail(toEmail));
             throw;
         }
     }
