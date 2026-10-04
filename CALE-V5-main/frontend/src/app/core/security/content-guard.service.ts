@@ -2,7 +2,8 @@ import { DOCUMENT } from '@angular/common';
 import { Injectable, effect, inject } from '@angular/core';
 import { SessionStore } from '../auth/session.store';
 
-const STAFF_ROLES = new Set(['Admin', 'Teacher', 'School']);
+/** Instructors and schools are guarded too: only the platform owner can copy freely. */
+const STAFF_ROLES = new Set(['Admin']);
 const GUARD_CLASS = 'content-guard';
 
 /**
