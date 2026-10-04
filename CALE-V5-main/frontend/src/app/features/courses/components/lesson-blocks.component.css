@@ -1,5 +1,7 @@
 :host { display: grid; gap: 1.25rem; }
-.blk { min-width: 0; }
+.blk { min-width: 0; animation: blk-in 0.35s ease-out both; }
+@keyframes blk-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .blk { animation: none; } }
 h2 { margin: 0 0 0.6rem; font-size: var(--text-lg); }
 h3 { margin: 0.15rem 0 0.75rem; font-size: var(--text-md); line-height: 1.4; }
 .para { margin: 0 0 0.75rem; line-height: var(--leading-body, 1.6); white-space: pre-line; }

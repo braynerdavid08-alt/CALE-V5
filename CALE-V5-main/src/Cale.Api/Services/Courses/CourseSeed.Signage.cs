@@ -53,7 +53,7 @@ public sealed partial class CourseSeed
         (
             "Las familias de señales verticales",
             "Cómo se agrupan las reglamentarias, las preventivas y las informativas según lo que comunican.",
-            12,
+            13,
             [
                 Text(
                     "Reglamentarias",
@@ -83,6 +83,7 @@ public sealed partial class CourseSeed
                     "Advierten de un riesgo o de una situación imprevista, permanente o temporal. Se agrupan según lo que anuncian: la forma de la vía (curvas), "
                     + "las pendientes, la superficie (resbalosa, rizada, resaltos), las restricciones físicas (puente angosto, altura libre), las intersecciones "
                     + "y la presencia de otros actores (peatones, ciclistas, animales, niños)."),
+                Video("ansv-curva-senal-preventiva.mp4", "Una señal preventiva anuncia la curva: reduce la velocidad antes de entrar. Video: Agencia Nacional de Seguridad Vial (ANSV)."),
                 ClassifySigns(
                     "¿Qué anuncia cada señal preventiva?",
                     ["La forma o pendiente de la vía", "El estado de la superficie", "Una restricción física", "Otros actores en la vía"],

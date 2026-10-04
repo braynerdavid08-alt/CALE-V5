@@ -115,7 +115,7 @@ public sealed partial class CourseSeed
         (
             "Documentos y habilitación para circular",
             "Qué verificar antes de mover el vehículo: licencia, SOAT, revisión técnico-mecánica y equipo de carretera.",
-            10,
+            20,
             [
                 Text(
                     "La persona y el vehículo",
@@ -128,6 +128,7 @@ public sealed partial class CourseSeed
                     "¿Cuándo toca la revisión técnico-mecánica?",
                     "Los carros particulares nuevos hacen la primera revisión cuando cumplen cinco años de matriculados. "
                     + "Los vehículos de servicio público y las motocicletas la hacen a los dos años. Después de la primera, se renueva cada año."),
+                Video("ansv-revision-preoperacional.mp4", "Revisión preoperacional del vehículo y la motocicleta. Video: Agencia Nacional de Seguridad Vial (ANSV)."),
                 Scenario(
                     "Un amigo te presta su carro para un mandado. Tienes tu licencia vigente, pero al revisar ves que el SOAT del carro venció la semana pasada. ¿Qué haces?",
                     [
@@ -140,6 +141,7 @@ public sealed partial class CourseSeed
                     "Todo vehículo debe llevar como mínimo: gato, cruceta, dos señales reflectivas en forma de triángulo (o lámparas amarillas intermitentes), "
                     + "botiquín de primeros auxilios, extintor, dos tacos para bloquear las llantas, caja de herramientas básica (alicate, destornilladores, llave de expansión y llaves fijas), "
                     + "llanta de repuesto y linterna."),
+                Video("ansv-cambio-llanta.mp4", "Cómo cambiar una llanta de forma segura con el equipo de carretera. Video: Agencia Nacional de Seguridad Vial (ANSV)."),
                 Classify(
                     "¿Lo exige el código como equipo de carretera?",
                     ["Es obligatorio", "No es obligatorio"],
@@ -290,13 +292,14 @@ public sealed partial class CourseSeed
         (
             "Adelantar, carriles y estacionamiento",
             "Dónde no se puede adelantar, cómo usar los carriles exclusivos y preferenciales, y dónde no se estaciona.",
-            14,
+            15,
             [
                 Text(
                     "Adelantar es la maniobra más peligrosa",
                     "Para adelantar invades por unos segundos el carril contrario. No se debe adelantar en intersecciones, donde hay línea central continua o una señal que lo prohíbe, "
                     + "en curvas o pendientes, con mala visibilidad, cerca de pasos peatonales, en cruces de vías férreas, por la berma o por la derecha de otro vehículo, "
                     + "y en general siempre que la maniobra sea peligrosa."),
+                Video("ansv-espejos-adelantar.mp4", "Usa los espejos y deja espacio cuando otro vehículo te adelanta. Video: Agencia Nacional de Seguridad Vial (ANSV)."),
                 Classify(
                     "¿Se puede adelantar en cada caso?",
                     ["Prohibido", "Permitido si es seguro"],

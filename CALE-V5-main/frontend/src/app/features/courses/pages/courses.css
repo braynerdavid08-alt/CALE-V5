@@ -270,3 +270,68 @@
 .result p {
   margin: 0;
 }
+
+.stepper {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.step-top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.link-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--color-primary);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.guide {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.6rem;
+}
+
+.guide-face {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  background: color-mix(in srgb, var(--color-primary) 16%, var(--color-surface));
+  animation: guide-bob 2.4s ease-in-out infinite;
+}
+
+.guide-bubble {
+  position: relative;
+  margin: 0;
+  padding: 0.7rem 0.95rem;
+  border-radius: var(--radius-md) var(--radius-md) var(--radius-md) 0.2rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  line-height: 1.5;
+  animation: blk-pop 0.3s ease-out both;
+}
+
+@keyframes guide-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes blk-pop {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-face, .guide-bubble { animation: none; }
+}
