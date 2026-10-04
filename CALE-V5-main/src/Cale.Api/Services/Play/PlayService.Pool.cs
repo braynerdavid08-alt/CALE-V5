@@ -63,6 +63,14 @@ public sealed partial class PlayService
             return [];
         }
 
+        // The school's official theory exam and single-attempt exams are graded: never leak their keys.
+        int? officialExamId = schoolId is int school
+            ? await _db.Set<Cale.Modules.TheoreticalTraining.Domain.TheoryTrainingSettings>().AsNoTracking()
+                .Where(s => s.SchoolUserId == school)
+                .Select(s => s.TheoryExamId)
+                .FirstOrDefaultAsync(ct)
+            : null;
+
         var now = _clock.UtcNow;
         var linkedExamIds = await _db.Set<ExamGroupLink>().AsNoTracking()
             .Where(l => groupIds.Contains(l.GroupId) && (l.StartsAt == null || l.StartsAt <= now))
@@ -72,6 +80,8 @@ public sealed partial class PlayService
         var exams = await _db.Set<Exam>().AsNoTracking()
             .Where(e => e.Published
                 && e.IsActive
+                && e.AllowedAttempts > 1
+                && (officialExamId == null || e.Id != officialExamId)
                 && (e.StartsAt == null || e.StartsAt <= now)
                 && (linkedExamIds.Contains(e.Id) || staffIds.Contains(e.CreatedById)))
             .Select(e => new { e.Id, e.BankId })
@@ -352,6 +362,7 @@ public sealed partial class PlayService
             throw new DomainException("Question is not available for this game.", 400, "question_invalid");
         }
 
+        await EnsureNotInOpenAttemptAsync(userId, request.QuestionId, ct);
         var question = await LoadQuestionAsync(request.QuestionId, ct);
         var correctId = CorrectOptionId(question);
         var correct = correctId == request.OptionId;

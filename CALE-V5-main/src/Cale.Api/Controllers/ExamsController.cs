@@ -82,7 +82,10 @@ public sealed class ExamsController : ControllerBase
         var memberships = await _classroom.ListMembershipsAsync(
             CurrentUser.GetId(User),
             ct);
-        var groupIds = memberships.Select(x => x.GroupId).ToList();
+        var groupIds = memberships
+            .Where(x => x.Status == Cale.BuildingBlocks.Domain.Classroom.MemberStatuses.Active || x.Status == "Active")
+            .Select(x => x.GroupId)
+            .ToList();
         var officialTheoryExamId = await _trainingEligibility.GetAuthorizedSchoolOfficialTheoryExamIdAsync(
             CurrentUser.GetId(User),
             ct);

@@ -95,7 +95,9 @@ public sealed class AssistantService
         {
             for (var round = 0; round <= _options.MaxToolRounds; round++)
             {
-                if (!TryConsume(BudgetKey(), _options.DailyRequestBudget))
+                if (!TryConsume(UserCallsKey(user.UserId), _options.DailyRequestsPerUser)
+                    || !TryConsume(SchoolKey(user.SchoolUserId ?? user.UserId), _options.DailyRequestsPerSchool)
+                    || !TryConsume(BudgetKey(), _options.DailyRequestBudget))
                 {
                     return new AssistantChatResult(
                         "El asistente llegó a su límite de hoy. Puedes seguir usando las pantallas normales o intentar mañana.",
@@ -368,6 +370,10 @@ public sealed class AssistantService
     private static string UserKey(int userId) => $"assistant:user:{Today()}:{userId}";
 
     private static string BudgetKey() => $"assistant:budget:{Today()}";
+
+    private static string SchoolKey(int schoolUserId) => $"assistant:school:{Today()}:{schoolUserId}";
+
+    private static string UserCallsKey(int userId) => $"assistant:calls:{Today()}:{userId}";
 
     private static string ActionKey(string id) => $"assistant:action:{id}";
 

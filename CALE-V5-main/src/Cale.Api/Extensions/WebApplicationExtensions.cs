@@ -49,6 +49,7 @@ public static class WebApplicationExtensions
         }
 
         app.UseCors("Cale");
+        app.UseMiddleware<CsrfOriginMiddleware>();
         app.UseMiddleware<SignImageRedirectMiddleware>();
         app.UseMiddleware<CourseVideoGateMiddleware>();
         app.UseDefaultFiles();
@@ -61,6 +62,16 @@ public static class WebApplicationExtensions
         app.MapControllers();
         app.MapHub<Cale.Api.Hubs.LiveClassroomHub>("/hubs/live");
         app.MapHub<Cale.Api.Hubs.GameShowHub>("/hubs/game-show");
+
+        // Unknown API routes get a JSON 404, never the SPA shell with 200.
+        app.MapFallback("/api/{**rest}", static context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return context.Response.WriteAsJsonAsync(
+                new { title = "Not found", status = 404, code = "route_not_found" },
+                (System.Text.Json.JsonSerializerOptions?)null,
+                "application/problem+json");
+        });
 
         // Angular SPA deep links (keep /api/* on controllers).
         app.MapFallbackToFile("index.html", spaFiles);
@@ -128,6 +139,7 @@ public static class WebApplicationExtensions
             await ExamScheduleSchemaGuard.EnsureAsync(db, bootLogger);
             await UserPhotoSchemaGuard.EnsureAsync(db, bootLogger);
             await UserCreatorSchemaGuard.EnsureAsync(db, bootLogger);
+            await RefreshTokenSchemaGuard.EnsureAsync(db, bootLogger);
             await Cale.Modules.GameShow.Infrastructure.Persistence.GameShowPackSchemaGuard
                 .EnsureAsync(db, bootLogger);
             await Cale.Modules.Courses.Infrastructure.Persistence.CourseSchemaGuard.EnsureAsync(db, bootLogger);

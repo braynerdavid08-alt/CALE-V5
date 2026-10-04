@@ -142,8 +142,12 @@ export class SimulatorPage implements OnInit, OnDestroy {
     return this.banks().find((b) => b.id === id) ?? null;
   });
 
+  readonly mixableExams = computed(() =>
+    this.exams().filter((exam) => exam.allowedAttempts > 1)
+  );
+
   readonly mixedAvailableCount = computed(() =>
-    this.exams()
+    this.mixableExams()
       .filter((exam) => this.selectedMixExamIds().includes(exam.id))
       .reduce((total, exam) => total + exam.questionCount, 0)
   );
