@@ -66,7 +66,7 @@ public sealed partial class CourseSeed
             MobilitySlug,
             "Movilidad segura y sostenible",
             "Sistema Seguro, víctimas y consecuencias, usuarios vulnerables, movilidad sostenible, conducción preventiva y eco-conducción, con casos de Barranquilla.",
-            "Seguridad vial",
+            "Formación vial",
             $"{MobilityImages}/portada.jpg",
             MobilityLessons,
             logger,
@@ -75,7 +75,7 @@ public sealed partial class CourseSeed
             RoadSlug,
             "La vía y el espacio público",
             "Cómo cambia tu conducción según la vía, la posición en el carril, la convivencia con ciclistas y los conflictos en andenes, paraderos y eventos.",
-            "Seguridad vial",
+            "Peatones y ciclistas",
             $"{MobilityImages}/anticipate.jpg",
             RoadLessons,
             logger,
@@ -84,7 +84,7 @@ public sealed partial class CourseSeed
             VehicleSlug,
             "El vehículo: conócelo, revísalo y atiéndelo",
             "Sistemas del vehículo, revisión preoperacional, seguridad activa y pasiva, protección de la escena y averías frecuentes.",
-            "Mecánica básica",
+            "Vehículo seguro",
             Img("SI-21"),
             VehicleLessons,
             logger,
@@ -93,7 +93,7 @@ public sealed partial class CourseSeed
             MotorcycleSlug,
             "Conducción segura en motocicleta (A2)",
             "Elementos de protección, revisión de la moto, técnicas de frenado y curvas, clima, fatiga, puntos ciegos, acompañante y carga.",
-            "Conducción defensiva",
+            "Motociclistas",
             "/courses/moto/portada.jpg",
             MotorcycleLessons,
             logger,
@@ -102,7 +102,7 @@ public sealed partial class CourseSeed
             CarSlug,
             "Dominio seguro del automóvil (B1)",
             "Puesto de conducción, embrague y cambios, frenado, pendientes, reversa, estacionamiento y giros: la técnica para manejar un carro con seguridad.",
-            "Conducción defensiva",
+            "Vehículo seguro",
             "/courses/automovil/portada.jpg",
             CarLessons,
             logger,
@@ -111,7 +111,7 @@ public sealed partial class CourseSeed
             PublicServiceSlug,
             "Conducción profesional de servicio público (C1)",
             "Régimen y documentos del servicio público, seguros, atención al usuario, pasajeros vulnerables, fatiga y conducción urbana en Barranquilla.",
-            "Servicio público",
+            "Formación vial",
             "/courses/servicio-publico/portada.jpg",
             PublicServiceLessons,
             logger,
@@ -138,7 +138,7 @@ public sealed partial class CourseSeed
             var existing = await _db.Set<Course>().FirstOrDefaultAsync(c => c.Slug == slug, ct);
             if (existing is not null)
             {
-                await UpgradeIfUntouchedAsync(existing, description, lessons, now, logger, ct);
+                await UpgradeIfUntouchedAsync(existing, description, CourseCategories.Normalize(category), lessons, now, logger, ct);
                 return;
             }
 
@@ -173,6 +173,7 @@ public sealed partial class CourseSeed
     private async Task UpgradeIfUntouchedAsync(
         Course course,
         string description,
+        string category,
         List<(string Title, string Summary, int Minutes, string Content)> lessons,
         DateTime now,
         ILogger? logger,
@@ -194,6 +195,7 @@ public sealed partial class CourseSeed
 
         var same = stored.Count == lessons.Count
             && course.Description == description
+            && course.Category == category
             && stored.Zip(lessons).All(p => p.First.Title == p.Second.Title
                 && p.First.Summary == p.Second.Summary
                 && p.First.EstimatedMinutes == p.Second.Minutes
@@ -226,7 +228,7 @@ public sealed partial class CourseSeed
             _db.Set<CourseLesson>().RemoveRange(removed);
         }
 
-        course.Update(course.Title, description, course.Category, course.CoverUrl, true, now);
+        course.Update(course.Title, description, category, course.CoverUrl, true, now);
         await _db.SaveChangesAsync(ct);
         logger?.LogInformation("Updated platform course {Slug} to the current seed ({Count} lessons)", course.Slug, lessons.Count);
     }
