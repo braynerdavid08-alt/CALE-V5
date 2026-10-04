@@ -37,6 +37,7 @@ public static class WebApplicationExtensions
         app.UseResponseCompression();
         app.UseMiddleware<RequestTelemetryMiddleware>();
         app.UseMiddleware<ExceptionHandlingMiddleware>();
+        app.UseMiddleware<WireEncryptionMiddleware>();
         app.UseMiddleware<LegacyPresentationUploadMiddleware>();
         app.UseMiddleware<LegacyCatalogUploadMiddleware>();
 

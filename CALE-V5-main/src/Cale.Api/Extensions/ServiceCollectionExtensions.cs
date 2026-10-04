@@ -1,4 +1,4 @@
-using System.IO.Compression;
+﻿using System.IO.Compression;
 using System.Text;
 using Microsoft.AspNetCore.ResponseCompression;
 using Cale.BuildingBlocks.Domain.Auth;
@@ -83,7 +83,7 @@ public static class ServiceCollectionExtensions
                 context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
                 await context.HttpContext.Response.WriteAsJsonAsync(new
                 {
-                    title = "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.",
+                    title = "Demasiados intentos. Espera unos minutos e intÃ©ntalo de nuevo.",
                     status = StatusCodes.Status429TooManyRequests,
                     detail = "too_many_requests"
                 }, ct);
@@ -242,7 +242,7 @@ public static class ServiceCollectionExtensions
                         await context.Response.WriteAsJsonAsync(new ProblemDetails
                         {
                             Status = StatusCodes.Status401Unauthorized,
-                            Title = "Necesitas iniciar sesión.",
+                            Title = "Necesitas iniciar sesiÃ³n.",
                             Detail = "unauthorized",
                             Type = "https://httpstatuses.com/401",
                             Instance = context.Request.Path
@@ -294,7 +294,7 @@ public static class ServiceCollectionExtensions
                     policy.AllowAnyOrigin()
                         .AllowAnyHeader()
                         .AllowAnyMethod()
-                        .WithExposedHeaders("X-Request-Id", "Accept-Ranges", "Content-Range", "Content-Length");
+                        .WithExposedHeaders("X-Request-Id", "Accept-Ranges", "Content-Range", "Content-Length", "X-Cale-Wire");
                     return;
                 }
 
@@ -302,7 +302,7 @@ public static class ServiceCollectionExtensions
                     .AllowAnyHeader()
                     .AllowAnyMethod()
                     .AllowCredentials()
-                    .WithExposedHeaders("X-Request-Id", "Accept-Ranges", "Content-Range", "Content-Length");
+                    .WithExposedHeaders("X-Request-Id", "Accept-Ranges", "Content-Range", "Content-Length", "X-Cale-Wire");
             });
         });
     }

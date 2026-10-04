@@ -5,6 +5,7 @@ import { SessionStore } from './core/auth/session.store';
 import { authInterceptor } from './core/http/auth.interceptor';
 import { observabilityInterceptor } from './core/http/observability.interceptor';
 import { unauthorizedInterceptor } from './core/http/unauthorized.interceptor';
+import { wireInterceptor } from './core/http/wire.interceptor';
 import { routes } from './app.routes';
 
 function initSession() {
@@ -22,7 +23,7 @@ export const appConfig: ApplicationConfig = {
     },
     provideRouter(routes),
     provideHttpClient(
-      withInterceptors([observabilityInterceptor, authInterceptor, unauthorizedInterceptor])
+      withInterceptors([observabilityInterceptor, authInterceptor, unauthorizedInterceptor, wireInterceptor])
     )
   ]
 };
