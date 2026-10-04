@@ -38,7 +38,7 @@ public sealed class IssueAuthSessionHandler
     {
         var normalized = Roles.Normalize(role);
         var access = _tokens.Create(userId, email, name, normalized);
-        var refreshDays = _jwt.RefreshTokenDays > 0 ? _jwt.RefreshTokenDays : 14;
+        var refreshDays = _jwt.EffectiveRefreshTokenDays;
         var refresh = await _refreshTokens.IssueAsync(
             userId,
             _clock.UtcNow.AddDays(refreshDays),

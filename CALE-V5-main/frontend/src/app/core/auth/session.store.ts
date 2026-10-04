@@ -1,9 +1,17 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Observable, finalize, firstValueFrom, shareReplay, tap } from 'rxjs';
 import { AuthApi } from '../../features/auth/api/auth.api';
 import { AuthResponse, MeSchoolContext, SessionUser } from './session.models';
 
 const STORAGE_KEY = 'cale.session.v5';
+/** Renew well before the 60-minute access cookie runs out, so live-room sockets never reconnect with an expired cookie. */
+const KEEP_ALIVE_MS = 30 * 60 * 1000;
+
+/** Only the server rejecting the session ends it; offline, timeouts and cold starts (0, 5xx) keep the user signed in. */
+export function isAuthRejection(err: unknown): boolean {
+  return err instanceof HttpErrorResponse && (err.status === 401 || err.status === 403);
+}
 
 @Injectable({ providedIn: 'root' })
 export class SessionStore {
@@ -49,8 +57,20 @@ export class SessionStore {
     return false;
   });
 
+  private refreshInFlight: Observable<AuthResponse> | null = null;
+  private keepAliveTimer: ReturnType<typeof setInterval> | null = null;
+  private lastRefreshAt = 0;
+
   constructor() {
     this.restore();
+    if (typeof document !== 'undefined') {
+      // Timers pause while a phone sleeps; renew as soon as the app is visible again.
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          this.renewIfStale();
+        }
+      });
+    }
   }
 
   async bootstrap(): Promise<void> {
@@ -60,22 +80,30 @@ export class SessionStore {
     }
 
     try {
+      // An expired access cookie is renewed by the unauthorized interceptor and the call retried.
       const me = await firstValueFrom(this.authApi.me());
       this.applyMe(me);
-      return;
-    } catch {
-      /* access expired — try refresh cookie below */
+    } catch (err) {
+      if (isAuthRejection(err)) {
+        this.clear();
+        return;
+      }
     }
+    this.startKeepAlive();
+  }
 
-    try {
-      const refreshed = await firstValueFrom(this.authApi.refresh());
-      this.set(refreshed);
-      const me = await firstValueFrom(this.authApi.me());
-      this.applyMe(me);
-    } catch {
-      // Stale localStorage without a valid refresh cookie → clear ghost session.
-      this.clear();
+  /** One refresh at a time per tab; concurrent callers share it. */
+  refreshSession(): Observable<AuthResponse> {
+    if (!this.refreshInFlight) {
+      this.refreshInFlight = this.authApi.refresh().pipe(
+        tap((res) => this.set(res)),
+        finalize(() => {
+          this.refreshInFlight = null;
+        }),
+        shareReplay(1)
+      );
     }
+    return this.refreshInFlight;
   }
 
   homeRoute(): string {
@@ -105,6 +133,8 @@ export class SessionStore {
     this.token.set(usesCookie ? null : response.token || null);
     this.user.set(user);
     this.persist(user, usesCookie ? null : response.token || null);
+    this.lastRefreshAt = Date.now();
+    this.startKeepAlive();
   }
 
   applyMe(me: {
@@ -161,11 +191,39 @@ export class SessionStore {
   }
 
   clear(): void {
+    this.stopKeepAlive();
     this.token.set(null);
     this.user.set(null);
     this.cookieAuth.set(false);
     sessionStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(STORAGE_KEY);
+  }
+
+  private startKeepAlive(): void {
+    if (this.keepAliveTimer || !this.cookieAuth() || !this.user()) {
+      return;
+    }
+    this.keepAliveTimer = setInterval(() => this.renewIfStale(), 60 * 1000);
+  }
+
+  private stopKeepAlive(): void {
+    if (this.keepAliveTimer) {
+      clearInterval(this.keepAliveTimer);
+      this.keepAliveTimer = null;
+    }
+  }
+
+  private renewIfStale(): void {
+    if (!this.cookieAuth() || !this.user() || Date.now() - this.lastRefreshAt < KEEP_ALIVE_MS) {
+      return;
+    }
+    this.refreshSession().subscribe({
+      error: (err) => {
+        if (isAuthRejection(err)) {
+          this.clear();
+        }
+      }
+    });
   }
 
   private persist(user: SessionUser, token: string | null): void {

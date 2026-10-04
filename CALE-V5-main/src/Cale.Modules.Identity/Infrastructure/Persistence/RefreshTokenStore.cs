@@ -8,6 +8,15 @@ namespace Cale.Modules.Identity.Infrastructure.Persistence;
 
 public sealed class RefreshTokenStore : IRefreshTokenStore
 {
+    /// <summary>
+    /// A token rotated this recently can still be consumed once more: two tabs (or a retry after a dropped response)
+    /// often refresh with the same cookie at the same moment, and the loser must not be logged out.
+    /// </summary>
+    private static readonly TimeSpan RotationGrace = TimeSpan.FromSeconds(60);
+
+    /// <summary>Explicit revocations are back-dated past the grace window so a logged-out token is never reusable.</summary>
+    private static readonly TimeSpan RevocationBackdate = TimeSpan.FromDays(1);
+
     private readonly CaleDbContext _db;
 
     public RefreshTokenStore(CaleDbContext db) => _db = db;
@@ -50,14 +59,14 @@ public sealed class RefreshTokenStore : IRefreshTokenStore
             }
 
             await using var cmd = conn.CreateCommand();
-            // Atomic consume: only one concurrent caller can revoke an unexpired token.
+            // Atomic consume; the first revocation time is kept so the grace window never extends.
             if (_db.Database.IsNpgsql())
             {
                 cmd.CommandText = """
                     UPDATE "AuthRefreshTokens"
-                    SET "RevokedAt" = @now
+                    SET "RevokedAt" = COALESCE("RevokedAt", @now)
                     WHERE "TokenHash" = @hash
-                      AND "RevokedAt" IS NULL
+                      AND ("RevokedAt" IS NULL OR "RevokedAt" > @graceStart)
                       AND "ExpiresAt" > @now
                     RETURNING "UserId";
                     """;
@@ -66,11 +75,11 @@ public sealed class RefreshTokenStore : IRefreshTokenStore
             {
                 cmd.CommandText = """
                     UPDATE "AuthRefreshTokens"
-                    SET "RevokedAt" = @now
+                    SET "RevokedAt" = COALESCE("RevokedAt", @now)
                     WHERE "Id" = (
                         SELECT "Id" FROM "AuthRefreshTokens"
                         WHERE "TokenHash" = @hash
-                          AND "RevokedAt" IS NULL
+                          AND ("RevokedAt" IS NULL OR "RevokedAt" > @graceStart)
                           AND "ExpiresAt" > @now
                         LIMIT 1
                     )
@@ -81,13 +90,18 @@ public sealed class RefreshTokenStore : IRefreshTokenStore
             {
                 cmd.CommandText = """
                     UPDATE "AuthRefreshTokens"
-                    SET "RevokedAt" = @now
+                    SET "RevokedAt" = COALESCE("RevokedAt", @now)
                     OUTPUT INSERTED."UserId"
                     WHERE "TokenHash" = @hash
-                      AND "RevokedAt" IS NULL
+                      AND ("RevokedAt" IS NULL OR "RevokedAt" > @graceStart)
                       AND "ExpiresAt" > @now;
                     """;
             }
+
+            var graceParam = cmd.CreateParameter();
+            graceParam.ParameterName = "@graceStart";
+            graceParam.Value = now - RotationGrace;
+            cmd.Parameters.Add(graceParam);
 
             var hashParam = cmd.CreateParameter();
             hashParam.ParameterName = "@hash";
@@ -117,17 +131,17 @@ public sealed class RefreshTokenStore : IRefreshTokenStore
         }
 
         var hash = Hash(rawToken);
-        var now = DateTime.UtcNow;
+        var revokedAt = DateTime.UtcNow - RevocationBackdate;
         await _db.Database.ExecuteSqlInterpolatedAsync(
-            $"""UPDATE "AuthRefreshTokens" SET "RevokedAt" = {now} WHERE "TokenHash" = {hash} AND "RevokedAt" IS NULL;""",
+            $"""UPDATE "AuthRefreshTokens" SET "RevokedAt" = {revokedAt} WHERE "TokenHash" = {hash} AND ("RevokedAt" IS NULL OR "RevokedAt" > {revokedAt});""",
             ct);
     }
 
     public async Task RevokeAllForUserAsync(int userId, CancellationToken ct = default)
     {
-        var now = DateTime.UtcNow;
+        var revokedAt = DateTime.UtcNow - RevocationBackdate;
         await _db.Database.ExecuteSqlInterpolatedAsync(
-            $"""UPDATE "AuthRefreshTokens" SET "RevokedAt" = {now} WHERE "UserId" = {userId} AND "RevokedAt" IS NULL;""",
+            $"""UPDATE "AuthRefreshTokens" SET "RevokedAt" = {revokedAt} WHERE "UserId" = {userId} AND ("RevokedAt" IS NULL OR "RevokedAt" > {revokedAt});""",
             ct);
     }
 

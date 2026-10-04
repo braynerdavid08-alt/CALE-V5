@@ -1,12 +1,9 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, finalize, shareReplay, switchMap, throwError } from 'rxjs';
-import { AuthApi } from '../../features/auth/api/auth.api';
+import { catchError, switchMap, throwError } from 'rxjs';
 import { isSafeReturnUrl, stashReturnUrl } from '../auth/return-url';
-import { SessionStore } from '../auth/session.store';
-
-let refreshInFlight: ReturnType<AuthApi['refresh']> | null = null;
+import { isAuthRejection, SessionStore } from '../auth/session.store';
 
 /**
  * On 401, try cookie refresh once before clearing session and redirecting to login.
@@ -14,7 +11,6 @@ let refreshInFlight: ReturnType<AuthApi['refresh']> | null = null;
 export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
   const session = inject(SessionStore);
   const router = inject(Router);
-  const authApi = inject(AuthApi);
 
   const sendToLogin = (here: string) => {
     const safe = isSafeReturnUrl(here) ? here : null;
@@ -75,21 +71,12 @@ export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
         return throwError(() => err);
       }
 
-      if (!refreshInFlight) {
-        refreshInFlight = authApi.refresh().pipe(
-          shareReplay(1),
-          finalize(() => {
-            refreshInFlight = null;
-          })
-        );
-      }
-
-      return refreshInFlight.pipe(
-        switchMap((res) => {
-          session.set(res);
-          return next(req.clone({ withCredentials: true }));
-        }),
+      return session.refreshSession().pipe(
+        switchMap(() => next(req.clone({ withCredentials: true }))),
         catchError((refreshErr) => {
+          if (!isAuthRejection(refreshErr)) {
+            return throwError(() => refreshErr);
+          }
           const here = router.url;
           session.clear();
           if (!inGameShow) sendToLogin(here);
