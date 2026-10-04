@@ -32,9 +32,10 @@ public sealed partial class CourseSeed
 
     private static object Spot(double x, double y, string label, string note) => new { x, y, label, note };
 
-    private static List<(string Title, string Summary, int Minutes, object[] Blocks)> RulesLessons() =>
+    private static List<(string Key, string Title, string Summary, int Minutes, object[] Blocks)> RulesLessons() =>
     [
         (
+            "normas-transito/autorregulacion",
             "Autorregulación y responsabilidad",
             "Controlar tus decisiones aunque nadie te vigile: exceso de confianza, presión social e impulsividad.",
             10,
@@ -72,9 +73,10 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "normas-transito/autoridades",
             "Autoridades de tránsito y el Código",
-            "Quiénes son las autoridades, tus derechos y deberes en un control, y cómo aplicar el Código a un caso real.",
-            16,
+            "Quiénes son las autoridades, tus derechos y deberes en un control, qué hacer en un choque sin heridos y cómo aplicar el Código a un caso real.",
+            20,
             [
                 Text(
                     "El Código Nacional de Tránsito",
@@ -124,6 +126,23 @@ public sealed partial class CourseSeed
                         Choice("Observo al agente y avanzo o me detengo según lo que indique.", "Correcto: la orden del agente es la que manda en ese momento.", true),
                         Choice("Paso rápido aprovechando que el agente está mirando hacia otro lado.", "Si el agente no te ha dado paso, no lo tienes. Además, los demás conductores están siguiendo sus indicaciones.")
                     ]),
+                Text(
+                    "Si tienes un choque sin heridos",
+                    "Lo primero es confirmar que nadie está herido. Si hay una persona lesionada, no muevas los vehículos: protege la escena y llama al 123, como se explica en el curso «Primeros auxilios en la vía».\n\n"
+                    + "Si solo hay daños materiales:\n\n"
+                    + "1. Enciende las luces de parqueo y, si hace falta, coloca las señales del equipo de carretera.\n"
+                    + "2. Toma fotos de la posición de los vehículos, de los daños, de las placas y del lugar antes de moverlos.\n"
+                    + "3. Si los vehículos pueden andar, retíralos de la calzada: dejarlos atravesados bloquea el tránsito y crea nuevos riesgos, y todo usuario debe evitar obstaculizar la vía.\n"
+                    + "4. Intercambia datos: nombre, documento, teléfono, placa, licencia y aseguradora.\n"
+                    + "5. Si llegan a un acuerdo, déjenlo por escrito. Si no, llamen a la autoridad de tránsito, que elabora el informe del accidente (IPAT); con él el caso puede ir a conciliación.\n\n"
+                    + "El SOAT cubre a las personas lesionadas, no los daños de los vehículos. Y nunca te vayas sin dejar tus datos: abandonar el lugar empeora tu situación aunque el daño sea pequeño."),
+                Scenario(
+                    "En un semáforo, el carro de atrás te golpea suavemente. Nadie está herido, pero los dos carros bloquean un carril de la avenida. El otro conductor quiere esperar al agente sin mover nada. ¿Qué es lo más adecuado?",
+                    [
+                        Choice("Dejamos los carros donde están hasta que llegue el agente, aunque tarde una hora.", "Si nadie está herido, mantener la vía bloqueada solo crea nuevos riesgos para quienes vienen detrás."),
+                        Choice("Tomamos fotos de la posición y los daños, movemos los carros a un lado, intercambiamos datos y, si no hay acuerdo, llamamos a la autoridad.", "Correcto: guardas la evidencia, liberas la vía y conservas la opción del informe si no se ponen de acuerdo.", true),
+                        Choice("Como el golpe fue leve, me voy sin decir nada.", "Irte sin dejar tus datos te puede traer consecuencias mucho más graves que el golpe.")
+                    ]),
                 Order(
                     "Ordena estas autoridades como aparecen en la ley, de la primera a la última.",
                     ["Ministro de Transporte", "Gobernadores y alcaldes", "Organismos de tránsito departamentales y municipales", "Agentes de tránsito y transporte"],
@@ -135,9 +154,10 @@ public sealed partial class CourseSeed
             ]
         ),
         (
-            "Documentos y habilitación para circular",
-            "Qué verificar antes de mover el vehículo: licencia, SOAT, revisión técnico-mecánica y equipo de carretera.",
-            10,
+            "normas-transito/documentos",
+            "Documentos, habilitación y restricciones para circular",
+            "Qué verificar antes de mover el vehículo: licencia, SOAT, revisión técnico-mecánica, equipo de carretera y las restricciones locales vigentes.",
+            15,
             [
                 Text(
                     "La persona y el vehículo",
@@ -169,6 +189,25 @@ public sealed partial class CourseSeed
                         Choice("Lo uso, porque la responsabilidad del SOAT es solo del dueño.", "El propietario debe mantenerlo al día, pero quien conduce un vehículo sin SOAT también se expone a la sanción y a la inmovilización.")
                     ]),
                 Text(
+                    "¿Puedo circular hoy por aquí?",
+                    "Tener los documentos al día no basta: además del Código, cada ciudad puede fijar restricciones por horarios, zonas, tipos de vehículo, obras o eventos. "
+                    + "En Barranquilla, por ejemplo, ha habido medidas para motociclistas por horarios y por sectores como el Centro, y cierres por eventos como el Carnaval.\n\n"
+                    + "Estas medidas son dinámicas: no las aprendas de memoria. Antes de salir consulta las fuentes oficiales del Distrito y, en la vía, "
+                    + "obedece la señalización que encuentres, aunque no coincida con lo que recordabas."),
+                Order(
+                    "Encuentras un aviso de cierre en tu ruta de siempre. Ordena lo que debes hacer.",
+                    [
+                        "Reduzco la velocidad y leo el aviso o la señal temporal",
+                        "Sigo las indicaciones del desvío o del personal de control",
+                        "Busco una ruta alterna permitida",
+                        "La próxima vez consulto las medidas vigentes antes de salir"
+                    ],
+                    "Primero bajas la velocidad para leer bien, luego obedeces el desvío y solo entonces replanteas la ruta. Consultar antes de salir te evita la sorpresa."),
+                TrueFalse(
+                    "Si una restricción local ya no aparece en las noticias, puedo asumir que terminó.",
+                    false,
+                    "Falso: las medidas locales se verifican en las fuentes oficiales y en la señalización, no por lo que recuerdes o hayas oído."),
+                Text(
                     "El equipo de carretera",
                     "Todo vehículo debe llevar como mínimo: gato, cruceta, dos señales reflectivas en forma de triángulo (o lámparas amarillas intermitentes), "
                     + "botiquín de primeros auxilios, extintor, dos tacos para bloquear las llantas, caja de herramientas básica (alicate, destornilladores, llave de expansión y llaves fijas), "
@@ -194,6 +233,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "normas-transito/velocidad",
             "Velocidad segura y adaptación al entorno",
             "La diferencia entre el límite de velocidad y la velocidad segura, y los límites que fija la ley.",
             17,
@@ -261,6 +301,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "normas-transito/prelacion",
             "Prelación: quién pasa primero",
             "Peatones, vehículos de emergencia, intersecciones sin señal, glorietas y pendientes. Y qué hacer aunque tengas la prioridad.",
             12,
@@ -321,6 +362,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "normas-transito/adelantar",
             "Adelantar, carriles y estacionamiento",
             "Dónde no se puede adelantar, cómo usar los carriles exclusivos y preferenciales, y dónde no se estaciona.",
             14,
@@ -394,62 +436,10 @@ public sealed partial class CourseSeed
             ]
         ),
         (
-            "Restricciones urbanas y conducta de los demás",
-            "Medidas locales que cambian, cómo verificarlas, y cómo anticipar los errores de otros actores viales.",
-            14,
-            [
-                Text(
-                    "Las reglas de la ciudad cambian",
-                    "Además del Código, cada ciudad puede fijar restricciones por horarios, zonas, tipos de vehículo, obras o eventos. "
-                    + "En Barranquilla, por ejemplo, ha habido medidas para motociclistas por horarios y por sectores como el Centro, y cierres por eventos como el Carnaval.\n\n"
-                    + "Estas medidas son dinámicas: no las aprendas de memoria. Antes de salir consulta las fuentes oficiales del Distrito y, en la vía, "
-                    + "obedece la señalización que encuentres, aunque no coincida con lo que recordabas."),
-                Order(
-                    "Encuentras un aviso de cierre en tu ruta de siempre. Ordena lo que debes hacer.",
-                    [
-                        "Reduzco la velocidad y leo el aviso o la señal temporal",
-                        "Sigo las indicaciones del desvío o del personal de control",
-                        "Busco una ruta alterna permitida",
-                        "La próxima vez consulto las medidas vigentes antes de salir"
-                    ],
-                    "Primero bajas la velocidad para leer bien, luego obedeces el desvío y solo entonces replanteas la ruta. Consultar antes de salir te evita la sorpresa."),
-                Text(
-                    "Lee la intención de los demás",
-                    "La conducción preventiva no espera que todos se comporten perfecto: asume que alguien puede equivocarse y deja margen para reaccionar.\n\n"
-                    + "Fíjate en las pistas: ¿hacia dónde apuntan las ruedas del carro parqueado?, ¿el peatón miró antes de bajar del andén?, ¿la moto puso direccional o ya está cambiando de trayectoria?, "
-                    + "¿tienes un espacio de escape si algo sale mal? Anticipa el error sin justificarlo y sin confrontar al otro."),
-                Video("puntos-ciegos.mp4", "Puntos ciegos: lo que el conductor de un vehículo grande no alcanza a ver."),
-                Scenario(
-                    "Vas por una calle comercial. Un carro parqueado tiene las ruedas giradas hacia la vía y el conductor acaba de subirse. ¿Qué haces?",
-                    [
-                        Choice("Sigo igual: si sale sin mirar, la culpa es suya.", "Tener la razón no evita el choque. Las ruedas giradas y el conductor recién subido son señales de que puede salir."),
-                        Choice("Levanto el pie del acelerador, me preparo para frenar y, si es seguro, me abro un poco.", "Correcto: leíste la intención y te diste margen para reaccionar.", true),
-                        Choice("Pito fuerte y acelero para pasar antes de que salga.", "Acelerar reduce tu tiempo de reacción justo cuando el riesgo aumenta.")
-                    ]),
-                Classify(
-                    "¿Conducta apropiada o inapropiada al volante?",
-                    ["Apropiada", "Inapropiada"],
-                    [
-                        ("Dejar pasar a un peatón en la cebra", 0),
-                        ("Usar la direccional antes de cambiar de carril", 0),
-                        ("Dejar espacio a una moto que se acerca entre carriles", 0),
-                        ("Ceder el paso a una ambulancia", 0),
-                        ("Contestar mensajes en un semáforo en rojo", 1),
-                        ("Pitar para que el de adelante arranque", 1),
-                        ("Cerrarle el paso a quien me adelantó", 1),
-                        ("Perseguir a un conductor que me cerró", 1)
-                    ],
-                    "Las conductas apropiadas protegen a todos. Usar el celular, presionar con la bocina o responder con rabia aumentan el riesgo de un siniestro."),
-                TrueFalse(
-                    "Si una restricción local ya no aparece en las noticias, puedo asumir que terminó.",
-                    false,
-                    "Falso: las medidas locales se verifican en las fuentes oficiales y en la señalización, no por lo que recuerdes o hayas oído.")
-            ]
-        ),
-        (
+            "normas-transito/factores-humanos",
             "Factores humanos, alcohol y sustancias",
-            "Fatiga, sueño, estrés y alimentación; y por qué con alcohol o sustancias la única decisión segura es no conducir.",
-            75,
+            "Fatiga, sueño, estrés, distracciones y alimentación; y por qué con alcohol o sustancias la única decisión segura es no conducir.",
+            80,
             [
                 Text(
                     "El primer sistema de seguridad eres tú",
@@ -476,6 +466,21 @@ public sealed partial class CourseSeed
                         ("Tomé un medicamento que advierte no conducir", 2)
                     ],
                     "En amarillo todavía puedes corregir con una pausa. En rojo no hay ajuste posible: se busca otra forma de desplazarse."),
+                Text(
+                    "Distracciones: los ojos, las manos y la cabeza",
+                    "Una distracción es cualquier cosa que aparta tus ojos de la vía, tus manos del volante o tu mente de la conducción. El celular hace las tres cosas a la vez: "
+                    + "leer un mensaje durante cinco segundos a 60 km/h es recorrer más de 80 metros sin mirar.\n\n"
+                    + "El Código Nacional de Tránsito sanciona usar el celular mientras se conduce, salvo con un sistema de manos libres. Aun así, una conversación exigente con manos libres también reduce tu atención.\n\n"
+                    + "Otras distracciones frecuentes: programar el GPS en marcha, comer, arreglarse en el espejo, buscar algo que se cayó, discutir con un pasajero o mirar un choque al lado de la vía.\n\n"
+                    + "Qué hacer: configura la ruta antes de arrancar, deja el celular en silencio o fuera de tu alcance y, si necesitas usarlo, detente en un lugar seguro. "
+                    + "Un semáforo en rojo no es un lugar seguro: sigues conduciendo."),
+                Scenario(
+                    "Vas por una avenida y suena el celular: es un mensaje de tu jefe que dice «urgente». ¿Qué haces?",
+                    [
+                        Choice("Lo leo rápido en el próximo semáforo en rojo.", "En el semáforo sigues conduciendo: el cambio de luz, un peatón o una moto te pueden sorprender con la vista en la pantalla."),
+                        Choice("Sigo conduciendo y lo respondo cuando pueda detenerme en un lugar seguro.", "Correcto: ningún mensaje vale más que tu atención en la vía. Unos minutos de espera no cambian la urgencia.", true),
+                        Choice("Lo leo con el celular en la pierna para que no se note.", "Bajar la vista a la pierna es igual de peligroso, y además te obliga a quitar una mano del volante.")
+                    ]),
                 Text(
                     "Alcohol y sustancias: no hay cantidad segura",
                     "El alcohol, las sustancias psicoactivas y algunos medicamentos alteran la percepción, el juicio y la reacción. Desde 20 miligramos de etanol por cada 100 mililitros de sangre ya hay sanción:\n\n"
@@ -507,6 +512,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "normas-transito/carga",
             "Dimensiones, pesos y elementos de seguridad de la carga",
             "Cómo llevar carga sin tapar las luces, sin exceder lo que el vehículo soporta y sin que se caiga en la vía.",
             12,
@@ -556,6 +562,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "normas-transito/infracciones",
             "Infracciones y comparendos",
             "Por qué existen las normas, qué es un comparendo, los tipos de multa y cómo obtener descuentos.",
             10,

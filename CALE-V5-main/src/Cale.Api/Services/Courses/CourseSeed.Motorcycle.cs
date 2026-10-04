@@ -6,9 +6,10 @@ namespace Cale.Api.Services.Courses;
 /// </summary>
 public sealed partial class CourseSeed
 {
-    private static List<(string Title, string Summary, int Minutes, object[] Blocks)> MotorcycleLessons() =>
+    private static List<(string Key, string Title, string Summary, int Minutes, object[] Blocks)> MotorcycleLessons() =>
     [
         (
+            "motocicleta-a2/proteccion-alistamiento",
             "Antes de salir: elementos de protección y alistamiento",
             "El casco, la ropa de protección, los documentos, el kit de herramientas y la preparación del cuerpo antes de subirte a la moto.",
             20,
@@ -89,6 +90,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "motocicleta-a2/preoperacional",
             "Revisión preoperacional de la motocicleta",
             "Llantas, rines, frenos, controles, luces, fluidos, cadena y chasis antes de cada recorrido, y el mantenimiento preventivo que evita fallas.",
             20,
@@ -188,6 +190,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "motocicleta-a2/frenado-curvas",
             "Técnicas de manejo: frenado y curvas",
             "Cómo frenar con los dos frenos, cómo trazar una curva (frenar, inclinar, pasar y salir) y los errores más comunes.",
             16,
@@ -245,9 +248,72 @@ public sealed partial class CourseSeed
             ]
         ),
         (
-            "Lluvia, calor, fatiga y puntos ciegos",
-            "Cómo adaptar la conducción al clima, gestionar el cansancio y hacerte visible ante los vehículos grandes.",
+            "motocicleta-a2/posicion-trafico",
+            "Posición en la vía, puntos ciegos y tráfico urbano",
+            "Dónde ubicar la moto dentro del carril, por qué zigzaguear entre carros es tan peligroso, el choque más común en las intersecciones y los puntos ciegos de los vehículos grandes.",
             16,
+            [
+                Text(
+                    "Un carril es tuyo: ocúpalo",
+                    "La moto es un vehículo y, como cualquier otro, circula ocupando un carril: así lo exige el Código Nacional de Tránsito. No es un vehículo de segunda que se acomoda en los espacios que dejan los demás.\n\n"
+                    + "Dentro del carril, ubícate donde veas y te vean: normalmente hacia el lado izquierdo, donde el conductor de adelante te encuentra en su espejo. "
+                    + "Aléjate del borde derecho, donde salen carros de los parqueaderos, se abren puertas y se acumulan huecos, arena y agua.\n\n"
+                    + "Lleva la luz encendida también de día: para un conductor que mira rápido, una moto sin luz se confunde con el fondo."),
+                Text(
+                    "Zigzaguear y avanzar entre carros",
+                    "Pasar entre dos filas de carros o cambiar de carril a cada momento parece ahorrar tiempo, pero te pone en el punto ciego de todos. "
+                    + "Basta que un conductor cambie de carril sin verte, abra una puerta o mueva el espejo para que no tengas a dónde ir.\n\n"
+                    + "Si el tráfico está detenido, espera tu turno en tu carril. Si necesitas adelantar, hazlo como cualquier vehículo: con espacio, direccional y por la izquierda."),
+                Text(
+                    "Intersecciones: el choque más común",
+                    "Uno de los choques más frecuentes entre carro y moto ocurre cuando un carro gira a la izquierda frente a la moto que viene de frente, o sale de una vía secundaria o de un garaje: "
+                    + "el conductor no la ve o calcula mal su velocidad.\n\n"
+                    + "Al acercarte a un cruce baja la velocidad, ten los dedos listos sobre el freno, busca los ojos del otro conductor y piensa hacia dónde te moverías si no te ve. "
+                    + "Tener la prelación no te protege si el otro no sabe que estás ahí."),
+                Scenario(
+                    "Vas derecho por una avenida y en el cruce un carro que viene de frente espera para girar a su izquierda, atravesándose en tu camino. ¿Qué haces?",
+                    [
+                        Choice("Mantengo la velocidad: tengo la prelación y él debe esperarme.", "Si el conductor no te ve o calcula mal tu velocidad, girará igual. Tener la razón no evita el golpe."),
+                        Choice("Reduzco la velocidad, preparo el freno y busco sus ojos hasta estar seguro de que me vio.", "Correcto: te das tiempo y espacio por si el carro gira de todas formas.", true),
+                        Choice("Acelero para pasar antes de que se decida a girar.", "Acelerar reduce tu margen de frenado y hace aún más difícil que el conductor calcule tu velocidad.")
+                    ]),
+                Text(
+                    "Los puntos ciegos de los vehículos grandes",
+                    "Si vas al lado y un poco atrás de un vehículo y no ves la cara del conductor en su espejo lateral, él tampoco te ve: estás en su punto ciego. "
+                    + "En un camión o un bus, los puntos ciegos son enormes; según la ANSV pueden abarcar hasta 60 metros.\n\n"
+                    + "No te quedes al lado de un vehículo grande. Ubícate detrás, donde el conductor te vea por el espejo central, o adelántalo con decisión y sin quedarte en su costado. "
+                    + "Usa las direccionales, el cambio de luces y el pito de forma moderada para avisar."),
+                Video("ansv-espejos-adelantar.mp4", "Usa los espejos y deja espacio cuando otro vehículo te adelanta. Video: Agencia Nacional de Seguridad Vial (ANSV)."),
+                Scenario(
+                    "Vas en la moto por la Vía 40 junto a una tractomula, a la altura de su tanque de combustible. Ella pone la direccional hacia tu lado. ¿Qué haces?",
+                    [
+                        Choice("Acelero para pasarla antes de que se mueva.", "Si la mula ya empezó a moverse, acelerar a su costado te deja atrapado entre ella y el borde de la vía."),
+                        Choice("Reduzco la velocidad, me ubico detrás de ella y le dejo espacio para la maniobra.", "Correcto: desde detrás el conductor te ve por sus espejos y tú tienes espacio para reaccionar.", true),
+                        Choice("Pito fuerte y me mantengo en mi posición.", "Lo más probable es que el conductor no te vea ni te escuche. Quedarte en su punto ciego es lo más peligroso.")
+                    ]),
+                Classify(
+                    "¿Esta posición o conducta te hace más visible y seguro, o te pone en riesgo?",
+                    ["Más seguro", "En riesgo"],
+                    [
+                        ("Ocupar mi carril donde el carro de adelante me ve en su espejo", 0),
+                        ("Quedarme detrás de un bus y no a su costado", 0),
+                        ("Llevar la luz encendida también de día", 0),
+                        ("Ir pegado al borde derecho junto a carros parqueados", 1),
+                        ("Avanzar entre dos filas de carros detenidos", 1),
+                        ("Subirme al andén para salir del trancón", 1)
+                    ],
+                    "Ser visto y tener espacio para reaccionar es lo que te protege. Los atajos entre carros o por el andén te dejan sin salida y sin que nadie te vea."),
+                TrueFalse(
+                    "Si no ves la cara del conductor en su espejo lateral, probablemente él tampoco te ve.",
+                    true,
+                    "Verdadero: es la regla práctica para saber si estás en un punto ciego. Si no ves sus ojos, apártate.")
+            ]
+        ),
+        (
+            "motocicleta-a2/clima-fatiga",
+            "Lluvia, calor y fatiga",
+            "Cómo adaptar la conducción a la lluvia, el viento y el calor, y cómo gestionar el cansancio en recorridos largos.",
+            14,
             [
                 Text(
                     "Los primeros minutos de lluvia son los peores",
@@ -279,24 +345,10 @@ public sealed partial class CourseSeed
                     "La fatiga",
                     "En moto el cuerpo trabaja más: equilibrio, viento, vibración y temperatura. La ANSV recomienda no viajar más de seis horas al día, parar al menos cada dos horas "
                     + "para estirar, hidratarse y revisar la moto, y no conducir si estás cansado. Los estimulantes y las bebidas energizantes no quitan el cansancio: lo esconden y después cae de golpe."),
-                Text(
-                    "Los puntos ciegos de los vehículos grandes",
-                    "Si vas al lado y un poco atrás de un vehículo y no ves la cara del conductor en su espejo lateral, él tampoco te ve: estás en su punto ciego. "
-                    + "En un camión o un bus, los puntos ciegos son enormes; según la ANSV pueden abarcar hasta 60 metros.\n\n"
-                    + "No te quedes al lado de un vehículo grande. Ubícate detrás, donde el conductor te vea por el espejo central, o adelántalo con decisión y sin quedarte en su costado. "
-                    + "Usa las direccionales, el cambio de luces y el pito de forma moderada para avisar."),
-                Video("ansv-espejos-adelantar.mp4", "Usa los espejos y deja espacio cuando otro vehículo te adelanta. Video: Agencia Nacional de Seguridad Vial (ANSV)."),
-                Scenario(
-                    "Vas en la moto por la Vía 40 junto a una tractomula, a la altura de su tanque de combustible. Ella pone la direccional hacia tu lado. ¿Qué haces?",
-                    [
-                        Choice("Acelero para pasarla antes de que se mueva.", "Si la mula ya empezó a moverse, acelerar a su costado te deja atrapado entre ella y el borde de la vía."),
-                        Choice("Reduzco la velocidad, me ubico detrás de ella y le dejo espacio para la maniobra.", "Correcto: desde detrás el conductor te ve por sus espejos y tú tienes espacio para reaccionar.", true),
-                        Choice("Pito fuerte y me mantengo en mi posición.", "Lo más probable es que el conductor no te vea ni te escuche. Quedarte en su punto ciego es lo más peligroso.")
-                    ]),
                 TrueFalse(
-                    "Si no ves la cara del conductor en su espejo lateral, probablemente él tampoco te ve.",
-                    true,
-                    "Verdadero: es la regla práctica para saber si estás en un punto ciego. Si no ves sus ojos, apártate."),
+                    "Una bebida energizante quita el cansancio y permite seguir conduciendo varias horas más.",
+                    false,
+                    "Falso: los estimulantes esconden el cansancio por un rato y después cae de golpe. Lo único que lo quita es descansar."),
                 Quiz(
                     "Según la ANSV, ¿cada cuánto se recomienda parar a descansar en un viaje largo en moto?",
                     null,
@@ -306,6 +358,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "motocicleta-a2/acompanante-carga",
             "Acompañante, carga y fin del recorrido",
             "Cómo llevar un acompañante y transportar carga de forma segura, y qué hacer al terminar el recorrido.",
             20,

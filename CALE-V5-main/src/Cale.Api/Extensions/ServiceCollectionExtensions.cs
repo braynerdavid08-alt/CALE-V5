@@ -182,6 +182,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<Cale.Api.Services.Play.DuelService>();
         services.AddScoped<Cale.Api.Services.Play.PlayService>();
         services.AddScoped<Cale.Api.Services.Courses.CourseSeed>();
+        services.AddScoped<Cale.Api.Services.Courses.CurriculumSync>();
         services.AddScoped<Cale.Api.Services.Admin.CatalogPurgeService>();
         services.AddScoped<Cale.Api.Services.Admin.BankUsageService>();
         services.AddScoped<Cale.Api.Services.Requests.UserRequestService>();

@@ -23,12 +23,13 @@ public sealed partial class CourseSeed
     private static object Hotspot(string instructions, string imageUrl, params object[] spots) =>
         new { type = "hotspot", instructions, imageUrl, spots };
 
-    private static List<(string Title, string Summary, int Minutes, object[] Blocks)> MobilityLessons() =>
+    private static List<(string Key, string Title, string Summary, int Minutes, object[] Blocks)> MobilityLessons() =>
     [
         (
+            "movilidad-segura/sistema-seguro",
             "Seguridad vial y Sistema Seguro",
-            "Qué es la seguridad vial, por qué un error no debe costar una vida y quién es responsable de prevenir los siniestros.",
-            18,
+            "Qué es la seguridad vial, el enfoque de Sistema Seguro y su meta Visión Cero, y quién es responsable de prevenir los siniestros.",
+            24,
             [
                 Text(
                     "Moverse sin morir en el intento",
@@ -53,6 +54,28 @@ public sealed partial class CourseSeed
                     + "La Ley 2251 de 2022 incorporó este enfoque en la política de seguridad vial de Colombia."),
                 Video("ansv-sistema-seguro.mp4", "El enfoque de Sistema Seguro en el contexto de la seguridad vial. Video: Agencia Nacional de Seguridad Vial (ANSV)."),
                 Picture($"{MobilityImages}/sistema-seguro.jpg", "Sistema Seguro: personas que se cuidan, vehículos y vías más seguros y una respuesta rápida al siniestro."),
+                Text(
+                    "Visión Cero: la meta del Sistema Seguro",
+                    "Visión Cero es el compromiso de que ninguna muerte ni lesión grave en la vía es un precio aceptable por movernos. "
+                    + "No promete que los choques desaparezcan: las personas se distraen, se cansan y se equivocan. Lo que no se acepta es que ese error cueste una vida.\n\n"
+                    + "Colombia adoptó esta meta en el Plan Nacional de Seguridad Vial. La Agencia Nacional de Seguridad Vial la usa como criterio para vías, vehículos, velocidades y atención a las víctimas."),
+                Flip(
+                    "Qué cambia con Visión Cero",
+                    Card("El error se prevé", "El sistema se diseña sabiendo que alguien va a fallar, no suponiendo que todos conducen perfecto."),
+                    Card("La muerte no es «normal»", "Un siniestro grave se investiga para corregir la vía, la velocidad o el vehículo, no solo para buscar un culpable."),
+                    Card("La velocidad se elige", "Si un peatón puede aparecer, la velocidad máxima tiene que ser una a la que el cuerpo sobreviva."),
+                    Card("Todos responden", "Quien diseña la vía, quien fabrica el vehículo, quien pone la norma y quien conduce tienen una parte.")),
+                Scenario(
+                    "En tu barrio hay un cruce escolar sin cebras ni reductores, y el límite sigue en 50 km/h. Un compañero dice: «Si alguien atropella a un niño, la culpa es solo del conductor». ¿Qué responde Visión Cero?",
+                    [
+                        Choice("Que tiene razón: el conductor es el único responsable.", "El conductor responde por su decisión, pero un cruce escolar sin protección también es una falla del sistema."),
+                        Choice("Que el conductor debe ir más despacio, y que el cruce debería estar diseñado para que un error no mate.", "Correcto: la conducta y el diseño se corrigen juntos. Ninguna de las dos partes se puede omitir.", true),
+                        Choice("Que mientras no haya una muerte, el cruce está bien.", "Esperar a que alguien muera para actuar es lo contrario de Visión Cero.")
+                    ]),
+                TrueFalse(
+                    "Visión Cero significa que está prohibido equivocarse al conducir.",
+                    false,
+                    "Falso: Visión Cero acepta que las personas fallan. Lo que rechaza es que ese fallo termine en una muerte o una lesión grave."),
                 Text(
                     "De peligro a consecuencia",
                     "Peligro: una condición que puede producir daño. Por ejemplo, aceite derramado en la vía.\n\n"
@@ -106,82 +129,10 @@ public sealed partial class CourseSeed
             ]
         ),
         (
-            "Visión Cero: ninguna muerte en la vía es aceptable",
-            "La meta del Plan Nacional de Seguridad Vial: diseñar la movilidad para que un error no termine en una muerte o una lesión grave.",
-            12,
-            [
-                Text(
-                    "Cero no significa que nadie se equivoque",
-                    "Visión Cero es el compromiso de que ninguna muerte ni lesión grave en la vía es un precio aceptable por movernos. "
-                    + "No promete que los choques desaparezcan: las personas se distraen, se cansan y se equivocan. Lo que no se acepta es que ese error cueste una vida.\n\n"
-                    + "Colombia adoptó esta meta en el Plan Nacional de Seguridad Vial. La Agencia Nacional de Seguridad Vial la usa como criterio para vías, vehículos, velocidades y atención a las víctimas."),
-                Flip(
-                    "Qué cambia con Visión Cero",
-                    Card("El error se prevé", "El sistema se diseña sabiendo que alguien va a fallar, no suponiendo que todos conducen perfecto."),
-                    Card("La muerte no es «normal»", "Un siniestro grave se investiga para corregir la vía, la velocidad o el vehículo, no solo para buscar un culpable."),
-                    Card("La velocidad se elige", "Si un peatón puede aparecer, la velocidad máxima tiene que ser una a la que el cuerpo sobreviva."),
-                    Card("Todos responden", "Quien diseña la vía, quien fabrica el vehículo, quien pone la norma y quien conduce tienen una parte.")),
-                Scenario(
-                    "En tu barrio hay un cruce escolar sin cebras ni reductores, y el límite sigue en 50 km/h. Un compañero dice: «Si alguien atropella a un niño, la culpa es solo del conductor». ¿Qué responde Visión Cero?",
-                    [
-                        Choice("Que tiene razón: el conductor es el único responsable.", "El conductor responde por su decisión, pero un cruce escolar sin protección también es una falla del sistema."),
-                        Choice("Que el conductor debe ir más despacio, y que el cruce debería estar diseñado para que un error no mate.", "Correcto: la conducta y el diseño se corrigen juntos. Ninguna de las dos partes se puede omitir.", true),
-                        Choice("Que mientras no haya una muerte, el cruce está bien.", "Esperar a que alguien muera para actuar es lo contrario de Visión Cero.")
-                    ]),
-                TrueFalse(
-                    "Visión Cero significa que está prohibido equivocarse al conducir.",
-                    false,
-                    "Falso: Visión Cero acepta que las personas fallan. Lo que rechaza es que ese fallo termine en una muerte o una lesión grave."),
-                Quiz(
-                    "¿Cuál es la meta de Visión Cero?",
-                    null,
-                    ["Que no vuelva a haber trancones", "Que ninguna muerte ni lesión grave en la vía se acepte como normal", "Que desaparezcan las motos de la ciudad", "Que solo conduzcan conductores profesionales"],
-                    1,
-                    "La meta es eliminar las muertes y las lesiones graves, no eliminar el error humano.")
-            ]
-        ),
-        (
-            "Tolerancia del cuerpo humano al impacto",
-            "Hasta qué velocidad puede sobrevivir el cuerpo en un atropello, un choque lateral o un choque frontal, y por qué eso fija los límites.",
-            12,
-            [
-                Text(
-                    "El cuerpo no negocia con la física",
-                    "Un carro o una moto pueden diseñarse para proteger, pero el cuerpo tiene un límite. Por encima de cierta velocidad, el golpe supera lo que aguanta el cráneo, el cuello o el pecho, "
-                    + "aunque el conductor «haya frenado». Por eso el Sistema Seguro no pide reflejos imposibles: pide velocidades a las que un error todavía sea sobrevivible."),
-                Flip(
-                    "Lo que aguanta el cuerpo",
-                    Card("Peatón o ciclista", "Por debajo de 30 km/h la mayoría sobrevive un atropello. A 50 km/h la probabilidad de morir ya es alta, y a 80 km/h es cerca del 60 % o más."),
-                    Card("Choque lateral", "La puerta es la zona más débil del carro. En un golpe de lado, el cuerpo tolera mucho menos que en un choque de frente."),
-                    Card("Choque frontal", "El cinturón, el airbag y la carrocería absorben energía, pero solo dentro de un rango. A mayor velocidad, esa protección se agota."),
-                    Card("Motociclista", "No hay carrocería. El casco y las protecciones reducen el daño, pero la velocidad del golpe sigue decidiendo la gravedad.")),
-                FillBlank(
-                    "Un peatón atropellado a menos de [[30]] km/h tiene más probabilidad de sobrevivir. A [[80]] km/h el riesgo de morir se acerca al 60 % o lo supera. Por eso una zona escolar se limita a 30 km/h.",
-                    ["10", "120", "200"],
-                    "La misma cifra ya aparece en la lección de víctimas: la velocidad no solo hace más probable el siniestro, decide si el cuerpo lo resiste."),
-                Scenario(
-                    "Vas por una calle residencial de Barranquilla a 50 km/h, que es el máximo urbano. Hay niños en la acera y carros parqueados que te tapan la vista. ¿Qué haces con la velocidad?",
-                    [
-                        Choice("Sigo a 50, porque es el límite y estoy cumpliendo.", "El límite es el máximo, no la velocidad segura. A 50 km/h un niño que sale entre dos carros tiene pocas opciones de sobrevivir."),
-                        Choice("Bajo a una velocidad cercana a 30 km/h mientras haya personas y poca visibilidad.", "Correcto: eliges una velocidad que el cuerpo de un peatón puede tolerar si alguien aparece.", true),
-                        Choice("Acelero para salir pronto de esa calle.", "A más velocidad, el golpe es más grave y tienes menos metros para reaccionar.")
-                    ]),
-                TrueFalse(
-                    "Si el carro tiene airbags y cinturón, la velocidad del choque ya no importa.",
-                    false,
-                    "Falso: esas protecciones funcionan dentro de un rango de velocidad. Por encima, la energía del golpe supera lo que pueden absorber."),
-                Quiz(
-                    "¿Por qué las zonas escolares se limitan a 30 km/h?",
-                    null,
-                    ["Porque a esa velocidad se gasta menos gasolina", "Porque es una velocidad a la que un peatón atropellado tiene más probabilidad de sobrevivir", "Porque los niños no saben leer otras señales", "Porque el semáforo no funciona de día"],
-                    1,
-                    "30 km/h es un límite pensado en la tolerancia del cuerpo, no solo en la fluidez del tráfico.")
-            ]
-        ),
-        (
+            "movilidad-segura/victimas",
             "Víctimas y consecuencias de los siniestros",
-            "Quiénes son las víctimas, por qué la velocidad decide la gravedad y cómo un siniestro cambia la vida de una familia.",
-            18,
+            "Quiénes son las víctimas, cuánto tolera el cuerpo humano un impacto, por qué la velocidad decide la gravedad y cómo un siniestro cambia la vida de una familia.",
+            22,
             [
                 Text(
                     "Una cifra que tiene nombres",
@@ -214,10 +165,24 @@ public sealed partial class CourseSeed
                     + "pero a 80 km/h ese riesgo sube a casi el 60 %. A 30 km/h, la gran mayoría de los peatones sobrevive.\n\n"
                     + "La diferencia entre llegar dos minutos antes y causar una muerte puede ser de apenas 20 km/h."),
                 Video("ansv-respeta-limites.mp4", "Respeta los límites de velocidad. Video: Ministerio de Transporte y Agencia Nacional de Seguridad Vial (ANSV)."),
+                Text(
+                    "El cuerpo no negocia con la física",
+                    "Un carro o una moto pueden diseñarse para proteger, pero el cuerpo tiene un límite. Por encima de cierta velocidad, el golpe supera lo que aguanta el cráneo, el cuello o el pecho, "
+                    + "aunque el conductor «haya frenado». Por eso el Sistema Seguro no pide reflejos imposibles: pide velocidades a las que un error todavía sea sobrevivible."),
+                Flip(
+                    "Lo que aguanta el cuerpo",
+                    Card("Peatón o ciclista", "A 30 km/h la gran mayoría sobrevive un atropello. Por debajo de 50 km/h el riesgo de morir es menor del 20 %, pero las lesiones graves son frecuentes. A 80 km/h el riesgo de morir se acerca al 60 %."),
+                    Card("Choque lateral", "La puerta es la zona más débil del carro. En un golpe de lado, el cuerpo tolera mucho menos que en un choque de frente."),
+                    Card("Choque frontal", "El cinturón, el airbag y la carrocería absorben energía, pero solo dentro de un rango. A mayor velocidad, esa protección se agota."),
+                    Card("Motociclista", "No hay carrocería. El casco y las protecciones reducen el daño, pero la velocidad del golpe sigue decidiendo la gravedad.")),
                 FillBlank(
                     "Un peatón atropellado a menos de [[50]] km/h tiene menos del 20 % de probabilidad de morir; a [[80]] km/h el riesgo sube a casi el 60 %. Por eso las zonas escolares se limitan a [[30]] km/h.",
                     ["10", "120", "45"],
                     "La energía de un choque crece con el cuadrado de la velocidad: pequeños aumentos de velocidad causan daños mucho mayores."),
+                TrueFalse(
+                    "Si el carro tiene airbags y cinturón, la velocidad del choque ya no importa.",
+                    false,
+                    "Falso: esas protecciones funcionan dentro de un rango de velocidad. Por encima, la energía del golpe supera lo que pueden absorber."),
                 Text(
                     "Los más expuestos",
                     "Peatones, ciclistas y motociclistas no tienen una carrocería que los proteja: su cuerpo recibe todo el impacto. "
@@ -244,6 +209,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "movilidad-segura/usuarios-vulnerables",
             "Usuarios vulnerables, prioridad y convivencia",
             "Peatones, ciclistas, motociclistas, niños, personas mayores y personas con discapacidad: quién tiene prioridad y cómo protegerlos.",
             15,
@@ -313,9 +279,176 @@ public sealed partial class CourseSeed
             ]
         ),
         (
-            "Movilidad sostenible y conducción responsable",
-            "Moverse contaminando menos y sin aumentar el riesgo: elegir el modo de transporte, planear el recorrido y cuidar el vehículo.",
-            12,
+            "movilidad-segura/conduccion-preventiva",
+            "Conducción preventiva y gestión del riesgo",
+            "Observar, identificar, decidir, actuar y verificar: anticiparte a los errores propios y ajenos con distancia, tiempo de reacción y lectura de la intención de los demás.",
+            22,
+            [
+                Text(
+                    "El buen conductor se anticipa",
+                    "La conducción preventiva (o defensiva) consiste en conducir de forma que puedas evitar un siniestro a pesar de tus errores, de los errores de los demás "
+                    + "y de las condiciones adversas. No se trata de reaccionar rápido, sino de no tener que reaccionar a última hora."),
+                Picture($"{MobilityImages}/conductor-sistema-seguro.jpg", "Observar, identificar, decidir, actuar y verificar: la secuencia del conductor dentro del Sistema Seguro."),
+                Order(
+                    "Ordena la secuencia que sigue un conductor preventivo.",
+                    ["Observar: ¿qué está pasando alrededor?", "Identificar: ¿qué puede convertirse en un riesgo?", "Decidir: ¿qué conducta reduce ese riesgo?", "Actuar: ejecuto la maniobra comunicando mi intención", "Verificar: ¿la decisión mantuvo la seguridad?"],
+                    "Primero miras y reconoces los peligros, luego eliges y ejecutas, y al final compruebas que la situación siga bajo control."),
+                Text(
+                    "El tiempo de reacción",
+                    "Desde que aparece un peligro hasta que empiezas a frenar pasa cerca de un segundo, y más si estás cansado, distraído o bajo efectos del alcohol. "
+                    + "Durante ese segundo el vehículo sigue avanzando a la misma velocidad.\n\n"
+                    + "A 60 km/h recorres casi 17 metros antes de tocar el freno, y después necesitas otros metros para detenerte. "
+                    + "Con piso mojado, llantas gastadas o frenos en mal estado, la distancia total crece mucho más."),
+                Text(
+                    "Mira lejos",
+                    "Para no tener que frenar de golpe ni girar a última hora, mira hacia adelante lo más lejos que puedas: "
+                    + "como referencia, al menos una cuadra en la ciudad y unos 400 metros en carretera. Así ves con tiempo la zona por la que vas a pasar "
+                    + "y tienes margen para frenar o cambiar de carril."),
+                Text(
+                    "La distancia de seguridad",
+                    "El Código Nacional de Tránsito (artículo 108) fija distancias mínimas entre vehículos que circulan uno detrás de otro: "
+                    + "10 metros hasta 30 km/h, 20 metros entre 30 y 60 km/h, 25 metros entre 60 y 80 km/h y 30 metros entre 80 y 100 km/h.\n\n"
+                    + "Una forma práctica de medirla es la regla de los segundos: cuando el vehículo de adelante pase un punto fijo (un poste), cuenta «mil uno, mil dos, mil tres». "
+                    + "Si llegas al poste antes de terminar, vas demasiado cerca. Con lluvia o de noche, duplica el tiempo."),
+                FillBlank(
+                    "Según el Código, a una velocidad entre 30 y 60 km/h debes dejar mínimo [[20]] metros con el vehículo de adelante. Con lluvia, la distancia en segundos se debe [[duplicar]].",
+                    ["5", "reducir", "mantener igual"],
+                    "La distancia te da el tiempo de reacción que necesitas. Cuando el piso está mojado, frenar toma más metros."),
+                Text(
+                    "Lee la intención de los demás",
+                    "La conducción preventiva no espera que todos se comporten perfecto: asume que alguien puede equivocarse y deja margen para reaccionar.\n\n"
+                    + "Fíjate en las pistas: ¿hacia dónde apuntan las ruedas del carro parqueado?, ¿el peatón miró antes de bajar del andén?, ¿la moto puso direccional o ya está cambiando de trayectoria?, "
+                    + "¿tienes un espacio de escape si algo sale mal? Anticipa el error sin justificarlo y sin confrontar al otro."),
+                Video("puntos-ciegos.mp4", "Puntos ciegos: lo que el conductor de un vehículo grande no alcanza a ver."),
+                Scenario(
+                    "Vas por una calle comercial. Un carro parqueado tiene las ruedas giradas hacia la vía y el conductor acaba de subirse. ¿Qué haces?",
+                    [
+                        Choice("Sigo igual: si sale sin mirar, la culpa es suya.", "Tener la razón no evita el choque. Las ruedas giradas y el conductor recién subido son señales de que puede salir."),
+                        Choice("Levanto el pie del acelerador, me preparo para frenar y, si es seguro, me abro un poco.", "Correcto: leíste la intención y te diste margen para reaccionar.", true),
+                        Choice("Pito fuerte y acelero para pasar antes de que salga.", "Acelerar reduce tu tiempo de reacción justo cuando el riesgo aumenta.")
+                    ]),
+                Hotspot(
+                    "Analiza la escena como si estuvieras conduciendo. Toca los cuatro elementos que representan un riesgo.",
+                    $"{MobilityImages}/ejemplo-practico.jpg",
+                    Spot(27, 52, "Carro estacionado", "Reduce el espacio y puede abrir una puerta o salir sin avisar."),
+                    Spot(37, 55, "Motocicleta cercana", "Puede estar en tu punto ciego; mírala antes de cualquier movimiento lateral."),
+                    Spot(59, 53, "Peatón a punto de cruzar", "Tiene prelación en la cebra: prepárate para detenerte."),
+                    Spot(30, 65, "Pavimento mojado", "Aumenta la distancia de frenado: baja la velocidad y frena con suavidad.")),
+                Text(
+                    "Escenarios adversos en la ciudad",
+                    "Obras y cambios viales: los desvíos cambian los sentidos y los carriles. Lee la señalización temporal en vez de confiar en tu memoria.\n\n"
+                    + "Alta interacción con motos: espera que aparezcan por ambos lados y en los cruces. Una mirada adicional al espejo vale más que una frenada de emergencia.\n\n"
+                    + "La noche y la lluvia cambian tanto lo que ves que tienen su propia lección: «Visibilidad y clima»."),
+                Picture($"{MobilityImages}/factores-riesgo.jpg", "Peatón cruzando, vehículo que frena, moto al costado y pavimento húmedo: varios factores al mismo tiempo."),
+                Classify(
+                    "¿Conducta apropiada o inapropiada al volante?",
+                    ["Apropiada", "Inapropiada"],
+                    [
+                        ("Dejar pasar a un peatón en la cebra", 0),
+                        ("Usar la direccional antes de cambiar de carril", 0),
+                        ("Dejar espacio a una moto que se acerca entre carriles", 0),
+                        ("Ceder el paso a una ambulancia", 0),
+                        ("Contestar mensajes en un semáforo en rojo", 1),
+                        ("Pitar para que el de adelante arranque", 1),
+                        ("Cerrarle el paso a quien me adelantó", 1),
+                        ("Perseguir a un conductor que me cerró", 1)
+                    ],
+                    "Las conductas apropiadas protegen a todos. Usar el celular, presionar con la bocina o responder con rabia aumentan el riesgo de un siniestro."),
+                TrueFalse(
+                    "La conducción preventiva consiste en tener reflejos muy rápidos para frenar a última hora.",
+                    false,
+                    "Falso: se trata de anticiparse con distancia, velocidad adecuada y observación, para no depender de los reflejos."),
+                Quiz(
+                    "Vas a 60 km/h y aparece un obstáculo. ¿Aproximadamente cuántos metros recorres durante el segundo que tardas en reaccionar?",
+                    null,
+                    ["2 metros", "Casi 17 metros", "60 metros", "100 metros"],
+                    1,
+                    "60 km/h equivalen a unos 16,7 metros por segundo. Y eso es antes de empezar a frenar.")
+            ]
+        ),
+        (
+            "movilidad-segura/visibilidad-clima",
+            "Visibilidad y clima: noche, lluvia y luces",
+            "Qué luces usar y cuándo, qué hacer si te encandilan, cómo cambia la vía con la lluvia, el hidroplaneo y por qué un arroyo nunca se cruza.",
+            16,
+            [
+                Text(
+                    "Ver y ser visto",
+                    "Casi toda la información que usas para conducir entra por los ojos. De noche o con lluvia ves menos, más tarde y con menos contraste: "
+                    + "un peatón con ropa oscura o un ciclista sin luces aparecen cuando ya estás muy cerca.\n\n"
+                    + "La regla es sencilla: debes poder detenerte dentro de la distancia que alcanzas a ver. Si tus luces iluminan menos de lo que necesitas para frenar, "
+                    + "vas demasiado rápido para esas condiciones, aunque estés por debajo del límite."),
+                Flip(
+                    "Qué luz usar y cuándo",
+                    Card("Luces bajas", "Desde que empieza a oscurecer, con lluvia, neblina o humo, en túneles y siempre que la visibilidad baje. Son las luces normales para circular de noche en la ciudad."),
+                    Card("Luces altas", "Solo en vías oscuras, sin nadie cerca. Cambia a bajas cuando un vehículo se acerque de frente, a unos 150 metros o menos, y cuando vayas a una cuadra (70 a 90 metros) detrás de otro."),
+                    Card("Luces de parqueo", "Avisan que estás detenido o que hay un peligro. No reemplazan a las luces bajas: en movimiento confunden a los demás sobre lo que estás haciendo."),
+                    Card("Exploradoras o antiniebla", "Solo con neblina o lluvia muy fuerte. Con buen clima encandilan a los demás."),
+                    Card("Direccionales", "De noche son todavía más importantes: muchas veces son lo único que los demás ven de tu intención.")),
+                Text(
+                    "Si te encandilan",
+                    "No mires las luces que vienen de frente: lleva la vista hacia la línea del borde derecho de tu carril y reduce la velocidad hasta recuperar la visión. "
+                    + "No respondas con las altas: dos conductores encandilados son el doble de riesgo.\n\n"
+                    + "Un parabrisas sucio o rayado dispersa la luz y multiplica el encandilamiento. Límpialo por dentro y por fuera, y ajusta el retrovisor central en posición nocturna si lo tiene.\n\n"
+                    + "De noche también llega antes el cansancio: si sientes los ojos pesados, la decisión segura es parar."),
+                Scenario(
+                    "Vas de noche por una vía sin iluminación y el carro que viene de frente no baja las luces altas. Casi no ves la vía. ¿Qué haces?",
+                    [
+                        Choice("Le hago cambio de luces y, si no las baja, le pongo las mías en alta para que entienda.", "Encandilarlo de vuelta deja a los dos conductores sin ver justo cuando se cruzan."),
+                        Choice("Reduzco la velocidad y miro hacia la línea del borde derecho hasta que pase.", "Correcto: proteges tu visión, conservas tu carril y te das margen para reaccionar.", true),
+                        Choice("Miro fijo sus luces para calcular dónde está.", "Mirar las luces de frente te deja varios segundos con la vista deslumbrada.")
+                    ]),
+                Text(
+                    "Lluvia: el piso cambia",
+                    "Los primeros minutos de lluvia son los más resbalosos: el agua se mezcla con el polvo, el aceite y el combustible del pavimento. "
+                    + "Enciende las luces bajas, usa el desempañador, duplica la distancia con el vehículo de adelante y frena, acelera y gira con suavidad. "
+                    + "Evita las líneas pintadas y las tapas metálicas, que resbalan más."),
+                Text(
+                    "Hidroplaneo",
+                    "Con mucha agua, la llanta no alcanza a evacuarla y queda flotando sobre una película de agua: pierdes el control de la dirección y del freno. "
+                    + "La señal más común es que el volante se siente liviano de repente o el motor se acelera sin que el carro gane velocidad.\n\n"
+                    + "Si te pasa: suelta el acelerador sin frenar de golpe, sostén el volante derecho y espera a sentir otra vez el agarre. "
+                    + "Se previene con llantas con buen labrado, presión correcta y una velocidad moderada sobre los charcos."),
+                Text(
+                    "Arroyos: nunca se cruzan",
+                    "En Barranquilla un aguacero fuerte forma arroyos en minutos. Nunca intentes cruzar un arroyo: la corriente puede arrastrar un carro con pocos centímetros de agua. "
+                    + "Espera en un lugar alto y seguro: los arroyos bajan en poco tiempo."),
+                Scenario(
+                    "Llueve fuerte en Barranquilla y ves que adelante la calle se convirtió en un arroyo. Los carros de adelante se detienen, pero una camioneta intenta pasar. ¿Qué haces?",
+                    [
+                        Choice("Sigo a la camioneta: si ella pasa, yo también.", "La fuerza del agua no depende del vehículo de adelante. Un arroyo puede arrastrar un carro con pocos centímetros de agua."),
+                        Choice("Me detengo en un lugar alto y seguro hasta que el arroyo baje.", "Correcto: ningún trayecto vale la vida. Los arroyos bajan en poco tiempo; esperar es la decisión segura.", true),
+                        Choice("Acelero fuerte para cruzar rápido.", "Acelerar dentro del agua puede apagar el motor, hacerte perder el control o meter agua al motor. Y la corriente sigue siendo la misma.")
+                    ]),
+                Classify(
+                    "¿Uso correcto o incorrecto de las luces?",
+                    ["Correcto", "Incorrecto"],
+                    [
+                        ("Luces bajas al anochecer en la ciudad", 0),
+                        ("Luces bajas con un aguacero de día", 0),
+                        ("Cambiar a bajas cuando se acerca un carro de frente", 0),
+                        ("Luces altas detrás de otro carro en una avenida", 1),
+                        ("Circular solo con las luces de parqueo", 1),
+                        ("Exploradoras encendidas en una noche despejada", 1)
+                    ],
+                    "Las luces sirven para ver y para que te vean sin encandilar a nadie. Las altas y las exploradoras se usan solo cuando no molestan a otros."),
+                TrueFalse(
+                    "Si el volante se siente liviano al pasar por un charco grande, lo correcto es frenar a fondo.",
+                    false,
+                    "Falso: es hidroplaneo. Frenar a fondo puede hacerte girar. Suelta el acelerador, sostén el volante derecho y espera a recuperar el agarre."),
+                Quiz(
+                    "Vas de noche por una avenida iluminada de la ciudad. ¿Qué luces debes llevar?",
+                    null,
+                    ["Ninguna, porque la avenida está iluminada", "Luces bajas", "Luces altas", "Solo las luces de parqueo"],
+                    1,
+                    "Aunque haya alumbrado público, las luces bajas te hacen visible y te dejan ver lo que el alumbrado no alcanza.")
+            ]
+        ),
+        (
+            "movilidad-segura/movilidad-sostenible",
+            "Movilidad sostenible y conducción eficiente",
+            "Moverse contaminando menos y sin aumentar el riesgo: elegir el modo de transporte, planear el recorrido, cuidar el vehículo y conducir de forma eficiente.",
+            20,
             [
                 Text(
                     "¿Qué es la movilidad sostenible?",
@@ -345,7 +478,6 @@ public sealed partial class CourseSeed
                     "El mantenimiento también es sostenible",
                     "Un vehículo bien mantenido contamina menos, consume menos y es más seguro. Llantas con la presión correcta, filtro de aire limpio, aceite al día y motor sincronizado "
                     + "hacen la diferencia. La revisión técnico-mecánica y de emisiones existe precisamente para verificarlo."),
-                Tip("Ser eficiente nunca significa conducir de forma insegura: apagar el motor en una bajada o ir pegado al vehículo de adelante para «aprovechar el rebufo» es peligroso."),
                 Scenario(
                     "El domingo hay un concierto en el Gran Malecón. Quieres ir con tres amigos que viven cerca de ti. ¿Cuál es la decisión más responsable?",
                     [
@@ -353,92 +485,6 @@ public sealed partial class CourseSeed
                         Choice("Revisan los cierres anunciados y van juntos en un solo vehículo o en transporte público.", "Correcto: planear y compartir reduce el tráfico, el estrés y el riesgo a la salida del evento.", true),
                         Choice("Van en un carro y parquean en el andén más cercano a la entrada.", "Parquear en el andén es una infracción y obliga a los peatones a caminar por la vía, justo donde hay más gente.")
                     ]),
-                TrueFalse(
-                    "Conducir de forma eficiente significa ir siempre a la menor velocidad posible, aunque estorbes el flujo.",
-                    false,
-                    "Falso: la eficiencia busca un ritmo suave y constante, adaptado a la vía. Ir excesivamente lento también genera conflictos y riesgos."),
-                Quiz(
-                    "¿Por qué el mantenimiento preventivo influye en la movilidad sostenible?",
-                    null,
-                    ["Porque el vehículo se ve más bonito", "Porque un vehículo en buen estado consume menos, contamina menos y es más seguro", "Porque permite ir más rápido", "No tiene ninguna relación"],
-                    1,
-                    "Llantas, filtros, aceite y motor en buen estado reducen el consumo y las emisiones, y además evitan fallas que causan siniestros.")
-            ]
-        ),
-        (
-            "Conducción preventiva y gestión del riesgo",
-            "Observar, identificar, decidir, actuar y verificar: anticiparte a los errores propios y ajenos con distancia y tiempo de reacción.",
-            18,
-            [
-                Text(
-                    "El buen conductor se anticipa",
-                    "La conducción preventiva (o defensiva) consiste en conducir de forma que puedas evitar un siniestro a pesar de tus errores, de los errores de los demás "
-                    + "y de las condiciones adversas. No se trata de reaccionar rápido, sino de no tener que reaccionar a última hora."),
-                Picture($"{MobilityImages}/conductor-sistema-seguro.jpg", "Observar, identificar, decidir, actuar y verificar: la secuencia del conductor dentro del Sistema Seguro."),
-                Order(
-                    "Ordena la secuencia que sigue un conductor preventivo.",
-                    ["Observar: ¿qué está pasando alrededor?", "Identificar: ¿qué puede convertirse en un riesgo?", "Decidir: ¿qué conducta reduce ese riesgo?", "Actuar: ejecuto la maniobra comunicando mi intención", "Verificar: ¿la decisión mantuvo la seguridad?"],
-                    "Primero miras y reconoces los peligros, luego eliges y ejecutas, y al final compruebas que la situación siga bajo control."),
-                Text(
-                    "El tiempo de reacción",
-                    "Desde que aparece un peligro hasta que empiezas a frenar pasa cerca de un segundo, y más si estás cansado, distraído o bajo efectos del alcohol. "
-                    + "Durante ese segundo el vehículo sigue avanzando a la misma velocidad.\n\n"
-                    + "A 60 km/h recorres casi 17 metros antes de tocar el freno, y después necesitas otros metros para detenerte. "
-                    + "Con piso mojado, llantas gastadas o frenos en mal estado, la distancia total crece mucho más."),
-                Text(
-                    "Mira lejos",
-                    "Para no tener que frenar de golpe ni girar a última hora, mira hacia adelante lo más lejos que puedas: "
-                    + "como referencia, al menos una cuadra en la ciudad y unos 400 metros en carretera. Así ves con tiempo la zona por la que vas a pasar "
-                    + "y tienes margen para frenar o cambiar de carril.\n\n"
-                    + "De noche, cambia a luces bajas cuando un vehículo se acerque de frente a unos 150 metros o menos, y también cuando vayas a una cuadra (70 a 90 metros) detrás de otro."),
-                Text(
-                    "La distancia de seguridad",
-                    "El Código Nacional de Tránsito (artículo 108) fija distancias mínimas entre vehículos que circulan uno detrás de otro: "
-                    + "10 metros hasta 30 km/h, 20 metros entre 30 y 60 km/h, 25 metros entre 60 y 80 km/h y 30 metros entre 80 y 100 km/h.\n\n"
-                    + "Una forma práctica de medirla es la regla de los segundos: cuando el vehículo de adelante pase un punto fijo (un poste), cuenta «mil uno, mil dos, mil tres». "
-                    + "Si llegas al poste antes de terminar, vas demasiado cerca. Con lluvia o de noche, duplica el tiempo."),
-                FillBlank(
-                    "Según el Código, a una velocidad entre 30 y 60 km/h debes dejar mínimo [[20]] metros con el vehículo de adelante. Con lluvia, la distancia en segundos se debe [[duplicar]].",
-                    ["5", "reducir", "mantener igual"],
-                    "La distancia te da el tiempo de reacción que necesitas. Cuando el piso está mojado, frenar toma más metros."),
-                Hotspot(
-                    "Analiza la escena como si estuvieras conduciendo. Toca los cuatro elementos que representan un riesgo.",
-                    $"{MobilityImages}/ejemplo-practico.jpg",
-                    Spot(27, 52, "Carro estacionado", "Reduce el espacio y puede abrir una puerta o salir sin avisar."),
-                    Spot(37, 55, "Motocicleta cercana", "Puede estar en tu punto ciego; mírala antes de cualquier movimiento lateral."),
-                    Spot(59, 53, "Peatón a punto de cruzar", "Tiene prelación en la cebra: prepárate para detenerte."),
-                    Spot(30, 65, "Pavimento mojado", "Aumenta la distancia de frenado: baja la velocidad y frena con suavidad.")),
-                Text(
-                    "Escenarios adversos en la ciudad",
-                    "Lluvia: en Barranquilla un aguacero fuerte forma arroyos en minutos. Nunca intentes cruzar un arroyo: la corriente puede arrastrar un carro con pocos centímetros de agua. "
-                    + "Espera en un lugar alto y seguro.\n\n"
-                    + "Obras y cambios viales: los desvíos cambian los sentidos y los carriles. Lee la señalización temporal en vez de confiar en tu memoria.\n\n"
-                    + "Alta interacción con motos: espera que aparezcan por ambos lados y en los cruces. Una mirada adicional al espejo vale más que una frenada de emergencia."),
-                Picture($"{MobilityImages}/factores-riesgo.jpg", "Peatón cruzando, vehículo que frena, moto al costado y pavimento húmedo: varios factores al mismo tiempo."),
-                Scenario(
-                    "Llueve fuerte en Barranquilla y ves que adelante la calle se convirtió en un arroyo. Los carros de adelante se detienen, pero una camioneta intenta pasar. ¿Qué haces?",
-                    [
-                        Choice("Sigo a la camioneta: si ella pasa, yo también.", "La fuerza del agua no depende del vehículo de adelante. Un arroyo puede arrastrar un carro con pocos centímetros de agua."),
-                        Choice("Me detengo en un lugar alto y seguro hasta que el arroyo baje.", "Correcto: ningún trayecto vale la vida. Los arroyos bajan en poco tiempo; esperar es la decisión segura.", true),
-                        Choice("Acelero fuerte para cruzar rápido.", "Acelerar dentro del agua puede apagar el motor, hacerte perder el control o meter agua al motor. Y la corriente sigue siendo la misma.")
-                    ]),
-                TrueFalse(
-                    "La conducción preventiva consiste en tener reflejos muy rápidos para frenar a última hora.",
-                    false,
-                    "Falso: se trata de anticiparse con distancia, velocidad adecuada y observación, para no depender de los reflejos."),
-                Quiz(
-                    "Vas a 60 km/h y aparece un obstáculo. ¿Aproximadamente cuántos metros recorres durante el segundo que tardas en reaccionar?",
-                    null,
-                    ["2 metros", "Casi 17 metros", "60 metros", "100 metros"],
-                    1,
-                    "60 km/h equivalen a unos 16,7 metros por segundo. Y eso es antes de empezar a frenar.")
-            ]
-        ),
-        (
-            "Conducción eficiente y eco-conducción",
-            "Acelerar con suavidad, anticiparte, usar bien las marchas y cuidar las llantas para gastar menos sin perder seguridad.",
-            12,
-            [
                 Text(
                     "Gastar menos sin arriesgar más",
                     "La conducción eficiente reduce el consumo de combustible, las emisiones y el desgaste del vehículo. Lo mejor es que casi todas sus técnicas también hacen la conducción más segura: "
@@ -468,7 +514,7 @@ public sealed partial class CourseSeed
                     "Eficiencia en una ciudad con trancones",
                     "En recorridos urbanos con muchas paradas, la mayor parte del combustible se va en arrancar. Mantener distancia con el vehículo de adelante permite rodar más y frenar menos.\n\n"
                     + "Si conduces un vehículo de servicio público, la eficiencia nunca debe convertirse en presión por tiempo: la seguridad de los pasajeros va primero."),
-                Tip("Nunca bajes una pendiente con el motor apagado o en neutro para ahorrar: pierdes el freno de motor y, en muchos vehículos, la asistencia de la dirección y de los frenos."),
+                Tip("Ser eficiente nunca significa conducir de forma insegura: no bajes una pendiente con el motor apagado o en neutro (pierdes el freno de motor y, en muchos vehículos, la asistencia de la dirección y de los frenos), ni vayas pegado al vehículo de adelante para «aprovechar el rebufo»."),
                 Scenario(
                     "Vas por la Vía 40 y ves que el semáforo de la próxima intersección, a 200 metros, acaba de cambiar a rojo. ¿Cuál es la conducción más eficiente y segura?",
                     [
@@ -477,9 +523,9 @@ public sealed partial class CourseSeed
                         Choice("Pongo neutro y apago el motor para ahorrar.", "Apagar el motor en marcha es peligroso: puedes perder la asistencia de la dirección y de los frenos.")
                     ]),
                 TrueFalse(
-                    "Una llanta con baja presión aumenta el consumo de combustible.",
-                    true,
-                    "Verdadero: la llanta se deforma más, ofrece más resistencia al rodar, se desgasta más rápido y frena peor."),
+                    "Conducir de forma eficiente significa ir siempre a la menor velocidad posible, aunque estorbes el flujo.",
+                    false,
+                    "Falso: la eficiencia busca un ritmo suave y constante, adaptado a la vía. Ir excesivamente lento también genera conflictos y riesgos."),
                 Quiz(
                     "¿Qué opción reduce el consumo manteniendo el margen de seguridad?",
                     null,

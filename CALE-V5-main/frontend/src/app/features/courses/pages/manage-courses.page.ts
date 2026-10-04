@@ -8,11 +8,20 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
 import { CourseManageItem, CoursesManageApi } from '../api/courses.api';
+import { CurriculumSyncPanelComponent } from '../components/curriculum-sync-panel.component';
 
 @Component({
   selector: 'app-manage-courses-page',
   standalone: true,
-  imports: [FormsModule, NgTemplateOutlet, RouterLink, UiButtonComponent, UiLoadingComponent, UiPageHeaderComponent],
+  imports: [
+    CurriculumSyncPanelComponent,
+    FormsModule,
+    NgTemplateOutlet,
+    RouterLink,
+    UiButtonComponent,
+    UiLoadingComponent,
+    UiPageHeaderComponent
+  ],
   styleUrl: './courses.css',
   styles: [`
     .new-form { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: end; }
@@ -65,6 +74,10 @@ import { CourseManageItem, CoursesManageApi } from '../api/courses.api';
               <ng-container *ngTemplateOutlet="card; context: { $implicit: c }" />
             }
           </div>
+        }
+
+        @if (isAdmin) {
+          <app-curriculum-sync-panel />
         }
       }
 
