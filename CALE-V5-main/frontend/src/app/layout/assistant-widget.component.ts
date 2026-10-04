@@ -95,6 +95,10 @@ const QUICK: Record<string, QuickQuestion[]> = {
             <button type="submit" [disabled]="busy() || !draft.trim()">Enviar</button>
           </form>
           <small class="quota">Te quedan {{ remaining() }} mensajes hoy.</small>
+          <small class="quota ai-note">
+            Respuestas generadas con inteligencia artificial: pueden tener errores. No reemplazan a tu instructor,
+            a tu escuela ni a las autoridades de tránsito. No escribas documentos, contraseñas ni datos de salud.
+          </small>
         </section>
       }
     }
@@ -141,6 +145,7 @@ const QUICK: Record<string, QuickQuestion[]> = {
     .composer button { min-width: 5.5rem; min-height: 3rem; border: 0; border-radius: 0.7rem; background: var(--color-primary); color: var(--color-on-primary, #04130a); font: inherit; font-weight: 800; cursor: pointer; }
     button:disabled { opacity: 0.55; cursor: default; }
     .quota { padding: 0 0.9rem 0.6rem; color: var(--color-text-secondary); font-size: 0.8rem; }
+    .ai-note { display: block; margin-top: -0.3rem; font-size: 0.72rem; line-height: 1.35; }
     @media (max-width: 600px) {
       :host { right: 0.75rem; bottom: 0.75rem; }
       :host:has(.panel) { inset: 0; }

@@ -3,7 +3,9 @@ using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Time;
 using Cale.Modules.Identity.Application.Abstractions;
 using Cale.Modules.Identity.Application.DTOs;
+using Cale.Modules.Identity.Application.Services;
 using Cale.Modules.Identity.Domain;
+using Microsoft.Extensions.Options;
 
 namespace Cale.Modules.Identity.Application.Queries;
 
@@ -12,15 +14,18 @@ public sealed class GetSchoolProfileHandler
     private readonly IUserStore _users;
     private readonly ISchoolProfileStore _profiles;
     private readonly IClock _clock;
+    private readonly SchoolPaymentOptions _payment;
 
     public GetSchoolProfileHandler(
         IUserStore users,
         ISchoolProfileStore profiles,
-        IClock clock)
+        IClock clock,
+        IOptions<SchoolPaymentOptions> payment)
     {
         _users = users;
         _profiles = profiles;
         _clock = clock;
+        _payment = payment.Value;
     }
 
     public async Task<SchoolProfileDto> HandleAsync(int userId, CancellationToken ct)
@@ -104,20 +109,35 @@ public sealed class GetSchoolProfileHandler
             profile.RequestedAt,
             profile.ProofSubmittedAt,
             profile.LastDecisionAt,
-            new SchoolPaymentInstructionsDto(
-                SchoolPaymentInstructions.BankName,
-                SchoolPaymentInstructions.AccountType,
-                SchoolPaymentInstructions.AccountNumber,
-                SchoolPaymentInstructions.AccountHolder,
-                SchoolPaymentInstructions.HolderTaxId,
-                SchoolPaymentInstructions.WhatsApp,
-                SchoolPaymentInstructions.SupportEmail,
-                SchoolPaymentInstructions.Notes,
-                $"Ref: {profile.TaxId} / {user.Email}"),
+            PaymentInstructions(profile, user),
             teachersUsed,
             profile.EffectiveMaxTeachers(plan),
             studentsUsed,
             profile.EffectiveMaxStudents(plan));
+    }
+
+    private SchoolPaymentInstructionsDto PaymentInstructions(SchoolProfile profile, User user)
+    {
+        if (!_payment.IsConfigured)
+        {
+            return new SchoolPaymentInstructionsDto(
+                "", "", "", "", "", "", "",
+                SchoolPaymentInstructions.NotConfiguredNotes,
+                "",
+                Configured: false);
+        }
+
+        return new SchoolPaymentInstructionsDto(
+            _payment.BankName!.Trim(),
+            _payment.AccountType?.Trim() ?? "",
+            _payment.AccountNumber!.Trim(),
+            _payment.AccountHolder!.Trim(),
+            _payment.HolderTaxId!.Trim(),
+            _payment.WhatsApp?.Trim() ?? "",
+            _payment.SupportEmail?.Trim() ?? "",
+            SchoolPaymentInstructions.Notes,
+            $"Ref: {profile.TaxId} / {user.Email}",
+            Configured: true);
     }
 }
 

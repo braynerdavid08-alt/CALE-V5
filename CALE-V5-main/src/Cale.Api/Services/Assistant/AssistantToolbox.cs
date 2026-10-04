@@ -105,7 +105,7 @@ public sealed class AssistantToolbox : IAssistantToolbox
         Read("progreso_estudiantes", "Progreso de los estudiantes (horas, examen, manejo, saldo). Se puede filtrar o buscar por nombre.",
             P("filtro", "string", "todos | listos_examen | autorizados_examen | listos_manejo | en_manejo | con_saldo | pendientes | faltan_horas"),
             P("buscar", "string", "Parte del nombre o correo del estudiante.")),
-        Read("detalle_estudiante", "Expediente de un estudiante: datos, horas, examen, práctica, saldo y autorizaciones.",
+        Read("detalle_estudiante", "Expediente de un estudiante: categoría, horas, examen, práctica, saldo y autorizaciones.",
             P("estudiante_id", "integer", "estudiante_id de la lista de progreso.", true)),
         Read("agenda_escuela", "Agenda de clases teóricas, exámenes y clases de manejo en un rango de fechas.",
             P("desde", "string", "Fecha inicial AAAA-MM-DD (opcional, por defecto esta semana)."),
@@ -343,7 +343,9 @@ public sealed class AssistantToolbox : IAssistantToolbox
         var p = d.Profile;
         var t = d.Training;
         var sb = new StringBuilder();
-        sb.AppendLine($"{p.StudentName} (estudiante_id={p.StudentUserId}). Documento {p.DocumentNumber ?? "—"}, celular {p.Phone ?? "—"}, categoría {p.LicenseCategories ?? "sin asignar"}, grupo {DayType(p.AttendanceDayType)}, matrícula {EnrollmentStatus(p.EnrollmentStatus)}.");
+        // The document number and phone stay out of the model's context: they go to an external provider.
+        sb.AppendLine($"{p.StudentName} (estudiante_id={p.StudentUserId}). Categoría {p.LicenseCategories ?? "sin asignar"}, grupo {DayType(p.AttendanceDayType)}, matrícula {EnrollmentStatus(p.EnrollmentStatus)}.");
+        sb.AppendLine("El documento y el celular no se comparten con el asistente; están en la ficha del estudiante.");
         sb.AppendLine($"Pagado {Money(p.AmountPaid)} de {Money(p.AmountDue)}. Saldo {Money(p.BalanceDue)}.");
         sb.AppendLine($"Teoría {t.TheoryHoursCompleted}/{t.TheoryHoursRequired} h, taller {t.WorkshopHoursCompleted}/{t.WorkshopHoursRequired} h.");
         sb.AppendLine($"Examen: autorizado={YesNo(p.TheoryExamAuthorized)}, aprobado={YesNo(t.TheoryExamPassed)}. Manejo autorizado={YesNo(p.PracticalAuthorized)}.");

@@ -25,6 +25,7 @@ interface PaymentInstructions {
   supportEmail: string;
   notes: string;
   paymentReferenceHint: string;
+  configured: boolean;
 }
 
 interface SchoolProfileDto {
@@ -179,6 +180,7 @@ interface MembershipEventDto {
 
         <ui-card>
           <h2>1. Instrucciones de pago</h2>
+          @if (profile()!.paymentInstructions.configured) {
           <dl class="facts">
             <div><dt>Banco</dt><dd>{{ profile()!.paymentInstructions.bankName }}</dd></div>
             <div><dt>Tipo</dt><dd>{{ profile()!.paymentInstructions.accountType }}</dd></div>
@@ -194,21 +196,28 @@ interface MembershipEventDto {
             <div><dt>Titular</dt><dd>{{ profile()!.paymentInstructions.accountHolder }}</dd></div>
             <div><dt>NIT titular</dt><dd>{{ profile()!.paymentInstructions.holderTaxId }}</dd></div>
             <div><dt>Referencia</dt><dd>{{ profile()!.paymentInstructions.paymentReferenceHint }}</dd></div>
+            @if (profile()!.paymentInstructions.supportEmail || profile()!.paymentInstructions.whatsApp) {
             <div>
               <dt>Soporte</dt>
               <dd>
                 {{ profile()!.paymentInstructions.supportEmail }}
-                ·
-                <a [href]="whatsAppLink()" target="_blank" rel="noopener">
-                  WhatsApp {{ profile()!.paymentInstructions.whatsApp }}
-                </a>
-                <button type="button" class="copy-btn" (click)="copyText(profile()!.paymentInstructions.whatsApp, 'WhatsApp')">
-                  Copiar
-                </button>
+                @if (profile()!.paymentInstructions.whatsApp) {
+                  @if (profile()!.paymentInstructions.supportEmail) { · }
+                  <a [href]="whatsAppLink()" target="_blank" rel="noopener">
+                    WhatsApp {{ profile()!.paymentInstructions.whatsApp }}
+                  </a>
+                  <button type="button" class="copy-btn" (click)="copyText(profile()!.paymentInstructions.whatsApp, 'WhatsApp')">
+                    Copiar
+                  </button>
+                }
               </dd>
             </div>
+            }
           </dl>
           <p class="muted">{{ profile()!.paymentInstructions.notes }}</p>
+          } @else {
+          <p class="muted"><strong>Pendiente de definir.</strong> {{ profile()!.paymentInstructions.notes }}</p>
+          }
           <p class="price">
             Valor plan:
             {{ (selectedPlanPrice() ?? profile()!.planPriceCop) | currency:'COP':'symbol-narrow':'1.0-0' }}

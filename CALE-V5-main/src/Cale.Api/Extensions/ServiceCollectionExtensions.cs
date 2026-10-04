@@ -155,6 +155,8 @@ public static class ServiceCollectionExtensions
                 typeof(TheoryTopicConfiguration).Assembly,
                 typeof(Cale.Modules.Courses.Infrastructure.Persistence.CourseConfiguration).Assembly));
         services.AddIdentityModule();
+        services.Configure<Cale.Modules.Identity.Application.Services.SchoolPaymentOptions>(
+            config.GetSection(Cale.Modules.Identity.Application.Services.SchoolPaymentOptions.SectionName));
         services.AddCatalogModule();
         services.AddAssessmentModule();
         services.AddClassroomModule();
