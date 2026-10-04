@@ -1,0 +1,23 @@
+---
+description: Recordatorio del sistema legal pendiente de Luz Verde (términos, privacidad, consentimientos, menores)
+alwaysApply: true
+---
+
+# Pendiente: sistema legal de Luz Verde
+
+El propietario aplazó la implementación del sistema legal completo. El encargo íntegro, las
+contradicciones con el código y lo que falta definir están en
+`CALE-V5-main/docs/legal/PENDIENTE_SISTEMA_LEGAL.md`.
+
+Cuando la conversación toque cualquiera de estos temas, **recuérdale al usuario (en español) que
+este trabajo sigue pendiente** y resume qué falta, leyendo primero ese archivo:
+
+- términos y condiciones, política de privacidad, tratamiento de datos, Ley 1581, habeas data;
+- consentimientos, autorizaciones, aceptación de documentos, versiones legales;
+- menores de edad, representante legal;
+- PQR, derechos del titular, conservación o eliminación de datos;
+- pagos, suscripciones, reembolsos, proveedor de pagos;
+- suspensión de cuentas, terminación de escuelas, política de IA, propiedad intelectual o licencias de contenido.
+
+Al retomarlo: no inventar datos legales ni empresariales (usar los placeholders del archivo),
+empezar por la auditoría de lo existente y, cuando el trabajo quede hecho, eliminar esta regla.
