@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { NavigationEnd, NavigationError, Router, RouterOutlet } from '@angular/router';
 import { ThemeService } from './core/theme/theme.service';
+import { ContentGuardService } from './core/security/content-guard.service';
 
 const CHUNK_RELOAD_KEY = 'cale.chunk-reload';
 
@@ -16,6 +17,7 @@ export class AppComponent {
   private readonly router = inject(Router);
 
   constructor() {
+    inject(ContentGuardService).start();
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {
         sessionStorage.removeItem(CHUNK_RELOAD_KEY);

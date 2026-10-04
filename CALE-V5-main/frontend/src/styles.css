@@ -6,3 +6,19 @@
 @import "./app/shared/styles/_table.css";
 @import "./app/shared/styles/_school.css";
 
+
+/* Students: no text selection or printing of course material (inputs stay usable). */
+body.content-guard {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+body.content-guard input,
+body.content-guard textarea,
+body.content-guard [contenteditable='true'] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+@media print {
+  body.content-guard { display: none !important; }
+}
