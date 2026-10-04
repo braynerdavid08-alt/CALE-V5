@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using Cale.Api.Services.Courses;
 using Cale.BuildingBlocks.Domain.Abstractions;
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Classroom;
@@ -326,7 +327,8 @@ public sealed partial class PlayService
             question.Explanation,
             row.Mastered,
             row.Box,
-            newBadges);
+            newBadges,
+            correct ? null : await LessonForAsync(question, userId, ct));
     }
 
     private async Task SyncMistakesAsync(int userId, CancellationToken ct)
@@ -464,7 +466,7 @@ public sealed partial class PlayService
                 join q in _db.Set<Question>().AsNoTracking() on ans.QuestionId equals q.Id
                 where at.UserId == userId && at.FinishedAt != null
                 orderby ans.Id descending
-                select new { q.BlockId, ans.IsCorrect })
+                select new { q.BlockId, ans.IsCorrect, q.Subject, q.Topic, q.Subtopic })
             .Take(400)
             .ToListAsync(ct);
 
@@ -519,17 +521,54 @@ public sealed partial class PlayService
             : overall >= 60 ? "Vas por buen camino"
             : "Todavía no";
 
+        var byLesson = answers
+            .Select(a => (Answer: a, Subtopic: CurriculumTree.Find(a.Subject, a.Topic, a.Subtopic)))
+            .Where(x => x.Subtopic is { CourseSlug: not null, LessonTitle: not null })
+            .GroupBy(x => (Slug: x.Subtopic!.CourseSlug!, Title: x.Subtopic!.LessonTitle!))
+            .Select(g => (g.Key, Answered: g.Count(), Wrong: g.Count(x => !x.Answer.IsCorrect)))
+            .Where(x => x.Wrong >= StudyMinWrong && 100 * (x.Answered - x.Wrong) < 90 * x.Answered)
+            .OrderByDescending(x => x.Wrong)
+            .ThenBy(x => (double)(x.Answered - x.Wrong) / x.Answered)
+            .ToList();
+        var links = await LessonLinks.ResolveAsync(_db, byLesson.Select(x => x.Key), userId, ct);
+        var study = byLesson
+            .Where(x => links.ContainsKey(x.Key))
+            .Take(StudyLessonsShown)
+            .Select(x => new StudyLessonDto(
+                links[x.Key],
+                x.Answered,
+                x.Wrong,
+                (int)Math.Round(100.0 * (x.Answered - x.Wrong) / x.Answered)))
+            .ToList();
+
         var weakest = topics.FirstOrDefault(t => t.Answered >= 5 && t.Percent < 90);
         var unpracticed = topics.FirstOrDefault(t => t.Answered == 0);
         var recommendation = answers.Count == 0
             ? "Presenta tu primer simulacro para medir en qué temas vas bien."
-            : weakest is not null
-                ? $"Repasa \"{weakest.Name}\": llevas {weakest.Percent} % de aciertos."
-                : unpracticed is not null
-                    ? $"Practica \"{unpracticed.Name}\": todavía no tienes respuestas en ese tema."
-                    : "Vas muy bien. Presenta un simulacro completo para confirmarlo.";
+            : study.Count > 0
+                ? $"Repasa la lección \"{study[0].Lesson.LessonTitle}\": fallaste {study[0].Wrong} de {study[0].Answered} preguntas de ese tema."
+                : weakest is not null
+                    ? $"Repasa \"{weakest.Name}\": llevas {weakest.Percent} % de aciertos."
+                    : unpracticed is not null
+                        ? $"Practica \"{unpracticed.Name}\": todavía no tienes respuestas en ese tema."
+                        : "Vas muy bien. Presenta un simulacro completo para confirmarlo.";
 
-        return new ReadinessDto(overall, label, recommendation, recentAvg, answers.Count, topics);
+        return new ReadinessDto(overall, label, recommendation, recentAvg, answers.Count, topics, study);
+    }
+
+    private const int StudyMinWrong = 2;
+    private const int StudyLessonsShown = 3;
+
+    /// <summary>The platform lesson that teaches a question's curriculum subtopic, if any.</summary>
+    private async Task<LessonLinkDto?> LessonForAsync(Question question, int userId, CancellationToken ct)
+    {
+        if (CurriculumTree.Find(question.Subject, question.Topic, question.Subtopic) is not { CourseSlug: { } slug, LessonTitle: { } title })
+        {
+            return null;
+        }
+
+        var links = await LessonLinks.ResolveAsync(_db, [(slug, title)], userId, ct);
+        return links.GetValueOrDefault((slug, title));
     }
 
     // ───────────────────────── Signs game ─────────────────────────

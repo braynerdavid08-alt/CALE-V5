@@ -1,3 +1,5 @@
+using Cale.Api.Services.Courses;
+
 namespace Cale.Api.Services.Play;
 
 public sealed record PlayOptionDto(int Id, string Text, string? ImageUrl);
@@ -71,7 +73,8 @@ public sealed record MistakeAnswerResultDto(
     string? Explanation,
     bool Mastered,
     int Box,
-    IReadOnlyList<BadgeDto> NewBadges);
+    IReadOnlyList<BadgeDto> NewBadges,
+    LessonLinkDto? Lesson = null);
 
 public sealed record ReadinessTopicDto(
     int BlockId,
@@ -88,7 +91,10 @@ public sealed record ReadinessDto(
     string Recommendation,
     int RecentAttemptsAverage,
     int AnsweredQuestions,
-    IReadOnlyList<ReadinessTopicDto> Topics);
+    IReadOnlyList<ReadinessTopicDto> Topics,
+    IReadOnlyList<StudyLessonDto> StudyLessons);
+
+public sealed record StudyLessonDto(LessonLinkDto Lesson, int Answered, int Wrong, int Percent);
 
 public sealed record AchievementsDto(
     LevelDto Level,
