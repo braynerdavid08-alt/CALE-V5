@@ -248,7 +248,9 @@ public static class ExamScheduleSchemaGuard
                     ct);
                 if (exists == 0)
                 {
-                    await db.Database.ExecuteSqlRawAsync($"ALTER TABLE \"TheoryExamAppointments\" ADD COLUMN {ddl};", ct);
+                    // ddl comes from the SqliteAppointmentColumns constant table, never from user input.
+                    var sql = "ALTER TABLE \"TheoryExamAppointments\" ADD COLUMN " + ddl + ";";
+                    await db.Database.ExecuteSqlRawAsync(sql, ct);
                 }
             }
 

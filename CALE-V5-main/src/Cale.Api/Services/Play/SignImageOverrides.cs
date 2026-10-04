@@ -213,7 +213,7 @@ public sealed partial class SignImageOverrides
             : [];
     }
 
-    private static bool IsUsableImage(string? url) =>
+    private static bool IsUsableImage([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] string? url) =>
         !string.IsNullOrWhiteSpace(url)
         && !url.StartsWith("/signals/", StringComparison.OrdinalIgnoreCase)
         && ((url.StartsWith('/') && !url.StartsWith("//", StringComparison.Ordinal))
