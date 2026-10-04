@@ -11,6 +11,39 @@
 @if (loading()) {
   <ui-loading />
 } @else if (step() === 'setup') {
+  <ui-card class="official-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow">Formato del examen real</p>
+        <h2>Simulacro oficial CALE</h2>
+      </div>
+      <ui-badge tone="success">80 % y 80 %</ui-badge>
+    </div>
+    <p class="muted intro">
+      40 preguntas en orden aleatorio, como en la prueba teórica de la ANSV:
+      10 de movilidad segura, 6 de normas de tránsito, 6 de señalización, 6 del vehículo
+      y 12 afirmaciones de actitud. Apruebas con al menos 80 % en conocimientos
+      y 80 % en actitudes.
+    </p>
+    <div class="summary">
+      <div>
+        <span class="muted">Conocimientos</span>
+        <strong>23 de 28 correctas</strong>
+      </div>
+      <div>
+        <span class="muted">Actitudes</span>
+        <strong>10 de 12 correctas</strong>
+      </div>
+      <div>
+        <span class="muted">Tiempo</span>
+        <strong>60 min</strong>
+      </div>
+    </div>
+    <div class="row actions">
+      <ui-button type="button" (click)="startOfficial()">Presentar simulacro oficial</ui-button>
+    </div>
+  </ui-card>
+
   @if (independent()) {
     <ui-card class="practice-card">
       <div class="card-head">
@@ -231,7 +264,11 @@
           </div>
         </div>
         <div class="bar-side">
-          <ui-badge tone="neutral">Máx. {{ maxIncorrect }} malas</ui-badge>
+          @if (official()) {
+            <ui-badge tone="neutral">Aprueba con 80 % y 80 %</ui-badge>
+          } @else {
+            <ui-badge tone="neutral">Máx. {{ maxIncorrect }} malas</ui-badge>
+          }
           @if (remaining()) {
             <ui-badge tone="primary">{{ remaining() }}</ui-badge>
           }
@@ -240,6 +277,9 @@
       <ui-card>
         <p class="q-type">{{ q.type }}</p>
         <h1 class="q-text">{{ q.text }}</h1>
+        @if (q.type === 'Actitud') {
+          <p class="muted attitude-hint">¿Qué tan de acuerdo estás con esta afirmación? Responde como actuarías al volante.</p>
+        }
         @if (q.imageUrl) {
           <img class="q-img" [src]="media(q.imageUrl)" alt="Imagen de la pregunta" />
         }
@@ -283,15 +323,64 @@
   @if (result(); as res) {
     <div class="result-shell" [class.passed]="res.passed" [class.failed]="!res.passed">
     <ui-card>
-      <p class="eyebrow">Resultado · máximo {{ maxIncorrect }} incorrectas</p>
-      <h1>{{ res.passed ? '¡Aprobado! 🎉' : 'No aprobado' }}</h1>
-      <p class="muted">
-        @if (res.passed) {
-          Cumpliste el estándar CALE: máximo {{ maxIncorrect }} respuestas incorrectas.
-        } @else {
-          Tuviste más de {{ maxIncorrect }} respuestas incorrectas.
-        }
-      </p>
+      @if (res.official; as off) {
+        <p class="eyebrow">Simulacro oficial CALE · {{ off.passPercent }} % en conocimientos y actitudes</p>
+        <h1>{{ res.passed ? '¡Aprobado! 🎉' : 'No aprobado' }}</h1>
+        <p class="muted">
+          @if (res.passed) {
+            Superaste el {{ off.passPercent }} % en las dos partes, como exige la prueba teórica.
+          } @else if (off.knowledgePercent < off.passPercent && off.attitudePercent < off.passPercent) {
+            Te faltó llegar al {{ off.passPercent }} % en conocimientos y en actitudes.
+          } @else if (off.knowledgePercent < off.passPercent) {
+            Te faltó llegar al {{ off.passPercent }} % en conocimientos.
+          } @else {
+            Te faltó llegar al {{ off.passPercent }} % en actitudes.
+          }
+        </p>
+        <div class="grid-stats">
+          <ui-stat
+            label="Conocimientos"
+            [value]="off.knowledgePercent + '%'"
+            [hint]="off.knowledgeCorrect + ' de ' + off.knowledgeTotal + ' correctas'"
+            [tone]="off.knowledgePercent >= off.passPercent ? 'success' : 'warning'" />
+          <ui-stat
+            label="Actitudes"
+            [value]="off.attitudePercent + '%'"
+            [hint]="off.attitudeCorrect + ' de ' + off.attitudeTotal + ' correctas'"
+            [tone]="off.attitudePercent >= off.passPercent ? 'success' : 'warning'" />
+        </div>
+        <h2>Por núcleo</h2>
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Núcleo</th>
+                <th>Correctas</th>
+                <th>%</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of off.sections; track row.label) {
+                <tr>
+                  <td>{{ row.label }}</td>
+                  <td>{{ row.correctCount }}/{{ row.totalQuestions }}</td>
+                  <td>{{ row.percent }}%</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p class="eyebrow">Resultado · máximo {{ maxIncorrect }} incorrectas</p>
+        <h1>{{ res.passed ? '¡Aprobado! 🎉' : 'No aprobado' }}</h1>
+        <p class="muted">
+          @if (res.passed) {
+            Cumpliste el estándar CALE: máximo {{ maxIncorrect }} respuestas incorrectas.
+          } @else {
+            Tuviste más de {{ maxIncorrect }} respuestas incorrectas.
+          }
+        </p>
+      }
       <div class="grid-stats">
         <ui-stat label="Porcentaje" [value]="res.percent + '%'" [tone]="res.passed ? 'success' : 'warning'" />
         <ui-stat label="Correctas" [value]="res.correctCount + '/' + res.totalQuestions" />

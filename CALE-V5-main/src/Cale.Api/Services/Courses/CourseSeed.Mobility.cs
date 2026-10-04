@@ -38,6 +38,14 @@ public sealed partial class CourseSeed
                     + "Por eso, cuando ocurre un siniestro, la pregunta no es solo «¿quién tuvo la culpa?», sino «¿qué factores se juntaron y cuáles se pudieron controlar?»."),
                 Picture($"{MobilityImages}/que-es-seguridad-vial.jpg", "Persona, vehículo, vía y entorno: el riesgo nunca depende de un solo factor."),
                 Text(
+                    "Las cinco competencias del conductor",
+                    "El manual de referencia de la ANSV (2026) resume lo que debe lograr todo conductor en cinco competencias, y sobre ellas se construye la prueba teórica CALE:\n\n"
+                    + "1. Comprender el entorno: leer la vía, el clima, el tráfico y a los demás actores.\n"
+                    + "2. Moverse de manera idónea según el vehículo que usas.\n"
+                    + "3. Valorar el riesgo y la vulnerabilidad propia y de los demás.\n"
+                    + "4. Asumir la regulación: conocer y cumplir las normas.\n"
+                    + "5. Ser corresponsable: entender que la seguridad en la vía la construimos entre todos."),
+                Text(
                     "El enfoque de Sistema Seguro",
                     "El Sistema Seguro parte de una idea sencilla: las personas nos equivocamos. Calculamos mal una distancia, nos distraemos un segundo o no vemos a un motociclista.\n\n"
                     + "El objetivo no es exigir que nadie cometa errores, sino que un error no termine en una muerte o una lesión grave. Para lograrlo se trabaja a la vez sobre "
@@ -371,6 +379,12 @@ public sealed partial class CourseSeed
                     + "Durante ese segundo el vehículo sigue avanzando a la misma velocidad.\n\n"
                     + "A 60 km/h recorres casi 17 metros antes de tocar el freno, y después necesitas otros metros para detenerte. "
                     + "Con piso mojado, llantas gastadas o frenos en mal estado, la distancia total crece mucho más."),
+                Text(
+                    "Mira lejos",
+                    "Para no tener que frenar de golpe ni girar a última hora, mira hacia adelante lo más lejos que puedas: "
+                    + "como referencia, al menos una cuadra en la ciudad y unos 400 metros en carretera. Así ves con tiempo la zona por la que vas a pasar "
+                    + "y tienes margen para frenar o cambiar de carril.\n\n"
+                    + "De noche, cambia a luces bajas cuando un vehículo se acerque de frente a unos 150 metros o menos, y también cuando vayas a una cuadra (70 a 90 metros) detrás de otro."),
                 Text(
                     "La distancia de seguridad",
                     "El Código Nacional de Tránsito (artículo 108) fija distancias mínimas entre vehículos que circulan uno detrás de otro: "

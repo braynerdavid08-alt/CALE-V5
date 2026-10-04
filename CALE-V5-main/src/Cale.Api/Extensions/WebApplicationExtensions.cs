@@ -256,6 +256,18 @@ public static class WebApplicationExtensions
             catalogLogger.LogError(ex, "Could not apply catalog errata.");
         }
 
+        if (app.Configuration.GetValue("Seed:Catalog:CaleBanks", true))
+        {
+            try
+            {
+                await CatalogSeed.EnsureCaleBanksAsync(db, seedDir, clock, adminId, catalogLogger);
+            }
+            catch (Exception ex)
+            {
+                catalogLogger.LogError(ex, "Could not seed the CALE banks.");
+            }
+        }
+
         // Off in production: banks the admin deletes must not come back on every deploy.
         if (!app.Configuration.GetValue("Seed:Catalog:OfficialBanks", !app.Environment.IsProduction()))
         {

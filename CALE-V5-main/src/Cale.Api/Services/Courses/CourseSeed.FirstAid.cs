@@ -59,7 +59,10 @@ public sealed partial class CourseSeed
                     + "Qué pasó: choque, atropello, caída de moto, incendio.\n"
                     + "Cuántas personas están heridas y cómo están: si responden y si respiran.\n"
                     + "Si hay peligros: fuego, combustible, personas atrapadas.\n\n"
-                    + "No cuelgues hasta que el operador te lo indique: te puede dar instrucciones."),
+                    + "No cuelgues hasta que el operador te lo indique: te puede dar instrucciones.\n\n"
+                    + "En carretera también puedes marcar #767 desde el celular.\n\n"
+                    + "Recuerda: en Colombia la atención de urgencias es obligatoria para cualquier persona, sin importar si tiene dinero, EPS o seguro. "
+                    + "Ningún hospital ni clínica puede negarla, y el SOAT cubre la atención y el traslado de las víctimas de un siniestro."),
                 Classify(
                     "¿A qué paso corresponde cada acción?",
                     ["Proteger", "Avisar", "Socorrer"],

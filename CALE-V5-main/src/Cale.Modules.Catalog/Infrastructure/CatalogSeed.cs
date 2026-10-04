@@ -62,6 +62,100 @@ public static class CatalogSeed
             ct);
     }
 
+    public static readonly IReadOnlyList<string> CaleBankFiles =
+    [
+        "banco-cale-movilidad.json",
+        "banco-cale-vehiculo.json",
+        "banco-cale-actitudes.json"
+    ];
+
+    /// <summary>
+    /// Creates each CALE bank (Movilidad, Vehículo, Actitudes) once, also in production. The block is
+    /// created with the bank and the admin purge keeps it, so an existing block without its bank means
+    /// the admin deleted the bank and it must not come back.
+    /// </summary>
+    public static async Task EnsureCaleBanksAsync(
+        CaleDbContext db,
+        string? seedDirectory,
+        IClock clock,
+        int? createdById,
+        ILogger logger,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(seedDirectory) || !Directory.Exists(seedDirectory))
+        {
+            logger.LogWarning("Catalog seed data folder not found; skipping CALE banks.");
+            return;
+        }
+
+        foreach (var file in CaleBankFiles)
+        {
+            var path = Path.Combine(seedDirectory, file);
+            if (!File.Exists(path))
+            {
+                logger.LogWarning("Seed file missing: {Path}", path);
+                continue;
+            }
+
+            SeedBankFile? payload;
+            await using (var stream = File.OpenRead(path))
+            {
+                payload = await JsonSerializer.DeserializeAsync<SeedBankFile>(stream, JsonOptions, ct);
+            }
+
+            if (payload is null
+                || string.IsNullOrWhiteSpace(payload.BankName)
+                || string.IsNullOrWhiteSpace(payload.BlockName)
+                || payload.Questions.Count == 0)
+            {
+                logger.LogWarning("Invalid seed file: {Path}", path);
+                continue;
+            }
+
+            if (await db.Set<Bank>().AnyAsync(b => b.Name == payload.BankName, ct))
+            {
+                continue;
+            }
+
+            var blockName = payload.BlockName.Trim();
+            if (await db.Set<Block>().AnyAsync(b => b.Name == blockName, ct))
+            {
+                logger.LogInformation(
+                    "CALE bank '{Name}' was deleted by an admin; not recreating it.",
+                    payload.BankName);
+                continue;
+            }
+
+            var strategy = db.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                db.ChangeTracker.Clear();
+                await using var tx = await db.Database.BeginTransactionAsync(ct);
+                var bank = Bank.Create(payload.BankName, payload.Description, clock.UtcNow);
+                var block = Block.Create(blockName);
+                await db.Set<Bank>().AddAsync(bank, ct);
+                await db.Set<Block>().AddAsync(block, ct);
+                await db.SaveChangesAsync(ct);
+
+                foreach (var item in payload.Questions)
+                {
+                    await db.Set<Question>().AddAsync(
+                        BuildQuestion(item, bank.Id, block.Id, createdById, clock.UtcNow),
+                        ct);
+                }
+
+                bank.MarkSeedCompleted();
+                await db.SaveChangesAsync(ct);
+                await tx.CommitAsync(ct);
+            });
+
+            logger.LogInformation(
+                "Seeded CALE bank '{Name}' with {Count} questions.",
+                payload.BankName,
+                payload.Questions.Count);
+        }
+    }
+
     /// <summary>Corrects seeded questions already stored in existing databases (the JSON only feeds new installs).</summary>
     public static async Task ApplyErrataAsync(CaleDbContext db, ILogger logger, CancellationToken ct = default)
     {
@@ -228,29 +322,7 @@ public static class CatalogSeed
         var batch = 0;
         foreach (var item in payload.Questions)
         {
-            var options = item.Options
-                .Select(o => QuestionOption.Create(o.Text, o.IsCorrect, o.ImageUrl))
-                .ToList();
-
-            var question = Question.Create(
-                bank.Id,
-                block.Id,
-                createdById,
-                item.Text,
-                item.Type,
-                item.Topic,
-                item.ImageUrl,
-                item.Explanation,
-                options,
-                now);
-            question.SetCatalogMeta(
-                item.Subject,
-                item.Topic,
-                item.Subtopic,
-                item.Difficulty,
-                item.Source);
-            question.SetActive(true);
-            await db.Set<Question>().AddAsync(question, ct);
+            await db.Set<Question>().AddAsync(BuildQuestion(item, bank.Id, block.Id, createdById, now), ct);
             batch++;
             if (batch % 100 == 0)
             {
@@ -264,6 +336,38 @@ public static class CatalogSeed
             "Seeded bank '{Name}' with {Count} questions.",
             bank.Name,
             payload.Questions.Count);
+    }
+
+    private static Question BuildQuestion(
+        SeedQuestion item,
+        int bankId,
+        int blockId,
+        int? createdById,
+        DateTime now)
+    {
+        var options = item.Options
+            .Select(o => QuestionOption.Create(o.Text, o.IsCorrect, o.ImageUrl))
+            .ToList();
+
+        var question = Question.Create(
+            bankId,
+            blockId,
+            createdById,
+            item.Text,
+            item.Type,
+            item.Topic,
+            item.ImageUrl,
+            item.Explanation,
+            options,
+            now);
+        question.SetCatalogMeta(
+            item.Subject,
+            item.Topic,
+            item.Subtopic,
+            item.Difficulty,
+            item.Source);
+        question.SetActive(true);
+        return question;
     }
 
     private sealed class SeedBankFile

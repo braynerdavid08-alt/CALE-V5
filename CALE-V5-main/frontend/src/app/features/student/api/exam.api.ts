@@ -59,6 +59,18 @@ export interface FinishResponse {
   byTopic: ScoreBreakdownDto[];
   byBlock: ScoreBreakdownDto[];
   bestPercent?: number | null;
+  official?: OfficialResultDto | null;
+}
+
+export interface OfficialResultDto {
+  knowledgeCorrect: number;
+  knowledgeTotal: number;
+  knowledgePercent: number;
+  attitudeCorrect: number;
+  attitudeTotal: number;
+  attitudePercent: number;
+  passPercent: number;
+  sections: ScoreBreakdownDto[];
 }
 
 export interface ScoreBreakdownDto {

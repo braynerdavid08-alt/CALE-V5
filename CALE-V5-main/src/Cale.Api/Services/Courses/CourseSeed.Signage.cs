@@ -102,7 +102,9 @@ public sealed partial class CourseSeed
                     "Informativas",
                     "Guían al usuario y le muestran servicios. Las que te llevan a tu destino aparecen en orden: preseñalización (te avisa con anticipación), "
                     + "dirección (te muestra hacia dónde ir), confirmación (te confirma que vas bien) e identificación de la vía (el número de la ruta). "
-                    + "También hay señales de servicios, turísticas y de seguridad vial, como la de radar pedagógico."),
+                    + "También hay señales de servicios, turísticas y de seguridad vial, como la de radar pedagógico.\n\n"
+                    + "Las señales de mensaje variable (SMV) son paneles cuyo texto se cambia en tiempo real para avisarte de un cierre, un trancón, una obra o el clima en tu ruta. "
+                    + "Léelas con la misma atención que una señal fija."),
                 Order(
                     "Vas por carretera hacia otra ciudad. Ordena las señales informativas en el orden en que las encuentras.",
                     ["Preseñalización: te avisa que se acerca la salida", "Dirección: te indica por dónde tomar", "Confirmación: te confirma el destino y la distancia"],

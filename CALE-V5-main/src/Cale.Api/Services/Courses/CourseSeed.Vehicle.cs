@@ -61,6 +61,12 @@ public sealed partial class CourseSeed
                     + "82: índice de carga, es decir, el peso máximo que soporta.\n"
                     + "T: índice de velocidad máxima.\n\n"
                     + "La palabra «Tubeless» indica que la llanta no lleva neumático interno. La presión correcta está en el manual o en una etiqueta en el marco de la puerta, y se mide en frío."),
+                Text(
+                    "Llantas y dirección: cuidados que se olvidan",
+                    "Revisa la presión cada semana o cada diez días, con las llantas frías. Rótalas cada 10.000 km para que se gasten parejo, "
+                    + "y cámbialas a los cinco años de montadas aunque el labrado se vea bien: el caucho envejece y pierde agarre.\n\n"
+                    + "El volante no debe tener «juego». Si lo mueves y las ruedas tardan en responder, como con un retardo, hay desgaste en la dirección "
+                    + "e incluso riesgo de que se suelte una rueda: llévalo a revisión antes de seguir usándolo."),
                 FillBlank(
                     "En la llanta 175/70 R13, el número [[175]] es el ancho en milímetros y el [[13]] es el diámetro del rin en pulgadas. La presión se mide con la llanta [[fría]].",
                     ["70", "caliente", "82"],
@@ -181,7 +187,9 @@ public sealed partial class CourseSeed
                     "Cinturón, airbag y apoyacabezas",
                     "El cinturón mantiene tu cuerpo en el asiento durante un choque. Debe ir sobre la clavícula y la cadera, nunca debajo del brazo ni sobre el abdomen. "
                     + "Es obligatorio para todos los ocupantes de los asientos que lo tienen.\n\n"
-                    + "El airbag está diseñado para funcionar junto con el cinturón. Sin cinturón, el cuerpo sale hacia adelante y el airbag puede causar lesiones.\n\n"
+                    + "El airbag está diseñado para funcionar junto con el cinturón. Se infla a unos 300 km/h: sin cinturón, el cuerpo sale hacia adelante y choca contra la bolsa mientras se abre, lo que causa lesiones.\n\n"
+                    + "La carrocería también protege: el habitáculo (la «célula de supervivencia») es una caja rígida que debe quedar intacta, "
+                    + "mientras las partes delantera y trasera se deforman a propósito para absorber la energía del choque.\n\n"
                     + "El apoyacabezas evita el «latigazo cervical» en los choques por detrás: su parte superior debe quedar a la altura de la parte superior de tu cabeza, y lo más cerca posible de ella.\n\n"
                     + "Los niños menores de 10 años no pueden viajar en el asiento delantero y deben usar un sistema de retención adecuado a su talla y peso."),
                 Scenario(
@@ -218,8 +226,9 @@ public sealed partial class CourseSeed
                     "Primero te haces visible, luego te proteges tú, sacas a los pasajeros del peligro y finalmente avisas con anticipación a los que vienen."),
                 Text(
                     "Dónde poner las señales",
-                    "Las señales reflectivas (triángulos) deben verse con tiempo suficiente para que los demás reaccionen. Como referencia práctica, "
-                    + "ubícalas a unos 30 metros en vía urbana y a unos 50 a 100 metros en carretera. Si el vehículo quedó después de una curva o de una loma, "
+                    "Las señales reflectivas (triángulos) deben verse con tiempo suficiente para que los demás reaccionen. El manual de la ANSV lo calcula así: "
+                    + "dale a quien viene al menos un segundo y medio de margen después de ver el triángulo. Eso da unos 12 metros en una vía residencial de 30 km/h, "
+                    + "unos 24 metros en una avenida de 60 km/h y unos 44 metros o más en carretera. Si el vehículo quedó después de una curva o de una loma, "
                     + "pon la señal antes de la curva, donde los conductores todavía no te ven.\n\n"
                     + "Camina por fuera de la calzada, de frente al tráfico y con el chaleco puesto. De noche, usa la linterna."),
                 Text(

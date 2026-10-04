@@ -12,6 +12,10 @@ public sealed class AttemptQuestionSnapshot
     public string? Explanation { get; init; }
     public string? Topic { get; init; }
     public int BlockId { get; init; }
+
+    /// <summary>Official simulacro section (nucleus or attitudes); null in other modes.</summary>
+    public string? Section { get; init; }
+
     public IReadOnlyList<AttemptOptionSnapshot> Options { get; init; } = [];
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -22,7 +26,8 @@ public sealed class AttemptQuestionSnapshot
 
     public static AttemptQuestionSnapshot FromQuestion(
         Question question,
-        IReadOnlyList<QuestionOption> presentedOptions) =>
+        IReadOnlyList<QuestionOption> presentedOptions,
+        string? section = null) =>
         new()
         {
             Text = question.Text,
@@ -31,6 +36,7 @@ public sealed class AttemptQuestionSnapshot
             Explanation = question.Explanation,
             Topic = question.Topic,
             BlockId = question.BlockId,
+            Section = section,
             Options = presentedOptions
                 .Select(o => new AttemptOptionSnapshot(
                     o.Id,
@@ -63,8 +69,14 @@ public sealed class AttemptQuestionSnapshot
     public AttemptOptionSnapshot? FindOption(int optionId) =>
         Options.FirstOrDefault(o => o.Id == optionId);
 
-    public AttemptOptionSnapshot? CorrectOption() =>
-        Options.FirstOrDefault(o => o.IsCorrect);
+    /// <summary>Correct answer text; attitude statements list every accepted answer.</summary>
+    public string? CorrectText() => JoinCorrect(Options.Where(o => o.IsCorrect).Select(o => o.Text));
+
+    public static string? JoinCorrect(IEnumerable<string> correctTexts)
+    {
+        var texts = correctTexts.Where(t => !string.IsNullOrWhiteSpace(t)).ToList();
+        return texts.Count == 0 ? null : string.Join(" o ", texts);
+    }
 }
 
 public sealed record AttemptOptionSnapshot(

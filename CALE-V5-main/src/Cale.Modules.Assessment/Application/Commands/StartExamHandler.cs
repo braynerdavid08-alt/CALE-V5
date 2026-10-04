@@ -1,10 +1,12 @@
 using Cale.BuildingBlocks.Domain.Abstractions;
 using Cale.BuildingBlocks.Domain.Assessment;
+using Cale.BuildingBlocks.Domain.Catalog;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Time;
 using Cale.Modules.Assessment.Application.Abstractions;
 using Cale.Modules.Assessment.Application.DTOs;
 using Cale.Modules.Assessment.Domain;
+using Cale.Modules.Catalog.Application;
 using Cale.Modules.Catalog.Application.Abstractions;
 using Cale.Modules.Catalog.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -56,6 +58,10 @@ public sealed class StartExamHandler
                 .Take(20)
                 .ToList() ?? [];
             var isMixedPractice = mixedExamIds.Count > 0;
+            if (!isMixedPractice && request.ExamId is not > 0 && request.Mode == AttemptModes.Official)
+            {
+                return await StartOfficialAsync(userId, now, ct);
+            }
 
             int bankId;
             Exam? exam;
@@ -289,15 +295,104 @@ public sealed class StartExamHandler
             Answers: saved);
     }
 
+    /// <summary>
+    /// Official CALE structure: 10 Movilidad, 6 Normas, 6 Señalización, 6 Vehículo and 12 attitude
+    /// statements drawn from the official banks, in a different random order for every attempt.
+    /// </summary>
+    private async Task<StartExamResponse> StartOfficialAsync(int userId, DateTime now, CancellationToken ct)
+    {
+        var pools = OfficialExam.Sections.ToDictionary(s => s.Name, _ => new List<Question>());
+        var banks = (await _catalog.ListBanksAsync(activeOnly: true, ct))
+            .Where(b => b.CreatedById is null);
+        foreach (var bank in banks)
+        {
+            foreach (var question in await _catalog.ListActiveQuestionsInBankAsync(bank.Id, ct))
+            {
+                if (!IsGradable(question))
+                {
+                    continue;
+                }
+
+                var section = OfficialExam.SectionOf(question.Type, question.Subject, bank.Name);
+                if (section is not null)
+                {
+                    pools[section].Add(question);
+                }
+            }
+        }
+
+        var missing = OfficialExam.Sections
+            .Where(s => pools[s.Name].Count < s.Count)
+            .Select(s => s.Name)
+            .ToList();
+        if (missing.Count > 0)
+        {
+            throw new DomainException(
+                $"El simulacro oficial aún no tiene suficientes preguntas de: {string.Join(", ", missing)}.",
+                400,
+                "official_unavailable");
+        }
+
+        var selected = OfficialExam.Sections
+            .SelectMany(s => pools[s.Name]
+                .OrderBy(_ => Guid.NewGuid())
+                .Take(s.Count)
+                .Select(q => (Question: q, Section: s.Name)))
+            .OrderBy(_ => Guid.NewGuid())
+            .ToList();
+        var bankId = selected.First(x => x.Section == OfficialExam.Mobility).Question.BankId;
+
+        var attempt = Attempt.Start(
+            userId,
+            bankId,
+            examId: null,
+            AttemptModes.Official,
+            selected.Count,
+            OfficialExam.TimeMinutes,
+            now);
+        var prepared = selected
+            .Select((x, i) => PrepareQuestion(attemptId: 0, x.Question, i + 1, x.Section))
+            .ToList();
+        await _attempts.AddAttemptWithQuestionsAsync(
+            attempt,
+            prepared.Select(p => p.Snapshot).ToList(),
+            ct);
+
+        _logger.LogInformation(
+            "Official simulacro started attemptId={AttemptId} userId={UserId} questions={QuestionCount}",
+            attempt.Id,
+            userId,
+            selected.Count);
+
+        return new StartExamResponse(
+            attempt.Id,
+            attempt.StartedAt,
+            attempt.ExpiresAt,
+            OfficialExam.TimeMinutes,
+            prepared.Select(p => p.Take).ToList());
+    }
+
+    private static bool IsGradable(Question question)
+    {
+        if (ExamImportMarkers.NeedsReview(question.Explanation) || question.Options.Count < 2)
+        {
+            return false;
+        }
+
+        var correct = question.Options.Count(o => o.IsCorrect);
+        return QuestionTypes.IsAttitude(question.Type)
+            ? correct >= 1 && correct < question.Options.Count
+            : correct == 1;
+    }
+
     private static (AttemptQuestion Snapshot, TakeQuestionDto Take) PrepareQuestion(
         int attemptId,
         Question question,
-        int order)
+        int order,
+        string? section = null)
     {
-        var presented = question.Options
-            .OrderBy(_ => Guid.NewGuid())
-            .ToList();
-        var snapshotModel = AttemptQuestionSnapshot.FromQuestion(question, presented);
+        var presented = PresentedOptions(question);
+        var snapshotModel = AttemptQuestionSnapshot.FromQuestion(question, presented, section);
         var entity = AttemptQuestion.Create(
             attemptId,
             question.Id,
@@ -316,14 +411,18 @@ public sealed class StartExamHandler
     }
 
     /// <summary>
-    /// Options are always shuffled for take payloads. Scoring uses option Id,
-    /// never A/B/C/D position.
+    /// Options are shuffled for take payloads, except the attitude scale, which keeps its order.
+    /// Scoring uses option Id, never A/B/C/D position.
     /// </summary>
     internal static IReadOnlyList<TakeOptionDto> MapShuffledOptions(Question q) =>
-        q.Options
-            .OrderBy(_ => Guid.NewGuid())
+        PresentedOptions(q)
             .Select(o => new TakeOptionDto(o.Id, o.Text, o.ImageUrl))
             .ToList();
+
+    private static List<QuestionOption> PresentedOptions(Question question) =>
+        QuestionTypes.IsAttitude(question.Type)
+            ? question.Options.OrderBy(o => o.Id).ToList()
+            : question.Options.OrderBy(_ => Guid.NewGuid()).ToList();
 
     private async Task<(int BankId, int TimeMinutes, int Count, List<Question> Pool)>
         ResolveMixedPracticeAsync(

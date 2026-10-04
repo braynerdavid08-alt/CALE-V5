@@ -139,7 +139,18 @@ public sealed class Question
                 "invalid_options");
         }
 
-        if (options.Count(x => x.IsCorrect) != 1)
+        var correct = options.Count(x => x.IsCorrect);
+        if (QuestionTypes.IsAttitude(type))
+        {
+            if (correct < 1 || correct == options.Count)
+            {
+                throw new DomainException(
+                    "An attitude statement needs at least one safe and one unsafe answer.",
+                    400,
+                    "invalid_correct");
+            }
+        }
+        else if (correct != 1)
         {
             throw new DomainException(
                 "Exactly one option must be marked as correct.",

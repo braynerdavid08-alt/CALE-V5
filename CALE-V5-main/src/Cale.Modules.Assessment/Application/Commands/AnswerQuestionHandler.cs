@@ -55,7 +55,7 @@ public sealed class AnswerQuestionHandler
         {
             var selected = parsed.FindOption(request.OptionId)
                 ?? throw new DomainException("Option not found.", 400, "option_not_found");
-            var correct = parsed.CorrectOption()
+            correctText = parsed.CorrectText()
                 ?? throw new DomainException(
                     "Question snapshot has no correct option.",
                     400,
@@ -63,7 +63,6 @@ public sealed class AnswerQuestionHandler
             questionText = parsed.Text;
             questionType = parsed.Type;
             selectedText = selected.Text;
-            correctText = correct.Text;
             isCorrect = selected.IsCorrect;
         }
         else
@@ -73,11 +72,11 @@ public sealed class AnswerQuestionHandler
                 ?? throw new NotFoundException("Question not found.", "question_not_found");
             var selected = question.Options.FirstOrDefault(x => x.Id == request.OptionId)
                 ?? throw new DomainException("Option not found.", 400, "option_not_found");
-            var correct = question.Options.First(x => x.IsCorrect);
             questionText = question.Text;
             questionType = question.Type;
             selectedText = selected.Text;
-            correctText = correct.Text;
+            correctText = AttemptQuestionSnapshot.JoinCorrect(
+                question.Options.Where(x => x.IsCorrect).Select(x => x.Text));
             isCorrect = selected.IsCorrect;
         }
 

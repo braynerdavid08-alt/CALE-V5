@@ -1,0 +1,1759 @@
+{
+  "bankName": "Movilidad segura y sostenible (CALE)",
+  "description": "Preguntas tipo CALE (situación + 3 opciones) de redacción propia, basadas en el Manual de referencia para la conducción de vehículos de la ANSV (2026).",
+  "blockName": "Núcleo: Movilidad segura y sostenible",
+  "questions": [
+    {
+      "text": "Un aspirante pregunta qué competencias necesita un conductor idóneo. ¿Cuál de estas hace parte de las cinco que propone el manual de la ANSV?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Seguridad vial y Sistema Seguro",
+      "subtopic": "Concepto de seguridad vial",
+      "difficulty": "Baja",
+      "explanation": "Las cinco competencias son: comprender el entorno, moverse de manera idónea, valorar el riesgo y la vulnerabilidad, asumir la regulación y ser corresponsable.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 19. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Dominar la conducción a alta velocidad.",
+          "isCorrect": false
+        },
+        {
+          "text": "Conocer de memoria todos los modelos de vehículos.",
+          "isCorrect": false
+        },
+        {
+          "text": "Valorar el riesgo y la vulnerabilidad en la movilidad.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "En una clase se discute para qué sirve la movilidad segura y sostenible. ¿Cuál es su propósito?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Seguridad vial y Sistema Seguro",
+      "subtopic": "Concepto de seguridad vial",
+      "difficulty": "Baja",
+      "explanation": "La movilidad segura y sostenible reduce el riesgo de siniestros, promueve la responsabilidad y considera el impacto en el ambiente y la comunidad.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 20. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Que todas las personas se desplacen sin poner en riesgo su vida, con comportamientos responsables y cuidando el ambiente.",
+          "isCorrect": true
+        },
+        {
+          "text": "Que los vehículos lleguen más rápido aunque el riesgo aumente.",
+          "isCorrect": false
+        },
+        {
+          "text": "Que solo los conductores profesionales cumplan las normas.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Un compañero afirma que los siniestros viales son cuestión de mala suerte y siempre van a ocurrir. Según el enfoque Visión Cero, ¿qué es lo correcto?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Seguridad vial y Sistema Seguro",
+      "subtopic": "Visión Cero: ninguna muerte en la vía es aceptable",
+      "difficulty": "Baja",
+      "explanation": "Visión Cero parte de una postura ética: ninguna muerte en la vía es aceptable y todas pueden evitarse.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 20. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Todas las muertes y lesiones graves en el tránsito son evitables.",
+          "isCorrect": true
+        },
+        {
+          "text": "Un número pequeño de muertes es aceptable si el tráfico fluye.",
+          "isCorrect": false
+        },
+        {
+          "text": "Solo se pueden evitar los siniestros que ocurren en carretera.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Una alcaldía quiere aplicar el Enfoque de Sistema Seguro. ¿Qué debe gestionar de forma integral?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Seguridad vial y Sistema Seguro",
+      "subtopic": "Enfoque de Sistema Seguro",
+      "difficulty": "Media",
+      "explanation": "El Sistema Seguro combina vías, vehículos, velocidades y usuarios seguros para que un error humano no termine en muerte.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 20. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Únicamente el estado del pavimento.",
+          "isCorrect": false
+        },
+        {
+          "text": "La infraestructura, los vehículos, las velocidades y los usuarios.",
+          "isCorrect": true
+        },
+        {
+          "text": "Solo las multas y los comparendos.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Carlos cree que la seguridad vial depende solo de las autoridades de tránsito. ¿Qué plantea el manual?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Seguridad vial y Sistema Seguro",
+      "subtopic": "Responsabilidad compartida",
+      "difficulty": "Media",
+      "explanation": "La seguridad vial es corresponsable: los usuarios deben reconocer su rol en la prevención del riesgo.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 20. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Que la responsabilidad recae únicamente en los peatones.",
+          "isCorrect": false
+        },
+        {
+          "text": "Que la responsabilidad es solo de los agentes de tránsito.",
+          "isCorrect": false
+        },
+        {
+          "text": "Que cada usuario cumple un papel fundamental para prevenir los riesgos, junto con quienes gestionan las vías y los vehículos.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Dos carros iguales chocan contra un muro: uno a 30 km/h y otro a 60 km/h. ¿Por qué el segundo choque es mucho más grave?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Seguridad vial y Sistema Seguro",
+      "subtopic": "Tolerancia del cuerpo humano al impacto",
+      "difficulty": "Media",
+      "explanation": "La gravedad del impacto aumenta con la masa y la velocidad; por eso la velocidad determina la severidad de las lesiones.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 43. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Porque a más velocidad los frenos dejan de funcionar.",
+          "isCorrect": false
+        },
+        {
+          "text": "No es más grave: la gravedad depende solo del tamaño del vehículo.",
+          "isCorrect": false
+        },
+        {
+          "text": "Porque la fuerza del impacto crece con la velocidad y el cuerpo humano tiene un límite para resistirla.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "En una vía con límite de 60 km/h está lloviendo y hay muchos peatones. Según la ANSV, ¿cuál es la velocidad adecuada?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Seguridad vial y Sistema Seguro",
+      "subtopic": "Vías, vehículos y velocidades seguras",
+      "difficulty": "Media",
+      "explanation": "La velocidad adecuada respeta el límite y se adapta a la vía, el clima, el entorno y los demás actores, considerando el error humano.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 43. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "La misma del resto del tráfico, aunque supere el límite.",
+          "isCorrect": false
+        },
+        {
+          "text": "Exactamente 60 km/h, porque es lo que permite la señal.",
+          "isCorrect": false
+        },
+        {
+          "text": "Una velocidad dentro del límite que además se ajuste a la lluvia, al entorno y a la presencia de peatones.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Un conductor acelera en una avenida para llegar a tiempo. ¿Qué le pasa a su campo visual cuando aumenta la velocidad?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Factores de riesgo",
+      "subtopic": "Velocidad como factor de riesgo",
+      "difficulty": "Media",
+      "explanation": "A mayor velocidad, menor campo visual y menos tiempo para percibir y reaccionar.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 43. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Se amplía porque el conductor se concentra más.",
+          "isCorrect": false
+        },
+        {
+          "text": "No cambia, la vista funciona igual a cualquier velocidad.",
+          "isCorrect": false
+        },
+        {
+          "text": "Se reduce, y con él la capacidad de reaccionar ante imprevistos.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Según el Observatorio Nacional de Seguridad Vial, entre 2017 y 2020, ¿qué actor vial fue la mayoría de los fallecidos en siniestros por exceso de velocidad?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Factores de riesgo",
+      "subtopic": "Velocidad como factor de riesgo",
+      "difficulty": "Alta",
+      "explanation": "Aproximadamente 7 de cada 10 fallecidos por exceso de velocidad fueron motociclistas.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 44. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Los peatones, más de la mitad.",
+          "isCorrect": false
+        },
+        {
+          "text": "Los ocupantes de buses y busetas.",
+          "isCorrect": false
+        },
+        {
+          "text": "Los motociclistas, cerca de 7 de cada 10.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Según la Organización Mundial de la Salud, citada en el manual, ¿qué proporción de las víctimas de siniestros en el mundo se relaciona con velocidad excesiva o inadecuada?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Factores de riesgo",
+      "subtopic": "Velocidad como factor de riesgo",
+      "difficulty": "Alta",
+      "explanation": "La velocidad excesiva o inadecuada aporta una de cada tres víctimas de siniestros viales en el mundo.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 43. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Una de cada tres víctimas.",
+          "isCorrect": true
+        },
+        {
+          "text": "Una de cada cien víctimas.",
+          "isCorrect": false
+        },
+        {
+          "text": "Casi ninguna; la velocidad influye poco.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Andrea va a ir en su carro a una celebración donde habrá licor. ¿Cuál es la decisión más segura?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Factores de riesgo",
+      "subtopic": "Alcohol y sustancias psicoactivas",
+      "difficulty": "Baja",
+      "explanation": "El manual recomienda planear con anticipación el regreso cuando hay licor, porque tener el carro a mano invita a conducir.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 38. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Tomar café al final para contrarrestar el alcohol.",
+          "isCorrect": false
+        },
+        {
+          "text": "Tomar poco y esperar media hora antes de manejar.",
+          "isCorrect": false
+        },
+        {
+          "text": "Planear el regreso desde antes: designar un conductor elegido o no llevar el vehículo.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "En un control, a un conductor le hacen la prueba de alcohol. ¿Desde qué nivel lo sanciona la Ley 1696 de 2013?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Factores de riesgo",
+      "subtopic": "Alcohol y sustancias psicoactivas",
+      "difficulty": "Media",
+      "explanation": "En Colombia hay cero tolerancia: desde 20 mg/100 ml el conductor es sancionado según la Ley 1696 de 2013.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 38. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Desde 20 mg de etanol por 100 ml de sangre, más o menos lo que deja una cerveza.",
+          "isCorrect": true
+        },
+        {
+          "text": "Desde 50 mg, como en otros países.",
+          "isCorrect": false
+        },
+        {
+          "text": "Solo si no puede caminar en línea recta.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Un conductor da 120 mg de etanol por 100 ml de sangre. ¿Qué tipo de sanción le corresponde según la Ley 1696 de 2013?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Factores de riesgo",
+      "subtopic": "Alcohol y sustancias psicoactivas",
+      "difficulty": "Alta",
+      "explanation": "La ley escala las sanciones por rangos (20-39, 40-99, 100-149 y 150 mg en adelante); entre 100 y 149 mg la suspensión parte de 5 años.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 39. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Solo un llamado de atención, porque no supera los 150 mg.",
+          "isCorrect": false
+        },
+        {
+          "text": "Una multa pequeña, sin suspensión de la licencia.",
+          "isCorrect": false
+        },
+        {
+          "text": "Las del rango de 100 a 149 mg: suspensión de la licencia desde 5 años, multa, acciones comunitarias e inmovilización.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "¿Qué efecto de la cocaína sobre la conducción describe el manual?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Factores de riesgo",
+      "subtopic": "Alcohol y sustancias psicoactivas",
+      "difficulty": "Media",
+      "explanation": "La cocaína aumenta la impulsividad y la sensación de dominio, lo que lleva a asumir más riesgos y cometer infracciones.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 40. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Vuelve al conductor competitivo e impulsivo y le hace sobrevalorar sus capacidades.",
+          "isCorrect": true
+        },
+        {
+          "text": "Mejora los reflejos y la concentración.",
+          "isCorrect": false
+        },
+        {
+          "text": "No afecta si se consumió unas horas antes.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "¿Cuál es un efecto de la marihuana que hace peligrosa la conducción?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Factores de riesgo",
+      "subtopic": "Alcohol y sustancias psicoactivas",
+      "difficulty": "Media",
+      "explanation": "La marihuana distorsiona la noción de distancias y velocidades, dificulta la concentración y produce somnolencia.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 40. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Reduce el sueño y aumenta la atención.",
+          "isCorrect": false
+        },
+        {
+          "text": "Mejora la visión nocturna.",
+          "isCorrect": false
+        },
+        {
+          "text": "Altera la percepción del tiempo, el espacio y la velocidad, y aumenta el tiempo de reacción.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Julián toma un antihistamínico para la alergia que le da sueño. ¿Qué debe hacer antes de conducir?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Factores de riesgo",
+      "subtopic": "Alcohol y sustancias psicoactivas",
+      "difficulty": "Media",
+      "explanation": "Algunos antihistamínicos convencionales equivalen a conducir con alcohol en la sangre; nunca deben mezclarse con licor u otros medicamentos.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 41. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Consultar a un profesional: algunos antihistamínicos producen un riesgo comparable al de conducir bajo los efectos del alcohol.",
+          "isCorrect": true
+        },
+        {
+          "text": "Manejar normal, porque los medicamentos con fórmula no afectan.",
+          "isCorrect": false
+        },
+        {
+          "text": "Tomarlo con una bebida energizante para no dormirse.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Después de tres horas al volante, Diana bosteza, parpadea seguido y cambia mucho de posición. ¿Qué debe hacer?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Factores de riesgo",
+      "subtopic": "Fatiga y sueño",
+      "difficulty": "Baja",
+      "explanation": "Son signos de fatiga que pueden llevar a microsueños; lo único seguro es parar y descansar.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 36. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Subir el volumen de la música y abrir la ventana.",
+          "isCorrect": false
+        },
+        {
+          "text": "Detenerse en un lugar seguro y descansar.",
+          "isCorrect": true
+        },
+        {
+          "text": "Tomar una bebida energizante y seguir.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Va a hacer un viaje largo por carretera. ¿Cada cuánto recomienda el manual hacer una pausa activa?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Factores de riesgo",
+      "subtopic": "Fatiga y sueño",
+      "difficulty": "Media",
+      "explanation": "En trayectos de más de dos horas o 200 km, el conductor debería hacer pausas activas de por lo menos 15 minutos.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 37. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Solo cuando aparezca el sueño.",
+          "isCorrect": false
+        },
+        {
+          "text": "Cada 5 horas, con una pausa de 5 minutos.",
+          "isCorrect": false
+        },
+        {
+          "text": "Cada 2 horas o 200 km, con una pausa de al menos 15 minutos.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Pedro planea un viaje de ocho horas. ¿Qué recomienda el manual sobre la comida?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Factores de riesgo",
+      "subtopic": "Fatiga y sueño",
+      "difficulty": "Baja",
+      "explanation": "Las comidas abundantes producen somnolencia y pesadez; comer manejando reduce la atención.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 36. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Comer mientras conduce para no perder tiempo.",
+          "isCorrect": false
+        },
+        {
+          "text": "Hacer una sola comida grande antes de salir y no parar.",
+          "isCorrect": false
+        },
+        {
+          "text": "Planear dónde y cuándo comer, sin comer mientras maneja y evitando una sola comida muy abundante.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Laura va a 60 km/h y baja la mirada 10 segundos para leer un mensaje. ¿Cuántos metros recorre aproximadamente sin mirar la vía?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Factores de riesgo",
+      "subtopic": "Distracciones y uso del celular",
+      "difficulty": "Alta",
+      "explanation": "A 60 km/h se recorren cerca de 16,7 metros por segundo; en 10 segundos son unos 167 metros a ciegas.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 37. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Unos 60 metros.",
+          "isCorrect": false
+        },
+        {
+          "text": "Unos 20 metros.",
+          "isCorrect": false
+        },
+        {
+          "text": "Unos 167 metros.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Un motociclista quiere escuchar música con audífonos mientras conduce. ¿Qué indica el manual?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Factores de riesgo",
+      "subtopic": "Distracciones y uso del celular",
+      "difficulty": "Baja",
+      "explanation": "El manual pide evitar celulares, pantallas y audífonos que disminuyan la atención, especialmente en motocicleta.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 34. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Es recomendable porque reduce el estrés.",
+          "isCorrect": false
+        },
+        {
+          "text": "Debe evitarlo, porque los audífonos disminuyen la atención y la percepción del entorno.",
+          "isCorrect": true
+        },
+        {
+          "text": "Solo está mal si va por carretera.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Un conductor sale muy estresado de una discusión. ¿Por qué el manual recomienda no conducir así?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Factores de riesgo",
+      "subtopic": "Estrés y emociones",
+      "difficulty": "Media",
+      "explanation": "Estar sometido a mucho estrés aumenta el riesgo de siniestro y lleva a una conducción menos eficiente.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 32. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "No hay relación entre el estrés y la conducción.",
+          "isCorrect": false
+        },
+        {
+          "text": "Porque el estrés severo es un factor de riesgo y además aumenta el consumo de combustible.",
+          "isCorrect": true
+        },
+        {
+          "text": "Porque el estrés hace que el carro pierda potencia.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Otro conductor le cierra el paso de forma brusca. ¿Qué indica el manejo preventivo?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Factores de riesgo",
+      "subtopic": "Conducción agresiva",
+      "difficulty": "Baja",
+      "explanation": "Una de las reglas del manejo preventivo es no agredir a los demás, ni por provocación ni por venganza.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 27. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Cerrarle el paso más adelante para que aprenda.",
+          "isCorrect": false
+        },
+        {
+          "text": "No responder con agresión, ni por provocación ni por venganza, y mantener la distancia.",
+          "isCorrect": true
+        },
+        {
+          "text": "Pitarle y seguirlo para reclamarle.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Un conductor ha manejado varias veces después de beber sin que le pase nada. ¿Qué advierte el manual sobre esa experiencia?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Factores de riesgo",
+      "subtopic": "Exceso de confianza",
+      "difficulty": "Media",
+      "explanation": "Haber conducido bebido sin consecuencias genera una percepción equivocada del riesgo.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 38. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Le crea una falsa sensación de control que aumenta su riesgo.",
+          "isCorrect": true
+        },
+        {
+          "text": "Demuestra que tiene tolerancia y puede seguir haciéndolo.",
+          "isCorrect": false
+        },
+        {
+          "text": "Significa que su cuerpo elimina el alcohol más rápido.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Sus amigos le insisten en ir más rápido porque van tarde a un concierto. ¿Cuál es la actitud responsable?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Factores de riesgo",
+      "subtopic": "Presión social",
+      "difficulty": "Baja",
+      "explanation": "En ninguna circunstancia se debe poner una vida en riesgo; la prisa de otros no justifica una conducta insegura.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 35. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Acelerar un poco para no quedar mal.",
+          "isCorrect": false
+        },
+        {
+          "text": "Mantener una velocidad segura: la decisión no cambia por la presión del grupo.",
+          "isCorrect": true
+        },
+        {
+          "text": "Dejar que otro maneje aunque haya tomado.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Conduce de noche por una carretera con niebla espesa. ¿Qué luces debe usar?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Factores de riesgo",
+      "subtopic": "Condiciones climáticas",
+      "difficulty": "Media",
+      "explanation": "Las luces altas rebotan en las gotas de la niebla como en un espejo; las medias se proyectan al piso y se ven mejor.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 26. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Solo las luces de posición para no encandilar.",
+          "isCorrect": false
+        },
+        {
+          "text": "Las luces medias, y las exploradoras junto con ellas si el vehículo las tiene.",
+          "isCorrect": true
+        },
+        {
+          "text": "Las luces altas, porque alumbran más lejos.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "En una vía de montaña soplan vientos laterales muy fuertes. ¿Qué recomienda el manual, sobre todo en motocicleta?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Factores de riesgo",
+      "subtopic": "Condiciones climáticas",
+      "difficulty": "Media",
+      "explanation": "Con viento fuerte, a menor velocidad el vehículo se afirma mejor y es más fácil corregir la trayectoria.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 26. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Aflojar el manubrio para que la moto se acomode sola.",
+          "isCorrect": false
+        },
+        {
+          "text": "Acelerar para pasar rápido la zona de viento.",
+          "isCorrect": false
+        },
+        {
+          "text": "Reducir la velocidad y sujetar con firmeza el volante o el manubrio, corrigiendo con suavidad.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "¿Entre qué horas indica el manual que deben ir encendidas las luces medias, además de cuando hay mala visibilidad?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Factores de riesgo",
+      "subtopic": "Condiciones climáticas",
+      "difficulty": "Baja",
+      "explanation": "Las luces medias se usan entre la puesta y la salida del sol (18:00 a 6:00) y cuando la visibilidad es adversa: sirven para ver y ser visto.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 25. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Entre las 20:00 y las 4:00.",
+          "isCorrect": false
+        },
+        {
+          "text": "Entre las 18:00 y las 6:00 del día siguiente.",
+          "isCorrect": true
+        },
+        {
+          "text": "Solo cuando ya está completamente oscuro.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "De noche se acerca un vehículo en sentido contrario y usted lleva las luces altas. ¿Cuándo debe cambiar a las medias?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Comportamiento del conductor",
+      "subtopic": "Percepción del riesgo",
+      "difficulty": "Media",
+      "explanation": "No se deben usar luces altas a 150 metros o menos de los vehículos que se aproximan, porque encandilan.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 25. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Cuando esté a unos 20 metros.",
+          "isCorrect": false
+        },
+        {
+          "text": "No hace falta cambiarlas si la vía es recta.",
+          "isCorrect": false
+        },
+        {
+          "text": "Antes de quedar a 150 metros o menos del otro vehículo.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Sale de un parqueadero muy iluminado a una vía oscura. ¿Qué recomienda el manual?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Comportamiento del conductor",
+      "subtopic": "Percepción del riesgo",
+      "difficulty": "Baja",
+      "explanation": "Al pasar de la luz a la oscuridad la vista tarda en adaptarse, así que se debe reducir la velocidad.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 25. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Conducir despacio hasta que los ojos se adapten a la oscuridad.",
+          "isCorrect": true
+        },
+        {
+          "text": "Encender las luces altas aunque haya otros vehículos.",
+          "isCorrect": false
+        },
+        {
+          "text": "Acelerar para salir rápido de la zona oscura.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Antes de iniciar un viaje, ¿qué debe evaluar el conductor según el enfoque de gestión del riesgo?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Comportamiento del conductor",
+      "subtopic": "Percepción del riesgo",
+      "difficulty": "Media",
+      "explanation": "Conducir implica gestionar el riesgo: identificar, evaluar y anticipar situaciones peligrosas antes y durante el viaje.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 24. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Únicamente que lleve los documentos.",
+          "isCorrect": false
+        },
+        {
+          "text": "Su estado físico y emocional, su atención, el vehículo, el entorno y el clima.",
+          "isCorrect": true
+        },
+        {
+          "text": "Solo el nivel de combustible.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Para evitar frenadas y giros de último momento, ¿hasta dónde recomienda el manual mirar hacia adelante?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Comportamiento del conductor",
+      "subtopic": "Anticipación",
+      "difficulty": "Media",
+      "explanation": "Mirar lejos permite anticiparse, frenar con tiempo, ahorrar combustible y contaminar menos.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 91. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Solo hasta el vehículo de adelante.",
+          "isCorrect": false
+        },
+        {
+          "text": "Unos 10 metros, en cualquier vía.",
+          "isCorrect": false
+        },
+        {
+          "text": "Al menos una cuadra en la ciudad y unos 400 metros en carretera.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Tiene la luz verde y se acerca a un cruce. ¿Qué indica el manejo preventivo?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Comportamiento del conductor",
+      "subtopic": "Anticipación",
+      "difficulty": "Baja",
+      "explanation": "Aunque tenga derecho de paso, el conductor preventivo observa la circulación de los demás.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 27. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Cruzar sin mirar, porque tiene la prelación.",
+          "isCorrect": false
+        },
+        {
+          "text": "Acelerar para pasar antes de que cambie.",
+          "isCorrect": false
+        },
+        {
+          "text": "Observar a los demás y no suponer que le van a dar el paso.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "¿En qué consiste la conducción preventiva o defensiva?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Comportamiento del conductor",
+      "subtopic": "Conducción defensiva",
+      "difficulty": "Baja",
+      "explanation": "El manejo preventivo siempre ofrece una alternativa frente a la maniobra peligrosa de otros.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 24. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "En reaccionar con firmeza cuando otro se equivoca.",
+          "isCorrect": false
+        },
+        {
+          "text": "En conducir atento y anticiparse a los posibles errores de los demás.",
+          "isCorrect": true
+        },
+        {
+          "text": "En circular siempre por el carril izquierdo.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Va detrás de otro vehículo a unos 50 km/h, en el mismo carril. Según el artículo 108 del Código Nacional de Tránsito, ¿qué distancia mínima debe mantener?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Comportamiento del conductor",
+      "subtopic": "Conducción defensiva",
+      "difficulty": "Media",
+      "explanation": "Art. 108: hasta 30 km/h, 10 m; de 30 a 60 km/h, 20 m; de 60 a 80 km/h, 25 m; más de 80 km/h, 30 m.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 24. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "20 metros.",
+          "isCorrect": true
+        },
+        {
+          "text": "5 metros.",
+          "isCorrect": false
+        },
+        {
+          "text": "10 metros.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "En carretera va a 90 km/h detrás de un camión. ¿Qué separación mínima exige el artículo 108 del Código?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Comportamiento del conductor",
+      "subtopic": "Conducción defensiva",
+      "difficulty": "Media",
+      "explanation": "Desde 80 km/h en adelante, la separación mínima es de 30 metros o la que indique la autoridad competente.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 24. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "15 metros.",
+          "isCorrect": false
+        },
+        {
+          "text": "25 metros.",
+          "isCorrect": false
+        },
+        {
+          "text": "30 metros, o la que indique la autoridad.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Va a 30 km/h y empieza a llover fuerte. ¿Qué hace con la distancia de seguridad?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Comportamiento del conductor",
+      "subtopic": "Conducción defensiva",
+      "difficulty": "Media",
+      "explanation": "La distancia del art. 108 es un mínimo: la humedad, la visibilidad y el peso obligan a aumentarla.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 25. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "La aumenta por encima de los 10 metros, porque el piso mojado alarga el frenado.",
+          "isCorrect": true
+        },
+        {
+          "text": "La mantiene en 10 metros, porque es lo que dice la norma.",
+          "isCorrect": false
+        },
+        {
+          "text": "La reduce para no perder de vista al de adelante.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "En carretera quiere adelantar a un camión, pero también quiere ahorrar combustible. ¿Qué debe primar?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Comportamiento del conductor",
+      "subtopic": "Toma de decisiones",
+      "difficulty": "Media",
+      "explanation": "Al adelantar o en una emergencia la seguridad está por encima de la economía.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 32. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Adelantar en una curva, donde el camión va más despacio.",
+          "isCorrect": false
+        },
+        {
+          "text": "El ahorro: adelanta sin acelerar mucho, aunque tarde más en el carril contrario.",
+          "isCorrect": false
+        },
+        {
+          "text": "La seguridad: solo adelanta con espacio suficiente, aunque gaste más combustible.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Un peatón baja de repente a la calzada por un sitio indebido. ¿Cuál es la reacción correcta?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Comportamiento del conductor",
+      "subtopic": "Autocontrol",
+      "difficulty": "Baja",
+      "explanation": "Aunque el peatón se equivoque, el conductor no debe intimidarlo: la vida está primero.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 47. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Acercarse rápido y pitarle para que aprenda.",
+          "isCorrect": false
+        },
+        {
+          "text": "Respetar el límite y darle prelación, sin acercar el vehículo de forma agresiva para darle una lección.",
+          "isCorrect": true
+        },
+        {
+          "text": "Mantener la velocidad, porque él está incumpliendo.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "En un trancón, otro conductor le grita e insulta. ¿Qué es lo adecuado?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Comportamiento del conductor",
+      "subtopic": "Manejo de situaciones conflictivas",
+      "difficulty": "Baja",
+      "explanation": "El manejo preventivo pide no agredir a otros ni por provocación ni por venganza.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 27. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "No responder, mantener la calma y alejarse de la situación si es necesario.",
+          "isCorrect": true
+        },
+        {
+          "text": "Responderle con la bocina hasta que se calle.",
+          "isCorrect": false
+        },
+        {
+          "text": "Bajarse del carro a reclamarle.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Un conductor se pone el cinturón y baja la velocidad solo cuando ve agentes de tránsito. ¿Qué dice el manual de esa conducta?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Comportamiento del conductor",
+      "subtopic": "Responsabilidad individual",
+      "difficulty": "Baja",
+      "explanation": "Cuando las normas no se asumen de forma autónoma, la persona queda desprotegida y pone en peligro a los demás.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 33. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Es nociva: las normas deben cumplirse por autorregulación, haya o no autoridad.",
+          "isCorrect": true
+        },
+        {
+          "text": "Es correcta si la vía está vacía.",
+          "isCorrect": false
+        },
+        {
+          "text": "Es suficiente, porque las multas solo las ponen los agentes.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Según el estudio de la ANSV sobre causas probables de siniestros, ¿qué factor está asociado a más del 90 % de los casos?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Comportamiento del conductor",
+      "subtopic": "Responsabilidad individual",
+      "difficulty": "Media",
+      "explanation": "Irrespetar los límites, desobedecer las señales, conducir embriagado o ir en contravía son conductas humanas.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 34. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "El comportamiento humano.",
+          "isCorrect": true
+        },
+        {
+          "text": "El mal estado de las vías.",
+          "isCorrect": false
+        },
+        {
+          "text": "Las fallas mecánicas.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Un conductor estaciona sobre el andén porque solo se demora cinco minutos. ¿Por qué es peligroso?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Comportamiento del conductor",
+      "subtopic": "Respeto por los demás actores",
+      "difficulty": "Baja",
+      "explanation": "Estacionar en el andén traslada el riesgo al peatón, que debe caminar por la vía.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 45. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "No es peligroso si es por poco tiempo.",
+          "isCorrect": false
+        },
+        {
+          "text": "Porque se pueden dañar las llantas.",
+          "isCorrect": false
+        },
+        {
+          "text": "Porque obliga a los peatones a bajar a la calzada y los expone a ser atropellados.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Pasa cerca de un paradero donde hay un bus detenido. ¿Qué debe hacer?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Actores viales vulnerables",
+      "subtopic": "Peatones",
+      "difficulty": "Baja",
+      "explanation": "Cerca de los paraderos los peatones aparecen de forma sorpresiva o corren para alcanzar el bus.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 47. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Reducir la velocidad y estar listo para detenerse, porque puede salir un peatón por delante o por detrás del bus.",
+          "isCorrect": true
+        },
+        {
+          "text": "Pitar para avisar y seguir a la misma velocidad.",
+          "isCorrect": false
+        },
+        {
+          "text": "Adelantar rápido al bus antes de que arranque.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Va por el carril izquierdo y en el derecho un carro se detiene antes de una cebra. ¿Qué hace?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Actores viales vulnerables",
+      "subtopic": "Peatones",
+      "difficulty": "Media",
+      "explanation": "Nunca adelante a un vehículo detenido ante un paso peatonal: puede ocultar a alguien que cruza.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 47. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Le pita para que el otro carro avance.",
+          "isCorrect": false
+        },
+        {
+          "text": "Lo adelanta, porque su carril está libre.",
+          "isCorrect": false
+        },
+        {
+          "text": "Disminuye la velocidad y se prepara para detenerse, porque puede haber un peatón cruzando que no ve.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "De madrugada, cerca de una zona de bares, un peatón ebrio camina por la calzada. ¿Qué es lo correcto?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Actores viales vulnerables",
+      "subtopic": "Peatones",
+      "difficulty": "Baja",
+      "explanation": "El manual pide especial atención con personas ebrias en zonas de bares, sobre todo de noche y los fines de semana.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 48. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Mantener la velocidad, porque él está incumpliendo.",
+          "isCorrect": false
+        },
+        {
+          "text": "Reducir la velocidad y darle espacio: es preferible perder unos segundos que atropellarlo.",
+          "isCorrect": true
+        },
+        {
+          "text": "Pitar fuerte y pasar cerca para que se aparte.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Conduce por una calle comercial muy concurrida, cerca de un colegio y de paraderos. ¿Qué velocidad máxima recuerda el manual para estas zonas?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Actores viales vulnerables",
+      "subtopic": "Peatones",
+      "difficulty": "Baja",
+      "explanation": "En calles comerciales, zonas residenciales, cerca de colegios y paraderos no se deben superar los 30 km/h.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 48. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "50 km/h.",
+          "isCorrect": false
+        },
+        {
+          "text": "60 km/h.",
+          "isCorrect": false
+        },
+        {
+          "text": "30 km/h.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Va a adelantar a un ciclista en una subida. ¿Qué espacio lateral mínimo recomienda el manual?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Actores viales vulnerables",
+      "subtopic": "Ciclistas",
+      "difficulty": "Baja",
+      "explanation": "El ciclista puede tambalearse por el viento o el esfuerzo en subida; por eso se deja al menos 1,5 m.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 50. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "50 centímetros.",
+          "isCorrect": false
+        },
+        {
+          "text": "Basta con no tocarlo.",
+          "isCorrect": false
+        },
+        {
+          "text": "Al menos 1,5 metros.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Va detrás de un ciclista y quiere girar a la derecha en el siguiente cruce. ¿Qué debe hacer?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Actores viales vulnerables",
+      "subtopic": "Ciclistas",
+      "difficulty": "Media",
+      "explanation": "Adelantar a un ciclista justo antes de girar a la derecha es una de las causas típicas de atropello.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 50. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Pitarle para que se detenga y lo deje girar.",
+          "isCorrect": false
+        },
+        {
+          "text": "No adelantarlo antes ni en el cruce: espera a que pase la intersección y luego gira.",
+          "isCorrect": true
+        },
+        {
+          "text": "Adelantarlo rápido y girar delante de él.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Un conductor de carro no entiende por qué las motos deben llevar las luces encendidas de día. ¿Cuál es la razón?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Actores viales vulnerables",
+      "subtopic": "Motociclistas",
+      "difficulty": "Media",
+      "explanation": "El artículo 96 del Código exige a las motos circular con luces encendidas para aumentar su visibilidad.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 74. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Es solo una costumbre, no lo exige la norma.",
+          "isCorrect": false
+        },
+        {
+          "text": "Para que la batería se cargue mejor.",
+          "isCorrect": false
+        },
+        {
+          "text": "La moto es un vehículo angosto y poco visible; con las luces encendidas los demás la detectan antes.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Un balón sale rodando a la calle entre carros estacionados. ¿Qué debe anticipar?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Actores viales vulnerables",
+      "subtopic": "Niños",
+      "difficulty": "Baja",
+      "explanation": "La presencia de niños es una señal de alerta: el conductor debe anticiparse a su comportamiento espontáneo.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 49. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Que debe pitar para que nadie salga.",
+          "isCorrect": false
+        },
+        {
+          "text": "Nada; solo debe esquivar el balón.",
+          "isCorrect": false
+        },
+        {
+          "text": "Que un niño puede salir detrás del balón: reduce la velocidad y se prepara para frenar.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Pasa junto a un bus escolar detenido. ¿Qué precaución aplica?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Actores viales vulnerables",
+      "subtopic": "Niños",
+      "difficulty": "Baja",
+      "explanation": "Los niños pueden aparecer de forma imprevista alrededor de un vehículo escolar detenido.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 50. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Pasar despacio y atento, porque pueden subir, bajar o cruzar niños por delante o por detrás.",
+          "isCorrect": true
+        },
+        {
+          "text": "Adelantarlo rápido para no quedar detrás.",
+          "isCorrect": false
+        },
+        {
+          "text": "Pitar para que los niños esperen en el andén.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Un adulto mayor cruza lentamente y su semáforo está por cambiar a verde. ¿Qué hace?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Actores viales vulnerables",
+      "subtopic": "Personas mayores",
+      "difficulty": "Baja",
+      "explanation": "Las personas mayores tienen menor movilidad y reacciones más lentas; siempre se les cede el paso.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 49. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Le pita para que se dé cuenta del cambio.",
+          "isCorrect": false
+        },
+        {
+          "text": "Avanza despacio para presionarlo a que se apure.",
+          "isCorrect": false
+        },
+        {
+          "text": "Espera a que termine de cruzar, porque las personas mayores necesitan más tiempo y calculan peor la velocidad de los vehículos.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Un peatón con bastón blanco empieza a cruzar la calle. ¿Qué exige el manual?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Actores viales vulnerables",
+      "subtopic": "Personas con discapacidad",
+      "difficulty": "Baja",
+      "explanation": "Ante un peatón con discapacidad visual que cruza con bastón, los vehículos deben parar completamente.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 48. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Reducir un poco y pasar por detrás de él.",
+          "isCorrect": false
+        },
+        {
+          "text": "Pitar para que sepa que viene un vehículo.",
+          "isCorrect": false
+        },
+        {
+          "text": "Detenerse por completo y cederle el paso.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "En una vía rural ve un caballo suelto cerca de la calzada. ¿Qué es lo correcto?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Actores viales vulnerables",
+      "subtopic": "Animales en la vía",
+      "difficulty": "Baja",
+      "explanation": "Los animales también son actores vulnerables y sus movimientos son impredecibles.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 35. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Pasar rápido antes de que se mueva.",
+          "isCorrect": false
+        },
+        {
+          "text": "Pitar fuerte para que se aleje de la vía.",
+          "isCorrect": false
+        },
+        {
+          "text": "Reducir la velocidad y estar listo para detenerse, sin asustar al animal.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Una víctima de un siniestro debe ser trasladada en ambulancia a la clínica más cercana. ¿Quién cubre ese traslado?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Emergencias y siniestros viales",
+      "subtopic": "Víctimas y consecuencias de los siniestros",
+      "difficulty": "Media",
+      "explanation": "El traslado de las víctimas a la institución de salud adecuada tiene cobertura del SOAT.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 23. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "La víctima, con su EPS.",
+          "isCorrect": false
+        },
+        {
+          "text": "La autoridad de tránsito.",
+          "isCorrect": false
+        },
+        {
+          "text": "El SOAT.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Un herido en un siniestro no tiene afiliación a salud ni dinero. ¿Lo deben atender en urgencias?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Emergencias y siniestros viales",
+      "subtopic": "Víctimas y consecuencias de los siniestros",
+      "difficulty": "Baja",
+      "explanation": "Todos los hospitales y clínicas están obligados a brindar atención de urgencias, incluidas las ambulancias.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 23. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Solo si alguien paga un depósito.",
+          "isCorrect": false
+        },
+        {
+          "text": "Solo si tiene EPS.",
+          "isCorrect": false
+        },
+        {
+          "text": "Sí: la atención de urgencias es obligatoria para toda persona, sin importar su capacidad de pago.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Es el primero en llegar a un choque con heridos. ¿En qué orden debe actuar según el protocolo PAS?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Emergencias y siniestros viales",
+      "subtopic": "Protocolo PAS: proteger, avisar y socorrer",
+      "difficulty": "Baja",
+      "explanation": "PAS significa proteger, avisar y socorrer, en ese orden.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 22. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Proteger, avisar y socorrer.",
+          "isCorrect": true
+        },
+        {
+          "text": "Avisar, socorrer y proteger.",
+          "isCorrect": false
+        },
+        {
+          "text": "Socorrer, avisar y proteger.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "¿Qué significa proteger dentro del protocolo PAS?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Emergencias y siniestros viales",
+      "subtopic": "Proteger la escena y los riesgos secundarios",
+      "difficulty": "Media",
+      "explanation": "Proteger busca que nadie más resulte herido, incluido quien ayuda.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 23. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Ubicarse en un lugar seguro, evaluar los riesgos y señalizar la escena para evitar otro siniestro.",
+          "isCorrect": true
+        },
+        {
+          "text": "Tomar fotos de los daños para el seguro.",
+          "isCorrect": false
+        },
+        {
+          "text": "Sacar de inmediato a los heridos de los vehículos.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Ocurre un siniestro en una carretera nacional. ¿Qué números de emergencia indica el manual?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Emergencias y siniestros viales",
+      "subtopic": "Llamada a emergencias y datos que se informan",
+      "difficulty": "Media",
+      "explanation": "En ciudades se llama al NUSE 123 y en carretera al #767.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 23. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "El #767 en carretera y el 123 en las ciudades.",
+          "isCorrect": true
+        },
+        {
+          "text": "El 911 en cualquier lugar.",
+          "isCorrect": false
+        },
+        {
+          "text": "El 112 en carretera y el 132 en ciudad.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Llama a la línea de emergencias para reportar un siniestro. ¿Qué información debe dar?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Emergencias y siniestros viales",
+      "subtopic": "Llamada a emergencias y datos que se informan",
+      "difficulty": "Baja",
+      "explanation": "Una ubicación precisa y un número de contacto permiten que la ayuda llegue rápido.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 23. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Solo su nombre, y cuelga rápido para no ocupar la línea.",
+          "isCorrect": false
+        },
+        {
+          "text": "La placa de su vehículo y nada más.",
+          "isCorrect": false
+        },
+        {
+          "text": "Dónde está, con un punto de referencia, y su número de teléfono; luego sigue las instrucciones del operador.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "No tiene formación en primeros auxilios y encuentra a un herido consciente. ¿Qué es lo correcto?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Emergencias y siniestros viales",
+      "subtopic": "Qué no debe hacer quien no está capacitado",
+      "difficulty": "Media",
+      "explanation": "Socorrer es hacer contacto con la víctima y ayudar según la propia capacidad, sin causar daño adicional.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 23. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Acompañarlo y tranquilizarlo, ayudando solo dentro de su capacidad y sin causarle más daño.",
+          "isCorrect": true
+        },
+        {
+          "text": "Darle agua y moverlo para que quede cómodo.",
+          "isCorrect": false
+        },
+        {
+          "text": "Quitarle el casco de inmediato si es motociclista.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "¿Cuándo se justifica mover a un lesionado antes de que llegue la ayuda?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Emergencias y siniestros viales",
+      "subtopic": "No mover lesionados sin necesidad",
+      "difficulty": "Media",
+      "explanation": "Mover a un lesionado puede agravar sus heridas; el traslado debe hacerlo una ambulancia.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 23. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Cuando se queja de dolor.",
+          "isCorrect": false
+        },
+        {
+          "text": "Siempre, para llevarlo rápido al hospital en un carro particular.",
+          "isCorrect": false
+        },
+        {
+          "text": "Solo si corre un peligro inmediato, como fuego o el riesgo de otro choque.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "¿Cuál de estas acciones contribuye a una movilidad sostenible según el manual?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Movilidad sostenible",
+      "subtopic": "Movilidad sostenible y movilidad activa",
+      "difficulty": "Baja",
+      "explanation": "El manual menciona el transporte público, la bicicleta, la caminata y el carro compartido como estrategias de mitigación.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 21. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Dejar el motor encendido durante los trancones largos.",
+          "isCorrect": false
+        },
+        {
+          "text": "Usar el carro particular para cada trayecto corto.",
+          "isCorrect": false
+        },
+        {
+          "text": "Usar el transporte público, la bicicleta o compartir el carro.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "¿Por qué la movilidad sostenible también debe ser segura?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Movilidad sostenible",
+      "subtopic": "Movilidad sostenible y movilidad activa",
+      "difficulty": "Media",
+      "explanation": "La movilidad debe ser al mismo tiempo ambientalmente sostenible y segura.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 21. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Porque los vehículos eléctricos no necesitan frenos.",
+          "isCorrect": false
+        },
+        {
+          "text": "Porque promover la bicicleta o la caminata sin planeación ni educación puede aumentar las lesiones y muertes.",
+          "isCorrect": true
+        },
+        {
+          "text": "No tiene relación: lo sostenible ya es seguro.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Cuatro compañeros de trabajo viven en el mismo barrio. ¿Por qué compartir un carro (carpooling) ayuda al ambiente?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Movilidad sostenible",
+      "subtopic": "Transporte público y movilidad compartida",
+      "difficulty": "Baja",
+      "explanation": "El carro compartido es una acción de mitigación de la contaminación mencionada en el manual.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 21. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Porque se movilizan más personas en menos vehículos y se reducen las emisiones.",
+          "isCorrect": true
+        },
+        {
+          "text": "Porque el carro compartido no necesita revisión técnico-mecánica.",
+          "isCorrect": false
+        },
+        {
+          "text": "Porque permite exceder el límite de velocidad.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "¿Cuánto combustible puede ahorrarse al aplicar las técnicas de conducción eficiente?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Movilidad sostenible",
+      "subtopic": "Conducción eficiente, consumo y emisiones",
+      "difficulty": "Baja",
+      "explanation": "Optimizar la forma de conducir permite ahorrar entre un 10 % y un 15 % de combustible.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 28. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Menos del 1 %.",
+          "isCorrect": false
+        },
+        {
+          "text": "Entre un 10 % y un 15 %.",
+          "isCorrect": true
+        },
+        {
+          "text": "Más del 50 %.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Una obra lo obliga a detenerse varios minutos. ¿Qué es lo más eficiente?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Movilidad sostenible",
+      "subtopic": "Conducción eficiente, consumo y emisiones",
+      "difficulty": "Baja",
+      "explanation": "En detenciones de más de un minuto es más económico apagar el motor; en un semáforo en rojo normalmente no conviene.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 32. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Acelerar en neutro para que no se apague.",
+          "isCorrect": false
+        },
+        {
+          "text": "Dejarlo encendido, porque encenderlo gasta más.",
+          "isCorrect": false
+        },
+        {
+          "text": "Apagar el motor, porque en detenciones de más de un minuto conviene hacerlo.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "text": "Ve a lo lejos un semáforo en rojo. ¿Qué técnica de conducción eficiente aplica?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Movilidad sostenible",
+      "subtopic": "Conducción eficiente, consumo y emisiones",
+      "difficulty": "Media",
+      "explanation": "Reducir con el cambio engranado corta la inyección de combustible y mejora la capacidad de frenado.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 32. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Seguir acelerando y frenar fuerte al final.",
+          "isCorrect": false
+        },
+        {
+          "text": "Soltar el acelerador con anticipación y reducir con el cambio puesto, sin pasar a neutro.",
+          "isCorrect": true
+        },
+        {
+          "text": "Pasar a neutro y dejar rodar el vehículo.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Sus llantas tienen 5 PSI menos de la presión recomendada. ¿Qué efecto tiene sobre el consumo?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Movilidad sostenible",
+      "subtopic": "Conducción eficiente, consumo y emisiones",
+      "difficulty": "Media",
+      "explanation": "Una llanta desinflada exige más trabajo; además empeora la adherencia y la maniobrabilidad.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 30. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "No tiene ningún efecto.",
+          "isCorrect": false
+        },
+        {
+          "text": "Lo aumenta cerca de un 3 %.",
+          "isCorrect": true
+        },
+        {
+          "text": "Lo reduce, porque la llanta se agarra mejor.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Al encender un carro moderno, ¿qué recomienda la conducción eficiente?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Movilidad sostenible",
+      "subtopic": "Conducción eficiente, consumo y emisiones",
+      "difficulty": "Baja",
+      "explanation": "Los vehículos modernos regulan electrónicamente la inyección al arrancar; acelerar solo aumenta el consumo.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 31. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "No pisar el acelerador.",
+          "isCorrect": true
+        },
+        {
+          "text": "Mantenerlo acelerado durante dos minutos.",
+          "isCorrect": false
+        },
+        {
+          "text": "Acelerar varias veces para calentarlo.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Un conductor lleva siempre en el baúl una caja de herramientas pesada y un portaequipajes en el techo que casi no usa. ¿Qué efecto tiene?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Movilidad sostenible",
+      "subtopic": "Uso responsable del vehículo",
+      "difficulty": "Baja",
+      "explanation": "Mientras más peso lleva el vehículo, más energía necesita para moverse.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 29. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Mejora la estabilidad y reduce el consumo.",
+          "isCorrect": false
+        },
+        {
+          "text": "Aumenta el consumo de combustible: cada kilo cuenta.",
+          "isCorrect": true
+        },
+        {
+          "text": "Ninguno, el peso no influye.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Tiene que hacer tres diligencias en distintos puntos de la ciudad. ¿Qué hábito de uso responsable del vehículo aplica?",
+      "type": "Seleccion multiple",
+      "subject": "Movilidad segura y sostenible",
+      "topic": "Movilidad sostenible",
+      "subtopic": "Uso responsable del vehículo",
+      "difficulty": "Baja",
+      "explanation": "La eficiencia es hacer lo mismo gastando menos: planear la ruta evita kilómetros y viajes innecesarios.",
+      "source": "ANSV, Manual de referencia para la conducción de vehículos (2026), p. 29. Redacción propia de Luz Verde.",
+      "options": [
+        {
+          "text": "Planear la ruta y hacer todas las diligencias en un solo viaje.",
+          "isCorrect": true
+        },
+        {
+          "text": "Buscar la ruta en el celular mientras maneja.",
+          "isCorrect": false
+        },
+        {
+          "text": "Hacer un viaje por cada diligencia para no cansarse.",
+          "isCorrect": false
+        }
+      ]
+    }
+  ]
+}

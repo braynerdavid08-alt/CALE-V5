@@ -14,7 +14,7 @@ public sealed class StudentProgressHandler
     public const int MaxRows = 500;
 
     private static readonly string[] ExamModes = [AttemptModes.Exam];
-    private static readonly string[] PracticeModes = [AttemptModes.Practice, AttemptModes.MixedPractice];
+    private static readonly string[] PracticeModes = [AttemptModes.Practice, AttemptModes.MixedPractice, AttemptModes.Official];
 
     private readonly IAttemptStore _attempts;
 
