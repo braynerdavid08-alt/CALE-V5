@@ -37,7 +37,7 @@ public class CurriculumTreeTests
         var gaps = all.Where(s => s.LessonTitle is null).ToList();
 
         Assert.NotEmpty(covered);
-        Assert.NotEmpty(gaps);
+        Assert.Empty(gaps);
         Assert.All(covered, s =>
         {
             Assert.False(string.IsNullOrWhiteSpace(s.CourseSlug));

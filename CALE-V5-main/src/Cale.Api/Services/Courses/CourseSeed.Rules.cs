@@ -473,6 +473,55 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "Dimensiones, pesos y elementos de seguridad de la carga",
+            "Cómo llevar carga sin tapar las luces, sin exceder lo que el vehículo soporta y sin que se caiga en la vía.",
+            12,
+            [
+                Text(
+                    "La carga también es parte del vehículo",
+                    "El Código exige que la carga no supere la capacidad del vehículo, que vaya bien sujeta y que no arrastre, no se caiga ni oculte las luces, las placas o los espejos. "
+                    + "Un objeto suelto en un frenazo se convierte en un proyectil para quien va adentro y en un obstáculo para quien va detrás.\n\n"
+                    + "El peso y el volumen los define el fabricante, no las ganas de «que quepa». Más peso alarga la distancia de frenado y puede reventar una llanta o doblar la suspensión."),
+                Flip(
+                    "Lo que debe cumplirse",
+                    Card("Peso", "No pases la capacidad de carga del vehículo. Reparte el peso y pon lo más pesado abajo y centrado."),
+                    Card("Sujeción", "Amarra la carga a los puntos del vehículo. Una lona suelta no reemplaza las correas."),
+                    Card("Visibilidad", "No tapes luces, direccionales, placa ni espejos. El de atrás tiene que verte frenar."),
+                    Card("Si sobresale", "De día se señala con un banderín rojo; de noche, con una luz roja. No puede arrastrar ni barrer la vía."),
+                    Card("Lo que no se lleva", "Combustible en recipientes abiertos, carga que gotee y objetos sueltos en la cabina.")),
+                Classify(
+                    "¿Esta forma de llevar carga es correcta?",
+                    ["Correcta", "Incorrecta"],
+                    [
+                        ("Correas en los puntos de anclaje y peso repartido", 0),
+                        ("Lo pesado abajo y centrado", 0),
+                        ("Banderín rojo si la carga sobresale de día", 0),
+                        ("Un colchón amarrado con una sola cuerda floja", 1),
+                        ("Canecas de gasolina destapadas en el baúl", 1),
+                        ("La carga tapando la luz de freno", 1),
+                        ("Más peso del que indica el fabricante", 1)
+                    ],
+                    "Si se mueve, gotea o tapa una luz, ya no es una carga: es un riesgo para ti y para los demás."),
+                Scenario(
+                    "Vas a llevar una nevera en un carro particular. Con el baúl abierto sobresale casi un metro y no tienes cómo señalarla. ¿Qué haces?",
+                    [
+                        Choice("La saco despacio por calles internas, sin señalarla.", "Una carga que sobresale sin señal es invisible para quien viene detrás, sobre todo de noche."),
+                        Choice("Busco un vehículo o un servicio que pueda llevarla cerrada y sujeta.", "Correcto: si no cabe ni se puede señalar, no se transporta en ese carro.", true),
+                        Choice("La dejo en el asiento de atrás, sin amarrar, y cierro el baúl.", "En un frenazo la nevera sigue hacia adelante y puede golpear a quien va adelante.")
+                    ]),
+                TrueFalse(
+                    "Si la carga cabe en el baúl, no importa que pese más de lo que el fabricante autoriza.",
+                    false,
+                    "Falso: el límite es de peso y de volumen. El exceso alarga el frenado y puede dañar llantas y suspensión."),
+                Quiz(
+                    "¿Qué debe verse siempre, aunque el vehículo lleve carga?",
+                    null,
+                    ["Solo la placa delantera", "Las luces, las direccionales, las placas y los espejos", "Únicamente el espejo izquierdo", "Ninguna: la carga tiene prioridad"],
+                    1,
+                    "Quien viene detrás necesita ver tus luces de freno, y tú necesitas los espejos para cambiar de carril.")
+            ]
+        ),
+        (
             "Infracciones y comparendos",
             "Por qué existen las normas, qué es un comparendo, los tipos de multa y cómo obtener descuentos.",
             10,

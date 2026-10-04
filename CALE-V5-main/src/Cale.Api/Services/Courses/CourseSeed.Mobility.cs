@@ -98,6 +98,79 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "Visión Cero: ninguna muerte en la vía es aceptable",
+            "La meta del Plan Nacional de Seguridad Vial: diseñar la movilidad para que un error no termine en una muerte o una lesión grave.",
+            12,
+            [
+                Text(
+                    "Cero no significa que nadie se equivoque",
+                    "Visión Cero es el compromiso de que ninguna muerte ni lesión grave en la vía es un precio aceptable por movernos. "
+                    + "No promete que los choques desaparezcan: las personas se distraen, se cansan y se equivocan. Lo que no se acepta es que ese error cueste una vida.\n\n"
+                    + "Colombia adoptó esta meta en el Plan Nacional de Seguridad Vial. La Agencia Nacional de Seguridad Vial la usa como criterio para vías, vehículos, velocidades y atención a las víctimas."),
+                Flip(
+                    "Qué cambia con Visión Cero",
+                    Card("El error se prevé", "El sistema se diseña sabiendo que alguien va a fallar, no suponiendo que todos conducen perfecto."),
+                    Card("La muerte no es «normal»", "Un siniestro grave se investiga para corregir la vía, la velocidad o el vehículo, no solo para buscar un culpable."),
+                    Card("La velocidad se elige", "Si un peatón puede aparecer, la velocidad máxima tiene que ser una a la que el cuerpo sobreviva."),
+                    Card("Todos responden", "Quien diseña la vía, quien fabrica el vehículo, quien pone la norma y quien conduce tienen una parte.")),
+                Scenario(
+                    "En tu barrio hay un cruce escolar sin cebras ni reductores, y el límite sigue en 50 km/h. Un compañero dice: «Si alguien atropella a un niño, la culpa es solo del conductor». ¿Qué responde Visión Cero?",
+                    [
+                        Choice("Que tiene razón: el conductor es el único responsable.", "El conductor responde por su decisión, pero un cruce escolar sin protección también es una falla del sistema."),
+                        Choice("Que el conductor debe ir más despacio, y que el cruce debería estar diseñado para que un error no mate.", "Correcto: la conducta y el diseño se corrigen juntos. Ninguna de las dos partes se puede omitir.", true),
+                        Choice("Que mientras no haya una muerte, el cruce está bien.", "Esperar a que alguien muera para actuar es lo contrario de Visión Cero.")
+                    ]),
+                TrueFalse(
+                    "Visión Cero significa que está prohibido equivocarse al conducir.",
+                    false,
+                    "Falso: Visión Cero acepta que las personas fallan. Lo que rechaza es que ese fallo termine en una muerte o una lesión grave."),
+                Quiz(
+                    "¿Cuál es la meta de Visión Cero?",
+                    null,
+                    ["Que no vuelva a haber trancones", "Que ninguna muerte ni lesión grave en la vía se acepte como normal", "Que desaparezcan las motos de la ciudad", "Que solo conduzcan conductores profesionales"],
+                    1,
+                    "La meta es eliminar las muertes y las lesiones graves, no eliminar el error humano.")
+            ]
+        ),
+        (
+            "Tolerancia del cuerpo humano al impacto",
+            "Hasta qué velocidad puede sobrevivir el cuerpo en un atropello, un choque lateral o un choque frontal, y por qué eso fija los límites.",
+            12,
+            [
+                Text(
+                    "El cuerpo no negocia con la física",
+                    "Un carro o una moto pueden diseñarse para proteger, pero el cuerpo tiene un límite. Por encima de cierta velocidad, el golpe supera lo que aguanta el cráneo, el cuello o el pecho, "
+                    + "aunque el conductor «haya frenado». Por eso el Sistema Seguro no pide reflejos imposibles: pide velocidades a las que un error todavía sea sobrevivible."),
+                Flip(
+                    "Lo que aguanta el cuerpo",
+                    Card("Peatón o ciclista", "Por debajo de 30 km/h la mayoría sobrevive un atropello. A 50 km/h la probabilidad de morir ya es alta, y a 80 km/h es cerca del 60 % o más."),
+                    Card("Choque lateral", "La puerta es la zona más débil del carro. En un golpe de lado, el cuerpo tolera mucho menos que en un choque de frente."),
+                    Card("Choque frontal", "El cinturón, el airbag y la carrocería absorben energía, pero solo dentro de un rango. A mayor velocidad, esa protección se agota."),
+                    Card("Motociclista", "No hay carrocería. El casco y las protecciones reducen el daño, pero la velocidad del golpe sigue decidiendo la gravedad.")),
+                FillBlank(
+                    "Un peatón atropellado a menos de [[30]] km/h tiene más probabilidad de sobrevivir. A [[80]] km/h el riesgo de morir se acerca al 60 % o lo supera. Por eso una zona escolar se limita a 30 km/h.",
+                    ["10", "120", "200"],
+                    "La misma cifra ya aparece en la lección de víctimas: la velocidad no solo hace más probable el siniestro, decide si el cuerpo lo resiste."),
+                Scenario(
+                    "Vas por una calle residencial de Barranquilla a 50 km/h, que es el máximo urbano. Hay niños en la acera y carros parqueados que te tapan la vista. ¿Qué haces con la velocidad?",
+                    [
+                        Choice("Sigo a 50, porque es el límite y estoy cumpliendo.", "El límite es el máximo, no la velocidad segura. A 50 km/h un niño que sale entre dos carros tiene pocas opciones de sobrevivir."),
+                        Choice("Bajo a una velocidad cercana a 30 km/h mientras haya personas y poca visibilidad.", "Correcto: eliges una velocidad que el cuerpo de un peatón puede tolerar si alguien aparece.", true),
+                        Choice("Acelero para salir pronto de esa calle.", "A más velocidad, el golpe es más grave y tienes menos metros para reaccionar.")
+                    ]),
+                TrueFalse(
+                    "Si el carro tiene airbags y cinturón, la velocidad del choque ya no importa.",
+                    false,
+                    "Falso: esas protecciones funcionan dentro de un rango de velocidad. Por encima, la energía del golpe supera lo que pueden absorber."),
+                Quiz(
+                    "¿Por qué las zonas escolares se limitan a 30 km/h?",
+                    null,
+                    ["Porque a esa velocidad se gasta menos gasolina", "Porque es una velocidad a la que un peatón atropellado tiene más probabilidad de sobrevivir", "Porque los niños no saben leer otras señales", "Porque el semáforo no funciona de día"],
+                    1,
+                    "30 km/h es un límite pensado en la tolerancia del cuerpo, no solo en la fluidez del tráfico.")
+            ]
+        ),
+        (
             "Víctimas y consecuencias de los siniestros",
             "Quiénes son las víctimas, por qué la velocidad decide la gravedad y cómo un siniestro cambia la vida de una familia.",
             18,

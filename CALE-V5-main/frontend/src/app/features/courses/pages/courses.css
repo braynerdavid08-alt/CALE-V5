@@ -47,6 +47,20 @@
   color: var(--color-success);
 }
 
+.nucleus {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.nucleus > h2 {
+  margin: 0.75rem 0 0;
+  font-size: var(--text-xl);
+}
+
+.nucleus .lede {
+  margin: 0;
+}
+
 .course-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(16.5rem, 1fr));

@@ -236,6 +236,52 @@ public sealed partial class CourseSeed
                     1,
                     "Al bajarse junto al andén, el pasajero llega directo a una zona segura, sin cruzar frente al tráfico.")
             ]
+        ),
+        (
+            "Puentes, túneles y cunetas",
+            "Cómo cambia la conducción en un puente o un túnel, y por qué la cuneta no es un carril ni un sitio para detenerse.",
+            12,
+            [
+                Text(
+                    "Tres partes de la vía que se conducen distinto",
+                    "Un puente concentra el viento, reduce el espacio para orillarse y suele prohibir detenerse o adelantar. "
+                    + "Un túnel quita la luz del día y no tiene salida lateral. "
+                    + "La cuneta es la zanja de drenaje al borde: saca el agua de la calzada, no es un carril de emergencia ni un parqueadero."),
+                Flip(
+                    "Qué hacer en cada uno",
+                    Card("Puente", "Mantén tu carril, reduce si hay viento o piso húmedo y no te detengas encima. No uses la berma para adelantar."),
+                    Card("Túnel", "Enciende las luces bajas antes de entrar, guarda más distancia y no gires en U ni reverses. Si el carro falla, usa la bahía si existe y señaliza."),
+                    Card("Cuneta", "No la uses para rebasar ni para parquear. El borde puede ceder y el agua esconde qué tan profunda es.")),
+                Classify(
+                    "¿Esta maniobra es adecuada en un túnel?",
+                    ["Adecuada", "Prohibida o peligrosa"],
+                    [
+                        ("Entrar con las luces bajas encendidas", 0),
+                        ("Aumentar la distancia con el de adelante", 0),
+                        ("Detenerte en una bahía si el carro falla", 0),
+                        ("Hacer un giro en U para devolverte", 1),
+                        ("Retroceder hasta la entrada", 1),
+                        ("Apagar las luces porque el túnel está iluminado", 1)
+                    ],
+                    "En un túnel no hay a dónde hacerse a un lado. Por eso no se reversa, no se gira en U y las luces siguen encendidas."),
+                Scenario(
+                    "Llueve en Barranquilla y la cuneta del lado derecho va llena. Un carro detenido te tapa el carril y alguien te dice que lo pases metiéndote a la cuneta. ¿Qué haces?",
+                    [
+                        Choice("Me meto a la cuneta: es poco espacio y el agua no se ve profunda.", "La cuneta no es un carril. El agua esconde huecos, tapas sueltas y un borde que puede ceder."),
+                        Choice("Espero a poder cambiar de carril con seguridad, sin pisar la cuneta.", "Correcto: pierdes un minuto y no arriesgas una caída o un daño en la llanta.", true),
+                        Choice("La uso solo con las llantas de la derecha, para ir más rápido.", "Con dos llantas en la cuneta pierdes el control si el borde está blando o hay un hueco.")
+                    ]),
+                TrueFalse(
+                    "En un puente está permitido detenerse a tomar una foto si dejas las luces de emergencia encendidas.",
+                    false,
+                    "Falso: detenerse en un puente deja sin escape a quien viene detrás y suele estar prohibido. La foto se toma fuera de la vía."),
+                Quiz(
+                    "¿Para qué sirve la cuneta?",
+                    null,
+                    ["Para adelantar cuando el carril está lleno", "Para sacar el agua de la calzada", "Para parquear en caso de lluvia", "Para que las motos circulen más rápido"],
+                    1,
+                    "La cuneta es drenaje. Usarla como carril o como parqueadero termina en un hueco, una llanta rota o una caída.")
+            ]
         )
     ];
 }
