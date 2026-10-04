@@ -77,6 +77,12 @@ public sealed class UsersController : ControllerBase
             request,
             ct));
 
+    [HttpGet("{id:int}/status-history")]
+    public async Task<ActionResult<IReadOnlyList<AccountStatusEventDto>>> StatusHistory(
+        int id,
+        CancellationToken ct) =>
+        Ok(await _setActive.HistoryAsync(id, ct));
+
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {

@@ -7,6 +7,7 @@ using Cale.BuildingBlocks.Domain.Validation;
 using Cale.Modules.Identity.Application.Abstractions;
 using Cale.Modules.Identity.Application.DTOs;
 using Cale.Modules.Identity.Application.Services;
+using Cale.Modules.Identity.Domain;
 using Microsoft.Extensions.Logging;
 
 namespace Cale.Modules.Identity.Application.Commands;
@@ -17,6 +18,7 @@ public sealed class LoginUserHandler
     private readonly IPasswordHasher _hasher;
     private readonly ITokenService _tokens;
     private readonly IClock _clock;
+    private readonly IAccountStatusStore _status;
     private readonly ILogger<LoginUserHandler> _logger;
 
     public LoginUserHandler(
@@ -24,12 +26,14 @@ public sealed class LoginUserHandler
         IPasswordHasher hasher,
         ITokenService tokens,
         IClock clock,
+        IAccountStatusStore status,
         ILogger<LoginUserHandler> logger)
     {
         _users = users;
         _hasher = hasher;
         _tokens = tokens;
         _clock = clock;
+        _status = status;
         _logger = logger;
     }
 
@@ -52,13 +56,32 @@ public sealed class LoginUserHandler
 
         if (!user.IsActive)
         {
-            _logger.LogWarning(
-                "Login failed user_inactive email={Email} userId={UserId}",
-                PersonalData.MaskEmail(email),
-                user.Id);
-            throw new ForbiddenException(
-                "User is inactive.",
-                "user_inactive");
+            var latest = await _status.LatestAsync(user.Id, ct);
+            if (latest is not null && latest.HasExpired(_clock.UtcNow))
+            {
+                user.Activate();
+                await _status.AddAsync(
+                    AccountStatusEvent.Reactivate(user.Id, "Terminó el periodo de suspensión.", null, _clock.UtcNow),
+                    ct);
+                _logger.LogInformation("Suspension expired; user {UserId} reactivated at login", user.Id);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Login failed user_inactive email={Email} userId={UserId}",
+                    PersonalData.MaskEmail(email),
+                    user.Id);
+                if (latest is { IsSuspension: true })
+                {
+                    throw new ForbiddenException(
+                        AccountSuspensionMessages.ForUser(latest),
+                        AccountSuspensionMessages.Code);
+                }
+
+                throw new ForbiddenException(
+                    "User is inactive.",
+                    "user_inactive");
+            }
         }
 
         if (!user.EmailConfirmed)

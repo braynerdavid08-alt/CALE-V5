@@ -136,6 +136,7 @@ public static class WebApplicationExtensions
             await PlaySchemaGuard.EnsureAsync(db, bootLogger);
             await PushSchemaGuard.EnsureAsync(db, bootLogger);
             await UserRequestSchemaGuard.EnsureAsync(db, bootLogger);
+            await AccountStatusSchemaGuard.EnsureAsync(db, bootLogger);
             await ExamScheduleSchemaGuard.EnsureAsync(db, bootLogger);
             await UserPhotoSchemaGuard.EnsureAsync(db, bootLogger);
             await UserCreatorSchemaGuard.EnsureAsync(db, bootLogger);

@@ -17,6 +17,7 @@ public static class DependencyInjection
         services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();
         services.AddScoped<ISchoolProfileStore, SchoolProfileStore>();
         services.AddScoped<IMembershipEventStore, MembershipEventStore>();
+        services.AddScoped<IAccountStatusStore, AccountStatusStore>();
         services.AddScoped<IUserLookup, UserLookupService>();
         services.AddScoped<ISchoolAffiliationLookup, SchoolAffiliationLookup>();
         services.AddScoped<ISchoolMembershipGuard, SchoolMembershipGuard>();
