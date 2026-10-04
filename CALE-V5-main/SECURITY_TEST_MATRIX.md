@@ -128,6 +128,15 @@ Barrido automático (`StudentPentestSweepTests`): enumera los 355 endpoints HTTP
 | `GET/POST /api/staff/inactive-students` | Student_B | vacío o 4xx | vacío / `sent: 0` | ✅ | Media |
 | Ranking global y `groupId` de otra escuela | Student_B | sin correos ni grupo ajeno | igual (nombre + inicial por diseño, P-B14) | ✅ | Baja |
 
+## Directorio público de instructores (`InstructorDirectoryTests`)
+
+| Petición | Usuario | Esperado | Actual | Estado | Severidad |
+|----------|---------|----------|--------|--------|-----------|
+| `GET /api/public/instructors` sin que nadie lo active | anónimo | ningún instructor | ninguno | ✅ | Baja (P-B13) |
+| Teacher_2 activa y luego desactiva su aparición | Teacher_2 | aparece solo mientras está activo, sin correos | igual | ✅ | Baja |
+| `PUT /api/me/directory-listing` | anónimo / Student_A / School_1 | 401 / 403 / 403 | igual | ✅ | Media |
+| Invitación al directorio repetida tras borrarla | Teacher_1 | una sola notificación | una | ✅ | — |
+
 ## Pendientes sin prueba automática (decisión de negocio o cambio de UI)
 
 | Caso | Motivo |

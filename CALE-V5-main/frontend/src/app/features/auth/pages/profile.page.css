@@ -123,3 +123,13 @@ dd {
   border-color: transparent;
   color: var(--color-success);
 }
+
+.directory-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+

@@ -141,6 +141,7 @@ public static class WebApplicationExtensions
             await UserCreatorSchemaGuard.EnsureAsync(db, bootLogger);
             await RefreshTokenSchemaGuard.EnsureAsync(db, bootLogger);
             await SchoolJoinRequestSchemaGuard.EnsureAsync(db, bootLogger);
+            await InstructorListingSchemaGuard.EnsureAsync(db, bootLogger);
             await Cale.Modules.GameShow.Infrastructure.Persistence.GameShowPackSchemaGuard
                 .EnsureAsync(db, bootLogger);
             await Cale.Modules.Courses.Infrastructure.Persistence.CourseSchemaGuard.EnsureAsync(db, bootLogger);
@@ -254,6 +255,22 @@ public static class WebApplicationExtensions
                 .Where(x => x.Email == adminEmail.Trim().ToLowerInvariant())
                 .Select(x => (int?)x.Id)
                 .FirstOrDefaultAsync();
+        }
+
+        try
+        {
+            var invited = await scope.ServiceProvider.GetRequiredService<Cale.Api.Services.HomepageService>()
+                .InviteInstructorsToDirectoryAsync(
+                    scope.ServiceProvider.GetRequiredService<Cale.BuildingBlocks.Domain.Abstractions.INotificationPublisher>(),
+                    CancellationToken.None);
+            if (invited > 0)
+            {
+                seedLogger.LogInformation("Invited {Count} instructors to the public directory.", invited);
+            }
+        }
+        catch (Exception ex)
+        {
+            seedLogger.LogWarning(ex, "Could not send the instructor directory invitation.");
         }
 
         var seedDir = Path.Combine(app.Environment.ContentRootPath, "SeedData");

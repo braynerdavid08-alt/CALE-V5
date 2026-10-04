@@ -87,6 +87,8 @@ export class ProfilePage implements OnInit {
   readonly joinRequests = signal<SchoolJoinRequestDto[]>([]);
   readonly decidingId = signal<number | null>(null);
   readonly schoolInfo = signal<SchoolInfo | null>(null);
+  readonly directoryListed = signal<boolean | null>(null);
+  readonly savingDirectory = signal(false);
 
   readonly pendingInvites = computed(() =>
     this.joinRequests().filter((r) => r.direction === 'Invite' && r.status === 'Pending')
@@ -154,6 +156,9 @@ export class ProfilePage implements OnInit {
         if (dto.role === 'School') {
           this.loadSchoolInfo();
         }
+        if (dto.role === 'Teacher') {
+          this.loadDirectoryListing();
+        }
       },
       error: (err) => {
         this.loading.set(false);
@@ -166,6 +171,35 @@ export class ProfilePage implements OnInit {
     this.http.get<SchoolInfo>(`${env.apiUrl}/api/school/profile`).subscribe({
       next: (dto) => this.schoolInfo.set(dto),
       error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  loadDirectoryListing(): void {
+    this.http.get<{ listed: boolean }>(`${env.apiUrl}/api/me/directory-listing`).subscribe({
+      next: (dto) => this.directoryListed.set(dto.listed),
+      error: () => this.directoryListed.set(false)
+    });
+  }
+
+  toggleDirectory(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const listed = input.checked;
+    this.savingDirectory.set(true);
+    this.error.set(null);
+    this.success.set(null);
+    this.http.put<{ listed: boolean }>(`${env.apiUrl}/api/me/directory-listing`, { listed }).subscribe({
+      next: (dto) => {
+        this.savingDirectory.set(false);
+        this.directoryListed.set(dto.listed);
+        this.success.set(dto.listed
+          ? 'Ahora apareces en el directorio público de instructores.'
+          : 'Ya no apareces en el directorio público.');
+      },
+      error: (err) => {
+        this.savingDirectory.set(false);
+        input.checked = !listed;
+        this.error.set(mapApiError(err));
+      }
     });
   }
 

@@ -199,7 +199,7 @@ el tráfico real de la API.
 | P-B10 | Sin `kid` ni rotación de clave JWT; access token válido hasta 60 min tras logout | ⏳ Mitigado: cada request revalida usuario activo y rol (`MustChangePasswordMiddleware`). Prueba `Valid_token_of_a_deactivated_user_is_401` |
 | P-B11 | Si `Cors:Origins` se configura como `*` se abre a todo origen (sin credenciales) | ⏳ Configuración; no usar `*` en producción |
 | P-B12 | Perfil de usuario y token de jugador de "100 Estudiantes" en `localStorage` | ⏳ Sin tokens de sesión (cookies HttpOnly); mover a `sessionStorage` en una próxima versión |
-| P-B13 | `GET /api/public/instructors` (anónimo) lista a todos los instructores activos con id, nombre + inicial y escuela, sin que el instructor lo elija | ⏳ Sin correos ni datos de contacto (barrido `StudentPentestSweepTests`); decidir si debe ser opcional |
+| P-B13 | `GET /api/public/instructors` (anónimo) lista a todos los instructores activos con id, nombre + inicial y escuela, sin que el instructor lo elija | ✅ Ahora es voluntario: solo aparecen instructores que lo activan en Perfil > Preferencias (`PUT /api/me/directory-listing`, solo rol Teacher; tabla `InstructorListings`). Desactivado por defecto; cada instructor recibe una única invitación. Pruebas `InstructorDirectoryTests` |
 | P-B14 | Ranking "Todo Luz Verde" muestra id y nombre + inicial de estudiantes de otras escuelas | ⏳ Por diseño; existe la opción de ocultarse (`ranking/visibility`). Sin correos (prueba `Ranking_never_exposes_contact_data_and_ignores_foreign_group_ids`) |
 | P-B15 | Hub `GameShowHub.JoinAsScreen(sessionId)` no exige sesión ni ser el dueño | ⏳ Solo recibe la vista pública de la partida (misma que M13). Revisado en código, sin prueba automática (requiere cliente SignalR) |
 

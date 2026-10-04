@@ -139,6 +139,24 @@
 
       <app-push-settings />
 
+      @if (role() === 'Teacher') {
+        <ui-card>
+          <h2>Directorio público de instructores</h2>
+          <p class="muted">
+            Si lo activas, cualquier visitante de Luz Verde verá tu nombre con la inicial de tu apellido
+            y tu escuela. Nunca se muestran tu correo ni tu teléfono. Puedes desactivarlo cuando quieras.
+          </p>
+          <label class="directory-toggle">
+            <input
+              type="checkbox"
+              [checked]="directoryListed()"
+              [disabled]="savingDirectory() || directoryListed() === null"
+              (change)="toggleDirectory($event)" />
+            Aparecer en el directorio público
+          </label>
+        </ui-card>
+      }
+
       <ui-card>
         <h2>Accesos rápidos</h2>
         <p class="muted">Atajos según tu rol en Luz Verde.</p>

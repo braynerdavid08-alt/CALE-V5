@@ -1,5 +1,7 @@
 using System.Text.Json;
+using Cale.BuildingBlocks.Domain.Abstractions;
 using Cale.BuildingBlocks.Domain.Auth;
+using Cale.BuildingBlocks.Domain.Engagement;
 using Cale.BuildingBlocks.Domain.Time;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
 using Cale.Modules.Assessment.Domain;
@@ -303,11 +305,22 @@ public sealed class HomepageService
         int take,
         CancellationToken ct)
     {
-        var teachers = await _db.Set<User>().AsNoTracking()
-            .Where(u => u.IsActive && u.Role == Roles.Teacher)
-            .OrderBy(u => u.Name)
-            .Take(Math.Clamp(take, 1, 50))
-            .ToListAsync(ct);
+        List<User> teachers;
+        try
+        {
+            teachers = await _db.Set<User>().AsNoTracking()
+                .Where(u => u.IsActive
+                    && u.Role == Roles.Teacher
+                    && _db.Set<InstructorListing>().Any(l => l.UserId == u.Id))
+                .OrderBy(u => u.Name)
+                .Take(Math.Clamp(take, 1, 50))
+                .ToListAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Public instructor directory unavailable.");
+            return [];
+        }
 
         var schoolIds = teachers.Where(t => t.SchoolId != null).Select(t => t.SchoolId!.Value).Distinct().ToList();
         var profiles = await _db.Set<SchoolProfile>().AsNoTracking()
@@ -320,6 +333,58 @@ public sealed class HomepageService
             PublicDisplayName(t.Name),
             t.SchoolId is { } sid && names.TryGetValue(sid, out var sn) ? sn : null,
             "/instructores")).ToList();
+    }
+
+    public const string DirectoryInviteDedupeKey = "instructor-directory-invite-v1";
+
+    public Task<bool> IsListedInDirectoryAsync(int userId, CancellationToken ct) =>
+        _db.Set<InstructorListing>().AsNoTracking().AnyAsync(l => l.UserId == userId, ct);
+
+    public async Task<bool> SetDirectoryListingAsync(int userId, bool listed, CancellationToken ct)
+    {
+        var row = await _db.Set<InstructorListing>().FirstOrDefaultAsync(l => l.UserId == userId, ct);
+        if (listed && row is null)
+        {
+            _db.Add(InstructorListing.Create(userId, _clock.UtcNow));
+        }
+        else if (!listed && row is not null)
+        {
+            _db.Remove(row);
+        }
+
+        await _db.SaveChangesAsync(ct);
+        InvalidatePublicCache();
+        return listed;
+    }
+
+    /// <summary>
+    /// One invitation per active instructor who is not listed yet. Archived notifications still count,
+    /// so a deleted invitation is never sent again.
+    /// </summary>
+    public async Task<int> InviteInstructorsToDirectoryAsync(INotificationPublisher publisher, CancellationToken ct)
+    {
+        var pending = await _db.Set<User>().AsNoTracking()
+            .Where(u => u.IsActive
+                && u.Role == Roles.Teacher
+                && !_db.Set<InstructorListing>().Any(l => l.UserId == u.Id)
+                && !_db.Set<AppNotification>().Any(n => n.UserId == u.Id && n.DedupeKey == DirectoryInviteDedupeKey))
+            .Select(u => u.Id)
+            .ToListAsync(ct);
+        if (pending.Count == 0)
+        {
+            return 0;
+        }
+
+        await publisher.NotifyUsersAsync(
+            pending,
+            new NotificationDraft(
+                "¿Quieres aparecer en el directorio de instructores?",
+                "Ahora puedes elegir si tu nombre y tu escuela se muestran en el directorio público de Luz Verde. Actívalo en Perfil > Preferencias.",
+                NotificationTypes.System,
+                Link: "/profile?tab=preferences",
+                DedupeKey: DirectoryInviteDedupeKey),
+            ct);
+        return pending.Count;
     }
 
     /// <summary>Best visible simulator reviews for the public landing (first name + initial only).</summary>

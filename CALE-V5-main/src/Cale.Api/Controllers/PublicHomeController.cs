@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using System.Text.Json;
+using Cale.Api.Extensions;
 using Cale.Api.Services;
+using Cale.BuildingBlocks.Domain.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -63,6 +65,26 @@ public sealed class PublicHomeController : ControllerBase
         CancellationToken ct = default) =>
         _home.ListPublicTestimonialsAsync(take, ct);
 }
+
+[ApiController]
+[Authorize(Roles = Roles.Teacher)]
+[Route("api/me/directory-listing")]
+public sealed class InstructorDirectoryController : ControllerBase
+{
+    private readonly HomepageService _home;
+
+    public InstructorDirectoryController(HomepageService home) => _home = home;
+
+    [HttpGet]
+    public async Task<DirectoryListingDto> Get(CancellationToken ct) =>
+        new(await _home.IsListedInDirectoryAsync(CurrentUser.GetId(User), ct));
+
+    [HttpPut]
+    public async Task<DirectoryListingDto> Put([FromBody] DirectoryListingDto body, CancellationToken ct) =>
+        new(await _home.SetDirectoryListingAsync(CurrentUser.GetId(User), body.Listed, ct));
+}
+
+public sealed record DirectoryListingDto(bool Listed);
 
 [ApiController]
 [Authorize(Policy = "AdminOnly")]
