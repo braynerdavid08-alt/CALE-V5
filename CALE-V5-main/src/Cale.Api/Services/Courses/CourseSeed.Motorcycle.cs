@@ -11,7 +11,7 @@ public sealed partial class CourseSeed
         (
             "Antes de salir: elementos de protección y alistamiento",
             "El casco, la ropa de protección, los documentos, el kit de herramientas y la preparación del cuerpo antes de subirte a la moto.",
-            16,
+            20,
             [
                 Text(
                     "Tu carrocería es tu equipo",
@@ -21,12 +21,27 @@ public sealed partial class CourseSeed
                 Video("ansv-moto-alistamiento.mp4", "Cómo prepararse y alistar la moto antes de un recorrido. Video: Agencia Nacional de Seguridad Vial (ANSV)."),
                 Flip(
                     "Los elementos de protección",
-                    Card("Casco", "Obligatorio para conductor y acompañante. Debe cumplir el reglamento técnico (Resolución 20203040023385 de 2020), tener su certificación (por ejemplo DOT, ECE 22 o NTC 4533) y ser de tu talla. La correa va abrochada, sin pasar por la mandíbula, dejando apenas un centímetro con el cuello: si te lo puedes quitar sin soltarla, está floja. El integral protege también la mandíbula."),
-                    Card("Prenda reflectiva", "Conductor y acompañante deben llevarla entre las 18:00 y las 6:00 y siempre que haya poca visibilidad. De día, la ropa clara y llamativa también ayuda a que te vean."),
-                    Card("Guantes", "En una caída, las manos son lo primero que toca el piso. Deben tener protección en palmas y nudillos."),
-                    Card("Chaqueta y pantalón con protecciones", "Protegen hombros, codos, espalda, caderas y rodillas de golpes y raspaduras."),
+                    Card("Casco", "Obligatorio para conductor y acompañante. Debe estar certificado según el reglamento técnico vigente (Resolución 20233040005155 de 2023, que acepta la norma ONU R22.06; también se ven sellos DOT o NTC 4533) y ser de tu talla. La correa va abrochada, sin pasar por la mandíbula, dejando apenas un centímetro con el cuello: si te lo puedes quitar sin soltarla, está floja. El integral es el que más protege."),
+                    Card("Prenda reflectiva", "Conductor y acompañante deben llevarla entre las 18:00 y las 6:00 y siempre que haya poca visibilidad. La ANSV recomienda usarla siempre: también te hace más visible en los puntos ciegos de carros y buses."),
+                    Card("Guantes", "En una caída, las manos son lo primero que toca el piso. Deben tener protección en palmas y nudillos; busca la certificación EN 13594. Según estudios citados por la ANSV, previenen cerca de 1 de cada 5 lesiones en las manos."),
+                    Card("Chaqueta y pantalón con protecciones", "Protegen hombros, codos, espalda, caderas y rodillas. Las protecciones con certificación EN 1621 reducen casi a la mitad las lesiones en el torso."),
                     Card("Botas", "Que cubran el tobillo y tengan suela antideslizante. Las chanclas y los tenis no protegen."),
                     Card("Impermeable de dos piezas", "Los impermeables tipo poncho o ruana se pueden enredar en la cadena o en las llantas.")),
+                Text(
+                    "El casco, bien usado",
+                    "Un casco certificado reduce cerca de un 69 % el riesgo de una lesión grave en la cabeza y cerca de un 42 % el riesgo de morir en un choque. "
+                    + "Aun así, alrededor de un tercio de los motociclistas que mueren en Colombia fallecen por trauma en la cabeza (ANSV, 2024).\n\n"
+                    + "La norma (Resolución 20203040023385 de 2020) fija tres condiciones de uso:\n\n"
+                    + "1. La cabeza va totalmente dentro del casco y la correa abrochada debajo de la mandíbula, sin correas rotas ni broches partidos.\n"
+                    + "2. Nada entre la cabeza y el casco: el celular solo con manos libres.\n"
+                    + "3. Si el casco es abatible, la mentonera va cerrada y asegurada mientras circulas.\n\n"
+                    + "Desde la Ley 2251 de 2022 no te pueden exigir que el casco tenga pintada la placa de la moto."),
+                Text(
+                    "Lo que muestran los datos en Barranquilla",
+                    "En un estudio de la ANSV con motociclistas de Barranquilla y su área metropolitana, el 39 % dijo haber tenido algún siniestro, y para el 78 % la moto es su herramienta de trabajo. "
+                    + "Los propios motociclistas señalaron como tramos de riesgo la Circunvalar, La Cordialidad, la Murillo y la Vía 40: contravía, cruces sobre los separadores, huecos y arroyos cuando llueve fuerte. "
+                    + "En la ciudad es común ver a acompañantes con el casco en la mano o mal puesto.\n\n"
+                    + "A nivel nacional, solo 1 de cada 5 motociclistas usa prenda reflectiva y casi la mitad de los acompañantes no usa casco (ANSV, 2024)."),
                 Text(
                     "Documentos y kit básico",
                     "Además de tu licencia de conducción de categoría A2, la moto necesita licencia de tránsito, SOAT vigente y, desde los dos años de matriculada, revisión técnico-mecánica. "
@@ -57,6 +72,10 @@ public sealed partial class CourseSeed
                         Choice("Me lo pongo y lo abrocho, aunque sean cinco cuadras.", "Correcto: el casco funciona solo si está puesto y abrochado, en cualquier distancia.", true),
                         Choice("Me lo pongo sin abrochar para que no me dé calor.", "Un casco sin abrochar se sale con el primer golpe y no protege nada.")
                     ]),
+                TrueFalse(
+                    "Con un casco abatible puedes circular con la mentonera levantada si hace calor, siempre que vaya abrochado.",
+                    false,
+                    "Falso: la norma exige que la mentonera de un casco abatible vaya cerrada y asegurada mientras circulas. Levantada no protege la cara."),
                 TrueFalse(
                     "El acompañante corre menos riesgo que el conductor, por eso puede ir sin casco.",
                     false,
@@ -160,6 +179,7 @@ public sealed partial class CourseSeed
                     Card("Usar el freno delantero en plena curva", "Puede hacer que la llanta delantera pierda agarre."),
                     Card("Invadir el carril contrario", "En una curva ciega, el que viene de frente no te ve."),
                     Card("No mirar hacia la salida", "La moto va hacia donde miras: mira la salida, no el borde.")),
+                Video("clase-curva-moto.mp4", "Motos bajando una curva cerrada en una vía rural. Fíjate en la posición de cada una dentro del carril y en que, desde la entrada, no se alcanza a ver lo que viene. Video: Luz Verde."),
                 Tip("Con lluvia o neblina, frena antes y con más suavidad, inclina menos y evita la franja central del carril, donde se acumula el aceite de los vehículos."),
                 Scenario(
                     "Entras a una curva cerrada y te das cuenta de que vienes un poco más rápido de lo que debías. ¿Qué es lo más seguro?",

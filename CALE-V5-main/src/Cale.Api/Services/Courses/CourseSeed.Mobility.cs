@@ -254,6 +254,12 @@ public sealed partial class CourseSeed
                     + "Dentro de ellos hay personas aún más vulnerables: niños, que son pequeños, impulsivos y calculan mal las distancias; "
                     + "personas mayores, que caminan más despacio y pueden ver u oír menos; y personas con discapacidad, que pueden necesitar más tiempo o no percibir el vehículo."),
                 Text(
+                    "Motociclistas en Barranquilla",
+                    "En un estudio de la ANSV en Barranquilla y su área metropolitana, el 39 % de los motociclistas dijo haber tenido algún siniestro, y para el 78 % la moto es su herramienta de trabajo. "
+                    + "Ellos mismos perciben como riesgo a los camiones, los buses y los taxis, porque la convivencia con ellos es tensa, "
+                    + "y a los peatones que cruzan la Circunvalar sin usar los puentes peatonales.\n\n"
+                    + "Si conduces un vehículo grande, revisa espejos y puntos ciegos antes de cambiar de carril: la moto que no ves está ahí con frecuencia."),
+                Text(
                     "La pirámide de la movilidad",
                     "La movilidad sostenible ordena las prioridades de abajo hacia arriba según la vulnerabilidad y el beneficio para la ciudad: "
                     + "primero el peatón, después la bicicleta, luego el transporte público, el transporte de carga y, al final, el vehículo particular.\n\n"

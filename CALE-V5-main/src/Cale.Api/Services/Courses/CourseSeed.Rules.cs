@@ -73,8 +73,8 @@ public sealed partial class CourseSeed
         ),
         (
             "Autoridades de tránsito y el Código",
-            "Quiénes son las autoridades, cómo actuar ante un agente o un control, y cómo aplicar el Código a un caso real.",
-            12,
+            "Quiénes son las autoridades, tus derechos y deberes en un control, y cómo aplicar el Código a un caso real.",
+            16,
             [
                 Text(
                     "El Código Nacional de Tránsito",
@@ -95,6 +95,28 @@ public sealed partial class CourseSeed
                     + "y las órdenes directas de una autoridad.\n\n"
                     + "Cuando no coinciden, manda la condición actual: primero el agente, luego el semáforo, después la señal temporal y por último la fija. "
                     + "Un control vial no es una confrontación: es la forma de ordenar la circulación y proteger a todos."),
+                Text(
+                    "Tus derechos y deberes en un control",
+                    "El respeto va en las dos direcciones. Tú debes atender las indicaciones de la autoridad, detenerte cuando te lo ordenen, hablar con respeto y presentar tus documentos. "
+                    + "La autoridad debe tratarte con dignidad y seguir el procedimiento que fija la ley (Código de Policía, Ley 1801 de 2016, artículo 171).\n\n"
+                    + "Algunas reglas que conviene conocer:\n\n"
+                    + "• Puedes grabar el procedimiento con tu celular, con calma y sin estorbar. Ninguna autoridad puede impedirlo sin una justificación legal (Ley 1801 de 2016, artículo 21).\n"
+                    + "• Los documentos se pueden presentar en físico o mediante la consulta en el RUNT: la información del RUNT tiene el mismo valor que el papel.\n"
+                    + "• La revisión técnico-mecánica la verifica la autoridad en el RUNT; no te pueden exigir el certificado físico (Código de Tránsito, artículo 53).\n"
+                    + "• Si te imponen un comparendo, el agente debe entregarte la orden y explicarte cómo y en qué plazo puedes responder.\n"
+                    + "• Si el vehículo es inmovilizado, se hace un inventario de lo que hay dentro y de su estado al entrar y al salir del parqueadero.\n\n"
+                    + "Si crees que hubo un abuso, no discutas en la vía: guarda la evidencia y preséntala en la audiencia o ante la oficina de control interno o la Procuraduría."),
+                Scenario(
+                    "Un agente te detiene en un control y te pide los documentos. No llevas el certificado de la revisión técnico-mecánica en papel, pero está vigente. ¿Qué haces?",
+                    [
+                        Choice("Discuto en voz alta y me niego a mostrar cualquier documento.", "Negarte y alterarte empeora la situación y puede ser una falta de respeto a la autoridad. Tus documentos sí debes presentarlos."),
+                        Choice("Presento mi licencia, la licencia de tránsito y el SOAT, y le recuerdo con respeto que la revisión técnico-mecánica se verifica en el RUNT.", "Correcto: cumples tu deber y haces valer tu derecho con respeto. Si quieres, puedes grabar el procedimiento.", true),
+                        Choice("Le ofrezco dinero para que me deje ir.", "Ofrecer dinero a un servidor público es un delito (cohecho), aunque los documentos estén en regla.")
+                    ]),
+                TrueFalse(
+                    "Si un agente de tránsito te detiene, puedes grabar el procedimiento con tu celular siempre que no interfieras con su labor.",
+                    true,
+                    "Verdadero: todo procedimiento de policía puede ser grabado (Ley 1801 de 2016, artículo 21). Grabar con calma también protege al agente que actúa bien."),
                 Scenario(
                     "Llegas a un cruce con el semáforo apagado y un agente de tránsito regulando el paso con la mano. ¿Qué haces?",
                     [
@@ -458,8 +480,9 @@ public sealed partial class CourseSeed
                     "Alcohol y sustancias: no hay cantidad segura",
                     "El alcohol, las sustancias psicoactivas y algunos medicamentos alteran la percepción, el juicio y la reacción. Desde 20 miligramos de etanol por cada 100 mililitros de sangre ya hay sanción:\n\n"
                     + "Grado cero: de 20 a 39 mg/100 ml.\nPrimer grado: de 40 a 99 mg/100 ml.\nSegundo grado: de 100 a 149 mg/100 ml.\nTercer grado: 150 mg/100 ml o más.\n\n"
-                    + "En todos los casos se retiene la licencia y el vehículo se inmoviliza. Si te niegas a hacer la prueba, te cancelan la licencia "
-                    + "y la multa es de 1.440 salarios mínimos diarios. Las multas por alcohol no tienen el descuento por hacer el curso."),
+                    + "En todos los casos se retiene la licencia y el vehículo se inmoviliza. Si te niegas a hacer la prueba o huyes del control, te cancelan la licencia, "
+                    + "la multa es de 1.440 salarios mínimos diarios y el vehículo queda inmovilizado 20 días hábiles (Ley 1696 de 2013). Las multas por alcohol no tienen el descuento por hacer el curso.\n\n"
+                    + "Y si causas la muerte de alguien conduciendo con alcohol o drogas, la pena por homicidio culposo aumenta de dos terceras partes al doble."),
                 Tip("No intentes calcular cuándo «ya puedes» manejar, y no confíes en sentirte bien. Si vas a tomar, planea desde antes cómo vas a volver."),
                 Video("clase-alcoholemia-0.mp4", "Clase de alcoholemia y pruebas, parte 1 de 5."),
                 Video("clase-alcoholemia-1.mp4", "Clase de alcoholemia y pruebas, parte 2 de 5."),
@@ -556,6 +579,17 @@ public sealed partial class CourseSeed
                     + "Pagar el 50% de la multa dentro de los 5 días siguientes al comparendo.\n"
                     + "Pagar el 75% dentro de los 20 días siguientes.\n\n"
                     + "Si no pagas en esos plazos, pagas el 100% más intereses. Si no estás de acuerdo, puedes presentarte ante la autoridad a defenderte."),
+                Text(
+                    "Si no estás de acuerdo con el comparendo",
+                    "El comparendo es una citación, no una prueba de que cometiste la infracción. Si no la aceptas, te presentas ante el organismo de tránsito dentro del plazo indicado, "
+                    + "solicitas la audiencia, das tus descargos y aportas pruebas (fotos, videos, testigos). Puedes ir con abogado, pero no es obligatorio.\n\n"
+                    + "Motivos frecuentes para controvertir un comparendo:\n\n"
+                    + "• El agente no siguió el procedimiento.\n"
+                    + "• La fotomulta viene de una cámara no autorizada o sin la señal que avisa su presencia.\n"
+                    + "• Te atribuyen la infracción como propietario, pero no ibas conduciendo: debe identificarse a quien conducía.\n"
+                    + "• Te sancionan por alcohol sin haberte practicado la prueba.\n"
+                    + "• La conducta no está descrita como infracción en el Código, por ejemplo, hablar por un dispositivo de manos libres.\n\n"
+                    + "Ojo: mientras decides, corren los plazos de descuento. Si vas a defenderte, hazlo a tiempo."),
                 Order(
                     "Ordena los tipos de multa de la más baja a la más alta.",
                     ["Tipo A: 4 SMLDV", "Tipo B: 8 SMLDV", "Tipo C: 15 SMLDV", "Tipo D: 30 SMLDV", "Tipo E: 45 SMLDV"],
