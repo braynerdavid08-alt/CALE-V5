@@ -26,7 +26,7 @@ public sealed class AuthCookieService
         var accessMinutes = _jwt.AccessTokenMinutes > 0
             ? _jwt.AccessTokenMinutes
             : Math.Max(15, _jwt.ExpirationHours * 60);
-        var refreshDays = _jwt.RefreshTokenDays > 0 ? _jwt.RefreshTokenDays : 14;
+        var refreshDays = _jwt.EffectiveRefreshTokenDays;
 
         response.Cookies.Append(AuthCookieNames.Access, accessToken, new CookieOptions
         {
