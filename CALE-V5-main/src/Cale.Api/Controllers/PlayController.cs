@@ -99,8 +99,11 @@ public sealed class PlayController : ControllerBase
         _duels.GetAsync(UserId, code, ct);
 
     [HttpPost("duel/{code}/answer")]
-    public Task<DuelAnswerResultDto> AnswerDuel(string code, PlayAnswerRequest request, CancellationToken ct) =>
-        _duels.AnswerAsync(UserId, code, request, ct);
+    public async Task<DuelAnswerResultDto> AnswerDuel(string code, PlayAnswerRequest request, CancellationToken ct)
+    {
+        await _play.EnsureNotInOpenAttemptAsync(UserId, request.QuestionId, ct);
+        return await _duels.AnswerAsync(UserId, code, request, ct);
+    }
 
     [HttpDelete("duel/{code}")]
     public IActionResult CancelDuel(string code)

@@ -107,6 +107,27 @@ Student_A con esa pregunta, y la misma pregunta en la lista de "errores" de Stud
 | `PUT /api/auth/me` con otro `email` | Teacher sin escuela | 400 `email_change_disabled` | 400 | ✅ | Media (P-M8) |
 | `PUT /api/school/members/{id}` con otro `email` | School_1 | 400, correo sin cambios | 400 | ✅ | Media (P-M8) |
 
+## Pentest desde una cuenta Student (`StudentPentestTests`)
+
+Barrido automático (`StudentPentestSweepTests`): enumera los 355 endpoints HTTP y envía 1.281 peticiones como anónimo y como Student_B con ids ajenos (Student_A, Student_C, Teacher_2, School_2, Admin, banco/pregunta privados, grupo de la escuela 2, intentos de A y C, notificación de A) en la ruta y en la query. Busca en cada respuesta correos ajenos, hashes de contraseña, la pregunta y el solucionario privados, el código del grupo ajeno y la notificación de A. Reporte en `%TEMP%/cale-student-pentest.txt`.
+
+| Petición | Usuario | Esperado | Actual | Estado | Severidad |
+|----------|---------|----------|--------|--------|-----------|
+| Los 227 endpoints Admin/School/Teacher, todos los métodos | Student_B | 403 | 403 (8 subidas multipart dan 404 antes de autorizar) | ✅ | Alta |
+| Endpoints protegidos sin sesión | anónimo | 401 | 401 | ✅ | Alta |
+| 64 GET de Student con ids ajenos en ruta y query | Student_B | sin datos ajenos | sin datos ajenos | ✅ | Alta |
+| 35 mutaciones de Student con id ajeno en la ruta | Student_B | sin efecto sobre otros | sin efecto (notificación de A intacta, sin unirse al grupo 2) | ✅ | Alta |
+| `GET /api/exams/{intento de C o de A}/review`, `answer`, `finish` | Student_B | 403/404 sin claves | 403/404 | ✅ | Alta |
+| `GET /api/exams/{intento abierto propio}/review` | Student_A | 4xx sin claves | 4xx | ✅ | Alta |
+| `signs/check`, `daily/answer`, `mistakes/answer` con pregunta del examen abierto | Student_A | 4xx sin `correctOptionId` | 4xx | ✅ | Crítica (P-C1) |
+| `POST /api/student/play/duel/{code}/answer` con pregunta del examen abierto | Student_A + Student_B | 409 `question_in_open_attempt` | 200 con la clave → **corregido**: 409 | ✅ | Media (P-M9) |
+| Marcar leída / borrar la notificación de A | Student_B | sin cambios | sin cambios | ✅ | Media |
+| `POST /api/groups/join` con el código del grupo de la escuela 2 | Student_B | 4xx, no se une | 4xx | ✅ | Media |
+| `POST /api/exams/start` con el banco privado de Teacher_2 | Student_B | 403 `bank_not_visible` | 403 | ✅ | Alta |
+| `POST /api/exams/start` banco oficial: payload y revisión antes de terminar | Student_B | sin `isCorrect` ni solucionario; revisión 4xx | igual; la revisión muestra la clave solo al terminar | ✅ | Alta |
+| `GET/POST /api/staff/inactive-students` | Student_B | vacío o 4xx | vacío / `sent: 0` | ✅ | Media |
+| Ranking global y `groupId` de otra escuela | Student_B | sin correos ni grupo ajeno | igual (nombre + inicial por diseño, P-B14) | ✅ | Baja |
+
 ## Pendientes sin prueba automática (decisión de negocio o cambio de UI)
 
 | Caso | Motivo |

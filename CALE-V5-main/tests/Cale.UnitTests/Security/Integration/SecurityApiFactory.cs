@@ -24,6 +24,14 @@ public sealed class SecurityApiFactory : WebApplicationFactory<Program>
 {
     public const string JwtKey = "integration-tests-only-key-0123456789-abcdefghij";
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"cale-sec-{Guid.NewGuid():N}.db");
+    private readonly IReadOnlyDictionary<string, string> _extraSettings;
+
+    public SecurityApiFactory()
+        : this(new Dictionary<string, string>())
+    {
+    }
+
+    public SecurityApiFactory(IReadOnlyDictionary<string, string> extraSettings) => _extraSettings = extraSettings;
 
     public Accounts Users { get; private set; } = null!;
     public Fixtures Data { get; private set; } = null!;
@@ -44,6 +52,10 @@ public sealed class SecurityApiFactory : WebApplicationFactory<Program>
         builder.UseSetting("Email:Enabled", "false");
         builder.UseSetting("Assistant:Enabled", "false");
         builder.UseSetting("Security:Csp:Mode", "enforce");
+        foreach (var (key, value) in _extraSettings)
+        {
+            builder.UseSetting(key, value);
+        }
         builder.ConfigureTestServices(services =>
         {
             foreach (var d in services.Where(d => d.ServiceType == typeof(DbContextOptions<CaleDbContext>)
