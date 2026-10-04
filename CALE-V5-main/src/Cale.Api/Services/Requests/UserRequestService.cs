@@ -26,7 +26,9 @@ public sealed record QuestionDraft(
     string? Topic,
     string? ImageUrl,
     string? Explanation,
-    IReadOnlyList<QuestionDraftOption> Options);
+    IReadOnlyList<QuestionDraftOption> Options,
+    string? Subject = null,
+    string? Subtopic = null);
 
 public sealed record CreateUserRequest(
     string Kind,
@@ -447,7 +449,9 @@ public sealed class UserRequestService
                     draft.ImageUrl,
                     draft.Explanation,
                     true,
-                    draft.Options.Select(o => new OptionInput(o.Text ?? string.Empty, o.IsCorrect, o.ImageUrl)).ToList()),
+                    draft.Options.Select(o => new OptionInput(o.Text ?? string.Empty, o.IsCorrect, o.ImageUrl)).ToList(),
+                    draft.Subject,
+                    draft.Subtopic),
                 adminId,
                 isAdmin: true,
                 ct);
@@ -592,13 +596,16 @@ public sealed class UserRequestService
             throw new DomainException("Marca exactamente una respuesta correcta.", 400, "invalid_correct");
         }
 
+        CurriculumTree.EnsureClassifiable(draft.Subject, draft.Topic, draft.Subtopic);
         return new QuestionDraft(
             Clip(text, 2000)!,
             draft.Type,
             Clip(draft.Topic, 200),
             Clip(draft.ImageUrl, 500),
             Clip(draft.Explanation, 2000),
-            options);
+            options,
+            Clip(draft.Subject, 200),
+            Clip(draft.Subtopic, 200));
     }
 
     /// <summary>Question draft of a proposal; null for ideas and reports.</summary>

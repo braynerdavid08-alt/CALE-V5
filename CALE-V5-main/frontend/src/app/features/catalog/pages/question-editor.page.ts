@@ -8,6 +8,7 @@ import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiImagePickerComponent } from '../../../shared/ui/ui-image-picker.component';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
 import { UiSuccessComponent } from '../../../shared/ui/ui-success.component';
+import { CurriculumChoice, CurriculumPickerComponent, curriculumToSave } from '../../../shared/curriculum/curriculum-picker.component';
 import { TeacherApi } from '../../teacher/api/teacher.api';
 
 interface OptionDraft {
@@ -26,7 +27,8 @@ interface OptionDraft {
     UiErrorComponent,
     UiImagePickerComponent,
     UiPageHeaderComponent,
-    UiSuccessComponent
+    UiSuccessComponent,
+    CurriculumPickerComponent
   ],
   templateUrl: './question-editor.page.html',
   styleUrl: './question-editor.page.css'
@@ -47,7 +49,10 @@ export class QuestionEditorPage implements OnInit {
   blockId = 0;
   text = '';
   type = 'Seleccion multiple';
+  subject = '';
   topic = '';
+  subtopic = '';
+  private originalCurriculum: CurriculumChoice = { subject: '', topic: '', subtopic: '' };
   explanation = '';
   imageUrl = '';
   isActive = true;
@@ -88,7 +93,10 @@ export class QuestionEditorPage implements OnInit {
           this.text = q.text;
           this.type = q.type;
           this.lastType = q.type;
+          this.subject = q.subject ?? '';
           this.topic = q.topic ?? '';
+          this.subtopic = q.subtopic ?? '';
+          this.originalCurriculum = { subject: this.subject, topic: this.topic, subtopic: this.subtopic };
           this.explanation = q.explanation ?? '';
           this.imageUrl = q.imageUrl ?? '';
           this.isActive = q.isActive;
@@ -101,6 +109,12 @@ export class QuestionEditorPage implements OnInit {
         error: (err) => this.error.set(mapApiError(err))
       });
     }
+  }
+
+  onCurriculum(choice: CurriculumChoice): void {
+    this.subject = choice.subject;
+    this.topic = choice.topic;
+    this.subtopic = choice.subtopic;
   }
 
   letter(index: number): string {
@@ -195,12 +209,17 @@ export class QuestionEditorPage implements OnInit {
       this.error.set('Cada respuesta necesita texto o imagen.');
       return;
     }
+    const curriculum = curriculumToSave(
+      { subject: this.subject, topic: this.topic, subtopic: this.subtopic },
+      this.originalCurriculum);
     const body = {
       bankId: this.bankId,
       blockId: this.blockId,
       text: this.text,
       type: this.type,
-      topic: this.topic || null,
+      subject: curriculum.subject || null,
+      topic: curriculum.topic || null,
+      subtopic: curriculum.subtopic || null,
       imageUrl: this.imageUrl || null,
       explanation: this.explanation || null,
       isActive: this.isActive,

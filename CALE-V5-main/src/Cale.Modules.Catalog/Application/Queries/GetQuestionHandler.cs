@@ -30,6 +30,8 @@ public sealed class GetQuestionHandler
                 o.Id,
                 o.Text,
                 o.IsCorrect,
-                o.ImageUrl)).ToList());
+                o.ImageUrl)).ToList(),
+            question.Subject,
+            question.Subtopic);
     }
 }

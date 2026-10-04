@@ -4,6 +4,7 @@ import { mapApiError } from '../../../core/http/map-api-error';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiImagePickerComponent } from '../../../shared/ui/ui-image-picker.component';
+import { CurriculumChoice, CurriculumPickerComponent } from '../../../shared/curriculum/curriculum-picker.component';
 import { QUESTION_TYPE_TF, QuestionDraft, RequestsApi } from '../api/requests.api';
 
 /**
@@ -14,7 +15,7 @@ import { QUESTION_TYPE_TF, QuestionDraft, RequestsApi } from '../api/requests.ap
 @Component({
   selector: 'app-question-draft-editor',
   standalone: true,
-  imports: [FormsModule, UiButtonComponent, UiErrorComponent, UiImagePickerComponent],
+  imports: [FormsModule, UiButtonComponent, UiErrorComponent, UiImagePickerComponent, CurriculumPickerComponent],
   styles: [`
     :host { display: grid; gap: 1rem; }
     .block { display: grid; gap: 0.6rem; }
@@ -150,10 +151,12 @@ import { QUESTION_TYPE_TF, QuestionDraft, RequestsApi } from '../api/requests.ap
     </section>
 
     <section class="block">
-      <h3 class="block-title">Tema y explicación (opcional)</h3>
-      <label class="field">Tema
-        <input [(ngModel)]="draft.topic" name="qd-topic" maxlength="200" placeholder="Ej. señales reglamentarias" />
-      </label>
+      <h3 class="block-title">Malla y explicación (opcional)</h3>
+      <app-curriculum-picker
+        [subject]="draft.subject"
+        [topic]="draft.topic"
+        [subtopic]="draft.subtopic"
+        (changed)="onCurriculum($event)" />
       <label class="field">¿Por qué esa es la respuesta correcta?
         <textarea [(ngModel)]="draft.explanation" name="qd-expl" maxlength="2000"
           placeholder="Si sabes el artículo o la norma, escríbelo aquí."></textarea>
@@ -165,6 +168,16 @@ export class QuestionDraftEditorComponent {
   private readonly api = inject(RequestsApi);
 
   @Input({ required: true }) draft!: QuestionDraft;
+
+  onCurriculum(choice: CurriculumChoice): void {
+    if (choice.subtopic) {
+      this.draft.subject = choice.subject;
+      this.draft.topic = choice.topic;
+      this.draft.subtopic = choice.subtopic;
+      return;
+    }
+    this.draft.subtopic = '';
+  }
 
   readonly uploading = signal<string | null>(null);
   readonly error = signal<string | null>(null);

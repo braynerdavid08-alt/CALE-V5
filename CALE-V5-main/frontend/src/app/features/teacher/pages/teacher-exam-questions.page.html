@@ -164,9 +164,11 @@
             }
           </select>
         </label>
-        <label class="field">Tema (opcional)
-          <input [(ngModel)]="topic" name="topic" (ngModelChange)="markDirty()" placeholder="Señales, normas…" />
-        </label>
+        <app-curriculum-picker
+          [subject]="subject"
+          [topic]="topic"
+          [subtopic]="subtopic"
+          (changed)="onCurriculum($event)" />
         <label class="field">Enunciado
           <textarea
             rows="4"

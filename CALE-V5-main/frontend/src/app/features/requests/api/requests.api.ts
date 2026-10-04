@@ -16,7 +16,9 @@ export interface QuestionDraftOption {
 export interface QuestionDraft {
   text: string;
   type: string;
+  subject: string;
   topic: string;
+  subtopic: string;
   imageUrl: string;
   explanation: string;
   options: QuestionDraftOption[];
@@ -37,7 +39,9 @@ export interface UserRequestDto {
   question: {
     text: string;
     type: string;
+    subject?: string | null;
     topic: string | null;
+    subtopic?: string | null;
     imageUrl: string | null;
     explanation: string | null;
     options: Array<{ text: string | null; isCorrect: boolean; imageUrl: string | null }>;
@@ -79,7 +83,9 @@ export function emptyDraft(): QuestionDraft {
   return {
     text: '',
     type: QUESTION_TYPE_MC,
+    subject: '',
     topic: '',
+    subtopic: '',
     imageUrl: '',
     explanation: '',
     options: [
@@ -95,7 +101,9 @@ export function draftFromDto(q: NonNullable<UserRequestDto['question']>): Questi
   return {
     text: q.text,
     type: q.type,
+    subject: q.subject ?? '',
     topic: q.topic ?? '',
+    subtopic: q.subtopic ?? '',
     imageUrl: q.imageUrl ?? '',
     explanation: q.explanation ?? '',
     options: q.options.map((o) => ({ text: o.text ?? '', isCorrect: o.isCorrect, imageUrl: o.imageUrl ?? '' }))
@@ -115,7 +123,9 @@ export function draftBody(d: QuestionDraft) {
   return {
     text: d.text.trim(),
     type: d.type,
-    topic: d.topic.trim() || null,
+    subject: d.subtopic.trim() ? d.subject.trim() || null : null,
+    topic: d.subtopic.trim() ? d.topic.trim() || null : d.topic.trim() || null,
+    subtopic: d.subtopic.trim() || null,
     imageUrl: d.imageUrl || null,
     explanation: d.explanation.trim() || null,
     options: d.options.map((o) => ({ text: o.text.trim(), isCorrect: o.isCorrect, imageUrl: o.imageUrl || null }))

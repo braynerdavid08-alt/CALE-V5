@@ -102,6 +102,17 @@ public sealed class Question
 
     public void SetActive(bool active) => IsActive = active;
 
+    /// <summary>Nucleus, theme and subtheme from <see cref="CurriculumTree"/>. Null clears the classification.</summary>
+    public void SetCurriculum(string? subject, string? topic, string? subtopic)
+    {
+        Subject = Clean(subject);
+        Topic = Clean(topic);
+        Subtopic = Clean(subtopic);
+    }
+
+    private static string? Clean(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
     public bool CanEdit(int userId, bool isAdmin) =>
         isAdmin || (CreatedById is int owner && owner == userId);
 
