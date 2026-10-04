@@ -569,6 +569,10 @@ public static class FeatureSchema
 
             await TryAddSqliteColumnAsync(
                 db,
+                """ALTER TABLE "SchoolJoinRequests" ADD COLUMN "Direction" TEXT NOT NULL DEFAULT 'Request';""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
                 """ALTER TABLE "LiveAnswers" ADD COLUMN "Points" INTEGER NOT NULL DEFAULT 0;""",
                 ct);
             await TryAddSqliteColumnAsync(
@@ -1263,6 +1267,9 @@ public static class FeatureSchema
                 ct);
             await TryPostgresAsync(db,
                 """CREATE INDEX IF NOT EXISTS "IX_SchoolJoinRequests_TeacherUserId_Status" ON "SchoolJoinRequests" ("TeacherUserId", "Status");""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "SchoolJoinRequests" ADD COLUMN IF NOT EXISTS "Direction" character varying(16) NOT NULL DEFAULT 'Request';""",
                 ct);
             await TryPostgresAsync(db,
                 """ALTER TABLE "TheoryTrainingSettings" ADD COLUMN IF NOT EXISTS "NotifyExamReminder24h" boolean NOT NULL DEFAULT TRUE;""",
@@ -2094,6 +2101,7 @@ public static class FeatureSchema
                     TeacherUserId int NOT NULL,
                     SchoolUserId int NOT NULL,
                     Status nvarchar(32) NOT NULL,
+                    Direction nvarchar(16) NOT NULL DEFAULT 'Request',
                     Message nvarchar(500) NULL,
                     RejectionReason nvarchar(500) NULL,
                     CreatedAt datetime2 NOT NULL,

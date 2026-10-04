@@ -124,6 +124,17 @@ public sealed class SecurityApiFactory : WebApplicationFactory<Program>
         inactive.Deactivate();
         db.Add(inactive);
 
+        var loneInvited = User.RegisterStudent("Lone_Student_Invited", "lone.invited@pruebas.test", hash, now);
+        var loneRejecting = User.RegisterStudent("Lone_Student_Rejecting", "lone.rejecting@pruebas.test", hash, now);
+        var loneRequesting = User.RegisterStudent("Lone_Student_Requesting", "lone.requesting@pruebas.test", hash, now);
+        var loneTeacher = User.CreateTeacher("Lone_Teacher", "lone.teacher@pruebas.test", hash, now, emailConfirmed: true);
+        foreach (var u in new[] { loneInvited, loneRejecting, loneRequesting })
+        {
+            u.MarkEmailConfirmed();
+        }
+        db.AddRange(loneInvited, loneRejecting, loneRequesting, loneTeacher);
+        db.Add(SchoolProfile.CreateDraft(school1.Id, school1.Name, school1.Email, SchoolPlans.Find(SchoolPlans.Monthly)!, now));
+
         var attemptA = Attempt.Start(studentA.Id, privateBank.Id, null, "practice", 10, 30, now);
         db.Add(attemptA);
         await db.SaveChangesAsync();
@@ -140,7 +151,9 @@ public sealed class SecurityApiFactory : WebApplicationFactory<Program>
         });
         await db.SaveChangesAsync();
 
-        Users = new Accounts(admin, school1, school2, teacher1, teacher2, studentA, studentB, studentC, inactive);
+        Users = new Accounts(
+            admin, school1, school2, teacher1, teacher2, studentA, studentB, studentC, inactive,
+            loneInvited, loneRejecting, loneRequesting, loneTeacher);
         Data = new Fixtures(privateBank.Id, privateQuestion.Id, group2.Id, attemptA.Id);
     }
 
@@ -183,7 +196,11 @@ public sealed class SecurityApiFactory : WebApplicationFactory<Program>
         User StudentA,
         User StudentB,
         User StudentC,
-        User InactiveStudent);
+        User InactiveStudent,
+        User LoneInvitedStudent,
+        User LoneRejectingStudent,
+        User LoneRequestingStudent,
+        User LoneTeacher);
 
     public sealed record Fixtures(int PrivateBankId, int PrivateQuestionId, int Teacher2GroupId, int StudentAAttemptId);
 }

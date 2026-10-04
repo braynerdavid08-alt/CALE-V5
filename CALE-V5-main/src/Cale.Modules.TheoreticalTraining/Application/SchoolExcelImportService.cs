@@ -101,7 +101,6 @@ public sealed class SchoolExcelImportService
     private readonly CaleDbContext _db;
     private readonly IUserStore _users;
     private readonly ISchoolProfileStore _schoolProfiles;
-    private readonly IPasswordHasher _hasher;
     private readonly IClock _clock;
     private readonly SchoolExcelImportPreviewCache _cache;
     private readonly TheoryTrainingService _theory;
@@ -115,7 +114,6 @@ public sealed class SchoolExcelImportService
         CaleDbContext db,
         IUserStore users,
         ISchoolProfileStore schoolProfiles,
-        IPasswordHasher hasher,
         IClock clock,
         SchoolExcelImportPreviewCache cache,
         TheoryTrainingService theory,
@@ -128,7 +126,6 @@ public sealed class SchoolExcelImportService
         _db = db;
         _users = users;
         _schoolProfiles = schoolProfiles;
-        _hasher = hasher;
         _clock = clock;
         _cache = cache;
         _theory = theory;
@@ -226,7 +223,6 @@ public sealed class SchoolExcelImportService
         var updated = 0;
         var skipped = 0;
         var failed = 0;
-        var credentials = new List<ExcelImportCredentialDto>();
         var results = new List<ParsedExcelRow>();
 
         foreach (var row in cached.Rows)
@@ -242,21 +238,8 @@ public sealed class SchoolExcelImportService
 
                 if (cached.ImportType == "apprentices" && row.Apprentice is not null)
                 {
-                    var isCreate = row.Action == "create";
-                    var credential = await UpsertApprenticeAsync(schoolUserId, row.Apprentice, ct);
-                    if (credential is not null)
-                    {
-                        credentials.Add(credential);
-                    }
-
-                    if (isCreate)
-                    {
-                        created++;
-                    }
-                    else
-                    {
-                        updated++;
-                    }
+                    await UpsertApprenticeAsync(schoolUserId, row.Apprentice, ct);
+                    updated++;
                 }
                 else if (cached.ImportType == "theory-exams" && row.Exam is not null)
                 {
@@ -291,9 +274,7 @@ public sealed class SchoolExcelImportService
             updated,
             skipped,
             failed,
-            credentials,
-            results.Select(ToDto).ToList(),
-            BuildCredentialsCsv(credentials));
+            results.Select(ToDto).ToList());
     }
 
     private async Task<ParsedExcelRow> ClassifyApprenticeRowAsync(
@@ -315,12 +296,7 @@ public sealed class SchoolExcelImportService
         }
 
         user ??= await _users.FindByEmailAsync(payload.Email, ct);
-        if (user is null)
-        {
-            return row with { Action = "create", Severity = "ok", Message = "Nuevo aprendiz" };
-        }
-
-        if (user.SchoolId == schoolUserId && user.Role == Roles.Student)
+        if (user is not null && user.SchoolId == schoolUserId && user.Role == Roles.Student)
         {
             var balance = Math.Max(0, payload.AmountDue - payload.AmountPaid);
             if (balance > 0)
@@ -336,30 +312,24 @@ public sealed class SchoolExcelImportService
             return row with { Action = "update", Severity = "ok", Message = "Actualizar expediente" };
         }
 
-        if (user.SchoolId == schoolUserId)
-        {
-            return row with
-            {
-                Action = "error",
-                Severity = "error",
-                Message = "El correo pertenece a un usuario que no es estudiante."
-            };
-        }
-
         return row with
         {
             Action = "error",
             Severity = "error",
-            Message = "El correo ya está registrado en otra escuela."
+            Message = NotYourStudentMessage
         };
     }
 
-    private async Task<ExcelImportCredentialDto?> UpsertApprenticeAsync(
+    private const string NotYourStudentMessage =
+        "No hay un estudiante de tu escuela con ese correo o documento. "
+        + "La escuela no crea cuentas: el estudiante debe registrarse y unirse a tu escuela (invitación o solicitud).";
+
+    private async Task UpsertApprenticeAsync(
         int schoolUserId,
         ApprenticeImportPayload payload,
         CancellationToken ct)
     {
-        var (user, tempPassword) = await ResolveOrCreateStudentAsync(schoolUserId, payload, ct);
+        var user = await ResolveStudentAsync(schoolUserId, payload, ct);
         var now = _clock.UtcNow;
 
         var enrollment = await _db.Set<SchoolStudentEnrollment>()
@@ -421,13 +391,9 @@ public sealed class SchoolExcelImportService
         }
 
         ApplyProfile(profile, payload, now);
-
-        return string.IsNullOrWhiteSpace(tempPassword)
-            ? null
-            : new ExcelImportCredentialDto(user.Name, user.Email, tempPassword);
     }
 
-    private async Task<(User User, string? TempPassword)> ResolveOrCreateStudentAsync(
+    private async Task<User> ResolveStudentAsync(
         int schoolUserId,
         ApprenticeImportPayload payload,
         CancellationToken ct)
@@ -445,29 +411,18 @@ public sealed class SchoolExcelImportService
         }
 
         user ??= await _users.FindByEmailAsync(payload.Email, ct);
-        if (user is not null)
+        if (user is null || user.SchoolId != schoolUserId || user.Role != Roles.Student)
         {
-            if (user.SchoolId != schoolUserId || user.Role != Roles.Student)
-            {
-                throw new DomainException("No se puede vincular este usuario.", 400, "invalid_student");
-            }
-
-            if (!string.Equals(user.Name, payload.Name, StringComparison.OrdinalIgnoreCase))
-            {
-                user.UpdateProfile(payload.Name.Trim(), user.Email);
-                await _users.SaveChangesAsync(ct);
-            }
-
-            return (user, null);
+            throw new DomainException(NotYourStudentMessage, 400, "invalid_student");
         }
 
-        var tempPassword = GenerateTempPassword();
-        var hash = _hasher.Hash(tempPassword);
-        var now = _clock.UtcNow;
-        user = User.RegisterStudent(payload.Name.Trim(), payload.Email.Trim(), hash, now, schoolUserId);
-        user.MarkCreatedBySchool(schoolUserId);
-        await _users.AddAsync(user, ct);
-        return (user, tempPassword);
+        if (!string.Equals(user.Name, payload.Name, StringComparison.OrdinalIgnoreCase))
+        {
+            user.UpdateProfile(payload.Name.Trim(), user.Email);
+            await _users.SaveChangesAsync(ct);
+        }
+
+        return user;
     }
 
     private static void ApplyProfile(SchoolApprenticeProfile profile, ApprenticeImportPayload payload, DateTime now)
@@ -1073,42 +1028,5 @@ public sealed class SchoolExcelImportService
         }
 
         return null;
-    }
-
-    private static string GenerateTempPassword()
-    {
-        const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
-        var bytes = RandomNumberGenerator.GetBytes(10);
-        var sb = new StringBuilder(10);
-        foreach (var b in bytes)
-        {
-            sb.Append(chars[b % chars.Length]);
-        }
-
-        return sb.ToString();
-    }
-
-    private static string BuildCredentialsCsv(IReadOnlyList<ExcelImportCredentialDto> credentials)
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine("nombre,email,password_temporal");
-        foreach (var c in credentials)
-        {
-            sb.Append(EscapeCsv(c.Name)).Append(',')
-                .Append(EscapeCsv(c.Email)).Append(',')
-                .Append(EscapeCsv(c.TemporaryPassword)).AppendLine();
-        }
-
-        return sb.ToString();
-    }
-
-    private static string EscapeCsv(string value)
-    {
-        if (value.Contains('"') || value.Contains(',') || value.Contains('\n'))
-        {
-            return $"\"{value.Replace("\"", "\"\"")}\"";
-        }
-
-        return value;
     }
 }

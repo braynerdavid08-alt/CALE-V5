@@ -19,10 +19,7 @@ public sealed class SchoolController : ControllerBase
     private readonly ListSchoolPlansHandler _plans;
     private readonly ManageSchoolPlanHandler _managePlan;
     private readonly ListSchoolMembersHandler _listMembers;
-    private readonly CreateSchoolMemberHandler _createMember;
-    private readonly AttachSchoolMemberHandler _attachMember;
     private readonly UpdateSchoolMemberHandler _updateMember;
-    private readonly ImportSchoolMembersHandler _importMembers;
     private readonly SchoolJoinRequestHandler _joinRequests;
 
     public SchoolController(
@@ -30,20 +27,14 @@ public sealed class SchoolController : ControllerBase
         ListSchoolPlansHandler plans,
         ManageSchoolPlanHandler managePlan,
         ListSchoolMembersHandler listMembers,
-        CreateSchoolMemberHandler createMember,
-        AttachSchoolMemberHandler attachMember,
         UpdateSchoolMemberHandler updateMember,
-        ImportSchoolMembersHandler importMembers,
         SchoolJoinRequestHandler joinRequests)
     {
         _profile = profile;
         _plans = plans;
         _managePlan = managePlan;
         _listMembers = listMembers;
-        _createMember = createMember;
-        _attachMember = attachMember;
         _updateMember = updateMember;
-        _importMembers = importMembers;
         _joinRequests = joinRequests;
     }
 
@@ -197,64 +188,21 @@ public sealed class SchoolController : ControllerBase
             body,
             ct));
 
-    [HttpGet("imports/template")]
-    public IActionResult ImportTemplate()
-    {
-        var bytes = System.Text.Encoding.UTF8.GetBytes(ImportSchoolMembersHandler.TemplateCsv);
-        return File(bytes, "text/csv; charset=utf-8", "cale-import-usuarios.csv");
-    }
+    [HttpPost("invitations")]
+    [EnableRateLimiting(RateLimitPolicies.SchoolLinks)]
+    public async Task<ActionResult<SchoolInviteResultDto>> Invite(
+        InviteSchoolMemberRequest request,
+        CancellationToken ct) =>
+        Ok(await _joinRequests.InviteAsync(CurrentUser.GetId(User), request, ct));
 
-    [HttpPost("imports/preview")]
-    [Consumes("multipart/form-data")]
-    [RequestSizeLimit(2_000_000)]
-    public async Task<ActionResult<ImportPreviewDto>> ImportPreview(
-        IFormFile? file,
+    [HttpPost("invitations/{id:int}/cancel")]
+    public async Task<IActionResult> CancelInvite(
+        int id,
         CancellationToken ct)
     {
-        if (file is null || file.Length == 0)
-        {
-            return BadRequest(new ProblemDetails
-            {
-                Title = "Selecciona un archivo CSV.",
-                Detail = "invalid_file",
-                Status = 400
-            });
-        }
-
-        await using var stream = file.OpenReadStream();
-        return Ok(await _importMembers.PreviewAsync(
-            CurrentUser.GetId(User),
-            file.FileName,
-            stream,
-            ct));
+        await _joinRequests.CancelInviteAsync(CurrentUser.GetId(User), id, ct);
+        return NoContent();
     }
-
-    [HttpPost("imports/{previewId:guid}/commit")]
-    public async Task<ActionResult<ImportCommitResultDto>> ImportCommit(
-        Guid previewId,
-        CancellationToken ct) =>
-        Ok(await _importMembers.CommitAsync(
-            CurrentUser.GetId(User),
-            previewId,
-            ct));
-
-    [HttpPost("members")]
-    public async Task<ActionResult<UserListItemDto>> CreateMember(
-        CreateSchoolMemberRequest request,
-        CancellationToken ct) =>
-        Ok(await _createMember.HandleAsync(
-            CurrentUser.GetId(User),
-            request,
-            ct));
-
-    [HttpPost("members/attach")]
-    public async Task<ActionResult<UserListItemDto>> AttachMember(
-        AttachSchoolMemberRequest request,
-        CancellationToken ct) =>
-        Ok(await _attachMember.HandleAsync(
-            CurrentUser.GetId(User),
-            request,
-            ct));
 
     [HttpPut("members/{id:int}")]
     public async Task<ActionResult<UserListItemDto>> UpdateMember(

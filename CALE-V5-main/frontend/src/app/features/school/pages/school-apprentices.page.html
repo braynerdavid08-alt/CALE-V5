@@ -26,7 +26,7 @@
     </div>
     <div class="action-row">
       <ui-button routerLink="/school/import" type="button" variant="secondary">Importar Excel</ui-button>
-      <ui-button routerLink="/school/users" type="button" variant="secondary">Crear / vincular</ui-button>
+      <ui-button routerLink="/school/users" type="button" variant="secondary">Invitar / solicitudes</ui-button>
       <ui-button
         type="button"
         variant="ghost"
@@ -52,16 +52,16 @@
         <h2>Aún no hay estudiantes en tu escuela</h2>
         <p>
           Esta pantalla solo muestra cuentas con rol <strong>Estudiante</strong> vinculadas a tu escuela.
-          Si la base está vacía, primero créalos o impórtalos:
+          Cada estudiante crea su propia cuenta; después se une a tu escuela:
         </p>
         <ol>
           <li>
             <a routerLink="/school/users"><strong>Usuarios</strong></a>
-            — crea una cuenta nueva (tipo Estudiante) o vincula un correo ya registrado.
+            — invítalo con el correo de su cuenta o acepta su solicitud.
           </li>
           <li>
             <a routerLink="/school/import"><strong>Importar datos</strong></a>
-            — sube el Excel de estudiantes o el CSV de usuarios.
+            — sube el Excel para completar el expediente de los estudiantes ya vinculados.
           </li>
           <li>
             Vuelve aquí para ver expediente, saldos y autorizaciones.
@@ -131,8 +131,8 @@
               } @empty {
                 <tr>
                   <td colspan="8" class="muted">
-                    Sin estudiantes vinculados. Usa <a routerLink="/school/users">Usuarios</a>
-                    o <a routerLink="/school/import">Importar</a>.
+                    Sin estudiantes vinculados. Invítalos o acepta sus solicitudes en
+                    <a routerLink="/school/users">Usuarios</a>.
                   </td>
                 </tr>
               }

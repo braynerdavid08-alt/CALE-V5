@@ -93,10 +93,22 @@ Student_A con esa pregunta, y la misma pregunta en la lista de "errores" de Stud
 | `GET /api/auth/me` sin cabecera `X-Cale-Wire` | Student_A | JSON plano (el cifrado **no** es un control) | JSON plano | ✅ | Informativo |
 | `POST /api/push/subscriptions` a `https://10.0.0.5:8443/` | Student_A | 400 | 400 | ✅ | Baja (P-B1) |
 
+## Cuentas y vinculación con escuelas (`SchoolLinkingTests`)
+
+| Petición | Usuario | Esperado | Actual | Estado | Severidad |
+|----------|---------|----------|--------|--------|-----------|
+| `POST /api/school/members`, `/members/attach`, `/imports/preview` | School_1 | 404/405 y ninguna cuenta creada | igual | ✅ | Media (P-M7) |
+| `POST /api/school/invitations` y luego nada | School_1 | el usuario sigue sin escuela | sin escuela | ✅ | Media (P-M7) |
+| Aceptar la invitación de otro / la escuela acepta su propia invitación / otra escuela la cancela | Student_C, School_1, School_2 | 403 | 403 | ✅ | Media |
+| El invitado acepta | estudiante sin escuela | vinculado a School_1 | vinculado | ✅ | — (control positivo) |
+| El invitado rechaza y luego intenta aceptar | estudiante sin escuela | 400, sigue sin escuela | igual | ✅ | Media |
+| Solicitud del estudiante: otra escuela acepta / el propio estudiante acepta | School_2, estudiante | 403 | 403 | ✅ | Media |
+| Invitar a un estudiante de otra escuela | School_1 | 404, sin cambios | igual | ✅ | Media |
+| `PUT /api/auth/me` con otro `email` | Teacher sin escuela | 400 `email_change_disabled` | 400 | ✅ | Media (P-M8) |
+| `PUT /api/school/members/{id}` con otro `email` | School_1 | 400, correo sin cambios | 400 | ✅ | Media (P-M8) |
+
 ## Pendientes sin prueba automática (decisión de negocio o cambio de UI)
 
 | Caso | Motivo |
 |------|--------|
-| Escuela vincula por correo a un usuario sin escuela sin su consentimiento (P-M7) | Cambiar a invitación altera el flujo de las escuelas |
-| Cambio de correo sin contraseña ni verificación (P-M8) | Requiere campos nuevos en el perfil |
 | Puntaje del juego de señales enviado por el cliente (P-B6) | Solo gamificación |

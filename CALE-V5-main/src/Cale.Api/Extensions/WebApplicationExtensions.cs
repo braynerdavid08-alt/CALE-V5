@@ -140,6 +140,7 @@ public static class WebApplicationExtensions
             await UserPhotoSchemaGuard.EnsureAsync(db, bootLogger);
             await UserCreatorSchemaGuard.EnsureAsync(db, bootLogger);
             await RefreshTokenSchemaGuard.EnsureAsync(db, bootLogger);
+            await SchoolJoinRequestSchemaGuard.EnsureAsync(db, bootLogger);
             await Cale.Modules.GameShow.Infrastructure.Persistence.GameShowPackSchemaGuard
                 .EnsureAsync(db, bootLogger);
             await Cale.Modules.Courses.Infrastructure.Persistence.CourseSchemaGuard.EnsureAsync(db, bootLogger);

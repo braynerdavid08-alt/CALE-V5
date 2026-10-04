@@ -10,11 +10,25 @@ public static class SchoolJoinRequestStatuses
     public const string Cancelled = "Cancelled";
 }
 
+/// <summary>Who started the link: the member asked to join, or the school invited the member.</summary>
+public static class SchoolJoinDirections
+{
+    public const string Request = "Request";
+    public const string Invite = "Invite";
+}
+
+/// <summary>
+/// A pending link between a teacher/student account and a school. Nobody is linked until the other
+/// side accepts: the school accepts a request, the member accepts an invitation.
+/// </summary>
 public sealed class SchoolJoinRequest
 {
     public int Id { get; private set; }
+
+    /// <summary>The teacher or student account (column kept from when only teachers could ask).</summary>
     public int TeacherUserId { get; private set; }
     public int SchoolUserId { get; private set; }
+    public string Direction { get; private set; } = SchoolJoinDirections.Request;
     public string Status { get; private set; } = SchoolJoinRequestStatuses.Pending;
     public string? Message { get; private set; }
     public string? RejectionReason { get; private set; }
@@ -22,15 +36,19 @@ public sealed class SchoolJoinRequest
     public DateTime? DecidedAt { get; private set; }
     public int? DecidedByUserId { get; private set; }
 
+    public int MemberUserId => TeacherUserId;
+    public bool IsInvite => Direction == SchoolJoinDirections.Invite;
+
     private SchoolJoinRequest()
     {
     }
 
     public static SchoolJoinRequest Create(
-        int teacherUserId,
+        int memberUserId,
         int schoolUserId,
         string? message,
-        DateTime utcNow)
+        DateTime utcNow,
+        string direction = SchoolJoinDirections.Request)
     {
         var note = string.IsNullOrWhiteSpace(message) ? null : message.Trim();
         if (note is { Length: > 500 })
@@ -40,8 +58,9 @@ public sealed class SchoolJoinRequest
 
         return new SchoolJoinRequest
         {
-            TeacherUserId = teacherUserId,
+            TeacherUserId = memberUserId,
             SchoolUserId = schoolUserId,
+            Direction = direction == SchoolJoinDirections.Invite ? SchoolJoinDirections.Invite : SchoolJoinDirections.Request,
             Status = SchoolJoinRequestStatuses.Pending,
             Message = note,
             CreatedAt = utcNow
@@ -69,12 +88,12 @@ public sealed class SchoolJoinRequest
         }
     }
 
-    public void Cancel(DateTime utcNow)
+    public void Cancel(int cancelledByUserId, DateTime utcNow)
     {
         EnsurePending();
         Status = SchoolJoinRequestStatuses.Cancelled;
         DecidedAt = utcNow;
-        DecidedByUserId = TeacherUserId;
+        DecidedByUserId = cancelledByUserId;
     }
 
     private void EnsurePending()

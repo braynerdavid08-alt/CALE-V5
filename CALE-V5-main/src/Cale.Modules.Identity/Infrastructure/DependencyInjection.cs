@@ -46,10 +46,6 @@ public static class DependencyInjection
         services.AddScoped<ManageSchoolPlanHandler>();
         services.AddScoped<BroadcastNotificationHandler>();
         services.AddScoped<ListSchoolMembersHandler>();
-        services.AddSingleton<SchoolMemberImportPreviewCache>();
-        services.AddScoped<ImportSchoolMembersHandler>();
-        services.AddScoped<CreateSchoolMemberHandler>();
-        services.AddScoped<AttachSchoolMemberHandler>();
         services.AddScoped<UpdateSchoolMemberHandler>();
         services.AddScoped<ISchoolJoinRequestStore, SchoolJoinRequestStore>();
         services.AddScoped<SchoolJoinRequestHandler>();

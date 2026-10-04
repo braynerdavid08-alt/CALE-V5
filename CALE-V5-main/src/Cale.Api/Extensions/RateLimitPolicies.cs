@@ -13,4 +13,5 @@ public static class RateLimitPolicies
     public const string Uploads = "uploads";
     public const string Assistant = "assistant";
     public const string PublicJoin = "public-join";
+    public const string SchoolLinks = "school-links";
 }

@@ -2,7 +2,6 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { RouterLink } from '@angular/router';
 import { SessionStore } from '../../../core/auth/session.store';
 import { env } from '../../../core/config/env';
 import { mapApiError } from '../../../core/http/map-api-error';
@@ -37,9 +36,11 @@ interface SchoolProfileDto {
 
 interface SchoolJoinRequestDto {
   id: number;
-  teacherUserId: number;
-  teacherName: string;
-  teacherEmail: string;
+  direction: 'Request' | 'Invite';
+  memberUserId: number;
+  memberName: string;
+  memberEmail: string;
+  memberRole: string;
   schoolUserId: number;
   schoolLegalName: string;
   schoolTaxId: string;
@@ -56,7 +57,6 @@ interface SchoolJoinRequestDto {
   imports: [
     DatePipe,
     ReactiveFormsModule,
-    RouterLink,
     UiBadgeComponent,
     UiButtonComponent,
     UiCardComponent,
@@ -89,11 +89,7 @@ interface SchoolJoinRequestDto {
     <ui-page-header
       eyebrow="Escuela"
       title="Instructores y estudiantes"
-      subtitle="Puedes crear y editar nombre/correo. Activar, desactivar o eliminar solo lo hace el administrador." />
-
-    <div class="row-actions" style="justify-content: flex-start; margin-bottom: 1rem;">
-      <ui-button routerLink="/school/import" type="button" variant="secondary">Importar CSV</ui-button>
-    </div>
+      subtitle="Cada persona crea su propia cuenta. Tú la invitas o aceptas su solicitud; nadie queda vinculado sin aceptar." />
 
     <ui-error [message]="error()" />
     <ui-success [message]="ok()" />
@@ -119,28 +115,30 @@ interface SchoolJoinRequestDto {
         }
       </div>
 
-      @if (joinRequests().length) {
+      @if (incoming().length) {
         <ui-card>
-          <h2>Solicitudes de instructores</h2>
+          <h2>Solicitudes para unirse</h2>
           <p class="hint">
-            Instructores que pidieron unirse con tu NIT o correo. Acepta o rechaza cada solicitud.
+            Instructores y estudiantes que pidieron unirse con tu NIT o correo. Acepta o rechaza cada solicitud.
           </p>
           <div class="table-wrap">
             <table class="data">
               <thead>
                 <tr>
-                  <th>Instructor</th>
+                  <th>Nombre</th>
                   <th>Correo</th>
+                  <th>Rol</th>
                   <th>Mensaje</th>
                   <th>Fecha</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
-                @for (req of joinRequests(); track req.id) {
+                @for (req of incoming(); track req.id) {
                   <tr>
-                    <td data-label="Instructor">{{ req.teacherName }}</td>
-                    <td data-label="Correo">{{ req.teacherEmail }}</td>
+                    <td data-label="Nombre">{{ req.memberName }}</td>
+                    <td data-label="Correo">{{ req.memberEmail }}</td>
+                    <td data-label="Rol">{{ roleLabel(req.memberRole) }}</td>
                     <td data-label="Mensaje">{{ req.message || '—' }}</td>
                     <td data-label="Fecha">{{ req.createdAt | date:'short' }}</td>
                     <td>
@@ -148,14 +146,14 @@ interface SchoolJoinRequestDto {
                         <ui-button
                           type="button"
                           [loading]="decidingId() === req.id"
-                          (click)="acceptJoin(req.id)">
+                          (click)="acceptJoin(req)">
                           Aceptar
                         </ui-button>
                         <ui-button
                           type="button"
                           variant="secondary"
                           [disabled]="decidingId() === req.id"
-                          (click)="rejectJoin(req.id)">
+                          (click)="rejectJoin(req)">
                           Rechazar
                         </ui-button>
                       </div>
@@ -170,130 +168,29 @@ interface SchoolJoinRequestDto {
 
       <div class="grid-3">
         <ui-card>
-          <h2>Crear cuenta nueva</h2>
-          <p class="hint">Para personas que aún no tienen usuario en Luz Verde.</p>
-          <form class="stack" [formGroup]="form" (ngSubmit)="create()">
-            <label class="field">
-              Tipo
-              <select formControlName="role">
-                <option value="Teacher">Instructor</option>
-                <option value="Student">Estudiante</option>
-              </select>
-            </label>
-            <label class="field">
-              Nombre
-              <input formControlName="name" autocomplete="name" />
-            </label>
-            <label class="field">
-              Correo
-              <input type="email" formControlName="email" autocomplete="email" />
-            </label>
-            <label class="field">
-              Contraseña temporal
-              <input type="password" formControlName="password" autocomplete="new-password" />
-            </label>
-
-            @if (form.controls.role.value === 'Student') {
-              <p class="hint">Expediente del estudiante (queda listo en Estudiantes):</p>
-              <label class="field">
-                Tipo de documento
-                <select formControlName="documentType">
-                  <option value="">—</option>
-                  <option value="cc">CC</option>
-                  <option value="ti">TI</option>
-                  <option value="ce">CE</option>
-                  <option value="pa">Pasaporte</option>
-                </select>
-              </label>
-              <label class="field">
-                Número de documento
-                <input formControlName="documentNumber" />
-              </label>
-              <label class="field">
-                Celular
-                <input formControlName="phone" />
-              </label>
-              <label class="field">
-                Correo de contacto
-                <input type="email" formControlName="contactEmail" />
-              </label>
-              <label class="field">
-                Dirección
-                <input formControlName="address" />
-              </label>
-              <label class="field">
-                Categoría de licencia
-                <select formControlName="licenseCategories">
-                  <option value="">Sin asignar</option>
-                  <option value="A2">A2</option>
-                  <option value="B1">B1</option>
-                  <option value="C1">C1</option>
-                  <option value="A2,B1">A2 + B1</option>
-                  <option value="A2,C1">A2 + C1</option>
-                </select>
-              </label>
-              <label class="field">
-                Grupo de asistencia
-                <select formControlName="attendanceDayType">
-                  <option value="">Sin asignar</option>
-                  <option value="Weekday">Semana (lun–vie)</option>
-                  <option value="Saturday">Sábados</option>
-                </select>
-              </label>
-              <label class="field">
-                Horario asignado
-                <input formControlName="scheduleSlot" placeholder="8am/4pm" />
-              </label>
-              <label class="field">
-                Valor a pagar (COP)
-                <input type="number" formControlName="amountDue" min="0" />
-              </label>
-              <label class="field">
-                Valor pagado (COP)
-                <input type="number" formControlName="amountPaid" min="0" />
-              </label>
-              <label class="field">
-                Método de pago
-                <input formControlName="paymentMethod" placeholder="Efectivo…" />
-              </label>
-              <label class="field">
-                Número de recibo
-                <input formControlName="receiptNumber" />
-              </label>
-              <label class="field" style="flex-direction: row; align-items: center; gap: 0.5rem;">
-                <input type="checkbox" formControlName="runtRegistered" />
-                Inscrito en RUNT
-              </label>
-              <label class="field" style="flex-direction: row; align-items: center; gap: 0.5rem;">
-                <input type="checkbox" formControlName="isEnrolled" />
-                Enrolado en la escuela
-              </label>
-            }
-
-            <ui-button type="submit" [loading]="saving()">Crear</ui-button>
-          </form>
-        </ui-card>
-
-        <ui-card>
-          <h2>Vincular cuenta existente</h2>
+          <h2>Invitar a tu escuela</h2>
           <p class="hint">
-            Si el instructor o estudiante ya se registró solo, agrégalo con su correo.
-            Debe coincidir el tipo (instructor/estudiante) y no pertenecer a otra escuela.
+            La persona debe tener su propia cuenta en Luz Verde y no pertenecer a otra escuela.
+            Recibirá la invitación en su perfil y quedará vinculada solo cuando la acepte.
           </p>
-          <form class="stack" [formGroup]="attachForm" (ngSubmit)="attach()">
+          <form class="stack" [formGroup]="inviteForm" (ngSubmit)="invite()">
             <label class="field">
               Tipo
               <select formControlName="role">
-                <option value="Teacher">Instructor</option>
                 <option value="Student">Estudiante</option>
+                <option value="Teacher">Instructor</option>
               </select>
             </label>
             <label class="field">
-              Correo de la cuenta
-              <input type="email" formControlName="email" autocomplete="email"
-                placeholder="instructor&#64;ejemplo.com" />
+              Correo de su cuenta
+              <input type="email" formControlName="email" autocomplete="off"
+                placeholder="persona&#64;ejemplo.com" />
             </label>
-            <ui-button type="submit" [loading]="attaching()">Vincular a mi escuela</ui-button>
+            <label class="field">
+              Mensaje (opcional)
+              <input formControlName="message" maxlength="500" />
+            </label>
+            <ui-button type="submit" [loading]="inviting()">Enviar invitación</ui-button>
           </form>
         </ui-card>
 
@@ -311,9 +208,53 @@ interface SchoolJoinRequestDto {
         </ui-card>
       </div>
 
+      @if (sentInvites().length) {
+        <ui-card>
+          <h2>Invitaciones enviadas</h2>
+          <p class="hint">Pendientes de que la persona las acepte.</p>
+          <div class="table-wrap">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Correo</th>
+                  <th>Rol</th>
+                  <th>Fecha</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (inv of sentInvites(); track inv.id) {
+                  <tr>
+                    <td data-label="Nombre">{{ inv.memberName }}</td>
+                    <td data-label="Correo">{{ inv.memberEmail }}</td>
+                    <td data-label="Rol">{{ roleLabel(inv.memberRole) }}</td>
+                    <td data-label="Fecha">{{ inv.createdAt | date:'short' }}</td>
+                    <td>
+                      <div class="row-actions">
+                        <ui-button
+                          type="button"
+                          variant="secondary"
+                          [loading]="decidingId() === inv.id"
+                          (click)="cancelInvite(inv)">
+                          Cancelar
+                        </ui-button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </ui-card>
+      }
+
       @if (editing()) {
         <ui-card>
           <h2>Editar #{{ editing()!.id }}</h2>
+          <p class="hint">
+            El correo de acceso no se puede cambiar. La contraseña solo se puede restablecer en cuentas que creó tu escuela antes.
+          </p>
           <form class="stack" [formGroup]="editForm" (ngSubmit)="saveEdit()">
             <label class="field">
               Nombre
@@ -321,7 +262,7 @@ interface SchoolJoinRequestDto {
             </label>
             <label class="field">
               Correo
-              <input type="email" formControlName="email" />
+              <input type="email" [value]="editing()!.email" disabled />
             </label>
             <label class="field">
               Nueva contraseña (opcional)
@@ -338,7 +279,7 @@ interface SchoolJoinRequestDto {
       @if (!filtered().length) {
         <ui-empty
           title="Sin miembros"
-          message="Crea una cuenta nueva o vincula un instructor/estudiante existente." />
+          message="Invita a instructores o estudiantes con el correo de su cuenta, o acepta sus solicitudes." />
       } @else {
         <ui-card>
           <div class="table-wrap">
@@ -393,8 +334,7 @@ export class SchoolUsersPage implements OnInit {
 
   readonly roleLabel = roleLabel;
   readonly loading = signal(true);
-  readonly saving = signal(false);
-  readonly attaching = signal(false);
+  readonly inviting = signal(false);
   readonly savingEdit = signal(false);
   readonly decidingId = signal<number | null>(null);
   readonly error = signal<string | null>(null);
@@ -404,6 +344,9 @@ export class SchoolUsersPage implements OnInit {
   readonly profile = signal<SchoolProfileDto | null>(null);
   readonly query = signal('');
   readonly editing = signal<UserRow | null>(null);
+
+  readonly incoming = computed(() => this.joinRequests().filter((r) => r.direction === 'Request'));
+  readonly sentInvites = computed(() => this.joinRequests().filter((r) => r.direction === 'Invite'));
 
   readonly filtered = computed(() => {
     const q = this.query().trim().toLowerCase();
@@ -416,35 +359,14 @@ export class SchoolUsersPage implements OnInit {
     );
   });
 
-  readonly form = this.fb.nonNullable.group({
-    role: ['Teacher', Validators.required],
-    name: ['', [Validators.required, Validators.maxLength(200)]],
+  readonly inviteForm = this.fb.nonNullable.group({
+    role: ['Student', Validators.required],
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(8)]],
-    documentType: [''],
-    documentNumber: [''],
-    phone: [''],
-    address: [''],
-    contactEmail: [''],
-    licenseCategories: [''],
-    attendanceDayType: [''],
-    scheduleSlot: [''],
-    amountDue: [0 as number],
-    amountPaid: [0 as number],
-    paymentMethod: [''],
-    receiptNumber: [''],
-    runtRegistered: [false],
-    isEnrolled: [false]
-  });
-
-  readonly attachForm = this.fb.nonNullable.group({
-    role: ['Teacher', Validators.required],
-    email: ['', [Validators.required, Validators.email]]
+    message: ['', Validators.maxLength(500)]
   });
 
   readonly editForm = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(200)]],
-    email: ['', [Validators.required, Validators.email]],
     newPassword: ['']
   });
 
@@ -455,14 +377,8 @@ export class SchoolUsersPage implements OnInit {
   reload(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.http.get<SchoolProfileDto>(`${env.apiUrl}/api/school/profile`).subscribe({
-      next: (profile) => this.profile.set(profile),
-      error: (err) => this.error.set(mapApiError(err))
-    });
-    this.http.get<SchoolJoinRequestDto[]>(`${env.apiUrl}/api/school/join-requests`).subscribe({
-      next: (rows) => this.joinRequests.set(rows),
-      error: () => this.joinRequests.set([])
-    });
+    this.refreshSeats();
+    this.loadJoinRequests();
     this.http.get<UserRow[]>(`${env.apiUrl}/api/school/members`).subscribe({
       next: (rows) => {
         this.items.set(rows);
@@ -475,18 +391,61 @@ export class SchoolUsersPage implements OnInit {
     });
   }
 
-  acceptJoin(id: number): void {
-    this.decidingId.set(id);
+  invite(): void {
+    if (this.inviteForm.invalid) {
+      this.inviteForm.markAllAsTouched();
+      return;
+    }
+    this.inviting.set(true);
+    this.error.set(null);
+    this.ok.set(null);
+    const raw = this.inviteForm.getRawValue();
+    this.http.post<{ message: string }>(`${env.apiUrl}/api/school/invitations`, {
+      email: raw.email.trim(),
+      role: raw.role,
+      message: raw.message.trim() || null
+    }).subscribe({
+      next: (res) => {
+        this.inviting.set(false);
+        this.inviteForm.patchValue({ email: '', message: '' });
+        this.ok.set(res.message);
+        this.reload();
+      },
+      error: (err) => {
+        this.inviting.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  cancelInvite(inv: SchoolJoinRequestDto): void {
+    this.decidingId.set(inv.id);
+    this.error.set(null);
+    this.ok.set(null);
+    this.http.post(`${env.apiUrl}/api/school/invitations/${inv.id}/cancel`, {}).subscribe({
+      next: () => {
+        this.decidingId.set(null);
+        this.joinRequests.update((rows) => rows.filter((r) => r.id !== inv.id));
+        this.ok.set(`Invitación a ${inv.memberName} cancelada.`);
+      },
+      error: (err) => {
+        this.decidingId.set(null);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  acceptJoin(req: SchoolJoinRequestDto): void {
+    this.decidingId.set(req.id);
     this.error.set(null);
     this.ok.set(null);
     this.http.post<SchoolJoinRequestDto>(
-      `${env.apiUrl}/api/school/join-requests/${id}/accept`,
+      `${env.apiUrl}/api/school/join-requests/${req.id}/accept`,
       {}
     ).subscribe({
-      next: (req) => {
-        this.joinRequests.update((rows) => rows.filter((r) => r.id !== id));
+      next: () => {
         this.decidingId.set(null);
-        this.ok.set(`${req.teacherName} aceptado como instructor.`);
+        this.ok.set(`${req.memberName} se unió a tu escuela como ${roleLabel(req.memberRole).toLowerCase()}.`);
         this.reload();
       },
       error: (err) => {
@@ -496,128 +455,25 @@ export class SchoolUsersPage implements OnInit {
     });
   }
 
-  rejectJoin(id: number): void {
+  rejectJoin(req: SchoolJoinRequestDto): void {
     const reason = window.prompt('Motivo del rechazo (opcional):') ?? undefined;
     if (reason === undefined) {
       return;
     }
-    this.decidingId.set(id);
+    this.decidingId.set(req.id);
     this.error.set(null);
     this.ok.set(null);
     this.http.post<SchoolJoinRequestDto>(
-      `${env.apiUrl}/api/school/join-requests/${id}/reject`,
+      `${env.apiUrl}/api/school/join-requests/${req.id}/reject`,
       { reason: reason.trim() || null }
     ).subscribe({
-      next: (req) => {
-        this.joinRequests.update((rows) => rows.filter((r) => r.id !== id));
+      next: () => {
+        this.joinRequests.update((rows) => rows.filter((r) => r.id !== req.id));
         this.decidingId.set(null);
-        this.ok.set(`Solicitud de ${req.teacherName} rechazada.`);
+        this.ok.set(`Solicitud de ${req.memberName} rechazada.`);
       },
       error: (err) => {
         this.decidingId.set(null);
-        this.error.set(mapApiError(err));
-      }
-    });
-  }
-
-  create(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
-    this.saving.set(true);
-    this.error.set(null);
-    this.ok.set(null);
-    const raw = this.form.getRawValue();
-    const body =
-      raw.role === 'Student'
-        ? {
-            role: raw.role,
-            name: raw.name,
-            email: raw.email,
-            password: raw.password,
-            documentType: raw.documentType.trim() || null,
-            documentNumber: raw.documentNumber.trim() || null,
-            phone: raw.phone.trim() || null,
-            address: raw.address.trim() || null,
-            contactEmail: raw.contactEmail.trim() || null,
-            licenseCategories: raw.licenseCategories || null,
-            attendanceDayType: raw.attendanceDayType || null,
-            scheduleSlot: raw.scheduleSlot.trim() || null,
-            amountDue: Number(raw.amountDue) || 0,
-            amountPaid: Number(raw.amountPaid) || 0,
-            paymentMethod: raw.paymentMethod.trim() || null,
-            receiptNumber: raw.receiptNumber.trim() || null,
-            runtRegistered: raw.runtRegistered,
-            isEnrolled: raw.isEnrolled
-          }
-        : {
-            role: raw.role,
-            name: raw.name,
-            email: raw.email,
-            password: raw.password
-          };
-    this.http.post<UserRow>(`${env.apiUrl}/api/school/members`, body)
-      .subscribe({
-        next: (created) => {
-          this.items.update((rows) => [created, ...rows]);
-          this.form.patchValue({
-            name: '',
-            email: '',
-            password: '',
-            documentType: '',
-            documentNumber: '',
-            phone: '',
-            address: '',
-            contactEmail: '',
-            licenseCategories: '',
-            attendanceDayType: '',
-            scheduleSlot: '',
-            amountDue: 0,
-            amountPaid: 0,
-            paymentMethod: '',
-            receiptNumber: '',
-            runtRegistered: false,
-            isEnrolled: false
-          });
-          this.saving.set(false);
-          this.ok.set(
-            raw.role === 'Student'
-              ? `Estudiante ${created.name} creado. Revisa su expediente en Estudiantes.`
-              : `${roleLabel(created.role)} ${created.name} creado.`
-          );
-          this.refreshSeats();
-        },
-        error: (err) => {
-          this.saving.set(false);
-          this.error.set(mapApiError(err));
-        }
-      });
-  }
-
-  attach(): void {
-    if (this.attachForm.invalid) {
-      this.attachForm.markAllAsTouched();
-      return;
-    }
-    this.attaching.set(true);
-    this.error.set(null);
-    this.ok.set(null);
-    this.http.post<UserRow>(
-      `${env.apiUrl}/api/school/members/attach`,
-      this.attachForm.getRawValue()
-    ).subscribe({
-      next: (linked) => {
-        this.items.update((rows) =>
-          rows.some((r) => r.id === linked.id) ? rows : [linked, ...rows]
-        );
-        this.attachForm.patchValue({ email: '' });
-        this.attaching.set(false);
-        this.ok.set(`${roleLabel(linked.role)} ${linked.name} vinculado a tu escuela.`);
-        this.refreshSeats();
-      },
-      error: (err) => {
-        this.attaching.set(false);
         this.error.set(mapApiError(err));
       }
     });
@@ -625,11 +481,7 @@ export class SchoolUsersPage implements OnInit {
 
   startEdit(user: UserRow): void {
     this.editing.set(user);
-    this.editForm.reset({
-      name: user.name,
-      email: user.email,
-      newPassword: ''
-    });
+    this.editForm.reset({ name: user.name, newPassword: '' });
   }
 
   cancelEdit(): void {
@@ -652,7 +504,6 @@ export class SchoolUsersPage implements OnInit {
     this.error.set(null);
     this.http.put<UserRow>(`${env.apiUrl}/api/school/members/${current.id}`, {
       name: raw.name,
-      email: raw.email,
       newPassword: password || null
     }).subscribe({
       next: (updated) => {
@@ -670,9 +521,17 @@ export class SchoolUsersPage implements OnInit {
     });
   }
 
+  private loadJoinRequests(): void {
+    this.http.get<SchoolJoinRequestDto[]>(`${env.apiUrl}/api/school/join-requests`).subscribe({
+      next: (rows) => this.joinRequests.set(rows),
+      error: () => this.joinRequests.set([])
+    });
+  }
+
   private refreshSeats(): void {
     this.http.get<SchoolProfileDto>(`${env.apiUrl}/api/school/profile`).subscribe({
-      next: (profile) => this.profile.set(profile)
+      next: (profile) => this.profile.set(profile),
+      error: (err) => this.error.set(mapApiError(err))
     });
   }
 }

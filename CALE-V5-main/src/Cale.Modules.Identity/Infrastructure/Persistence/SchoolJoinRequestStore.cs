@@ -19,11 +19,11 @@ public sealed class SchoolJoinRequestStore : ISchoolJoinRequestStore
         _db.Set<SchoolJoinRequest>().FirstOrDefaultAsync(x => x.Id == id, ct);
 
     public Task<SchoolJoinRequest?> FindPendingAsync(
-        int teacherUserId,
+        int memberUserId,
         int schoolUserId,
         CancellationToken ct = default) =>
         _db.Set<SchoolJoinRequest>().FirstOrDefaultAsync(
-            x => x.TeacherUserId == teacherUserId
+            x => x.TeacherUserId == memberUserId
                 && x.SchoolUserId == schoolUserId
                 && x.Status == SchoolJoinRequestStatuses.Pending,
             ct);
@@ -37,13 +37,21 @@ public sealed class SchoolJoinRequestStore : ISchoolJoinRequestStore
             .OrderByDescending(x => x.CreatedAt)
             .ToListAsync(ct);
 
-    public async Task<IReadOnlyList<SchoolJoinRequest>> ListByTeacherAsync(
-        int teacherUserId,
+    public async Task<IReadOnlyList<SchoolJoinRequest>> ListByMemberAsync(
+        int memberUserId,
         CancellationToken ct = default) =>
         await _db.Set<SchoolJoinRequest>()
-            .Where(x => x.TeacherUserId == teacherUserId)
+            .Where(x => x.TeacherUserId == memberUserId)
             .OrderByDescending(x => x.CreatedAt)
             .Take(30)
+            .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<SchoolJoinRequest>> ListPendingByMemberAsync(
+        int memberUserId,
+        CancellationToken ct = default) =>
+        await _db.Set<SchoolJoinRequest>()
+            .Where(x => x.TeacherUserId == memberUserId
+                && x.Status == SchoolJoinRequestStatuses.Pending)
             .ToListAsync(ct);
 
     public Task SaveChangesAsync(CancellationToken ct = default) =>
@@ -56,7 +64,10 @@ public sealed class SchoolJoinRequestConfiguration : IEntityTypeConfiguration<Sc
     {
         builder.ToTable("SchoolJoinRequests");
         builder.HasKey(x => x.Id);
+        builder.Ignore(x => x.MemberUserId);
+        builder.Ignore(x => x.IsInvite);
         builder.Property(x => x.Status).HasMaxLength(32).IsRequired();
+        builder.Property(x => x.Direction).HasMaxLength(16).IsRequired().HasDefaultValue(SchoolJoinDirections.Request);
         builder.Property(x => x.Message).HasMaxLength(500);
         builder.Property(x => x.RejectionReason).HasMaxLength(500);
         builder.HasIndex(x => new { x.SchoolUserId, x.Status });
