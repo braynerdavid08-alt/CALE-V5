@@ -17,7 +17,7 @@ Cuando se retome, empezar por la auditoría del punto 28 del encargo y no duplic
 
 | Encargo | Código actual | Qué decidir |
 |---------|---------------|-------------|
-| "Sin precios definidos" y "sin planes por cantidad de estudiantes" | `src/Cale.Modules.Identity/Domain/SchoolPlans.cs` ya tiene Mensual 150.000 COP (máx. 5 instructores, 50 estudiantes) y Anual 1.500.000 COP (máx. 25 instructores, 400 estudiantes) | ¿Esos precios y cupos son reales o hay que quitarlos o marcarlos como pendientes? |
+| "Sin precios definidos" y "sin planes por cantidad de estudiantes" | `src/Cale.Modules.Identity/Domain/SchoolPlans.cs` ya tiene Mensual 150.000 COP (máx. 5 instructores, 50 estudiantes), Semestral 800.000 COP (máx. 12 instructores, 150 estudiantes) y Anual 1.500.000 COP (máx. 25 instructores, 400 estudiantes) | ¿Esos precios y cupos son reales o hay que quitarlos o marcarlos como pendientes? |
 | "Las escuelas podrán crear y administrar cuentas de estudiantes e instructores" | Desde el [PR #195](https://github.com/braynerdavid08-alt/CALE-V5/pull/195) las escuelas **no** crean cuentas; la vinculación es por solicitud o invitación aceptada | ¿Se mantiene la vinculación con consentimiento (recomendado, sobre todo con menores) o se vuelve a permitir crear cuentas? |
 | Pagos electrónicos con proveedor | Hoy la escuela sube un comprobante y el administrador lo revisa a mano; el estado del plan lo decide el servidor | Integración futura con webhooks verificados |
 
@@ -30,7 +30,7 @@ Cuando se retome, empezar por la auditoría del punto 28 del encargo y no duplic
 - Asistente de IA: la API key solo está en el servidor y hay límites por usuario, por escuela y globales. El pentest como estudiante no encontró filtraciones entre usuarios.
 - Usuarios activos e inactivos (`User.IsActive`). Hay que verificar si existen motivo, evidencia y revisión de una suspensión (probablemente no).
 - Auditoría y pruebas de seguridad: `SECURITY_AUDIT.md` y `SECURITY_TEST_MATRIX.md`.
-- **Sin auditar todavía:** si ya hay textos de términos o privacidad en el frontend, aceptaciones registradas, fecha de nacimiento o datos de menores, PQR, o conservación de datos.
+- **Auditoría previa hecha (4 oct 2026):** ver `AUDITORIA_LEGAL_2026-10-04.md`. Confirma que no existen textos legales, aceptaciones, datos de edad, PQR ni conservación de datos.
 
 ## Encargo original completo (texto del propietario)
 
