@@ -73,282 +73,13 @@ internal static class SchoolSeatGuard
         "Teacher" or "Profesor" or "Instructor" => Roles.Teacher,
         "Student" or "Estudiante" or "Alumno" => Roles.Student,
         _ => throw new DomainException(
-            "Solo puedes agregar instructores o estudiantes.",
+            "Solo puedes invitar instructores o estudiantes.",
             400,
             "invalid_role")
     };
 
     public static string RoleLabelEs(string role) =>
         role == Roles.Teacher ? "Instructor" : "Estudiante";
-}
-
-public sealed class CreateSchoolMemberHandler
-{
-    private readonly IUserStore _users;
-    private readonly ISchoolProfileStore _profiles;
-    private readonly IMembershipEventStore _events;
-    private readonly IPasswordHasher _hasher;
-    private readonly IClock _clock;
-    private readonly ISchoolStudentEnrollmentBootstrap _enrollmentBootstrap;
-
-    public CreateSchoolMemberHandler(
-        IUserStore users,
-        ISchoolProfileStore profiles,
-        IMembershipEventStore events,
-        IPasswordHasher hasher,
-        IClock clock,
-        ISchoolStudentEnrollmentBootstrap enrollmentBootstrap)
-    {
-        _users = users;
-        _profiles = profiles;
-        _events = events;
-        _hasher = hasher;
-        _clock = clock;
-        _enrollmentBootstrap = enrollmentBootstrap;
-    }
-
-    public async Task<UserListItemDto> HandleAsync(
-        int schoolId,
-        CreateSchoolMemberRequest request,
-        CancellationToken ct)
-    {
-        Validate(request);
-        var role = SchoolSeatGuard.ParseMemberRole(request.Role);
-        await SchoolSeatGuard.EnsureCanAddAsync(
-            _users, _profiles, _clock, schoolId, role, ct);
-
-        var email = EmailAddress.Normalize(request.Email);
-        if (await _users.ExistsByEmailAsync(email, ct))
-        {
-            throw new ConflictException(
-                "Ese correo ya está registrado. Usa «Vincular cuenta existente».",
-                "email_taken");
-        }
-
-        var user = role == Roles.Teacher
-            ? User.CreateTeacher(
-                request.Name,
-                email,
-                _hasher.Hash(request.Password),
-                _clock.UtcNow,
-                schoolId,
-                emailConfirmed: true)
-            : User.RegisterStudent(
-                request.Name,
-                email,
-                _hasher.Hash(request.Password),
-                _clock.UtcNow,
-                schoolId);
-        if (!user.EmailConfirmed)
-        {
-            user.MarkEmailConfirmed();
-        }
-
-        user.MarkCreatedBySchool(schoolId);
-        await _users.AddAsync(user, ct);
-        await _users.SaveChangesAsync(ct);
-
-        if (role == Roles.Student)
-        {
-            await _enrollmentBootstrap.EnsurePendingAsync(
-                schoolId,
-                user.Id,
-                ct,
-                ToOnboardingSeed(request));
-        }
-
-        await _events.AddAsync(
-            MembershipEvent.Create(
-                schoolId,
-                MembershipEventTypes.MemberCreated,
-                null,
-                null,
-                schoolId,
-                $"Alta {SchoolSeatGuard.RoleLabelEs(role)}: {user.Name} <{user.Email}> (#{user.Id})",
-                _clock.UtcNow),
-            ct);
-        await _profiles.SaveChangesAsync(ct);
-
-        return Map(user, role);
-    }
-
-    private static StudentOnboardingSeed? ToOnboardingSeed(CreateSchoolMemberRequest request)
-    {
-        var hasAny =
-            !string.IsNullOrWhiteSpace(request.DocumentType)
-            || !string.IsNullOrWhiteSpace(request.DocumentNumber)
-            || !string.IsNullOrWhiteSpace(request.Phone)
-            || !string.IsNullOrWhiteSpace(request.Address)
-            || !string.IsNullOrWhiteSpace(request.ContactEmail)
-            || !string.IsNullOrWhiteSpace(request.LicenseCategories)
-            || !string.IsNullOrWhiteSpace(request.AttendanceDayType)
-            || !string.IsNullOrWhiteSpace(request.ScheduleSlot)
-            || !string.IsNullOrWhiteSpace(request.EnrollmentPin)
-            || request.AmountDue is > 0
-            || request.AmountPaid is > 0
-            || !string.IsNullOrWhiteSpace(request.PaymentMethod)
-            || !string.IsNullOrWhiteSpace(request.ReceiptNumber)
-            || request.RuntRegistered
-            || request.IsEnrolled
-            || !string.IsNullOrWhiteSpace(request.Notes);
-
-        if (!hasAny)
-        {
-            return null;
-        }
-
-        return new StudentOnboardingSeed(
-            request.DocumentType,
-            request.DocumentNumber,
-            request.Phone,
-            request.Address,
-            request.ContactEmail,
-            request.LicenseCategories,
-            request.AttendanceDayType,
-            request.ScheduleSlot,
-            request.EnrollmentPin,
-            request.AmountDue,
-            request.AmountPaid,
-            request.PaymentMethod,
-            request.ReceiptNumber,
-            request.RuntRegistered,
-            request.IsEnrolled,
-            request.Notes);
-    }
-
-    private static void Validate(CreateSchoolMemberRequest request)
-    {
-        if (string.IsNullOrWhiteSpace(request.Name))
-        {
-            throw new DomainException("El nombre es obligatorio.", 400, "invalid_name");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Password)
-            || request.Password.Length < 8)
-        {
-            throw new DomainException(
-                "La contraseña debe tener al menos 8 caracteres.",
-                400,
-                "weak_password");
-        }
-    }
-
-    private static UserListItemDto Map(User user, string role) =>
-        new(user.Id, user.Name, user.Email, role, user.IsActive, user.CreatedAt, user.LastLoginAt);
-}
-
-public sealed class AttachSchoolMemberHandler
-{
-    private readonly IUserStore _users;
-    private readonly ISchoolProfileStore _profiles;
-    private readonly IMembershipEventStore _events;
-    private readonly IClock _clock;
-    private readonly ISchoolStudentEnrollmentBootstrap _enrollmentBootstrap;
-
-    public AttachSchoolMemberHandler(
-        IUserStore users,
-        ISchoolProfileStore profiles,
-        IMembershipEventStore events,
-        IClock clock,
-        ISchoolStudentEnrollmentBootstrap enrollmentBootstrap)
-    {
-        _users = users;
-        _profiles = profiles;
-        _events = events;
-        _clock = clock;
-        _enrollmentBootstrap = enrollmentBootstrap;
-    }
-
-    public async Task<UserListItemDto> HandleAsync(
-        int schoolId,
-        AttachSchoolMemberRequest request,
-        CancellationToken ct)
-    {
-        if (string.IsNullOrWhiteSpace(request.Email))
-        {
-            throw new DomainException("El correo es obligatorio.", 400, "invalid_email");
-        }
-
-        var expectedRole = SchoolSeatGuard.ParseMemberRole(request.Role);
-        var email = EmailAddress.Normalize(request.Email);
-        var user = await _users.FindByEmailAsync(email, ct)
-            ?? throw new NotFoundException(
-                "No hay ninguna cuenta con ese correo.",
-                "user_not_found");
-
-        var role = Roles.Normalize(user.Role);
-        if (role is not (Roles.Teacher or Roles.Student))
-        {
-            throw new DomainException(
-                "Solo se pueden vincular cuentas de instructor o estudiante.",
-                400,
-                "invalid_role");
-        }
-
-        if (role != expectedRole)
-        {
-            throw new DomainException(
-                role == Roles.Teacher
-                    ? "Esa cuenta es de instructor. Selecciona el tipo Instructor."
-                    : "Esa cuenta es de estudiante. Selecciona el tipo Estudiante.",
-                400,
-                "role_mismatch");
-        }
-
-        if (user.SchoolId == schoolId)
-        {
-            throw new ConflictException(
-                "Esa cuenta ya pertenece a tu escuela.",
-                "already_member");
-        }
-
-        if (user.SchoolId is not null)
-        {
-            throw new ConflictException(
-                "Esa cuenta ya está vinculada a otra escuela.",
-                "already_in_other_school");
-        }
-
-        if (!user.IsActive)
-        {
-            throw new DomainException(
-                "Esa cuenta está desactivada y no se puede vincular.",
-                400,
-                "user_inactive");
-        }
-
-        await SchoolSeatGuard.EnsureCanAddAsync(
-            _users, _profiles, _clock, schoolId, role, ct);
-
-        user.AssignSchool(schoolId);
-        await _users.SaveChangesAsync(ct);
-
-        if (role == Roles.Student)
-        {
-            await _enrollmentBootstrap.EnsurePendingAsync(schoolId, user.Id, ct);
-        }
-
-        await _events.AddAsync(
-            MembershipEvent.Create(
-                schoolId,
-                MembershipEventTypes.MemberAttached,
-                null,
-                null,
-                schoolId,
-                $"Vinculación {SchoolSeatGuard.RoleLabelEs(role)}: {user.Name} <{user.Email}> (#{user.Id})",
-                _clock.UtcNow),
-            ct);
-        await _profiles.SaveChangesAsync(ct);
-
-        return new UserListItemDto(
-            user.Id,
-            user.Name,
-            user.Email,
-            role,
-            user.IsActive,
-            user.CreatedAt,
-            user.LastLoginAt);
-    }
 }
 
 public sealed class UpdateSchoolMemberHandler
@@ -388,31 +119,29 @@ public sealed class UpdateSchoolMemberHandler
         }
 
         var user = await OwnedMemberAsync(schoolId, memberId, ct);
-        var email = EmailAddress.Normalize(request.Email);
-        var changesCredentials = !string.IsNullOrWhiteSpace(request.NewPassword)
-            || !string.Equals(email, user.Email, StringComparison.OrdinalIgnoreCase);
-        if (changesCredentials && !user.CredentialsManagedBy(schoolId))
+        if (!string.IsNullOrWhiteSpace(request.Email)
+            && !string.Equals(EmailAddress.Normalize(request.Email), user.Email, StringComparison.OrdinalIgnoreCase))
         {
             throw new DomainException(
-                "Esta cuenta fue creada por su dueño y solo se vinculó a tu escuela: no puedes cambiar su correo ni su contraseña. "
-                + "Pídele que lo haga desde su perfil.",
+                "El correo de acceso no se puede cambiar.",
+                400,
+                "email_change_disabled");
+        }
+
+        var resetsPassword = !string.IsNullOrWhiteSpace(request.NewPassword);
+        if (resetsPassword && !user.CredentialsManagedBy(schoolId))
+        {
+            throw new DomainException(
+                "Esta cuenta pertenece a su dueño: no puedes cambiar su contraseña. Pídele que lo haga desde su perfil.",
                 403,
                 "credentials_not_managed");
         }
 
-        if (await _users.ExistsByEmailAsync(email, memberId, ct))
+        var previous = user.Name;
+        user.UpdateProfile(request.Name, user.Email);
+        if (resetsPassword)
         {
-            throw new ConflictException(
-                "Ese correo ya está registrado.",
-                "email_taken");
-        }
-
-        var previous = $"{user.Name} <{user.Email}>";
-        user.UpdateProfile(request.Name, email);
-        var passwordChanged = false;
-        if (!string.IsNullOrWhiteSpace(request.NewPassword))
-        {
-            if (request.NewPassword.Length < 8)
+            if (request.NewPassword!.Length < 8)
             {
                 throw new DomainException(
                     "La contraseña debe tener al menos 8 caracteres.",
@@ -421,18 +150,18 @@ public sealed class UpdateSchoolMemberHandler
             }
 
             user.ChangePassword(_hasher.Hash(request.NewPassword));
-            passwordChanged = true;
         }
 
         await _users.SaveChangesAsync(ct);
-        if (changesCredentials)
+        if (resetsPassword)
         {
             await _refreshTokens.RevokeAllForUserAsync(user.Id, ct);
         }
 
-        var note = passwordChanged
-            ? $"Edición {SchoolSeatGuard.RoleLabelEs(Roles.Normalize(user.Role))}: {previous} → {user.Name} <{user.Email}> (#{user.Id}); contraseña restablecida"
-            : $"Edición {SchoolSeatGuard.RoleLabelEs(Roles.Normalize(user.Role))}: {previous} → {user.Name} <{user.Email}> (#{user.Id})";
+        var label = SchoolSeatGuard.RoleLabelEs(Roles.Normalize(user.Role));
+        var note = resetsPassword
+            ? $"Edición {label}: {previous} → {user.Name} <{user.Email}> (#{user.Id}); contraseña restablecida"
+            : $"Edición {label}: {previous} → {user.Name} <{user.Email}> (#{user.Id})";
 
         await _events.AddAsync(
             MembershipEvent.Create(
@@ -463,7 +192,7 @@ public sealed class UpdateSchoolMemberHandler
         int memberId,
         CancellationToken ct) =>
         throw new ForbiddenException(
-            "Solo el administrador puede quitar o eliminar miembros. La escuela puede crear y editar nombre/correo.",
+            "Solo el administrador puede quitar o eliminar miembros.",
             "admin_only_unlink");
 
     private async Task<User> OwnedMemberAsync(

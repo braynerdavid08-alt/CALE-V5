@@ -30,9 +30,11 @@ type ProfileTab = 'account' | 'preferences' | 'security' | 'context';
 
 interface SchoolJoinRequestDto {
   id: number;
-  teacherUserId: number;
-  teacherName: string;
-  teacherEmail: string;
+  direction: 'Request' | 'Invite';
+  memberUserId: number;
+  memberName: string;
+  memberEmail: string;
+  memberRole: string;
   schoolUserId: number;
   schoolLegalName: string;
   schoolTaxId: string;
@@ -83,11 +85,18 @@ export class ProfilePage implements OnInit {
   readonly me = signal<MeResponse | null>(null);
   readonly tab = signal<ProfileTab>('account');
   readonly joinRequests = signal<SchoolJoinRequestDto[]>([]);
+  readonly decidingId = signal<number | null>(null);
   readonly schoolInfo = signal<SchoolInfo | null>(null);
 
+  readonly pendingInvites = computed(() =>
+    this.joinRequests().filter((r) => r.direction === 'Invite' && r.status === 'Pending')
+  );
+  readonly myRequests = computed(() =>
+    this.joinRequests().filter((r) => !(r.direction === 'Invite' && r.status === 'Pending'))
+  );
+
   readonly profileForm = this.fb.nonNullable.group({
-    name: ['', [Validators.required, Validators.maxLength(200)]],
-    email: ['', [Validators.required, Validators.email]]
+    name: ['', [Validators.required, Validators.maxLength(200)]]
   });
 
   readonly passwordForm = this.fb.nonNullable.group({
@@ -125,7 +134,7 @@ export class ProfilePage implements OnInit {
     this.api.me().subscribe({
       next: (dto) => {
         this.me.set(dto);
-        this.profileForm.patchValue({ name: dto.name, email: dto.email });
+        this.profileForm.patchValue({ name: dto.name });
         this.session.patchUser({
           id: dto.id,
           name: dto.name,
@@ -139,7 +148,7 @@ export class ProfilePage implements OnInit {
           this.tab.set('security');
         }
         this.loading.set(false);
-        if (dto.role === 'Teacher' && !dto.school) {
+        if ((dto.role === 'Teacher' || dto.role === 'Student') && !dto.school) {
           this.loadJoinRequests();
         }
         if (dto.role === 'School') {
@@ -168,7 +177,7 @@ export class ProfilePage implements OnInit {
   }
 
   loadJoinRequests(): void {
-    this.http.get<SchoolJoinRequestDto[]>(`${env.apiUrl}/api/teacher/school-join-requests`)
+    this.http.get<SchoolJoinRequestDto[]>(`${env.apiUrl}/api/me/school-membership`)
       .subscribe({
         next: (rows) => this.joinRequests.set(rows),
         error: () => this.joinRequests.set([])
@@ -184,13 +193,18 @@ export class ProfilePage implements OnInit {
     this.error.set(null);
     this.success.set(null);
     const raw = this.joinForm.getRawValue();
-    this.http.post<SchoolJoinRequestDto>(`${env.apiUrl}/api/teacher/school-join-requests`, {
+    this.http.post<SchoolJoinRequestDto>(`${env.apiUrl}/api/me/school-membership/requests`, {
       schoolQuery: raw.schoolQuery.trim(),
       message: raw.message.trim() || null
     }).subscribe({
       next: (created) => {
         this.joining.set(false);
         this.joinForm.reset({ schoolQuery: '', message: '' });
+        if (created.status === 'Accepted') {
+          this.success.set(`${created.schoolLegalName} ya te había invitado: ahora formas parte de ella.`);
+          this.reload();
+          return;
+        }
         this.joinRequests.update((rows) => [created, ...rows]);
         this.success.set(
           `Solicitud enviada a ${created.schoolLegalName}. La escuela recibirá una notificación.`
@@ -204,7 +218,7 @@ export class ProfilePage implements OnInit {
   }
 
   cancelJoin(id: number): void {
-    this.http.post(`${env.apiUrl}/api/teacher/school-join-requests/${id}/cancel`, {}).subscribe({
+    this.http.post(`${env.apiUrl}/api/me/school-membership/requests/${id}/cancel`, {}).subscribe({
       next: () => {
         this.joinRequests.update((rows) =>
           rows.map((r) => (r.id === id ? { ...r, status: 'Cancelled' } : r))
@@ -212,6 +226,48 @@ export class ProfilePage implements OnInit {
         this.success.set('Solicitud cancelada.');
       },
       error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  acceptInvite(inv: SchoolJoinRequestDto): void {
+    this.decidingId.set(inv.id);
+    this.error.set(null);
+    this.success.set(null);
+    this.http.post<SchoolJoinRequestDto>(
+      `${env.apiUrl}/api/me/school-membership/invitations/${inv.id}/accept`,
+      {}
+    ).subscribe({
+      next: () => {
+        this.decidingId.set(null);
+        this.success.set(`Ahora formas parte de ${inv.schoolLegalName}.`);
+        this.reload();
+      },
+      error: (err) => {
+        this.decidingId.set(null);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  rejectInvite(inv: SchoolJoinRequestDto): void {
+    this.decidingId.set(inv.id);
+    this.error.set(null);
+    this.success.set(null);
+    this.http.post<SchoolJoinRequestDto>(
+      `${env.apiUrl}/api/me/school-membership/invitations/${inv.id}/reject`,
+      {}
+    ).subscribe({
+      next: () => {
+        this.decidingId.set(null);
+        this.joinRequests.update((rows) =>
+          rows.map((r) => (r.id === inv.id ? { ...r, status: 'Rejected' } : r))
+        );
+        this.success.set(`Rechazaste la invitación de ${inv.schoolLegalName}.`);
+      },
+      error: (err) => {
+        this.decidingId.set(null);
+        this.error.set(mapApiError(err));
+      }
     });
   }
 
@@ -247,14 +303,13 @@ export class ProfilePage implements OnInit {
     this.error.set(null);
     this.success.set(null);
     const name = this.profileForm.controls.name.value.trim();
-    const email = this.profileForm.controls.email.value.trim();
-    this.api.updateMe(name, email).subscribe({
+    this.api.updateMe(name).subscribe({
       next: (dto) => {
         this.me.set(dto);
-        this.profileForm.patchValue({ name: dto.name, email: dto.email });
-        this.session.patchUser({ name: dto.name, email: dto.email });
+        this.profileForm.patchValue({ name: dto.name });
+        this.session.patchUser({ name: dto.name });
         this.savingProfile.set(false);
-        this.success.set('Perfil guardado. Si cambiaste el correo, úsalo al volver a entrar.');
+        this.success.set('Perfil guardado.');
       },
       error: (err) => {
         this.savingProfile.set(false);

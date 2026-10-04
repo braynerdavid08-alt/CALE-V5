@@ -258,43 +258,27 @@ public sealed record UpdateSchoolBillingRequest(
     string City,
     string Department);
 
-public sealed record CreateSchoolMemberRequest(
-    string Name,
-    string Email,
-    string Password,
-    string Role,
-    string? DocumentType = null,
-    string? DocumentNumber = null,
-    string? Phone = null,
-    string? Address = null,
-    string? ContactEmail = null,
-    string? LicenseCategories = null,
-    string? AttendanceDayType = null,
-    string? ScheduleSlot = null,
-    string? EnrollmentPin = null,
-    decimal? AmountDue = null,
-    decimal? AmountPaid = null,
-    string? PaymentMethod = null,
-    string? ReceiptNumber = null,
-    bool RuntRegistered = false,
-    bool IsEnrolled = false,
-    string? Notes = null);
-
-public sealed record AttachSchoolMemberRequest(
-    string Email,
-    string Role);
-
 public sealed record RequestSchoolJoinRequest(
     string SchoolQuery,
     string? Message = null);
 
+public sealed record InviteSchoolMemberRequest(
+    string Email,
+    string Role,
+    string? Message = null);
+
+public sealed record SchoolInviteResultDto(string Message);
+
 public sealed record RejectSchoolJoinRequest(string? Reason = null);
 
+/// <summary>Direction is "Request" (the member asked to join) or "Invite" (the school invited).</summary>
 public sealed record SchoolJoinRequestDto(
     int Id,
-    int TeacherUserId,
-    string TeacherName,
-    string TeacherEmail,
+    string Direction,
+    int MemberUserId,
+    string MemberName,
+    string MemberEmail,
+    string MemberRole,
     int SchoolUserId,
     string SchoolLegalName,
     string SchoolTaxId,
@@ -306,7 +290,7 @@ public sealed record SchoolJoinRequestDto(
 
 public sealed record UpdateSchoolMemberRequest(
     string Name,
-    string Email,
+    string? Email,
     string? NewPassword);
 
 public sealed record ChangePasswordRequest(

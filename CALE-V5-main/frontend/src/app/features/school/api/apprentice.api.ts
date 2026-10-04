@@ -65,9 +65,7 @@ export interface ExcelImportCommitResult {
   updated: number;
   skipped: number;
   failed: number;
-  credentials: { name: string; email: string; temporaryPassword: string }[];
   results: ExcelImportRowPreview[];
-  credentialsCsv: string;
 }
 
 export interface ApprenticePracticalSummary {

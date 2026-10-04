@@ -38,29 +38,16 @@ public sealed class UpdateMyProfileHandler
         var user = await _users.GetByIdAsync(userId, ct)
             ?? throw new NotFoundException("Usuario no encontrado.", "user_not_found");
 
-        var email = user.Email;
-        if (!string.IsNullOrWhiteSpace(request.Email))
+        if (!string.IsNullOrWhiteSpace(request.Email)
+            && !string.Equals(EmailAddress.Normalize(request.Email), user.Email, StringComparison.OrdinalIgnoreCase))
         {
-            email = EmailAddress.Normalize(request.Email);
-            try
-            {
-                _ = new System.Net.Mail.MailAddress(email);
-            }
-            catch (FormatException)
-            {
-                throw new DomainException("Email is not valid.", 400, "invalid_email");
-            }
-
-            if (!string.Equals(email, user.Email, StringComparison.OrdinalIgnoreCase)
-                && await _users.ExistsByEmailAsync(email, ct))
-            {
-                throw new ConflictException(
-                    "Email already registered.",
-                    "email_taken");
-            }
+            throw new DomainException(
+                "El correo de acceso no se puede cambiar.",
+                400,
+                "email_change_disabled");
         }
 
-        user.UpdateProfile(request.Name.Trim(), email);
+        user.UpdateProfile(request.Name.Trim(), user.Email);
         await _users.SaveChangesAsync(ct);
         return await _me.HandleAsync(userId, ct);
     }

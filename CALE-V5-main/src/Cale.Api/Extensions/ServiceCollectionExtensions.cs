@@ -105,6 +105,7 @@ public static class ServiceCollectionExtensions
             AddPerUserLimiter(options, RateLimitPolicies.ExamReview, permits: 60, window: TimeSpan.FromMinutes(10));
             AddPerUserLimiter(options, RateLimitPolicies.Uploads, permits: 40, window: TimeSpan.FromMinutes(10));
             AddPerUserLimiter(options, RateLimitPolicies.Assistant, permits: 20, window: TimeSpan.FromMinutes(1));
+            AddPerUserLimiter(options, RateLimitPolicies.SchoolLinks, permits: 30, window: TimeSpan.FromMinutes(10));
 
             // Coarse per-IP ceiling for the whole API; generous because a classroom shares one NAT IP.
             var globalPermits = Math.Max(100, config.GetValue("RateLimiting:GlobalPerIpPerMinute", 3000));

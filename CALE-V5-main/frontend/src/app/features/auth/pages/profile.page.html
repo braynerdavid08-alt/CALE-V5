@@ -92,7 +92,7 @@
 
       <ui-card>
         <h2>Datos editables</h2>
-        <p class="muted">Puedes cambiar tu nombre y correo. La clave se cambia en Seguridad.</p>
+        <p class="muted">Puedes cambiar tu nombre. El correo de acceso no se puede cambiar. La clave se cambia en Seguridad.</p>
         <form class="stack" [formGroup]="profileForm" (ngSubmit)="saveProfile()">
           <label class="field">
             Nombre
@@ -100,7 +100,7 @@
           </label>
           <label class="field">
             Correo
-            <input type="email" formControlName="email" autocomplete="email" />
+            <input type="email" [value]="me()?.email ?? ''" disabled />
           </label>
           <ui-button type="submit" [loading]="savingProfile()" [disabled]="profileForm.invalid">
             Guardar cambios
@@ -244,44 +244,75 @@
             No hace falta: puedes usar todo Luz Verde gratis por tu cuenta.
           }
         </p>
-        @if (role() === 'Teacher') {
-          <form class="stack" style="margin-top: 1rem;" [formGroup]="joinForm" (ngSubmit)="requestJoin()">
-            <h3 style="margin: 0;">Solicitar unirme a una escuela</h3>
-            <p class="muted">Usa el NIT o el correo de la escuela. Ellos recibirán una notificación y decidirán.</p>
-            <label class="field">
-              NIT o correo de la escuela
-              <input formControlName="schoolQuery" placeholder="900123456 o escuela&#64;correo.com" />
-            </label>
-            <label class="field">
-              Mensaje (opcional)
-              <input formControlName="message" maxlength="500" placeholder="Soy instructor de..." />
-            </label>
-            <ui-button type="submit" [loading]="joining()" [disabled]="joinForm.invalid">
-              Enviar solicitud
-            </ui-button>
-          </form>
-          @if (joinRequests().length) {
-            <div style="margin-top: 1.25rem;">
-              <h3>Mis solicitudes</h3>
-              <ul class="facts" style="list-style: none; padding: 0;">
-                @for (req of joinRequests(); track req.id) {
-                  <li style="padding: 0.65rem 0; border-bottom: 1px solid var(--color-border);">
-                    <strong>{{ req.schoolLegalName }}</strong>
-                    <ui-badge [tone]="joinStatusTone(req.status)">{{ joinStatusLabel(req.status) }}</ui-badge>
-                    <div class="muted">NIT {{ req.schoolTaxId }} · {{ req.createdAt | date:'short' }}</div>
-                    @if (req.status === 'Pending') {
-                      <ui-button type="button" variant="ghost" (click)="cancelJoin(req.id)">Cancelar</ui-button>
-                    }
-                    @if (req.rejectionReason) {
-                      <div class="muted">Motivo: {{ req.rejectionReason }}</div>
-                    }
-                  </li>
-                }
-              </ul>
-            </div>
-          }
-        } @else {
-          <p class="muted">Cuando tu escuela te agregue, verás aquí su nombre.</p>
+        @if (pendingInvites().length) {
+          <div style="margin-top: 1rem;">
+            <h3 style="margin: 0;">Invitaciones de escuelas</h3>
+            <p class="muted">Solo quedarás vinculado si aceptas.</p>
+            <ul class="facts" style="list-style: none; padding: 0;">
+              @for (inv of pendingInvites(); track inv.id) {
+                <li style="padding: 0.65rem 0; border-bottom: 1px solid var(--color-border);">
+                  <strong>{{ inv.schoolLegalName }}</strong>
+                  <div class="muted">
+                    @if (inv.schoolTaxId) { NIT {{ inv.schoolTaxId }} · }{{ inv.createdAt | date:'short' }}
+                  </div>
+                  @if (inv.message) {
+                    <div class="muted">“{{ inv.message }}”</div>
+                  }
+                  <div class="row actions" style="margin-top: 0.5rem;">
+                    <ui-button type="button" [loading]="decidingId() === inv.id" (click)="acceptInvite(inv)">
+                      Aceptar
+                    </ui-button>
+                    <ui-button type="button" variant="secondary" [disabled]="decidingId() === inv.id" (click)="rejectInvite(inv)">
+                      Rechazar
+                    </ui-button>
+                  </div>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+
+        <form class="stack" style="margin-top: 1rem;" [formGroup]="joinForm" (ngSubmit)="requestJoin()">
+          <h3 style="margin: 0;">Solicitar unirme a una escuela</h3>
+          <p class="muted">Usa el NIT o el correo de la escuela. Ellos recibirán una notificación y decidirán.</p>
+          <label class="field">
+            NIT o correo de la escuela
+            <input formControlName="schoolQuery" placeholder="900123456 o escuela&#64;correo.com" />
+          </label>
+          <label class="field">
+            Mensaje (opcional)
+            <input formControlName="message" maxlength="500"
+              [placeholder]="role() === 'Teacher' ? 'Soy instructor de...' : 'Me inscribí en...'" />
+          </label>
+          <ui-button type="submit" [loading]="joining()" [disabled]="joinForm.invalid">
+            Enviar solicitud
+          </ui-button>
+        </form>
+
+        @if (myRequests().length) {
+          <div style="margin-top: 1.25rem;">
+            <h3>Historial</h3>
+            <ul class="facts" style="list-style: none; padding: 0;">
+              @for (req of myRequests(); track req.id) {
+                <li style="padding: 0.65rem 0; border-bottom: 1px solid var(--color-border);">
+                  <strong>{{ req.schoolLegalName }}</strong>
+                  <ui-badge [tone]="joinStatusTone(req.status)">{{ joinStatusLabel(req.status) }}</ui-badge>
+                  <div class="muted">
+                    {{ req.direction === 'Invite' ? 'Invitación' : 'Solicitud' }} · {{ req.createdAt | date:'short' }}
+                  </div>
+                  @if (req.status === 'Pending' && req.direction === 'Request') {
+                    <ui-button type="button" variant="ghost" (click)="cancelJoin(req.id)">Cancelar</ui-button>
+                  }
+                  @if (req.rejectionReason) {
+                    <div class="muted">Motivo: {{ req.rejectionReason }}</div>
+                  }
+                </li>
+              }
+            </ul>
+          </div>
+        }
+
+        @if (role() === 'Student') {
           <div class="row actions" style="margin-top: 1rem;">
             <ui-button routerLink="/live/join" type="button">Entrar a Live</ui-button>
             <ui-button routerLink="/live/join" [queryParams]="{ scan: '1' }" type="button" variant="secondary">Escanear QR</ui-button>

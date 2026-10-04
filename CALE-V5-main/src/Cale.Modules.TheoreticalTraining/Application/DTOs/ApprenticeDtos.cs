@@ -80,20 +80,13 @@ public sealed record ExcelImportPreviewDto(
     string? BlockingReason,
     IReadOnlyList<ExcelImportRowPreviewDto> Rows);
 
-public sealed record ExcelImportCredentialDto(
-    string Name,
-    string Email,
-    string TemporaryPassword);
-
 public sealed record ExcelImportCommitResultDto(
     Guid PreviewId,
     int Created,
     int Updated,
     int Skipped,
     int Failed,
-    IReadOnlyList<ExcelImportCredentialDto> Credentials,
-    IReadOnlyList<ExcelImportRowPreviewDto> Results,
-    string CredentialsCsv);
+    IReadOnlyList<ExcelImportRowPreviewDto> Results);
 
 public sealed record ApprenticePracticalSummaryDto(
     int CompletedLessons,

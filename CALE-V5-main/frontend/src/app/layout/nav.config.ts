@@ -119,7 +119,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
           { label: 'Horarios de examen', path: '/school/theory-exams/schedule', exact: true },
           { label: 'Examen en curso', path: '/school/exam-control', exact: true },
           { label: 'Vehículos de hoy', path: '/school/practical-fleet', exact: true },
-          { label: 'Importar estudiantes', path: '/school/import', exact: true },
+          { label: 'Importar expedientes', path: '/school/import', exact: true },
           { label: 'Ver preguntas', path: '/school/questions', exact: true },
           { label: 'Ver bancos de preguntas', path: '/school/banks', exact: true }
         ]
