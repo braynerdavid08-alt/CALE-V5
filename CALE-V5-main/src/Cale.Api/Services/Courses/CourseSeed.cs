@@ -17,6 +17,8 @@ public sealed partial class CourseSeed
     public const string RoadSlug = "via-espacio-publico";
     public const string VehicleSlug = "el-vehiculo";
     public const string MotorcycleSlug = "motocicleta-a2";
+    public const string CarSlug = "automovil-b1";
+    public const string PublicServiceSlug = "servicio-publico-c1";
 
     private readonly CaleDbContext _db;
 
@@ -94,6 +96,24 @@ public sealed partial class CourseSeed
             "Conducción defensiva",
             "/courses/moto/portada.jpg",
             MotorcycleLessons,
+            logger,
+            ct);
+        await EnsureCourseAsync(
+            CarSlug,
+            "Dominio seguro del automóvil (B1)",
+            "Puesto de conducción, embrague y cambios, frenado, pendientes, reversa, estacionamiento y giros: la técnica para manejar un carro con seguridad.",
+            "Conducción defensiva",
+            "/courses/automovil/portada.jpg",
+            CarLessons,
+            logger,
+            ct);
+        await EnsureCourseAsync(
+            PublicServiceSlug,
+            "Conducción profesional de servicio público (C1)",
+            "Régimen y documentos del servicio público, seguros, atención al usuario, pasajeros vulnerables, fatiga y conducción urbana en Barranquilla.",
+            "Servicio público",
+            "/courses/servicio-publico/portada.jpg",
+            PublicServiceLessons,
             logger,
             ct);
     }
