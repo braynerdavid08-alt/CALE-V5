@@ -8,6 +8,7 @@ using Cale.Modules.Identity.Application.Abstractions;
 using Cale.Modules.Presentation.Application.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Cale.Api.Controllers;
 
@@ -24,7 +25,6 @@ public sealed class CoursesController : ControllerBase
             [".png"] = ("image", "image/png"),
             [".gif"] = ("image", "image/gif"),
             [".webp"] = ("image", "image/webp"),
-            [".svg"] = ("image", "image/svg+xml"),
             [".mp4"] = ("video", "video/mp4"),
             [".webm"] = ("video", "video/webm"),
             [".mov"] = ("video", "video/quicktime"),
@@ -108,6 +108,7 @@ public sealed class CoursesController : ControllerBase
     public IReadOnlyList<SignDto> Signs() => _play.GetSigns();
 
     [HttpPost("upload")]
+    [EnableRateLimiting(RateLimitPolicies.Uploads)]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(UploadLimits.PresentationMediaBytes)]
     [RequestFormLimits(MultipartBodyLengthLimit = UploadLimits.PresentationMediaBytes)]
@@ -124,17 +125,18 @@ public sealed class CoursesController : ControllerBase
         }
 
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (!MediaTypes.TryGetValue(ext, out var type))
+        var detected = await MediaSniffer.DetectAsync(file, ct);
+        if (!MediaTypes.TryGetValue(ext, out var type) || detected is null || detected.Kind != type.Kind)
         {
             throw new DomainException(
-                "Usa imagen (jpg, png, webp, svg), video (mp4, webm, mov) o audio (mp3, m4a, ogg, wav).",
+                "Usa imagen (jpg, png, gif, webp), video (mp4, webm, mov) o audio (mp3, m4a, ogg, wav).",
                 400,
                 "invalid_file");
         }
 
         await using var stream = file.OpenReadStream();
-        var url = await _media.SaveAsync(stream, $"{Guid.NewGuid():N}{ext}", type.ContentType, CurrentUser.GetId(User), ct);
-        return Ok(new { url, mediaType = type.Kind });
+        var url = await _media.SaveAsync(stream, $"{Guid.NewGuid():N}{detected.Extension}", detected.ContentType, CurrentUser.GetId(User), ct);
+        return Ok(new { url, mediaType = detected.Kind });
     }
 
     private async Task<CourseActor> ActorAsync(CancellationToken ct)

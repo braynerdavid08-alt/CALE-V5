@@ -99,6 +99,15 @@ public sealed class GroupCommandHandler
 
         if (!isAdmin)
         {
+            var actorSchoolId = await _users.GetSchoolIdAsync(userId, ct);
+            var targetSchoolId = await _users.GetSchoolIdAsync(targetId, ct);
+            if (actorSchoolId is null || targetSchoolId != actorSchoolId)
+            {
+                throw new ForbiddenException(
+                    "Solo puedes agregar estudiantes de tu misma escuela.",
+                    "group_wrong_school");
+            }
+
             await EnsureStudentCanJoinSchoolGroupAsync(targetId, group, ct);
         }
         else

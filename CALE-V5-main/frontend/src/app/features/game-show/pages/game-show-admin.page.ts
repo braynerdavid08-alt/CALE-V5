@@ -6,6 +6,7 @@ import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
 import { UiSuccessComponent } from '../../../shared/ui/ui-success.component';
 import { mapApiError } from '../../../core/http/map-api-error';
+import { SessionStore } from '../../../core/auth/session.store';
 import {
   CreateGameShowBody,
   GameShowApi,
@@ -86,15 +87,19 @@ function blankRound(): GameShowRoundInput {
       <p class="dirty" [class.on]="settingsDirty()">
         {{ settingsDirty() ? 'Hay cambios sin guardar' : 'Sin cambios pendientes' }}
       </p>
-      <div class="actions">
-        <ui-button type="button" [loading]="savingSettings()" [disabled]="!settingsDirty()" (click)="saveSettings()">
-          Guardar cambios
-        </ui-button>
-        <ui-button type="button" variant="secondary" (click)="reloadSettings()" [disabled]="!settingsDirty()">
-          Cancelar
-        </ui-button>
-        <ui-button type="button" variant="ghost" (click)="restoreSettings()">Restaurar predeterminados</ui-button>
-      </div>
+      @if (canEditGlobal()) {
+        <div class="actions">
+          <ui-button type="button" [loading]="savingSettings()" [disabled]="!settingsDirty()" (click)="saveSettings()">
+            Guardar cambios
+          </ui-button>
+          <ui-button type="button" variant="secondary" (click)="reloadSettings()" [disabled]="!settingsDirty()">
+            Cancelar
+          </ui-button>
+          <ui-button type="button" variant="ghost" (click)="restoreSettings()">Restaurar predeterminados</ui-button>
+        </div>
+      } @else {
+        <p class="dirty">Solo un administrador puede cambiar la configuración global. Puedes ajustar tiempos y reglas en cada partida.</p>
+      }
     }
 
     @if (tab() === 'times') {
@@ -328,6 +333,8 @@ function blankRound(): GameShowRoundInput {
 })
 export class GameShowAdminPage implements OnInit {
   private readonly api = inject(GameShowApi);
+  private readonly session = inject(SessionStore);
+  readonly canEditGlobal = computed(() => this.session.user()?.role === 'Admin');
 
   readonly tabs: { id: AdminTab; label: string }[] = [
     { id: 'questions', label: 'Preguntas' },

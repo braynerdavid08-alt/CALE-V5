@@ -6,6 +6,7 @@ using Cale.Modules.Assessment.Application.Queries;
 using Cale.Modules.TheoreticalTraining.Application;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Cale.Api.Controllers;
 
@@ -38,6 +39,7 @@ public sealed class ExamAttemptsController : ControllerBase
     }
 
     [HttpPost("start")]
+    [EnableRateLimiting(RateLimitPolicies.ExamStart)]
     public async Task<IActionResult> Start(
         StartExamRequest request,
         CancellationToken ct)
@@ -81,6 +83,7 @@ public sealed class ExamAttemptsController : ControllerBase
     }
 
     [HttpGet("{attemptId:int}/review")]
+    [EnableRateLimiting(RateLimitPolicies.ExamReview)]
     public async Task<IActionResult> Review(int attemptId, CancellationToken ct) =>
         Ok(await _review.HandleAsync(
             attemptId,

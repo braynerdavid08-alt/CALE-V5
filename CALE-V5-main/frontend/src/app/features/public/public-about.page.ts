@@ -1,7 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { BRAND, brandPageTitle } from '../../core/brand';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { mapApiError } from '../../core/http/map-api-error';
 import { UiErrorComponent } from '../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../shared/ui/ui-loading.component';
@@ -63,11 +62,9 @@ export class PublicAboutPage implements OnInit {
   private readonly api = inject(PublicHomeApi);
   private readonly title = inject(Title);
   private readonly meta = inject(Meta);
-  private readonly sanitizer = inject(DomSanitizer);
-
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
-  readonly aboutHtml = signal<SafeHtml>('');
+  readonly aboutHtml = signal('');
 
   ngOnInit(): void {
     this.title.setTitle(brandPageTitle('Nosotros'));
@@ -80,7 +77,7 @@ export class PublicAboutPage implements OnInit {
       next: (data) => {
         const html = data.aboutHtml?.trim()
           || `<p><strong>${BRAND.name}</strong> — ${BRAND.slogan}.</p>`;
-        this.aboutHtml.set(this.sanitizer.bypassSecurityTrustHtml(html));
+        this.aboutHtml.set(html);
         this.loading.set(false);
       },
       error: (err) => {

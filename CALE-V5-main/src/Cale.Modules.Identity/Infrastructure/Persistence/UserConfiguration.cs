@@ -40,6 +40,8 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.PhotoUrl)
             .HasColumnName("FotoUrl")
             .HasMaxLength(300);
+        builder.Property(x => x.CreatedBySchoolId)
+            .HasColumnName("EscuelaCreadoraId");
         builder.HasIndex(x => x.Email).IsUnique();
         builder.HasIndex(x => x.SchoolId);
         builder.HasIndex(x => x.LastLoginAt);

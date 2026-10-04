@@ -1,10 +1,12 @@
 using Cale.Api.Extensions;
+using Cale.Api.Infrastructure;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.Modules.Catalog.Application.Abstractions;
 using Cale.Modules.Identity.Application.Commands;
 using Cale.Modules.Identity.Application.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Cale.Api.Controllers;
 
@@ -33,6 +35,7 @@ public sealed class ProfilePhotoController : ControllerBase
     }
 
     [HttpPost]
+    [EnableRateLimiting(RateLimitPolicies.Uploads)]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(4_000_000)]
     public async Task<ActionResult<MeResponse>> Upload([FromForm] IFormFile? file, CancellationToken ct)
@@ -47,14 +50,15 @@ public sealed class ProfilePhotoController : ControllerBase
             throw new DomainException("La foto debe pesar 3 MB o menos.", 400, "file_too_large");
         }
 
-        if (!Allowed.TryGetValue(file.ContentType ?? "", out var ext))
+        var detected = await MediaSniffer.DetectAsync(file, ct);
+        if (detected is null || !Allowed.TryGetValue(detected.ContentType, out var ext))
         {
             throw new DomainException("Usa una foto JPG, PNG o WEBP.", 400, "invalid_file");
         }
 
         var userId = CurrentUser.GetId(User);
         await using var stream = file.OpenReadStream();
-        var url = await _media.SaveAsync(stream, $"perfil-{userId}{ext}", file.ContentType!, userId, ct);
+        var url = await _media.SaveAsync(stream, $"perfil-{userId}{ext}", detected.ContentType, userId, ct);
 
         var (me, previous) = await _profile.SetPhotoAsync(userId, url, ct);
         await DeletePreviousAsync(previous, userId, ct);

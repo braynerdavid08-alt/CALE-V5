@@ -237,8 +237,8 @@ export class SimulatorPage implements OnInit, OnDestroy {
       this.error.set('Elige un banco oficial para practicar.');
       return;
     }
-    if (this.questionCount < 1 || this.timeMinutes < 1) {
-      this.error.set('Preguntas y minutos deben ser al menos 1.');
+    if (this.questionCount < 10 || this.questionCount > 50 || this.timeMinutes < 5 || this.timeMinutes > 120) {
+      this.error.set('Elige entre 10 y 50 preguntas y entre 5 y 120 minutos.');
       return;
     }
     const bank = this.selectedBank();

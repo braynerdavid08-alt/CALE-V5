@@ -17,6 +17,8 @@ namespace Cale.Modules.Assessment.Application.Commands;
 public sealed class StartExamHandler
 {
     private const int MinimumMixedQuestions = 10;
+    public const int MinimumBankPracticeQuestions = 10;
+    public const int MaximumBankPracticeQuestions = 50;
 
     private readonly IAttemptStore _attempts;
     private readonly ICatalogStore _catalog;
@@ -145,9 +147,7 @@ public sealed class StartExamHandler
                     ? AttemptModes.MixedPractice
                     : exam is not null
                     ? AttemptModes.Exam
-                    : (string.IsNullOrWhiteSpace(request.Mode)
-                        ? AttemptModes.Practice
-                        : request.Mode),
+                    : AttemptModes.Practice,
                 selected.Count,
                 timeMinutes,
                 now);
@@ -461,7 +461,14 @@ public sealed class StartExamHandler
                 groupIds.Contains(link.GroupId)
                 && (link.StartsAt is null || link.StartsAt <= now)
                 && (link.EndsAt is null || link.EndsAt >= now));
-            if (!assignedNow && officialExamId != exam.Id)
+            if (officialExamId == exam.Id)
+            {
+                throw new ForbiddenException(
+                    "El examen teórico oficial de tu escuela no se puede usar en un simulacro personalizado.",
+                    "official_exam_not_mixable");
+            }
+
+            if (!assignedNow)
             {
                 throw new ForbiddenException(
                     "Uno de los exámenes seleccionados no está asignado a tu grupo.",
@@ -592,8 +599,8 @@ public sealed class StartExamHandler
                 "bank_not_visible");
         }
 
-        var minutes = request.TimeMinutes < 1 ? 20 : request.TimeMinutes;
-        var count = request.QuestionCount < 1 ? 10 : request.QuestionCount;
+        var count = Math.Clamp(request.QuestionCount, MinimumBankPracticeQuestions, MaximumBankPracticeQuestions);
+        var minutes = Math.Clamp(request.TimeMinutes < 1 ? 20 : request.TimeMinutes, 5, 120);
         return (bank.Id, null, minutes, count);
     }
 

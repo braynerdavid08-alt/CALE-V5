@@ -4,6 +4,7 @@ using Cale.BuildingBlocks.Domain.Security;
 using Cale.BuildingBlocks.Domain.Validation;
 using Cale.Modules.Identity.Application.Abstractions;
 using Cale.Modules.Identity.Application.DTOs;
+using Microsoft.Extensions.Logging;
 
 namespace Cale.Modules.Identity.Application.Commands;
 
@@ -11,11 +12,19 @@ public sealed class UpdateUserHandler
 {
     private readonly IUserStore _users;
     private readonly IPasswordHasher _hasher;
+    private readonly IRefreshTokenStore _refreshTokens;
+    private readonly ILogger<UpdateUserHandler> _logger;
 
-    public UpdateUserHandler(IUserStore users, IPasswordHasher hasher)
+    public UpdateUserHandler(
+        IUserStore users,
+        IPasswordHasher hasher,
+        IRefreshTokenStore refreshTokens,
+        ILogger<UpdateUserHandler> logger)
     {
         _users = users;
         _hasher = hasher;
+        _refreshTokens = refreshTokens;
+        _logger = logger;
     }
 
     public async Task<UserListItemDto> HandleAsync(
@@ -46,9 +55,12 @@ public sealed class UpdateUserHandler
                 "cannot_demote_self");
         }
 
+        var previousRole = Roles.Normalize(user.Role);
+        var previousEmail = user.Email;
         user.UpdateProfile(request.Name, email);
         user.ChangeRole(role);
 
+        var passwordChanged = false;
         if (!string.IsNullOrWhiteSpace(request.NewPassword))
         {
             if (request.NewPassword.Length < 8)
@@ -60,9 +72,26 @@ public sealed class UpdateUserHandler
             }
 
             user.ChangePassword(_hasher.Hash(request.NewPassword));
+            passwordChanged = true;
         }
 
         await _users.SaveChangesAsync(ct);
+
+        var roleChanged = previousRole != role;
+        var emailChanged = !string.Equals(previousEmail, email, StringComparison.OrdinalIgnoreCase);
+        if (roleChanged || passwordChanged || emailChanged)
+        {
+            await _refreshTokens.RevokeAllForUserAsync(user.Id, ct);
+        }
+
+        _logger.LogWarning(
+            "Audit: admin {ActorId} updated user {TargetId} (role {PreviousRole} -> {Role}, passwordReset={PasswordReset}, emailChanged={EmailChanged})",
+            actorUserId,
+            user.Id,
+            previousRole,
+            role,
+            passwordChanged,
+            emailChanged);
 
         return new UserListItemDto(
             user.Id,

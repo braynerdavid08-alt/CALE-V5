@@ -159,6 +159,11 @@ public sealed class ExceptionHandlingMiddleware
             return (499, "Request canceled.", "request_canceled");
         }
 
+        if (!_env.IsDevelopment())
+        {
+            return (500, "Ocurrió un error inesperado. Intenta de nuevo; si persiste, contacta soporte.", "internal_error");
+        }
+
         var title = TruncateForClient(ex.GetBaseException().Message);
         if (string.IsNullOrWhiteSpace(title))
         {

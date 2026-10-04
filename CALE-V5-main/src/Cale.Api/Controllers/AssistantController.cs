@@ -4,6 +4,7 @@ using Cale.BuildingBlocks.Domain.Auth;
 using Cale.Modules.Identity.Application.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Cale.Api.Controllers;
 
@@ -28,6 +29,7 @@ public sealed class AssistantController : ControllerBase
         Ok(_assistant.Status(await CurrentAsync(ct)));
 
     [HttpPost("chat")]
+    [EnableRateLimiting(RateLimitPolicies.Assistant)]
     public async Task<IActionResult> Chat(AssistantChatRequest request, CancellationToken ct) =>
         Ok(await _assistant.ChatAsync(await CurrentAsync(ct), request.Messages ?? [], ct));
 

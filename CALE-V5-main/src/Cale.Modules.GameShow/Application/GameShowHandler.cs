@@ -998,11 +998,8 @@ public sealed partial class GameShowHandler
             pack.UpdatedAt,
             DeserializePackBody(pack));
 
-    private static string Csv(string? value)
-    {
-        var v = (value ?? "").Replace("\"", "\"\"");
-        return $"\"{v}\"";
-    }
+    private static string Csv(string? value) =>
+        Cale.BuildingBlocks.Domain.Security.CsvCell.Escape(value);
 
     private static GameShowRound BuildRound(CreateGameShowRoundRequest request, int order)
     {

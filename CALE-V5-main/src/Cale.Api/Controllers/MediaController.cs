@@ -1,4 +1,5 @@
 using Cale.Api.Extensions;
+using Cale.Api.Infrastructure;
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
@@ -6,6 +7,7 @@ using Cale.Modules.Catalog.Application.Abstractions;
 using Cale.Modules.Catalog.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace Cale.Api.Controllers;
@@ -31,6 +33,7 @@ public sealed class MediaController : ControllerBase
     /// Returns a stable public URL like /api/media/{guid}.
     /// </summary>
     [HttpPost("upload")]
+    [EnableRateLimiting(RateLimitPolicies.Uploads)]
     [Authorize]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> Upload(
@@ -65,17 +68,17 @@ public sealed class MediaController : ControllerBase
         }
 
         var ext = Path.GetExtension(file.FileName);
-        if (!Allowed.Contains(ext))
+        var detected = await MediaSniffer.DetectAsync(file, ct);
+        if (!Allowed.Contains(ext) || detected is not { Kind: "image" })
         {
             throw new DomainException("Usa jpg, png, gif o webp.", 400, "invalid_file");
         }
 
-        var safeExt = ext.ToLowerInvariant();
         await using var stream = file.OpenReadStream();
         var url = await _media.SaveAsync(
             stream,
-            $"{Guid.NewGuid():N}{safeExt}",
-            file.ContentType,
+            $"{Guid.NewGuid():N}{detected.Extension}",
+            detected.ContentType,
             userId,
             ct);
         return Ok(new { url });
@@ -93,7 +96,7 @@ public sealed class MediaController : ControllerBase
         }
 
         Response.Headers.CacheControl = "public,max-age=86400,immutable";
-        return File(blob.Value.Data, blob.Value.ContentType);
+        return File(blob.Value.Data, SafeMediaResponse.Prepare(Response, blob.Value.ContentType));
     }
 
     /// <summary>Fallback for old /uploads/{file} paths still on disk.</summary>
@@ -109,6 +112,6 @@ public sealed class MediaController : ControllerBase
         }
 
         Response.Headers.CacheControl = "public,max-age=86400,immutable";
-        return File(blob.Value.Data, blob.Value.ContentType);
+        return File(blob.Value.Data, SafeMediaResponse.Prepare(Response, blob.Value.ContentType));
     }
 }

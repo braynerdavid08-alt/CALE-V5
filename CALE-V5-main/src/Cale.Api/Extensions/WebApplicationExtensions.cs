@@ -34,6 +34,7 @@ public static class WebApplicationExtensions
             app.UseHttpsRedirection();
         }
 
+        app.UseMiddleware<SecurityHeadersMiddleware>();
         app.UseResponseCompression();
         app.UseMiddleware<RequestTelemetryMiddleware>();
         app.UseMiddleware<ExceptionHandlingMiddleware>();
@@ -48,7 +49,6 @@ public static class WebApplicationExtensions
         }
 
         app.UseCors("Cale");
-        app.UseRateLimiter();
         app.UseMiddleware<SignImageRedirectMiddleware>();
         app.UseMiddleware<CourseVideoGateMiddleware>();
         app.UseDefaultFiles();
@@ -56,6 +56,7 @@ public static class WebApplicationExtensions
         app.UseStaticFiles(spaFiles);
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseRateLimiter();
         app.UseMiddleware<MustChangePasswordMiddleware>();
         app.MapControllers();
         app.MapHub<Cale.Api.Hubs.LiveClassroomHub>("/hubs/live");
@@ -78,6 +79,8 @@ public static class WebApplicationExtensions
             bootLogger.LogCritical(
                 "SECURITY: Jwt:Key is the placeholder or too short. Set the Jwt__Key environment variable "
                 + "to a random secret of at least 32 characters; otherwise login tokens can be forged.");
+            throw new InvalidOperationException(
+                "Refusing to start: Jwt:Key is the public placeholder or shorter than 32 characters. Set Jwt__Key.");
         }
 
         bootLogger.LogInformation(
@@ -124,6 +127,7 @@ public static class WebApplicationExtensions
             await UserRequestSchemaGuard.EnsureAsync(db, bootLogger);
             await ExamScheduleSchemaGuard.EnsureAsync(db, bootLogger);
             await UserPhotoSchemaGuard.EnsureAsync(db, bootLogger);
+            await UserCreatorSchemaGuard.EnsureAsync(db, bootLogger);
             await Cale.Modules.GameShow.Infrastructure.Persistence.GameShowPackSchemaGuard
                 .EnsureAsync(db, bootLogger);
             await Cale.Modules.Courses.Infrastructure.Persistence.CourseSchemaGuard.EnsureAsync(db, bootLogger);

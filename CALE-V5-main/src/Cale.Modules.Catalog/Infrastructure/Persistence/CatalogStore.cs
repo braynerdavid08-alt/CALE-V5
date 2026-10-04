@@ -123,11 +123,17 @@ public sealed class CatalogStore : ICatalogStore
         string? search,
         bool? active,
         int? ownerId,
-        CancellationToken ct)
+        CancellationToken ct,
+        int? visibleToUserId = null)
     {
         var query = from q in _db.Set<Question>()
                     join b in _db.Set<Bank>() on q.BankId equals b.Id
-                    select new { q, BankName = b.Name };
+                    select new { q, BankName = b.Name, BankOwnerId = b.CreatedById };
+
+        if (visibleToUserId is int viewer)
+        {
+            query = query.Where(x => x.BankOwnerId == null || x.BankOwnerId == viewer);
+        }
 
         if (bankId is not null)
         {
