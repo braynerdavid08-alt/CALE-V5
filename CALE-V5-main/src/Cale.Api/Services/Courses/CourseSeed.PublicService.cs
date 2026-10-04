@@ -5,9 +5,10 @@ namespace Cale.Api.Services.Courses;
 /// </summary>
 public sealed partial class CourseSeed
 {
-    private static List<(string Title, string Summary, int Minutes, object[] Blocks)> PublicServiceLessons() =>
+    private static List<(string Key, string Title, string Summary, int Minutes, object[] Blocks)> PublicServiceLessons() =>
     [
         (
+            "servicio-publico-c1/regimen-documentos",
             "Régimen del servicio público, documentos y seguros",
             "Qué significa prestar un servicio público de transporte, qué documentos debes llevar tú y el vehículo, y qué seguros protegen al pasajero.",
             16,
@@ -73,6 +74,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "servicio-publico-c1/atencion-usuario",
             "Atención al usuario y resolución de conflictos",
             "Cómo tratar al pasajero, qué derechos tiene, y cómo manejar una discusión sin poner en riesgo la seguridad del viaje.",
             14,
@@ -137,6 +139,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "servicio-publico-c1/pasajeros-vulnerables",
             "Pasajeros con discapacidad, usuarios vulnerables y ascenso seguro",
             "Cómo atender a personas con discapacidad, adultos mayores, niños y mujeres embarazadas, y cómo hacer que el ascenso y el descenso sean seguros.",
             15,
@@ -203,6 +206,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "servicio-publico-c1/fatiga",
             "Fatiga, somnolencia y presión por tiempos",
             "Por qué las jornadas largas y la presión por cumplir tiempos causan siniestros, cómo reconocer el cansancio y qué hacer.",
             14,
@@ -262,6 +266,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "servicio-publico-c1/conduccion-urbana",
             "Conducción urbana intensiva y rutas en Barranquilla",
             "Cómo conducir muchas horas en el tráfico de la ciudad, planear rutas, convivir con Transmetro y adaptarte a cierres, eventos y lluvias.",
             14,

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Cale.Api.Services.Courses;
 
-/// <summary>Creates the built-in Luz Verde courses once. Texts are original; images come from our own signal catalog.</summary>
+/// <summary>The built-in Luz Verde courses. Texts are original; images come from our own signal catalog.</summary>
 public sealed partial class CourseSeed
 {
     public const string SignsSlug = "senales-transito";
@@ -24,214 +24,169 @@ public sealed partial class CourseSeed
 
     public CourseSeed(CaleDbContext db) => _db = db;
 
-    public async Task EnsureAsync(ILogger? logger, CancellationToken ct = default)
+    /// <summary>One built-in course: its stable slug, catalog data and lessons in order.</summary>
+    public sealed record SeedCourse(
+        string Slug,
+        string Title,
+        string Description,
+        string Category,
+        string CoverUrl,
+        IReadOnlyList<SeedLesson> Lessons);
+
+    /// <summary>A built-in lesson. <see cref="Content"/> is already normalized, exactly as it is stored.</summary>
+    public sealed record SeedLesson(string Key, string Title, string Summary, int Minutes, string Content)
     {
-        await EnsureCourseAsync(
+        public string Hash => Fingerprint(Title, Summary, Minutes, Content);
+    }
+
+    /// <summary>The current Luz Verde curriculum, in catalog order.</summary>
+    public static IReadOnlyList<SeedCourse> Curriculum() =>
+    [
+        Build(
             SignsSlug,
             "Señales de tránsito",
-            "Aprende a reconocer las señales reglamentarias, preventivas e informativas de Colombia con ejemplos, tarjetas y preguntas cortas.",
+            "Aprende a reconocer las señales reglamentarias, preventivas e informativas de Colombia, cómo se agrupan y en qué orden se obedecen.",
             "Señales de tránsito",
             "/signals/SR-01.svg",
-            SignsLessons,
-            logger,
-            ct);
-        await EnsureCourseAsync(
+            SignsLessons),
+        Build(
             RulesSlug,
             "Normas de tránsito básicas",
             "Velocidades, prelación, adelantamiento, estacionamiento, documentos, alcohol y comparendos, explicados con situaciones reales y actividades interactivas.",
             "Normas de tránsito",
             "/signals/SR-30.svg",
-            RulesLessons,
-            logger,
-            ct);
-        await EnsureCourseAsync(
+            RulesLessons),
+        Build(
             SignageSlug,
             "Señalización vial e infraestructura",
-            "Las familias de señales verticales, las líneas del pavimento, las marcas en los cruces y los dispositivos que te guían en la vía.",
+            "Las líneas del pavimento, las marcas en los cruces, los semáforos y los dispositivos que te guían en la vía.",
             "Señales de tránsito",
             LinesImage,
-            SignageLessons,
-            logger,
-            ct);
-        await EnsureCourseAsync(
+            SignageLessons),
+        Build(
             FirstAidSlug,
             "Primeros auxilios en la vía",
             "Qué hacer si eres el primero en llegar a un siniestro: proteger, avisar al 123, valorar a la víctima, controlar sangrados, atender quemaduras y atragantamientos.",
             "Primeros auxilios",
             "/signals/SI-16.svg",
-            FirstAidLessons,
-            logger,
-            ct);
-        await EnsureCourseAsync(
+            FirstAidLessons),
+        Build(
             MobilitySlug,
             "Movilidad segura y sostenible",
-            "Sistema Seguro, víctimas y consecuencias, usuarios vulnerables, movilidad sostenible, conducción preventiva y eco-conducción, con casos de Barranquilla.",
+            "Sistema Seguro, víctimas y consecuencias, usuarios vulnerables, conducción preventiva, visibilidad y clima, y movilidad sostenible, con casos de Barranquilla.",
             "Formación vial",
             $"{MobilityImages}/portada.jpg",
-            MobilityLessons,
-            logger,
-            ct);
-        await EnsureCourseAsync(
+            MobilityLessons),
+        Build(
             RoadSlug,
             "La vía y el espacio público",
             "Cómo cambia tu conducción según la vía, la posición en el carril, la convivencia con ciclistas y los conflictos en andenes, paraderos y eventos.",
             "Peatones y ciclistas",
             $"{MobilityImages}/anticipate.jpg",
-            RoadLessons,
-            logger,
-            ct);
-        await EnsureCourseAsync(
+            RoadLessons),
+        Build(
             VehicleSlug,
             "El vehículo: conócelo, revísalo y atiéndelo",
             "Sistemas del vehículo, revisión preoperacional, seguridad activa y pasiva, protección de la escena y averías frecuentes.",
             "Vehículo seguro",
             Img("SI-21"),
-            VehicleLessons,
-            logger,
-            ct);
-        await EnsureCourseAsync(
+            VehicleLessons),
+        Build(
             MotorcycleSlug,
             "Conducción segura en motocicleta (A2)",
-            "Elementos de protección, revisión de la moto, técnicas de frenado y curvas, clima, fatiga, puntos ciegos, acompañante y carga.",
+            "Elementos de protección, revisión de la moto, frenado y curvas, posición en el tráfico y puntos ciegos, clima, fatiga, acompañante y carga.",
             "Motociclistas",
             "/courses/moto/portada.jpg",
-            MotorcycleLessons,
-            logger,
-            ct);
-        await EnsureCourseAsync(
+            MotorcycleLessons),
+        Build(
             CarSlug,
             "Dominio seguro del automóvil (B1)",
             "Puesto de conducción, embrague y cambios, frenado, pendientes, reversa, estacionamiento y giros: la técnica para manejar un carro con seguridad.",
             "Vehículo seguro",
             "/courses/automovil/portada.jpg",
-            CarLessons,
-            logger,
-            ct);
-        await EnsureCourseAsync(
+            CarLessons),
+        Build(
             PublicServiceSlug,
             "Conducción profesional de servicio público (C1)",
             "Régimen y documentos del servicio público, seguros, atención al usuario, pasajeros vulnerables, fatiga y conducción urbana en Barranquilla.",
             "Formación vial",
             "/courses/servicio-publico/portada.jpg",
-            PublicServiceLessons,
-            logger,
-            ct);
+            PublicServiceLessons)
+    ];
+
+    /// <summary>
+    /// Creates the built-in courses that do not exist yet. Existing courses are never changed here:
+    /// bringing them up to date is an explicit admin action (<see cref="CurriculumSync"/>).
+    /// </summary>
+    public async Task EnsureAsync(ILogger? logger, CancellationToken ct = default)
+    {
+        foreach (var seed in Curriculum())
+        {
+            try
+            {
+                if (await _db.Set<Course>().AnyAsync(c => c.Slug == seed.Slug && c.SchoolUserId == null, ct))
+                {
+                    continue;
+                }
+
+                var now = DateTime.UtcNow;
+                var course = Course.Create(null, 0, seed.Title, seed.Description, seed.Category, seed.CoverUrl, now, seed.Slug);
+                _db.Set<Course>().Add(course);
+                await _db.SaveChangesAsync(ct);
+
+                for (var i = 0; i < seed.Lessons.Count; i++)
+                {
+                    _db.Set<CourseLesson>().Add(NewLesson(course.Id, i, seed.Lessons[i], now));
+                }
+
+                course.Update(course.Title, course.Description, course.Category, course.CoverUrl, true, now);
+                await _db.SaveChangesAsync(ct);
+                logger?.LogInformation("Seeded platform course {Slug}", seed.Slug);
+            }
+            catch (Exception ex)
+            {
+                _db.ChangeTracker.Clear();
+                logger?.LogError(ex, "Could not seed platform course {Slug}", seed.Slug);
+            }
+        }
     }
 
-    private async Task EnsureCourseAsync(
+    internal static CourseLesson NewLesson(int courseId, int position, SeedLesson seed, DateTime now)
+    {
+        var lesson = CourseLesson.Create(courseId, position, seed.Title, now);
+        lesson.Update(seed.Title, seed.Summary, seed.Minutes, seed.Content, now);
+        lesson.MarkSeeded(seed.Key, seed.Hash);
+        return lesson;
+    }
+
+    /// <summary>Fingerprint of the editable fields of a lesson, as stored.</summary>
+    public static string Fingerprint(string title, string? summary, int minutes, string contentJson)
+    {
+        var bytes = System.Text.Encoding.UTF8.GetBytes($"{title}\u001f{summary}\u001f{minutes}\u001f{contentJson}");
+        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes));
+    }
+
+    private static SeedCourse Build(
         string slug,
         string title,
         string description,
         string category,
         string coverUrl,
-        Func<List<(string Title, string Summary, int Minutes, object[] Blocks)>> buildLessons,
-        ILogger? logger,
-        CancellationToken ct)
-    {
-        try
-        {
-            var now = DateTime.UtcNow;
-            var lessons = buildLessons()
-                .Select(l => (l.Title, l.Summary, l.Minutes, Content: CourseContent.Normalize(JsonSerializer.SerializeToElement(l.Blocks))))
-                .ToList();
-
-            var existing = await _db.Set<Course>().FirstOrDefaultAsync(c => c.Slug == slug, ct);
-            if (existing is not null)
-            {
-                await UpgradeIfUntouchedAsync(existing, description, CourseCategories.Normalize(category), lessons, now, logger, ct);
-                return;
-            }
-
-            var course = Course.Create(null, 0, title, description, category, coverUrl, now, slug);
-            _db.Set<Course>().Add(course);
-            await _db.SaveChangesAsync(ct);
-
-            for (var i = 0; i < lessons.Count; i++)
-            {
-                var l = lessons[i];
-                var lesson = CourseLesson.Create(course.Id, i, l.Title, now);
-                lesson.Update(l.Title, l.Summary, l.Minutes, l.Content, now);
-                _db.Set<CourseLesson>().Add(lesson);
-            }
-
-            course.Update(course.Title, course.Description, course.Category, course.CoverUrl, true, now);
-            await _db.SaveChangesAsync(ct);
-            logger?.LogInformation("Seeded platform course {Slug}", slug);
-        }
-        catch (Exception ex)
-        {
-            _db.ChangeTracker.Clear();
-            logger?.LogError(ex, "Could not seed platform course {Slug}", slug);
-        }
-    }
-
-    /// <summary>
-    /// Brings a seeded course up to date with the current seed, but only while nobody has edited it:
-    /// seeding stamps the course and every lesson with the same instant, and every editor action changes the course stamp.
-    /// Lessons are updated in place so student progress keeps pointing at them.
-    /// </summary>
-    private async Task UpgradeIfUntouchedAsync(
-        Course course,
-        string description,
-        string category,
-        List<(string Title, string Summary, int Minutes, string Content)> lessons,
-        DateTime now,
-        ILogger? logger,
-        CancellationToken ct)
-    {
-        if (!course.IsActive || !course.IsPublished)
-        {
-            return;
-        }
-
-        var stored = await _db.Set<CourseLesson>()
-            .Where(l => l.CourseId == course.Id)
-            .OrderBy(l => l.Position)
-            .ToListAsync(ct);
-        if (stored.Any(l => l.UpdatedAt != course.UpdatedAt))
-        {
-            return;
-        }
-
-        var same = stored.Count == lessons.Count
-            && course.Description == description
-            && course.Category == category
-            && stored.Zip(lessons).All(p => p.First.Title == p.Second.Title
-                && p.First.Summary == p.Second.Summary
-                && p.First.EstimatedMinutes == p.Second.Minutes
-                && p.First.ContentJson == p.Second.Content);
-        if (same)
-        {
-            return;
-        }
-
-        for (var i = 0; i < lessons.Count; i++)
-        {
-            var l = lessons[i];
-            var lesson = i < stored.Count ? stored[i] : null;
-            if (lesson is null)
-            {
-                lesson = CourseLesson.Create(course.Id, i, l.Title, now);
-                _db.Set<CourseLesson>().Add(lesson);
-            }
-
-            lesson.MoveTo(i, now);
-            lesson.Update(l.Title, l.Summary, l.Minutes, l.Content, now);
-        }
-
-        var removed = stored.Skip(lessons.Count).ToList();
-        if (removed.Count > 0)
-        {
-            var removedIds = removed.Select(l => l.Id).ToList();
-            _db.Set<CourseLessonProgress>().RemoveRange(
-                await _db.Set<CourseLessonProgress>().Where(p => removedIds.Contains(p.LessonId)).ToListAsync(ct));
-            _db.Set<CourseLesson>().RemoveRange(removed);
-        }
-
-        course.Update(course.Title, description, category, course.CoverUrl, true, now);
-        await _db.SaveChangesAsync(ct);
-        logger?.LogInformation("Updated platform course {Slug} to the current seed ({Count} lessons)", course.Slug, lessons.Count);
-    }
+        Func<List<(string Key, string Title, string Summary, int Minutes, object[] Blocks)>> lessons) =>
+        new(
+            slug,
+            title,
+            description,
+            CourseCategories.Normalize(category),
+            coverUrl,
+            lessons()
+                .Select(l => new SeedLesson(
+                    l.Key,
+                    l.Title,
+                    l.Summary,
+                    Math.Clamp(l.Minutes, 1, 240),
+                    CourseContent.Normalize(JsonSerializer.SerializeToElement(l.Blocks))))
+                .ToList());
 
     private static string Img(string code) => $"/signals/{code}.svg";
 
@@ -251,18 +206,41 @@ public sealed partial class CourseSeed
 
     private static object Pair(string code, string right) => new { left = (string?)null, imageUrl = Img(code), right };
 
-    private static List<(string Title, string Summary, int Minutes, object[] Blocks)> SignsLessons() =>
+    private static List<(string Key, string Title, string Summary, int Minutes, object[] Blocks)> SignsLessons() =>
     [
         (
+            "senales-transito/para-que-sirven",
             "Para qué sirven las señales",
-            "Qué es una señal de tránsito, cómo se clasifican y en qué orden se obedecen.",
-            8,
+            "Qué es una señal de tránsito, las cuatro formas de señalización, cómo se clasifican y en qué orden se obedecen.",
+            12,
             [
                 Text(
                     "Un idioma que todos entendemos",
                     "Las señales de tránsito le dicen a cada persona que usa la vía qué debe hacer, qué peligro viene o dónde está lo que busca. "
                     + "Funcionan igual en todo el país, por eso un conductor de Bogotá entiende las mismas señales que uno de la costa.\n\n"
                     + "Se reconocen por tres cosas: la forma, el color y el símbolo. Con práctica, la forma y el color te dicen el tipo de señal antes de que alcances a leerla."),
+                Text(
+                    "Cuatro herramientas que trabajan juntas",
+                    "La señalización vial le habla al conductor de cuatro formas:\n\n"
+                    + "Señales verticales: placas en postes o estructuras, al lado o encima de la vía. Son las de este curso.\n\n"
+                    + "Señalización horizontal o demarcación: líneas, flechas, símbolos y letras pintados sobre el pavimento y los sardineles.\n\n"
+                    + "Semáforos: regulan el paso con luces.\n\n"
+                    + "Dispositivos: tachas, delineadores, reductores de velocidad y otros elementos que refuerzan las señales y guían de noche.\n\n"
+                    + "Las señales pueden crearse o modificarse según la necesidad del lugar, y en obras o eventos aparecen señales temporales. "
+                    + "La demarcación, los semáforos y los dispositivos se estudian a fondo en el curso «Señalización vial e infraestructura»."),
+                Classify(
+                    "¿A qué tipo de señalización pertenece cada elemento?",
+                    ["Vertical", "Horizontal (en el piso)", "Dispositivo"],
+                    [
+                        ("Placa de PARE en un poste", 0),
+                        ("Aviso de velocidad máxima", 0),
+                        ("Línea amarilla en el centro de la vía", 1),
+                        ("Cebra de paso peatonal", 1),
+                        ("Flecha pintada en el carril", 1),
+                        ("Tachas reflectivas", 2),
+                        ("Resalto o reductor de velocidad", 2)
+                    ],
+                    "Las verticales están en placas; las horizontales, pintadas en el pavimento; los dispositivos son elementos físicos que refuerzan o guían."),
                 Text(
                     "Los tres grupos principales",
                     "Reglamentarias: dan una orden o una prohibición. Casi todas son circulares con borde rojo. Incumplirlas es una infracción.\n\n"
@@ -279,9 +257,10 @@ public sealed partial class CourseSeed
                         Sign("SI-22", "Estación de servicio", "Informativa: te orienta.")
                     }
                 },
-                Tip(
-                    "Orden de prioridad: primero el agente de tránsito, luego los semáforos, después las señales verticales y por último las marcas en el pavimento. "
-                    + "Si un agente te indica algo distinto a lo que dice una señal, obedece al agente."),
+                Order(
+                    "Cuando no coinciden, ¿cuál manda? Ordena de mayor a menor prioridad.",
+                    ["Agente de tránsito", "Semáforo", "Señal vertical", "Marca en el pavimento"],
+                    "Siempre manda la indicación más directa y actual: el agente. Después el semáforo, las señales verticales y las demarcaciones."),
                 Quiz(
                     "¿Qué forma y color tienen la mayoría de las señales preventivas?",
                     null,
@@ -297,9 +276,10 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "senales-transito/reglamentarias",
             "Señales reglamentarias",
-            "Órdenes y prohibiciones: pare, ceda el paso, giros, velocidad y estacionamiento.",
-            12,
+            "Órdenes y prohibiciones: pare, ceda el paso, giros, velocidad y estacionamiento, y cómo se agrupan según lo que hacen.",
+            15,
             [
                 Text(
                     "Órdenes que se cumplen",
@@ -323,6 +303,29 @@ public sealed partial class CourseSeed
                     }
                 },
                 Tip("Pare no es lo mismo que ceda el paso: en el PARE siempre hay que detenerse del todo, aunque no venga nadie."),
+                Text(
+                    "Cómo se agrupan",
+                    "Las reglamentarias notifican prioridades, limitaciones, prohibiciones, restricciones, obligaciones y autorizaciones. Según su función, se agrupan en:\n\n"
+                    + "Prioridad: PARE y CEDA EL PASO.\n"
+                    + "Prohibición de maniobras y giros: no girar, no adelantar, no pase.\n"
+                    + "Prohibición de paso por clase de vehículo: carga, motos, bicicletas, buses.\n"
+                    + "Obligación: dirección obligada, giro solamente.\n"
+                    + "Restricción: velocidad, peso, altura o ancho máximos.\n"
+                    + "Otras prohibiciones y autorizaciones: pitar, parquear, zonas de taxi, de cargue y descargue."),
+                ClassifySigns(
+                    "Clasifica cada señal reglamentaria según lo que hace.",
+                    ["Prohíbe una maniobra", "Prohíbe el paso a un vehículo", "Obliga una dirección", "Limita una medida"],
+                    [
+                        ("SR-06", "Prohibido girar a la izquierda", 0),
+                        ("SR-26", "No adelantar", 0),
+                        ("SR-23", "Prohibida circulación de motocicletas", 1),
+                        ("SR-18", "Prohibida circulación de vehículos de carga", 1),
+                        ("SR-03", "Dirección obligada", 2),
+                        ("SR-07", "Giro a la derecha solamente", 2),
+                        ("SR-31", "Peso máximo permitido", 3),
+                        ("SR-32", "Altura máxima permitida", 3)
+                    ],
+                    "Las de maniobra prohíben una acción; las de clase de vehículo prohíben el paso a ciertos vehículos; las de obligación marcan una sola opción y las de restricción ponen un límite."),
                 new
                 {
                     type = "flipcards",
@@ -350,9 +353,10 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "senales-transito/preventivas",
             "Señales preventivas",
-            "Avisos de peligro: curvas, intersecciones, peatones, resaltos y cruces de tren.",
-            12,
+            "Avisos de peligro: curvas, intersecciones, peatones, resaltos y cruces de tren, y cómo se agrupan según lo que anuncian.",
+            15,
             [
                 Text(
                     "Te avisan antes de llegar",
@@ -375,7 +379,27 @@ public sealed partial class CourseSeed
                         Sign("SP-52", "Cruce ferroviario a nivel sin barrera", "Detente, mira y escucha antes de cruzar la vía férrea.")
                     }
                 },
-                Tip("Una preventiva no prohíbe nada por sí sola, pero si ocurre un accidente por ignorarla, tu responsabilidad aumenta."),
+                Tip("Una preventiva no prohíbe nada por sí sola, pero si ocurre un siniestro por ignorarla, tu responsabilidad aumenta."),
+                Text(
+                    "Cómo se agrupan",
+                    "Las preventivas advierten de un riesgo o de una situación imprevista, permanente o temporal. Se agrupan según lo que anuncian: la forma de la vía (curvas), "
+                    + "las pendientes, la superficie (resbalosa, rizada, resaltos), las restricciones físicas (puente angosto, altura libre), las intersecciones "
+                    + "y la presencia de otros actores (peatones, ciclistas, animales, niños)."),
+                Video("ansv-curva-senal-preventiva.mp4", "Una señal preventiva anuncia la curva: reduce la velocidad antes de entrar. Video: Agencia Nacional de Seguridad Vial (ANSV)."),
+                ClassifySigns(
+                    "¿Qué anuncia cada señal preventiva?",
+                    ["La forma o pendiente de la vía", "El estado de la superficie", "Una restricción física", "Otros actores en la vía"],
+                    [
+                        ("SP-02", "Curva cerrada a la derecha", 0),
+                        ("SP-27", "Pendiente fuerte de descenso", 0),
+                        ("SP-44", "Superficie deslizante", 1),
+                        ("SP-24", "Superficie rizada", 1),
+                        ("SP-36", "Puente angosto", 2),
+                        ("SP-50", "Altura libre", 2),
+                        ("SP-59", "Ciclistas en la vía", 3),
+                        ("SP-48", "Niños jugando", 3)
+                    ],
+                    "Agruparlas por lo que anuncian te ayuda a reaccionar: bajar la velocidad, frenar suave, medir tu vehículo o estar atento a personas."),
                 new
                 {
                     type = "match",
@@ -404,14 +428,31 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "senales-transito/informativas",
             "Señales informativas",
-            "Rutas, direcciones y servicios para orientarte en el camino.",
-            8,
+            "Rutas, direcciones y servicios para orientarte en el camino, y el orden en que aparecen las que te llevan a tu destino.",
+            12,
             [
                 Text(
                     "Te ayudan a llegar",
                     "Las señales informativas identifican vías, indican destinos y distancias, y muestran dónde hay servicios como hospitales, talleres o estaciones de combustible.\n\n"
                     + "Las de servicios suelen ser azules con un pictograma blanco; las de dirección y destino suelen ser verdes."),
+                Text(
+                    "Las que te llevan a tu destino",
+                    "Aparecen en orden: preseñalización (te avisa con anticipación), dirección (te muestra hacia dónde ir), confirmación (te confirma que vas bien) "
+                    + "e identificación de la vía (el número de la ruta). También hay señales de servicios, turísticas y de seguridad vial, como la de radar pedagógico.\n\n"
+                    + "Las señales de mensaje variable (SMV) son paneles cuyo texto se cambia en tiempo real para avisarte de un cierre, un trancón, una obra o el clima en tu ruta. "
+                    + "Léelas con la misma atención que una señal fija."),
+                Order(
+                    "Vas por carretera hacia otra ciudad. Ordena las señales informativas en el orden en que las encuentras.",
+                    ["Preseñalización: te avisa que se acerca la salida", "Dirección: te indica por dónde tomar", "Confirmación: te confirma el destino y la distancia"],
+                    "Primero te preparan, luego te indican el desvío y, una vez en la vía correcta, te confirman que vas bien."),
+                Flip(
+                    "Informativas que vale la pena conocer",
+                    Card("Señal de preseñalización", "Avisa con anticipación los destinos de la próxima intersección o salida.", Img("SI-05D")),
+                    Card("Señal de confirmación", "Confirma el destino y la distancia que falta después de un cruce.", Img("SI-06")),
+                    Card("Radar pedagógico", "Muestra tu velocidad para que la ajustes; no impone multas.", Img("SI-27B")),
+                    Card("Ruta panamericana", "Identifica una vía que hace parte de la red panamericana.", Img("SI-02"))),
                 new
                 {
                     type = "signs",
@@ -448,6 +489,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "senales-transito/repaso",
             "Repaso final",
             "Pon a prueba lo que aprendiste con señales de los tres grupos.",
             10,

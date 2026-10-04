@@ -6,9 +6,10 @@ namespace Cale.Api.Services.Courses;
 /// </summary>
 public sealed partial class CourseSeed
 {
-    private static List<(string Title, string Summary, int Minutes, object[] Blocks)> FirstAidLessons() =>
+    private static List<(string Key, string Title, string Summary, int Minutes, object[] Blocks)> FirstAidLessons() =>
     [
         (
+            "primeros-auxilios/primer-respondiente",
             "El primer respondiente",
             "Quién es el primer respondiente, la regla de oro de no convertirte en otra víctima y el deber de ayudar.",
             16,
@@ -42,6 +43,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "primeros-auxilios/proteger-avisar",
             "Proteger la escena y avisar",
             "Cómo señalizar un accidente, qué peligros revisar y qué decir cuando llamas al 123.",
             10,
@@ -90,6 +92,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "primeros-auxilios/valorar",
             "Valorar a la víctima",
             "Cómo saber si la persona responde y respira, por qué no se mueve a un herido y qué hacer si no respira.",
             12,
@@ -133,6 +136,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "primeros-auxilios/hemorragias",
             "Heridas y hemorragias",
             "Cómo reconocer un sangrado grave y controlarlo con presión directa.",
             10,
@@ -176,6 +180,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "primeros-auxilios/quemaduras",
             "Quemaduras",
             "Cómo reconocer el grado de una quemadura y qué hacer (y qué no) mientras llega la ayuda.",
             10,
@@ -218,6 +223,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "primeros-auxilios/atragantamiento",
             "Atragantamiento: maniobra de Heimlich",
             "Cómo ayudar a un adulto, a un niño, a un bebé o a ti mismo cuando algo bloquea la vía aérea.",
             10,
@@ -265,6 +271,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "primeros-auxilios/derrames",
             "Actuación ante derrames o peligros en la vía",
             "Qué hacer si hay combustible, aceite u otro líquido peligroso en la calzada, sin intentar limpiarlo ni cruzarlo.",
             12,

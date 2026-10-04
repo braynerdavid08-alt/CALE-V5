@@ -5,9 +5,10 @@ namespace Cale.Api.Services.Courses;
 /// </summary>
 public sealed partial class CourseSeed
 {
-    private static List<(string Title, string Summary, int Minutes, object[] Blocks)> CarLessons() =>
+    private static List<(string Key, string Title, string Summary, int Minutes, object[] Blocks)> CarLessons() =>
     [
         (
+            "automovil-b1/puesto-mandos",
             "Puesto de conducción y mandos",
             "Cómo ajustar el asiento, el volante y los espejos, y para qué sirve cada mando antes de encender el carro.",
             14,
@@ -67,6 +68,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "automovil-b1/embrague-cambios",
             "Embrague, cambios, arranque y detención",
             "Cómo arrancar sin que se apague el carro, cuándo cambiar de marcha, cómo detenerte con suavidad y qué cambia en un carro automático.",
             16,
@@ -131,6 +133,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "automovil-b1/frenado-pendientes",
             "Frenado y pendientes",
             "Frenado progresivo, frenado de emergencia con y sin ABS, arranque en subida y cómo dejar el carro estacionado en una pendiente.",
             15,
@@ -195,6 +198,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "automovil-b1/reversa-estacionamiento",
             "Reversa y estacionamiento",
             "Cómo retroceder con control, y la técnica paso a paso del estacionamiento en paralelo, en batería y en reversa.",
             16,
@@ -258,6 +262,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "automovil-b1/giros",
             "Giros e intersecciones con el automóvil",
             "Cómo preparar y ejecutar un giro a la derecha, a la izquierda y en U, y cómo moverte dentro de una glorieta con el carro.",
             14,

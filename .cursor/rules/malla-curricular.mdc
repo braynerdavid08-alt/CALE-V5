@@ -1,0 +1,23 @@
+---
+description: Criterios para crear, ampliar o reorganizar cursos y lecciones de Luz Verde
+alwaysApply: true
+---
+
+# Malla curricular de Luz Verde
+
+Aplica siempre que se agreguen, amplíen, muevan o reorganicen cursos, lecciones o
+actividades (`src/Cale.Api/Services/Courses/CourseSeed*.cs` o contenido creado en la app).
+
+La meta NO es tener más cursos. La meta es cubrir bien las competencias que necesita un
+conductor, sin vacíos pedagógicos, con una malla coherente, progresiva y mantenible.
+
+- No agregar contenido solo para aumentar la cantidad de cursos o lecciones.
+- Si dos contenidos se integran de forma lógica, integrarlos en la lección existente
+  (ejemplo: la revisión preoperacional de la ANSV se integró en la lección de la moto).
+- Si un tema necesita profundidad propia, convertirlo en una lección independiente.
+- Lo específico de A2 (`motocicleta-a2`), B1 (`automovil-b1`) o C1 (`servicio-publico-c1`)
+  va en su curso de categoría; no duplicarlo en los cursos de formación general.
+- Antes de crear algo nuevo, revisar si el tema ya existe en otro curso y proponer dónde
+  encaja; explicar al usuario la decisión (integrar, separar o descartar).
+- Respetar la progresión: de lo general (normas, señales, vía, vehículo, primeros auxilios)
+  a lo específico de cada categoría.

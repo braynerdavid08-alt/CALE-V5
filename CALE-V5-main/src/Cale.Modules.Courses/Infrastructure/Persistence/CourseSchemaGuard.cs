@@ -1,3 +1,4 @@
+using System.Data;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -41,6 +42,8 @@ public static class CourseSchemaGuard
         );
         """,
         """CREATE INDEX IF NOT EXISTS "IX_CursoLecciones_CourseId_Position" ON "CursoLecciones" ("CourseId", "Position");""",
+        """ALTER TABLE "CursoLecciones" ADD COLUMN IF NOT EXISTS "SeedKey" varchar(120) NULL;""",
+        """ALTER TABLE "CursoLecciones" ADD COLUMN IF NOT EXISTS "SeedHash" varchar(64) NULL;""",
         """
         CREATE TABLE IF NOT EXISTS "CursoProgresoLecciones" (
             "Id" serial PRIMARY KEY,
@@ -144,9 +147,57 @@ public static class CourseSchemaGuard
             }
         }
 
+        if (db.Database.IsSqlite())
+        {
+            (string Column, string Sql)[] columns =
+            [
+                ("SeedKey", """ALTER TABLE "CursoLecciones" ADD COLUMN "SeedKey" TEXT NULL;"""),
+                ("SeedHash", """ALTER TABLE "CursoLecciones" ADD COLUMN "SeedHash" TEXT NULL;""")
+            ];
+            foreach (var (column, sql) in columns)
+            {
+                try
+                {
+                    if (await SqliteColumnMissingAsync(db, column, ct))
+                    {
+                        await db.Database.ExecuteSqlRawAsync(sql, ct);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    failures++;
+                    logger?.LogWarning(ex, "CourseSchemaGuard could not add CursoLecciones.{Column}.", column);
+                }
+            }
+        }
+
         if (failures == 0)
         {
             logger?.LogInformation("CourseSchemaGuard applied (Cursos/CursoLecciones/CursoProgresoLecciones).");
+        }
+    }
+
+    private static async Task<bool> SqliteColumnMissingAsync(CaleDbContext db, string column, CancellationToken ct)
+    {
+        var connection = db.Database.GetDbConnection();
+        var opened = connection.State != ConnectionState.Open;
+        if (opened)
+        {
+            await connection.OpenAsync(ct);
+        }
+
+        try
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = $"SELECT COUNT(*) FROM pragma_table_info('CursoLecciones') WHERE name = '{column}';";
+            return Convert.ToInt64(await command.ExecuteScalarAsync(ct) ?? 0) == 0;
+        }
+        finally
+        {
+            if (opened)
+            {
+                await connection.CloseAsync();
+            }
         }
     }
 }

@@ -5,9 +5,10 @@ namespace Cale.Api.Services.Courses;
 /// </summary>
 public sealed partial class CourseSeed
 {
-    private static List<(string Title, string Summary, int Minutes, object[] Blocks)> VehicleLessons() =>
+    private static List<(string Key, string Title, string Summary, int Minutes, object[] Blocks)> VehicleLessons() =>
     [
         (
+            "el-vehiculo/sistemas",
             "Reconocimiento y funcionamiento del vehículo",
             "Motor, transmisión, frenos, dirección, suspensión, llantas, luces y fluidos: qué hace cada sistema y qué señales indican una falla.",
             16,
@@ -87,6 +88,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "el-vehiculo/preoperacional",
             "Inspección preoperacional",
             "La revisión sistemática antes de arrancar: qué mirar, en qué orden y cuándo no se debe iniciar la marcha.",
             15,
@@ -146,9 +148,10 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "el-vehiculo/seguridad-activa-pasiva",
             "Seguridad activa, pasiva y asistencias",
-            "ABS, control de estabilidad, cinturón, airbags y apoyacabezas: qué hace cada sistema, qué no puede hacer y por qué no reemplaza al conductor.",
-            15,
+            "ABS, control de estabilidad, cinturón, airbags, apoyacabezas y sillas para niños: qué hace cada sistema, qué no puede hacer y por qué no reemplaza al conductor.",
+            17,
             [
                 Text(
                     "Antes y durante el choque",
@@ -199,6 +202,13 @@ public sealed partial class CourseSeed
                         Choice("Mantengo el pedal presionado con fuerza y giro el volante para esquivar si hace falta.", "Correcto: el ABS evita que las ruedas se bloqueen, así puedes frenar a fondo y seguir dirigiendo el vehículo.", true),
                         Choice("Bombeo el freno rápidamente, como en los carros antiguos.", "Bombear era la técnica sin ABS. Con ABS, el sistema ya lo hace por ti, mucho más rápido.")
                     ]),
+                Scenario(
+                    "Vas a llevar a tu sobrino de 7 años al colegio. Quiere ir adelante «porque es un trayecto corto» y no hay silla en el carro. ¿Qué haces?",
+                    [
+                        Choice("Lo dejo ir adelante con el cinturón puesto, porque son cinco cuadras.", "Los menores de 10 años no pueden ir adelante, y la mayoría de los siniestros ocurren cerca de casa. Además, un airbag frontal puede lesionar gravemente a un niño."),
+                        Choice("Va atrás, en un sistema de retención adecuado a su talla y peso; si no lo tengo, busco otra forma de llevarlo.", "Correcto: atrás y con una silla o un elevador de su tamaño, el cinturón le queda donde debe y lo protege de verdad.", true),
+                        Choice("Va atrás en mis piernas o en las de otro adulto.", "En un choque, nadie puede sostener a un niño: la fuerza del impacto lo arranca de los brazos. Cada niño necesita su propio sistema de retención.")
+                    ]),
                 TrueFalse(
                     "Si el carro tiene airbags, no es necesario usar el cinturón de seguridad.",
                     false,
@@ -212,6 +222,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "el-vehiculo/equipo-escena",
             "Equipo de prevención y protección de la escena",
             "Cómo usar el equipo de carretera cuando el vehículo queda detenido: luces, chaleco, señales, extintor y la seguridad de los pasajeros.",
             12,
@@ -267,6 +278,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "el-vehiculo/averias",
             "Averías frecuentes e inmovilización segura",
             "Pinchazo, batería descargada, recalentamiento, fugas y fallas de luces: qué puedes resolver tú y cuándo debes detenerte y pedir asistencia.",
             20,

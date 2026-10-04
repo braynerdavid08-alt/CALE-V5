@@ -5,9 +5,10 @@ namespace Cale.Api.Services.Courses;
 /// </summary>
 public sealed partial class CourseSeed
 {
-    private static List<(string Title, string Summary, int Minutes, object[] Blocks)> RoadLessons() =>
+    private static List<(string Key, string Title, string Summary, int Minutes, object[] Blocks)> RoadLessons() =>
     [
         (
+            "via-espacio-publico/funcion-riesgos",
             "La vía, su función y sus riesgos",
             "Vías arterias, colectoras y locales; curvas, pendientes, intersecciones, obras y zonas escolares: cómo cambia tu conducta según la vía.",
             14,
@@ -71,6 +72,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "via-espacio-publico/posicion-carril",
             "Posición en el carril e incorporaciones",
             "Elegir el carril correcto, cambiar de carril con la secuencia segura e incorporarte sin crear conflictos de trayectoria.",
             13,
@@ -127,6 +129,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "via-espacio-publico/ciclistas",
             "Cicloinfraestructura y convivencia con ciclistas",
             "Ciclorrutas, bicicarriles y cruces: cómo adelantar, girar y abrir la puerta sin poner en riesgo a quien pedalea.",
             13,
@@ -183,6 +186,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "via-espacio-publico/espacio-publico",
             "Espacio público y conflictos de movilidad",
             "Andenes, estacionamiento, cargue y descargue, ascenso de pasajeros y eventos masivos: usar la calle sin poner en riesgo a nadie.",
             12,
@@ -238,6 +242,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "via-espacio-publico/puentes-tuneles",
             "Puentes, túneles y cunetas",
             "Cómo cambia la conducción en un puente o un túnel, y por qué la cuneta no es un carril ni un sitio para detenerse.",
             12,

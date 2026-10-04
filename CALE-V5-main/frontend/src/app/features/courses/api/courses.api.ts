@@ -235,6 +235,55 @@ export interface LessonCompleteResponse {
   newBadges: Badge[];
 }
 
+export interface CurriculumLessonPlan {
+  key: string | null;
+  title: string;
+  action: 'create' | 'update' | 'unchanged' | 'remove' | 'keep-edited' | 'keep-unknown';
+  detail: string | null;
+  positionBefore: number | null;
+  positionAfter: number | null;
+  progress: number;
+  manualQuestions: string[];
+  questionsLikeSeed: number;
+  seedQuestionsMissing: number;
+}
+
+export interface CurriculumCoursePlan {
+  slug: string;
+  title: string;
+  action: 'create' | 'update' | 'unchanged' | 'skip-inactive';
+  lessonsBefore: number;
+  lessonsAfter: number;
+  hasEditedLessons: boolean;
+  lessons: CurriculumLessonPlan[];
+}
+
+export interface CurriculumPlan {
+  applied: boolean;
+  progressReset: boolean;
+  lessonsBefore: number;
+  lessonsAfter: number;
+  seedLessons: number;
+  progressRows: number;
+  progressRowsRemoved: number;
+  schoolCoursesUntouched: number;
+  courses: CurriculumCoursePlan[];
+}
+
+@Injectable({ providedIn: 'root' })
+export class CurriculumAdminApi {
+  private readonly http = inject(HttpClient);
+  private readonly base = `${env.apiUrl}/api/admin/curriculum`;
+
+  plan() {
+    return this.http.get<CurriculumPlan>(`${this.base}/plan`);
+  }
+
+  apply(resetProgress: boolean) {
+    return this.http.post<CurriculumPlan>(`${this.base}/apply`, { resetProgress });
+  }
+}
+
 @Injectable({ providedIn: 'root' })
 export class CoursesManageApi {
   private readonly http = inject(HttpClient);

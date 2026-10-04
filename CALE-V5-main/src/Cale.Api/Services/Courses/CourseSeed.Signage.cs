@@ -1,6 +1,6 @@
 namespace Cale.Api.Services.Courses;
 
-/// <summary>"Señalización vial e infraestructura": sign families, road markings and devices, following the school's presentation.</summary>
+/// <summary>"Señalización vial e infraestructura": road markings, traffic lights and devices. Vertical signs live in "Señales de tránsito".</summary>
 public sealed partial class CourseSeed
 {
     private const string LinesImage = "/courses/lineas-demarcacion.svg";
@@ -15,119 +15,20 @@ public sealed partial class CourseSeed
             explanation
         };
 
-    private static List<(string Title, string Summary, int Minutes, object[] Blocks)> SignageLessons() =>
+    private static List<(string Key, string Title, string Summary, int Minutes, object[] Blocks)> SignageLessons() =>
     [
         (
-            "El sistema de señalización",
-            "Señales verticales, demarcaciones en el piso, semáforos y dispositivos: qué es cada uno y cuál manda.",
-            8,
-            [
-                Text(
-                    "Cuatro herramientas que trabajan juntas",
-                    "La señalización vial le habla al conductor de cuatro formas:\n\n"
-                    + "Señales verticales: placas en postes o estructuras, al lado o encima de la vía. Pueden ser reglamentarias, preventivas o informativas.\n\n"
-                    + "Señalización horizontal o demarcación: líneas, flechas, símbolos y letras pintados sobre el pavimento y los sardineles.\n\n"
-                    + "Semáforos: regulan el paso con luces.\n\n"
-                    + "Dispositivos: tachas, delineadores, reductores de velocidad y otros elementos que refuerzan las señales y guían de noche.\n\n"
-                    + "Las señales pueden crearse o modificarse según la necesidad del lugar, y en obras o eventos aparecen señales temporales."),
-                Tip("Cuando no coinciden, manda primero el agente de tránsito, luego el semáforo, después las señales verticales y por último las marcas del piso."),
-                Classify(
-                    "¿A qué tipo de señalización pertenece cada elemento?",
-                    ["Vertical", "Horizontal (en el piso)", "Dispositivo"],
-                    [
-                        ("Placa de PARE en un poste", 0),
-                        ("Aviso de velocidad máxima", 0),
-                        ("Línea amarilla en el centro de la vía", 1),
-                        ("Cebra de paso peatonal", 1),
-                        ("Flecha pintada en el carril", 1),
-                        ("Tachas reflectivas", 2),
-                        ("Resalto o reductor de velocidad", 2)
-                    ],
-                    "Las verticales están en placas; las horizontales, pintadas en el pavimento; los dispositivos son elementos físicos que refuerzan o guían."),
-                Order(
-                    "Ordena de mayor a menor prioridad.",
-                    ["Agente de tránsito", "Semáforo", "Señal vertical", "Marca en el pavimento"],
-                    "Siempre manda la indicación más directa y actual: el agente. Después el semáforo, las señales verticales y las demarcaciones.")
-            ]
-        ),
-        (
-            "Las familias de señales verticales",
-            "Cómo se agrupan las reglamentarias, las preventivas y las informativas según lo que comunican.",
-            13,
-            [
-                Text(
-                    "Reglamentarias",
-                    "Notifican prioridades, limitaciones, prohibiciones, restricciones, obligaciones y autorizaciones. Incumplirlas es una infracción. Según su función, se agrupan en:\n\n"
-                    + "Prioridad: PARE y CEDA EL PASO.\n"
-                    + "Prohibición de maniobras y giros: no girar, no adelantar, no pase.\n"
-                    + "Prohibición de paso por clase de vehículo: carga, motos, bicicletas, buses.\n"
-                    + "Obligación: dirección obligada, giro solamente.\n"
-                    + "Restricción: velocidad, peso, altura o ancho máximos.\n"
-                    + "Otras prohibiciones y autorizaciones: pitar, parquear, zonas de taxi, de cargue y descargue."),
-                ClassifySigns(
-                    "Clasifica cada señal reglamentaria según lo que hace.",
-                    ["Prohíbe una maniobra", "Prohíbe el paso a un vehículo", "Obliga una dirección", "Limita una medida"],
-                    [
-                        ("SR-06", "Prohibido girar a la izquierda", 0),
-                        ("SR-26", "No adelantar", 0),
-                        ("SR-23", "Prohibida circulación de motocicletas", 1),
-                        ("SR-18", "Prohibida circulación de vehículos de carga", 1),
-                        ("SR-03", "Dirección obligada", 2),
-                        ("SR-07", "Giro a la derecha solamente", 2),
-                        ("SR-31", "Peso máximo permitido", 3),
-                        ("SR-32", "Altura máxima permitida", 3)
-                    ],
-                    "Las de maniobra prohíben una acción; las de clase de vehículo prohíben el paso a ciertos vehículos; las de obligación marcan una sola opción y las de restricción ponen un límite."),
-                Text(
-                    "Preventivas",
-                    "Advierten de un riesgo o de una situación imprevista, permanente o temporal. Se agrupan según lo que anuncian: la forma de la vía (curvas), "
-                    + "las pendientes, la superficie (resbalosa, rizada, resaltos), las restricciones físicas (puente angosto, altura libre), las intersecciones "
-                    + "y la presencia de otros actores (peatones, ciclistas, animales, niños)."),
-                Video("ansv-curva-senal-preventiva.mp4", "Una señal preventiva anuncia la curva: reduce la velocidad antes de entrar. Video: Agencia Nacional de Seguridad Vial (ANSV)."),
-                ClassifySigns(
-                    "¿Qué anuncia cada señal preventiva?",
-                    ["La forma o pendiente de la vía", "El estado de la superficie", "Una restricción física", "Otros actores en la vía"],
-                    [
-                        ("SP-02", "Curva cerrada a la derecha", 0),
-                        ("SP-27", "Pendiente fuerte de descenso", 0),
-                        ("SP-44", "Superficie deslizante", 1),
-                        ("SP-24", "Superficie rizada", 1),
-                        ("SP-36", "Puente angosto", 2),
-                        ("SP-50", "Altura libre", 2),
-                        ("SP-59", "Ciclistas en la vía", 3),
-                        ("SP-48", "Niños jugando", 3)
-                    ],
-                    "Agruparlas por lo que anuncian te ayuda a reaccionar: bajar la velocidad, frenar suave, medir tu vehículo o estar atento a personas."),
-                Text(
-                    "Informativas",
-                    "Guían al usuario y le muestran servicios. Las que te llevan a tu destino aparecen en orden: preseñalización (te avisa con anticipación), "
-                    + "dirección (te muestra hacia dónde ir), confirmación (te confirma que vas bien) e identificación de la vía (el número de la ruta). "
-                    + "También hay señales de servicios, turísticas y de seguridad vial, como la de radar pedagógico.\n\n"
-                    + "Las señales de mensaje variable (SMV) son paneles cuyo texto se cambia en tiempo real para avisarte de un cierre, un trancón, una obra o el clima en tu ruta. "
-                    + "Léelas con la misma atención que una señal fija."),
-                Order(
-                    "Vas por carretera hacia otra ciudad. Ordena las señales informativas en el orden en que las encuentras.",
-                    ["Preseñalización: te avisa que se acerca la salida", "Dirección: te indica por dónde tomar", "Confirmación: te confirma el destino y la distancia"],
-                    "Primero te preparan, luego te indican el desvío y, una vez en la vía correcta, te confirman que vas bien."),
-                new
-                {
-                    type = "flipcards",
-                    title = "Informativas que vale la pena conocer",
-                    cards = new[]
-                    {
-                        Card("Señal de preseñalización", "Avisa con anticipación los destinos de la próxima intersección o salida.", Img("SI-05D")),
-                        Card("Señal de confirmación", "Confirma el destino y la distancia que falta después de un cruce.", Img("SI-06")),
-                        Card("Radar pedagógico", "Muestra tu velocidad para que la ajustes; no impone multas.", Img("SI-27B")),
-                        Card("Ruta panamericana", "Identifica una vía que hace parte de la red panamericana.", Img("SI-02"))
-                    }
-                }
-            ]
-        ),
-        (
+            "senalizacion-infraestructura/lineas",
             "Líneas en el centro y en los bordes",
             "Qué significan los colores blanco y amarillo, y las líneas continuas, discontinuas, dobles y mixtas.",
             12,
             [
+                Text(
+                    "Lo que está pintado también es una norma",
+                    "Las señales verticales se estudian en el curso «Señales de tránsito». Este curso trata lo que está en el piso y alrededor del cruce: "
+                    + "las líneas, las marcas transversales, los semáforos y los dispositivos.\n\n"
+                    + "Recuerda la jerarquía: primero el agente, luego el semáforo, después las señales verticales y por último las marcas del pavimento. "
+                    + "Que tengan la menor prioridad no las vuelve opcionales: si no hay nada por encima que diga otra cosa, la línea manda."),
                 Text(
                     "El color dice quién va al lado",
                     "Blanco: separa carriles que van en el mismo sentido y marca el borde derecho de la calzada.\n\n"
@@ -178,6 +79,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "senalizacion-infraestructura/marcas",
             "Marcas transversales, símbolos y dispositivos",
             "Línea de pare, cebras, flechas, la cuadrícula de no bloquear, tachas y delineadores.",
             10,
@@ -231,6 +133,7 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "senalizacion-infraestructura/semaforos",
             "Fases del semáforo vehicular y peatonal",
             "Qué obliga cada luz del semáforo para vehículos y para peatones, incluidas las intermitentes y las flechas.",
             12,
@@ -282,26 +185,28 @@ public sealed partial class CourseSeed
             ]
         ),
         (
+            "senalizacion-infraestructura/repaso",
             "Repaso final",
-            "Pon a prueba lo que aprendiste sobre señales, líneas y dispositivos.",
+            "Pon a prueba lo que aprendiste sobre líneas, marcas, semáforos y dispositivos.",
             8,
             [
                 Text(
                     "Antes de empezar",
-                    "En el examen teórico la señalización aparece en muchas preguntas. Recuerda tres ideas: la forma y el color de la señal te dicen su familia, "
-                    + "el color de la línea te dice quién va al lado, y el trazo te dice si puedes cruzarla."),
-                ClassifySigns(
-                    "¿A qué familia pertenece cada señal?",
-                    ["Reglamentaria", "Preventiva", "Informativa"],
+                    "En el examen teórico la señalización aparece en muchas preguntas. Recuerda tres ideas: el color de la línea te dice quién va al lado, "
+                    + "el trazo te dice si puedes cruzarla y cada luz del semáforo es una orden distinta."),
+                Classify(
+                    "¿Qué te obliga a hacer cada indicación?",
+                    ["Detenerme", "Pasar solo con precaución"],
                     [
-                        ("SR-48", "Fin de la prohibición de adelantar", 0),
-                        ("SR-44", "Conservar espaciamiento", 0),
-                        ("SP-15", "Bifurcación en Y", 1),
-                        ("SP-37", "Túnel", 1),
-                        ("SI-07", "Sitio de parqueo", 2),
-                        ("SI-30", "Transporte masivo", 2)
+                        ("Semáforo en rojo fijo", 0),
+                        ("Semáforo en rojo intermitente", 0),
+                        ("Mano roja del semáforo peatonal, si voy a pie", 0),
+                        ("Línea de pare con el semáforo en rojo", 0),
+                        ("Semáforo en amarillo intermitente", 1),
+                        ("Flecha verde hacia mi giro", 1),
+                        ("Línea blanca discontinua para cambiar de carril", 1)
                     ],
-                    "Las reglamentarias ordenan, las preventivas advierten y las informativas orientan."),
+                    "El rojo, fijo o intermitente, obliga a detenerse. El amarillo intermitente, la flecha verde y la línea discontinua permiten seguir, pero solo si es seguro."),
                 FillBlank(
                     "Las líneas [[blancas|blanca]] separan carriles del mismo sentido y las [[amarillas|amarilla]] separan sentidos opuestos. Una línea [[continua]] no se puede cruzar.",
                     ["rojas", "discontinua", "verdes"],

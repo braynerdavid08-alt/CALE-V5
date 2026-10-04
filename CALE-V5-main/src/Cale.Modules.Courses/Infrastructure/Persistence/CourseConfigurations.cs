@@ -29,6 +29,8 @@ public sealed class CourseLessonConfiguration : IEntityTypeConfiguration<CourseL
         builder.Property(x => x.Title).HasMaxLength(CourseLimits.TitleMax).IsRequired();
         builder.Property(x => x.Summary).HasMaxLength(CourseLimits.SummaryMax);
         builder.Property(x => x.ContentJson).IsRequired();
+        builder.Property(x => x.SeedKey).HasMaxLength(120);
+        builder.Property(x => x.SeedHash).HasMaxLength(64);
         builder.HasIndex(x => new { x.CourseId, x.Position });
     }
 }

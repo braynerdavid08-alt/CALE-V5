@@ -279,45 +279,28 @@ public sealed class CourseServiceTests : IDisposable
         Assert.Equal(10, courses.Count);
         Assert.Equal(5, Assert.Single(courses, c => c.Title == "Dominio seguro del automóvil (B1)").TotalLessons);
         Assert.Equal(5, Assert.Single(courses, c => c.Title == "Conducción profesional de servicio público (C1)").TotalLessons);
-        Assert.Equal(8, Assert.Single(courses, c => c.Title == "Movilidad segura y sostenible").TotalLessons);
+        Assert.Equal(6, Assert.Single(courses, c => c.Title == "Movilidad segura y sostenible").TotalLessons);
         Assert.Equal(5, Assert.Single(courses, c => c.Title == "La vía y el espacio público").TotalLessons);
         Assert.Equal(5, Assert.Single(courses, c => c.Title == "El vehículo: conócelo, revísalo y atiéndelo").TotalLessons);
-        Assert.Equal(5, Assert.Single(courses, c => c.Title == "Conducción segura en motocicleta (A2)").TotalLessons);
-        Assert.Equal(6, Assert.Single(courses, c => c.Title == "Señalización vial e infraestructura").TotalLessons);
+        Assert.Equal(6, Assert.Single(courses, c => c.Title == "Conducción segura en motocicleta (A2)").TotalLessons);
+        Assert.Equal(4, Assert.Single(courses, c => c.Title == "Señalización vial e infraestructura").TotalLessons);
         Assert.Equal(7, Assert.Single(courses, c => c.Title == "Primeros auxilios en la vía").TotalLessons);
-        var signs = Assert.Single(courses, c => c.Title == "Señales de tránsito");
-        Assert.True(signs.TotalLessons >= 4);
-        var rules = Assert.Single(courses, c => c.Title == "Normas de tránsito básicas");
-        Assert.Equal(10, rules.TotalLessons);
+        Assert.Equal(5, Assert.Single(courses, c => c.Title == "Señales de tránsito").TotalLessons);
+        Assert.Equal(9, Assert.Single(courses, c => c.Title == "Normas de tránsito básicas").TotalLessons);
+        Assert.Equal(57, courses.Sum(c => c.TotalLessons));
     }
 
     [Fact]
-    public async Task Seed_upgrades_untouched_platform_courses_and_respects_edits()
+    public async Task Seed_never_changes_existing_platform_courses()
     {
         var seed = new CourseSeed(_db);
         await seed.EnsureAsync(null);
-        var course = await _db.Set<Course>().SingleAsync(c => c.Slug == CourseSeed.RulesSlug);
-        var lessons = await _db.Set<CourseLesson>().Where(l => l.CourseId == course.Id).OrderBy(l => l.Position).ToListAsync();
-        var first = lessons[0];
-
-        // An older seed version: different content in the first lesson, one lesson fewer, same stamps.
-        _db.Entry(first).Property(l => l.ContentJson).CurrentValue = "[]";
-        _db.Set<CourseLesson>().Remove(lessons[^1]);
-        _db.Set<CourseLessonProgress>().Add(CourseLessonProgress.Create(course.Id, first.Id, _student.Id, 100, DateTime.UtcNow));
+        var lesson = await _db.Set<CourseLesson>().FirstAsync();
+        _db.Entry(lesson).Property(l => l.ContentJson).CurrentValue = "[]";
         await _db.SaveChangesAsync();
 
         await seed.EnsureAsync(null);
-        var upgraded = await _db.Set<CourseLesson>().Where(l => l.CourseId == course.Id).OrderBy(l => l.Position).ToListAsync();
-        Assert.Equal(10, upgraded.Count);
-        Assert.Equal(first.Id, upgraded[0].Id);
-        Assert.NotEqual("[]", upgraded[0].ContentJson);
-        Assert.True(await _db.Set<CourseLessonProgress>().AnyAsync(p => p.LessonId == first.Id));
 
-        // Once an editor touches the course, the seed leaves it alone.
-        _db.Entry(upgraded[0]).Property(l => l.ContentJson).CurrentValue = "[]";
-        course.Touch(DateTime.UtcNow.AddMinutes(5));
-        await _db.SaveChangesAsync();
-        await seed.EnsureAsync(null);
-        Assert.Equal("[]", (await _db.Set<CourseLesson>().SingleAsync(l => l.Id == first.Id)).ContentJson);
+        Assert.Equal("[]", (await _db.Set<CourseLesson>().SingleAsync(l => l.Id == lesson.Id)).ContentJson);
     }
 }

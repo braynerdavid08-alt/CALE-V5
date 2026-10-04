@@ -12,6 +12,10 @@ public sealed class CourseLesson
     public string ContentJson { get; private set; } = "[]";
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
+    /// <summary>Stable key of a platform seed lesson; null for lessons created in the editor.</summary>
+    public string? SeedKey { get; private set; }
+    /// <summary>Fingerprint of what the seed last wrote; a different current fingerprint means someone edited the lesson.</summary>
+    public string? SeedHash { get; private set; }
 
     private CourseLesson()
     {
@@ -42,6 +46,14 @@ public sealed class CourseLesson
     {
         Position = Math.Max(0, position);
         UpdatedAt = utcNow;
+    }
+
+    public void AssignSeedKey(string key) => SeedKey = key;
+
+    public void MarkSeeded(string key, string hash)
+    {
+        SeedKey = key;
+        SeedHash = hash;
     }
 
     public CourseLesson CloneTo(int courseId, DateTime utcNow)
