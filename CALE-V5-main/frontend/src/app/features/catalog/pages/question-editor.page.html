@@ -29,9 +29,11 @@
           <option value="Verdadero/Falso">Verdadero / Falso</option>
         </select>
       </label>
-      <label class="field">Tema (opcional)
-        <input [(ngModel)]="topic" name="topic" placeholder="Ej. señales de tránsito" />
-      </label>
+      <app-curriculum-picker
+        [subject]="subject"
+        [topic]="topic"
+        [subtopic]="subtopic"
+        (changed)="onCurriculum($event)" />
     </div>
     <label class="row">
       <input type="checkbox" [(ngModel)]="isActive" name="isActive" />

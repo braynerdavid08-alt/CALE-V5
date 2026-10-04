@@ -6,6 +6,7 @@ import { mapApiError } from '../../../core/http/map-api-error';
 import { env } from '../../../core/config/env';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
+import { CurriculumChoice, CurriculumPickerComponent, curriculumToSave } from '../../../shared/curriculum/curriculum-picker.component';
 import { UiImagePickerComponent } from '../../../shared/ui/ui-image-picker.component';
 import { ExamDto } from '../../student/api/exam.api';
 import {
@@ -31,7 +32,8 @@ type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
     RouterLink,
     UiButtonComponent,
     UiErrorComponent,
-    UiImagePickerComponent
+    UiImagePickerComponent,
+    CurriculumPickerComponent
   ],
   templateUrl: './teacher-exam-questions.page.html',
   styleUrl: './teacher-exam-questions.page.css'
@@ -65,7 +67,10 @@ export class TeacherExamQuestionsPage implements OnInit, OnDestroy {
   questionId: number | null = null;
   text = '';
   type = 'Seleccion multiple';
+  subject = '';
   topic = '';
+  subtopic = '';
+  private originalCurriculum: CurriculumChoice = { subject: '', topic: '', subtopic: '' };
   explanation = '';
   imageUrl = '';
   isActive = true;
@@ -225,6 +230,24 @@ export class TeacherExamQuestionsPage implements OnInit, OnDestroy {
     return Array.from({ length: this.totalPages() }, (_, i) => i + 1);
   }
 
+  onCurriculum(choice: CurriculumChoice): void {
+    this.subject = choice.subject;
+    this.topic = choice.topic;
+    this.subtopic = choice.subtopic;
+    this.markDirty();
+  }
+
+  private curriculumBody(): { subject: string | null; topic: string | null; subtopic: string | null } {
+    const curriculum = curriculumToSave(
+      { subject: this.subject, topic: this.topic, subtopic: this.subtopic },
+      this.originalCurriculum);
+    return {
+      subject: curriculum.subject || null,
+      topic: curriculum.topic || null,
+      subtopic: curriculum.subtopic || null
+    };
+  }
+
   selectQuestion(id: number): void {
     if (this.saveState() === 'dirty') {
       this.save(true);
@@ -244,7 +267,10 @@ export class TeacherExamQuestionsPage implements OnInit, OnDestroy {
     this.text = '';
     this.type = 'Seleccion multiple';
     this.lastType = this.type;
+    this.subject = '';
     this.topic = '';
+    this.subtopic = '';
+    this.originalCurriculum = { subject: '', topic: '', subtopic: '' };
     this.explanation = '';
     this.imageUrl = '';
     this.isActive = true;
@@ -412,7 +438,7 @@ export class TeacherExamQuestionsPage implements OnInit, OnDestroy {
       blockId: this.blockId,
       text: this.text.trim(),
       type: this.type,
-      topic: this.topic.trim() || null,
+      ...this.curriculumBody(),
       imageUrl: this.imageUrl || null,
       explanation: this.clearNeedsReviewMarker(this.explanation.trim() || null),
       isActive: this.isActive,
@@ -552,7 +578,10 @@ export class TeacherExamQuestionsPage implements OnInit, OnDestroy {
     this.text = q.text;
     this.type = q.type;
     this.lastType = q.type;
+    this.subject = q.subject ?? '';
     this.topic = q.topic ?? '';
+    this.subtopic = q.subtopic ?? '';
+    this.originalCurriculum = { subject: this.subject, topic: this.topic, subtopic: this.subtopic };
     this.explanation = q.explanation ?? '';
     this.imageUrl = q.imageUrl ?? '';
     this.isActive = q.isActive;

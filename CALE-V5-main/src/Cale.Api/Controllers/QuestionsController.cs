@@ -4,6 +4,7 @@ using Cale.BuildingBlocks.Domain.Auth;
 using Cale.Modules.Catalog.Application.Commands;
 using Cale.Modules.Catalog.Application.DTOs;
 using Cale.Modules.Catalog.Application.Queries;
+using Cale.Modules.Catalog.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -83,6 +84,9 @@ public sealed class QuestionsController : ControllerBase
             CurrentUser.IsAdmin(User),
             ct));
     }
+
+    [HttpGet("curriculum")]
+    public IActionResult Curriculum() => Ok(CurriculumTree.Nuclei);
 
     [HttpGet("blocks")]
     public async Task<IActionResult> Blocks(CancellationToken ct)

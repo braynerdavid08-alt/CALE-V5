@@ -72,6 +72,8 @@ export interface QuestionDetailDto {
   bankId: number;
   blockId: number;
   topic?: string | null;
+  subject?: string | null;
+  subtopic?: string | null;
   imageUrl?: string | null;
   explanation?: string | null;
   isActive: boolean;

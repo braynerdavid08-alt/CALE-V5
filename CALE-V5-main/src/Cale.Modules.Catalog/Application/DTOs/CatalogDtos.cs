@@ -46,7 +46,9 @@ public sealed record QuestionDetailDto(
     string? Explanation,
     bool IsActive,
     int? CreatedById,
-    IReadOnlyList<OptionDto> Options);
+    IReadOnlyList<OptionDto> Options,
+    string? Subject = null,
+    string? Subtopic = null);
 
 public sealed record QuestionReviewDto(
     int Id,
@@ -70,7 +72,9 @@ public sealed record SaveQuestionRequest(
     string? ImageUrl,
     string? Explanation,
     bool IsActive,
-    IReadOnlyList<OptionInput> Options);
+    IReadOnlyList<OptionInput> Options,
+    string? Subject = null,
+    string? Subtopic = null);
 
 public sealed record SaveBankRequest(string Name, string? Description, bool IsActive);
 

@@ -31,6 +31,7 @@ public sealed class SaveQuestionHandler
                 "bank_not_owned");
         }
 
+        CurriculumTree.EnsureClassifiable(request.Subject, request.Topic, request.Subtopic);
         var options = MapOptions(request.Options);
         var question = Question.Create(
             request.BankId,
@@ -43,6 +44,7 @@ public sealed class SaveQuestionHandler
             request.Explanation,
             options,
             _clock.UtcNow);
+        question.SetCurriculum(request.Subject, request.Topic, request.Subtopic);
         question.SetActive(request.IsActive);
         await _store.AddQuestionAsync(question, ct);
         await _store.SaveChangesAsync(ct);
@@ -73,6 +75,7 @@ public sealed class SaveQuestionHandler
                 "bank_not_owned");
         }
 
+        CurriculumTree.EnsureClassifiable(request.Subject, request.Topic, request.Subtopic);
         await _store.RemoveOptionsAsync(question, ct);
         question.Replace(
             request.BankId,
@@ -84,6 +87,7 @@ public sealed class SaveQuestionHandler
             ExamImportMarkers.ClearNeedsReview(request.Explanation),
             MapOptions(request.Options),
             _clock.UtcNow);
+        question.SetCurriculum(request.Subject, request.Topic, request.Subtopic);
         question.SetActive(request.IsActive);
         await _store.SaveChangesAsync(ct);
     }
