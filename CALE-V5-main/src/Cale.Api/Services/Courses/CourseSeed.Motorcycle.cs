@@ -90,13 +90,20 @@ public sealed partial class CourseSeed
         ),
         (
             "Revisión preoperacional de la motocicleta",
-            "Llantas, rines, frenos, controles, luces, aceite, cadena y chasis: lo que debes revisar antes de cada recorrido.",
-            14,
+            "Llantas, rines, frenos, controles, luces, fluidos, cadena y chasis antes de cada recorrido, y el mantenimiento preventivo que evita fallas.",
+            20,
             [
                 Text(
                     "Una moto revisada no te deja botado",
                     "En una moto, una falla pequeña tiene consecuencias grandes: una llanta con poca presión desestabiliza la dirección, una cadena floja puede saltarse "
                     + "y una luz de stop fundida hace que el de atrás no sepa que estás frenando. La revisión preoperacional toma pocos minutos y se hace antes de cada salida."),
+                Text(
+                    "Revisión preoperacional y mantenimiento preventivo",
+                    "Son dos cosas distintas que se complementan:\n\n"
+                    + "• Revisión preoperacional: la haces tú, antes de cada salida, en pocos minutos. Miras, pruebas y detectas fallas antes de rodar.\n"
+                    + "• Mantenimiento preventivo: se hace cada cierto tiempo o kilometraje, según el manual de la moto: cambio de aceite, ajuste o cambio del kit de arrastre, pastillas de freno, limpieza y lubricación.\n\n"
+                    + "La ANSV resume sus beneficios: disminuye los gastos en reparaciones, contribuye al cuidado del medio ambiente y te ayuda a conocer tu moto a fondo. "
+                    + "Sobre todo, cuida tu vida y ayuda a evitar siniestros de tránsito."),
                 Video("ansv-moto-revision.mp4", "Cecilia y Roberto revisan sus motos antes de continuar el viaje. Video: Agencia Nacional de Seguridad Vial (ANSV)."),
                 Flip(
                     "Qué revisar en cada parte",
@@ -104,7 +111,7 @@ public sealed partial class CourseSeed
                     Card("Frenos", "Al accionar cada freno, la moto no debe rodar. Revisa el nivel del líquido y que las pastillas no estén gastadas."),
                     Card("Controles", "Acelerador que regrese solo, embrague con juego correcto, palancas sin daños y dirección que gire libre, sin ruidos."),
                     Card("Luces y sistema eléctrico", "Luz delantera alta y baja, stop con ambos frenos, direccionales, luz de placa y pito."),
-                    Card("Aceite y fluidos", "Nivel de aceite del motor con la moto vertical, sin fugas debajo del motor."),
+                    Card("Aceite y fluidos", "Aceite del motor con la moto vertical y sin fugas debajo del motor. Líquido de frenos entre el mínimo y el máximo del depósito. Si tu moto es refrigerada por líquido, el refrigerante también va entre el mínimo y el máximo de su recipiente transparente; fíjate en su color. Revísalos con el motor frío."),
                     Card("Kit de arrastre", "Cadena lubricada y con la tensión que indica el manual; piñón y corona sin dientes gastados en punta."),
                     Card("Chasis", "Sin fisuras, soldaduras sueltas ni tornillos flojos. Espejos firmes y bien ajustados.")),
                 Classify(
@@ -124,6 +131,32 @@ public sealed partial class CourseSeed
                     "La cadena: el punto que más se olvida",
                     "Una cadena demasiado floja puede salirse y bloquear la rueda trasera; una demasiado tensa se desgasta rápido y daña los rodamientos. "
                     + "Revisa la tensión con la moto en el soporte, según el juego que indique el manual, y lubrícala cada pocos cientos de kilómetros o después de rodar con lluvia."),
+                Text(
+                    "Cada fluido en su lugar",
+                    "En el recurso de la ANSV \"¿Un día perfecto?\", Juan empieza su primer día como domiciliario sin revisar la moto y le echa aceite de cocina al depósito del líquido de frenos. "
+                    + "En plena entrega fallan el pito y los frenos, se estrella y casi atropella a un peatón con discapacidad visual en un paso peatonal.\n\n"
+                    + "El sistema de frenos funciona con un líquido específico: usa solo el tipo que indican el manual o la tapa del depósito (por ejemplo, DOT 3 o DOT 4). "
+                    + "Otro líquido, como el aceite, daña los empaques del sistema y puede dejarte sin frenos. Lo mismo vale para el aceite del motor y el refrigerante: nada de \"lo que haya en la casa\".\n\n"
+                    + "Si el nivel del líquido de frenos baja, no basta con rellenar: puede ser que las pastillas estén gastadas o que haya una fuga. Revísalo antes de salir."),
+                Text(
+                    "Limpieza y herramientas en casa",
+                    "Lavar la moto no es solo cuestión de estética: el polvo y el barro aceleran el desgaste de sus piezas, y al limpiarla ves a tiempo fugas, fisuras o tornillos flojos. "
+                    + "Evita el chorro a presión directo sobre rodamientos, conectores eléctricos y el tablero.\n\n"
+                    + "Para el mantenimiento básico, la ANSV recomienda tener en casa: destornilladores de pala y de estrella, alicates, pinzas, llaves combinadas, copas, llaves Allen, martillo, cinta aislante, "
+                    + "lubricante y limpiador de cadena, cepillo o trapo, linterna, medidor de presión, profundímetro para el labrado y un kit de reparación de neumáticos.\n\n"
+                    + "Fuente: recurso interactivo de la ANSV \"Mantenimiento preventivo y revisión preoperacional de la motocicleta\"."),
+                Classify(
+                    "¿Esta tarea es de la revisión preoperacional (antes de cada salida) o del mantenimiento preventivo (periódico)?",
+                    ["Revisión preoperacional", "Mantenimiento preventivo"],
+                    [
+                        ("Probar las luces y el pito", 0),
+                        ("Verificar la presión de las llantas", 0),
+                        ("Mirar el nivel del líquido de frenos", 0),
+                        ("Cambiar el aceite según el kilometraje del manual", 1),
+                        ("Cambiar el kit de arrastre desgastado", 1),
+                        ("Cambiar las pastillas de freno gastadas", 1)
+                    ],
+                    "La revisión preoperacional detecta problemas en minutos; el mantenimiento preventivo los corrige o los evita con cambios y ajustes periódicos."),
                 Scenario(
                     "Al revisar la moto antes de salir notas que la luz de stop no enciende cuando frenas con la palanca delantera, aunque sí con el pedal. ¿Qué haces?",
                     [
@@ -131,10 +164,21 @@ public sealed partial class CourseSeed
                         Choice("Reviso el interruptor de la palanca o la llevo a revisar antes de salir.", "Correcto: el stop debe encender con ambos frenos para que los demás sepan que te estás deteniendo.", true),
                         Choice("Uso solo el freno trasero durante el viaje.", "Con solo el freno trasero pierdes alrededor del 70 % de la capacidad de frenado de la moto.")
                     ]),
+                Scenario(
+                    "Vas a salir a trabajar y notas que el depósito del líquido de frenos está bajo el mínimo. Un vecino te dice que le eches un poco de aceite de cocina para salir del paso. ¿Qué haces?",
+                    [
+                        Choice("Le echo el aceite: es un líquido y sirve igual.", "El aceite daña los empaques del sistema de frenos y puede dejarte sin frenos en plena vía, como le pasó a Juan en el recurso de la ANSV."),
+                        Choice("No salgo en la moto hasta conseguir el líquido que indica el manual y revisar por qué bajó el nivel.", "Correcto: solo el líquido indicado, y además hay que descartar pastillas gastadas o una fuga.", true),
+                        Choice("Salgo igual y uso solo el freno de pie.", "Con un sistema de frenos con fallas no se rueda. Además, solo con el freno trasero pierdes gran parte de la capacidad de frenado.")
+                    ]),
                 TrueFalse(
                     "La presión de las llantas de la moto se debe ajustar según la carga que vas a llevar.",
                     true,
                     "Verdadero: con acompañante o con carga, el manual suele indicar una presión mayor. Revísala siempre en frío."),
+                TrueFalse(
+                    "Lavar la moto hace parte de su mantenimiento, no solo de su apariencia.",
+                    true,
+                    "Verdadero: el polvo y el barro desgastan las piezas, y al limpiarla puedes detectar fugas o daños a tiempo."),
                 Quiz(
                     "¿Qué riesgo genera una cadena demasiado floja?",
                     null,
