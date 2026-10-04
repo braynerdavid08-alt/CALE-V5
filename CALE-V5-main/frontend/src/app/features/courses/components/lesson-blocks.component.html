@@ -25,7 +25,9 @@
             <iframe class="video" [src]="yt" title="Video" allowfullscreen
               allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"></iframe>
           } @else {
-            <video class="video" [src]="url(asMedia(block).url)" controls preload="metadata" playsinline></video>
+            <video class="video" [src]="url(asMedia(block).url)" controls preload="metadata" playsinline
+              controlsList="nodownload noremoteplayback" disablePictureInPicture disableRemotePlayback
+              (contextmenu)="$event.preventDefault()"></video>
           }
           @if (asMedia(block).caption) { <figcaption>{{ asMedia(block).caption }}</figcaption> }
         </figure>

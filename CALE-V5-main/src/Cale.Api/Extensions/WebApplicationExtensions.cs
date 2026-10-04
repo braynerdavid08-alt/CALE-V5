@@ -49,6 +49,7 @@ public static class WebApplicationExtensions
         app.UseCors("Cale");
         app.UseRateLimiter();
         app.UseMiddleware<SignImageRedirectMiddleware>();
+        app.UseMiddleware<CourseVideoGateMiddleware>();
         app.UseDefaultFiles();
         var spaFiles = new StaticFileOptions { OnPrepareResponse = ctx => ApplySpaCacheHeaders(ctx.Context) };
         app.UseStaticFiles(spaFiles);
