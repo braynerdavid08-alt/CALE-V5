@@ -13,6 +13,10 @@ public sealed partial class CourseSeed
     public const string RulesSlug = "normas-transito";
     public const string SignageSlug = "senalizacion-infraestructura";
     public const string FirstAidSlug = "primeros-auxilios";
+    public const string MobilitySlug = "movilidad-segura";
+    public const string RoadSlug = "via-espacio-publico";
+    public const string VehicleSlug = "el-vehiculo";
+    public const string MotorcycleSlug = "motocicleta-a2";
 
     private readonly CaleDbContext _db;
 
@@ -54,6 +58,42 @@ public sealed partial class CourseSeed
             "Primeros auxilios",
             "/signals/SI-16.svg",
             FirstAidLessons,
+            logger,
+            ct);
+        await EnsureCourseAsync(
+            MobilitySlug,
+            "Movilidad segura y sostenible",
+            "Sistema Seguro, víctimas y consecuencias, usuarios vulnerables, movilidad sostenible, conducción preventiva y eco-conducción, con casos de Barranquilla.",
+            "Seguridad vial",
+            $"{MobilityImages}/portada.jpg",
+            MobilityLessons,
+            logger,
+            ct);
+        await EnsureCourseAsync(
+            RoadSlug,
+            "La vía y el espacio público",
+            "Cómo cambia tu conducción según la vía, la posición en el carril, la convivencia con ciclistas y los conflictos en andenes, paraderos y eventos.",
+            "Seguridad vial",
+            $"{MobilityImages}/anticipate.jpg",
+            RoadLessons,
+            logger,
+            ct);
+        await EnsureCourseAsync(
+            VehicleSlug,
+            "El vehículo: conócelo, revísalo y atiéndelo",
+            "Sistemas del vehículo, revisión preoperacional, seguridad activa y pasiva, protección de la escena y averías frecuentes.",
+            "Mecánica básica",
+            Img("SI-21"),
+            VehicleLessons,
+            logger,
+            ct);
+        await EnsureCourseAsync(
+            MotorcycleSlug,
+            "Conducción segura en motocicleta (A2)",
+            "Elementos de protección, revisión de la moto, técnicas de frenado y curvas, clima, fatiga, puntos ciegos, acompañante y carga.",
+            "Conducción defensiva",
+            "/courses/moto/portada.jpg",
+            MotorcycleLessons,
             logger,
             ct);
     }

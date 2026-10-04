@@ -276,7 +276,11 @@ public sealed class CourseServiceTests : IDisposable
         await seed.EnsureAsync(null);
 
         var courses = await _service.ListForStudentAsync(_student.Id, default);
-        Assert.Equal(4, courses.Count);
+        Assert.Equal(8, courses.Count);
+        Assert.Equal(6, Assert.Single(courses, c => c.Title == "Movilidad segura y sostenible").TotalLessons);
+        Assert.Equal(4, Assert.Single(courses, c => c.Title == "La vía y el espacio público").TotalLessons);
+        Assert.Equal(5, Assert.Single(courses, c => c.Title == "El vehículo: conócelo, revísalo y atiéndelo").TotalLessons);
+        Assert.Equal(5, Assert.Single(courses, c => c.Title == "Conducción segura en motocicleta (A2)").TotalLessons);
         Assert.Equal(5, Assert.Single(courses, c => c.Title == "Señalización vial e infraestructura").TotalLessons);
         Assert.Equal(6, Assert.Single(courses, c => c.Title == "Primeros auxilios en la vía").TotalLessons);
         var signs = Assert.Single(courses, c => c.Title == "Señales de tránsito");
