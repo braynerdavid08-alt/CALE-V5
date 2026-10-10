@@ -131,6 +131,7 @@
       </fieldset>
       }
 
+      <auth-legal-consent [group]="form.controls.consent" [school]="true" />
       <ui-button type="submit" [loading]="auth.loading()">Registrar escuela</ui-button>
     </form>
 

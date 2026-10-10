@@ -188,6 +188,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<Cale.Api.Services.Admin.CatalogPurgeService>();
         services.AddScoped<Cale.Api.Services.Admin.BankUsageService>();
         services.AddScoped<Cale.Api.Services.Requests.UserRequestService>();
+        services.AddScoped<Cale.Api.Services.Legal.LegalService>();
         services.AddHostedService<Cale.Api.Services.Play.PlayNudgeService>();
         services.AddScoped<Cale.Api.Services.Admin.AdminInsightsService>();
         services.AddHostedService<Cale.Api.Services.Admin.WeeklySummaryService>();

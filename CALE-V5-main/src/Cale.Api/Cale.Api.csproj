@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <Content Update="SeedData\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <EmbeddedResource Include="Legal\Drafts\*.md" LogicalName="Cale.Api.Legal.Drafts.%(Filename).md" />
   </ItemGroup>
 
   <PropertyGroup>

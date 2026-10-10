@@ -76,6 +76,7 @@
           <span id="teacher-password-error" class="field-error" role="alert">Mínimo 8 caracteres.</span>
         }
       </label>
+      <auth-legal-consent [group]="form.controls.consent" />
       <ui-button type="submit" [loading]="auth.loading()">Crear cuenta de instructor</ui-button>
     </form>
     <p class="hint">

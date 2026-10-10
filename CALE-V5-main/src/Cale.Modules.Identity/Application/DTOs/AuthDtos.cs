@@ -2,7 +2,11 @@ namespace Cale.Modules.Identity.Application.DTOs;
 
 public sealed record LoginRequest(string Email, string Password);
 
-public sealed record RegisterRequest(string Name, string Email, string Password);
+public sealed record RegisterRequest(
+    string Name,
+    string Email,
+    string Password,
+    LegalConsentDto? Consent = null);
 
 public sealed record RegisterSchoolRequest(
     string ContactName,
@@ -15,7 +19,15 @@ public sealed record RegisterSchoolRequest(
     string Address,
     string City,
     string Department,
-    string PlanCode);
+    string PlanCode,
+    LegalConsentDto? Consent = null);
+
+/// <summary>Casillas separadas del registro; ninguna llega marcada por defecto.</summary>
+public sealed record LegalConsentDto(
+    bool AcceptTerms,
+    bool AcknowledgePrivacy,
+    bool AuthorizeDataProcessing,
+    bool AcceptSchoolTerms = false);
 
 public sealed record SchoolPlanDto(
     string Code,

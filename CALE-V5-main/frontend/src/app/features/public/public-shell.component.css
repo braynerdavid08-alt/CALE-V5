@@ -202,6 +202,17 @@
   color: #fff;
 }
 
+.foot-legal {
+  margin-top: 0.25rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid rgba(183, 197, 208, 0.2);
+}
+
+.foot-legal a {
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+
 @media (max-width: 960px) {
   .desktop {
     display: none !important;

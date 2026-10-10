@@ -1,7 +1,19 @@
 # PENDIENTE: Sistema legal, términos, privacidad y consentimientos
 
-**Estado:** aplazado por decisión del propietario (4 oct 2026). No se ha implementado nada de este encargo.
-Cuando se retome, empezar por la auditoría del punto 28 del encargo y no duplicar lo que ya existe.
+**Estado:** fase 1 en curso (oct 2026). Los textos siguen siendo BORRADOR con espacios [PENDIENTE].
+
+### Fase 1: ya implementado
+
+- IA sin documento ni celular, aviso en el asistente y correos enmascarados en los registros ([PR #204](https://github.com/braynerdavid08-alt/CALE-V5/pull/204)).
+- Sin datos bancarios ficticios: se configuran en `Payments:School`; si faltan, la escuela ve "Pendiente de definir" ([PR #204](https://github.com/braynerdavid08-alt/CALE-V5/pull/204)).
+- Suspensión con motivo, evidencia, duración, administrador, historial y mensaje al usuario ([PR #205](https://github.com/braynerdavid08-alt/CALE-V5/pull/205)).
+- Documentos legales versionados (`terms`, `privacy`, `data-processing`, `ai-policy`, `school-terms`), páginas públicas `/legal/*`, casillas separadas y sin marcar en los tres registros, registro de aceptaciones (versión, hash, fecha, IP, navegador), estado ACCEPTED / OUTDATED / NOT_VERIFIED, aviso no bloqueante para usuarios existentes y panel de administración en `/admin/legal` con exportación CSV. Los borradores están en `src/Cale.Api/Legal/Drafts/`.
+
+### Fase 1: falta
+
+- Menores de edad: fecha de nacimiento y autorización del representante legal con trazabilidad.
+- PQR y derechos del titular (consulta, reclamo, rectificación, supresión, revocatoria) sobre Solicitudes.
+- Llenar los espacios [PENDIENTE] y hacer revisar los textos por un abogado antes de publicarlos como versión definitiva.
 
 ## Lo que falta definir antes de empezar (el propietario)
 

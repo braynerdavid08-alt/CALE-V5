@@ -1,8 +1,11 @@
 using Cale.Api.Extensions;
 using Cale.Api.Services;
+using Cale.Api.Services.Legal;
+using Cale.BuildingBlocks.Domain.Auth;
 using Cale.Modules.Identity.Application.Commands;
 using Cale.Modules.Identity.Application.DTOs;
 using Cale.Modules.Identity.Application.Queries;
+using Cale.Modules.Identity.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -27,6 +30,7 @@ public sealed class AuthController : ControllerBase
     private readonly RefreshAuthSessionHandler _refreshSession;
     private readonly LogoutAuthSessionHandler _logoutSession;
     private readonly AuthCookieService _cookies;
+    private readonly LegalService _legal;
 
     public AuthController(
         LoginUserHandler login,
@@ -42,8 +46,10 @@ public sealed class AuthController : ControllerBase
         IssueAuthSessionHandler issueSession,
         RefreshAuthSessionHandler refreshSession,
         LogoutAuthSessionHandler logoutSession,
-        AuthCookieService cookies)
+        AuthCookieService cookies,
+        LegalService legal)
     {
+        _legal = legal;
         _login = login;
         _register = register;
         _registerTeacher = registerTeacher;
@@ -84,24 +90,61 @@ public sealed class AuthController : ControllerBase
     [EnableRateLimiting(RateLimitPolicies.Register)]
     public async Task<ActionResult<PendingEmailConfirmationResponse>> Register(
         RegisterRequest request,
-        CancellationToken ct) =>
-        Ok(await _register.HandleAsync(request, ct));
+        CancellationToken ct)
+    {
+        LegalService.EnsureConsent(request.Consent, Roles.Student);
+        var result = await _register.HandleAsync(request, ct);
+        await RecordConsentAsync(result, Roles.Student, request.Consent!, ct);
+        return Ok(result);
+    }
 
     [HttpPost("register-teacher")]
     [AllowAnonymous]
     [EnableRateLimiting(RateLimitPolicies.Register)]
     public async Task<ActionResult<PendingEmailConfirmationResponse>> RegisterTeacher(
         RegisterRequest request,
-        CancellationToken ct) =>
-        Ok(await _registerTeacher.HandleAsync(request, ct));
+        CancellationToken ct)
+    {
+        LegalService.EnsureConsent(request.Consent, Roles.Teacher);
+        var result = await _registerTeacher.HandleAsync(request, ct);
+        await RecordConsentAsync(result, Roles.Teacher, request.Consent!, ct);
+        return Ok(result);
+    }
 
     [HttpPost("register-school")]
     [AllowAnonymous]
     [EnableRateLimiting(RateLimitPolicies.Register)]
     public async Task<ActionResult<PendingEmailConfirmationResponse>> RegisterSchool(
         RegisterSchoolRequest request,
-        CancellationToken ct) =>
-        Ok(await _registerSchool.HandleAsync(request, ct));
+        CancellationToken ct)
+    {
+        LegalService.EnsureConsent(request.Consent, Roles.School);
+        var result = await _registerSchool.HandleAsync(request, ct);
+        await RecordConsentAsync(result, Roles.School, request.Consent!, ct);
+        return Ok(result);
+    }
+
+    private async Task RecordConsentAsync(
+        PendingEmailConfirmationResponse result,
+        string role,
+        LegalConsentDto consent,
+        CancellationToken ct)
+    {
+        var userId = result.UserId ?? await _legal.FindUserIdByEmailAsync(result.Email, ct);
+        if (userId is null)
+        {
+            return;
+        }
+
+        await _legal.RecordAsync(
+            userId.Value,
+            role,
+            consent,
+            LegalAcceptanceMethods.Registration,
+            HttpContext.Connection.RemoteIpAddress?.ToString(),
+            Request.Headers.UserAgent.ToString(),
+            ct);
+    }
 
     [HttpPost("confirm-email")]
     [AllowAnonymous]

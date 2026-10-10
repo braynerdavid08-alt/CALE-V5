@@ -5,6 +5,7 @@ import { SessionStore } from '../../core/auth/session.store';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiIconComponent } from '../../shared/ui/ui-icon.component';
 import { UiThemeToggleComponent } from '../../shared/ui/ui-theme-toggle.component';
+import { LEGAL_LINKS } from '../legal/legal-links';
 
 @Component({
   selector: 'app-public-shell',
@@ -101,6 +102,11 @@ import { UiThemeToggleComponent } from '../../shared/ui/ui-theme-toggle.componen
               <a [routerLink]="link.path">{{ link.label }}</a>
             }
           </nav>
+          <nav class="foot-nav foot-legal" aria-label="Documentos legales">
+            @for (link of legalLinks; track link.key) {
+              <a [routerLink]="['/legal', link.key]">{{ link.label }}</a>
+            }
+          </nav>
         </div>
       </footer>
     </div>
@@ -110,6 +116,7 @@ import { UiThemeToggleComponent } from '../../shared/ui/ui-theme-toggle.componen
 export class PublicShellComponent {
   private readonly session = inject(SessionStore);
   readonly brand = BRAND;
+  readonly legalLinks = LEGAL_LINKS;
   readonly menuOpen = signal(false);
   readonly loggedIn = computed(() => this.session.isAuthenticated());
   readonly accountPath = computed(() => this.session.homeRoute());

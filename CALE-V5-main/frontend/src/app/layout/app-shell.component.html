@@ -242,6 +242,9 @@
       @if (!isStudentShell) {
         <ui-motivation class="content-motivation" [role]="role" />
       }
+      @if (!mustChangePassword && role !== 'Admin') {
+        <app-legal-banner />
+      }
       <router-outlet />
     </main>
   </div>

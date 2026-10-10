@@ -5,6 +5,7 @@ import {
   AuthResponse,
   MeResponse
 } from '../../../core/auth/session.models';
+import { LegalConsent } from '../../legal/legal.api';
 
 export interface SchoolPlanDto {
   code: string;
@@ -40,22 +41,23 @@ export class AuthApi {
     }, { withCredentials: true });
   }
 
-  register(name: string, email: string, password: string) {
+  register(name: string, email: string, password: string, consent: LegalConsent) {
     return this.http.post<PendingEmailConfirmationResponse>(`${this.base}/register`, {
       name,
       email,
-      password
+      password,
+      consent
     });
   }
 
-  registerTeacher(name: string, email: string, password: string) {
+  registerTeacher(name: string, email: string, password: string, consent: LegalConsent) {
     return this.http.post<PendingEmailConfirmationResponse>(
       `${this.base}/register-teacher`,
-      { name, email, password }
+      { name, email, password, consent }
     );
   }
 
-  registerSchool(body: Record<string, string>) {
+  registerSchool(body: Record<string, unknown>) {
     return this.http.post<PendingEmailConfirmationResponse>(
       `${this.base}/register-school`,
       body

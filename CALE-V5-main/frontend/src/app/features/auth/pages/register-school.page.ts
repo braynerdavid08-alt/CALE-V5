@@ -8,6 +8,7 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiThemeToggleComponent } from '../../../shared/ui/ui-theme-toggle.component';
 import { AuthBackHomeComponent } from '../components/auth-back-home.component';
+import { LegalConsentComponent, legalConsentGroup } from '../components/legal-consent.component';
 import { BRAND } from '../../../core/brand';
 
 @Component({
@@ -20,7 +21,8 @@ import { BRAND } from '../../../core/brand';
     UiButtonComponent,
     UiErrorComponent,
     UiThemeToggleComponent,
-    AuthBackHomeComponent
+    AuthBackHomeComponent,
+    LegalConsentComponent
   ],
   templateUrl: './register-school.page.html',
   styleUrl: './register-school.page.css'
@@ -47,7 +49,8 @@ export class RegisterSchoolPage implements OnInit {
     address: ['', [Validators.required, Validators.maxLength(300)]],
     city: ['', [Validators.required, Validators.maxLength(120)]],
     department: ['', [Validators.required, Validators.maxLength(120)]],
-    planCode: ['Monthly', Validators.required]
+    planCode: ['Monthly', Validators.required],
+    consent: legalConsentGroup(this.fb, true)
   });
 
   ngOnInit(): void {
