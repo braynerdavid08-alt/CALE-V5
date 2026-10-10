@@ -31,6 +31,7 @@ public sealed class AuthController : ControllerBase
     private readonly LogoutAuthSessionHandler _logoutSession;
     private readonly AuthCookieService _cookies;
     private readonly LegalService _legal;
+    private readonly MinorConsentService _minors;
 
     public AuthController(
         LoginUserHandler login,
@@ -47,9 +48,11 @@ public sealed class AuthController : ControllerBase
         RefreshAuthSessionHandler refreshSession,
         LogoutAuthSessionHandler logoutSession,
         AuthCookieService cookies,
-        LegalService legal)
+        LegalService legal,
+        MinorConsentService minors)
     {
         _legal = legal;
+        _minors = minors;
         _login = login;
         _register = register;
         _registerTeacher = registerTeacher;
@@ -93,8 +96,16 @@ public sealed class AuthController : ControllerBase
         CancellationToken ct)
     {
         LegalService.EnsureConsent(request.Consent, Roles.Student);
+        MinorConsentService.EnsureValid(request.BirthDate, request.Guardian, request.Email ?? "", DateTime.UtcNow);
         var result = await _register.HandleAsync(request, ct);
-        await RecordConsentAsync(result, Roles.Student, request.Consent!, ct);
+        var userId = await RecordConsentAsync(result, Roles.Student, request.Consent!, ct);
+        if (userId is { } id)
+        {
+            await _minors.DeclareAsync(
+                id, request.BirthDate, request.Guardian,
+                LegalEvidence.Ip(HttpContext), LegalEvidence.UserAgent(HttpContext), ct);
+        }
+
         return Ok(result);
     }
 
@@ -124,7 +135,7 @@ public sealed class AuthController : ControllerBase
         return Ok(result);
     }
 
-    private async Task RecordConsentAsync(
+    private async Task<int?> RecordConsentAsync(
         PendingEmailConfirmationResponse result,
         string role,
         LegalConsentDto consent,
@@ -133,7 +144,7 @@ public sealed class AuthController : ControllerBase
         var userId = result.UserId ?? await _legal.FindUserIdByEmailAsync(result.Email, ct);
         if (userId is null)
         {
-            return;
+            return null;
         }
 
         await _legal.RecordAsync(
@@ -141,9 +152,10 @@ public sealed class AuthController : ControllerBase
             role,
             consent,
             LegalAcceptanceMethods.Registration,
-            HttpContext.Connection.RemoteIpAddress?.ToString(),
-            Request.Headers.UserAgent.ToString(),
+            LegalEvidence.Ip(HttpContext),
+            LegalEvidence.UserAgent(HttpContext),
             ct);
+        return userId;
     }
 
     [HttpPost("confirm-email")]

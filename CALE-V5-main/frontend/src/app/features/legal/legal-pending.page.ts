@@ -8,6 +8,7 @@ import { UiErrorComponent } from '../../shared/ui/ui-error.component';
 import { UiPageHeaderComponent } from '../../shared/ui/ui-page-header.component';
 import { UiSuccessComponent } from '../../shared/ui/ui-success.component';
 import { CONSENT_LABELS, LegalAcceptance, LegalApi, LegalConsent, LegalDocKey } from './legal.api';
+import { AgeDeclarationCardComponent } from './age-declaration-card.component';
 import { LegalStatusStore } from './legal-status.store';
 
 const CONSENT_FIELD: Partial<Record<LegalDocKey, keyof LegalConsent>> = {
@@ -26,12 +27,23 @@ const STATUS_LABEL: Record<string, string> = {
 @Component({
   selector: 'app-legal-pending-page',
   standalone: true,
-  imports: [DatePipe, RouterLink, UiButtonComponent, UiCardComponent, UiErrorComponent, UiPageHeaderComponent, UiSuccessComponent],
+  imports: [
+    DatePipe,
+    RouterLink,
+    AgeDeclarationCardComponent,
+    UiButtonComponent,
+    UiCardComponent,
+    UiErrorComponent,
+    UiPageHeaderComponent,
+    UiSuccessComponent
+  ],
   template: `
     <ui-page-header
       eyebrow="Tu cuenta"
       title="Documentos legales"
       subtitle="Lee cada documento y marca las casillas. Cada aceptación queda registrada con su versión y fecha." />
+
+    <legal-age-declaration-card />
 
     <ui-error [message]="error()" />
     <ui-success [message]="ok()" />
@@ -58,7 +70,7 @@ const STATUS_LABEL: Record<string, string> = {
         }
       </ul>
 
-      @if (store.needsAction()) {
+      @if (store.pending().length > 0) {
         <ui-button type="button" [disabled]="busy() || !allChecked()" (click)="accept()">Confirmar</ui-button>
       } @else if (store.status()) {
         <p class="muted">Tienes al día todos los documentos que aplican a tu cuenta.</p>
