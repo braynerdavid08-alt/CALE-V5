@@ -5,6 +5,7 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiThemeToggleComponent } from '../../../shared/ui/ui-theme-toggle.component';
 import { AuthBackHomeComponent } from '../components/auth-back-home.component';
+import { LegalConsentComponent, consentValue, legalConsentGroup } from '../components/legal-consent.component';
 import { AuthFacade } from '../application/auth.facade';
 import { BRAND } from '../../../core/brand';
 
@@ -17,7 +18,8 @@ import { BRAND } from '../../../core/brand';
     UiButtonComponent,
     UiErrorComponent,
     UiThemeToggleComponent,
-    AuthBackHomeComponent
+    AuthBackHomeComponent,
+    LegalConsentComponent
   ],
   templateUrl: './register-teacher.page.html',
   styleUrl: './login.page.css'
@@ -31,7 +33,8 @@ export class RegisterTeacherPage {
   readonly form = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(200)]],
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(8)]]
+    password: ['', [Validators.required, Validators.minLength(8)]],
+    consent: legalConsentGroup(this.fb)
   });
 
   submit(): void {
@@ -40,6 +43,6 @@ export class RegisterTeacherPage {
       return;
     }
     const { name, email, password } = this.form.getRawValue();
-    this.auth.registerTeacher(name, email, password);
+    this.auth.registerTeacher(name, email, password, consentValue(this.form.controls.consent));
   }
 }

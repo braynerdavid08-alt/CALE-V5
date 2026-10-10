@@ -61,7 +61,8 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
           { label: free ? 'Directorio' : 'Solicitudes', path: '/admin/schools/queue', exact: true },
           { label: 'Usuarios', path: '/admin/users', exact: true },
           { label: 'Instructores', path: '/admin/instructors', exact: true },
-          { label: 'Estudiantes', path: '/admin/students', exact: true }
+          { label: 'Estudiantes', path: '/admin/students', exact: true },
+          { label: 'Documentos legales', path: '/admin/legal', exact: true }
         ]
       },
       {

@@ -40,6 +40,7 @@ import { UiThemeToggleComponent } from '../shared/ui/ui-theme-toggle.component';
 import { UiTextSizeToggleComponent } from '../shared/ui/ui-text-size-toggle.component';
 import { TextSizeService } from '../core/theme/text-size.service';
 import { RequestsApi } from '../features/requests/api/requests.api';
+import { LegalBannerComponent } from '../features/legal/legal-banner.component';
 import {
   NavBadge,
   NavChild,
@@ -63,7 +64,8 @@ const SIDEBAR_COLLAPSED_KEY = 'cale.sidebar.collapsed';
     UiIconComponent,
     UiMotivationComponent,
     UiThemeToggleComponent,
-    UiTextSizeToggleComponent
+    UiTextSizeToggleComponent,
+    LegalBannerComponent
   ],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.css'

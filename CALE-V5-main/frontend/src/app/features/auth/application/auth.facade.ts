@@ -7,6 +7,7 @@ import { PushService } from '../../../core/notifications/push.service';
 import { SessionStore } from '../../../core/auth/session.store';
 import { stashReturnUrl, takeReturnUrl } from '../../../core/auth/return-url';
 import { AuthApi } from '../api/auth.api';
+import { LegalConsent } from '../../legal/legal.api';
 
 @Injectable({ providedIn: 'root' })
 export class AuthFacade {
@@ -30,21 +31,21 @@ export class AuthFacade {
     }));
   }
 
-  register(name: string, email: string, password: string): void {
-    this.run(() => this.api.register(name, email, password).subscribe({
+  register(name: string, email: string, password: string, consent: LegalConsent): void {
+    this.run(() => this.api.register(name, email, password, consent).subscribe({
       next: (res) => this.afterRegister(res),
       error: (err) => this.fail(err)
     }));
   }
 
-  registerTeacher(name: string, email: string, password: string): void {
-    this.run(() => this.api.registerTeacher(name, email, password).subscribe({
+  registerTeacher(name: string, email: string, password: string, consent: LegalConsent): void {
+    this.run(() => this.api.registerTeacher(name, email, password, consent).subscribe({
       next: (res) => this.afterRegister(res),
       error: (err) => this.fail(err)
     }));
   }
 
-  registerSchool(body: Record<string, string>): void {
+  registerSchool(body: Record<string, unknown>): void {
     this.run(() => this.api.registerSchool(body).subscribe({
       next: (res) => this.afterRegister(res),
       error: (err) => this.fail(err)

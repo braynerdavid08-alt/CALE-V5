@@ -62,6 +62,12 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/student/pages/student-donations.page')
             .then((m) => m.StudentDonationsPage)
+      },
+      {
+        path: 'legal/:doc',
+        loadComponent: () =>
+          import('./features/legal/legal-document.page')
+            .then((m) => m.LegalDocumentPage)
       }
     ]
   },
@@ -919,6 +925,22 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/auth/pages/profile.page')
             .then((m) => m.ProfilePage)
+      },
+      {
+        path: 'legal-pending',
+        pathMatch: 'full',
+        loadComponent: () =>
+          import('./features/legal/legal-pending.page')
+            .then((m) => m.LegalPendingPage)
+      },
+      {
+        path: 'admin/legal',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['Admin'] },
+        loadComponent: () =>
+          import('./features/admin/pages/admin-legal.page')
+            .then((m) => m.AdminLegalPage)
       }
     ]
   },

@@ -76,6 +76,7 @@
           <span id="register-password-error" class="field-error" role="alert">Mínimo 8 caracteres.</span>
         }
       </label>
+      <auth-legal-consent [group]="form.controls.consent" />
       <ui-button type="submit" [loading]="auth.loading()">Crear mi cuenta</ui-button>
     </form>
     <p class="hint">Te enviaremos un código a tu correo para activar la cuenta.</p>

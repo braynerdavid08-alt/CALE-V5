@@ -137,6 +137,8 @@ public static class WebApplicationExtensions
             await PushSchemaGuard.EnsureAsync(db, bootLogger);
             await UserRequestSchemaGuard.EnsureAsync(db, bootLogger);
             await AccountStatusSchemaGuard.EnsureAsync(db, bootLogger);
+            await LegalSchemaGuard.EnsureAsync(db, bootLogger);
+            await Cale.Api.Services.Legal.LegalSeed.EnsureAsync(db, bootLogger);
             await ExamScheduleSchemaGuard.EnsureAsync(db, bootLogger);
             await UserPhotoSchemaGuard.EnsureAsync(db, bootLogger);
             await UserCreatorSchemaGuard.EnsureAsync(db, bootLogger);
