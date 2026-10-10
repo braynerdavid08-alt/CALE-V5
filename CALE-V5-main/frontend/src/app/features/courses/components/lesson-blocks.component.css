@@ -77,11 +77,12 @@ figcaption { font-size: var(--text-sm); color: var(--color-text-secondary); text
 .hs-miss { color: var(--color-danger); background: rgba(255, 255, 255, 0.85); }
 .hs-list { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 0.3rem; font-size: var(--text-sm); }
 
-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: 0.75rem; }
-.card { position: relative; min-height: 12rem; padding: 0; border: 0; background: none; cursor: pointer; perspective: 900px; font: inherit; color: inherit; }
-.face { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 0.4rem; padding: 0.9rem; text-align: center; border-radius: var(--radius-lg); border: 1px solid var(--color-border); backface-visibility: hidden; transition: transform 0.45s ease; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr)); gap: 0.75rem; align-items: stretch; }
+.card { display: grid; min-width: 0; min-height: 12rem; padding: 0; border: 0; background: none; cursor: pointer; perspective: 900px; font: inherit; color: inherit; }
+.face { grid-area: 1 / 1; min-width: 0; display: grid; place-items: center; align-content: center; gap: 0.5rem; padding: 1rem 0.9rem; text-align: center; overflow-wrap: anywhere; hyphens: auto; border-radius: var(--radius-lg); border: 1px solid var(--color-border); backface-visibility: hidden; transition: transform 0.45s ease; }
 .front { background: var(--color-surface); }
 .front img { width: 5rem; height: 5rem; object-fit: contain; }
+.front strong { line-height: 1.3; }
 .front small { color: var(--color-text-secondary); font-size: var(--text-xs); }
 .back { transform: rotateY(180deg); background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface)); line-height: 1.45; }
 .card.flipped .front { transform: rotateY(180deg); }
@@ -97,6 +98,10 @@ figcaption { font-size: var(--text-sm); color: var(--color-text-secondary); text
 .m-item.right:disabled:not(.done) { opacity: 0.75; cursor: default; }
 
 @media (max-width: 520px) {
+  .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+  .card { min-height: 10rem; }
+  .face { padding: 0.8rem 0.6rem; gap: 0.4rem; font-size: var(--text-sm); }
+  .front img { width: 3.75rem; height: 3.75rem; }
   .match { gap: 0.45rem; }
   .m-item { font-size: var(--text-sm); padding: 0.45rem 0.55rem; }
   .m-item img { width: 2.4rem; height: 2.4rem; }
