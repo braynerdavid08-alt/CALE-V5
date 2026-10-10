@@ -5,7 +5,7 @@ import {
   AuthResponse,
   MeResponse
 } from '../../../core/auth/session.models';
-import { LegalConsent } from '../../legal/legal.api';
+import { Guardian, LegalConsent } from '../../legal/legal.api';
 
 export interface SchoolPlanDto {
   code: string;
@@ -41,12 +41,21 @@ export class AuthApi {
     }, { withCredentials: true });
   }
 
-  register(name: string, email: string, password: string, consent: LegalConsent) {
+  register(
+    name: string,
+    email: string,
+    password: string,
+    consent: LegalConsent,
+    birthDate: string,
+    guardian: Guardian | null
+  ) {
     return this.http.post<PendingEmailConfirmationResponse>(`${this.base}/register`, {
       name,
       email,
       password,
-      consent
+      consent,
+      birthDate,
+      guardian
     });
   }
 

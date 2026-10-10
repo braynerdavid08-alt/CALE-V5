@@ -76,6 +76,23 @@
           <span id="register-password-error" class="field-error" role="alert">Mínimo 8 caracteres.</span>
         }
       </label>
+      <label class="field">
+        Fecha de nacimiento
+        <input
+          type="date"
+          formControlName="birthDate"
+          autocomplete="bday"
+          min="1920-01-01"
+          [max]="today"
+          [attr.aria-invalid]="form.controls.birthDate.touched && form.controls.birthDate.invalid"
+          [attr.aria-describedby]="form.controls.birthDate.touched && form.controls.birthDate.invalid ? 'register-birth-error' : null" />
+        @if (form.controls.birthDate.touched && form.controls.birthDate.invalid) {
+          <span id="register-birth-error" class="field-error" role="alert">Indica tu fecha de nacimiento.</span>
+        }
+      </label>
+      @if (isMinor()) {
+        <legal-guardian-fields [group]="form.controls.guardian" />
+      }
       <auth-legal-consent [group]="form.controls.consent" />
       <ui-button type="submit" [loading]="auth.loading()">Crear mi cuenta</ui-button>
     </form>

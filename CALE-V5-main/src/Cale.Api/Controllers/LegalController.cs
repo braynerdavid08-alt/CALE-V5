@@ -3,6 +3,7 @@ using Cale.Api.Services.Legal;
 using Cale.Modules.Identity.Application.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Cale.Api.Controllers;
 
@@ -11,8 +12,51 @@ namespace Cale.Api.Controllers;
 public sealed class LegalController : ControllerBase
 {
     private readonly LegalService _legal;
+    private readonly MinorConsentService _minors;
 
-    public LegalController(LegalService legal) => _legal = legal;
+    public LegalController(LegalService legal, MinorConsentService minors)
+    {
+        _legal = legal;
+        _minors = minors;
+    }
+
+    [HttpGet("me/age")]
+    [Authorize]
+    public async Task<ActionResult<MyAgeStatusDto>> MyAge(CancellationToken ct) =>
+        Ok(await _minors.StatusAsync(CurrentUser.GetId(User), CurrentUser.GetRole(User), ct));
+
+    [HttpPost("me/age")]
+    [Authorize(Policy = "StudentOnly")]
+    public async Task<ActionResult<MyAgeStatusDto>> DeclareAge(DeclareAgeRequest request, CancellationToken ct)
+    {
+        var userId = CurrentUser.GetId(User);
+        await _minors.DeclareAsync(
+            userId, request.BirthDate, request.Guardian,
+            LegalEvidence.Ip(HttpContext), LegalEvidence.UserAgent(HttpContext), ct);
+        return Ok(await _minors.StatusAsync(userId, CurrentUser.GetRole(User), ct));
+    }
+
+    [HttpPost("me/guardian")]
+    [Authorize(Policy = "StudentOnly")]
+    [EnableRateLimiting(RateLimitPolicies.EmailCode)]
+    public async Task<ActionResult<MyAgeStatusDto>> UpdateGuardian(GuardianDto request, CancellationToken ct) =>
+        Ok(await _minors.UpdateGuardianAsync(CurrentUser.GetId(User), CurrentUser.GetRole(User), request, ct));
+
+    [HttpGet("guardian/{token}")]
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.EmailCode)]
+    public async Task<ActionResult<GuardianViewDto>> GuardianView(string token, CancellationToken ct) =>
+        Ok(await _minors.GuardianViewAsync(token, ct));
+
+    [HttpPost("guardian/{token}/decision")]
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.EmailCode)]
+    public async Task<ActionResult<GuardianViewDto>> GuardianDecision(
+        string token,
+        GuardianDecisionRequest request,
+        CancellationToken ct) =>
+        Ok(await _minors.DecideAsync(
+            token, request, LegalEvidence.Ip(HttpContext), LegalEvidence.UserAgent(HttpContext), ct));
 
     [HttpGet("documents")]
     [AllowAnonymous]
@@ -52,8 +96,24 @@ public sealed class LegalController : ControllerBase
 public sealed class AdminLegalController : ControllerBase
 {
     private readonly LegalService _legal;
+    private readonly MinorConsentService _minors;
 
-    public AdminLegalController(LegalService legal) => _legal = legal;
+    public AdminLegalController(LegalService legal, MinorConsentService minors)
+    {
+        _legal = legal;
+        _minors = minors;
+    }
+
+    [HttpGet("minors")]
+    public async Task<ActionResult<IReadOnlyList<AdminMinorDto>>> Minors(CancellationToken ct) =>
+        Ok(await _minors.AdminListAsync(ct));
+
+    [HttpPost("minors/{userId:int}/resend")]
+    public async Task<IActionResult> ResendGuardian(int userId, CancellationToken ct)
+    {
+        await _minors.AdminResendAsync(userId, ct);
+        return NoContent();
+    }
 
     [HttpGet("summary")]
     public async Task<ActionResult<IReadOnlyList<LegalSummaryDto>>> Summary(CancellationToken ct) =>

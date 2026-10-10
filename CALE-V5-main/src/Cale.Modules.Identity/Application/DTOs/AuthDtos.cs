@@ -6,7 +6,12 @@ public sealed record RegisterRequest(
     string Name,
     string Email,
     string Password,
-    LegalConsentDto? Consent = null);
+    LegalConsentDto? Consent = null,
+    DateOnly? BirthDate = null,
+    GuardianDto? Guardian = null);
+
+/// <summary>Datos mínimos del representante legal de un estudiante menor de edad.</summary>
+public sealed record GuardianDto(string Name, string Relationship, string Email);
 
 public sealed record RegisterSchoolRequest(
     string ContactName,

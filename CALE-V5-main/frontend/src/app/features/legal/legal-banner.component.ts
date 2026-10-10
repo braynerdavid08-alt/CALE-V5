@@ -11,8 +11,16 @@ import { LegalStatusStore } from './legal-status.store';
     @if (store.needsAction()) {
       <aside class="legal-banner" role="status">
         <span>
-          <strong>{{ outdated() ? 'Actualizamos nuestros documentos legales.' : 'Revisa nuestros documentos legales.' }}</strong>
-          Léelos y confirma tu aceptación para seguir usando Luz Verde con normalidad.
+          @if (store.pending().length > 0) {
+            <strong>{{ outdated() ? 'Actualizamos nuestros documentos legales.' : 'Revisa nuestros documentos legales.' }}</strong>
+            Léelos y confirma tu aceptación para seguir usando Luz Verde con normalidad.
+          } @else if (store.needsBirthDate()) {
+            <strong>Falta tu fecha de nacimiento.</strong>
+            La necesitamos para saber si tu cuenta requiere la autorización de tu representante legal.
+          } @else {
+            <strong>Tu representante legal aún no autoriza tu cuenta.</strong>
+            Le enviamos un correo; puedes revisarlo o reenviarlo.
+          }
         </span>
         <a routerLink="/legal-pending">Revisar ahora</a>
       </aside>

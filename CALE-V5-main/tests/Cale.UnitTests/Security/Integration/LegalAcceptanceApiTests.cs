@@ -72,7 +72,8 @@ public sealed class LegalAcceptanceApiTests : IAsyncLifetime
             name = "Nueva Estudiante",
             email = "luzverde.prueba.legal@gmail.com",
             password = "Prueba-Segura-2026!",
-            consent = AllConsent()
+            consent = AllConsent(),
+            birthDate = "1995-04-20"
         }));
 
         var client = _api.ClientFor(null);

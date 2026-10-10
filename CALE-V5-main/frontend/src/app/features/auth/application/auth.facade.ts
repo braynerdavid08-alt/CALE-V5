@@ -7,7 +7,7 @@ import { PushService } from '../../../core/notifications/push.service';
 import { SessionStore } from '../../../core/auth/session.store';
 import { stashReturnUrl, takeReturnUrl } from '../../../core/auth/return-url';
 import { AuthApi } from '../api/auth.api';
-import { LegalConsent } from '../../legal/legal.api';
+import { Guardian, LegalConsent } from '../../legal/legal.api';
 
 @Injectable({ providedIn: 'root' })
 export class AuthFacade {
@@ -31,8 +31,15 @@ export class AuthFacade {
     }));
   }
 
-  register(name: string, email: string, password: string, consent: LegalConsent): void {
-    this.run(() => this.api.register(name, email, password, consent).subscribe({
+  register(
+    name: string,
+    email: string,
+    password: string,
+    consent: LegalConsent,
+    birthDate: string,
+    guardian: Guardian | null
+  ): void {
+    this.run(() => this.api.register(name, email, password, consent, birthDate, guardian).subscribe({
       next: (res) => this.afterRegister(res),
       error: (err) => this.fail(err)
     }));

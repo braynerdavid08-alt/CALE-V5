@@ -9,7 +9,11 @@ import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
 import { UiSheetComponent } from '../../../shared/ui/ui-sheet.component';
 import { UiSuccessComponent } from '../../../shared/ui/ui-success.component';
+import { Observable } from 'rxjs';
 import {
+  AdminMinor,
+  GUARDIAN_STATUS_LABEL,
+  GuardianStatus,
   LegalAcceptance,
   LegalApi,
   LegalDocKey,
@@ -18,6 +22,16 @@ import {
   SaveLegalVersion
 } from '../../legal/legal.api';
 import { LEGAL_LINKS } from '../../legal/legal-links';
+
+const GUARDIAN_EVENT_LABEL: Record<string, string> = {
+  Declared: 'Fecha de nacimiento registrada',
+  GuardianUpdated: 'Datos del representante corregidos',
+  EmailSent: 'Correo enviado al representante',
+  EmailNotSent: 'Correo no enviado',
+  Confirmed: 'El representante autorizó',
+  Rejected: 'El representante no autorizó',
+  Revoked: 'El representante revocó la autorización'
+};
 
 const STATUS_LABEL: Record<LegalVersion['status'], string> = {
   Draft: 'Borrador sin publicar',
@@ -116,6 +130,52 @@ const STATUS_LABEL: Record<LegalVersion['status'], string> = {
     </ui-card>
 
     <ui-card>
+      <h2>Menores de edad</h2>
+      <p class="muted">
+        Estudiantes que eran menores al registrar su fecha de nacimiento. Solo su representante legal autoriza, desde el enlace
+        personal que recibe por correo. Si no autoriza o revoca, la cuenta queda suspendida.
+      </p>
+      <ul class="versions">
+        @for (m of minors(); track m.userId) {
+          <li>
+            <div class="v-head">
+              <strong>{{ m.userName ?? ('#' + m.userId) }}</strong>
+              <small class="muted">{{ m.userEmail }} · {{ m.ageToday }} años</small>
+              <ui-badge [tone]="guardianTone(m.guardianStatus)">{{ guardianLabel(m.guardianStatus) }}</ui-badge>
+              @if (!m.userActive) { <ui-badge tone="neutral">Cuenta suspendida</ui-badge> }
+            </div>
+            <small class="muted">
+              Representante: {{ m.guardianName ?? '—' }} ({{ m.guardianRelationship ?? '—' }}) · {{ m.guardianEmail ?? '—' }}
+              @if (m.guardianStatus === 'PENDING' && m.guardianLinkExpiresAt) {
+                · enlace vence {{ m.guardianLinkExpiresAt | date: 'dd/MM/yyyy' }}
+              }
+            </small>
+            <details>
+              <summary>Historial ({{ m.events.length }})</summary>
+              <ul class="history">
+                @for (e of m.events; track $index) {
+                  <li>
+                    {{ e.createdAt | date: 'dd/MM/yyyy HH:mm' }} · {{ eventLabel(e.action) }}
+                    @if (e.documentVersions) { · {{ e.documentVersions }} }
+                    @if (e.ipAddress) { · IP {{ e.ipAddress }} }
+                    @if (e.note) { <br /><small class="muted">{{ e.note }}</small> }
+                  </li>
+                }
+              </ul>
+            </details>
+            @if (m.guardianStatus === 'PENDING') {
+              <div class="actions">
+                <ui-button type="button" variant="ghost" [disabled]="busy()" (click)="resend(m)">Reenviar correo al representante</ui-button>
+              </div>
+            }
+          </li>
+        } @empty {
+          <li class="muted">No hay estudiantes menores de edad registrados.</li>
+        }
+      </ul>
+    </ui-card>
+
+    <ui-card>
       <div class="row-head">
         <h2>Aceptaciones recientes</h2>
         <ui-button type="button" variant="secondary" [disabled]="busy()" (click)="downloadCsv()">Exportar CSV</ui-button>
@@ -199,6 +259,9 @@ const STATUS_LABEL: Record<LegalVersion['status'], string> = {
     .field span { font-weight: 600; font-size: 0.88rem; }
     .field textarea { font-family: ui-monospace, monospace; font-size: 0.82rem; }
     .check { display: flex; gap: 0.5rem; align-items: flex-start; margin-bottom: 0.6rem; }
+    details { margin-top: 0.4rem; font-size: 0.85rem; }
+    summary { cursor: pointer; color: var(--color-primary); font-weight: 600; }
+    .history { margin: 0.4rem 0 0; padding-left: 1.1rem; display: grid; gap: 0.3rem; }
     ui-card { display: block; margin-bottom: 1rem; }
   `]
 })
@@ -209,6 +272,7 @@ export class AdminLegalPage implements OnInit {
   readonly summary = signal<LegalSummary[]>([]);
   readonly versions = signal<LegalVersion[]>([]);
   readonly acceptances = signal<LegalAcceptance[]>([]);
+  readonly minors = signal<AdminMinor[]>([]);
   readonly docFilter = signal<LegalDocKey>('terms');
   readonly editor = signal<(SaveLegalVersion & { id: number | null }) | null>(null);
   readonly busy = signal(false);
@@ -228,6 +292,22 @@ export class AdminLegalPage implements OnInit {
 
   titleFor(key: LegalDocKey): string {
     return this.links.find((l) => l.key === key)?.label ?? key;
+  }
+
+  guardianLabel(status: GuardianStatus): string {
+    return GUARDIAN_STATUS_LABEL[status];
+  }
+
+  guardianTone(status: GuardianStatus): 'success' | 'warning' | 'neutral' {
+    return status === 'CONFIRMED' ? 'success' : status === 'PENDING' ? 'warning' : 'neutral';
+  }
+
+  eventLabel(action: string): string {
+    return GUARDIAN_EVENT_LABEL[action] ?? action;
+  }
+
+  resend(m: AdminMinor): void {
+    this.run(this.api.resendGuardian(m.userId), () => this.ok.set(`Enlace reenviado al representante de ${m.userName ?? 'el estudiante'}.`));
   }
 
   actionLabel(action: string): string {
@@ -291,7 +371,7 @@ export class AdminLegalPage implements OnInit {
     });
   }
 
-  private run(request: ReturnType<LegalApi['publish']>, done: () => void): void {
+  private run(request: Observable<unknown>, done: () => void): void {
     this.busy.set(true);
     this.error.set(null);
     request.subscribe({
@@ -311,5 +391,6 @@ export class AdminLegalPage implements OnInit {
     this.api.summary().subscribe({ next: (s) => this.summary.set(s), error: (err) => this.error.set(mapApiError(err)) });
     this.api.versions().subscribe({ next: (v) => this.versions.set(v), error: (err) => this.error.set(mapApiError(err)) });
     this.api.acceptances().subscribe({ next: (a) => this.acceptances.set(a), error: (err) => this.error.set(mapApiError(err)) });
+    this.api.minors().subscribe({ next: (m) => this.minors.set(m), error: (err) => this.error.set(mapApiError(err)) });
   }
 }

@@ -26,7 +26,7 @@ public sealed class AccountStatusEvent
         string reason,
         string? evidence,
         DateTime? suspendedUntil,
-        int actorUserId,
+        int? actorUserId,
         DateTime utcNow) =>
         new()
         {

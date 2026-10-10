@@ -68,6 +68,13 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/legal/legal-document.page')
             .then((m) => m.LegalDocumentPage)
+      },
+      {
+        path: 'autorizacion-menor/:token',
+        title: 'Autorización del representante legal',
+        loadComponent: () =>
+          import('./features/legal/guardian-consent.page')
+            .then((m) => m.GuardianConsentPage)
       }
     ]
   },

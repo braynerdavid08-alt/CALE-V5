@@ -45,7 +45,40 @@ public static class LegalSchemaGuard
         );
         """,
         """CREATE INDEX IF NOT EXISTS "IX_LegalAceptaciones_UserId_DocumentKey" ON "LegalAceptaciones" ("UserId", "DocumentKey");""",
-        """CREATE INDEX IF NOT EXISTS "IX_LegalAceptaciones_DocumentVersionId" ON "LegalAceptaciones" ("DocumentVersionId");"""
+        """CREATE INDEX IF NOT EXISTS "IX_LegalAceptaciones_DocumentVersionId" ON "LegalAceptaciones" ("DocumentVersionId");""",
+        """
+        CREATE TABLE IF NOT EXISTS "DeclaracionesEdad" (
+            "Id" serial PRIMARY KEY,
+            "UserId" integer NOT NULL,
+            "BirthDate" date NOT NULL,
+            "IsMinorAtDeclaration" boolean NOT NULL,
+            "GuardianName" varchar(150) NULL,
+            "GuardianRelationship" varchar(30) NULL,
+            "GuardianEmail" varchar(254) NULL,
+            "GuardianStatus" varchar(20) NOT NULL,
+            "GuardianTokenHash" varchar(64) NULL,
+            "GuardianLinkExpiresAt" timestamp with time zone NULL,
+            "GuardianDecidedAt" timestamp with time zone NULL,
+            "CreatedAt" timestamp with time zone NOT NULL,
+            "UpdatedAt" timestamp with time zone NOT NULL
+        );
+        """,
+        """CREATE UNIQUE INDEX IF NOT EXISTS "IX_DeclaracionesEdad_UserId" ON "DeclaracionesEdad" ("UserId");""",
+        """CREATE INDEX IF NOT EXISTS "IX_DeclaracionesEdad_GuardianTokenHash" ON "DeclaracionesEdad" ("GuardianTokenHash");""",
+        """
+        CREATE TABLE IF NOT EXISTS "AutorizacionesMenoresEventos" (
+            "Id" serial PRIMARY KEY,
+            "AgeDeclarationId" integer NOT NULL,
+            "UserId" integer NOT NULL,
+            "Action" varchar(30) NOT NULL,
+            "DocumentVersions" varchar(300) NULL,
+            "IpAddress" varchar(64) NULL,
+            "UserAgent" varchar(300) NULL,
+            "Note" varchar(300) NULL,
+            "CreatedAt" timestamp with time zone NOT NULL
+        );
+        """,
+        """CREATE INDEX IF NOT EXISTS "IX_AutorizacionesMenoresEventos_UserId" ON "AutorizacionesMenoresEventos" ("UserId");"""
     ];
 
     private static readonly string[] SqliteStatements =
@@ -84,7 +117,40 @@ public static class LegalSchemaGuard
         );
         """,
         """CREATE INDEX IF NOT EXISTS "IX_LegalAceptaciones_UserId_DocumentKey" ON "LegalAceptaciones" ("UserId", "DocumentKey");""",
-        """CREATE INDEX IF NOT EXISTS "IX_LegalAceptaciones_DocumentVersionId" ON "LegalAceptaciones" ("DocumentVersionId");"""
+        """CREATE INDEX IF NOT EXISTS "IX_LegalAceptaciones_DocumentVersionId" ON "LegalAceptaciones" ("DocumentVersionId");""",
+        """
+        CREATE TABLE IF NOT EXISTS "DeclaracionesEdad" (
+            "Id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            "UserId" INTEGER NOT NULL,
+            "BirthDate" TEXT NOT NULL,
+            "IsMinorAtDeclaration" INTEGER NOT NULL,
+            "GuardianName" TEXT NULL,
+            "GuardianRelationship" TEXT NULL,
+            "GuardianEmail" TEXT NULL,
+            "GuardianStatus" TEXT NOT NULL,
+            "GuardianTokenHash" TEXT NULL,
+            "GuardianLinkExpiresAt" TEXT NULL,
+            "GuardianDecidedAt" TEXT NULL,
+            "CreatedAt" TEXT NOT NULL,
+            "UpdatedAt" TEXT NOT NULL
+        );
+        """,
+        """CREATE UNIQUE INDEX IF NOT EXISTS "IX_DeclaracionesEdad_UserId" ON "DeclaracionesEdad" ("UserId");""",
+        """CREATE INDEX IF NOT EXISTS "IX_DeclaracionesEdad_GuardianTokenHash" ON "DeclaracionesEdad" ("GuardianTokenHash");""",
+        """
+        CREATE TABLE IF NOT EXISTS "AutorizacionesMenoresEventos" (
+            "Id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            "AgeDeclarationId" INTEGER NOT NULL,
+            "UserId" INTEGER NOT NULL,
+            "Action" TEXT NOT NULL,
+            "DocumentVersions" TEXT NULL,
+            "IpAddress" TEXT NULL,
+            "UserAgent" TEXT NULL,
+            "Note" TEXT NULL,
+            "CreatedAt" TEXT NOT NULL
+        );
+        """,
+        """CREATE INDEX IF NOT EXISTS "IX_AutorizacionesMenoresEventos_UserId" ON "AutorizacionesMenoresEventos" ("UserId");"""
     ];
 
     public static async Task EnsureAsync(CaleDbContext db, ILogger? logger = null, CancellationToken ct = default)
@@ -124,7 +190,7 @@ public static class LegalSchemaGuard
 
         if (failures == 0)
         {
-            logger?.LogInformation("LegalSchemaGuard applied (LegalVersionesDocumento, LegalAceptaciones).");
+            logger?.LogInformation("LegalSchemaGuard applied (LegalVersionesDocumento, LegalAceptaciones, DeclaracionesEdad, AutorizacionesMenoresEventos).");
         }
     }
 }

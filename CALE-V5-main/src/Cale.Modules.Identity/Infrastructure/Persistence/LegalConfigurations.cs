@@ -41,3 +41,36 @@ public sealed class UserLegalAcceptanceConfiguration : IEntityTypeConfiguration<
         builder.HasIndex(x => x.DocumentVersionId);
     }
 }
+
+public sealed class AgeDeclarationConfiguration : IEntityTypeConfiguration<AgeDeclaration>
+{
+    public void Configure(EntityTypeBuilder<AgeDeclaration> builder)
+    {
+        builder.ToTable("DeclaracionesEdad");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.BirthDate).IsRequired();
+        builder.Property(x => x.GuardianName).HasMaxLength(AgeDeclaration.GuardianNameMax);
+        builder.Property(x => x.GuardianRelationship).HasMaxLength(30);
+        builder.Property(x => x.GuardianEmail).HasMaxLength(AgeDeclaration.GuardianEmailMax);
+        builder.Property(x => x.GuardianStatus).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.GuardianTokenHash).HasMaxLength(64);
+        builder.Ignore(x => x.AwaitsGuardian);
+        builder.HasIndex(x => x.UserId).IsUnique();
+        builder.HasIndex(x => x.GuardianTokenHash);
+    }
+}
+
+public sealed class GuardianConsentEventConfiguration : IEntityTypeConfiguration<GuardianConsentEvent>
+{
+    public void Configure(EntityTypeBuilder<GuardianConsentEvent> builder)
+    {
+        builder.ToTable("AutorizacionesMenoresEventos");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Action).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.DocumentVersions).HasMaxLength(300);
+        builder.Property(x => x.IpAddress).HasMaxLength(UserLegalAcceptance.IpMax);
+        builder.Property(x => x.UserAgent).HasMaxLength(UserLegalAcceptance.UserAgentMax);
+        builder.Property(x => x.Note).HasMaxLength(GuardianConsentEvent.NoteMax);
+        builder.HasIndex(x => x.UserId);
+    }
+}

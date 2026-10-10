@@ -9,9 +9,11 @@
 - Suspensión con motivo, evidencia, duración, administrador, historial y mensaje al usuario ([PR #205](https://github.com/braynerdavid08-alt/CALE-V5/pull/205)).
 - Documentos legales versionados (`terms`, `privacy`, `data-processing`, `ai-policy`, `school-terms`), páginas públicas `/legal/*`, casillas separadas y sin marcar en los tres registros, registro de aceptaciones (versión, hash, fecha, IP, navegador), estado ACCEPTED / OUTDATED / NOT_VERIFIED, aviso no bloqueante para usuarios existentes y panel de administración en `/admin/legal` con exportación CSV. Los borradores están en `src/Cale.Api/Legal/Drafts/`.
 
+- Menores de edad: el registro de estudiante pide fecha de nacimiento; si es menor, pide nombre, parentesco y correo del representante (datos mínimos). El representante recibe un enlace personal (30 días, se guarda solo su hash) donde lee los documentos, confirma que es el representante y autoriza o no. Puede revocar con el mismo enlace. Si no autoriza o revoca, la cuenta queda suspendida con el motivo. Todo queda en `AutorizacionesMenoresEventos` (fecha, IP, navegador, versiones vigentes). Los estudiantes existentes declaran su fecha desde el aviso. El administrador ve el listado en `/admin/legal`.
+
 ### Fase 1: falta
 
-- Menores de edad: fecha de nacimiento y autorización del representante legal con trazabilidad.
+- Menores: decidir si la cuenta de un menor puede usarse mientras el representante no ha respondido (hoy sí, con aviso) y si se fija una edad mínima. Escuchar la opinión del menor según su edad y madurez: [REVISIÓN JURÍDICA REQUERIDA].
 - PQR y derechos del titular (consulta, reclamo, rectificación, supresión, revocatoria) sobre Solicitudes.
 - Llenar los espacios [PENDIENTE] y hacer revisar los textos por un abogado antes de publicarlos como versión definitiva.
 
