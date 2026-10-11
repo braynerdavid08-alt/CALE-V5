@@ -37,6 +37,12 @@ import { GameShowSfxService } from '../api/game-show-sfx.service';
         @if (removed()) {
           <p class="removed">El profesor te quitó de esta partida. Si fue un error, vuelve a entrar con el código.</p>
         }
+        @if (replaced()) {
+          <div class="removed">
+            <p>Abriste esta partida en otra pestaña o dispositivo, así que aquí se pausó.</p>
+            <ui-button type="button" (click)="useThisTab()">Seguir aquí</ui-button>
+          </div>
+        }
         <ui-error [message]="error()" />
         @if (connection()) { <p class="conn">{{ connection() }}</p> }
         @if (flash()) { <p class="flash">{{ flash() }}</p> }
@@ -164,6 +170,8 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
   readonly buzzing = signal(false);
   readonly choosing = signal(false);
   readonly removed = signal(false);
+  /** This seat was opened in another tab; this one stopped listening to the game. */
+  readonly replaced = signal(false);
   readonly timerSec = signal<number | null>(null);
   answer = '';
   private hub: HubConnection | null = null;
@@ -178,6 +186,7 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
   private turnSecondsSnapshot: number | null = null;
   private turnSecondsCapturedAtMs = 0;
   private restartTimer: ReturnType<typeof setTimeout> | null = null;
+  private eventSyncTimer: ReturnType<typeof setTimeout> | null = null;
   private lastSyncAt = 0;
   private syncInFlight = false;
   private started = false;
@@ -200,6 +209,7 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     if (this.pollTimer) clearInterval(this.pollTimer);
     if (this.tickTimer) clearInterval(this.tickTimer);
     if (this.restartTimer) clearTimeout(this.restartTimer);
+    if (this.eventSyncTimer) clearTimeout(this.eventSyncTimer);
     document.removeEventListener('visibilitychange', this.onWake);
     window.removeEventListener('online', this.onWake);
     window.removeEventListener('focus', this.onWake);
@@ -208,6 +218,10 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
 
   leave(): void {
     this.api.forgetLastGame();
+  }
+
+  useThisTab(): void {
+    window.location.reload();
   }
 
   private startPlaying(): void {
@@ -222,6 +236,7 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     this.connectHub();
     // Poll fast only while the realtime link is down; otherwise a slow safety sync.
     this.pollTimer = setInterval(() => {
+      if (document.visibilityState === 'hidden') return;
       const live = this.hub?.state === HubConnectionState.Connected;
       if (!live || Date.now() - this.lastSyncAt >= 10_000) this.reloadQuiet();
     }, 2500);
@@ -233,7 +248,7 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
 
   /** Phone unlocked / tab back / network back: resync at once and revive the realtime link. */
   private readonly onWake = () => {
-    if (document.visibilityState === 'hidden') return;
+    if (document.visibilityState === 'hidden' || this.replaced()) return;
     this.zone.run(() => {
       this.reloadQuiet();
       this.ensureHub();
@@ -276,7 +291,7 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
 
   private ensureHub(): void {
     const hub = this.hub;
-    if (!hub || this.destroyed) return;
+    if (!hub || this.destroyed || this.replaced()) return;
     if (hub.state === HubConnectionState.Disconnected) {
       this.connection.set('Reconectando…');
       void hub.start()
@@ -287,7 +302,7 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
   }
 
   private scheduleRestart(): void {
-    if (this.destroyed || this.restartTimer) return;
+    if (this.destroyed || this.replaced() || this.restartTimer) return;
     this.restartTimer = setTimeout(() => {
       this.restartTimer = null;
       this.ensureHub();
@@ -460,6 +475,20 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Hub events are normally followed by a LobbyUpdated broadcast; only fetch if none arrived,
+   * so one game action doesn't cost every player several GETs.
+   */
+  private syncAfterEvent(): void {
+    if (this.eventSyncTimer) return;
+    const requestedAt = Date.now();
+    this.eventSyncTimer = setTimeout(() => {
+      this.eventSyncTimer = null;
+      if (this.destroyed || this.lastSyncAt >= requestedAt) return;
+      this.reloadQuiet();
+    }, 700);
+  }
+
   private reloadQuiet(): void {
     if (this.syncInFlight) return;
     this.syncInFlight = true;
@@ -552,7 +581,7 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     const onLobby = (lobby: GameShowLobbyDto) => this.zone.run(() => this.apply(lobby));
     const onFlash = (message: string) => this.zone.run(() => {
       this.showFlash(message);
-      this.reloadQuiet();
+      this.syncAfterEvent();
     });
 
     this.hub.on('LobbyUpdated', onLobby);
@@ -564,13 +593,24 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
       } else if (payload?.displayName) {
         this.showFlash(`Responde ${payload.displayName}`);
       }
-      this.reloadQuiet();
+      this.syncAfterEvent();
     }));
     this.hub.on('PlayerRemoved', (payload: { playerId?: number }) => this.zone.run(() => {
       if (payload?.playerId == null || payload.playerId !== this.myPlayerId) return;
       this.removed.set(true);
       this.api.forgetLastGame();
       if (this.pollTimer) clearInterval(this.pollTimer);
+      void this.hub?.stop();
+    }));
+    this.hub.on('ReplacedByAnotherTab', () => this.zone.run(() => {
+      this.replaced.set(true);
+      this.connection.set(null);
+      if (this.pollTimer) clearInterval(this.pollTimer);
+      if (this.tickTimer) clearInterval(this.tickTimer);
+      if (this.restartTimer) clearTimeout(this.restartTimer);
+      this.pollTimer = null;
+      this.tickTimer = null;
+      this.restartTimer = null;
       void this.hub?.stop();
     }));
     this.hub.on('StealBuzzWon', () => onFlash('¡Un equipo tomó el robo!'));
@@ -592,7 +632,7 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
       this.reloadQuiet();
     }));
     this.hub.onclose(() => this.zone.run(() => {
-      if (this.destroyed) return;
+      if (this.destroyed || this.replaced()) return;
       this.connection.set('Reconectando… sigues en la partida.');
       this.scheduleRestart();
     }));

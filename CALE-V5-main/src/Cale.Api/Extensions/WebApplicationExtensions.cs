@@ -59,6 +59,7 @@ public static class WebApplicationExtensions
         app.UseAuthorization();
         app.UseRateLimiter();
         app.UseMiddleware<MustChangePasswordMiddleware>();
+        app.UseMiddleware<LiveActivityMiddleware>();
         app.MapControllers();
         app.MapHub<Cale.Api.Hubs.LiveClassroomHub>("/hubs/live");
         app.MapHub<Cale.Api.Hubs.GameShowHub>("/hubs/game-show");

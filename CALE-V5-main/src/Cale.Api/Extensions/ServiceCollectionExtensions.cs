@@ -195,6 +195,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<Cale.Api.Services.Admin.AdminInsightsService>();
         services.AddHostedService<Cale.Api.Services.Admin.WeeklySummaryService>();
         services.AddHostedService<Cale.Api.Services.Media.LegacyUploadMigrationService>();
+        services.AddSingleton<Cale.Api.Services.Live.LiveActivityTracker>();
+        services.AddHostedService<Cale.Api.Services.Live.AbandonedLiveRoomService>();
         services.AddSingleton<Cale.BuildingBlocks.Infrastructure.Diagnostics.DatabaseTrafficMonitor>(
             _ => new Cale.BuildingBlocks.Infrastructure.Diagnostics.DatabaseTrafficMonitor());
         services.AddHostedService<Cale.Api.Services.Diagnostics.ResourceUsageSummaryService>();
