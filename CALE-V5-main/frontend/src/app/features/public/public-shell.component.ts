@@ -23,7 +23,7 @@ import { LEGAL_LINKS } from '../legal/legal-links';
       <header class="top">
         <div class="top-inner">
           <a routerLink="/" class="brand" (click)="closeMenu()">
-            <img class="brand-logo" [src]="brand.logoWide" [alt]="brand.name + ' — ' + brand.slogan" width="790" height="316" />
+            <img class="brand-logo" [src]="brand.logoWideDark" [alt]="brand.name + ' — ' + brand.slogan" width="790" height="316" />
           </a>
 
           <nav class="nav desktop" aria-label="Principal">

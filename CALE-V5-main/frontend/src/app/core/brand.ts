@@ -15,6 +15,8 @@ export const BRAND = {
     'Luz Verde: practica gratis el simulacro del examen CALE todas las veces que quieras y sigue tu formación vial con tu escuela.',
   /** Full horizontal logo (traffic light + wordmark + slogan) on a transparent background; its dark text needs a light surface behind it. */
   logoWide: '/brand/luz-verde-logo.png',
+  /** Same logo with light lettering, for dark surfaces. */
+  logoWideDark: '/brand/luz-verde-logo-dark.png',
   /** PWA / favicon paths (public/). */
   icon192: '/icons/icon-192.png',
   icon512: '/icons/icon-512.png',
