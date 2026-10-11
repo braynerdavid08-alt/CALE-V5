@@ -5,6 +5,7 @@ using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
 using Cale.Modules.Identity.Application.Commands;
 using Cale.Modules.Identity.Domain;
+using Cale.Modules.TheoreticalTraining.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace Cale.Api.Services.Admin;
@@ -13,7 +14,8 @@ namespace Cale.Api.Services.Admin;
 /// Deletes a school account only when nothing depends on it. Any table with a SchoolId,
 /// SchoolUserId or CreatedBySchoolId column pointing at the school (users, courses, decks, game
 /// shows, schedules…) blocks the delete, so students are never left attached to a missing school.
-/// Pending join requests go with it; membership/payment history is kept for the record.
+/// Pending join requests and auto-created settings go with it; membership/payment history and
+/// the school audit log are kept for the record.
 /// </summary>
 public sealed class SchoolDeletionService
 {
@@ -23,8 +25,25 @@ public sealed class SchoolDeletionService
     [
         typeof(SchoolProfile),
         typeof(MembershipEvent),
-        typeof(SchoolJoinRequest)
+        typeof(SchoolJoinRequest),
+        typeof(TheoryTrainingSettings),
+        typeof(SchoolAuditEntry)
     ];
+
+    private static readonly Dictionary<string, string> FriendlyNames = new()
+    {
+        [nameof(Cale.Modules.Courses.Domain.Course)] = "cursos",
+        [nameof(Cale.Modules.Presentation.Domain.PresentationDeck)] = "presentaciones",
+        [nameof(TheoryClassroom)] = "salones",
+        [nameof(TheoryClassSession)] = "clases teóricas",
+        [nameof(SchoolStudentEnrollment)] = "matrículas",
+        [nameof(SchoolApprenticeProfile)] = "fichas de aprendices",
+        [nameof(PracticalVehicle)] = "vehículos",
+        [nameof(PracticalLessonSession)] = "clases prácticas",
+        [nameof(TheoryExamScheduleTemplate)] = "horarios de examen",
+        [nameof(TheoryExamScheduleOverride)] = "excepciones de horario",
+        [nameof(TheoryExamAppointment)] = "citas de examen",
+    };
 
     private static readonly MethodInfo CountIntMethod = typeof(SchoolDeletionService)
         .GetMethod(nameof(CountIntAsync), BindingFlags.NonPublic | BindingFlags.Static)!;
@@ -58,7 +77,7 @@ public sealed class SchoolDeletionService
             u => u.Id != schoolUserId && (u.SchoolId == schoolUserId || u.CreatedBySchoolId == schoolUserId),
             ct);
 
-        var other = 0;
+        var other = new Dictionary<string, int>();
         foreach (var entityType in _db.Model.GetEntityTypes())
         {
             var clr = entityType.ClrType;
@@ -86,8 +105,13 @@ public sealed class SchoolDeletionService
 
                 try
                 {
-                    other += await (Task<int>)method.MakeGenericMethod(clr)
+                    var count = await (Task<int>)method.MakeGenericMethod(clr)
                         .Invoke(null, [_db, column, schoolUserId, ct])!;
+                    if (count > 0)
+                    {
+                        var label = FriendlyNames.GetValueOrDefault(clr.Name, clr.Name);
+                        other[label] = other.GetValueOrDefault(label) + count;
+                    }
                 }
                 catch (DbException ex) when (IsMissingTable(ex))
                 {
@@ -110,20 +134,40 @@ public sealed class SchoolDeletionService
         var links = await CountLinksAsync(schoolUserId, ct);
         if (links.Total > 0)
         {
+            var parts = new List<string>();
+            if (links.Users > 0)
+            {
+                parts.Add($"{links.Users} usuario(s) vinculados");
+            }
+
+            parts.AddRange(links.Other.OrderBy(x => x.Key).Select(x => $"{x.Value} {x.Key}"));
             throw new DomainException(
-                $"No se puede borrar: la escuela tiene {links.Users} usuario(s) vinculados y {links.Other} "
-                + "registro(s) propios (cursos, horarios, presentaciones, concursos…). Suspéndela o mueve primero a sus usuarios.",
+                $"No se puede borrar: la escuela tiene {string.Join(", ", parts)}. "
+                + "Suspéndela o mueve primero sus usuarios y contenido.",
                 409,
                 "school_not_empty");
         }
 
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
         await _db.Set<SchoolJoinRequest>().Where(r => r.SchoolUserId == schoolUserId).ExecuteDeleteAsync(ct);
+        await DeleteSettingsAsync(schoolUserId, ct);
         await _deleteUser.HandleAsync(actorUserId, schoolUserId, ct);
         await tx.CommitAsync(ct);
 
         _homepage.InvalidatePublicCache();
         _logger.LogWarning("Audit: admin {ActorId} deleted empty school {SchoolUserId}", actorUserId, schoolUserId);
+    }
+
+    private async Task DeleteSettingsAsync(int schoolUserId, CancellationToken ct)
+    {
+        try
+        {
+            await _db.Set<TheoryTrainingSettings>().Where(s => s.SchoolUserId == schoolUserId).ExecuteDeleteAsync(ct);
+        }
+        catch (DbException ex) when (IsMissingTable(ex))
+        {
+            _logger.LogWarning("School settings delete skipped: table missing");
+        }
     }
 
     private static bool IsMissingTable(DbException ex) =>
@@ -140,7 +184,7 @@ public sealed class SchoolDeletionService
         db.Set<TEntity>().CountAsync(e => EF.Property<int?>(e, column) == id, ct);
 }
 
-public sealed record SchoolLinks(int Users, int Other)
+public sealed record SchoolLinks(int Users, IReadOnlyDictionary<string, int> Other)
 {
-    public int Total => Users + Other;
+    public int Total => Users + Other.Values.Sum();
 }
