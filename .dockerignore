@@ -8,3 +8,4 @@
 **/cale-dev.db-*
 **/*.md
 !CALE-V5-main/docs/DEPLOY.md
+!CALE-V5-main/src/Cale.Api/Legal/Drafts/*.md

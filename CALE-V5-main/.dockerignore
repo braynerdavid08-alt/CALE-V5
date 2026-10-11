@@ -9,3 +9,4 @@
 **/cale-dev.db-*
 **/*.md
 !docs/DEPLOY.md
+!src/Cale.Api/Legal/Drafts/*.md
