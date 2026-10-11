@@ -1,4 +1,6 @@
+using Cale.BuildingBlocks.Domain.Abstractions;
 using Cale.BuildingBlocks.Domain.Auth;
+using Cale.BuildingBlocks.Domain.Engagement;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Security;
 using Cale.BuildingBlocks.Domain.Time;
@@ -19,6 +21,7 @@ public sealed class RegisterSchoolHandler
     private readonly ITokenService _tokens;
     private readonly IClock _clock;
     private readonly EmailConfirmationService _emailConfirmation;
+    private readonly INotificationPublisher _notifications;
 
     public RegisterSchoolHandler(
         IUserStore users,
@@ -27,8 +30,10 @@ public sealed class RegisterSchoolHandler
         IPasswordHasher hasher,
         ITokenService tokens,
         IClock clock,
-        EmailConfirmationService emailConfirmation)
+        EmailConfirmationService emailConfirmation,
+        INotificationPublisher notifications)
     {
+        _notifications = notifications;
         _users = users;
         _profiles = profiles;
         _events = events;
@@ -48,6 +53,7 @@ public sealed class RegisterSchoolHandler
 
         var email = EmailAddress.NormalizeForRegistration(request.Email);
         var billingEmail = EmailAddress.NormalizeForRegistration(request.BillingEmail);
+        var taxId = ColombianTaxId.Normalize(request.TaxId);
 
         if (await _users.ExistsByEmailAsync(email, ct))
         {
@@ -55,6 +61,8 @@ public sealed class RegisterSchoolHandler
                 "Email already registered.",
                 "email_taken");
         }
+
+        await SchoolTaxIdGuard.EnsureUniqueAsync(_profiles, taxId, exceptSchoolUserId: null, ct);
 
         var user = User.RegisterSchool(
             request.ContactName,
@@ -68,7 +76,7 @@ public sealed class RegisterSchoolHandler
         var profile = SchoolProfile.Create(
             user.Id,
             request.LegalName,
-            request.TaxId,
+            taxId,
             billingEmail,
             request.Phone,
             request.Address,
@@ -76,6 +84,7 @@ public sealed class RegisterSchoolHandler
             request.Department,
             plan,
             _clock.UtcNow);
+        profile.RequireApproval(_clock.UtcNow);
 
         await _profiles.AddAsync(profile, ct);
         await _events.AddAsync(
@@ -89,6 +98,7 @@ public sealed class RegisterSchoolHandler
                 _clock.UtcNow),
             ct);
         await _profiles.SaveChangesAsync(ct);
+        await NotifyAdminsAsync(profile, ct);
 
         var issue = await _emailConfirmation.IssueAndSendAsync(user, ct);
 
@@ -99,7 +109,7 @@ public sealed class RegisterSchoolHandler
             var token = _tokens.Create(user.Id, user.Email, user.Name, Roles.School);
             return new PendingEmailConfirmationResponse(
                 user.Email,
-                "Cuenta creada. El envío de correo no está configurado en el servidor; entraste sin código.",
+                "Cuenta creada. El envío de correo no está configurado en el servidor; entraste sin código. Tu escuela queda pendiente de aprobación por Luz Verde.",
                 RequiresEmailConfirmation: false,
                 EmailSent: false,
                 Token: token,
@@ -111,9 +121,34 @@ public sealed class RegisterSchoolHandler
 
         return new PendingEmailConfirmationResponse(
             user.Email,
-            "Te enviamos un código a tu correo. Confírmalo para activar la cuenta.",
+            "Te enviamos un código a tu correo. Confírmalo para activar la cuenta. Después, Luz Verde revisará y aprobará tu escuela.",
             RequiresEmailConfirmation: true,
             EmailSent: issue.EmailSent);
+    }
+
+    private async Task NotifyAdminsAsync(SchoolProfile profile, CancellationToken ct)
+    {
+        var adminIds = (await _users.ListByRoleAsync(Roles.Admin, ct))
+            .Where(u => u.IsActive)
+            .Select(u => u.Id)
+            .ToList();
+        if (adminIds.Count == 0)
+        {
+            return;
+        }
+
+        await _notifications.NotifyUsersAsync(
+            adminIds,
+            new NotificationDraft(
+                "Escuela pendiente de aprobación",
+                $"{profile.LegalName} (NIT {profile.TaxId}) se registró y espera tu aprobación.",
+                NotificationTypes.Admin,
+                RelatedEntity: "school_profile",
+                RelatedId: profile.UserId,
+                Link: "/admin/memberships",
+                Priority: NotificationPriorities.High,
+                DedupeKey: $"school-approval-{profile.UserId}"),
+            ct);
     }
 
     private static void Validate(RegisterSchoolRequest request)

@@ -27,6 +27,7 @@ interface SchoolProfileDto {
   teachersMax: number;
   studentsUsed: number;
   studentsMax: number;
+  pendingApproval?: boolean;
 }
 
 interface EasyAction {

@@ -66,6 +66,10 @@ public sealed class SchoolJoinRequestHandler
             ?? throw new NotFoundException(
                 "No encontramos una escuela con ese NIT o correo.",
                 "school_not_found");
+        if (school.IsPendingApproval)
+        {
+            throw new DomainException(SchoolApprovalMessages.PendingForMembers, 400, "school_pending_approval");
+        }
 
         var existing = await _requests.FindPendingAsync(memberUserId, school.UserId, ct);
         if (existing is not null)

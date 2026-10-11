@@ -37,6 +37,11 @@ internal static class SchoolSeatGuard
         }
 
         profile.RefreshStatus(clock.UtcNow);
+        if (profile.IsPendingApproval)
+        {
+            throw new DomainException(SchoolApprovalMessages.Pending, 403, "school_pending_approval");
+        }
+
         if (!profile.CanOperateProduct(clock.UtcNow))
         {
             throw new DomainException(

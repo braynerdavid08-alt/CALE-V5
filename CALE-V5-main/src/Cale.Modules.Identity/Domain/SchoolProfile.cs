@@ -48,6 +48,11 @@ public sealed class SchoolProfile
     public int? StudentsMaxOverride { get; private set; }
     public DateTime CreatedAt { get; private set; }
 
+    /// <summary>Set while a self-registered school awaits admin approval; null means approved.</summary>
+    public DateTime? PendingApprovalSince { get; private set; }
+
+    public bool IsPendingApproval => PendingApprovalSince is not null;
+
     private SchoolProfile()
     {
     }
@@ -138,9 +143,22 @@ public sealed class SchoolProfile
         return SubscriptionStatus;
     }
 
-    /// <summary>Product access gate (free-for-all mode bypasses the paid membership).</summary>
+    /// <summary>Product access gate (free-for-all mode bypasses the paid membership, never the approval).</summary>
     public bool CanOperateProduct(DateTime utcNow) =>
-        FreeAccessPolicy.Enabled || IsCommerciallyActive(utcNow);
+        !IsPendingApproval && (FreeAccessPolicy.Enabled || IsCommerciallyActive(utcNow));
+
+    public void RequireApproval(DateTime utcNow) => PendingApprovalSince ??= utcNow;
+
+    public void Approve(DateTime utcNow)
+    {
+        if (!IsPendingApproval)
+        {
+            throw new DomainException("La escuela ya está aprobada.", 400, "school_already_approved");
+        }
+
+        PendingApprovalSince = null;
+        LastDecisionAt = utcNow;
+    }
 
     /// <summary>Seat caps apply only when the paid model is on.</summary>
     public static bool SeatLimitsEnforced => !FreeAccessPolicy.Enabled;
@@ -687,7 +705,7 @@ public sealed class SchoolProfile
         string department)
     {
         LegalName = Required(legalName, 250, "Escribe el nombre de la escuela.", "invalid_legal_name");
-        TaxId = Required(taxId, 32, "Escribe el NIT de la escuela.", "invalid_tax_id");
+        TaxId = ColombianTaxId.Normalize(taxId);
         BillingEmail = Optional(billingEmail, 320, "invalid_billing_email").ToLowerInvariant();
         Phone = Optional(phone, 40, "invalid_phone");
         Address = Optional(address, 300, "invalid_address");
@@ -772,6 +790,15 @@ public sealed class SchoolProfile
             RejectionReason = null;
         }
     }
+}
+
+public static class SchoolApprovalMessages
+{
+    public const string Pending =
+        "Tu escuela está pendiente de aprobación por Luz Verde. Te avisaremos cuando quede aprobada.";
+
+    public const string PendingForMembers =
+        "Esa escuela aún no ha sido aprobada por Luz Verde. Intenta más tarde.";
 }
 
 public static class SchoolSubscriptionStatus

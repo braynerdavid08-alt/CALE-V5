@@ -7,6 +7,16 @@
     }
   </header>
 
+  @if (profile()?.pendingApproval) {
+    <section class="easy-panel easy-pending" role="status">
+      <h2>⏳ Escuela pendiente de aprobación</h2>
+      <p class="easy-text">
+        Luz Verde está revisando los datos de tu escuela. Mientras tanto no puedes invitar instructores
+        ni estudiantes, y tu escuela no aparece en la página pública. Te avisaremos cuando quede aprobada.
+      </p>
+    </section>
+  }
+
   <h2 class="easy-title">¿Qué quieres hacer hoy?</h2>
   <nav class="easy-actions" aria-label="Tareas principales">
     @for (a of actions; track a.path + a.label) {

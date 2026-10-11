@@ -147,6 +147,16 @@ public sealed class AdminMembershipsController : ControllerBase
             request,
             ct));
 
+    [HttpPost("schools/{schoolUserId:int}/approve")]
+    public async Task<ActionResult<SchoolProfileDto>> Approve(
+        int schoolUserId,
+        CancellationToken ct)
+    {
+        var dto = await _managePlan.AdminApproveAsync(schoolUserId, CurrentUser.GetId(User), ct);
+        _homepage.InvalidatePublicCache();
+        return Ok(dto);
+    }
+
     [HttpPost("memberships/{schoolUserId:int}/unsuspend")]
     public async Task<ActionResult<SchoolProfileDto>> Unsuspend(
         int schoolUserId,

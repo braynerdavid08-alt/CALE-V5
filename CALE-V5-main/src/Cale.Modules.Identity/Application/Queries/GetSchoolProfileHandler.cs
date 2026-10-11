@@ -113,7 +113,8 @@ public sealed class GetSchoolProfileHandler
             teachersUsed,
             profile.EffectiveMaxTeachers(plan),
             studentsUsed,
-            profile.EffectiveMaxStudents(plan));
+            profile.EffectiveMaxStudents(plan),
+            profile.IsPendingApproval);
     }
 
     private SchoolPaymentInstructionsDto PaymentInstructions(SchoolProfile profile, User user)

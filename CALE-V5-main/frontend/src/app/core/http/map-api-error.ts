@@ -62,6 +62,9 @@ const messages: Record<string, string> = {
   pqr_extension_reason_required: 'Explica el motivo de la prórroga (mínimo 10 caracteres).',
   membership_admin_only: 'Solo el administrador puede activar la membresía tras verificar el pago.',
   membership_inactive: 'Tu membresía no está activa. Solicita un plan, sube el comprobante y espera la verificación del administrador.',
+  invalid_tax_id: 'Escribe un NIT válido con su dígito de verificación, por ejemplo 900123456-8.',
+  tax_id_taken: 'Ya hay una escuela registrada con ese NIT. Si es la tuya, inicia sesión o escríbenos.',
+  school_already_approved: 'La escuela ya está aprobada.',
   catalog_access_denied: 'No tienes acceso al catálogo de preguntas. Tu escuela necesita un plan activo.',
   simulacro_access_denied: 'No puedes usar simulacros sin una escuela con plan activo.',
   school_not_linked: 'No estás vinculado a una escuela. Ve a Perfil → Tu escuela y solicita unirte con el NIT o correo de la escuela.',
@@ -255,7 +258,7 @@ export function mapApiError(error: unknown): string {
   const detail = typeof error.error?.detail === 'string' ? error.error.detail : null;
   const title = typeof error.error?.title === 'string' ? error.error.title : null;
 
-  if (detail === 'account_suspended' && title && title.trim()) {
+  if ((detail === 'account_suspended' || detail === 'school_pending_approval') && title && title.trim()) {
     return title;
   }
 

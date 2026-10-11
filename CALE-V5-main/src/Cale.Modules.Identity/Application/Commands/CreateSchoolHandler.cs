@@ -53,6 +53,13 @@ public sealed class CreateSchoolHandler
                 "email_taken");
         }
 
+        string? taxId = null;
+        if (!string.IsNullOrWhiteSpace(request.TaxId))
+        {
+            taxId = ColombianTaxId.Normalize(request.TaxId);
+            await SchoolTaxIdGuard.EnsureUniqueAsync(_profiles, taxId, exceptSchoolUserId: null, ct);
+        }
+
         var contactName = string.IsNullOrWhiteSpace(request.ContactName)
             ? request.LegalName.Trim()
             : request.ContactName.Trim();
@@ -70,7 +77,7 @@ public sealed class CreateSchoolHandler
         var profile = SchoolProfile.Create(
             user.Id,
             request.LegalName.Trim(),
-            string.IsNullOrWhiteSpace(request.TaxId) ? "000000000-0" : request.TaxId.Trim(),
+            taxId ?? "000000000-0",
             billingEmail,
             string.IsNullOrWhiteSpace(request.Phone) ? "0000000000" : request.Phone.Trim(),
             string.IsNullOrWhiteSpace(request.Address) ? "Por definir" : request.Address.Trim(),

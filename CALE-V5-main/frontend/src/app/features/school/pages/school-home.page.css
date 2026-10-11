@@ -66,6 +66,7 @@
   background: var(--color-surface);
 }
 .easy-panel h2 { margin: 0; font-size: var(--text-xl); }
+.easy-pending { border-color: var(--color-warning); background: var(--color-warning-soft); }
 .easy-text { margin: 0; font-size: var(--text-md); line-height: 1.5; }
 .easy-done { margin: 0; font-size: var(--text-lg); font-weight: 700; color: var(--color-success); }
 

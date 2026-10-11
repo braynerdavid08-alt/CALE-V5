@@ -119,9 +119,12 @@ public sealed class ManageSchoolPlanHandler
                 "invalid_billing_email");
         }
 
+        var taxId = ColombianTaxId.Normalize(request.TaxId);
+        await SchoolTaxIdGuard.EnsureUniqueAsync(_profiles, taxId, schoolUserId, ct);
+
         profile.UpdateBilling(
             request.LegalName,
-            request.TaxId,
+            taxId,
             EmailAddress.Normalize(request.BillingEmail),
             request.Phone,
             request.Address,
@@ -271,12 +274,14 @@ public sealed class ManageSchoolPlanHandler
                 profile.EffectiveMaxStudents(plan),
                 profile.HasSeatOverrides,
                 profile.HasOpenCommercialRequest(now),
-                profile.CreatedAt));
+                profile.CreatedAt,
+                profile.IsPendingApproval));
         }
 
         await _profiles.SaveChangesAsync(ct);
         return items
-            .OrderByDescending(x => x.HasOpenRequest)
+            .OrderByDescending(x => x.PendingApproval)
+            .ThenByDescending(x => x.HasOpenRequest)
             .ThenBy(x => x.LegalName)
             .ToList();
     }
@@ -631,6 +636,38 @@ public sealed class ManageSchoolPlanHandler
             schoolUserId,
             "Membresía suspendida",
             $"Tu membresía fue suspendida: {reason}",
+            NotificationTypes.Membership,
+            null,
+            NotificationTypes.Membership,
+            schoolUserId,
+            ct);
+
+        return await _profileQuery.MapAsync(user, profile, ct);
+    }
+
+    public async Task<SchoolProfileDto> AdminApproveAsync(
+        int schoolUserId,
+        int adminUserId,
+        CancellationToken ct)
+    {
+        var (user, profile) = await LoadSchoolAsync(schoolUserId, ct);
+        profile.Approve(_clock.UtcNow);
+        await _events.AddAsync(
+            MembershipEvent.Create(
+                schoolUserId,
+                MembershipEventTypes.SchoolApproved,
+                profile.PlanCode,
+                profile.PlanPriceCop,
+                adminUserId,
+                "Escuela aprobada por administrador",
+                _clock.UtcNow),
+            ct);
+        await _profiles.SaveChangesAsync(ct);
+
+        await _notifications.NotifyUserAsync(
+            schoolUserId,
+            "Escuela aprobada",
+            "Luz Verde aprobó tu escuela. Ya puedes invitar instructores y estudiantes.",
             NotificationTypes.Membership,
             null,
             NotificationTypes.Membership,

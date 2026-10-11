@@ -28,6 +28,8 @@ public sealed class SchoolProfileConfiguration : IEntityTypeConfiguration<School
         builder.Property(x => x.SuspensionReason).HasMaxLength(500);
         builder.Property(x => x.TeachersMaxOverride);
         builder.Property(x => x.StudentsMaxOverride);
+        builder.Property(x => x.PendingApprovalSince);
+        builder.Ignore(x => x.IsPendingApproval);
         builder.HasIndex(x => x.UserId).IsUnique();
         builder.HasIndex(x => x.TaxId);
         builder.HasIndex(x => x.SubscriptionStatus);
