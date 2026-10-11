@@ -1,5 +1,7 @@
 using System.Security.Claims;
+using Cale.Api.Services.Live;
 using Cale.BuildingBlocks.Domain.Auth;
+using Cale.BuildingBlocks.Domain.Time;
 using Cale.Modules.LiveClassroom.Application.Abstractions;
 using Cale.Modules.LiveClassroom.Application.Commands;
 using Cale.Modules.LiveClassroom.Domain;
@@ -16,19 +18,28 @@ public sealed class LiveClassroomHub : Hub
     private readonly LiveSessionHandler _handler;
     private readonly ILiveSessionStore _sessions;
     private readonly ILivePresentationSlideState _presentationSlides;
+    private readonly LiveActivityTracker _activity;
+    private readonly IClock _clock;
     private readonly ILogger<LiveClassroomHub> _logger;
 
     public LiveClassroomHub(
         LiveSessionHandler handler,
         ILiveSessionStore sessions,
         ILivePresentationSlideState presentationSlides,
+        LiveActivityTracker activity,
+        IClock clock,
         ILogger<LiveClassroomHub> logger)
     {
         _handler = handler;
         _sessions = sessions;
         _presentationSlides = presentationSlides;
+        _activity = activity;
+        _clock = clock;
         _logger = logger;
     }
+
+    /// <summary>Sent to a student's older tab when the same seat connects from another tab.</summary>
+    public const string ReplacedByAnotherTabEvent = "ReplacedByAnotherTab";
 
     public static string GroupName(int sessionId) => $"{GroupPrefix}{sessionId}";
 
@@ -47,6 +58,7 @@ public sealed class LiveClassroomHub : Hub
         }
 
         await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(sessionId));
+        _activity.HostConnected(LiveRoomKind.LiveClass, sessionId, Context.ConnectionId, _clock.UtcNow);
         _logger.LogInformation(
             "Live host connected {ConnectionId} session {SessionId} user {UserId}",
             Context.ConnectionId,
@@ -79,12 +91,19 @@ public sealed class LiveClassroomHub : Hub
             throw new HubException("Esta clase ya terminó.");
         }
 
+        var previousConnectionId = participant.ConnectionId;
         await _handler.SetConnectionAsync(
             token,
             Context.ConnectionId,
             connected: true,
             Context.ConnectionAborted);
         await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(sessionId));
+        if (!string.IsNullOrEmpty(previousConnectionId) && previousConnectionId != Context.ConnectionId)
+        {
+            // Newest tab wins: the old one stops receiving the class and is told why.
+            await Groups.RemoveFromGroupAsync(previousConnectionId, GroupName(sessionId));
+            await Clients.Client(previousConnectionId).SendAsync(ReplacedByAnotherTabEvent, Context.ConnectionAborted);
+        }
         var slideIndex = _presentationSlides.GetSlideIndex(sessionId);
         await Clients.Caller.SendAsync(
             "PresentationSlideChanged",
@@ -132,6 +151,7 @@ public sealed class LiveClassroomHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        _activity.ConnectionClosed(Context.ConnectionId, _clock.UtcNow);
         try
         {
             await _handler.DisconnectByConnectionAsync(

@@ -1,5 +1,7 @@
 using System.Security.Claims;
+using Cale.Api.Services.Live;
 using Cale.BuildingBlocks.Domain.Auth;
+using Cale.BuildingBlocks.Domain.Time;
 using Cale.Modules.GameShow.Application;
 using Cale.Modules.GameShow.Application.Abstractions;
 using Cale.Modules.GameShow.Application.DTOs;
@@ -14,15 +16,21 @@ public sealed class GameShowHub : Hub
 
     private readonly GameShowHandler _handler;
     private readonly IGameShowStore _store;
+    private readonly LiveActivityTracker _activity;
+    private readonly IClock _clock;
     private readonly ILogger<GameShowHub> _logger;
 
     public GameShowHub(
         GameShowHandler handler,
         IGameShowStore store,
+        LiveActivityTracker activity,
+        IClock clock,
         ILogger<GameShowHub> logger)
     {
         _handler = handler;
         _store = store;
+        _activity = activity;
+        _clock = clock;
         _logger = logger;
     }
 
@@ -44,6 +52,7 @@ public sealed class GameShowHub : Hub
                 throw new HubException("Token inválido para esta partida.");
             }
 
+            var previousConnectionId = player.ConnectionId;
             await _handler.SetConnectionAsync(token, Context.ConnectionId, true, Context.ConnectionAborted);
             if (Context.ConnectionAborted.IsCancellationRequested)
             {
@@ -51,6 +60,14 @@ public sealed class GameShowHub : Hub
             }
 
             await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(sessionId));
+            if (!string.IsNullOrEmpty(previousConnectionId) && previousConnectionId != Context.ConnectionId)
+            {
+                // Newest tab wins: the old one stops receiving the game and is told why.
+                await Groups.RemoveFromGroupAsync(previousConnectionId, GroupName(sessionId));
+                await Clients.Client(previousConnectionId).SendAsync(
+                    LiveClassroomHub.ReplacedByAnotherTabEvent,
+                    Context.ConnectionAborted);
+            }
         }
         catch (OperationCanceledException) when (Context.ConnectionAborted.IsCancellationRequested)
         {
@@ -68,6 +85,7 @@ public sealed class GameShowHub : Hub
                 ?? throw new HubException("Partida no encontrada.");
             _ = session;
             await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(sessionId));
+            _activity.HostConnected(LiveRoomKind.GameShow, sessionId, Context.ConnectionId, _clock.UtcNow);
         }
         catch (OperationCanceledException) when (Context.ConnectionAborted.IsCancellationRequested)
         {
@@ -92,6 +110,7 @@ public sealed class GameShowHub : Hub
             }
 
             await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(sessionId));
+            _activity.HostConnected(LiveRoomKind.GameShow, sessionId, Context.ConnectionId, _clock.UtcNow);
             _logger.LogInformation("GameShow host {UserId} joined session {SessionId}", userId, sessionId);
         }
         catch (OperationCanceledException) when (Context.ConnectionAborted.IsCancellationRequested)
@@ -104,6 +123,7 @@ public sealed class GameShowHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        _activity.ConnectionClosed(Context.ConnectionId, _clock.UtcNow);
         try
         {
             var player = await _store.GetPlayerByConnectionIdAsync(

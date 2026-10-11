@@ -37,6 +37,12 @@ import { GameShowSfxService } from '../api/game-show-sfx.service';
         @if (removed()) {
           <p class="removed">El profesor te quitó de esta partida. Si fue un error, vuelve a entrar con el código.</p>
         }
+        @if (replaced()) {
+          <div class="removed">
+            <p>Abriste esta partida en otra pestaña o dispositivo, así que aquí se pausó.</p>
+            <ui-button type="button" (click)="useThisTab()">Seguir aquí</ui-button>
+          </div>
+        }
         <ui-error [message]="error()" />
         @if (connection()) { <p class="conn">{{ connection() }}</p> }
         @if (flash()) { <p class="flash">{{ flash() }}</p> }
@@ -164,6 +170,8 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
   readonly buzzing = signal(false);
   readonly choosing = signal(false);
   readonly removed = signal(false);
+  /** This seat was opened in another tab; this one stopped listening to the game. */
+  readonly replaced = signal(false);
   readonly timerSec = signal<number | null>(null);
   answer = '';
   private hub: HubConnection | null = null;
@@ -210,6 +218,10 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     this.api.forgetLastGame();
   }
 
+  useThisTab(): void {
+    window.location.reload();
+  }
+
   private startPlaying(): void {
     if (this.started) return;
     this.started = true;
@@ -233,7 +245,7 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
 
   /** Phone unlocked / tab back / network back: resync at once and revive the realtime link. */
   private readonly onWake = () => {
-    if (document.visibilityState === 'hidden') return;
+    if (document.visibilityState === 'hidden' || this.replaced()) return;
     this.zone.run(() => {
       this.reloadQuiet();
       this.ensureHub();
@@ -276,7 +288,7 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
 
   private ensureHub(): void {
     const hub = this.hub;
-    if (!hub || this.destroyed) return;
+    if (!hub || this.destroyed || this.replaced()) return;
     if (hub.state === HubConnectionState.Disconnected) {
       this.connection.set('Reconectando…');
       void hub.start()
@@ -287,7 +299,7 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
   }
 
   private scheduleRestart(): void {
-    if (this.destroyed || this.restartTimer) return;
+    if (this.destroyed || this.replaced() || this.restartTimer) return;
     this.restartTimer = setTimeout(() => {
       this.restartTimer = null;
       this.ensureHub();
@@ -573,6 +585,17 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
       if (this.pollTimer) clearInterval(this.pollTimer);
       void this.hub?.stop();
     }));
+    this.hub.on('ReplacedByAnotherTab', () => this.zone.run(() => {
+      this.replaced.set(true);
+      this.connection.set(null);
+      if (this.pollTimer) clearInterval(this.pollTimer);
+      if (this.tickTimer) clearInterval(this.tickTimer);
+      if (this.restartTimer) clearTimeout(this.restartTimer);
+      this.pollTimer = null;
+      this.tickTimer = null;
+      this.restartTimer = null;
+      void this.hub?.stop();
+    }));
     this.hub.on('StealBuzzWon', () => onFlash('¡Un equipo tomó el robo!'));
     this.hub.on('BuzzWon', () => onFlash('¡Turno de enfrentamiento!'));
     this.hub.on('FaceOffPass', () => onFlash('Turno del otro equipo'));
@@ -592,7 +615,7 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
       this.reloadQuiet();
     }));
     this.hub.onclose(() => this.zone.run(() => {
-      if (this.destroyed) return;
+      if (this.destroyed || this.replaced()) return;
       this.connection.set('Reconectando… sigues en la partida.');
       this.scheduleRestart();
     }));
