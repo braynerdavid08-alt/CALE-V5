@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Cale.BuildingBlocks.Infrastructure.Diagnostics;
 using Microsoft.Extensions.Options;
 
 namespace Cale.Api.Services.Assistant;
@@ -61,19 +62,26 @@ public sealed class AssistantLlmClient : IAssistantLlm
         }
 
         var payload = body.ToJsonString();
-        var response = await SendAsync(payload, ct);
+        var payloadBytes = Encoding.UTF8.GetByteCount(payload);
+        var response = await SendAsync(payload, payloadBytes, ct);
         if (response.StatusCode is HttpStatusCode.ServiceUnavailable or HttpStatusCode.TooManyRequests)
         {
             // Free tiers cap requests per minute; a short pause usually clears it.
             var wait = response.StatusCode == HttpStatusCode.TooManyRequests ? 6 : 2;
+            OutboundTraffic.Record("llm", payloadBytes, 0, failed: true);
             response.Dispose();
             await Task.Delay(TimeSpan.FromSeconds(wait), ct);
-            response = await SendAsync(payload, ct);
+            response = await SendAsync(payload, payloadBytes, ct);
         }
 
         using (response)
         {
             var text = await response.Content.ReadAsStringAsync(ct);
+            OutboundTraffic.Record(
+                "llm",
+                payloadBytes,
+                Encoding.UTF8.GetByteCount(text),
+                failed: !response.IsSuccessStatusCode);
             if (response.StatusCode == HttpStatusCode.TooManyRequests)
             {
                 _logger.LogWarning("Assistant provider rate limited (429): {Body}", text.Length > 300 ? text[..300] : text);
@@ -117,7 +125,7 @@ public sealed class AssistantLlmClient : IAssistantLlm
         }
     }
 
-    private async Task<HttpResponseMessage> SendAsync(string payload, CancellationToken ct)
+    private async Task<HttpResponseMessage> SendAsync(string payload, int payloadBytes, CancellationToken ct)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, _options.Endpoint)
         {
@@ -132,10 +140,12 @@ public sealed class AssistantLlmClient : IAssistantLlm
         }
         catch (TaskCanceledException) when (!ct.IsCancellationRequested)
         {
+            OutboundTraffic.Record("llm", payloadBytes, 0, failed: true);
             throw new AssistantProviderException("El asistente tardó demasiado en responder.");
         }
         catch (HttpRequestException ex)
         {
+            OutboundTraffic.Record("llm", payloadBytes, 0, failed: true);
             _logger.LogWarning(ex, "Assistant provider unreachable");
             throw new AssistantProviderException("No se pudo conectar con el asistente.");
         }

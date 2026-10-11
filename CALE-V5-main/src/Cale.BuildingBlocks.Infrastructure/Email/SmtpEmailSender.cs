@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Mail;
 using Cale.BuildingBlocks.Domain.Email;
 using Cale.BuildingBlocks.Domain.Privacy;
+using Cale.BuildingBlocks.Infrastructure.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -51,13 +52,16 @@ public sealed class SmtpEmailSender : IEmailSender
                 _options.Smtp.Password);
         }
 
+        var approxBytes = System.Text.Encoding.UTF8.GetByteCount(subject) + System.Text.Encoding.UTF8.GetByteCount(plainTextBody);
         try
         {
             await client.SendMailAsync(message, ct);
+            OutboundTraffic.Record("smtp", approxBytes, 0);
             _logger.LogInformation("Email sent to={To} subject={Subject}", PersonalData.MaskEmail(toEmail), subject);
         }
         catch (Exception ex)
         {
+            OutboundTraffic.Record("smtp", approxBytes, 0, failed: true);
             _logger.LogError(ex, "Failed to send email to={To}", PersonalData.MaskEmail(toEmail));
             throw;
         }
