@@ -30,6 +30,12 @@
     <EmbeddedResource Include="Legal\Drafts\*.md" LogicalName="Cale.Api.Legal.Drafts.%(Filename).md" />
   </ItemGroup>
 
+  <Target Name="EnsureLegalDrafts" BeforeTargets="BeforeBuild">
+    <Error
+      Condition="!Exists('Legal\Drafts\terms.md') Or !Exists('Legal\Drafts\privacy.md') Or !Exists('Legal\Drafts\data-processing.md') Or !Exists('Legal\Drafts\school-terms.md') Or !Exists('Legal\Drafts\ai-policy.md')"
+      Text="Faltan borradores legales en Legal\Drafts (*.md). Si compilas con Docker, revisa que .dockerignore no los excluya." />
+  </Target>
+
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
