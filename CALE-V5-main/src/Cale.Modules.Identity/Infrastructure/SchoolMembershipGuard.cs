@@ -3,6 +3,7 @@ using Cale.BuildingBlocks.Domain.Access;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Time;
 using Cale.Modules.Identity.Application.Abstractions;
+using Cale.Modules.Identity.Domain;
 
 namespace Cale.Modules.Identity.Infrastructure;
 
@@ -19,12 +20,20 @@ public sealed class SchoolMembershipGuard : ISchoolMembershipGuard
 
     public async Task EnsureActiveAsync(int schoolUserId, CancellationToken ct = default)
     {
+        var profile = await _profiles.GetByUserIdAsync(schoolUserId, ct);
+        if (profile is { IsPendingApproval: true })
+        {
+            throw new DomainException(
+                SchoolApprovalMessages.Pending,
+                403,
+                "school_pending_approval");
+        }
+
         if (FreeAccessPolicy.Enabled)
         {
             return;
         }
 
-        var profile = await _profiles.GetByUserIdAsync(schoolUserId, ct);
         if (profile is null || !profile.IsCommerciallyActive(_clock.UtcNow))
         {
             throw new DomainException(

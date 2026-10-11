@@ -55,4 +55,5 @@ public static class MembershipEventTypes
     public const string MemberAttached = "MemberAttached";
     public const string MemberUpdated = "MemberUpdated";
     public const string MemberImported = "MemberImported";
+    public const string SchoolApproved = "SchoolApproved";
 }

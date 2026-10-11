@@ -83,7 +83,8 @@ public sealed record SchoolProfileDto(
     int TeachersUsed,
     int TeachersMax,
     int StudentsUsed,
-    int StudentsMax);
+    int StudentsMax,
+    bool PendingApproval = false);
 
 public sealed record SchoolPaymentInstructionsDto(
     string BankName,
@@ -187,7 +188,8 @@ public sealed record AdminSchoolSummaryDto(
     int StudentsMax,
     bool HasSeatOverrides,
     bool HasOpenRequest,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    bool PendingApproval = false);
 
 public sealed record AdminSchoolDetailDto(
     int UserId,

@@ -15,7 +15,7 @@ public sealed class SchoolInfoAndPhotoTests
     {
         var profile = DraftProfile();
 
-        profile.UpdateBilling(" vipcea ", "900123456", "CEA@Example.com", "3001234567", "Calle 72 # 45-10", " Barranquilla ", "Atlántico");
+        profile.UpdateBilling(" vipcea ", "900123456-8", "CEA@Example.com", "3001234567", "Calle 72 # 45-10", " Barranquilla ", "Atlántico");
 
         Assert.Equal("vipcea", profile.LegalName);
         Assert.Equal("Barranquilla", profile.City);
@@ -24,10 +24,10 @@ public sealed class SchoolInfoAndPhotoTests
     }
 
     [Theory]
-    [InlineData("", "900123456", "Barranquilla", "Atlántico", "invalid_legal_name")]
+    [InlineData("", "900123456-8", "Barranquilla", "Atlántico", "invalid_legal_name")]
     [InlineData("vipcea", " ", "Barranquilla", "Atlántico", "invalid_tax_id")]
-    [InlineData("vipcea", "900123456", "", "Atlántico", "invalid_city")]
-    [InlineData("vipcea", "900123456", "Barranquilla", "", "invalid_department")]
+    [InlineData("vipcea", "900123456-8", "", "Atlántico", "invalid_city")]
+    [InlineData("vipcea", "900123456-8", "Barranquilla", "", "invalid_department")]
     public void Required_school_fields_are_rejected_with_spanish_messages(
         string name, string taxId, string city, string department, string code)
     {
@@ -46,7 +46,7 @@ public sealed class SchoolInfoAndPhotoTests
         var profile = DraftProfile();
 
         var ex = Assert.Throws<DomainException>(() =>
-            profile.UpdateBilling("vipcea", "900123456", "cea@example.com", "", "", new string('a', 121), "Atlántico"));
+            profile.UpdateBilling("vipcea", "900123456-8", "cea@example.com", "", "", new string('a', 121), "Atlántico"));
 
         Assert.Equal("invalid_city", ex.ErrorCode);
     }

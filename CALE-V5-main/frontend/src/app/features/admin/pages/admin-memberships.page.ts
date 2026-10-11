@@ -74,6 +74,7 @@ interface AdminSchoolSummary {
   hasSeatOverrides: boolean;
   hasOpenRequest: boolean;
   createdAt: string;
+  pendingApproval?: boolean;
 }
 
 interface HistoryEvent {
@@ -279,6 +280,9 @@ type Tab = 'queue' | 'schools';
                   <p class="muted">{{ s.contactName }} · {{ s.email }} · NIT {{ s.taxId }}</p>
                 </div>
                 <div class="badges">
+                  @if (s.pendingApproval) {
+                    <ui-badge tone="warning">Pendiente de aprobación</ui-badge>
+                  }
                   <ui-badge [tone]="statusTone(s.displayStatus)">{{ statusLabel(s.displayStatus) }}</ui-badge>
                   @if (s.hasOpenRequest) {
                     <ui-badge tone="warning">Solicitud abierta</ui-badge>
@@ -316,6 +320,11 @@ type Tab = 'queue' | 'schools';
                 <ui-button type="button" variant="ghost" (click)="loadDetail(s.userId)">
                   Ver ficha completa
                 </ui-button>
+                @if (s.pendingApproval) {
+                  <ui-button type="button" [disabled]="busyId() === s.userId" (click)="approveSchool(s)">
+                    Aprobar escuela
+                  </ui-button>
+                }
                 <ui-button
                   type="button"
                   variant="danger"
@@ -773,6 +782,25 @@ export class AdminMembershipsPage implements OnInit {
         this.reload();
       },
       error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  approveSchool(s: AdminSchoolSummary): void {
+    if (!confirm(`¿Aprobar la escuela "${s.legalName}" (NIT ${s.taxId})?\nRevisa antes que el NIT y los datos correspondan a un CEA real.`)) return;
+
+    this.busyId.set(s.userId);
+    this.error.set(null);
+    this.ok.set(null);
+    this.http.post(`${env.apiUrl}/api/admin/schools/${s.userId}/approve`, {}).subscribe({
+      next: () => {
+        this.busyId.set(null);
+        this.ok.set(`Escuela "${s.legalName}" aprobada.`);
+        this.reload();
+      },
+      error: (err) => {
+        this.busyId.set(null);
+        this.error.set(mapApiError(err));
+      }
     });
   }
 
