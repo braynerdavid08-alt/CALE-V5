@@ -60,6 +60,42 @@ public sealed class AgeDeclarationConfiguration : IEntityTypeConfiguration<AgeDe
     }
 }
 
+public sealed class PqrRequestConfiguration : IEntityTypeConfiguration<PqrRequest>
+{
+    public void Configure(EntityTypeBuilder<PqrRequest> builder)
+    {
+        builder.ToTable("SolicitudesPqr");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Kind).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.Status).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.ContactName).HasMaxLength(PqrRequest.NameMax).IsRequired();
+        builder.Property(x => x.ContactEmail).HasMaxLength(PqrRequest.EmailMax).IsRequired();
+        builder.Property(x => x.Subject).HasMaxLength(PqrRequest.SubjectMax).IsRequired();
+        builder.Property(x => x.Message).HasMaxLength(PqrRequest.MessageMax).IsRequired();
+        builder.Property(x => x.Response).HasMaxLength(PqrRequest.ResponseMax);
+        builder.Property(x => x.TrackingCodeHash).HasMaxLength(64).IsRequired();
+        builder.Ignore(x => x.Radicado);
+        builder.Ignore(x => x.IsClosed);
+        builder.HasIndex(x => x.UserId);
+        builder.HasIndex(x => x.TrackingCodeHash);
+        builder.HasIndex(x => x.Status);
+    }
+}
+
+public sealed class PqrEventConfiguration : IEntityTypeConfiguration<PqrEvent>
+{
+    public void Configure(EntityTypeBuilder<PqrEvent> builder)
+    {
+        builder.ToTable("SolicitudesPqrEventos");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Action).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.FromStatus).HasMaxLength(20);
+        builder.Property(x => x.ToStatus).HasMaxLength(20);
+        builder.Property(x => x.Note).HasMaxLength(PqrEvent.NoteMax);
+        builder.HasIndex(x => x.PqrRequestId);
+    }
+}
+
 public sealed class GuardianConsentEventConfiguration : IEntityTypeConfiguration<GuardianConsentEvent>
 {
     public void Configure(EntityTypeBuilder<GuardianConsentEvent> builder)

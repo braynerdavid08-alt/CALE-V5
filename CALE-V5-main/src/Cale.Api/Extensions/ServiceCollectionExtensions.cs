@@ -190,6 +190,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<Cale.Api.Services.Requests.UserRequestService>();
         services.AddScoped<Cale.Api.Services.Legal.LegalService>();
         services.AddScoped<Cale.Api.Services.Legal.MinorConsentService>();
+        services.AddScoped<Cale.Api.Services.Legal.PqrService>();
         services.AddHostedService<Cale.Api.Services.Play.PlayNudgeService>();
         services.AddScoped<Cale.Api.Services.Admin.AdminInsightsService>();
         services.AddHostedService<Cale.Api.Services.Admin.WeeklySummaryService>();

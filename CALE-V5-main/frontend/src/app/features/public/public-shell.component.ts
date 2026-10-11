@@ -106,6 +106,7 @@ import { LEGAL_LINKS } from '../legal/legal-links';
             @for (link of legalLinks; track link.key) {
               <a [routerLink]="['/legal', link.key]">{{ link.label }}</a>
             }
+            <a routerLink="/pqr">PQR y datos personales</a>
           </nav>
         </div>
       </footer>

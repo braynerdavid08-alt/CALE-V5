@@ -29,6 +29,7 @@ export interface NavOptions {
 
 const DONATE_ITEM: NavItem = { label: 'Apoyar Luz Verde', path: '/donaciones', icon: 'heart', exact: true };
 const REQUESTS_ITEM: NavItem = { label: 'Proponer y sugerir', path: '/solicitudes', icon: 'idea', exact: true };
+const PQR_ITEM: NavItem = { label: 'PQR y mis datos', path: '/mis-pqr', icon: 'list', exact: true };
 
 export function navChildActive(url: string, child: NavChild): boolean {
   const [pathPart, query = ''] = url.split('?');
@@ -62,7 +63,8 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
           { label: 'Usuarios', path: '/admin/users', exact: true },
           { label: 'Instructores', path: '/admin/instructors', exact: true },
           { label: 'Estudiantes', path: '/admin/students', exact: true },
-          { label: 'Documentos legales', path: '/admin/legal', exact: true }
+          { label: 'Documentos legales', path: '/admin/legal', exact: true },
+          { label: 'PQR y datos personales', path: '/admin/pqr', exact: true }
         ]
       },
       {
@@ -126,6 +128,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
         ]
       },
       REQUESTS_ITEM,
+      PQR_ITEM,
       ...(free ? [DONATE_ITEM] : [])
     ];
   }
@@ -156,6 +159,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
       },
       { label: 'Informes', path: '/teacher/results', icon: 'chart', exact: true },
       REQUESTS_ITEM,
+      PQR_ITEM,
       DONATE_ITEM
     ];
   }
@@ -179,6 +183,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
     { label: 'Mensajes', path: '/notifications', icon: 'bell', exact: true },
     { label: 'Perfil', path: '/profile', icon: 'users', exact: true },
     REQUESTS_ITEM,
+    PQR_ITEM,
     DONATE_ITEM
   ];
 

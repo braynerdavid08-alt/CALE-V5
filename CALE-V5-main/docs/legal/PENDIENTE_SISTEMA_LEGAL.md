@@ -10,11 +10,13 @@
 - Documentos legales versionados (`terms`, `privacy`, `data-processing`, `ai-policy`, `school-terms`), páginas públicas `/legal/*`, casillas separadas y sin marcar en los tres registros, registro de aceptaciones (versión, hash, fecha, IP, navegador), estado ACCEPTED / OUTDATED / NOT_VERIFIED, aviso no bloqueante para usuarios existentes y panel de administración en `/admin/legal` con exportación CSV. Los borradores están en `src/Cale.Api/Legal/Drafts/`.
 
 - Menores de edad: el registro de estudiante pide fecha de nacimiento; si es menor, pide nombre, parentesco y correo del representante (datos mínimos). El representante recibe un enlace personal (30 días, se guarda solo su hash) donde lee los documentos, confirma que es el representante y autoriza o no. Puede revocar con el mismo enlace. Si no autoriza o revoca, la cuenta queda suspendida con el motivo. Todo queda en `AutorizacionesMenoresEventos` (fecha, IP, navegador, versiones vigentes). Los estudiantes existentes declaran su fecha desde el aviso. El administrador ve el listado en `/admin/legal`.
+- PQR y derechos del titular: sistema propio (`SolicitudesPqr` y `SolicitudesPqrEventos`), separado de las Solicitudes de cursos. Formulario público en `/pqr` (con o sin cuenta), radicado `PQR-AAAA-000123`, código de seguimiento (solo se guarda su hash), "Mis PQR" en `/mis-pqr` y panel en `/admin/pqr`. Tipos: consulta, rectificación, supresión, revocatoria, reclamo de datos, petición, queja, reporte de seguridad y revisión de suspensión. Plazos en días hábiles (consulta 10 + 5 de prórroga; reclamos 15 + 8), prórroga única con motivo, rechazo con justificación obligatoria, notas internas que el solicitante no ve, historial que nunca se borra y avisos por correo y notificación.
 
 ### Fase 1: falta
 
 - Menores (decidido por el propietario): edad mínima 16 años; la cuenta se usa con normalidad aunque el representante no firme; el representante firma escribiendo su nombre completo y marcando la casilla. Falta: validez de esta firma simple y cómo escuchar la opinión del menor según su edad y madurez [REVISIÓN JURÍDICA REQUERIDA].
-- PQR y derechos del titular (consulta, reclamo, rectificación, supresión, revocatoria) sobre Solicitudes.
+- PQR: los plazos no descuentan festivos (quedan antes de lo legal, del lado seguro); la supresión de datos la ejecuta el administrador a mano porque depende de la política de conservación (`RETENTION_POLICY`), que aún no está definida. Revisar plazos y textos [REVISIÓN JURÍDICA REQUERIDA].
+- Menores: decidir si "No autorizo" o la revocatoria del representante deben seguir suspendiendo la cuenta (hoy sí la suspenden).
 - Llenar los espacios [PENDIENTE] y hacer revisar los textos por un abogado antes de publicarlos como versión definitiva.
 
 ## Lo que falta definir antes de empezar (el propietario)
