@@ -5,7 +5,16 @@ import { buildQrDataUrl } from '../../../core/qr/build-qr-data-url';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { mapApiError } from '../../../core/http/map-api-error';
-import { GameShowApi, GameShowLobbyDto, GameShowStatsDto } from '../api/game-show.api';
+import {
+  GameShowApi,
+  GameShowLobbyDto,
+  GameShowStatsDto,
+  GameShowTeamDto,
+  TEAM_COLORS,
+  teamNameOf,
+  teamsOf,
+  winnerTextOf
+} from '../api/game-show.api';
 import { GameShowSfxService } from '../api/game-show-sfx.service';
 import { phaseHasTurnClock, remainingFromServerSnapshot, secondsUntilDeadline } from '../api/game-show-deadline';
 import { phraseForLightning, phraseForSteal, phraseForStrike3 } from '../api/game-show-phrases';
@@ -62,8 +71,9 @@ const HIDE_ANSWERS_KEY = 'cale.gameshow.hideAnswers';
         </article>
 
         <div class="score">
-          <div><span>{{ L.teamAName }}</span><strong>{{ L.teamAScore }}</strong></div>
-          <div><span>{{ L.teamBName }}</span><strong>{{ L.teamBScore }}</strong></div>
+          @for (t of teams(L); track t.key) {
+            <div [style.--team]="teamColor(t.key)"><span>{{ t.name }}</span><strong>{{ t.score }}</strong></div>
+          }
         </div>
 
         <div class="controls">
@@ -77,8 +87,17 @@ const HIDE_ANSWERS_KEY = 'cale.gameshow.hideAnswers';
             <ui-button type="button" (click)="resume()">Reanudar</ui-button>
           }
           @if (L.currentRound?.phase === 'WaitingBuzz') {
-            <ui-button type="button" variant="secondary" (click)="forceBuzz('A')">Enfrentamiento {{ L.teamAName }}</ui-button>
-            <ui-button type="button" variant="secondary" (click)="forceBuzz('B')">Enfrentamiento {{ L.teamBName }}</ui-button>
+            @for (t of teams(L); track t.key) {
+              <ui-button type="button" variant="secondary" (click)="forceBuzz(t.key)">Enfrentamiento {{ t.name }}</ui-button>
+            }
+          }
+          @if (L.currentRound?.phase === 'StealBuzz') {
+            @for (t of teams(L); track t.key) {
+              @if (t.key !== L.currentRound?.controllingTeam) {
+                <ui-button type="button" variant="secondary" (click)="forceBuzz(t.key)">Dar el robo a {{ t.name }}</ui-button>
+              }
+            }
+            <ui-button type="button" variant="ghost" (click)="failSteal()">Nadie roba (cerrar)</ui-button>
           }
           @if ((L.currentRound?.phase === 'Control' || L.currentRound?.phase === 'Playing') && L.settings?.allowHostEndRound !== false) {
             <ui-button type="button" variant="secondary" (click)="strike()">Registrar error (X)</ui-button>
@@ -104,7 +123,7 @@ const HIDE_ANSWERS_KEY = 'cale.gameshow.hideAnswers';
         @if (L.status === 'Ended') {
           <article class="board finale">
             <h2>Partida finalizada</h2>
-            <p class="q">{{ L.teamAScore > L.teamBScore ? 'Gana ' + L.teamAName : L.teamBScore > L.teamAScore ? 'Gana ' + L.teamBName : 'Empate' }}</p>
+            <p class="q">{{ winnerText(L) }}</p>
             @if (stats(); as S) {
               <p class="meta">Aciertos {{ S.correctAnswers }} · Errores {{ S.wrongAnswers }} · Robos {{ S.stealsSucceeded }} · Rondas {{ S.roundCount }}</p>
               @if (S.mvp; as mvp) {
@@ -155,10 +174,13 @@ const HIDE_ANSWERS_KEY = 'cale.gameshow.hideAnswers';
               <p class="steal">Campeón de ronda: {{ C.displayName }} ({{ C.correctAnswers }} aciertos)</p>
             }
             @if (R.phase === 'FaceOff' || R.phase === 'FaceOffSecond') {
-              <p class="steal">Enfrentamiento inicial — un fallo pasa el turno (sin strikes).</p>
+              <p class="steal">Enfrentamiento — un fallo pasa el turno al siguiente equipo (sin strikes). Si todos fallan, se reabre el botón.</p>
+            }
+            @if (R.phase === 'StealBuzz') {
+              <p class="steal">Robo abierto: el primer equipo rival que presione RESPONDER intenta robar el banco ({{ R.roundPointsForController }}).</p>
             }
             @if (R.phase === 'Steal') {
-              <p class="steal">Roba <strong>{{ teamName(L, stealingTeam(R.controllingTeam)) }}</strong> con una sola respuesta. Se lleva el banco ({{ R.roundPointsForController }}).</p>
+              <p class="steal">Roba <strong>{{ teamName(L, R.stealingTeam ?? stealingTeam(R.controllingTeam)) }}</strong> con una sola respuesta. Se lleva el banco ({{ R.roundPointsForController }}).</p>
             }
             <div class="board-tools">
               <span class="hint-inline">
@@ -190,6 +212,7 @@ const HIDE_ANSWERS_KEY = 'cale.gameshow.hideAnswers';
             [sessionId]="L.id"
             [teamAName]="L.teamAName"
             [teamBName]="L.teamBName"
+            [teams]="teams(L)"
             [hideAnswers]="hideAnswers()"
             [refreshKey]="refreshKey()"
             (lobbyChanged)="applyLobby($event)" />
@@ -212,27 +235,35 @@ const HIDE_ANSWERS_KEY = 'cale.gameshow.hideAnswers';
 
         <article class="players">
           <h3>Jugadores ({{ L.players.length }})</h3>
+          <p class="hint-inline">Cada estudiante escoge su equipo antes de iniciar. Puedes moverlo o quitarlo cuando quieras.</p>
           <div class="cols">
-            <div>
-              <h4>{{ L.teamAName }} ({{ teamCount(L, 'A') }})</h4>
-              @for (p of teamPlayers(L, 'A'); track p.id) {
-                <p>
-                  <span class="dot" [style.background]="p.accentColor || '#64748b'"></span>
-                  {{ p.displayName }} {{ p.isConnected ? '●' : '○' }}
-                  <button type="button" class="link" (click)="assign(p.id, 'B')">→ B</button>
-                </p>
-              }
-            </div>
-            <div>
-              <h4>{{ L.teamBName }} ({{ teamCount(L, 'B') }})</h4>
-              @for (p of teamPlayers(L, 'B'); track p.id) {
-                <p>
-                  <span class="dot" [style.background]="p.accentColor || '#64748b'"></span>
-                  {{ p.displayName }} {{ p.isConnected ? '●' : '○' }}
-                  <button type="button" class="link" (click)="assign(p.id, 'A')">→ A</button>
-                </p>
-              }
-            </div>
+            @for (t of teams(L); track t.key) {
+              <div class="team-col" [style.--team]="teamColor(t.key)">
+                <h4>{{ t.name }} ({{ teamCount(L, t.key) }})</h4>
+                @for (p of teamPlayers(L, t.key); track p.id) {
+                  <div class="player-row">
+                    <span class="dot" [style.background]="p.accentColor || '#64748b'"></span>
+                    <span class="pname" [title]="p.isConnected ? 'Conectado' : 'Desconectado'">
+                      {{ p.displayName }} {{ p.isConnected ? '●' : '○' }}
+                    </span>
+                    <select
+                      class="move"
+                      [attr.aria-label]="'Mover a ' + p.displayName + ' de equipo'"
+                      [value]="p.team"
+                      (change)="assign(p.id, $any($event.target).value)">
+                      @for (o of teams(L); track o.key) {
+                        <option [value]="o.key">{{ o.name }}</option>
+                      }
+                    </select>
+                    <button type="button" class="remove" (click)="removePlayer(p.id, p.displayName)" [attr.aria-label]="'Quitar a ' + p.displayName">
+                      Quitar
+                    </button>
+                  </div>
+                } @empty {
+                  <p class="hint-inline">Sin jugadores</p>
+                }
+              </div>
+            }
           </div>
         </article>
       </section>
@@ -284,8 +315,8 @@ const HIDE_ANSWERS_KEY = 'cale.gameshow.hideAnswers';
       padding: 0.65rem;
       box-sizing: border-box;
     }
-    .score { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-    .score > div { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 14px; padding: 1rem; display: flex; justify-content: space-between; align-items: baseline; }
+    .score { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); gap: 0.75rem; }
+    .score > div { background: var(--color-surface); border: 1px solid var(--color-border); border-left: 5px solid var(--team, var(--color-primary)); border-radius: 14px; padding: 1rem; display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
     .score strong { font-size: 2rem; }
     .controls { display: flex; flex-wrap: wrap; gap: 0.55rem; }
     .board, .players { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 16px; padding: 1rem; }
@@ -296,8 +327,14 @@ const HIDE_ANSWERS_KEY = 'cale.gameshow.hideAnswers';
     li.peek .txt, li.peek .pts { color: var(--color-text-secondary); font-style: italic; }
     .board-tools { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
     .txt { overflow-wrap: anywhere; min-width: 0; }
-    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    .link { background: none; border: 0; color: var(--color-primary); cursor: pointer; }
+    .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: 1rem; margin-top: 0.6rem; }
+    .team-col { border-top: 4px solid var(--team, var(--color-primary)); padding-top: 0.5rem; min-width: 0; }
+    .team-col h4 { margin: 0 0 0.4rem; }
+    .player-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 0.4rem; align-items: center; padding: 0.3rem 0; border-bottom: 1px solid var(--color-border); }
+    .pname { overflow-wrap: anywhere; }
+    .move { padding: 0.2rem 0.3rem; border-radius: 8px; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); font-size: 0.85rem; max-width: 8rem; }
+    .remove { background: none; border: 1px solid color-mix(in srgb, var(--color-danger, #dc2626) 50%, transparent); color: var(--color-danger, #dc2626); border-radius: 8px; padding: 0.2rem 0.5rem; cursor: pointer; font-size: 0.85rem; font-weight: 700; }
+    .remove:hover { background: color-mix(in srgb, var(--color-danger, #dc2626) 12%, transparent); }
     .flash { color: var(--color-success); font-weight: 800; }
     .conn { color: var(--color-text-secondary); font-weight: 700; }
     .steal { font-weight: 800; color: var(--color-primary); }
@@ -360,9 +397,10 @@ export class GameShowHostPage implements OnInit, OnDestroy {
     switch (phase) {
       case 'WaitingBuzz': return 'Buzzer';
       case 'FaceOff': return 'Enfrentamiento (1.er intento)';
-      case 'FaceOffSecond': return 'Enfrentamiento (2.º intento)';
+      case 'FaceOffSecond': return 'Enfrentamiento (siguiente equipo)';
       case 'Control':
       case 'Playing': return 'Control de ronda';
+      case 'StealBuzz': return 'Robo: esperando que un equipo presione';
       case 'Steal': return 'Oportunidad de robo';
       case 'Finished': return 'Ronda terminada';
       default: return phase;
@@ -370,9 +408,24 @@ export class GameShowHostPage implements OnInit, OnDestroy {
   }
 
   teamName(L: GameShowLobbyDto, team: string | null): string {
-    if (team === 'A') return L.teamAName;
-    if (team === 'B') return L.teamBName;
-    return 'Sin definir';
+    return teamNameOf(L, team);
+  }
+
+  teams(L: GameShowLobbyDto): GameShowTeamDto[] {
+    return teamsOf(L);
+  }
+
+  teamColor(key: string): string {
+    return TEAM_COLORS[key] ?? '#2563eb';
+  }
+
+  winnerText(L: GameShowLobbyDto): string {
+    return winnerTextOf(L);
+  }
+
+  removePlayer(playerId: number, name: string): void {
+    if (!confirm(`¿Quitar a ${name} de la partida? Sus respuestas quedan en el historial.`)) return;
+    this.act(() => this.api.removePlayer(this.sessionId, playerId));
   }
 
   stealingTeam(controllingTeam: string | null): string | null {
@@ -575,6 +628,11 @@ export class GameShowHostPage implements OnInit, OnDestroy {
     this.hub.on('StealOpportunity', () => {
       if (this.lobby()?.settings?.enableSounds !== false) this.sfx.play('steal');
       this.showFlash(phraseForSteal());
+    });
+    this.hub.on('StealBuzzWon', (p: { team?: string }) => {
+      if (this.lobby()?.settings?.enableSounds !== false) this.sfx.play('buzz');
+      const L = this.lobby();
+      this.showFlash(L && p?.team ? `Intenta robar ${teamNameOf(L, p.team)}` : 'Robo en curso');
     });
     this.hub.on('StealSucceeded', () => {
       if (this.lobby()?.settings?.enableSounds !== false) this.sfx.play('correct');

@@ -29,6 +29,9 @@ public static class GameShowRoundPhases
     /// <summary>Opposite team has one steal attempt.</summary>
     public const string Steal = "Steal";
 
+    /// <summary>With 3+ teams: the non-controlling teams race to press RESPONDER to earn the steal.</summary>
+    public const string StealBuzz = "StealBuzz";
+
     public const string Finished = "Finished";
 
     /// <summary>Legacy alias kept for in-flight sessions created before FaceOff/Control split.</summary>
@@ -48,6 +51,91 @@ public static class GameShowTeams
 {
     public const string A = "A";
     public const string B = "B";
+    public const string C = "C";
+    public const string D = "D";
+    public const int MinTeams = 2;
+    public const int MaxTeams = 4;
+
+    private static readonly string[] AllKeys = [A, B, C, D];
+
+    public static int ClampCount(int count) => Math.Clamp(count, MinTeams, MaxTeams);
+
+    public static IReadOnlyList<string> Keys(GameShowSession session) =>
+        AllKeys.Take(ClampCount(session.TeamCount)).ToArray();
+
+    public static string? Normalize(GameShowSession session, string? team)
+    {
+        var key = (team ?? "").Trim().ToUpperInvariant();
+        return Keys(session).Contains(key) ? key : null;
+    }
+
+    public static string Name(GameShowSession session, string? team) => team switch
+    {
+        A => session.TeamAName,
+        B => session.TeamBName,
+        C => session.TeamCName,
+        D => session.TeamDName,
+        _ => "Sin definir"
+    };
+
+    public static int Score(GameShowSession session, string team) => team switch
+    {
+        A => session.TeamAScore,
+        B => session.TeamBScore,
+        C => session.TeamCScore,
+        D => session.TeamDScore,
+        _ => 0
+    };
+
+    public static void AddScore(GameShowSession session, string team, int delta)
+    {
+        switch ((team ?? "").ToUpperInvariant())
+        {
+            case A: session.TeamAScore = Math.Max(0, session.TeamAScore + delta); break;
+            case B: session.TeamBScore = Math.Max(0, session.TeamBScore + delta); break;
+            case C: session.TeamCScore = Math.Max(0, session.TeamCScore + delta); break;
+            case D: session.TeamDScore = Math.Max(0, session.TeamDScore + delta); break;
+        }
+    }
+
+    /// <summary>Teams that can play: those with players, or every team while nobody joined.</summary>
+    public static IReadOnlyList<string> Playing(GameShowSession session)
+    {
+        var keys = Keys(session);
+        var withPlayers = keys
+            .Where(k => session.Players.Any(p => string.Equals(p.Team, k, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+        return withPlayers.Count >= MinTeams ? withPlayers : keys;
+    }
+
+    /// <summary>Next playing team after <paramref name="team"/>, wrapping around.</summary>
+    public static string Next(GameShowSession session, string team)
+    {
+        var order = Playing(session);
+        var all = Keys(session);
+        var start = all.ToList().IndexOf((team ?? "").ToUpperInvariant());
+        for (var step = 1; step <= all.Count; step++)
+        {
+            var candidate = all[(Math.Max(start, 0) + step) % all.Count];
+            if (order.Contains(candidate)) return candidate;
+        }
+
+        return team ?? A;
+    }
+
+    /// <summary>Teams other than the controller that can attempt a steal.</summary>
+    public static IReadOnlyList<string> Stealers(GameShowSession session, string controller) =>
+        Playing(session)
+            .Where(k => !string.Equals(k, controller, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+    /// <summary>Teams holding the highest score (more than one means a tie).</summary>
+    public static IReadOnlyList<string> Leaders(GameShowSession session)
+    {
+        var keys = Keys(session);
+        var max = keys.Max(k => Score(session, k));
+        return keys.Where(k => Score(session, k) == max).ToList();
+    }
 }
 
 public sealed class GameShowSession
@@ -60,8 +148,14 @@ public sealed class GameShowSession
     public string Status { get; set; } = GameShowSessionStatuses.Lobby;
     public string TeamAName { get; set; } = "Equipo A";
     public string TeamBName { get; set; } = "Equipo B";
+    public string TeamCName { get; set; } = "Equipo C";
+    public string TeamDName { get; set; } = "Equipo D";
     public int TeamAScore { get; set; }
     public int TeamBScore { get; set; }
+    public int TeamCScore { get; set; }
+    public int TeamDScore { get; set; }
+    /// <summary>How many teams play (2–4); students pick among them.</summary>
+    public int TeamCount { get; set; } = GameShowTeams.MinTeams;
     public int CurrentRoundIndex { get; set; } = -1;
     /// <summary>Pack used to create this session (school challenge / leaderboard).</summary>
     public int? SourcePackId { get; set; }
@@ -87,6 +181,8 @@ public sealed class GameShowRound
     public string Phase { get; set; } = GameShowRoundPhases.WaitingBuzz;
     public string? ControllingTeam { get; set; }
     public string? BuzzWinnerTeam { get; set; }
+    /// <summary>Team attempting the steal (null while no one has claimed it).</summary>
+    public string? StealingTeam { get; set; }
     public int Strikes { get; set; }
     public int RoundPointsForController { get; set; }
     public bool StealSucceeded { get; set; }

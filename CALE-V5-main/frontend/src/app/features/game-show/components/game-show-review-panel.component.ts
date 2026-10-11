@@ -6,7 +6,8 @@ import {
   GameShowLobbyDto,
   GameShowReviewAnswerDto,
   GameShowReviewAttemptDto,
-  GameShowReviewRoundDto
+  GameShowReviewRoundDto,
+  GameShowTeamDto
 } from '../api/game-show.api';
 
 type PickerKind = 'accept' | 'alias';
@@ -149,6 +150,7 @@ export class GameShowReviewPanelComponent implements OnDestroy {
   readonly sessionId = input.required<number>();
   readonly teamAName = input('Equipo A');
   readonly teamBName = input('Equipo B');
+  readonly teams = input<GameShowTeamDto[] | null>(null);
   readonly hideAnswers = input(false);
   /** Changes on every lobby update so the list follows the game. */
   readonly refreshKey = input(0);
@@ -198,6 +200,8 @@ export class GameShowReviewPanelComponent implements OnDestroy {
   }
 
   teamName(team: string): string {
+    const named = this.teams()?.find((t) => t.key === team)?.name;
+    if (named) return named;
     return team === 'A' ? this.teamAName() : team === 'B' ? this.teamBName() : team;
   }
 

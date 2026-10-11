@@ -55,7 +55,8 @@ public static class GameShowReviewEngine
             return AcceptMode.FaceOff;
         }
 
-        if ((GameShowRoundPhases.IsControl(round.Phase) || round.Phase == GameShowRoundPhases.Steal)
+        if ((GameShowRoundPhases.IsControl(round.Phase)
+             || round.Phase is GameShowRoundPhases.Steal or GameShowRoundPhases.StealBuzz)
             && round.Strikes > 0
             && string.Equals(attempt.Team, round.ControllingTeam, StringComparison.OrdinalIgnoreCase))
         {
@@ -130,9 +131,10 @@ public static class GameShowReviewEngine
             case AcceptMode.ControlStrike:
             {
                 EnsureHidden(answer);
-                var wasSteal = round.Phase == GameShowRoundPhases.Steal;
+                var wasSteal = round.Phase is GameShowRoundPhases.Steal or GameShowRoundPhases.StealBuzz;
                 round.Strikes = Math.Max(0, round.Strikes - 1);
                 round.Phase = GameShowRoundPhases.Control;
+                round.StealingTeam = null;
                 GameShowEngine.RevealAnswer(answer, utcNow);
                 round.RoundPointsForController += answer.Points;
                 MarkCorrect(attempt, answer);
@@ -208,17 +210,8 @@ public static class GameShowReviewEngine
         attempt.MatchedAnswerId = answer.Id;
     }
 
-    private static void AddScore(GameShowSession session, string team, int delta)
-    {
-        if (string.Equals(team, GameShowTeams.A, StringComparison.OrdinalIgnoreCase))
-        {
-            session.TeamAScore = Math.Max(0, session.TeamAScore + delta);
-        }
-        else
-        {
-            session.TeamBScore = Math.Max(0, session.TeamBScore + delta);
-        }
-    }
+    private static void AddScore(GameShowSession session, string team, int delta) =>
+        GameShowTeams.AddScore(session, team, delta);
 
     private static void RecomputeChampion(GameShowRound round)
     {

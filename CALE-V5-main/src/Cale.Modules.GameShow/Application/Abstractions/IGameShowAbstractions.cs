@@ -18,6 +18,9 @@ public interface IGameShowStore
     /// Atomically claims the buzz for a round. Returns false if already taken.
     /// </summary>
     Task<bool> TryClaimBuzzAsync(int roundId, string team, CancellationToken ct);
+    /// <summary>Atomically gives a pending steal (StealBuzz) to the first team that presses.</summary>
+    Task<bool> TryClaimStealAsync(int roundId, string team, CancellationToken ct);
+    Task RemovePlayerAsync(GameShowPlayer player, CancellationToken ct);
     Task<IReadOnlyList<GameShowSession>> ListForHostAsync(int hostUserId, CancellationToken ct);
     Task<IReadOnlyList<GameShowSession>> ListForSchoolAsync(int schoolUserId, CancellationToken ct);
 

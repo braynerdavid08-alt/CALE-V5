@@ -75,6 +75,18 @@ public static class GameShowPackSchemaGuard
                     ADD COLUMN IF NOT EXISTS "StealsWon" integer NOT NULL DEFAULT 0;
                     ALTER TABLE IF EXISTS "GameShowPlayers"
                     ADD COLUMN IF NOT EXISTS "BuzzWins" integer NOT NULL DEFAULT 0;
+                    ALTER TABLE IF EXISTS "GameShowSessions"
+                    ADD COLUMN IF NOT EXISTS "TeamCount" integer NOT NULL DEFAULT 2;
+                    ALTER TABLE IF EXISTS "GameShowSessions"
+                    ADD COLUMN IF NOT EXISTS "TeamCName" character varying(80) NOT NULL DEFAULT 'Equipo C';
+                    ALTER TABLE IF EXISTS "GameShowSessions"
+                    ADD COLUMN IF NOT EXISTS "TeamDName" character varying(80) NOT NULL DEFAULT 'Equipo D';
+                    ALTER TABLE IF EXISTS "GameShowSessions"
+                    ADD COLUMN IF NOT EXISTS "TeamCScore" integer NOT NULL DEFAULT 0;
+                    ALTER TABLE IF EXISTS "GameShowSessions"
+                    ADD COLUMN IF NOT EXISTS "TeamDScore" integer NOT NULL DEFAULT 0;
+                    ALTER TABLE IF EXISTS "GameShowRounds"
+                    ADD COLUMN IF NOT EXISTS "StealingTeam" character varying(8) NULL;
                     CREATE TABLE IF NOT EXISTS "GameShowSettings" (
                         "Id" integer PRIMARY KEY,
                         "PayloadJson" text NOT NULL,
@@ -145,6 +157,16 @@ public static class GameShowPackSchemaGuard
                     IF OBJECT_ID(N'dbo.GameShowSessions', N'U') IS NOT NULL
                        AND COL_LENGTH(N'dbo.GameShowSessions', N'SettingsJson') IS NULL
                         ALTER TABLE dbo.GameShowSessions ADD SettingsJson nvarchar(max) NOT NULL CONSTRAINT DF_GSS_SettingsJson DEFAULT(N'');
+                    IF OBJECT_ID(N'dbo.GameShowSessions', N'U') IS NOT NULL
+                       AND COL_LENGTH(N'dbo.GameShowSessions', N'TeamCount') IS NULL
+                        ALTER TABLE dbo.GameShowSessions ADD TeamCount int NOT NULL CONSTRAINT DF_GSS_TeamCount DEFAULT(2),
+                            TeamCName nvarchar(80) NOT NULL CONSTRAINT DF_GSS_TeamCName DEFAULT(N'Equipo C'),
+                            TeamDName nvarchar(80) NOT NULL CONSTRAINT DF_GSS_TeamDName DEFAULT(N'Equipo D'),
+                            TeamCScore int NOT NULL CONSTRAINT DF_GSS_TeamCScore DEFAULT(0),
+                            TeamDScore int NOT NULL CONSTRAINT DF_GSS_TeamDScore DEFAULT(0);
+                    IF OBJECT_ID(N'dbo.GameShowRounds', N'U') IS NOT NULL
+                       AND COL_LENGTH(N'dbo.GameShowRounds', N'StealingTeam') IS NULL
+                        ALTER TABLE dbo.GameShowRounds ADD StealingTeam nvarchar(8) NULL;
                     IF OBJECT_ID(N'dbo.GameShowSettings', N'U') IS NULL
                     BEGIN
                         CREATE TABLE dbo.GameShowSettings (
