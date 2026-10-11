@@ -187,6 +187,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<Cale.Api.Services.Courses.CurriculumSync>();
         services.AddScoped<Cale.Api.Services.Admin.CatalogPurgeService>();
         services.AddScoped<Cale.Api.Services.Admin.BankUsageService>();
+        services.AddScoped<Cale.Api.Services.Admin.SchoolDeletionService>();
         services.AddScoped<Cale.Api.Services.Requests.UserRequestService>();
         services.AddScoped<Cale.Api.Services.Legal.LegalService>();
         services.AddScoped<Cale.Api.Services.Legal.MinorConsentService>();

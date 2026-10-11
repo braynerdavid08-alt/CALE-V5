@@ -15,15 +15,26 @@ public sealed class AdminMembershipsController : ControllerBase
     private readonly ManageSchoolPlanHandler _managePlan;
     private readonly PilotMetricsService _metrics;
     private readonly HomepageService _homepage;
+    private readonly Cale.Api.Services.Admin.SchoolDeletionService _schoolDeletion;
 
     public AdminMembershipsController(
         ManageSchoolPlanHandler managePlan,
         PilotMetricsService metrics,
-        HomepageService homepage)
+        HomepageService homepage,
+        Cale.Api.Services.Admin.SchoolDeletionService schoolDeletion)
     {
         _managePlan = managePlan;
         _metrics = metrics;
         _homepage = homepage;
+        _schoolDeletion = schoolDeletion;
+    }
+
+    /// <summary>Deletes a school with no linked users or content (409 school_not_empty otherwise).</summary>
+    [HttpDelete("schools/{schoolUserId:int}")]
+    public async Task<IActionResult> DeleteSchool(int schoolUserId, CancellationToken ct)
+    {
+        await _schoolDeletion.DeleteAsync(CurrentUser.GetId(User), schoolUserId, ct);
+        return NoContent();
     }
 
     [HttpGet("memberships/pending")]
