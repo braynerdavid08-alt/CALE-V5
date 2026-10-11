@@ -1,7 +1,9 @@
 using System.Net;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
 using Cale.BuildingBlocks.Domain.Time;
+using Cale.BuildingBlocks.Infrastructure.Diagnostics;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
 using Cale.Modules.Engagement.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -255,6 +257,7 @@ public sealed class PushDispatcher : BackgroundService
                 tag = message.Tag,
                 badge = unread.GetValueOrDefault(sub.UserId)
             }, Json);
+            var payloadBytes = Encoding.UTF8.GetByteCount(payload);
 
             try
             {
@@ -268,13 +271,16 @@ public sealed class PushDispatcher : BackgroundService
                     },
                     ct);
                 sent++;
+                OutboundTraffic.Record("push", payloadBytes, 0);
             }
             catch (WebPushException ex) when (ex.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Gone)
             {
+                OutboundTraffic.Record("push", payloadBytes, 0, failed: true);
                 gone.Add(sub);
             }
             catch (WebPushException ex)
             {
+                OutboundTraffic.Record("push", payloadBytes, 0, failed: true);
                 _logger.LogWarning("Push rejected status={Status} userId={UserId}", (int)ex.StatusCode, sub.UserId);
             }
         }

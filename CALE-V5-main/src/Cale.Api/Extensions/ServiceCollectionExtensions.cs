@@ -197,6 +197,9 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<Cale.Api.Services.Media.LegacyUploadMigrationService>();
         services.AddSingleton<Cale.Api.Services.Live.LiveActivityTracker>();
         services.AddHostedService<Cale.Api.Services.Live.AbandonedLiveRoomService>();
+        services.AddSingleton<Cale.BuildingBlocks.Infrastructure.Diagnostics.DatabaseTrafficMonitor>(
+            _ => new Cale.BuildingBlocks.Infrastructure.Diagnostics.DatabaseTrafficMonitor());
+        services.AddHostedService<Cale.Api.Services.Diagnostics.ResourceUsageSummaryService>();
         services.AddScoped<Cale.Api.Services.AuthCookieService>();
         services.Configure<Cale.Api.Services.Assistant.AssistantOptions>(
             config.GetSection(Cale.Api.Services.Assistant.AssistantOptions.Section));

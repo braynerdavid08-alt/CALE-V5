@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Security.Claims;
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Http.Features;
 
 namespace Cale.Api.Middleware;
 
@@ -45,16 +47,32 @@ public sealed class RequestTelemetryMiddleware
         }))
         {
             var sw = Stopwatch.StartNew();
+            var originalBody = context.Features.Get<IHttpResponseBodyFeature>();
+            var countingBody = originalBody is null ? null : new CountingResponseBodyFeature(originalBody);
+            if (countingBody is not null)
+            {
+                context.Features.Set<IHttpResponseBodyFeature>(countingBody);
+            }
+
             try
             {
                 await _next(context);
+                if (countingBody is not null)
+                {
+                    await countingBody.CompleteAsync();
+                }
             }
             finally
             {
                 sw.Stop();
+                if (originalBody is not null)
+                {
+                    context.Features.Set(originalBody);
+                }
+
                 var status = context.Response.StatusCode;
-                var bytes = context.Response.ContentLength;
-                Traffic.Record(TrafficCategory(path), status, bytes);
+                long? bytes = countingBody is not null ? countingBody.Counter.BytesWritten : context.Response.ContentLength;
+                Traffic.Record(TrafficCategory(path), status, bytes, RouteKey(path));
                 if (!path.StartsWith("/api/health", StringComparison.OrdinalIgnoreCase))
                 {
                     // User is available after authentication middleware has run.
@@ -90,6 +108,40 @@ public sealed class RequestTelemetryMiddleware
         return "static";
     }
 
+    private static readonly Regex IdSegment = new(
+        "^([0-9]+|[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}|[A-Za-z0-9_\\-\\.]{24,})$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// Low-cardinality route key for the traffic summary: ids and tokens become {id}, static assets
+    /// collapse by extension, course videos keep their (fixed) file name. Query strings are dropped.
+    /// </summary>
+    public static string RouteKey(string path)
+    {
+        var category = TrafficCategory(path);
+        if (category == "videos")
+        {
+            return path.ToLowerInvariant();
+        }
+
+        if (category == "static")
+        {
+            var ext = Path.GetExtension(path);
+            return string.IsNullOrEmpty(ext) ? "static (spa)" : "static *" + ext.ToLowerInvariant();
+        }
+
+        var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        for (var i = 0; i < segments.Length; i++)
+        {
+            if (IdSegment.IsMatch(segments[i]))
+            {
+                segments[i] = "{id}";
+            }
+        }
+
+        return "/" + string.Join('/', segments).ToLowerInvariant();
+    }
+
     public static string GetRequestId(HttpContext context) =>
         context.Items.TryGetValue(ItemKey, out var value) && value is string id && !string.IsNullOrWhiteSpace(id)
             ? id
@@ -97,40 +149,56 @@ public sealed class RequestTelemetryMiddleware
 }
 
 /// <summary>
-/// In-memory request/byte counters per traffic category, flushed to one log line per window.
-/// Bytes only count responses with a known Content-Length (videos, files, media); compressed JSON
-/// is streamed without one, so API rows mainly show request counts.
+/// In-memory request/byte counters per traffic category and per route, flushed to log lines per
+/// window. Bytes are what the app wrote to the body after WireEncryption's own gzip; text assets
+/// that ResponseCompression (outer middleware) compresses are counted before compression.
 /// </summary>
 public sealed class TrafficCounters
 {
+    public const int MaxRoutes = 400;
+    public const int TopRoutes = 10;
+    private const string OverflowRoute = "(otras rutas)";
+
     private readonly TimeSpan _window;
     private readonly object _gate = new();
     private Dictionary<string, Bucket> _buckets = new(StringComparer.Ordinal);
+    private Dictionary<string, Bucket> _routes = new(StringComparer.Ordinal);
     private DateTime _since = DateTime.UtcNow;
 
     public TrafficCounters(TimeSpan window) => _window = window;
 
-    public void Record(string category, int status, long? bytes)
+    public void Record(string category, int status, long? bytes, string? route = null)
     {
         lock (_gate)
         {
-            if (!_buckets.TryGetValue(category, out var b))
+            Add(_buckets, category, status, bytes);
+            if (route is not null)
             {
-                b = new Bucket();
-                _buckets[category] = b;
+                var key = _routes.Count >= MaxRoutes && !_routes.ContainsKey(route) ? OverflowRoute : route;
+                Add(_routes, key, status, bytes);
             }
-
-            b.Requests++;
-            b.Bytes += bytes ?? 0;
-            if (status == StatusCodes.Status304NotModified) b.NotModified++;
-            if (status == StatusCodes.Status206PartialContent) b.Partial++;
         }
+    }
+
+    private static void Add(Dictionary<string, Bucket> map, string key, int status, long? bytes)
+    {
+        if (!map.TryGetValue(key, out var b))
+        {
+            b = new Bucket();
+            map[key] = b;
+        }
+
+        b.Requests++;
+        b.Bytes += bytes ?? 0;
+        if (status == StatusCodes.Status304NotModified) b.NotModified++;
+        if (status == StatusCodes.Status206PartialContent) b.Partial++;
     }
 
     public bool TryTakeSummary(DateTime utcNow, out (double Minutes, string Text) summary)
     {
         summary = default;
         Dictionary<string, Bucket> taken;
+        Dictionary<string, Bucket> routes;
         DateTime since;
         lock (_gate)
         {
@@ -140,8 +208,10 @@ public sealed class TrafficCounters
             }
 
             taken = _buckets;
+            routes = _routes;
             since = _since;
             _buckets = new(StringComparer.Ordinal);
+            _routes = new(StringComparer.Ordinal);
             _since = utcNow;
         }
 
@@ -154,6 +224,22 @@ public sealed class TrafficCounters
             "; ",
             taken.OrderByDescending(kv => kv.Value.Bytes).Select(kv => FormattableString.Invariant(
                 $"{kv.Key}: {kv.Value.Requests} req, {kv.Value.Bytes / 1024d / 1024d:F1} MB, {kv.Value.Partial} parciales(206), {kv.Value.NotModified} sin cambios(304)")));
+        if (routes.Count > 0)
+        {
+            text += " | top rutas por bytes: " + string.Join(
+                "; ",
+                routes.OrderByDescending(kv => kv.Value.Bytes)
+                    .ThenByDescending(kv => kv.Value.Requests)
+                    .Take(TopRoutes)
+                    .Select(kv => FormattableString.Invariant(
+                        $"{kv.Key} {kv.Value.Requests} req {kv.Value.Bytes / 1024d / 1024d:F2} MB")));
+            text += " | top rutas por peticiones: " + string.Join(
+                "; ",
+                routes.OrderByDescending(kv => kv.Value.Requests)
+                    .Take(TopRoutes)
+                    .Select(kv => FormattableString.Invariant($"{kv.Key} {kv.Value.Requests} req")));
+        }
+
         summary = ((utcNow - since).TotalMinutes, text);
         return true;
     }
