@@ -2,6 +2,7 @@ using System.Net;
 using Cale.BuildingBlocks.Domain.Security;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
 using Cale.Modules.Identity.Domain;
+using Cale.Modules.TheoreticalTraining.Domain;
 using Cale.UnitTests.Security.Integration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -56,6 +57,46 @@ public sealed class SchoolDeletionTests : IAsyncLifetime
         var db = scope.ServiceProvider.GetRequiredService<CaleDbContext>();
         Assert.True(await db.Set<User>().AnyAsync(u => u.Id == schoolId));
         Assert.True(await db.Set<User>().AnyAsync(u => u.Id == _factory.Users.StudentC.Id && u.SchoolId == schoolId));
+    }
+
+    [Fact]
+    public async Task Auto_created_settings_do_not_block_and_audit_log_is_kept()
+    {
+        var schoolId = await AddEmptySchoolAsync();
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<CaleDbContext>();
+            db.Add(new TheoryTrainingSettings { SchoolUserId = schoolId });
+            db.Add(new SchoolAuditEntry { SchoolUserId = schoolId, Area = "settings", Action = "update", CreatedAt = DateTime.UtcNow });
+            await db.SaveChangesAsync();
+        }
+
+        using var admin = _factory.ClientFor(_factory.Users.Admin);
+        var response = await admin.DeleteAsync($"/api/admin/schools/{schoolId}");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        using var check = _factory.Services.CreateScope();
+        var checkDb = check.ServiceProvider.GetRequiredService<CaleDbContext>();
+        Assert.False(await checkDb.Set<TheoryTrainingSettings>().AnyAsync(s => s.SchoolUserId == schoolId));
+        Assert.True(await checkDb.Set<SchoolAuditEntry>().AnyAsync(a => a.SchoolUserId == schoolId));
+    }
+
+    [Fact]
+    public async Task Blocking_message_names_what_the_school_still_has()
+    {
+        var schoolId = await AddEmptySchoolAsync();
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<CaleDbContext>();
+            db.Add(new PracticalVehicle { SchoolUserId = schoolId, Label = "Moto 1", Plate = "ABC123", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow });
+            await db.SaveChangesAsync();
+        }
+
+        using var admin = _factory.ClientFor(_factory.Users.Admin);
+        var response = await admin.DeleteAsync($"/api/admin/schools/{schoolId}");
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Contains("1 vehículos", await response.Content.ReadAsStringAsync());
     }
 
     [Fact]
