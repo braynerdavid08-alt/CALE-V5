@@ -98,6 +98,8 @@ export class LivePlayPage implements OnInit, OnDestroy {
   readonly error = signal<string | null>(null);
   readonly loading = signal(false);
   readonly connectionNotice = signal<string | null>(null);
+  /** This seat was opened in another tab; this one stopped listening to the class. */
+  readonly replaced = signal(false);
   readonly secondsLeft = signal<number | null>(null);
   readonly selectedOptionId = signal<number | null>(null);
   readonly submitted = signal(false);
@@ -677,6 +679,10 @@ export class LivePlayPage implements OnInit, OnDestroy {
     this.timerId = setInterval(tick, 250);
   }
 
+  useThisTab(): void {
+    window.location.reload();
+  }
+
   private connectHub(): void {
     this.hub = this.api.buildHub(false);
     this.hub.onreconnecting(() => {
@@ -693,7 +699,17 @@ export class LivePlayPage implements OnInit, OnDestroy {
       });
     });
     this.hub.onclose(() => {
+      if (this.replaced()) return;
       this.connectionNotice.set('Sin conexión. Revisa tu red.');
+    });
+    this.hub.on('ReplacedByAnotherTab', () => {
+      this.replaced.set(true);
+      this.connectionNotice.set(null);
+      if (this.timerId) {
+        clearInterval(this.timerId);
+        this.timerId = null;
+      }
+      void this.hub?.stop();
     });
     this.hub.on('LobbyUpdated', (payload: LiveLobbyDto) => this.applyLobby(payload));
     this.hub.on('QuestionStarted', (payload: LiveQuestionPayloadDto) => {
