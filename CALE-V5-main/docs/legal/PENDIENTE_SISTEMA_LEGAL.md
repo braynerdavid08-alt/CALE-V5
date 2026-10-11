@@ -13,7 +13,7 @@
 
 ### Fase 1: falta
 
-- Menores: decidir si la cuenta de un menor puede usarse mientras el representante no ha respondido (hoy sí, con aviso) y si se fija una edad mínima. Escuchar la opinión del menor según su edad y madurez: [REVISIÓN JURÍDICA REQUERIDA].
+- Menores (decidido por el propietario): edad mínima 16 años; la cuenta se usa con normalidad aunque el representante no firme; el representante firma escribiendo su nombre completo y marcando la casilla. Falta: validez de esta firma simple y cómo escuchar la opinión del menor según su edad y madurez [REVISIÓN JURÍDICA REQUERIDA].
 - PQR y derechos del titular (consulta, reclamo, rectificación, supresión, revocatoria) sobre Solicitudes.
 - Llenar los espacios [PENDIENTE] y hacer revisar los textos por un abogado antes de publicarlos como versión definitiva.
 

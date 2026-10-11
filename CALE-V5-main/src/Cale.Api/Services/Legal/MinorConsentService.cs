@@ -32,7 +32,8 @@ public sealed record GuardianViewDto(
     bool LinkExpired,
     IReadOnlyList<LegalDocumentSummaryDto> Documents);
 
-public sealed record GuardianDecisionRequest(string Decision, bool ConfirmIsGuardian);
+/// <param name="Signature">Nombre completo que escribe el representante como firma al autorizar.</param>
+public sealed record GuardianDecisionRequest(string Decision, bool ConfirmIsGuardian, string? Signature = null);
 
 public sealed record GuardianEventDto(
     string Action,
@@ -224,6 +225,7 @@ public sealed class MinorConsentService
         var now = DateTime.UtcNow;
         var decision = request.Decision?.Trim().ToLowerInvariant();
         string action;
+        string? signature = null;
         switch (decision)
         {
             case DecisionAuthorize:
@@ -233,6 +235,15 @@ public sealed class MinorConsentService
                         "Confirma que eres el representante legal del menor para autorizar.",
                         400,
                         "guardian_confirmation_required");
+                }
+
+                signature = request.Signature?.Trim() ?? "";
+                if (signature.Length < AgeDeclaration.GuardianNameMin || signature.Length > AgeDeclaration.GuardianNameMax)
+                {
+                    throw new DomainException(
+                        "Escribe tu nombre completo como firma para autorizar.",
+                        400,
+                        "guardian_signature_required");
                 }
 
                 d.Confirm(now);
@@ -251,7 +262,9 @@ public sealed class MinorConsentService
         }
 
         _db.Add(GuardianConsentEvent.Record(d, action, now, await CurrentVersionsAsync(ct), ipAddress, userAgent,
-            action == GuardianEventActions.Confirmed ? "El representante declaró serlo y autorizó el tratamiento." : null));
+            action == GuardianEventActions.Confirmed
+                ? $"Declaró ser el representante legal y autorizó. Firma: {signature}"
+                : null));
 
         if (action != GuardianEventActions.Confirmed)
         {
@@ -374,7 +387,7 @@ public sealed class MinorConsentService
             $"Hola, {d.GuardianName}.\n\n" +
             $"{FirstName(minorName)} creó una cuenta de estudiante en Luz Verde, una plataforma para prepararse para el examen teórico de conducción, " +
             $"y te indicó como su {d.GuardianRelationship?.ToLowerInvariant()}.\n\n" +
-            "Como es menor de edad, necesitamos que su representante legal lea cómo tratamos sus datos y decida si lo autoriza:\n\n" +
+            "Como es menor de edad, te pedimos leer cómo tratamos sus datos y, si estás de acuerdo, firmar la autorización escribiendo tu nombre:\n\n" +
             $"{link}\n\n" +
             $"El enlace vence el {d.GuardianLinkExpiresAt!.Value.AddHours(-5):dd/MM/yyyy}. Con el mismo enlace podrás revocar la autorización cuando quieras.\n" +
             "Si no conoces a este estudiante, ignora este correo o entra al enlace y elige \"No autorizo\".";

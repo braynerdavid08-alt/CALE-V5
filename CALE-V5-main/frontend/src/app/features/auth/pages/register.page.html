@@ -83,10 +83,12 @@
           formControlName="birthDate"
           autocomplete="bday"
           min="1920-01-01"
-          [max]="today"
+          [max]="maxBirthDate"
           [attr.aria-invalid]="form.controls.birthDate.touched && form.controls.birthDate.invalid"
           [attr.aria-describedby]="form.controls.birthDate.touched && form.controls.birthDate.invalid ? 'register-birth-error' : null" />
-        @if (form.controls.birthDate.touched && form.controls.birthDate.invalid) {
+        @if (form.controls.birthDate.hasError('minAge')) {
+          <span id="register-birth-error" class="field-error" role="alert">Debes tener al menos 16 años para usar Luz Verde.</span>
+        } @else if (form.controls.birthDate.touched && form.controls.birthDate.invalid) {
           <span id="register-birth-error" class="field-error" role="alert">Indica tu fecha de nacimiento.</span>
         }
       </label>

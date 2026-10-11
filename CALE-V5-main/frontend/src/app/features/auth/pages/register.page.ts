@@ -11,6 +11,8 @@ import {
   GuardianFieldsComponent,
   guardianGroup,
   guardianValue,
+  latestBirthDate,
+  minAgeValidator,
   syncGuardianGroup
 } from '../../legal/guardian-fields.component';
 import { AuthFacade } from '../application/auth.facade';
@@ -38,13 +40,13 @@ export class RegisterPage {
   readonly brand = BRAND;
   readonly showPassword = signal(false);
   readonly isMinor = signal(false);
-  readonly today = new Date().toISOString().slice(0, 10);
+  readonly maxBirthDate = latestBirthDate();
 
   readonly form = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(200)]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
-    birthDate: ['', Validators.required],
+    birthDate: ['', [Validators.required, minAgeValidator]],
     guardian: guardianGroup(this.fb),
     consent: legalConsentGroup(this.fb)
   });

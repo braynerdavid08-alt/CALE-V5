@@ -30,7 +30,7 @@ public sealed class MinorConsentApiTests : IAsyncLifetime
 
     private static readonly object Consent = new { acceptTerms = true, acknowledgePrivacy = true, authorizeDataProcessing = true };
 
-    private static string MinorBirthDate => DateTime.UtcNow.AddYears(-15).ToString("yyyy-MM-dd");
+    private static string MinorBirthDate => DateTime.UtcNow.AddYears(-17).ToString("yyyy-MM-dd");
 
     private static async Task<JsonElement> Json(HttpResponseMessage response)
     {
@@ -80,6 +80,13 @@ public sealed class MinorConsentApiTests : IAsyncLifetime
 
         await AssertError(await anon.PostAsJsonAsync("/api/auth/register", new
         {
+            name = "Menor Prueba", email = MinorEmail, password = Password, consent = Consent,
+            birthDate = DateTime.UtcNow.AddYears(-15).ToString("yyyy-MM-dd"),
+            guardian = new { name = "Madre Prueba", relationship = "Madre", email = "luzverde.prueba.madre@gmail.com" }
+        }), HttpStatusCode.BadRequest, "age_below_minimum");
+
+        await AssertError(await anon.PostAsJsonAsync("/api/auth/register", new
+        {
             name = "Menor Prueba", email = MinorEmail, password = Password, consent = Consent, birthDate = MinorBirthDate
         }), HttpStatusCode.BadRequest, "guardian_required");
 
@@ -121,8 +128,11 @@ public sealed class MinorConsentApiTests : IAsyncLifetime
         await AssertError(await anon.PostAsJsonAsync($"/api/legal/guardian/{token}/decision",
             new { decision = "authorize", confirmIsGuardian = false }), HttpStatusCode.BadRequest, "guardian_confirmation_required");
 
+        await AssertError(await anon.PostAsJsonAsync($"/api/legal/guardian/{token}/decision",
+            new { decision = "authorize", confirmIsGuardian = true }), HttpStatusCode.BadRequest, "guardian_signature_required");
+
         var confirmed = await Json(await anon.PostAsJsonAsync($"/api/legal/guardian/{token}/decision",
-            new { decision = "authorize", confirmIsGuardian = true }));
+            new { decision = "authorize", confirmIsGuardian = true, signature = "Madre Prueba Completa" }));
         Assert.Equal("CONFIRMED", confirmed.GetProperty("status").GetString());
 
         await AssertError(await anon.PostAsJsonAsync($"/api/legal/guardian/{token}/decision",
@@ -146,6 +156,7 @@ public sealed class MinorConsentApiTests : IAsyncLifetime
         Assert.Contains("Revoked", actions);
         var confirmedEvent = row.GetProperty("events").EnumerateArray().Single(e => e.GetProperty("action").GetString() == "Confirmed");
         Assert.Contains("data-processing@1.0-borrador", confirmedEvent.GetProperty("documentVersions").GetString());
+        Assert.Contains("Firma: Madre Prueba Completa", confirmedEvent.GetProperty("note").GetString());
     }
 
     [Fact]

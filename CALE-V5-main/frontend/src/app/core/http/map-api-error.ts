@@ -41,6 +41,8 @@ const messages: Record<string, string> = {
   guardian_link_expired: 'El enlace venció. Pide al estudiante que lo envíe de nuevo.',
   guardian_confirmation_required: 'Confirma que eres el representante legal del menor para autorizar.',
   guardian_decision_invalid: 'Decisión no válida.',
+  guardian_signature_required: 'Escribe tu nombre completo como firma para autorizar.',
+  age_below_minimum: 'Debes tener al menos 16 años para usar Luz Verde.',
   membership_admin_only: 'Solo el administrador puede activar la membresía tras verificar el pago.',
   membership_inactive: 'Tu membresía no está activa. Solicita un plan, sube el comprobante y espera la verificación del administrador.',
   catalog_access_denied: 'No tienes acceso al catálogo de preguntas. Tu escuela necesita un plan activo.',

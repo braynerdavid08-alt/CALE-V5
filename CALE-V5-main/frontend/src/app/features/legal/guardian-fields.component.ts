@@ -1,5 +1,13 @@
 import { Component, Input } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  ValidationErrors,
+  ValidatorFn,
+  Validators
+} from '@angular/forms';
 import { GUARDIAN_RELATIONSHIPS, Guardian, ageFromBirthDate } from './legal.api';
 
 /** Datos mínimos del representante legal. El grupo se deshabilita mientras la persona sea mayor de edad. */
@@ -13,10 +21,23 @@ export function guardianGroup(fb: FormBuilder) {
   return group;
 }
 
+export const MIN_AGE = 16;
+
+/** Fecha más reciente permitida (cumplir MIN_AGE hoy), en formato yyyy-MM-dd. */
+export function latestBirthDate(today = new Date()): string {
+  const d = new Date(today.getFullYear() - MIN_AGE, today.getMonth(), today.getDate());
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+export const minAgeValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
+  const age = ageFromBirthDate(control.value ?? '');
+  return age !== null && age < MIN_AGE ? { minAge: true } : null;
+};
+
 /** Habilita o deshabilita el grupo según la fecha de nacimiento; devuelve si es menor. */
 export function syncGuardianGroup(group: FormGroup, birthDate: string): boolean {
   const age = ageFromBirthDate(birthDate);
-  const minor = age !== null && age >= 0 && age < 18;
+  const minor = age !== null && age >= MIN_AGE && age < 18;
   if (minor && group.disabled) group.enable();
   if (!minor && group.enabled) group.disable();
   return minor;
@@ -34,8 +55,8 @@ export function guardianValue(group: FormGroup): Guardian | null {
     <fieldset class="guardian" [formGroup]="group">
       <legend>Tu representante legal</legend>
       <p class="intro">
-        Como eres menor de edad, tu madre, padre o tutor legal debe autorizar tu cuenta.
-        Le enviaremos un correo para que lea cómo tratamos tus datos y decida.
+        Como eres menor de edad, le enviaremos un correo a tu madre, padre o tutor legal para que lea cómo tratamos
+        tus datos y firme la autorización. Mientras tanto puedes usar Luz Verde con normalidad.
       </p>
       <label class="field">
         Nombre completo del representante
