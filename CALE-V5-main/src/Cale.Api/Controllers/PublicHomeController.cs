@@ -59,6 +59,12 @@ public sealed class PublicHomeController : ControllerBase
         CancellationToken ct = default) =>
         _home.ListPublicInstructorsAsync(take, ct);
 
+    [HttpGet("courses")]
+    public Task<IReadOnlyList<PublicCourseDto>> Courses(
+        [FromServices] PublicCourseCatalogService catalog,
+        CancellationToken ct) =>
+        catalog.ListAsync(ct);
+
     [HttpGet("testimonials")]
     public Task<PublicTestimonialsDto> Testimonials(
         [FromQuery] int take = 6,
