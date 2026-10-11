@@ -255,7 +255,7 @@ const HIDE_ANSWERS_KEY = 'cale.gameshow.hideAnswers';
                         <option [value]="o.key">{{ o.name }}</option>
                       }
                     </select>
-                    <button type="button" class="remove" (click)="removePlayer(p.id, p.displayName)" [attr.aria-label]="'Quitar a ' + p.displayName">
+                    <button type="button" class="remove" (click)="removePlayer(p.id)" [attr.aria-label]="'Quitar a ' + p.displayName">
                       Quitar
                     </button>
                   </div>
@@ -423,8 +423,7 @@ export class GameShowHostPage implements OnInit, OnDestroy {
     return winnerTextOf(L);
   }
 
-  removePlayer(playerId: number, name: string): void {
-    if (!confirm(`¿Quitar a ${name} de la partida? Sus respuestas quedan en el historial.`)) return;
+  removePlayer(playerId: number): void {
     this.act(() => this.api.removePlayer(this.sessionId, playerId));
   }
 
