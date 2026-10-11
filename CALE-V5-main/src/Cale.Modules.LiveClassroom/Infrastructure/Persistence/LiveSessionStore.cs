@@ -81,6 +81,7 @@ public sealed class LiveSessionStore : ILiveSessionStore
         await _db.Set<LiveSession>()
             .Where(s => s.Status == LiveSessionStatuses.Running
                 && s.CurrentQuestionIndex >= 0
+                && s.QuestionClosedAt == null
                 && s.QuestionClosesAt != null
                 && s.QuestionClosesAt <= utcNow)
             .OrderBy(s => s.QuestionClosesAt)
@@ -88,6 +89,38 @@ public sealed class LiveSessionStore : ILiveSessionStore
             .Select(s => s.Id)
             .Take(40)
             .ToListAsync(ct);
+
+    public Task<DateTime?> GetNextPendingCloseAsync(CancellationToken ct = default) =>
+        _db.Set<LiveSession>()
+            .Where(s => s.Status == LiveSessionStatuses.Running
+                && s.CurrentQuestionIndex >= 0
+                && s.QuestionClosedAt == null
+                && s.QuestionClosesAt != null)
+            .MinAsync(s => s.QuestionClosesAt, ct);
+
+    public async Task<bool> TryClaimQuestionCloseAsync(
+        int sessionId,
+        int questionIndex,
+        DateTime utcNow,
+        bool onlyIfExpired,
+        CancellationToken ct = default)
+    {
+        var query = _db.Set<LiveSession>()
+            .Where(s => s.Id == sessionId
+                && s.CurrentQuestionIndex == questionIndex
+                && s.QuestionClosedAt == null);
+        if (onlyIfExpired)
+        {
+            query = query.Where(s => s.QuestionClosesAt != null && s.QuestionClosesAt <= utcNow);
+        }
+
+        var rows = await query.ExecuteUpdateAsync(
+            set => set
+                .SetProperty(s => s.QuestionClosedAt, utcNow)
+                .SetProperty(s => s.QuestionClosesAt, utcNow),
+            ct);
+        return rows == 1;
+    }
 
     public Task<LiveParticipant?> GetParticipantByConnectionIdAsync(
         string connectionId,

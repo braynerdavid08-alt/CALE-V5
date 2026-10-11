@@ -29,6 +29,11 @@ public sealed class LiveSession
     public bool RevealCorrect { get; private set; }
     public DateTime? QuestionOpenedAt { get; private set; }
     public DateTime? QuestionClosesAt { get; private set; }
+    /// <summary>
+    /// When the close of the current question was processed (broadcasts sent). Null while the
+    /// question is open or expired-but-unprocessed; QuestionClosesAt alone cannot tell those apart.
+    /// </summary>
+    public DateTime? QuestionClosedAt { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? StartedAt { get; private set; }
     public DateTime? EndedAt { get; private set; }
@@ -102,12 +107,18 @@ public sealed class LiveSession
         CurrentQuestionIndex = index;
         QuestionOpenedAt = openedAt;
         QuestionClosesAt = closesAt;
+        QuestionClosedAt = null;
         RevealCorrect = false;
         Status = LiveSessionStatuses.Running;
     }
 
-    public void CloseCurrentQuestion(DateTime utcNow) =>
+    public void CloseCurrentQuestion(DateTime utcNow)
+    {
         QuestionClosesAt = utcNow;
+        QuestionClosedAt = utcNow;
+    }
+
+    public bool IsCloseProcessed => QuestionClosedAt is not null;
 
     public void SetReveal(bool reveal) => RevealCorrect = reveal;
 
@@ -116,6 +127,7 @@ public sealed class LiveSession
         Status = LiveSessionStatuses.Ended;
         EndedAt = utcNow;
         QuestionClosesAt = utcNow;
+        QuestionClosedAt ??= utcNow;
     }
 
     public bool IsQuestionOpen(DateTime utcNow) =>

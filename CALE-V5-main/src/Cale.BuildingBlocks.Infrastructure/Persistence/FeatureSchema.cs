@@ -392,6 +392,7 @@ public static class FeatureSchema
                     "RevealCorrect" INTEGER NOT NULL DEFAULT 0,
                     "QuestionOpenedAt" TEXT NULL,
                     "QuestionClosesAt" TEXT NULL,
+                    "QuestionClosedAt" TEXT NULL,
                     "CreatedAt" TEXT NOT NULL,
                     "StartedAt" TEXT NULL,
                     "EndedAt" TEXT NULL
@@ -903,6 +904,7 @@ public static class FeatureSchema
                     "RevealCorrect" boolean NOT NULL DEFAULT FALSE,
                     "QuestionOpenedAt" timestamp with time zone NULL,
                     "QuestionClosesAt" timestamp with time zone NULL,
+                    "QuestionClosedAt" timestamp with time zone NULL,
                     "CreatedAt" timestamp with time zone NOT NULL,
                     "StartedAt" timestamp with time zone NULL,
                     "EndedAt" timestamp with time zone NULL
@@ -2009,6 +2011,7 @@ public static class FeatureSchema
                     RevealCorrect bit NOT NULL CONSTRAINT DF_LiveSessions_Reveal DEFAULT(0),
                     QuestionOpenedAt datetime2 NULL,
                     QuestionClosesAt datetime2 NULL,
+                    QuestionClosedAt datetime2 NULL,
                     CreatedAt datetime2 NOT NULL,
                     StartedAt datetime2 NULL,
                     EndedAt datetime2 NULL
