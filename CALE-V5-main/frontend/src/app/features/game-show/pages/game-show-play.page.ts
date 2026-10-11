@@ -178,6 +178,7 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
   private turnSecondsSnapshot: number | null = null;
   private turnSecondsCapturedAtMs = 0;
   private restartTimer: ReturnType<typeof setTimeout> | null = null;
+  private eventSyncTimer: ReturnType<typeof setTimeout> | null = null;
   private lastSyncAt = 0;
   private syncInFlight = false;
   private started = false;
@@ -200,6 +201,7 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     if (this.pollTimer) clearInterval(this.pollTimer);
     if (this.tickTimer) clearInterval(this.tickTimer);
     if (this.restartTimer) clearTimeout(this.restartTimer);
+    if (this.eventSyncTimer) clearTimeout(this.eventSyncTimer);
     document.removeEventListener('visibilitychange', this.onWake);
     window.removeEventListener('online', this.onWake);
     window.removeEventListener('focus', this.onWake);
@@ -222,6 +224,7 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     this.connectHub();
     // Poll fast only while the realtime link is down; otherwise a slow safety sync.
     this.pollTimer = setInterval(() => {
+      if (document.visibilityState === 'hidden') return;
       const live = this.hub?.state === HubConnectionState.Connected;
       if (!live || Date.now() - this.lastSyncAt >= 10_000) this.reloadQuiet();
     }, 2500);
@@ -460,6 +463,20 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Hub events are normally followed by a LobbyUpdated broadcast; only fetch if none arrived,
+   * so one game action doesn't cost every player several GETs.
+   */
+  private syncAfterEvent(): void {
+    if (this.eventSyncTimer) return;
+    const requestedAt = Date.now();
+    this.eventSyncTimer = setTimeout(() => {
+      this.eventSyncTimer = null;
+      if (this.destroyed || this.lastSyncAt >= requestedAt) return;
+      this.reloadQuiet();
+    }, 700);
+  }
+
   private reloadQuiet(): void {
     if (this.syncInFlight) return;
     this.syncInFlight = true;
@@ -552,7 +569,7 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     const onLobby = (lobby: GameShowLobbyDto) => this.zone.run(() => this.apply(lobby));
     const onFlash = (message: string) => this.zone.run(() => {
       this.showFlash(message);
-      this.reloadQuiet();
+      this.syncAfterEvent();
     });
 
     this.hub.on('LobbyUpdated', onLobby);
@@ -564,7 +581,7 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
       } else if (payload?.displayName) {
         this.showFlash(`Responde ${payload.displayName}`);
       }
-      this.reloadQuiet();
+      this.syncAfterEvent();
     }));
     this.hub.on('PlayerRemoved', (payload: { playerId?: number }) => this.zone.run(() => {
       if (payload?.playerId == null || payload.playerId !== this.myPlayerId) return;
