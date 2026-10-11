@@ -25,6 +25,7 @@ public sealed class LiveSessionHandler
     private readonly ILiveSessionBroadcaster _broadcast;
     private readonly ILivePresentationSlideState _presentationSlides;
     private readonly IClock _clock;
+    private readonly ILiveQuestionTimerSignal _timerSignal;
 
     public LiveSessionHandler(
         ILiveSessionStore store,
@@ -32,8 +33,10 @@ public sealed class LiveSessionHandler
         ICatalogAccessGuard access,
         ILiveSessionBroadcaster broadcast,
         ILivePresentationSlideState presentationSlides,
-        IClock clock)
+        IClock clock,
+        ILiveQuestionTimerSignal timerSignal)
     {
+        _timerSignal = timerSignal;
         _store = store;
         _catalog = catalog;
         _access = access;
@@ -287,7 +290,7 @@ public sealed class LiveSessionHandler
 
                 session.MarkRunning(now);
                 OpenAt(session, 0, config, now);
-                await _store.SaveChangesAsync(ct);
+                await SaveAndWakeTimerAsync(ct);
                 await BroadcastQuestionAsync(session, includeCorrect: false, ct);
                 await BroadcastRankingAsync(session, ct);
                 break;
@@ -300,7 +303,7 @@ public sealed class LiveSessionHandler
 
             case "resume":
                 session.Resume();
-                await _store.SaveChangesAsync(ct);
+                await SaveAndWakeTimerAsync(ct);
                 await BroadcastLobbyAsync(session, ct);
                 break;
 
@@ -324,7 +327,7 @@ public sealed class LiveSessionHandler
                     break;
                 }
                 OpenAt(session, next, config, now);
-                await _store.SaveChangesAsync(ct);
+                await SaveAndWakeTimerAsync(ct);
                 await BroadcastQuestionAsync(session, includeCorrect: false, ct);
                 await BroadcastRankingAsync(session, ct);
                 break;
@@ -363,29 +366,45 @@ public sealed class LiveSessionHandler
         return await ToLobbyAsync(session, publicBaseUrl, includeCorrect: session.RevealCorrect, ct);
     }
 
-    /// <summary>Called by the background timer when QuestionClosesAt has elapsed.</summary>
-    public async Task AutoCloseExpiredAsync(int sessionId, CancellationToken ct)
+    /// <summary>
+    /// Called by the background timer when QuestionClosesAt has elapsed. Returns true only when
+    /// this call performed the close; a question already closed elsewhere returns false.
+    /// </summary>
+    public async Task<bool> AutoCloseExpiredAsync(int sessionId, CancellationToken ct)
     {
         var session = await RequireSessionAsync(sessionId, ct);
         var now = _clock.UtcNow;
         if (session.Status != LiveSessionStatuses.Running
             || session.CurrentQuestionIndex < 0
+            || session.IsCloseProcessed
             || session.QuestionClosesAt is null
             || session.QuestionClosesAt > now)
         {
-            return;
+            return false;
         }
 
         var config = ReadConfig(session);
-        await CloseQuestionInternalAsync(session, config, now, ct);
+        return await CloseQuestionInternalAsync(session, config, now, ct, onlyIfExpired: true);
     }
 
-    private async Task CloseQuestionInternalAsync(
+    private async Task<bool> CloseQuestionInternalAsync(
         LiveSession session,
         LiveSessionConfig config,
         DateTime now,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool onlyIfExpired = false)
     {
+        if (session.CurrentQuestionIndex < 0
+            || !await _store.TryClaimQuestionCloseAsync(
+                session.Id,
+                session.CurrentQuestionIndex,
+                now,
+                onlyIfExpired,
+                ct))
+        {
+            return false;
+        }
+
         session.CloseCurrentQuestion(now);
         var autoReveal = string.Equals(
                 config.FeedbackTiming,
@@ -406,6 +425,13 @@ public sealed class LiveSessionHandler
 
         await BroadcastAnswerRosterAsync(session, ct);
         await BroadcastRankingAsync(session, ct);
+        return true;
+    }
+
+    private async Task SaveAndWakeTimerAsync(CancellationToken ct)
+    {
+        await _store.SaveChangesAsync(ct);
+        _timerSignal.Notify();
     }
 
     public async Task<object> AnswerAsync(
@@ -925,7 +951,7 @@ public sealed class LiveSessionHandler
                     if (!session.IsQuestionOpen(nowCheck) && session.Status != LiveSessionStatuses.Ended)
                     {
                         OpenAt(session, session.CurrentQuestionIndex, config, nowCheck);
-                        await _store.SaveChangesAsync(ct);
+                        await SaveAndWakeTimerAsync(ct);
                         await BroadcastQuestionAsync(session, includeCorrect: false, ct);
                     }
 
@@ -973,7 +999,7 @@ public sealed class LiveSessionHandler
         if (quickIndex >= 0 && !session.IsQuestionOpen(now))
         {
             OpenAt(session, quickIndex, config, now);
-            await _store.SaveChangesAsync(ct);
+            await SaveAndWakeTimerAsync(ct);
             await BroadcastQuestionAsync(session, includeCorrect: false, ct);
             await BroadcastRankingAsync(session, ct);
             return;

@@ -15,6 +15,19 @@ public interface ILiveSessionStore
     Task<IReadOnlyList<LiveAnswer>> ListAnswersForQuestionAsync(int sessionQuestionId, CancellationToken ct = default);
     Task<IReadOnlyList<LiveAnswer>> ListAnswersForSessionAsync(int sessionId, CancellationToken ct = default);
     Task<IReadOnlyList<int>> ListExpiredOpenSessionIdsAsync(DateTime utcNow, CancellationToken ct = default);
+    /// <summary>Earliest deadline of a running question whose close has not been processed yet.</summary>
+    Task<DateTime?> GetNextPendingCloseAsync(CancellationToken ct = default);
+    /// <summary>
+    /// Atomically marks the current question as closed. Returns false when another request,
+    /// timer tick or instance already closed it (or the question changed), so the caller must
+    /// not repeat the close side effects.
+    /// </summary>
+    Task<bool> TryClaimQuestionCloseAsync(
+        int sessionId,
+        int questionIndex,
+        DateTime utcNow,
+        bool onlyIfExpired,
+        CancellationToken ct = default);
     Task<LiveParticipant?> GetParticipantByConnectionIdAsync(string connectionId, CancellationToken ct = default);
     Task AddDoubtAsync(LiveDoubt doubt, CancellationToken ct = default);
     Task<LiveDoubt?> GetDoubtAsync(int doubtId, CancellationToken ct = default);
@@ -22,6 +35,12 @@ public interface ILiveSessionStore
     Task AddDoubtVoteAsync(LiveDoubtVote vote, CancellationToken ct = default);
     Task<IReadOnlyList<LiveDoubt>> ListDoubtsAsync(int sessionId, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
+}
+
+/// <summary>Wakes the question timer when a deadline is created or resumed in this process.</summary>
+public interface ILiveQuestionTimerSignal
+{
+    void Notify();
 }
 
 public interface ILiveSessionBroadcaster
