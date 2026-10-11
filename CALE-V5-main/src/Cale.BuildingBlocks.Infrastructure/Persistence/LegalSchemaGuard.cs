@@ -78,7 +78,44 @@ public static class LegalSchemaGuard
             "CreatedAt" timestamp with time zone NOT NULL
         );
         """,
-        """CREATE INDEX IF NOT EXISTS "IX_AutorizacionesMenoresEventos_UserId" ON "AutorizacionesMenoresEventos" ("UserId");"""
+        """CREATE INDEX IF NOT EXISTS "IX_AutorizacionesMenoresEventos_UserId" ON "AutorizacionesMenoresEventos" ("UserId");""",
+        """
+        CREATE TABLE IF NOT EXISTS "SolicitudesPqr" (
+            "Id" serial PRIMARY KEY,
+            "Kind" varchar(30) NOT NULL,
+            "Status" varchar(20) NOT NULL,
+            "UserId" integer NULL,
+            "ContactName" varchar(150) NOT NULL,
+            "ContactEmail" varchar(254) NOT NULL,
+            "Subject" varchar(200) NOT NULL,
+            "Message" varchar(4000) NOT NULL,
+            "Response" varchar(4000) NULL,
+            "TrackingCodeHash" varchar(64) NOT NULL,
+            "DueAt" timestamp with time zone NOT NULL,
+            "Extended" boolean NOT NULL DEFAULT false,
+            "AssignedAdminId" integer NULL,
+            "CreatedAt" timestamp with time zone NOT NULL,
+            "UpdatedAt" timestamp with time zone NOT NULL,
+            "ClosedAt" timestamp with time zone NULL
+        );
+        """,
+        """CREATE INDEX IF NOT EXISTS "IX_SolicitudesPqr_UserId" ON "SolicitudesPqr" ("UserId");""",
+        """CREATE INDEX IF NOT EXISTS "IX_SolicitudesPqr_TrackingCodeHash" ON "SolicitudesPqr" ("TrackingCodeHash");""",
+        """CREATE INDEX IF NOT EXISTS "IX_SolicitudesPqr_Status" ON "SolicitudesPqr" ("Status");""",
+        """
+        CREATE TABLE IF NOT EXISTS "SolicitudesPqrEventos" (
+            "Id" serial PRIMARY KEY,
+            "PqrRequestId" integer NOT NULL,
+            "Action" varchar(30) NOT NULL,
+            "FromStatus" varchar(20) NULL,
+            "ToStatus" varchar(20) NULL,
+            "Note" varchar(4000) NULL,
+            "ActorUserId" integer NULL,
+            "VisibleToRequester" boolean NOT NULL DEFAULT true,
+            "CreatedAt" timestamp with time zone NOT NULL
+        );
+        """,
+        """CREATE INDEX IF NOT EXISTS "IX_SolicitudesPqrEventos_PqrRequestId" ON "SolicitudesPqrEventos" ("PqrRequestId");"""
     ];
 
     private static readonly string[] SqliteStatements =
@@ -150,7 +187,44 @@ public static class LegalSchemaGuard
             "CreatedAt" TEXT NOT NULL
         );
         """,
-        """CREATE INDEX IF NOT EXISTS "IX_AutorizacionesMenoresEventos_UserId" ON "AutorizacionesMenoresEventos" ("UserId");"""
+        """CREATE INDEX IF NOT EXISTS "IX_AutorizacionesMenoresEventos_UserId" ON "AutorizacionesMenoresEventos" ("UserId");""",
+        """
+        CREATE TABLE IF NOT EXISTS "SolicitudesPqr" (
+            "Id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            "Kind" TEXT NOT NULL,
+            "Status" TEXT NOT NULL,
+            "UserId" INTEGER NULL,
+            "ContactName" TEXT NOT NULL,
+            "ContactEmail" TEXT NOT NULL,
+            "Subject" TEXT NOT NULL,
+            "Message" TEXT NOT NULL,
+            "Response" TEXT NULL,
+            "TrackingCodeHash" TEXT NOT NULL,
+            "DueAt" TEXT NOT NULL,
+            "Extended" INTEGER NOT NULL DEFAULT 0,
+            "AssignedAdminId" INTEGER NULL,
+            "CreatedAt" TEXT NOT NULL,
+            "UpdatedAt" TEXT NOT NULL,
+            "ClosedAt" TEXT NULL
+        );
+        """,
+        """CREATE INDEX IF NOT EXISTS "IX_SolicitudesPqr_UserId" ON "SolicitudesPqr" ("UserId");""",
+        """CREATE INDEX IF NOT EXISTS "IX_SolicitudesPqr_TrackingCodeHash" ON "SolicitudesPqr" ("TrackingCodeHash");""",
+        """CREATE INDEX IF NOT EXISTS "IX_SolicitudesPqr_Status" ON "SolicitudesPqr" ("Status");""",
+        """
+        CREATE TABLE IF NOT EXISTS "SolicitudesPqrEventos" (
+            "Id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            "PqrRequestId" INTEGER NOT NULL,
+            "Action" TEXT NOT NULL,
+            "FromStatus" TEXT NULL,
+            "ToStatus" TEXT NULL,
+            "Note" TEXT NULL,
+            "ActorUserId" INTEGER NULL,
+            "VisibleToRequester" INTEGER NOT NULL DEFAULT 1,
+            "CreatedAt" TEXT NOT NULL
+        );
+        """,
+        """CREATE INDEX IF NOT EXISTS "IX_SolicitudesPqrEventos_PqrRequestId" ON "SolicitudesPqrEventos" ("PqrRequestId");"""
     ];
 
     public static async Task EnsureAsync(CaleDbContext db, ILogger? logger = null, CancellationToken ct = default)
@@ -190,7 +264,7 @@ public static class LegalSchemaGuard
 
         if (failures == 0)
         {
-            logger?.LogInformation("LegalSchemaGuard applied (LegalVersionesDocumento, LegalAceptaciones, DeclaracionesEdad, AutorizacionesMenoresEventos).");
+            logger?.LogInformation("LegalSchemaGuard applied (LegalVersionesDocumento, LegalAceptaciones, DeclaracionesEdad, AutorizacionesMenoresEventos, SolicitudesPqr, SolicitudesPqrEventos).");
         }
     }
 }

@@ -70,6 +70,13 @@ export const routes: Routes = [
             .then((m) => m.LegalDocumentPage)
       },
       {
+        path: 'pqr',
+        title: 'PQR y datos personales',
+        loadComponent: () =>
+          import('./features/legal/pqr.page')
+            .then((m) => m.PqrPage)
+      },
+      {
         path: 'autorizacion-menor/:token',
         title: 'Autorización del representante legal',
         loadComponent: () =>
@@ -939,6 +946,22 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/legal/legal-pending.page')
             .then((m) => m.LegalPendingPage)
+      },
+      {
+        path: 'mis-pqr',
+        pathMatch: 'full',
+        loadComponent: () =>
+          import('./features/legal/my-pqr.page')
+            .then((m) => m.MyPqrPage)
+      },
+      {
+        path: 'admin/pqr',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['Admin'] },
+        loadComponent: () =>
+          import('./features/admin/pages/admin-pqr.page')
+            .then((m) => m.AdminPqrPage)
       },
       {
         path: 'admin/legal',
