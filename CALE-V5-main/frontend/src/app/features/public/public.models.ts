@@ -60,6 +60,16 @@ export interface PublicSchoolCardDto {
   detailPath: string;
 }
 
+export interface PublicCourseDto {
+  id: number;
+  title: string;
+  description: string | null;
+  category: string;
+  coverUrl: string | null;
+  lessons: string[];
+  estimatedMinutes: number;
+}
+
 export interface PublicInstructorCardDto {
   id: number;
   displayName: string;
