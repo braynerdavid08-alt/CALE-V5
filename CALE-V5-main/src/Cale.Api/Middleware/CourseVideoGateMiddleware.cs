@@ -12,6 +12,7 @@ public sealed class CourseVideoGateMiddleware
 {
     private static readonly PathString Videos = new("/courses/videos");
     private static readonly PathString Receipts = new("/uploads/receipts");
+    public const string VideoCacheControl = "private, max-age=86400";
     private readonly RequestDelegate _next;
 
     public CourseVideoGateMiddleware(RequestDelegate next) => _next = next;
@@ -42,7 +43,9 @@ public sealed class CourseVideoGateMiddleware
 
         context.Response.OnStarting(() =>
         {
-            context.Response.Headers.CacheControl = "private, no-store";
+            // Videos are 15–55 MB and identical for every signed-in user: let the user's own browser
+            // keep them (never shared caches) so replays and seeks don't re-download from Render.
+            context.Response.Headers.CacheControl = isReceipt ? "private, no-store" : VideoCacheControl;
             context.Response.Headers.ContentDisposition = isReceipt ? "attachment" : "inline";
             context.Response.Headers["X-Robots-Tag"] = "noindex";
             return Task.CompletedTask;
