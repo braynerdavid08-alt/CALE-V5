@@ -24,7 +24,53 @@ export interface CreateGameShowBody {
   teamAName: string;
   teamBName: string;
   rounds: GameShowRoundInput[];
+  /** 2–4 equipos; los estudiantes eligen entre ellos. */
+  teamCount?: number;
+  teamCName?: string | null;
+  teamDName?: string | null;
 }
+
+export interface GameShowTeamDto {
+  key: string;
+  name: string;
+  score: number;
+  playerCount: number;
+}
+
+/** Equipos de la partida (con respaldo para respuestas antiguas que solo traen A y B). */
+export function teamsOf(L: {
+  teams?: GameShowTeamDto[] | null;
+  teamAName: string;
+  teamBName: string;
+  teamAScore: number;
+  teamBScore: number;
+}): GameShowTeamDto[] {
+  if (L.teams?.length) return L.teams;
+  return [
+    { key: 'A', name: L.teamAName, score: L.teamAScore, playerCount: 0 },
+    { key: 'B', name: L.teamBName, score: L.teamBScore, playerCount: 0 }
+  ];
+}
+
+export function teamNameOf(L: Parameters<typeof teamsOf>[0], key: string | null | undefined): string {
+  return teamsOf(L).find((t) => t.key === key)?.name ?? 'Sin definir';
+}
+
+/** Texto del ganador o empate según el puntaje más alto. */
+export function winnerTextOf(L: Parameters<typeof teamsOf>[0]): string {
+  const teams = teamsOf(L);
+  const max = Math.max(...teams.map((t) => t.score));
+  const leaders = teams.filter((t) => t.score === max);
+  return leaders.length === 1 ? `Gana ${leaders[0]!.name}` : 'Empate';
+}
+
+/** Colores fijos por equipo, legibles sobre fondo oscuro del proyector. */
+export const TEAM_COLORS: Record<string, string> = {
+  A: '#38bdf8',
+  B: '#f472b6',
+  C: '#facc15',
+  D: '#4ade80'
+};
 
 export interface GameShowBoardAnswerDto {
   id: number;
@@ -51,6 +97,8 @@ export interface GameShowRoundDto {
   activePlayerId?: number | null;
   activePlayerName?: string | null;
   activePlayerAccent?: string | null;
+  /** Equipo que intenta robar (null mientras los demás equipos compiten por el botón). */
+  stealingTeam?: string | null;
 }
 
 export interface GameShowPlayerDto {
@@ -178,6 +226,7 @@ export interface GameShowLobbyDto {
   playerStandings?: GameShowPlayerStandingDto[] | null;
   packLeaderboard?: GameShowPackLeaderboardEntryDto[] | null;
   settings?: GameShowSettingsDto | null;
+  teams?: GameShowTeamDto[] | null;
 }
 
 export interface GameShowSettingsDto {
@@ -226,6 +275,7 @@ export interface GameShowHistoryItemDto {
   createdAt: string;
   endedAt?: string | null;
   playerCount: number;
+  teams?: GameShowTeamDto[] | null;
 }
 
 export interface GameShowPackSummaryDto {
@@ -286,6 +336,7 @@ export interface GameShowStatsDto {
   endedAt?: string | null;
   players?: GameShowPlayerStandingDto[] | null;
   mvp?: GameShowPlayerStandingDto | null;
+  teams?: GameShowTeamDto[] | null;
 }
 
 const TOKEN_KEY = 'cale.game-show.player';
@@ -348,7 +399,14 @@ export class GameShowApi {
 
   createFromPack(
     packId: number,
-    body: { title?: string; teamAName?: string; teamBName?: string }
+    body: {
+      title?: string;
+      teamAName?: string;
+      teamBName?: string;
+      teamCount?: number;
+      teamCName?: string;
+      teamDName?: string;
+    }
   ) {
     return this.http.post<GameShowLobbyDto>(
       `${this.base}/api/game-show/packs/${packId}/create-session`,
@@ -442,6 +500,18 @@ export class GameShowApi {
       playerId,
       team
     });
+  }
+
+  removePlayer(id: number, playerId: number) {
+    return this.http.delete<GameShowLobbyDto>(`${this.base}/api/game-show/${id}/players/${playerId}`);
+  }
+
+  /** El estudiante elige su equipo mientras la partida está en el lobby. */
+  chooseTeam(id: number, playerToken: string, team: string) {
+    return this.http.post<GameShowLobbyDto>(
+      `${this.base}/api/game-show/${id}/team?playerToken=${encodeURIComponent(playerToken)}`,
+      { team }
+    );
   }
 
   nextRound(id: number) {

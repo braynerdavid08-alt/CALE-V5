@@ -16,6 +16,7 @@ public static class GameShowScoringPolicy
     public static int ComputeSuccessfulStealPoints(int controllerBankedPoints) =>
         Math.Max(0, controllerBankedPoints);
 
+    /// <summary>Two-team opposite; kept for steals started before multi-team support.</summary>
     public static string OppositeTeam(string team) =>
         string.Equals(team, GameShowTeams.A, StringComparison.OrdinalIgnoreCase)
             ? GameShowTeams.B
@@ -131,14 +132,73 @@ public static class GameShowEngine
 
     public static string? AnsweringTeam(GameShowRound round)
     {
+        if (round.Phase == GameShowRoundPhases.StealBuzz)
+        {
+            return null;
+        }
+
         if (round.Phase == GameShowRoundPhases.Steal)
         {
-            return round.ControllingTeam is string ctrl
-                ? GameShowScoringPolicy.OppositeTeam(ctrl)
-                : null;
+            return StealerOf(round);
         }
 
         return round.ControllingTeam;
+    }
+
+    public static string? StealerOf(GameShowRound round) =>
+        round.StealingTeam
+        ?? (round.ControllingTeam is string ctrl ? GameShowScoringPolicy.OppositeTeam(ctrl) : null);
+
+    /// <summary>Gives the steal to <paramref name="team"/> (one answer, steal clock).</summary>
+    public static void EnterSteal(
+        GameShowSession session,
+        GameShowRound round,
+        string team,
+        DateTime utcNow,
+        int? preferredPlayerId = null)
+    {
+        round.Phase = GameShowRoundPhases.Steal;
+        round.StealingTeam = team;
+        GameShowTiming.SetDeadline(round, utcNow, GameShowSessionSettings.FromSession(session));
+        AssignActivePlayer(session, round, team, preferredPlayerId);
+    }
+
+    /// <summary>
+    /// Face-off miss: the turn passes to the next team; once every team tried, the buzzer reopens.
+    /// </summary>
+    private static Outcome PassFaceOff(
+        GameShowSession session,
+        GameShowRound round,
+        DateTime utcNow,
+        bool timedOut)
+    {
+        var from = round.ControllingTeam;
+        var starter = round.BuzzWinnerTeam ?? from;
+        if (from is null || starter is null)
+        {
+            OpenBuzz(round, utcNow);
+            return new Outcome(OutcomeKind.FaceOffBothMissReopen, "FaceOffReopen", new { timedOut });
+        }
+
+        var next = GameShowTeams.Next(session, from);
+        var keys = GameShowTeams.Keys(session).ToList();
+        int Offset(string t) =>
+            (keys.IndexOf(t.ToUpperInvariant()) - keys.IndexOf(starter.ToUpperInvariant()) + keys.Count) % keys.Count;
+        // Walking forward from the starter, wrapping back to an earlier team means everyone already tried.
+        if (Offset(next) <= Offset(from))
+        {
+            OpenBuzz(round, utcNow);
+            return new Outcome(OutcomeKind.FaceOffBothMissReopen, "FaceOffReopen", new { timedOut });
+        }
+
+        round.Phase = GameShowRoundPhases.FaceOffSecond;
+        round.ControllingTeam = next;
+        GameShowTiming.SetDeadline(round, utcNow, GameShowSessionSettings.FromSession(session));
+        AssignActivePlayer(session, round, next);
+        return new Outcome(
+            OutcomeKind.FaceOffMissPass,
+            "FaceOffPass",
+            new { fromTeam = from, toTeam = next, timedOut, activePlayerId = round.ActivePlayerId });
     }
 
     public static void EnsureActivePlayerAllowed(GameShowRound round, GameShowPlayer player)
@@ -155,6 +215,7 @@ public static class GameShowEngine
         round.Phase = GameShowRoundPhases.WaitingBuzz;
         round.ControllingTeam = null;
         round.BuzzWinnerTeam = null;
+        round.StealingTeam = null;
         round.ActivePlayerId = null;
         round.Strikes = 0;
         round.RoundPointsForController = 0;
@@ -245,14 +306,7 @@ public static class GameShowEngine
     {
         var awarded = GameShowScoringPolicy.ApplyLightning(session, points, utcNow ?? DateTime.UtcNow);
         if (awarded <= 0) return;
-        if (string.Equals(team, GameShowTeams.A, StringComparison.OrdinalIgnoreCase))
-        {
-            session.TeamAScore += awarded;
-        }
-        else
-        {
-            session.TeamBScore += awarded;
-        }
+        GameShowTeams.AddScore(session, team, awarded);
     }
 
     public static void NoteCorrectAnswer(GameShowPlayer player) =>
@@ -423,12 +477,25 @@ public static class GameShowEngine
         DateTime utcNow,
         bool forced = false)
     {
-        if (settings.EnableSteal)
+        var stealers = round.ControllingTeam is string ctrlTeam
+            ? GameShowTeams.Stealers(session, ctrlTeam)
+            : [];
+        if (settings.EnableSteal && stealers.Count > 1)
         {
-            round.Phase = GameShowRoundPhases.Steal;
+            round.Phase = GameShowRoundPhases.StealBuzz;
+            round.StealingTeam = null;
+            round.ActivePlayerId = null;
             GameShowTiming.SetDeadline(round, utcNow, settings);
-            var stealer = GameShowScoringPolicy.OppositeTeam(round.ControllingTeam!);
-            AssignActivePlayer(session, round, stealer);
+            return new Outcome(
+                OutcomeKind.StealOpportunity,
+                "StealOpportunity",
+                new { strikes = round.Strikes, stealer = (string?)null, stealers, forced, activePlayerId = (int?)null });
+        }
+
+        if (settings.EnableSteal && stealers.Count == 1)
+        {
+            var stealer = stealers[0];
+            EnterSteal(session, round, stealer, utcNow);
             return new Outcome(
                 OutcomeKind.StealOpportunity,
                 "StealOpportunity",
@@ -455,7 +522,7 @@ public static class GameShowEngine
 
     public static Outcome HostFailSteal(GameShowSession session, GameShowRound round, DateTime utcNow)
     {
-        if (round.Phase != GameShowRoundPhases.Steal)
+        if (round.Phase is not (GameShowRoundPhases.Steal or GameShowRoundPhases.StealBuzz))
         {
             throw new InvalidOperationException("invalid_phase");
         }
@@ -496,7 +563,7 @@ public static class GameShowEngine
         {
             CommitRoundPoints(session, team, round.RoundPointsForController, utcNow);
         }
-        else if (round.Phase == GameShowRoundPhases.Steal
+        else if (round.Phase is GameShowRoundPhases.Steal or GameShowRoundPhases.StealBuzz
                  && round.ControllingTeam is string ctrl)
         {
             CommitRoundPoints(session, ctrl, round.RoundPointsForController, utcNow);
@@ -558,46 +625,11 @@ public static class GameShowEngine
                 OutcomeKind.Noop,
                 "TimerTick",
                 new { expired = false, phase = round.Phase }),
-            GameShowRoundPhases.FaceOff => TimeoutFaceOffFirst(session, round, utcNow),
-            GameShowRoundPhases.FaceOffSecond => TimeoutFaceOffSecond(round, utcNow),
+            GameShowRoundPhases.FaceOff or GameShowRoundPhases.FaceOffSecond => PassFaceOff(session, round, utcNow, timedOut: true),
             GameShowRoundPhases.Control or GameShowRoundPhases.Playing => TimeoutControl(session, round, utcNow),
-            GameShowRoundPhases.Steal => HostFailSteal(session, round, utcNow),
+            GameShowRoundPhases.Steal or GameShowRoundPhases.StealBuzz => HostFailSteal(session, round, utcNow),
             _ => new Outcome(OutcomeKind.Noop, "TimerTick", new { expired = true, phase = round.Phase })
         };
-    }
-
-    private static Outcome TimeoutFaceOffFirst(GameShowSession session, GameShowRound round, DateTime utcNow)
-    {
-        if (round.ControllingTeam is null)
-        {
-            OpenBuzz(round, utcNow);
-            return new Outcome(OutcomeKind.FaceOffBothMissReopen, "FaceOffReopen", new { timedOut = true });
-        }
-
-        var other = GameShowScoringPolicy.OppositeTeam(round.ControllingTeam);
-        round.Phase = GameShowRoundPhases.FaceOffSecond;
-        round.ControllingTeam = other;
-        GameShowTiming.SetDeadline(round, utcNow, GameShowSessionSettings.FromSession(session));
-        AssignActivePlayer(session, round, other);
-        return new Outcome(
-            OutcomeKind.FaceOffMissPass,
-            "FaceOffPass",
-            new
-            {
-                fromTeam = GameShowScoringPolicy.OppositeTeam(other),
-                toTeam = other,
-                timedOut = true,
-                activePlayerId = round.ActivePlayerId
-            });
-    }
-
-    private static Outcome TimeoutFaceOffSecond(GameShowRound round, DateTime utcNow)
-    {
-        OpenBuzz(round, utcNow);
-        return new Outcome(
-            OutcomeKind.FaceOffBothMissReopen,
-            "FaceOffReopen",
-            new { timedOut = true });
     }
 
     private static Outcome TimeoutControl(GameShowSession session, GameShowRound round, DateTime utcNow) =>
@@ -613,25 +645,7 @@ public static class GameShowEngine
     {
         if (match is null)
         {
-            if (round.Phase == GameShowRoundPhases.FaceOff)
-            {
-                var other = GameShowScoringPolicy.OppositeTeam(player.Team);
-                round.Phase = GameShowRoundPhases.FaceOffSecond;
-                round.ControllingTeam = other;
-                GameShowTiming.SetDeadline(round, utcNow, settings);
-                AssignActivePlayer(session, round, other);
-                return new Outcome(
-                    OutcomeKind.FaceOffMissPass,
-                    "FaceOffPass",
-                    new { fromTeam = player.Team, toTeam = other, activePlayerId = round.ActivePlayerId });
-            }
-
-            // Both missed face-off → reopen buzz (prompt: config; we reopen).
-            OpenBuzz(round, utcNow);
-            return new Outcome(
-                OutcomeKind.FaceOffBothMissReopen,
-                "FaceOffReopen",
-                new { });
+            return PassFaceOff(session, round, utcNow, timedOut: false);
         }
 
         RevealAnswer(match, utcNow);
@@ -682,7 +696,7 @@ public static class GameShowEngine
             throw new InvalidOperationException("invalid_state");
         }
 
-        var stealer = GameShowScoringPolicy.OppositeTeam(round.ControllingTeam);
+        var stealer = StealerOf(round)!;
         if (!string.Equals(player.Team, stealer, StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException("not_your_turn");

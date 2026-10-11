@@ -219,6 +219,10 @@ public sealed class GameShowSettingsTests
             Task.FromResult(false);
         public Task<bool> TryClaimBuzzAsync(int roundId, string team, CancellationToken ct) =>
             Task.FromResult(false);
+        public Task<bool> TryClaimStealAsync(int roundId, string team, CancellationToken ct) =>
+            Task.FromResult(false);
+        public Task RemovePlayerAsync(GameShowPlayer player, CancellationToken ct) =>
+            Task.CompletedTask;
         public Task<IReadOnlyList<GameShowSession>> ListForHostAsync(int hostUserId, CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<GameShowSession>>([]);
         public Task<IReadOnlyList<GameShowSession>> ListForSchoolAsync(int schoolUserId, CancellationToken ct) =>

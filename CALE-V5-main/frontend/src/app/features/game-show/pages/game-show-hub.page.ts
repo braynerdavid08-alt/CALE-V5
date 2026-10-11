@@ -78,6 +78,14 @@ type PackChoice = 'official' | `pack:${number}` | 'draft';
       <label class="field">Nombre de la partida
         <input class="input" [ngModel]="title()" (ngModelChange)="onTitle($event)" name="title" />
       </label>
+      <label class="field">Número de equipos
+        <select class="input" [ngModel]="teamCount()" (ngModelChange)="teamCount.set(+$event)" name="teamCount">
+          <option [ngValue]="2">2 equipos</option>
+          <option [ngValue]="3">3 equipos</option>
+          <option [ngValue]="4">4 equipos</option>
+        </select>
+        <span class="hint">Cada estudiante escoge su equipo al entrar. Tú puedes moverlos o quitarlos.</span>
+      </label>
       <div class="row">
         <label class="field">Equipo A
           <input class="input" [ngModel]="teamA()" (ngModelChange)="onTeamA($event)" name="teamA" />
@@ -85,6 +93,16 @@ type PackChoice = 'official' | `pack:${number}` | 'draft';
         <label class="field">Equipo B
           <input class="input" [ngModel]="teamB()" (ngModelChange)="onTeamB($event)" name="teamB" />
         </label>
+        @if (teamCount() >= 3) {
+          <label class="field">Equipo C
+            <input class="input" [ngModel]="teamC()" (ngModelChange)="teamC.set($event)" name="teamC" />
+          </label>
+        }
+        @if (teamCount() >= 4) {
+          <label class="field">Equipo D
+            <input class="input" [ngModel]="teamD()" (ngModelChange)="teamD.set($event)" name="teamD" />
+          </label>
+        }
       </div>
 
       <div class="actions">
@@ -151,6 +169,9 @@ export class GameShowHubPage implements OnInit {
   readonly title = computed(() => this.draftStore.draft().title);
   readonly teamA = computed(() => this.draftStore.draft().teamAName);
   readonly teamB = computed(() => this.draftStore.draft().teamBName);
+  readonly teamCount = signal(2);
+  readonly teamC = signal('Equipo C');
+  readonly teamD = signal('Equipo D');
   readonly readyCount = computed(() => this.draftStore.readyRoundCount());
 
   readonly selectedLabel = computed(() => {
@@ -249,7 +270,10 @@ export class GameShowHubPage implements OnInit {
     const room = {
       title: this.title(),
       teamAName: this.teamA(),
-      teamBName: this.teamB()
+      teamBName: this.teamB(),
+      teamCount: this.teamCount(),
+      teamCName: this.teamC(),
+      teamDName: this.teamD()
     };
 
     if (choice.startsWith('pack:')) {

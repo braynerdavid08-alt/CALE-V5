@@ -19,7 +19,7 @@ public static class GameShowTiming
                 TimeSpan.FromSeconds(Math.Max(1, s.FaceOffSeconds)),
             GameShowRoundPhases.Control or GameShowRoundPhases.Playing =>
                 TimeSpan.FromSeconds(Math.Max(1, s.ControlSeconds)),
-            GameShowRoundPhases.Steal =>
+            GameShowRoundPhases.Steal or GameShowRoundPhases.StealBuzz =>
                 TimeSpan.FromSeconds(Math.Max(1, s.StealSeconds)),
             _ => TimeSpan.Zero
         };

@@ -68,6 +68,27 @@ public sealed class GameShowStore : IGameShowStore
         return updated == 1;
     }
 
+    public async Task<bool> TryClaimStealAsync(int roundId, string team, CancellationToken ct)
+    {
+        var updated = await _db.Set<GameShowRound>()
+            .Where(r =>
+                r.Id == roundId
+                && r.Phase == GameShowRoundPhases.StealBuzz
+                && r.StealingTeam == null)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(r => r.StealingTeam, team)
+                    .SetProperty(r => r.Phase, GameShowRoundPhases.Steal),
+                ct);
+        return updated == 1;
+    }
+
+    public Task RemovePlayerAsync(GameShowPlayer player, CancellationToken ct)
+    {
+        _db.Set<GameShowPlayer>().Remove(player);
+        return Task.CompletedTask;
+    }
+
     public async Task<IReadOnlyList<GameShowSession>> ListForHostAsync(
         int hostUserId,
         CancellationToken ct) =>
@@ -117,7 +138,7 @@ public sealed class GameShowStore : IGameShowStore
             .Where(x =>
                 x.SourcePackId == packId
                 && x.Status == GameShowSessionStatuses.Ended)
-            .OrderByDescending(x => x.TeamAScore + x.TeamBScore)
+            .OrderByDescending(x => x.TeamAScore + x.TeamBScore + x.TeamCScore + x.TeamDScore)
             .ThenByDescending(x => x.EndedAt)
             .Take(take)
             .ToListAsync(ct);

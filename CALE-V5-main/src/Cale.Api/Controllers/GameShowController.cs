@@ -482,6 +482,24 @@ public sealed class GameShowController : ControllerBase
         return Ok(await _handler.GetLobbyAsync(id, CurrentUser.GetId(User), null, ct, preferHostView: true));
     }
 
+    [HttpDelete("{id:int}/players/{playerId:int}")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<IActionResult> RemovePlayer(int id, int playerId, CancellationToken ct)
+    {
+        await _handler.RemovePlayerAsync(id, CurrentUser.GetId(User), playerId, ct);
+        return Ok(await _handler.GetLobbyAsync(id, CurrentUser.GetId(User), null, ct, preferHostView: true));
+    }
+
+    [HttpPost("{id:int}/team")]
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.PublicJoin)]
+    public async Task<IActionResult> ChooseTeam(
+        int id,
+        [FromQuery] Guid playerToken,
+        [FromBody] ChooseGameShowTeamRequest request,
+        CancellationToken ct) =>
+        Ok(await _handler.ChooseTeamAsync(id, playerToken, request, ct));
+
     [HttpPost("{id:int}/next-round")]
     [Authorize(Policy = "TeacherOrAdmin")]
     public async Task<IActionResult> NextRound(int id, CancellationToken ct)

@@ -15,6 +15,8 @@ public sealed class GameShowSessionConfiguration : IEntityTypeConfiguration<Game
         builder.Property(x => x.Status).HasMaxLength(32).IsRequired();
         builder.Property(x => x.TeamAName).HasMaxLength(80).IsRequired();
         builder.Property(x => x.TeamBName).HasMaxLength(80).IsRequired();
+        builder.Property(x => x.TeamCName).HasMaxLength(80).IsRequired();
+        builder.Property(x => x.TeamDName).HasMaxLength(80).IsRequired();
         builder.Property(x => x.SettingsJson).HasMaxLength(8000);
         builder.HasIndex(x => x.JoinCode).IsUnique();
         builder.HasIndex(x => x.HostUserId);
@@ -40,6 +42,7 @@ public sealed class GameShowRoundConfiguration : IEntityTypeConfiguration<GameSh
         builder.Property(x => x.Phase).HasMaxLength(32).IsRequired();
         builder.Property(x => x.ControllingTeam).HasMaxLength(8);
         builder.Property(x => x.BuzzWinnerTeam).HasMaxLength(8);
+        builder.Property(x => x.StealingTeam).HasMaxLength(8);
         builder.HasIndex(x => new { x.SessionId, x.SortOrder }).IsUnique();
         builder.HasMany(x => x.Answers)
             .WithOne()

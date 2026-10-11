@@ -36,5 +36,6 @@ export function phaseHasTurnClock(phase: string | null | undefined): boolean {
     || phase === 'Control'
     || phase === 'Playing'
     || phase === 'Steal'
+    || phase === 'StealBuzz'
   );
 }

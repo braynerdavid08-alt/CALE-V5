@@ -7,7 +7,14 @@ import { SessionStore } from '../../../core/auth/session.store';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { mapApiError } from '../../../core/http/map-api-error';
-import { GameShowApi, GameShowLobbyDto } from '../api/game-show.api';
+import {
+  GameShowApi,
+  GameShowLobbyDto,
+  GameShowTeamDto,
+  TEAM_COLORS,
+  teamNameOf,
+  teamsOf
+} from '../api/game-show.api';
 import { phaseHasTurnClock, remainingFromServerSnapshot, secondsUntilDeadline } from '../api/game-show-deadline';
 import { GameShowSfxService } from '../api/game-show-sfx.service';
 
@@ -21,11 +28,15 @@ import { GameShowSfxService } from '../api/game-show-sfx.service';
         <header>
           <h1>{{ L.title }}</h1>
           <div class="score">
-            <span [class.mine]="myTeam() === 'A'">{{ L.teamAName }} {{ L.teamAScore }}</span>
-            <span [class.mine]="myTeam() === 'B'">{{ L.teamBName }} {{ L.teamBScore }}</span>
+            @for (t of teams(L); track t.key) {
+              <span [class.mine]="myTeam() === t.key" [style.--team]="teamColor(t.key)">{{ t.name }} {{ t.score }}</span>
+            }
           </div>
-          <p class="muted">Juegas con {{ myTeamName(L) }}</p>
+          <p class="muted">Juegas con <strong>{{ myTeamName(L) }}</strong></p>
         </header>
+        @if (removed()) {
+          <p class="removed">El profesor te quitó de esta partida. Si fue un error, vuelve a entrar con el código.</p>
+        }
         <ui-error [message]="error()" />
         @if (connection()) { <p class="conn">{{ connection() }}</p> }
         @if (flash()) { <p class="flash">{{ flash() }}</p> }
@@ -53,6 +64,16 @@ import { GameShowSfxService } from '../api/game-show-sfx.service';
               {{ buzzing() ? 'Tomando turno…' : '¡RESPONDER!' }}
             </ui-button>
           }
+          @if (R.phase === 'StealBuzz') {
+            @if (R.controllingTeam !== myTeam()) {
+              <p class="steal">¡Oportunidad de robo! El primer equipo que presione intenta robar el banco ({{ R.roundPointsForController }}).</p>
+              <ui-button type="button" class="buzz" [disabled]="buzzing()" (click)="buzz()">
+                {{ buzzing() ? 'Tomando turno…' : '¡ROBAR!' }}
+              </ui-button>
+            } @else {
+              <p class="muted">Los otros equipos compiten por robar. Espera el resultado.</p>
+            }
+          }
 
           @if (canAnswer(L) && myTurn(L)) {
             @if (R.phase === 'Steal') {
@@ -76,6 +97,25 @@ import { GameShowSfxService } from '../api/game-show-sfx.service';
           }
         } @else {
           <p>Esperando en el lobby… Código {{ L.joinCode }}</p>
+          @if (L.status === 'Lobby' && !removed()) {
+            <div class="pick">
+              <p class="steal">Escoge tu equipo</p>
+              <div class="pick-grid">
+                @for (t of teams(L); track t.key) {
+                  <button
+                    type="button"
+                    class="team-btn"
+                    [class.on]="myTeam() === t.key"
+                    [style.--team]="teamColor(t.key)"
+                    [disabled]="choosing()"
+                    (click)="chooseTeam(t.key)">
+                    <strong>{{ t.name }}</strong>
+                    <small>{{ playersIn(L, t.key) }} {{ playersIn(L, t.key) === 1 ? 'jugador' : 'jugadores' }}</small>
+                  </button>
+                }
+              </div>
+            </div>
+          }
         }
         <a routerLink="/live/join" (click)="leave()">Salir de la partida</a>
       </section>
@@ -85,8 +125,16 @@ import { GameShowSfxService } from '../api/game-show-sfx.service';
   `,
   styles: [`
     .play { max-width: 40rem; margin: 0 auto; padding: 1rem; display: grid; gap: 0.85rem; }
-    .score { display: flex; gap: 1rem; font-weight: 800; font-size: 1.2rem; }
-    .score .mine { color: var(--color-primary); }
+    .score { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-weight: 800; font-size: 1.1rem; }
+    .score span { padding: 0.15rem 0.6rem; border-radius: 999px; border: 2px solid transparent; }
+    .score .mine { border-color: var(--team, var(--color-primary)); color: var(--color-text); }
+    .removed { padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--color-danger, #dc2626); color: var(--color-danger, #dc2626); font-weight: 700; }
+    .pick { display: grid; gap: 0.5rem; }
+    .pick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: 0.6rem; }
+    .team-btn { display: grid; gap: 0.2rem; padding: 0.9rem 0.75rem; border-radius: 14px; border: 2px solid var(--color-border); border-top: 6px solid var(--team); background: var(--color-surface); color: var(--color-text); cursor: pointer; font: inherit; text-align: left; }
+    .team-btn.on { border-color: var(--team); background: color-mix(in srgb, var(--team) 18%, var(--color-surface)); }
+    .team-btn small { color: var(--color-text-secondary); }
+    .team-btn:disabled { opacity: 0.7; cursor: wait; }
     .q { font-size: 1.35rem; font-weight: 800; }
     .board { list-style: none; padding: 0; display: grid; gap: 0.4rem; }
     .board li { padding: 0.75rem 1rem; border-radius: 12px; background: var(--color-surface); border: 1px solid var(--color-border); font-weight: 700; letter-spacing: 0.04em; transition: background 0.25s ease, border-color 0.25s ease; }
@@ -114,6 +162,8 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
   readonly connection = signal<string | null>(null);
   readonly myTeam = signal('A');
   readonly buzzing = signal(false);
+  readonly choosing = signal(false);
+  readonly removed = signal(false);
   readonly timerSec = signal<number | null>(null);
   answer = '';
   private hub: HubConnection | null = null;
@@ -245,7 +295,36 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
   }
 
   myTeamName(L: GameShowLobbyDto): string {
-    return this.myTeam() === 'B' ? L.teamBName : L.teamAName;
+    return teamNameOf(L, this.myTeam());
+  }
+
+  teams(L: GameShowLobbyDto): GameShowTeamDto[] {
+    return teamsOf(L);
+  }
+
+  teamColor(key: string): string {
+    return TEAM_COLORS[key] ?? '#2563eb';
+  }
+
+  playersIn(L: GameShowLobbyDto, key: string): number {
+    return L.players.filter((p) => p.team === key).length;
+  }
+
+  chooseTeam(team: string): void {
+    if (this.choosing() || team === this.myTeam()) return;
+    this.choosing.set(true);
+    this.error.set(null);
+    this.api.chooseTeam(this.sessionId, this.token, team).subscribe({
+      next: (lobby) => {
+        this.choosing.set(false);
+        this.apply(lobby);
+      },
+      error: (err) => {
+        this.choosing.set(false);
+        this.error.set(mapApiError(err));
+        this.reloadQuiet();
+      }
+    });
   }
 
   myTurn(L: GameShowLobbyDto): boolean {
@@ -256,8 +335,8 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
       return false;
     }
     if (r.phase === 'Steal') {
-      const other = r.controllingTeam === 'A' ? 'B' : 'A';
-      return other === this.myTeam();
+      const stealer = r.stealingTeam ?? (r.controllingTeam === 'A' ? 'B' : 'A');
+      return stealer === this.myTeam();
     }
     if (
       r.phase === 'FaceOff'
@@ -285,19 +364,20 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     const name = L.currentRound?.activePlayerName;
     if (name) return `Espera: responde ${name}`;
     if (L.currentRound?.phase === 'Steal') {
-      return 'El otro equipo intenta robar la ronda. Espera el resultado.';
+      return `${teamNameOf(L, L.currentRound.stealingTeam)} intenta robar la ronda. Espera el resultado.`;
     }
     return 'Espera el turno de tu equipo.';
   }
 
   phaseLabel(L: GameShowLobbyDto, phase: string): string {
     const r = L.currentRound;
-    const controller = r?.controllingTeam === 'B' ? L.teamBName : L.teamAName;
+    const controller = teamNameOf(L, r?.controllingTeam);
     const who = r?.activePlayerName ? r.activePlayerName : controller;
     switch (phase) {
       case 'WaitingBuzz': return 'Presiona RESPONDER para el enfrentamiento';
+      case 'StealBuzz': return 'Robo abierto';
       case 'FaceOff': return `Enfrentamiento: responde ${who}`;
-      case 'FaceOffSecond': return `Enfrentamiento (2.º): responde ${who}`;
+      case 'FaceOffSecond': return `Enfrentamiento (siguiente equipo): responde ${who}`;
       case 'Control':
       case 'Playing': return `Control: responde ${who}`;
       case 'Steal': return this.myTurn(L) ? 'Robo: ¡es tu oportunidad!' : `Robo: responde ${who}`;
@@ -486,6 +566,14 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
       }
       this.reloadQuiet();
     }));
+    this.hub.on('PlayerRemoved', (payload: { playerId?: number }) => this.zone.run(() => {
+      if (payload?.playerId == null || payload.playerId !== this.myPlayerId) return;
+      this.removed.set(true);
+      this.api.forgetLastGame();
+      if (this.pollTimer) clearInterval(this.pollTimer);
+      void this.hub?.stop();
+    }));
+    this.hub.on('StealBuzzWon', () => onFlash('¡Un equipo tomó el robo!'));
     this.hub.on('BuzzWon', () => onFlash('¡Turno de enfrentamiento!'));
     this.hub.on('FaceOffPass', () => onFlash('Turno del otro equipo'));
     this.hub.on('FaceOffWon', () => onFlash('¡Control de la ronda!'));

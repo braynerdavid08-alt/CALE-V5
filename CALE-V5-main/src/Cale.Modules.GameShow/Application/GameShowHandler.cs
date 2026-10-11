@@ -59,6 +59,9 @@ public sealed partial class GameShowHandler
             Status = GameShowSessionStatuses.Lobby,
             TeamAName = string.IsNullOrWhiteSpace(request.TeamAName) ? "Equipo A" : request.TeamAName.Trim(),
             TeamBName = string.IsNullOrWhiteSpace(request.TeamBName) ? "Equipo B" : request.TeamBName.Trim(),
+            TeamCName = string.IsNullOrWhiteSpace(request.TeamCName) ? "Equipo C" : request.TeamCName.Trim(),
+            TeamDName = string.IsNullOrWhiteSpace(request.TeamDName) ? "Equipo D" : request.TeamDName.Trim(),
+            TeamCount = GameShowTeams.ClampCount(request.TeamCount),
             SettingsJson = GameShowSessionSettings.Serialize(snapshot),
             CreatedAt = _clock.UtcNow
         };
@@ -127,10 +130,7 @@ public sealed partial class GameShowHandler
             }
         }
 
-        var team = string.IsNullOrWhiteSpace(request.Team)
-            || string.Equals(request.Team, "auto", StringComparison.OrdinalIgnoreCase)
-            ? PickBalancedTeam(session)
-            : NormalizeTeam(request.Team);
+        var team = GameShowTeams.Normalize(session, request.Team) ?? PickBalancedTeam(session);
 
         var player = new GameShowPlayer
         {
@@ -219,9 +219,88 @@ public sealed partial class GameShowHandler
         var session = await RequireHostAsync(sessionId, hostUserId, ct);
         var player = session.Players.FirstOrDefault(p => p.Id == request.PlayerId)
             ?? throw new NotFoundException("Jugador no encontrado.", "player_not_found");
-        player.Team = NormalizeTeam(request.Team);
+        await MovePlayerAsync(session, player, NormalizeTeam(session, request.Team), ct);
+    }
+
+    /// <summary>Students pick their own team while the game is still in the lobby.</summary>
+    public async Task<GameShowLobbyDto> ChooseTeamAsync(
+        int sessionId,
+        Guid playerToken,
+        ChooseGameShowTeamRequest request,
+        CancellationToken ct)
+    {
+        var session = await RequireSessionAsync(sessionId, ct);
+        var player = session.Players.FirstOrDefault(p => p.PlayerToken == playerToken)
+            ?? throw new DomainException("Jugador no encontrado.", 404, "player_not_found");
+        if (session.Status != GameShowSessionStatuses.Lobby)
+        {
+            throw new DomainException("Los equipos se eligen antes de iniciar la partida.", 400, "teams_locked");
+        }
+
+        await MovePlayerAsync(session, player, NormalizeTeam(session, request.Team), ct);
+        return await MapLobbyAsync(session, hostView: false, ct: ct, viewerPlayerId: player.Id, viewerTeam: player.Team);
+    }
+
+    /// <summary>Host removes a player (wrong name, left the class…). Their attempts stay in the history.</summary>
+    public async Task RemovePlayerAsync(int sessionId, int hostUserId, int playerId, CancellationToken ct)
+    {
+        var session = await RequireHostAsync(sessionId, hostUserId, ct);
+        var player = session.Players.FirstOrDefault(p => p.Id == playerId)
+            ?? throw new NotFoundException("Jugador no encontrado.", "player_not_found");
+
+        session.Players.Remove(player);
+        await _store.RemovePlayerAsync(player, ct);
+        var round = ActiveRoundOrNull(session);
+        if (round is not null && round.ActivePlayerId == playerId)
+        {
+            ReassignActivePlayer(session, round);
+        }
+
+        await _store.SaveChangesAsync(ct);
+        await _broadcaster.EventAsync(session.Id, "PlayerRemoved", new { playerId }, ct);
+        await BroadcastLobbyAsync(session, ct);
+        if (round is not null)
+        {
+            await BroadcastYourTurnAsync(session, round, ct);
+        }
+    }
+
+    private async Task MovePlayerAsync(GameShowSession session, GameShowPlayer player, string team, CancellationToken ct)
+    {
+        player.Team = team;
+        var round = ActiveRoundOrNull(session);
+        var wasActive = round is not null && round.ActivePlayerId == player.Id;
+        if (wasActive)
+        {
+            ReassignActivePlayer(session, round!);
+        }
+
         await _store.SaveChangesAsync(ct);
         await BroadcastLobbyAsync(session, ct);
+        if (wasActive)
+        {
+            await BroadcastYourTurnAsync(session, round!, ct);
+        }
+    }
+
+    private static GameShowRound? ActiveRoundOrNull(GameShowSession session)
+    {
+        var rounds = session.Rounds.OrderBy(r => r.SortOrder).ToList();
+        return session.CurrentRoundIndex >= 0 && session.CurrentRoundIndex < rounds.Count
+            ? rounds[session.CurrentRoundIndex]
+            : null;
+    }
+
+    private static void ReassignActivePlayer(GameShowSession session, GameShowRound round)
+    {
+        if (GameShowEngine.AnsweringTeam(round) is string team && round.Phase != GameShowRoundPhases.Finished)
+        {
+            GameShowEngine.AssignActivePlayer(session, round, team);
+        }
+        else
+        {
+            round.ActivePlayerId = null;
+        }
     }
 
     public async Task StartAsync(int sessionId, int hostUserId, CancellationToken ct)
@@ -289,6 +368,11 @@ public sealed partial class GameShowHandler
             ?? throw new DomainException("Jugador no encontrado.", 404, "player_not_found");
         var round = CurrentRound(session);
 
+        if (round.Phase == GameShowRoundPhases.StealBuzz)
+        {
+            return await ClaimStealAsync(session, round, player.Team, player.Id, ct);
+        }
+
         if (round.Phase != GameShowRoundPhases.WaitingBuzz)
         {
             throw new DomainException("El buzzer no está abierto.", 400, "buzz_closed");
@@ -334,12 +418,18 @@ public sealed partial class GameShowHandler
         var session = await RequireHostAsync(sessionId, hostUserId, ct);
         EnsureRunning(session);
         var round = CurrentRound(session);
+        var t = NormalizeTeam(session, team);
+        if (round.Phase == GameShowRoundPhases.StealBuzz)
+        {
+            await ClaimStealAsync(session, round, t, null, ct);
+            return;
+        }
+
         if (round.Phase != GameShowRoundPhases.WaitingBuzz)
         {
             throw new DomainException("El buzzer no está abierto.", 400, "buzz_closed");
         }
 
-        var t = NormalizeTeam(team);
         var claimed = await _store.TryClaimBuzzAsync(round.Id, t, ct);
         if (!claimed)
         {
@@ -354,6 +444,38 @@ public sealed partial class GameShowHandler
         await BroadcastLobbyAsync(session, ct);
         await _broadcaster.EventAsync(session.Id, "BuzzWon", new { team = t, forced = true }, ct);
         await BroadcastYourTurnAsync(session, round, ct);
+    }
+
+    private async Task<GameShowLobbyDto> ClaimStealAsync(
+        GameShowSession session,
+        GameShowRound round,
+        string team,
+        int? playerId,
+        CancellationToken ct)
+    {
+        if (round.ControllingTeam is null
+            || string.Equals(team, round.ControllingTeam, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new DomainException("Tu equipo tiene el control: no puede robar.", 400, "steal_own_team");
+        }
+
+        if (!await _store.TryClaimStealAsync(round.Id, team, ct))
+        {
+            throw new DomainException("Otro equipo ya ganó el robo.", 409, "steal_taken");
+        }
+
+        GameShowEngine.EnterSteal(session, round, team, _clock.UtcNow, playerId);
+        var player = playerId is int pid ? session.Players.FirstOrDefault(p => p.Id == pid) : null;
+        if (player is not null) player.BuzzWins++;
+        await _store.SaveChangesAsync(ct);
+        await BroadcastLobbyAsync(session, ct);
+        await _broadcaster.EventAsync(
+            session.Id,
+            "StealBuzzWon",
+            new { team, playerId, displayName = player?.DisplayName, forced = playerId is null },
+            ct);
+        await BroadcastYourTurnAsync(session, round, ct);
+        return await MapLobbyAsync(session, hostView: false, ct: ct, viewerPlayerId: player?.Id, viewerTeam: player?.Team);
     }
 
     public async Task<GameShowLobbyDto> AnswerAsync(
@@ -602,6 +724,7 @@ public sealed partial class GameShowHandler
             {
                 teamAScore = session.TeamAScore,
                 teamBScore = session.TeamBScore,
+                teams = MapTeams(session),
                 mvp = standings.FirstOrDefault(),
                 players = standings
             },
@@ -629,7 +752,8 @@ public sealed partial class GameShowHandler
             s.TeamBScore,
             s.CreatedAt,
             s.EndedAt,
-            s.Players.Count)).ToList();
+            s.Players.Count,
+            MapTeams(s))).ToList();
     }
 
     public async Task<(byte[] Bytes, string FileName, string ContentType)> ExportQuestionsAsync(
@@ -792,7 +916,14 @@ public sealed partial class GameShowHandler
         return await CreateAsync(
             hostUserId,
             schoolUserId,
-            new CreateGameShowRequest(title, teamA, teamB, body.Rounds),
+            new CreateGameShowRequest(
+                title,
+                teamA,
+                teamB,
+                body.Rounds,
+                request.TeamCount ?? body.TeamCount,
+                string.IsNullOrWhiteSpace(request.TeamCName) ? body.TeamCName : request.TeamCName,
+                string.IsNullOrWhiteSpace(request.TeamDName) ? body.TeamDName : request.TeamDName),
             ct,
             sourcePackId: packId);
     }
@@ -822,7 +953,7 @@ public sealed partial class GameShowHandler
         return await CreateAsync(
             hostUserId,
             schoolUserId,
-            new CreateGameShowRequest(title, teamA, teamB, body.Rounds),
+            body with { Title = title, TeamAName = teamA, TeamBName = teamB },
             ct);
     }
 
@@ -879,8 +1010,8 @@ public sealed partial class GameShowHandler
         string? winner = null;
         if (session.Status == GameShowSessionStatuses.Ended)
         {
-            if (session.TeamAScore > session.TeamBScore) winner = GameShowTeams.A;
-            else if (session.TeamBScore > session.TeamAScore) winner = GameShowTeams.B;
+            var leaders = GameShowTeams.Leaders(session);
+            if (leaders.Count == 1) winner = leaders[0];
         }
 
         var standings = BuildPlayerStandings(session);
@@ -903,8 +1034,18 @@ public sealed partial class GameShowHandler
             session.CreatedAt,
             session.EndedAt,
             standings,
-            standings.FirstOrDefault());
+            standings.FirstOrDefault(),
+            MapTeams(session));
     }
+
+    private static IReadOnlyList<GameShowTeamDto> MapTeams(GameShowSession session) =>
+        GameShowTeams.Keys(session)
+            .Select(k => new GameShowTeamDto(
+                k,
+                GameShowTeams.Name(session, k),
+                GameShowTeams.Score(session, k),
+                session.Players.Count(p => string.Equals(p.Team, k, StringComparison.OrdinalIgnoreCase))))
+            .ToList();
 
     private async Task<GameShowPack> RequirePackAccessAsync(
         int packId,
@@ -983,7 +1124,10 @@ public sealed partial class GameShowHandler
                             a.Points,
                             GameShowAnswerMatcher.ParseAliases(a.AliasesJson).ToList()))
                         .ToList()))
-                .ToList());
+                .ToList(),
+            session.TeamCount,
+            session.TeamCName,
+            session.TeamDName);
 
     private static GameShowPackSummaryDto MapPackSummary(GameShowPack pack) =>
         new(pack.Id, pack.Name, pack.Notes, pack.RoundCount, pack.CreatedAt, pack.UpdatedAt);
@@ -1363,7 +1507,8 @@ public sealed partial class GameShowHandler
                 r.ActivePlayerId,
                 activeName,
                 activeAccent,
-                SecondsRemaining: RemainingSeconds(r.AnswerDeadlineUtc, now));
+                SecondsRemaining: RemainingSeconds(r.AnswerDeadlineUtc, now),
+                StealingTeam: r.Phase == GameShowRoundPhases.Steal ? GameShowEngine.StealerOf(r) : r.StealingTeam);
 
             if (r.Phase == GameShowRoundPhases.Finished && r.RoundChampionPlayerId is int champId)
             {
@@ -1410,7 +1555,8 @@ public sealed partial class GameShowHandler
             champion,
             BuildPlayerStandings(session),
             packLeaderboard,
-            ToSettingsDto(GameShowSessionSettings.FromSession(session)));
+            ToSettingsDto(GameShowSessionSettings.FromSession(session)),
+            MapTeams(session));
     }
 
     private static int? RemainingSeconds(DateTime? deadlineUtc, DateTime utcNow)
@@ -1424,19 +1570,14 @@ public sealed partial class GameShowHandler
         return Math.Max(0, seconds);
     }
 
-    private static string NormalizeTeam(string? team) =>
-        string.Equals(team, GameShowTeams.B, StringComparison.OrdinalIgnoreCase)
-            ? GameShowTeams.B
-            : GameShowTeams.A;
+    private static string NormalizeTeam(GameShowSession session, string? team) =>
+        GameShowTeams.Normalize(session, team)
+        ?? throw new DomainException("Ese equipo no existe en esta partida.", 400, "invalid_team");
 
-    private static string PickBalancedTeam(GameShowSession session)
-    {
-        var a = session.Players.Count(p =>
-            string.Equals(p.Team, GameShowTeams.A, StringComparison.OrdinalIgnoreCase));
-        var b = session.Players.Count(p =>
-            string.Equals(p.Team, GameShowTeams.B, StringComparison.OrdinalIgnoreCase));
-        return a <= b ? GameShowTeams.A : GameShowTeams.B;
-    }
+    private static string PickBalancedTeam(GameShowSession session) =>
+        GameShowTeams.Keys(session)
+            .OrderBy(k => session.Players.Count(p => string.Equals(p.Team, k, StringComparison.OrdinalIgnoreCase)))
+            .First();
 
     private async Task<string> GenerateUniqueCodeAsync(CancellationToken ct)
     {

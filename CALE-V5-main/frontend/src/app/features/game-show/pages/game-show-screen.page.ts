@@ -8,7 +8,12 @@ import {
   GameShowApi,
   GameShowAttemptEventDto,
   GameShowLobbyDto,
-  GameShowPlayerStandingDto
+  GameShowPlayerStandingDto,
+  GameShowTeamDto,
+  TEAM_COLORS,
+  teamNameOf,
+  teamsOf,
+  winnerTextOf
 } from '../api/game-show.api';
 import { GameShowSfxService } from '../api/game-show-sfx.service';
 import { phaseHasTurnClock, remainingFromServerSnapshot, secondsUntilDeadline } from '../api/game-show-deadline';
@@ -37,12 +42,14 @@ import { phraseForLightning, phraseForSteal, phraseForStrike3 } from '../api/gam
         }
 
         <div class="score">
-          <div [class.active]="isControlling(L, 'A')" [class.winner]="isWinner(L, 'A')">
-            <span>{{ L.teamAName }}</span><strong>{{ L.teamAScore }}</strong>
-          </div>
-          <div [class.active]="isControlling(L, 'B')" [class.winner]="isWinner(L, 'B')">
-            <span>{{ L.teamBName }}</span><strong>{{ L.teamBScore }}</strong>
-          </div>
+          @for (t of teams(L); track t.key) {
+            <div
+              [style.--team]="teamColor(t.key)"
+              [class.active]="isControlling(L, t.key)"
+              [class.winner]="isWinner(L, t.key)">
+              <span>{{ t.name }}</span><strong>{{ t.score }}</strong>
+            </div>
+          }
         </div>
         @if (flash()) { <p class="flash">{{ flash() }}</p> }
 
@@ -84,10 +91,10 @@ import { phraseForLightning, phraseForSteal, phraseForStrike3 } from '../api/gam
           <h1>{{ L.currentRound.questionText }}</h1>
           <p class="phase">
             {{ phase(L.currentRound.phase) }}
-            @if (L.currentRound.controllingTeam) {
+            @if (L.currentRound.controllingTeam && L.currentRound.phase !== 'StealBuzz' && L.currentRound.phase !== 'Steal') {
               · Turno de {{ teamName(L, L.currentRound.controllingTeam) }}
             }
-            @if (L.currentRound.phase === 'Control' || L.currentRound.phase === 'Playing' || L.currentRound.phase === 'Steal') {
+            @if (L.currentRound.phase === 'Control' || L.currentRound.phase === 'Playing' || L.currentRound.phase === 'Steal' || L.currentRound.phase === 'StealBuzz') {
               · Banco {{ displayBank(L) }}
               @if (L.isLightning) { <span class="x2"> ×2</span> }
             }
@@ -125,14 +132,18 @@ import { phraseForLightning, phraseForSteal, phraseForStrike3 } from '../api/gam
             || L.currentRound.phase === 'Control'
             || L.currentRound.phase === 'Playing'
             || L.currentRound.phase === 'Steal'
+            || L.currentRound.phase === 'StealBuzz'
           )) {
             <p class="timer" [class.urgent]="(timerSec() ?? 0) <= 3">{{ timerSec() }}s</p>
           }
           @if (L.currentRound.phase === 'FaceOff' || L.currentRound.phase === 'FaceOffSecond') {
-            <p class="steal">⚡ ENFRENTAMIENTO — un fallo pasa el turno (sin strikes)</p>
+            <p class="steal">⚡ ENFRENTAMIENTO — un fallo pasa el turno al siguiente equipo (sin strikes)</p>
+          }
+          @if (L.currentRound.phase === 'StealBuzz') {
+            <p class="steal">🔥 ¡ROBO! Los demás equipos: presionen RESPONDER · banco {{ displayBank(L) }}</p>
           }
           @if (L.currentRound.phase === 'Steal') {
-            <p class="steal">🔥 OPORTUNIDAD DE ROBO · {{ teamName(L, otherTeam(L.currentRound.controllingTeam)) }} · banco {{ displayBank(L) }}</p>
+            <p class="steal">🔥 OPORTUNIDAD DE ROBO · {{ teamName(L, L.currentRound.stealingTeam ?? otherTeam(L.currentRound.controllingTeam)) }} · banco {{ displayBank(L) }}</p>
           }
           @if ((L.currentRound.phase === 'Control' || L.currentRound.phase === 'Playing') && L.currentRound.roundPointsForController > 0) {
             <p class="bank">BANCO: {{ displayBank(L) }}@if (L.isLightning) { <span class="x2"> ×2</span> }</p>
@@ -148,7 +159,11 @@ import { phraseForLightning, phraseForSteal, phraseForStrike3 } from '../api/gam
             @for (a of L.currentRound.answers; track a.id) {
               <li [class.revealed]="a.isRevealed" [class.top]="a.isRevealed && a.rank === 1">
                 <em>{{ a.rank }}</em>
-                <span>{{ a.isRevealed ? a.text : '████████████████' }}</span>
+                @if (a.isRevealed) {
+                  <span>{{ a.text }}</span>
+                } @else {
+                  <span class="hidden-bar" aria-label="Respuesta oculta"></span>
+                }
                 <b>{{ a.isRevealed ? a.points : '' }}</b>
               </li>
             }
@@ -159,7 +174,21 @@ import { phraseForLightning, phraseForSteal, phraseForStrike3 } from '../api/gam
               <p class="lobby-label">Código para Aula en vivo</p>
               <h1 class="lobby-code">{{ L.joinCode }}</h1>
               <p>Esperando jugadores… ({{ L.players.length }} conectados)</p>
-              <p class="lobby-url">Entran en la app → Aula en vivo</p>
+              <p class="lobby-url">Entran en la app → Aula en vivo y escogen su equipo</p>
+              <div class="lobby-teams">
+                @for (t of teams(L); track t.key) {
+                  <div class="lobby-team" [style.--team]="teamColor(t.key)">
+                    <h3>{{ t.name }} <small>({{ playersOf(L, t.key).length }})</small></h3>
+                    <ul>
+                      @for (p of playersOf(L, t.key); track p.id) {
+                        <li>{{ p.displayName }}</li>
+                      } @empty {
+                        <li class="empty">Sin jugadores</li>
+                      }
+                    </ul>
+                  </div>
+                }
+              </div>
               @if (L.packLeaderboard?.length) {
                 <div class="board-hist">
                   <p class="lobby-label">Desafío del pack · mejores partidas</p>
@@ -191,8 +220,11 @@ import { phraseForLightning, phraseForSteal, phraseForStrike3 } from '../api/gam
     }
   `,
   styles: [`
-    :host { display: block; min-height: 100vh; background: radial-gradient(circle at top, #123a6b, #070d18 55%); color: #fff; }
+    :host { display: block; min-height: 100vh; background: radial-gradient(circle at top, #123a6b, #070d18 55%); color: #f8fafc; }
     .screen { padding: 2rem clamp(1rem, 4vw, 3rem); display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; position: relative; overflow: hidden; }
+    /* The global theme colors headings for light backgrounds; the projector is always dark. */
+    h1, h2 { color: #ffffff; }
+    h1 { text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45); }
     .score > div { min-width: 0; gap: 0.5rem; }
     .score span { min-width: 0; overflow-wrap: anywhere; }
     h1 { overflow-wrap: anywhere; }
@@ -203,14 +235,15 @@ import { phraseForLightning, phraseForSteal, phraseForStrike3 } from '../api/gam
       color: #fbbf24; font-size: clamp(1.1rem, 3vw, 1.8rem);
       animation: pulse 0.7s ease infinite alternate;
     }
-    .score { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    .score > div { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 18px; padding: 1.1rem 1.4rem; display: flex; justify-content: space-between; align-items: baseline; font-size: clamp(1.2rem, 3vw, 2rem); transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease; }
-    .score > div.active { background: rgba(94,176,255,0.18); border-color: rgba(94,176,255,0.6); box-shadow: 0 0 2rem rgba(94,176,255,0.25); }
+    .score { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); gap: 1rem; }
+    .score > div { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); border-left: 6px solid var(--team, #5eb0ff); border-radius: 18px; padding: 1.1rem 1.4rem; display: flex; justify-content: space-between; align-items: baseline; font-size: clamp(1.2rem, 3vw, 2rem); font-weight: 700; transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease; }
+    .score strong { color: var(--team, #fff); }
+    .score > div.active { background: color-mix(in srgb, var(--team, #5eb0ff) 22%, transparent); border-color: var(--team, #5eb0ff); box-shadow: 0 0 2rem color-mix(in srgb, var(--team, #5eb0ff) 35%, transparent); }
     .score > div.winner { background: rgba(250, 204, 21, 0.18); border-color: rgba(250, 204, 21, 0.7); }
     .score strong { font-size: clamp(2rem, 6vw, 4rem); }
     h1 { font-size: clamp(1.6rem, 4.5vw, 3rem); margin: 0; line-height: 1.15; }
     h2 { margin: 0; font-size: clamp(1.8rem, 5vw, 3.2rem); }
-    .phase { opacity: 0.8; font-size: 1.2rem; }
+    .phase { color: #cbd5e1; font-size: clamp(1.1rem, 2.4vw, 1.5rem); font-weight: 700; margin: 0; }
     .x2 { color: #fbbf24; font-weight: 900; }
     .timer {
       margin: 0; font-size: clamp(3rem, 10vw, 6rem); font-weight: 900; letter-spacing: 0.06em;
@@ -224,8 +257,18 @@ import { phraseForLightning, phraseForSteal, phraseForStrike3 } from '../api/gam
     .strikes span { font-size: clamp(2rem, 6vw, 4rem); font-weight: 900; line-height: 1; color: rgba(255,255,255,0.14); transition: color 0.3s ease, transform 0.3s ease; }
     .strikes span.hit { color: #f87171; transform: scale(1.1); }
     ol { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.75rem; }
-    li { display: grid; grid-template-columns: 3rem 1fr 5rem; gap: 1rem; align-items: center; padding: 1rem 1.25rem; border-radius: 16px; background: rgba(0,0,0,0.35); border: 1px solid rgba(94,176,255,0.25); font-size: clamp(1.2rem, 3vw, 2rem); font-weight: 800; letter-spacing: 0.04em; transition: background 0.35s ease, border-color 0.35s ease, transform 0.35s ease; }
-    li.revealed { background: rgba(40, 160, 100, 0.25); border-color: rgba(80, 220, 150, 0.45); transform: translateX(0.35rem); }
+    li { display: grid; grid-template-columns: 3rem 1fr 5rem; gap: 1rem; align-items: center; padding: 1rem 1.25rem; border-radius: 16px; background: linear-gradient(90deg, #12305a, #0d2244); border: 1px solid rgba(125, 211, 252, 0.35); color: #fff; font-size: clamp(1.2rem, 3vw, 2rem); font-weight: 800; letter-spacing: 0.04em; transition: background 0.35s ease, border-color 0.35s ease, transform 0.35s ease; }
+    li em { color: #7dd3fc; font-style: normal; font-weight: 900; }
+    li b { color: #fde047; text-align: right; }
+    li.revealed { background: linear-gradient(90deg, #14532d, #166534); border-color: rgba(134, 239, 172, 0.7); transform: translateX(0.35rem); }
+    .hidden-bar { display: block; height: 0.9em; border-radius: 999px; background: repeating-linear-gradient(90deg, rgba(125, 211, 252, 0.28) 0 1.2rem, rgba(125, 211, 252, 0.14) 1.2rem 2.4rem); }
+    .lobby-teams { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); gap: 0.75rem; margin-top: 1rem; }
+    .lobby-team { border: 1px solid rgba(255,255,255,0.18); border-top: 5px solid var(--team); border-radius: 14px; padding: 0.75rem 0.9rem; background: rgba(255,255,255,0.06); }
+    .lobby-team h3 { margin: 0 0 0.4rem; color: var(--team); font-size: 1.15rem; }
+    .lobby-team small { color: #cbd5e1; }
+    .lobby-team ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.2rem; }
+    .lobby-team li { display: block; padding: 0; border: 0; background: none; font-size: 1rem; font-weight: 600; letter-spacing: 0; transform: none; }
+    .lobby-team li.empty { color: #94a3b8; font-style: italic; }
     li.top { background: rgba(250, 204, 21, 0.22); border-color: rgba(250, 204, 21, 0.65); box-shadow: 0 0 1.5rem rgba(250, 204, 21, 0.25); }
     .said {
       display: grid; gap: 0.2rem; padding: 0.85rem 1.2rem; border-radius: 16px;
@@ -268,7 +311,7 @@ import { phraseForLightning, phraseForSteal, phraseForStrike3 } from '../api/gam
     .board-hist ol { margin-top: 0.75rem; }
     .board-hist li { font-size: 1.1rem; grid-template-columns: 2.5rem 1fr 5rem; }
     .qr { width: min(280px, 42vw); height: auto; aspect-ratio: 1; border-radius: 18px; background: #fff; padding: 0.85rem; box-sizing: border-box; }
-    .foot { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; opacity: 0.75; font-size: clamp(1rem, 2vw, 1.4rem); letter-spacing: 0.04em; }
+    .foot { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; color: #cbd5e1; font-size: clamp(1rem, 2vw, 1.4rem); letter-spacing: 0.04em; }
     .conn { color: #fdba74; font-weight: 800; }
     .confetti { pointer-events: none; position: absolute; inset: 0; overflow: hidden; z-index: 5; }
     .confetti i {
@@ -405,10 +448,23 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
     void this.hub?.stop();
   }
 
+  teams(L: GameShowLobbyDto): GameShowTeamDto[] {
+    return teamsOf(L);
+  }
+
+  teamColor(key: string): string {
+    return TEAM_COLORS[key] ?? '#5eb0ff';
+  }
+
+  playersOf(L: GameShowLobbyDto, key: string) {
+    return L.players.filter((p) => p.team === key);
+  }
+
   phase(p: string): string {
     if (p === 'WaitingBuzz') return 'Presionen RESPONDER';
+    if (p === 'StealBuzz') return 'Robo: presionen RESPONDER';
     if (p === 'FaceOff') return 'Enfrentamiento';
-    if (p === 'FaceOffSecond') return 'Enfrentamiento (2.º equipo)';
+    if (p === 'FaceOffSecond') return 'Enfrentamiento (siguiente equipo)';
     if (p === 'Control' || p === 'Playing') return 'Control de ronda';
     if (p === 'Steal') return 'Robo';
     if (p === 'Finished') return 'Ronda terminada';
@@ -416,9 +472,7 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
   }
 
   teamName(L: GameShowLobbyDto, team: string | null): string {
-    if (team === 'A') return L.teamAName;
-    if (team === 'B') return L.teamBName;
-    return 'Sin definir';
+    return teamNameOf(L, team);
   }
 
   otherTeam(team: string | null): string | null {
@@ -432,14 +486,14 @@ export class GameShowScreenPage implements OnInit, OnDestroy {
 
   isWinner(L: GameShowLobbyDto, team: string): boolean {
     if (L.status !== 'Ended') return false;
-    if (team === 'A') return L.teamAScore > L.teamBScore;
-    return L.teamBScore > L.teamAScore;
+    const teams = teamsOf(L);
+    const max = Math.max(...teams.map((t) => t.score));
+    const leaders = teams.filter((t) => t.score === max);
+    return leaders.length === 1 && leaders[0]!.key === team;
   }
 
   winnerText(L: GameShowLobbyDto): string {
-    if (L.teamAScore > L.teamBScore) return `Gana ${L.teamAName}`;
-    if (L.teamBScore > L.teamAScore) return `Gana ${L.teamBName}`;
-    return 'Empate';
+    return winnerTextOf(L);
   }
 
   displayBank(L: GameShowLobbyDto): number {

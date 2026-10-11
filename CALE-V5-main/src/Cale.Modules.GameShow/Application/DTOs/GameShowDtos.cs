@@ -4,7 +4,14 @@ public sealed record CreateGameShowRequest(
     string Title,
     string TeamAName,
     string TeamBName,
-    IReadOnlyList<CreateGameShowRoundRequest> Rounds);
+    IReadOnlyList<CreateGameShowRoundRequest> Rounds,
+    int TeamCount = 2,
+    string? TeamCName = null,
+    string? TeamDName = null);
+
+public sealed record GameShowTeamDto(string Key, string Name, int Score, int PlayerCount);
+
+public sealed record ChooseGameShowTeamRequest(string Team);
 
 public sealed record CreateGameShowRoundRequest(
     string QuestionText,
@@ -98,7 +105,8 @@ public sealed record GameShowLobbyDto(
     GameShowRoundChampionDto? RoundChampion = null,
     IReadOnlyList<GameShowPlayerStandingDto>? PlayerStandings = null,
     IReadOnlyList<GameShowPackLeaderboardEntryDto>? PackLeaderboard = null,
-    GameShowSettingsDto? Settings = null);
+    GameShowSettingsDto? Settings = null,
+    IReadOnlyList<GameShowTeamDto>? Teams = null);
 
 public sealed record GameShowSettingsDto(
     int FaceOffSeconds,
@@ -175,7 +183,8 @@ public sealed record GameShowRoundPublicDto(
     string? ActivePlayerName = null,
     string? ActivePlayerAccent = null,
     /// <summary>Whole seconds left until AnswerDeadlineUtc (server clock). Prefer this over client Date math.</summary>
-    int? SecondsRemaining = null);
+    int? SecondsRemaining = null,
+    string? StealingTeam = null);
 
 public sealed record GameShowBoardAnswerPublicDto(
     int Id,
@@ -201,7 +210,8 @@ public sealed record GameShowHistoryItemDto(
     int TeamBScore,
     DateTime CreatedAt,
     DateTime? EndedAt,
-    int PlayerCount);
+    int PlayerCount,
+    IReadOnlyList<GameShowTeamDto>? Teams = null);
 
 public sealed record UpsertGameShowPackRequest(
     string Name,
@@ -213,7 +223,10 @@ public sealed record UpsertGameShowPackRequest(
 public sealed record CreateSessionFromPackRequest(
     string? Title,
     string? TeamAName,
-    string? TeamBName);
+    string? TeamBName,
+    int? TeamCount = null,
+    string? TeamCName = null,
+    string? TeamDName = null);
 
 public sealed record ReplayGameShowRequest(
     string? Title,
@@ -266,4 +279,5 @@ public sealed record GameShowStatsDto(
     DateTime CreatedAt,
     DateTime? EndedAt,
     IReadOnlyList<GameShowPlayerStandingDto>? Players = null,
-    GameShowPlayerStandingDto? Mvp = null);
+    GameShowPlayerStandingDto? Mvp = null,
+    IReadOnlyList<GameShowTeamDto>? Teams = null);
