@@ -84,9 +84,20 @@ public sealed class UsersController : ControllerBase
         Ok(await _setActive.HistoryAsync(id, ct));
 
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    public async Task<IActionResult> Delete(
+        int id,
+        [FromServices] Cale.Api.Services.Admin.SchoolDeletionService schoolDeletion,
+        CancellationToken ct)
     {
-        await _delete.HandleAsync(CurrentUser.GetId(User), id, ct);
+        if (await schoolDeletion.IsSchoolAsync(id, ct))
+        {
+            await schoolDeletion.DeleteAsync(CurrentUser.GetId(User), id, ct);
+        }
+        else
+        {
+            await _delete.HandleAsync(CurrentUser.GetId(User), id, ct);
+        }
+
         return NoContent();
     }
 }

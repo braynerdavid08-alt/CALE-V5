@@ -316,6 +316,16 @@ type Tab = 'queue' | 'schools';
                 <ui-button type="button" variant="ghost" (click)="loadDetail(s.userId)">
                   Ver ficha completa
                 </ui-button>
+                <ui-button
+                  type="button"
+                  variant="danger"
+                  [disabled]="busyId() === s.userId || s.teachersUsed > 0 || s.studentsUsed > 0"
+                  [title]="s.teachersUsed > 0 || s.studentsUsed > 0
+                    ? 'Tiene instructores o estudiantes: suspéndela en lugar de borrarla.'
+                    : 'Borrar esta escuela vacía'"
+                  (click)="deleteSchool(s)">
+                  Borrar escuela
+                </ui-button>
               </div>
 
               @if (editingId() === s.userId) {
@@ -763,6 +773,30 @@ export class AdminMembershipsPage implements OnInit {
         this.reload();
       },
       error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  deleteSchool(s: AdminSchoolSummary): void {
+    const typed = prompt(
+      `Vas a borrar definitivamente la escuela "${s.legalName}" (${s.email}).\n`
+      + 'Solo se puede si no tiene instructores, estudiantes ni contenido propio.\n\n'
+      + 'Escribe BORRAR para confirmar:'
+    );
+    if ((typed ?? '').trim().toUpperCase() !== 'BORRAR') return;
+
+    this.busyId.set(s.userId);
+    this.error.set(null);
+    this.ok.set(null);
+    this.http.delete(`${env.apiUrl}/api/admin/schools/${s.userId}`).subscribe({
+      next: () => {
+        this.busyId.set(null);
+        this.ok.set(`Escuela "${s.legalName}" borrada.`);
+        this.reload();
+      },
+      error: (err) => {
+        this.busyId.set(null);
+        this.error.set(mapApiError(err));
+      }
     });
   }
 
