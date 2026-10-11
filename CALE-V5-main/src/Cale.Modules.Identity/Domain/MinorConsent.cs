@@ -7,6 +7,7 @@ namespace Cale.Modules.Identity.Domain;
 public static class AgePolicy
 {
     public const int AdultAge = 18;
+    public const int MinAge = 16;
     public const int MaxAge = 100;
 
     private static readonly TimeSpan ColombiaOffset = TimeSpan.FromHours(-5);
@@ -36,6 +37,11 @@ public static class AgePolicy
         if (date > today || AgeOn(date, today) > MaxAge)
         {
             throw new DomainException("La fecha de nacimiento no es válida.", 400, "birth_date_invalid");
+        }
+
+        if (AgeOn(date, today) < MinAge)
+        {
+            throw new DomainException("Debes tener al menos 16 años para usar Luz Verde.", 400, "age_below_minimum");
         }
     }
 

@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { mapApiError } from '../../core/http/map-api-error';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
@@ -53,8 +53,18 @@ import { GuardianView, LegalApi } from './legal.api';
                     personales en Luz Verde.
                   </span>
                 </label>
+                <label class="signature">
+                  <span>Firma: escribe tu nombre completo</span>
+                  <input
+                    type="text"
+                    autocomplete="name"
+                    maxlength="150"
+                    [placeholder]="v.guardianName"
+                    [value]="signature()"
+                    (input)="signature.set($any($event.target).value)" />
+                </label>
                 <div class="row">
-                  <ui-button type="button" [disabled]="busy() || !confirmed()" (click)="decide('authorize')">Autorizo</ui-button>
+                  <ui-button type="button" [disabled]="busy() || !canSign()" (click)="decide('authorize')">Autorizo y firmo</ui-button>
                   <ui-button type="button" variant="secondary" [disabled]="busy()" (click)="decide('reject')">No autorizo</ui-button>
                 </div>
                 <p class="muted small">Si eliges "No autorizo", la cuenta del estudiante quedará suspendida.</p>
@@ -108,6 +118,19 @@ import { GuardianView, LegalApi } from './legal.api';
     .check { display: flex; gap: 0.55rem; align-items: flex-start; line-height: 1.45; cursor: pointer; }
     .check input { margin-top: 0.2rem; width: 1.1rem; height: 1.1rem; flex: none; }
     .row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .signature { display: grid; gap: 0.35rem; font-weight: 600; font-size: 0.9rem; }
+    .signature input {
+      min-height: 2.9rem;
+      padding: 0.55rem 0.85rem;
+      border: 1px solid var(--color-border);
+      border-bottom: 2px solid var(--color-primary);
+      border-radius: var(--radius-md);
+      background: var(--color-background);
+      color: var(--color-text);
+      font: inherit;
+      font-size: 1.1rem;
+      font-style: italic;
+    }
     .muted { color: var(--color-text-secondary); font-size: 0.9rem; }
     .small { font-size: 0.8rem; }
     .notice {
@@ -129,6 +152,8 @@ export class GuardianConsentPage {
   readonly error = signal<string | null>(null);
   readonly confirmed = signal(false);
   readonly confirmRevoke = signal(false);
+  readonly signature = signal('');
+  readonly canSign = computed(() => this.confirmed() && this.signature().trim().length >= 3);
 
   constructor() {
     this.api.guardianView(this.token).subscribe({
@@ -146,7 +171,7 @@ export class GuardianConsentPage {
   decide(decision: 'authorize' | 'reject' | 'revoke'): void {
     this.busy.set(true);
     this.error.set(null);
-    this.api.guardianDecision(this.token, decision, this.confirmed()).subscribe({
+    this.api.guardianDecision(this.token, decision, this.confirmed(), this.signature().trim()).subscribe({
       next: (view) => {
         this.busy.set(false);
         this.confirmRevoke.set(false);

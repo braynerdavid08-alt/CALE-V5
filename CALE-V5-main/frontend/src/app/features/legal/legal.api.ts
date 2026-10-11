@@ -245,10 +245,11 @@ export class LegalApi {
     return this.http.get<GuardianView>(`${this.base}/guardian/${encodeURIComponent(token)}`);
   }
 
-  guardianDecision(token: string, decision: 'authorize' | 'reject' | 'revoke', confirmIsGuardian: boolean) {
+  guardianDecision(token: string, decision: 'authorize' | 'reject' | 'revoke', confirmIsGuardian: boolean, signature: string) {
     return this.http.post<GuardianView>(`${this.base}/guardian/${encodeURIComponent(token)}/decision`, {
       decision,
-      confirmIsGuardian
+      confirmIsGuardian,
+      signature
     });
   }
 

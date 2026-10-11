@@ -18,8 +18,8 @@ import { LegalStatusStore } from './legal-status.store';
             <strong>Falta tu fecha de nacimiento.</strong>
             La necesitamos para saber si tu cuenta requiere la autorización de tu representante legal.
           } @else {
-            <strong>Tu representante legal aún no autoriza tu cuenta.</strong>
-            Le enviamos un correo; puedes revisarlo o reenviarlo.
+            <strong>Tu representante legal aún no firma la autorización.</strong>
+            Puedes seguir usando Luz Verde; si no le llegó el correo, puedes reenviarlo.
           }
         </span>
         <a routerLink="/legal-pending">Revisar ahora</a>

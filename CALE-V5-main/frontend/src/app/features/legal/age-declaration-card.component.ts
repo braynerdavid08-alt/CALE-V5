@@ -7,7 +7,14 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiCardComponent } from '../../shared/ui/ui-card.component';
 import { UiErrorComponent } from '../../shared/ui/ui-error.component';
 import { UiSuccessComponent } from '../../shared/ui/ui-success.component';
-import { GuardianFieldsComponent, guardianGroup, guardianValue, syncGuardianGroup } from './guardian-fields.component';
+import {
+  GuardianFieldsComponent,
+  guardianGroup,
+  guardianValue,
+  latestBirthDate,
+  minAgeValidator,
+  syncGuardianGroup
+} from './guardian-fields.component';
 import { GUARDIAN_STATUS_LABEL, Guardian, LegalApi, MyAgeStatus } from './legal.api';
 import { LegalStatusStore } from './legal-status.store';
 
@@ -32,7 +39,10 @@ import { LegalStatusStore } from './legal-status.store';
             <form [formGroup]="declareForm" (ngSubmit)="declare()" class="grid">
               <label class="field">
                 Fecha de nacimiento
-                <input type="date" formControlName="birthDate" min="1920-01-01" [max]="today" />
+                <input type="date" formControlName="birthDate" min="1920-01-01" [max]="maxBirthDate" />
+                @if (declareForm.controls.birthDate.hasError('minAge')) {
+                  <span class="field-error" role="alert">Debes tener al menos 16 años para usar Luz Verde.</span>
+                }
               </label>
               @if (minor()) {
                 <legal-guardian-fields [group]="declareForm.controls.guardian" />
@@ -89,7 +99,7 @@ export class AgeDeclarationCardComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly today = new Date().toISOString().slice(0, 10);
+  readonly maxBirthDate = latestBirthDate();
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
   readonly ok = signal<string | null>(null);
@@ -97,7 +107,7 @@ export class AgeDeclarationCardComponent implements OnInit {
   readonly editing = signal(false);
 
   readonly declareForm = this.fb.nonNullable.group({
-    birthDate: ['', Validators.required],
+    birthDate: ['', [Validators.required, minAgeValidator]],
     guardian: guardianGroup(this.fb)
   });
   readonly guardianForm = guardianGroup(this.fb);
@@ -119,7 +129,9 @@ export class AgeDeclarationCardComponent implements OnInit {
     }
     const { birthDate } = this.declareForm.getRawValue();
     this.run(this.api.declareAge(birthDate, guardianValue(this.declareForm.controls.guardian)),
-      this.minor() ? 'Listo. Enviamos un correo a tu representante legal para que autorice tu cuenta.' : 'Listo. Gracias.');
+      this.minor()
+        ? 'Listo. Enviamos un correo a tu representante legal para que firme la autorización. Puedes seguir usando Luz Verde.'
+        : 'Listo. Gracias.');
   }
 
   startEdit(age: MyAgeStatus): void {
