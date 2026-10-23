@@ -42,6 +42,7 @@ export class TeacherLiveHubPage implements OnInit {
   readonly error = signal<string | null>(null);
   readonly contextReady = signal(false);
   readonly banks = signal<BankAdminDto[]>([]);
+  readonly banksLoaded = signal(false);
   readonly selectedBankIds = signal<number[]>([]);
   readonly selectedThemesByBank = signal<Record<number, string[]>>({});
   readonly bankQuotas = signal<Record<number, number>>({});
@@ -516,14 +517,20 @@ export class TeacherLiveHubPage implements OnInit {
   }
 
   private loadBanks(): void {
+    this.banksLoaded.set(false);
     this.teacherApi.banks(true, true).subscribe({
       next: (items) => {
         const active = items.filter((b) => b.isActive && b.questionCount > 0);
         this.banks.set(active);
-        if (this.selectedBankIds().length === 0 && active.length) {
+        this.banksLoaded.set(true);
+        // Drop draft/preset ids that this account cannot see (common on other PCs).
+        const allowed = new Set(active.map((b) => b.id));
+        const kept = this.selectedBankIds().filter((id) => allowed.has(id));
+        if (kept.length === 0 && active.length) {
           this.selectAllBanks();
         } else {
-          this.syncQuotasForSelection(this.selectedBankIds());
+          this.selectedBankIds.set(kept);
+          this.syncQuotasForSelection(kept);
         }
         if (this.pendingAutoCreate) {
           this.pendingAutoCreate = false;
@@ -532,6 +539,8 @@ export class TeacherLiveHubPage implements OnInit {
       },
       error: () => {
         this.banks.set([]);
+        this.banksLoaded.set(true);
+        this.selectedBankIds.set([]);
         if (this.pendingAutoCreate) {
           this.pendingAutoCreate = false;
           this.create();

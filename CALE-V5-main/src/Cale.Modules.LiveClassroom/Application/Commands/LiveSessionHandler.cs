@@ -22,6 +22,7 @@ public sealed class LiveSessionHandler
     private readonly ILiveSessionStore _store;
     private readonly ICatalogStore _catalog;
     private readonly ICatalogAccessGuard _access;
+    private readonly IUserLookup _users;
     private readonly ILiveSessionBroadcaster _broadcast;
     private readonly ILivePresentationSlideState _presentationSlides;
     private readonly IClock _clock;
@@ -31,6 +32,7 @@ public sealed class LiveSessionHandler
         ILiveSessionStore store,
         ICatalogStore catalog,
         ICatalogAccessGuard access,
+        IUserLookup users,
         ILiveSessionBroadcaster broadcast,
         ILivePresentationSlideState presentationSlides,
         IClock clock,
@@ -40,6 +42,7 @@ public sealed class LiveSessionHandler
         _store = store;
         _catalog = catalog;
         _access = access;
+        _users = users;
         _broadcast = broadcast;
         _presentationSlides = presentationSlides;
         _clock = clock;
@@ -1494,12 +1497,27 @@ public sealed class LiveSessionHandler
             ids.Add(fallback.Value);
         }
 
+        IReadOnlyList<int>? schoolOwners = null;
+        if (!isAdmin)
+        {
+            schoolOwners = await _users.ListSchoolCatalogOwnerIdsAsync(hostUserId, ct);
+        }
+
         foreach (var id in ids)
         {
             var bank = await _catalog.GetBankAsync(id, ct);
-            if (bank is null || !bank.IsVisibleTo(hostUserId, isAdmin))
+            if (bank is null)
             {
                 throw new NotFoundException("Bank not found.", "bank_not_found");
+            }
+
+            if (!bank.IsVisibleTo(hostUserId, isAdmin, schoolOwners))
+            {
+                throw new DomainException(
+                    $"El banco «{bank.Name}» no está disponible en tu escuela. " +
+                    "Pide al administrador que lo marque como Oficial CALE, o usa un banco de tu escuela.",
+                    404,
+                    "bank_not_found");
             }
 
             if (!bank.IsActive)
