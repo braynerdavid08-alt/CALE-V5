@@ -1,5 +1,16 @@
-import { Component, ElementRef, Input, OnInit, ViewChild, inject, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  Input,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+  inject,
+  signal
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { NavigationEnd, Router } from '@angular/router';
+import { filter, Subscription } from 'rxjs';
 import {
   AssistantApi,
   AssistantMessage,
@@ -29,31 +40,52 @@ const QUICK: Record<string, QuickQuestion[]> = {
   ]
 };
 
+const HIDE_KEY = 'cale.assistant.hideUntil';
+
+/** Full-screen flows where the floating button gets in the way. */
+const HIDDEN_PATHS = [
+  /^\/live\//,
+  /^\/game-show\//,
+  /^\/student\/simulator/,
+  /^\/student\/exam/,
+  /^\/student\/evaluations/,
+  /^\/student\/cursos\/leccion\//,
+  /^\/teacher\/live\//,
+  /^\/teacher\/presentations\/[^/]+\/present/,
+  /^\/teacher\/game-show\//
+];
+
 @Component({
   selector: 'app-assistant-widget',
   standalone: true,
   imports: [FormsModule],
   template: `
-    @if (enabled()) {
+    @if (enabled() && !routeHidden() && !hiddenForToday()) {
       @if (!open()) {
         <button type="button" class="fab" (click)="toggle()" aria-label="Abrir el asistente">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z" /><path d="M8 9h8M8 12h5" /></svg>
-          <span>Asistente</span>
+          <span class="fab-label">Ayuda</span>
         </button>
       } @else {
-        <section class="panel" role="dialog" aria-label="Asistente">
+        <button type="button" class="backdrop" (click)="close()" aria-label="Cerrar el asistente"></button>
+        <section class="panel" role="dialog" aria-label="Asistente" aria-modal="true">
           <header>
             <div>
               <strong>Asistente {{ brand.name }}</strong>
-              <small>Te ayudo a consultar y agendar. Siempre te pido confirmar.</small>
+              <small>Consultas y agenda. Siempre te pido confirmar.</small>
             </div>
-            <button type="button" class="close" (click)="toggle()" aria-label="Cerrar el asistente">✕</button>
+            <div class="header-actions">
+              <button type="button" class="ghost" (click)="hideToday()" title="Ocultar el botón hasta mañana">
+                Hoy no
+              </button>
+              <button type="button" class="close" (click)="close()" aria-label="Cerrar el asistente">✕</button>
+            </div>
           </header>
 
           <div class="messages" #scroller aria-live="polite">
             @if (!messages().length) {
               <p class="bubble bot">
-                Hola. ¿Qué necesitas hoy? Toca una consulta rápida (no gasta mensajes) o escríbeme para reservar, cancelar o agendar.
+                Hola. ¿Qué necesitas? Toca una consulta rápida (no gasta mensajes) o escríbeme.
               </p>
             }
             @for (m of messages(); track $index) {
@@ -96,68 +128,228 @@ const QUICK: Record<string, QuickQuestion[]> = {
           </form>
           <small class="quota">Te quedan {{ remaining() }} mensajes hoy.</small>
           <small class="quota ai-note">
-            Respuestas generadas con inteligencia artificial: pueden tener errores. No reemplazan a tu instructor,
-            a tu escuela ni a las autoridades de tránsito. No escribas documentos, contraseñas ni datos de salud.
+            Respuestas con IA: pueden tener errores. No escribas documentos, contraseñas ni datos de salud.
           </small>
         </section>
       }
     }
   `,
   styles: `
-    :host { position: fixed; right: 1rem; bottom: 1rem; z-index: 60; }
+    :host {
+      position: fixed;
+      right: max(0.75rem, env(safe-area-inset-right));
+      bottom: max(0.75rem, env(safe-area-inset-bottom));
+      z-index: 45;
+      pointer-events: none;
+    }
+    :host > * { pointer-events: auto; }
+
     .fab {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      min-height: 3.25rem; padding: 0 1.15rem; border: 0; border-radius: 999px;
-      background: var(--color-primary); color: var(--color-on-primary, #04130a);
-      font: inherit; font-weight: 800; font-size: 1.05rem; cursor: pointer;
-      box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      width: 3rem;
+      height: 3rem;
+      padding: 0;
+      border: 0;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--color-primary) 92%, #000);
+      color: var(--color-on-primary, #04130a);
+      font: inherit;
+      font-weight: 800;
+      font-size: 0.85rem;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgb(0 0 0 / 0.28);
+      opacity: 0.92;
     }
-    .fab svg { width: 1.5rem; height: 1.5rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+    .fab:hover, .fab:focus-visible { opacity: 1; }
+    .fab svg {
+      width: 1.25rem;
+      height: 1.25rem;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linejoin: round;
+      stroke-linecap: round;
+      flex-shrink: 0;
+    }
+    .fab-label { display: none; }
+
+    .backdrop {
+      position: fixed;
+      inset: 0;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      background: rgb(0 0 0 / 0.45);
+      cursor: pointer;
+      z-index: 1;
+    }
+
     .panel {
-      width: min(26rem, calc(100vw - 2rem)); height: min(40rem, calc(100dvh - 2rem));
-      display: flex; flex-direction: column;
-      background: var(--color-surface, #111); color: var(--color-text, inherit);
-      border: 1px solid var(--color-border); border-radius: 1rem;
-      box-shadow: 0 16px 48px rgb(0 0 0 / 0.45); overflow: hidden;
+      position: relative;
+      z-index: 2;
+      width: min(24rem, calc(100vw - 1.5rem));
+      height: min(34rem, calc(100dvh - 5rem));
+      display: flex;
+      flex-direction: column;
+      background: var(--color-surface, #111);
+      color: var(--color-text, inherit);
+      border: 1px solid var(--color-border);
+      border-radius: 1rem;
+      box-shadow: 0 16px 48px rgb(0 0 0 / 0.45);
+      overflow: hidden;
     }
-    header { display: flex; gap: 0.75rem; align-items: flex-start; justify-content: space-between; padding: 0.9rem 1rem; border-bottom: 1px solid var(--color-border); }
-    header div { display: grid; gap: 0.15rem; }
-    header strong { font-size: 1.1rem; }
-    header small { color: var(--color-text-secondary); }
-    .close { min-width: 2.75rem; min-height: 2.75rem; border: 1px solid var(--color-border); border-radius: 0.6rem; background: transparent; color: inherit; font-size: 1.1rem; cursor: pointer; }
-    .messages { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.6rem; }
-    .bubble { margin: 0; padding: 0.7rem 0.9rem; border-radius: 0.9rem; max-width: 88%; white-space: pre-wrap; line-height: 1.45; font-size: 1.02rem; }
+
+    header {
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 0.75rem 0.85rem;
+      border-bottom: 1px solid var(--color-border);
+    }
+    header div:first-child { display: grid; gap: 0.1rem; min-width: 0; }
+    header strong { font-size: 1rem; }
+    header small { color: var(--color-text-secondary); font-size: 0.78rem; line-height: 1.3; }
+    .header-actions { display: flex; gap: 0.35rem; align-items: center; flex-shrink: 0; }
+    .ghost {
+      border: 0;
+      background: transparent;
+      color: var(--color-text-secondary);
+      font: inherit;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 0.35rem 0.4rem;
+      white-space: nowrap;
+    }
+    .close {
+      min-width: 2.5rem;
+      min-height: 2.5rem;
+      border: 1px solid var(--color-border);
+      border-radius: 0.55rem;
+      background: transparent;
+      color: inherit;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .messages { flex: 1; overflow-y: auto; padding: 0.85rem; display: flex; flex-direction: column; gap: 0.55rem; }
+    .bubble {
+      margin: 0;
+      padding: 0.6rem 0.8rem;
+      border-radius: 0.85rem;
+      max-width: 88%;
+      white-space: pre-wrap;
+      line-height: 1.4;
+      font-size: 0.95rem;
+    }
     .bot { align-self: flex-start; background: var(--color-background); border: 1px solid var(--color-border); }
     .me { align-self: flex-end; background: color-mix(in srgb, var(--color-primary) 22%, transparent); }
     .typing { opacity: 0.75; font-style: italic; }
     .err { align-self: stretch; max-width: none; color: var(--color-danger, #f87171); border: 1px solid currentColor; }
-    .chips { display: flex; gap: 0.5rem; overflow-x: auto; padding: 0.6rem 0.75rem 0; border-top: 1px solid var(--color-border); scrollbar-width: thin; }
-    .chips button { flex: none; min-height: 2.75rem; padding: 0.4rem 0.85rem; border-radius: 999px; border: 1px solid var(--color-border); background: transparent; color: inherit; font: inherit; cursor: pointer; white-space: nowrap; }
+    .chips {
+      display: flex;
+      gap: 0.4rem;
+      overflow-x: auto;
+      padding: 0.5rem 0.7rem 0;
+      border-top: 1px solid var(--color-border);
+      scrollbar-width: thin;
+    }
+    .chips button {
+      flex: none;
+      min-height: 2.4rem;
+      padding: 0.3rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid var(--color-border);
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
     .chips + .composer { border-top: 0; }
-    .action { border: 2px solid var(--color-primary); border-radius: 0.9rem; padding: 0.85rem; display: grid; gap: 0.65rem; }
-    .action p { margin: 0; line-height: 1.45; font-size: 1.02rem; }
-    .action-btns { display: flex; gap: 0.5rem; }
-    .action-btns button { flex: 1; min-height: 3rem; border-radius: 0.7rem; font: inherit; font-weight: 800; cursor: pointer; }
+    .action { border: 2px solid var(--color-primary); border-radius: 0.85rem; padding: 0.75rem; display: grid; gap: 0.55rem; }
+    .action p { margin: 0; line-height: 1.4; font-size: 0.95rem; }
+    .action-btns { display: flex; gap: 0.45rem; }
+    .action-btns button { flex: 1; min-height: 2.6rem; border-radius: 0.65rem; font: inherit; font-weight: 800; cursor: pointer; }
     .yes { border: 0; background: var(--color-primary); color: var(--color-on-primary, #04130a); }
     .no { border: 1px solid var(--color-border); background: transparent; color: inherit; }
-    .composer { display: flex; gap: 0.5rem; padding: 0.75rem; border-top: 1px solid var(--color-border); }
-    .composer textarea { flex: 1; resize: none; padding: 0.6rem 0.75rem; border-radius: 0.7rem; border: 1px solid var(--color-border); background: var(--color-background); color: inherit; font: inherit; font-size: 1.02rem; }
-    .composer button { min-width: 5.5rem; min-height: 3rem; border: 0; border-radius: 0.7rem; background: var(--color-primary); color: var(--color-on-primary, #04130a); font: inherit; font-weight: 800; cursor: pointer; }
+    .composer { display: flex; gap: 0.45rem; padding: 0.65rem; border-top: 1px solid var(--color-border); }
+    .composer textarea {
+      flex: 1;
+      resize: none;
+      padding: 0.55rem 0.7rem;
+      border-radius: 0.65rem;
+      border: 1px solid var(--color-border);
+      background: var(--color-background);
+      color: inherit;
+      font: inherit;
+      font-size: 0.95rem;
+    }
+    .composer button {
+      min-width: 4.75rem;
+      min-height: 2.6rem;
+      border: 0;
+      border-radius: 0.65rem;
+      background: var(--color-primary);
+      color: var(--color-on-primary, #04130a);
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+    }
     button:disabled { opacity: 0.55; cursor: default; }
-    .quota { padding: 0 0.9rem 0.6rem; color: var(--color-text-secondary); font-size: 0.8rem; }
-    .ai-note { display: block; margin-top: -0.3rem; font-size: 0.72rem; line-height: 1.35; }
-    @media (max-width: 600px) {
-      :host { right: 0.75rem; bottom: 0.75rem; }
-      :host:has(.panel) { inset: 0; }
-      .panel { width: 100vw; height: 100dvh; border-radius: 0; border: 0; }
+    .quota { padding: 0 0.8rem 0.45rem; color: var(--color-text-secondary); font-size: 0.75rem; }
+    .ai-note { display: block; margin-top: -0.25rem; padding-bottom: 0.55rem; font-size: 0.68rem; line-height: 1.3; }
+
+    @media (min-width: 721px) {
+      .fab {
+        width: auto;
+        height: auto;
+        min-height: 2.75rem;
+        padding: 0 0.95rem;
+      }
+      .fab-label { display: inline; }
+    }
+
+    @media (max-width: 720px) {
+      :host {
+        right: auto;
+        left: max(0.65rem, env(safe-area-inset-left));
+        bottom: max(4.25rem, calc(3.5rem + env(safe-area-inset-bottom)));
+        z-index: 35;
+      }
+      .fab {
+        width: 2.75rem;
+        height: 2.75rem;
+        opacity: 0.82;
+        box-shadow: 0 3px 10px rgb(0 0 0 / 0.22);
+      }
+      .panel {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100vw;
+        height: min(78dvh, calc(100dvh - 3.5rem));
+        border-radius: 1rem 1rem 0 0;
+        border: 0;
+        border-top: 1px solid var(--color-border);
+      }
+      .ghost { font-size: 0.72rem; }
     }
   `
 })
-export class AssistantWidgetComponent implements OnInit {
+export class AssistantWidgetComponent implements OnInit, OnDestroy {
   @Input() role: string | undefined;
   @ViewChild('scroller') private scroller?: ElementRef<HTMLElement>;
 
   private readonly api = inject(AssistantApi);
+  private readonly router = inject(Router);
+  private navSub?: Subscription;
+
   readonly brand = BRAND;
   readonly enabled = signal(false);
   readonly open = signal(false);
@@ -166,6 +358,8 @@ export class AssistantWidgetComponent implements OnInit {
   readonly messages = signal<AssistantMessage[]>([]);
   readonly action = signal<AssistantPendingAction | null>(null);
   readonly remaining = signal(0);
+  readonly routeHidden = signal(false);
+  readonly hiddenForToday = signal(false);
   draft = '';
 
   get quick(): QuickQuestion[] {
@@ -173,6 +367,17 @@ export class AssistantWidgetComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.hiddenForToday.set(this.isHiddenForToday());
+    this.syncRoute(this.router.url);
+    this.navSub = this.router.events
+      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+      .subscribe((e) => {
+        this.syncRoute(e.urlAfterRedirects);
+        if (this.routeHidden()) {
+          this.open.set(false);
+        }
+      });
+
     this.api.status().subscribe({
       next: (s) => {
         this.enabled.set(s.enabled);
@@ -182,9 +387,29 @@ export class AssistantWidgetComponent implements OnInit {
     });
   }
 
+  ngOnDestroy(): void {
+    this.navSub?.unsubscribe();
+  }
+
   toggle(): void {
     this.open.update((v) => !v);
     this.scrollSoon();
+  }
+
+  close(): void {
+    this.open.set(false);
+  }
+
+  hideToday(): void {
+    const until = new Date();
+    until.setHours(23, 59, 59, 999);
+    try {
+      localStorage.setItem(HIDE_KEY, until.toISOString());
+    } catch {
+      /* ignore quota / private mode */
+    }
+    this.hiddenForToday.set(true);
+    this.open.set(false);
   }
 
   onEnter(event: Event): void {
@@ -266,6 +491,26 @@ export class AssistantWidgetComponent implements OnInit {
     this.api.discard(a.id).subscribe({ error: () => undefined });
     this.messages.update((list) => [...list, { role: 'assistant', content: 'Listo, no hice ningún cambio.' }]);
     this.scrollSoon();
+  }
+
+  private syncRoute(url: string): void {
+    const path = url.split('?')[0] ?? url;
+    this.routeHidden.set(HIDDEN_PATHS.some((re) => re.test(path)));
+  }
+
+  private isHiddenForToday(): boolean {
+    try {
+      const raw = localStorage.getItem(HIDE_KEY);
+      if (!raw) return false;
+      const until = Date.parse(raw);
+      if (Number.isNaN(until) || until <= Date.now()) {
+        localStorage.removeItem(HIDE_KEY);
+        return false;
+      }
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   private scrollSoon(): void {
