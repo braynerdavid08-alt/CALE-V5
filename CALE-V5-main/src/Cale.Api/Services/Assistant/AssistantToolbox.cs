@@ -32,6 +32,13 @@ public interface IAssistantToolbox
     /// <summary>Runs a read-only tool and returns compact text for the model.</summary>
     Task<string> ReadAsync(AssistantUser user, string tool, JsonObject args, CancellationToken ct);
 
+    /// <summary>
+    /// Same as <see cref="ReadAsync"/>, plus an optional structured card for the chat UI
+    /// (exam availability). Text stays for the model; the UI prefers the card when present.
+    /// </summary>
+    Task<(string Text, AssistantExamAvailabilityUi? ExamAvailability)> ReadWithUiAsync(
+        AssistantUser user, string tool, JsonObject args, CancellationToken ct);
+
     /// <summary>Validates a write tool and returns the confirmation text shown to the user (built from real data).</summary>
     Task<string> DescribeAsync(AssistantUser user, string tool, JsonObject args, CancellationToken ct);
 
@@ -142,21 +149,28 @@ public sealed class AssistantToolbox : IAssistantToolbox
 
     // ── Reads ───────────────────────────────────────────────────────────
 
-    public Task<string> ReadAsync(AssistantUser user, string tool, JsonObject args, CancellationToken ct)
+    public async Task<string> ReadAsync(AssistantUser user, string tool, JsonObject args, CancellationToken ct)
+    {
+        var (text, _) = await ReadWithUiAsync(user, tool, args, ct);
+        return text;
+    }
+
+    public async Task<(string Text, AssistantExamAvailabilityUi? ExamAvailability)> ReadWithUiAsync(
+        AssistantUser user, string tool, JsonObject args, CancellationToken ct)
     {
         EnsureAllowed(user, tool, write: false);
         return tool switch
         {
-            "mi_progreso" => MyProgressAsync(user, ct),
-            "clases_teoricas" => TheoryWeekAsync(user, OptDate(args, "semana_inicio"), ct),
-            "cupos_examen" => StudentExamSlotsAsync(user, OptDate(args, "desde"), OptDate(args, "hasta"), ct),
-            "clases_manejo" => StudentPracticalAsync(user, ct),
-            "resumen_escuela" => SchoolSummaryAsync(user, ct),
-            "progreso_estudiantes" => StudentsProgressAsync(user, Str(args, "filtro"), Str(args, "buscar"), ct),
-            "detalle_estudiante" => StudentDetailAsync(user, ReqInt(args, "estudiante_id"), ct),
-            "agenda_escuela" => SchoolAgendaAsync(user, OptDate(args, "desde"), OptDate(args, "hasta"), ct),
-            "cupos_examen_escuela" => SchoolExamSlotsAsync(user, OptDate(args, "desde"), OptDate(args, "hasta"), ct),
-            "opciones_manejo" => PracticalOptionsAsync(user, ct),
+            "mi_progreso" => (await MyProgressAsync(user, ct), null),
+            "clases_teoricas" => (await TheoryWeekAsync(user, OptDate(args, "semana_inicio"), ct), null),
+            "cupos_examen" => await StudentExamSlotsRichAsync(user, OptDate(args, "desde"), OptDate(args, "hasta"), ct),
+            "clases_manejo" => (await StudentPracticalAsync(user, ct), null),
+            "resumen_escuela" => (await SchoolSummaryAsync(user, ct), null),
+            "progreso_estudiantes" => (await StudentsProgressAsync(user, Str(args, "filtro"), Str(args, "buscar"), ct), null),
+            "detalle_estudiante" => (await StudentDetailAsync(user, ReqInt(args, "estudiante_id"), ct), null),
+            "agenda_escuela" => (await SchoolAgendaAsync(user, OptDate(args, "desde"), OptDate(args, "hasta"), ct), null),
+            "cupos_examen_escuela" => await SchoolExamSlotsRichAsync(user, OptDate(args, "desde"), OptDate(args, "hasta"), ct),
+            "opciones_manejo" => (await PracticalOptionsAsync(user, ct), null),
             _ => throw new AssistantToolException($"Herramienta desconocida: {tool}.")
         };
     }
@@ -220,7 +234,8 @@ public sealed class AssistantToolbox : IAssistantToolbox
         return sb.ToString();
     }
 
-    private async Task<string> StudentExamSlotsAsync(AssistantUser user, DateOnly? from, DateOnly? to, CancellationToken ct)
+    private async Task<(string Text, AssistantExamAvailabilityUi Ui)> StudentExamSlotsRichAsync(
+        AssistantUser user, DateOnly? from, DateOnly? to, CancellationToken ct)
     {
         var a = await _exams.GetStudentAvailabilityAsync(user.UserId, from, to, ct);
         var sb = new StringBuilder();
@@ -236,7 +251,35 @@ public sealed class AssistantToolbox : IAssistantToolbox
         }
 
         AppendSlots(sb, a.Days.Select(d => (d.Date, d.Slots.Where(s => s.Available > 0).Select(s => (s.Time, s.Available)))));
-        return sb.ToString();
+        return (sb.ToString(), BuildStudentExamUi(a));
+    }
+
+    public static AssistantExamAvailabilityUi BuildStudentExamUi(StudentExamAvailabilityDto a)
+    {
+        var days = a.Days
+            .Select(d => new AssistantExamDayUi(
+                d.Date,
+                d.Slots
+                    .Where(s => s.Available > 0)
+                    .Select(s => new AssistantExamSlotUi(s.Time, s.Available))
+                    .ToList()))
+            .Where(d => d.AvailableSlots.Count > 0)
+            .ToList();
+
+        string? booking = a.MyBooking is { } b
+            ? $"{DayIso(b.Date)} a las {b.Time} ({Status(b.Status)})"
+            : null;
+
+        return new AssistantExamAvailabilityUi(
+            Type: "exam_availability",
+            Title: "Cupos disponibles para el examen",
+            DateRangeFrom: a.From,
+            DateRangeTo: a.To,
+            CanBook: a.CanBook,
+            BlockReason: a.BlockReason,
+            MyBookingSummary: booking,
+            Selectable: a.CanBook && days.Count > 0,
+            Days: days);
     }
 
     private async Task<string> StudentPracticalAsync(AssistantUser user, CancellationToken ct)
@@ -382,7 +425,8 @@ public sealed class AssistantToolbox : IAssistantToolbox
         return sb.ToString();
     }
 
-    private async Task<string> SchoolExamSlotsAsync(AssistantUser user, DateOnly? from, DateOnly? to, CancellationToken ct)
+    private async Task<(string Text, AssistantExamAvailabilityUi Ui)> SchoolExamSlotsRichAsync(
+        AssistantUser user, DateOnly? from, DateOnly? to, CancellationToken ct)
     {
         var w = await _exams.GetWeekAsync(SchoolOf(user), from, to, ct);
         var sb = new StringBuilder();
@@ -393,10 +437,33 @@ public sealed class AssistantToolbox : IAssistantToolbox
         }
 
         var today = ColombiaTime.TodayInColombia().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-        AppendSlots(sb, w.Days
+        var openDays = w.Days
             .Where(d => !d.IsClosed && string.CompareOrdinal(d.Date, today) >= 0)
-            .Select(d => (d.Date, d.Slots.Where(s => s.Available > 0).Select(s => (s.Time, s.Available)))));
-        return sb.ToString();
+            .ToList();
+        AppendSlots(sb, openDays.Select(d => (d.Date, d.Slots.Where(s => s.Available > 0).Select(s => (s.Time, s.Available)))));
+
+        var days = openDays
+            .Select(d => new AssistantExamDayUi(
+                d.Date,
+                d.Slots
+                    .Where(s => s.Available > 0)
+                    .Select(s => new AssistantExamSlotUi(s.Time, s.Available))
+                    .ToList()))
+            .Where(d => d.AvailableSlots.Count > 0)
+            .ToList();
+
+        var ui = new AssistantExamAvailabilityUi(
+            Type: "exam_availability",
+            Title: "Cupos del calendario de exámenes",
+            DateRangeFrom: w.From,
+            DateRangeTo: w.To,
+            CanBook: false,
+            BlockReason: w.HasTemplates ? null : "La escuela aún no tiene horarios de examen configurados.",
+            MyBookingSummary: null,
+            Selectable: false,
+            Days: days);
+
+        return (sb.ToString(), ui);
     }
 
     private async Task<string> PracticalOptionsAsync(AssistantUser user, CancellationToken ct)

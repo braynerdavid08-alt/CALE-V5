@@ -75,6 +75,10 @@ interface AdminSchoolSummary {
   hasOpenRequest: boolean;
   createdAt: string;
   pendingApproval?: boolean;
+  paymentAdminStatus?: string;
+  agreedPriceCop?: number | null;
+  courtesyUntil?: string | null;
+  isCourtesyActive?: boolean;
 }
 
 interface HistoryEvent {
@@ -123,6 +127,11 @@ interface SchoolDetailDto {
   studentsMax: number;
   members: SchoolMemberRow[];
   history: HistoryEvent[];
+  paymentAdminStatus?: string;
+  agreedPriceCop?: number | null;
+  courtesyUntil?: string | null;
+  courtesyReason?: string | null;
+  isCourtesyActive?: boolean;
 }
 
 type Tab = 'queue' | 'schools';
@@ -436,7 +445,55 @@ type Tab = 'queue' | 'schools';
                           }
                         </dd>
                       </div>
+                      <div><dt>Pago interno</dt><dd>{{ detail()!.paymentAdminStatus || 'None' }}</dd></div>
+                      @if (detail()!.isCourtesyActive) {
+                        <div><dt>Cortesía</dt><dd>Hasta {{ detail()!.courtesyUntil | date:'mediumDate' }}</dd></div>
+                      }
                     </dl>
+
+                    <h3>Suscripción manual (temporal)</h3>
+                    <p class="muted">Confirmar pago aquí es solo control interno; no emite factura electrónica.</p>
+                    <form class="stack" [formGroup]="assignForm" (ngSubmit)="assignSubscription(s.userId)">
+                      <label>Plan
+                        <select formControlName="planCode">
+                          <option value="Monthly">Mensual</option>
+                          <option value="Annual">Anual</option>
+                        </select>
+                      </label>
+                      <label>Valor acordado (COP)
+                        <input type="number" formControlName="agreedPriceCop" />
+                      </label>
+                      <label>Inicio
+                        <input type="date" formControlName="startsAt" />
+                      </label>
+                      <label>Fin
+                        <input type="date" formControlName="endsAt" />
+                      </label>
+                      <label>Estado de pago
+                        <select formControlName="paymentAdminStatus">
+                          <option value="Pending">Pendiente</option>
+                          <option value="Reported">Reportado</option>
+                          <option value="Confirmed">Confirmado</option>
+                          <option value="Rejected">Rechazado</option>
+                        </select>
+                      </label>
+                      <label class="check">
+                        <input type="checkbox" formControlName="activate" />
+                        Activar ahora (requiere pago Confirmado)
+                      </label>
+                      <ui-button type="submit" [disabled]="busyId() === s.userId">Guardar suscripción</ui-button>
+                    </form>
+                    <div class="row actions">
+                      <ui-button type="button" variant="secondary" [disabled]="busyId() === s.userId" (click)="setPayment(s.userId, 'Confirmed')">
+                        Marcar pago confirmado
+                      </ui-button>
+                      <ui-button type="button" variant="secondary" [disabled]="busyId() === s.userId" (click)="grantCourtesy(s.userId)">
+                        Cortesía +30 días
+                      </ui-button>
+                      <ui-button type="button" variant="ghost" [disabled]="busyId() === s.userId" (click)="clearCourtesy(s.userId)">
+                        Quitar cortesía
+                      </ui-button>
+                    </div>
 
                     <h3>Instructores y estudiantes ({{ detail()!.members.length }})</h3>
                     @if (!detail()!.members.length) {
@@ -570,6 +627,15 @@ export class AdminMembershipsPage implements OnInit {
     subscriptionStatus: this.fb.control(''),
     membershipEndsAt: this.fb.control(''),
     note: this.fb.control('')
+  });
+
+  readonly assignForm = this.fb.nonNullable.group({
+    planCode: ['Monthly'],
+    agreedPriceCop: [500_000],
+    startsAt: [new Date().toISOString().slice(0, 10)],
+    endsAt: [new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)],
+    paymentAdminStatus: ['Confirmed'],
+    activate: [true]
   });
 
   readonly withProof = computed(() => this.items().filter((x) => x.hasPaymentProof).length);
@@ -774,6 +840,12 @@ export class AdminMembershipsPage implements OnInit {
   }
 
   suspend(s: AdminSchoolSummary): void {
+    if (!confirm(
+      `¿Suspender la suscripción de "${s.legalName}"?\n` +
+        `Estado: ${s.displayStatus || s.subscriptionStatus}. No se borrarán estudiantes ni registros.`
+    )) {
+      return;
+    }
     this.http.post(`${env.apiUrl}/api/admin/memberships/${s.userId}/suspend`, {
       note: 'Suspensión administrativa'
     }).subscribe({
@@ -782,6 +854,89 @@ export class AdminMembershipsPage implements OnInit {
         this.reload();
       },
       error: (err) => this.error.set(mapApiError(err))
+    });
+  }
+
+  assignSubscription(schoolUserId: number): void {
+    const v = this.assignForm.getRawValue();
+    this.busyId.set(schoolUserId);
+    this.error.set(null);
+    this.http
+      .post(`${env.apiUrl}/api/admin/schools/${schoolUserId}/subscription`, {
+        planCode: v.planCode,
+        agreedPriceCop: Number(v.agreedPriceCop),
+        startsAt: new Date(v.startsAt).toISOString(),
+        endsAt: new Date(v.endsAt).toISOString(),
+        paymentAdminStatus: v.paymentAdminStatus,
+        activate: v.activate
+      })
+      .subscribe({
+        next: () => {
+          this.ok.set('Suscripción asignada.');
+          this.busyId.set(null);
+          this.reload();
+          this.loadDetail(schoolUserId);
+        },
+        error: (err) => {
+          this.error.set(mapApiError(err));
+          this.busyId.set(null);
+        }
+      });
+  }
+
+  setPayment(schoolUserId: number, status: string): void {
+    this.busyId.set(schoolUserId);
+    this.http
+      .put(`${env.apiUrl}/api/admin/schools/${schoolUserId}/payment-status`, {
+        paymentAdminStatus: status,
+        note: `Pago → ${status}`
+      })
+      .subscribe({
+        next: () => {
+          this.ok.set('Estado de pago actualizado.');
+          this.busyId.set(null);
+          this.reload();
+        },
+        error: (err) => {
+          this.error.set(mapApiError(err));
+          this.busyId.set(null);
+        }
+      });
+  }
+
+  grantCourtesy(schoolUserId: number): void {
+    const until = new Date(Date.now() + 30 * 86400000).toISOString();
+    this.busyId.set(schoolUserId);
+    this.http
+      .post(`${env.apiUrl}/api/admin/schools/${schoolUserId}/courtesy`, {
+        courtesyUntil: until,
+        reason: 'Acceso de cortesía / transición comercial'
+      })
+      .subscribe({
+        next: () => {
+          this.ok.set('Cortesía otorgada (30 días).');
+          this.busyId.set(null);
+          this.reload();
+        },
+        error: (err) => {
+          this.error.set(mapApiError(err));
+          this.busyId.set(null);
+        }
+      });
+  }
+
+  clearCourtesy(schoolUserId: number): void {
+    this.busyId.set(schoolUserId);
+    this.http.delete(`${env.apiUrl}/api/admin/schools/${schoolUserId}/courtesy`, { body: { note: 'Cortesía retirada' } }).subscribe({
+      next: () => {
+        this.ok.set('Cortesía retirada.');
+        this.busyId.set(null);
+        this.reload();
+      },
+      error: (err) => {
+        this.error.set(mapApiError(err));
+        this.busyId.set(null);
+      }
     });
   }
 

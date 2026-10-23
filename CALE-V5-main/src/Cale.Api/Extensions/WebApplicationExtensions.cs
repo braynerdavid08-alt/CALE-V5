@@ -147,6 +147,7 @@ public static class WebApplicationExtensions
             await RefreshTokenSchemaGuard.EnsureAsync(db, bootLogger);
             await SchoolJoinRequestSchemaGuard.EnsureAsync(db, bootLogger);
             await SchoolApprovalSchemaGuard.EnsureAsync(db, bootLogger);
+            await CommercialSchemaGuard.EnsureAsync(db, bootLogger);
             await InstructorListingSchemaGuard.EnsureAsync(db, bootLogger);
             await Cale.Modules.GameShow.Infrastructure.Persistence.GameShowPackSchemaGuard
                 .EnsureAsync(db, bootLogger);

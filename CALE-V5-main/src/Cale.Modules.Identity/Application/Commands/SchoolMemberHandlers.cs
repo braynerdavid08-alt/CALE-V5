@@ -62,7 +62,7 @@ internal static class SchoolSeatGuard
         var max = role == Roles.Teacher
             ? profile.EffectiveMaxTeachers(plan)
             : profile.EffectiveMaxStudents(plan);
-        if (used >= max)
+        if (SchoolPlans.HasSeatCap(max) && used >= max)
         {
             throw new DomainException(
                 role == Roles.Teacher

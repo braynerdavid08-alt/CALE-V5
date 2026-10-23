@@ -182,6 +182,79 @@ public sealed class AdminMembershipsController : ControllerBase
         return Ok(dto);
     }
 
+    [HttpGet("commercial-plans")]
+    public async Task<ActionResult<IReadOnlyList<SchoolPlanDto>>> CommercialPlans(
+        [FromQuery] bool includeInactive = true,
+        CancellationToken ct = default) =>
+        Ok(await _managePlan.ListCommercialPlansAsync(includeInactive, ct));
+
+    [HttpPut("commercial-plans/{code}")]
+    public async Task<ActionResult<SchoolPlanDto>> UpdateCommercialPlan(
+        string code,
+        UpdateCommercialPlanRequest request,
+        CancellationToken ct) =>
+        Ok(await _managePlan.UpdateCommercialPlanAsync(
+            code,
+            CurrentUser.GetId(User),
+            request,
+            ct));
+
+    [HttpPost("schools/{schoolUserId:int}/subscription")]
+    public async Task<ActionResult<SchoolProfileDto>> AssignSubscription(
+        int schoolUserId,
+        AdminAssignSubscriptionRequest request,
+        CancellationToken ct)
+    {
+        var dto = await _managePlan.AdminAssignSubscriptionAsync(
+            schoolUserId,
+            CurrentUser.GetId(User),
+            request,
+            ct);
+        _homepage.InvalidatePublicCache();
+        return Ok(dto);
+    }
+
+    [HttpPut("schools/{schoolUserId:int}/payment-status")]
+    public async Task<ActionResult<SchoolProfileDto>> SetPaymentStatus(
+        int schoolUserId,
+        AdminSetPaymentStatusRequest request,
+        CancellationToken ct) =>
+        Ok(await _managePlan.AdminSetPaymentStatusAsync(
+            schoolUserId,
+            CurrentUser.GetId(User),
+            request,
+            ct));
+
+    [HttpPost("schools/{schoolUserId:int}/courtesy")]
+    public async Task<ActionResult<SchoolProfileDto>> GrantCourtesy(
+        int schoolUserId,
+        AdminCourtesyRequest request,
+        CancellationToken ct)
+    {
+        var dto = await _managePlan.AdminGrantCourtesyAsync(
+            schoolUserId,
+            CurrentUser.GetId(User),
+            request,
+            ct);
+        _homepage.InvalidatePublicCache();
+        return Ok(dto);
+    }
+
+    [HttpDelete("schools/{schoolUserId:int}/courtesy")]
+    public async Task<ActionResult<SchoolProfileDto>> ClearCourtesy(
+        int schoolUserId,
+        AdminClearCourtesyRequest? request,
+        CancellationToken ct)
+    {
+        var dto = await _managePlan.AdminClearCourtesyAsync(
+            schoolUserId,
+            CurrentUser.GetId(User),
+            request,
+            ct);
+        _homepage.InvalidatePublicCache();
+        return Ok(dto);
+    }
+
     [HttpGet("metrics")]
     public async Task<ActionResult<PilotMetricsDto>> Metrics(CancellationToken ct) =>
         Ok(await _metrics.GetAsync(ct));

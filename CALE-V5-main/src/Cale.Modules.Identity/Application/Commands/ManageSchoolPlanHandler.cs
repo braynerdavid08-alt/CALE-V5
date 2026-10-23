@@ -15,6 +15,7 @@ public sealed class ManageSchoolPlanHandler
 {
     private readonly IUserStore _users;
     private readonly ISchoolProfileStore _profiles;
+    private readonly ICommercialPlanStore _plans;
     private readonly IMembershipEventStore _events;
     private readonly INotificationPublisher _notifications;
     private readonly IClock _clock;
@@ -23,6 +24,7 @@ public sealed class ManageSchoolPlanHandler
     public ManageSchoolPlanHandler(
         IUserStore users,
         ISchoolProfileStore profiles,
+        ICommercialPlanStore plans,
         IMembershipEventStore events,
         INotificationPublisher notifications,
         IClock clock,
@@ -30,11 +32,16 @@ public sealed class ManageSchoolPlanHandler
     {
         _users = users;
         _profiles = profiles;
+        _plans = plans;
         _events = events;
         _notifications = notifications;
         _clock = clock;
         _profileQuery = profileQuery;
     }
+
+    private async Task<SchoolPlanInfo> RequirePlanAsync(string? code, CancellationToken ct) =>
+        await _plans.ResolvePlanInfoAsync(code, ct)
+        ?? throw new DomainException("Plan inválido.", 400, "invalid_plan");
 
     public async Task<SchoolProfileDto> RequestMembershipAsync(
         int schoolUserId,
@@ -45,8 +52,7 @@ public sealed class ManageSchoolPlanHandler
         var code = string.IsNullOrWhiteSpace(request.PlanCode)
             ? profile.EffectiveRequestedPlanCode
             : request.PlanCode!;
-        var plan = SchoolPlans.Find(code)
-            ?? throw new DomainException("Plan inválido.", 400, "invalid_plan");
+        var plan = await RequirePlanAsync(code, ct);
 
         profile.RequestMembership(plan, _clock.UtcNow);
         await _events.AddAsync(
@@ -275,7 +281,11 @@ public sealed class ManageSchoolPlanHandler
                 profile.HasSeatOverrides,
                 profile.HasOpenCommercialRequest(now),
                 profile.CreatedAt,
-                profile.IsPendingApproval));
+                profile.IsPendingApproval,
+                profile.PaymentAdminStatus,
+                profile.AgreedPriceCop,
+                profile.CourtesyUntil,
+                profile.IsCourtesyActive(now)));
         }
 
         await _profiles.SaveChangesAsync(ct);
@@ -354,7 +364,12 @@ public sealed class ManageSchoolPlanHandler
             profile.HasOpenCommercialRequest(now),
             profile.CreatedAt,
             members,
-            history);
+            history,
+            profile.PaymentAdminStatus,
+            profile.AgreedPriceCop,
+            profile.CourtesyUntil,
+            profile.CourtesyReason,
+            profile.IsCourtesyActive(now));
     }
 
     public async Task<SchoolProfileDto> AdminSetSeatsAsync(
@@ -392,8 +407,7 @@ public sealed class ManageSchoolPlanHandler
         SchoolPlanInfo? plan = null;
         if (!string.IsNullOrWhiteSpace(request.PlanCode))
         {
-            plan = SchoolPlans.Find(request.PlanCode)
-                ?? throw new DomainException("Plan inválido.", 400, "invalid_plan");
+            plan = await RequirePlanAsync(request.PlanCode, ct);
         }
 
         profile.AdminOverrideMembership(
@@ -441,8 +455,7 @@ public sealed class ManageSchoolPlanHandler
         SchoolPlanInfo? plan = null;
         if (!string.IsNullOrWhiteSpace(request?.PlanCode))
         {
-            plan = SchoolPlans.Find(request.PlanCode)
-                ?? throw new DomainException("Plan inválido.", 400, "invalid_plan");
+            plan = await RequirePlanAsync(request.PlanCode, ct);
         }
 
         profile.AdminReopenRequest(plan, _clock.UtcNow);
@@ -470,15 +483,25 @@ public sealed class ManageSchoolPlanHandler
         var code = string.IsNullOrWhiteSpace(request?.PlanCode)
             ? profile.EffectiveRequestedPlanCode
             : request!.PlanCode!;
-        var plan = SchoolPlans.Find(code)
-            ?? throw new DomainException("Plan inválido.", 400, "invalid_plan");
+        var plan = await RequirePlanAsync(code, ct);
+        var force = request?.ForceWithoutProof ?? false;
+
+        if (!force
+            && profile.PaymentAdminStatus != PaymentAdminStatuses.Confirmed
+            && string.IsNullOrWhiteSpace(profile.PaymentProofUrl))
+        {
+            throw new DomainException(
+                "Confirma el pago (control interno) o recibe el comprobante antes de activar.",
+                400,
+                "payment_not_confirmed");
+        }
 
         if (!profile.HasOpenCommercialRequest(_clock.UtcNow)
             && profile.SubscriptionStatus != SchoolSubscriptionStatus.Expired
             && profile.SubscriptionStatus != SchoolSubscriptionStatus.Rejected
             && profile.SubscriptionStatus != SchoolSubscriptionStatus.Cancelled
             && profile.SubscriptionStatus != SchoolSubscriptionStatus.None
-            && !(request?.ForceWithoutProof ?? false))
+            && !force)
         {
             throw new DomainException(
                 "No hay solicitud de membresía para activar.",
@@ -487,7 +510,8 @@ public sealed class ManageSchoolPlanHandler
         }
 
         if (string.IsNullOrWhiteSpace(profile.PaymentProofUrl)
-            && !(request?.ForceWithoutProof ?? false))
+            && profile.PaymentAdminStatus != PaymentAdminStatuses.Confirmed
+            && !force)
         {
             throw new DomainException(
                 "La escuela aún no ha subido el comprobante de pago.",
@@ -495,8 +519,8 @@ public sealed class ManageSchoolPlanHandler
                 "payment_proof_required");
         }
 
+        profile.SetPaymentAdminStatus(PaymentAdminStatuses.Confirmed, _clock.UtcNow);
         var wasActive = profile.IsCommerciallyActive(_clock.UtcNow);
-        var force = request?.ForceWithoutProof ?? false;
         if (force)
         {
             profile.AdminOverrideMembership(
@@ -711,6 +735,186 @@ public sealed class ManageSchoolPlanHandler
         return await _profileQuery.MapAsync(user, profile, ct);
     }
 
+    public async Task<SchoolProfileDto> AdminAssignSubscriptionAsync(
+        int schoolUserId,
+        int adminUserId,
+        AdminAssignSubscriptionRequest request,
+        CancellationToken ct)
+    {
+        var (user, profile) = await LoadSchoolAsync(schoolUserId, ct);
+        var plan = await RequirePlanAsync(request.PlanCode, ct);
+        profile.AdminAssignSubscription(
+            plan,
+            request.AgreedPriceCop,
+            request.StartsAt.ToUniversalTime(),
+            request.EndsAt.ToUniversalTime(),
+            request.PaymentAdminStatus,
+            request.Activate,
+            _clock.UtcNow);
+
+        await _events.AddAsync(
+            MembershipEvent.Create(
+                schoolUserId,
+                MembershipEventTypes.SubscriptionAssigned,
+                plan.Code,
+                request.AgreedPriceCop,
+                adminUserId,
+                $"Asignación manual · pago={request.PaymentAdminStatus} · activar={request.Activate}",
+                _clock.UtcNow),
+            ct);
+        await _profiles.SaveChangesAsync(ct);
+
+        if (request.Activate)
+        {
+            await _notifications.NotifyUserAsync(
+                schoolUserId,
+                "Suscripción activada",
+                $"Tu plan {plan.LabelEs} está activo hasta {profile.MembershipEndsAt:dd/MM/yyyy}.",
+                NotificationTypes.Membership,
+                null,
+                NotificationTypes.Membership,
+                schoolUserId,
+                ct);
+        }
+
+        return await _profileQuery.MapAsync(user, profile, ct);
+    }
+
+    public async Task<SchoolProfileDto> AdminSetPaymentStatusAsync(
+        int schoolUserId,
+        int adminUserId,
+        AdminSetPaymentStatusRequest request,
+        CancellationToken ct)
+    {
+        var (user, profile) = await LoadSchoolAsync(schoolUserId, ct);
+        profile.SetPaymentAdminStatus(request.PaymentAdminStatus, _clock.UtcNow);
+        await _events.AddAsync(
+            MembershipEvent.Create(
+                schoolUserId,
+                MembershipEventTypes.PaymentStatusChanged,
+                profile.PlanCode,
+                profile.EffectiveAgreedPriceCop,
+                adminUserId,
+                request.Note ?? $"Pago → {request.PaymentAdminStatus}",
+                _clock.UtcNow),
+            ct);
+        await _profiles.SaveChangesAsync(ct);
+        return await _profileQuery.MapAsync(user, profile, ct);
+    }
+
+    public async Task<SchoolProfileDto> AdminGrantCourtesyAsync(
+        int schoolUserId,
+        int adminUserId,
+        AdminCourtesyRequest request,
+        CancellationToken ct)
+    {
+        var (user, profile) = await LoadSchoolAsync(schoolUserId, ct);
+        profile.GrantCourtesy(request.CourtesyUntil.ToUniversalTime(), request.Reason, _clock.UtcNow);
+        await _events.AddAsync(
+            MembershipEvent.Create(
+                schoolUserId,
+                MembershipEventTypes.CourtesyGranted,
+                profile.PlanCode,
+                profile.EffectiveAgreedPriceCop,
+                adminUserId,
+                request.Reason ?? $"Cortesía hasta {profile.CourtesyUntil:u}",
+                _clock.UtcNow),
+            ct);
+        await _profiles.SaveChangesAsync(ct);
+        return await _profileQuery.MapAsync(user, profile, ct);
+    }
+
+    public async Task<SchoolProfileDto> AdminClearCourtesyAsync(
+        int schoolUserId,
+        int adminUserId,
+        AdminClearCourtesyRequest? request,
+        CancellationToken ct)
+    {
+        var (user, profile) = await LoadSchoolAsync(schoolUserId, ct);
+        profile.ClearCourtesy(_clock.UtcNow);
+        await _events.AddAsync(
+            MembershipEvent.Create(
+                schoolUserId,
+                MembershipEventTypes.CourtesyCleared,
+                profile.PlanCode,
+                profile.EffectiveAgreedPriceCop,
+                adminUserId,
+                request?.Note ?? "Cortesía retirada",
+                _clock.UtcNow),
+            ct);
+        await _profiles.SaveChangesAsync(ct);
+        return await _profileQuery.MapAsync(user, profile, ct);
+    }
+
+    public async Task<IReadOnlyList<SchoolPlanDto>> ListCommercialPlansAsync(
+        bool includeInactive,
+        CancellationToken ct)
+    {
+        var handler = new ListSchoolPlansHandler(_plans);
+        return includeInactive
+            ? await handler.ListAllForAdminAsync(ct)
+            : await handler.HandleAsync(ct);
+    }
+
+    public async Task<SchoolPlanDto> UpdateCommercialPlanAsync(
+        string code,
+        int adminUserId,
+        UpdateCommercialPlanRequest request,
+        CancellationToken ct)
+    {
+        var normalized = SchoolPlans.Normalize(code);
+        var existing = await _plans.GetByCodeAsync(normalized, ct);
+        var now = _clock.UtcNow;
+        if (existing is null)
+        {
+            var created = CommercialPlan.Create(
+                normalized,
+                request.LabelEs,
+                request.PriceCop,
+                request.DurationMonths,
+                request.MaxTeachers,
+                request.MaxStudents,
+                isLegacy: normalized == SchoolPlans.Semestral,
+                now);
+            created.Update(
+                request.LabelEs,
+                request.PriceCop,
+                request.DurationMonths,
+                request.MaxTeachers,
+                request.MaxStudents,
+                request.IsActive,
+                now);
+            await _plans.UpsertAsync(created, ct);
+        }
+        else
+        {
+            existing.Update(
+                request.LabelEs,
+                request.PriceCop,
+                request.DurationMonths,
+                request.MaxTeachers,
+                request.MaxStudents,
+                request.IsActive,
+                now);
+        }
+
+        await _plans.SaveChangesAsync(ct);
+        _ = adminUserId;
+
+        var info = (await _plans.ResolvePlanInfoAsync(normalized, ct))!;
+        return new SchoolPlanDto(
+            info.Code,
+            info.LabelEs,
+            info.PriceCop,
+            info.MonthlyEquivalentCop,
+            info.DurationMonths,
+            info.MaxTeachers,
+            info.MaxStudents,
+            request.IsActive,
+            normalized == SchoolPlans.Semestral,
+            !SchoolPlans.HasSeatCap(info.MaxStudents) && !SchoolPlans.HasSeatCap(info.MaxTeachers));
+    }
+
     private async Task<(User User, SchoolProfile Profile)> LoadSchoolAsync(
         int userId,
         CancellationToken ct)
@@ -729,7 +933,8 @@ public sealed class ManageSchoolPlanHandler
         var profile = await _profiles.GetTrackedByUserIdAsync(userId, ct);
         if (profile is null)
         {
-            var defaultPlan = SchoolPlans.Find(SchoolPlans.Monthly)!;
+            var defaultPlan = await _plans.ResolvePlanInfoAsync(SchoolPlans.Monthly, ct)
+                ?? SchoolPlans.Find(SchoolPlans.Monthly)!;
             profile = SchoolProfile.CreateDraft(
                 user.Id,
                 user.Name,

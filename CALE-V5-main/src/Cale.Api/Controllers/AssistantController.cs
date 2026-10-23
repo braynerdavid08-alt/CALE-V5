@@ -26,7 +26,39 @@ public sealed class AssistantController : ControllerBase
 
     [HttpGet("status")]
     public async Task<IActionResult> Status(CancellationToken ct) =>
-        Ok(_assistant.Status(await CurrentAsync(ct)));
+        Ok(await _assistant.StatusAsync(await CurrentAsync(ct), ct));
+
+    [HttpGet("usage/school")]
+    [Authorize(Policy = "SchoolOnly")]
+    public async Task<IActionResult> SchoolUsage(
+        [FromServices] IAssistantUsageStore usage,
+        [FromServices] Microsoft.Extensions.Options.IOptions<AssistantOptions> options,
+        CancellationToken ct)
+    {
+        var user = await CurrentAsync(ct);
+        var schoolId = user.SchoolUserId ?? user.UserId;
+        return Ok(await usage.GetSchoolSummaryAsync(
+            schoolId,
+            options.Value.DailyMessagesPerUser,
+            ct));
+    }
+
+    [HttpGet("usage/admin")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> AdminUsage(
+        [FromServices] IAssistantUsageStore usage,
+        [FromServices] Microsoft.Extensions.Options.IOptions<AssistantOptions> options,
+        [FromQuery] int? schoolUserId,
+        CancellationToken ct)
+    {
+        var limit = options.Value.DailyMessagesPerUser;
+        if (schoolUserId is int id)
+        {
+            return Ok(await usage.GetSchoolSummaryAsync(id, limit, ct));
+        }
+
+        return Ok(await usage.ListSchoolsTodayAsync(limit, ct));
+    }
 
     [HttpPost("chat")]
     [EnableRateLimiting(RateLimitPolicies.Assistant)]
@@ -40,6 +72,19 @@ public sealed class AssistantController : ControllerBase
     [HttpPost("actions/{id}/confirm")]
     public async Task<IActionResult> Confirm(string id, CancellationToken ct) =>
         Ok(await _assistant.ConfirmAsync(await CurrentAsync(ct), id, ct));
+
+    /// <summary>
+    /// Student selected an exam slot in the chat UI; creates the same pending
+    /// <c>agendar_examen</c> action used by the LLM path (still requires confirm).
+    /// </summary>
+    [HttpPost("actions/prepare-exam")]
+    [EnableRateLimiting(RateLimitPolicies.Assistant)]
+    public async Task<IActionResult> PrepareExam(AssistantPrepareExamRequest request, CancellationToken ct) =>
+        Ok(await _assistant.PrepareExamBookingAsync(
+            await CurrentAsync(ct),
+            request.Date ?? "",
+            request.Time ?? "",
+            ct));
 
     [HttpPost("actions/{id}/discard")]
     public async Task<IActionResult> Discard(string id, CancellationToken ct)

@@ -16,6 +16,7 @@ public static class DependencyInjection
         services.AddScoped<IUserStore, UserStore>();
         services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();
         services.AddScoped<ISchoolProfileStore, SchoolProfileStore>();
+        services.AddScoped<ICommercialPlanStore, CommercialPlanStore>();
         services.AddScoped<IMembershipEventStore, MembershipEventStore>();
         services.AddScoped<IAccountStatusStore, AccountStatusStore>();
         services.AddScoped<IUserLookup, UserLookupService>();

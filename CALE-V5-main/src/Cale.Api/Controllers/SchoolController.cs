@@ -44,8 +44,8 @@ public sealed class SchoolController : ControllerBase
         Ok(await _profile.HandleAsync(CurrentUser.GetId(User), ct));
 
     [HttpGet("plans")]
-    public ActionResult<IReadOnlyList<SchoolPlanDto>> Plans() =>
-        Ok(_plans.Handle());
+    public async Task<ActionResult<IReadOnlyList<SchoolPlanDto>>> Plans(CancellationToken ct) =>
+        Ok(await _plans.HandleAsync(ct));
 
     /// <summary>
     /// School requests a membership plan. Admin must verify payment and activate.

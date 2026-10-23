@@ -48,6 +48,17 @@ public sealed class SchoolProfile
     public int? StudentsMaxOverride { get; private set; }
     public DateTime CreatedAt { get; private set; }
 
+    /// <summary>Internal payment control (not an electronic invoice).</summary>
+    public string PaymentAdminStatus { get; private set; } = PaymentAdminStatuses.None;
+
+    /// <summary>Agreed commercial amount for the current cycle (may differ from catalog).</summary>
+    public decimal? AgreedPriceCop { get; private set; }
+
+    /// <summary>Courtesy / transition access end (UTC). Null = no courtesy.</summary>
+    public DateTime? CourtesyUntil { get; private set; }
+
+    public string? CourtesyReason { get; private set; }
+
     /// <summary>Set while a self-registered school awaits admin approval; null means approved.</summary>
     public DateTime? PendingApprovalSince { get; private set; }
 
@@ -143,9 +154,16 @@ public sealed class SchoolProfile
         return SubscriptionStatus;
     }
 
-    /// <summary>Product access gate (free-for-all mode bypasses the paid membership, never the approval).</summary>
+    public bool IsCourtesyActive(DateTime utcNow) =>
+        CourtesyUntil is { } until && until > utcNow;
+
+    /// <summary>
+    /// Product access gate: free-for-all, active paid membership, or courtesy window.
+    /// Never bypasses pending approval.
+    /// </summary>
     public bool CanOperateProduct(DateTime utcNow) =>
-        !IsPendingApproval && (FreeAccessPolicy.Enabled || IsCommerciallyActive(utcNow));
+        !IsPendingApproval
+        && (FreeAccessPolicy.Enabled || IsCommerciallyActive(utcNow) || IsCourtesyActive(utcNow));
 
     public void RequireApproval(DateTime utcNow) => PendingApprovalSince ??= utcNow;
 
@@ -544,6 +562,10 @@ public sealed class SchoolProfile
     public int EffectiveMaxStudents(SchoolPlanInfo? plan) =>
         StudentsMaxOverride ?? plan?.MaxStudents ?? 0;
 
+    /// <summary>Effective catalog/override price shown to the school.</summary>
+    public decimal EffectiveAgreedPriceCop =>
+        AgreedPriceCop ?? PlanPriceCop;
+
     public bool HasSeatOverrides =>
         TeachersMaxOverride is not null || StudentsMaxOverride is not null;
 
@@ -775,6 +797,114 @@ public sealed class SchoolProfile
                 ? SchoolRenewalStatus.PendingPayment
                 : SchoolRenewalStatus.UnderReview;
         }
+    }
+
+    public void SetPaymentAdminStatus(string status, DateTime utcNow)
+    {
+        if (!PaymentAdminStatuses.IsValid(status))
+        {
+            throw new DomainException("Estado de pago inválido.", 400, "invalid_payment_status");
+        }
+
+        PaymentAdminStatus = status;
+        LastDecisionAt = utcNow;
+    }
+
+    public void GrantCourtesy(DateTime untilUtc, string? reason, DateTime utcNow)
+    {
+        if (untilUtc <= utcNow)
+        {
+            throw new DomainException(
+                "La fecha de cortesía debe ser futura.",
+                400,
+                "invalid_courtesy_until");
+        }
+
+        CourtesyUntil = untilUtc;
+        CourtesyReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+        LastDecisionAt = utcNow;
+    }
+
+    public void ClearCourtesy(DateTime utcNow)
+    {
+        CourtesyUntil = null;
+        CourtesyReason = null;
+        LastDecisionAt = utcNow;
+    }
+
+    /// <summary>
+    /// Admin assigns a commercial cycle (manual activation path for temporary B2B).
+    /// Does not emit tax invoices — internal control only.
+    /// </summary>
+    public void AdminAssignSubscription(
+        SchoolPlanInfo plan,
+        decimal agreedPriceCop,
+        DateTime startsAtUtc,
+        DateTime endsAtUtc,
+        string paymentAdminStatus,
+        bool activateNow,
+        DateTime utcNow)
+    {
+        if (agreedPriceCop < 0)
+        {
+            throw new DomainException("El valor acordado no puede ser negativo.", 400, "invalid_agreed_price");
+        }
+
+        if (endsAtUtc <= startsAtUtc)
+        {
+            throw new DomainException(
+                "La vigencia debe terminar después del inicio.",
+                400,
+                "invalid_membership_window");
+        }
+
+        if (!PaymentAdminStatuses.IsValid(paymentAdminStatus))
+        {
+            throw new DomainException("Estado de pago inválido.", 400, "invalid_payment_status");
+        }
+
+        if (activateNow && paymentAdminStatus != PaymentAdminStatuses.Confirmed)
+        {
+            throw new DomainException(
+                "Solo se puede activar la suscripción cuando el pago está confirmado (control interno).",
+                400,
+                "payment_not_confirmed");
+        }
+
+        PlanCode = plan.Code;
+        PlanPriceCop = plan.PriceCop;
+        AgreedPriceCop = agreedPriceCop;
+        PaymentAdminStatus = paymentAdminStatus;
+        MembershipStartsAt = startsAtUtc;
+        MembershipEndsAt = endsAtUtc;
+        RejectionReason = null;
+        ClearRequestFields();
+
+        if (activateNow)
+        {
+            if (SubscriptionStatus == SchoolSubscriptionStatus.Suspended)
+            {
+                throw new DomainException(
+                    "Quita la suspensión antes de activar.",
+                    400,
+                    "membership_suspended");
+            }
+
+            SubscriptionStatus = SchoolSubscriptionStatus.Active;
+            SuspensionReason = null;
+        }
+        else if (SubscriptionStatus is SchoolSubscriptionStatus.None
+                 or SchoolSubscriptionStatus.Expired
+                 or SchoolSubscriptionStatus.Cancelled
+                 or SchoolSubscriptionStatus.Rejected)
+        {
+            SubscriptionStatus = paymentAdminStatus == PaymentAdminStatuses.Reported
+                || paymentAdminStatus == PaymentAdminStatuses.Confirmed
+                ? SchoolSubscriptionStatus.UnderReview
+                : SchoolSubscriptionStatus.PendingPayment;
+        }
+
+        LastDecisionAt = utcNow;
     }
 
     private void ClearRequestFields(bool keepRejection = false)
