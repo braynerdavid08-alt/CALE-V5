@@ -41,8 +41,13 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
               @for (p of s.products; track p.id) {
                 <article class="item" [class.featured]="p.isFeatured">
                   <div class="media">
-                    @if (p.imageUrl) {
-                      <img [src]="media(p.imageUrl)" [alt]="p.name" width="480" height="360" loading="lazy" />
+                    @if (productImages(p).length) {
+                      <img
+                        [src]="media(activeImage(p))"
+                        [alt]="p.name"
+                        width="480"
+                        height="360"
+                        loading="lazy" />
                     } @else {
                       <div class="placeholder" aria-hidden="true">Casco</div>
                     }
@@ -50,6 +55,20 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                       <span class="badge">{{ p.promoLabel || ('−' + p.discountPercent + '%') }}</span>
                     }
                   </div>
+                  @if (productImages(p).length > 1) {
+                    <div class="thumbs" role="list">
+                      @for (url of productImages(p); track url; let i = $index) {
+                        <button
+                          type="button"
+                          class="thumb"
+                          [class.on]="activeIndex(p.id) === i"
+                          (click)="setActive(p.id, i)"
+                          [attr.aria-label]="'Ángulo ' + (i + 1)">
+                          <img [src]="media(url)" alt="" width="56" height="42" loading="lazy" />
+                        </button>
+                      }
+                    </div>
+                  }
                   <div class="body">
                     <p class="cat">{{ p.category }}</p>
                     <h2>{{ p.name }}</h2>
@@ -167,6 +186,26 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
       object-fit: cover;
       display: block;
     }
+    .thumbs {
+      display: flex;
+      gap: 0.35rem;
+      padding: 0.45rem 0.55rem 0;
+      overflow-x: auto;
+      scrollbar-width: thin;
+    }
+    .thumb {
+      flex: none;
+      width: 3.2rem;
+      height: 2.4rem;
+      padding: 0;
+      border: 2px solid transparent;
+      border-radius: 0.4rem;
+      overflow: hidden;
+      background: #101812;
+      cursor: pointer;
+    }
+    .thumb.on { border-color: var(--color-primary); }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .placeholder {
       width: 100%;
       height: 100%;
@@ -250,6 +289,7 @@ export class PublicShopPage implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly shop = signal<PublicShopDto | null>(null);
+  readonly activeByProduct = signal<Record<number, number>>({});
 
   ngOnInit(): void {
     this.api.getPublic().subscribe({
@@ -268,6 +308,26 @@ export class PublicShopPage implements OnInit {
 
   media(path: string | null | undefined): string {
     return resolveMediaUrl(path);
+  }
+
+  productImages(p: PublicShopProductDto): string[] {
+    if (p.imageUrls?.length) {
+      return p.imageUrls;
+    }
+    return p.imageUrl ? [p.imageUrl] : [];
+  }
+
+  activeIndex(productId: number): number {
+    return this.activeByProduct()[productId] ?? 0;
+  }
+
+  activeImage(p: PublicShopProductDto): string {
+    const imgs = this.productImages(p);
+    return imgs[this.activeIndex(p.id)] ?? imgs[0] ?? '';
+  }
+
+  setActive(productId: number, index: number): void {
+    this.activeByProduct.update((m) => ({ ...m, [productId]: index }));
   }
 
   order(shop: PublicShopDto, product: PublicShopProductDto): void {

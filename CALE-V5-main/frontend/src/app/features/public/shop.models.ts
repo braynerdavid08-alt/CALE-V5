@@ -5,6 +5,7 @@ export interface PublicShopProductDto {
   shortDescription: string;
   description: string | null;
   imageUrl: string | null;
+  imageUrls: string[];
   priceCop: number;
   compareAtPriceCop: number | null;
   promoLabel: string | null;
@@ -42,6 +43,7 @@ export interface AdminShopProductDto {
   shortDescription: string;
   description: string | null;
   imageUrl: string | null;
+  imageUrls: string[];
   priceCop: number;
   compareAtPriceCop: number | null;
   promoLabel: string | null;
@@ -73,6 +75,7 @@ export interface UpsertShopProductRequest {
   shortDescription: string;
   description: string | null;
   imageUrl: string | null;
+  imageUrls: string[];
   priceCop: number;
   compareAtPriceCop: number | null;
   promoLabel: string | null;

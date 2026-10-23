@@ -99,13 +99,17 @@ public sealed class ShopProduct
     public const int PromoMax = 40;
     public const int SizesMax = 120;
     public const int CategoryMax = 60;
+    public const int MaxImages = 8;
 
     public int Id { get; private set; }
     public string Name { get; private set; } = "";
     public string Slug { get; private set; } = "";
     public string ShortDescription { get; private set; } = "";
     public string? Description { get; private set; }
+    /// <summary>Cover image (first of <see cref="ImageUrls"/>).</summary>
     public string? ImageUrl { get; private set; }
+    /// <summary>JSON array of image URLs (angles / gallery). Kept in sync with <see cref="ImageUrl"/>.</summary>
+    public string? ImageUrlsJson { get; private set; }
     public decimal PriceCop { get; private set; }
     public decimal? CompareAtPriceCop { get; private set; }
     public string? PromoLabel { get; private set; }
@@ -122,11 +126,13 @@ public sealed class ShopProduct
     {
     }
 
+    public IReadOnlyList<string> ImageUrls => ParseImageUrls(ImageUrlsJson, ImageUrl);
+
     public static ShopProduct Create(
         string name,
         string? shortDescription,
         string? description,
-        string? imageUrl,
+        IEnumerable<string?>? imageUrls,
         decimal priceCop,
         decimal? compareAtPriceCop,
         string? promoLabel,
@@ -140,7 +146,7 @@ public sealed class ShopProduct
     {
         var product = new ShopProduct { CreatedAt = utcNow };
         product.Apply(
-            name, shortDescription, description, imageUrl, priceCop, compareAtPriceCop,
+            name, shortDescription, description, imageUrls, priceCop, compareAtPriceCop,
             promoLabel, category, sizes, stock, isActive, isFeatured, sortOrder, utcNow);
         return product;
     }
@@ -149,7 +155,7 @@ public sealed class ShopProduct
         string name,
         string? shortDescription,
         string? description,
-        string? imageUrl,
+        IEnumerable<string?>? imageUrls,
         decimal priceCop,
         decimal? compareAtPriceCop,
         string? promoLabel,
@@ -161,7 +167,7 @@ public sealed class ShopProduct
         int sortOrder,
         DateTime utcNow) =>
         Apply(
-            name, shortDescription, description, imageUrl, priceCop, compareAtPriceCop,
+            name, shortDescription, description, imageUrls, priceCop, compareAtPriceCop,
             promoLabel, category, sizes, stock, isActive, isFeatured, sortOrder, utcNow);
 
     public bool HasPromo =>
@@ -185,7 +191,7 @@ public sealed class ShopProduct
         string name,
         string? shortDescription,
         string? description,
-        string? imageUrl,
+        IEnumerable<string?>? imageUrls,
         decimal priceCop,
         decimal? compareAtPriceCop,
         string? promoLabel,
@@ -201,7 +207,7 @@ public sealed class ShopProduct
         ShortDescription = Required(
             shortDescription, 280, "Escribe una descripción corta.", "invalid_product_summary");
         Description = Optional(description, DescriptionMax);
-        ImageUrl = Optional(imageUrl, 500);
+        SetImages(imageUrls);
         if (priceCop is < 1000 or > 50_000_000)
         {
             throw new DomainException("El precio debe estar entre $1.000 y $50.000.000 COP.", 400, "invalid_price");
@@ -233,6 +239,61 @@ public sealed class ShopProduct
         SortOrder = Math.Clamp(sortOrder, 0, 10_000);
         Slug = Slugify(Name);
         UpdatedAt = utcNow;
+    }
+
+    private void SetImages(IEnumerable<string?>? imageUrls)
+    {
+        var cleaned = (imageUrls ?? Array.Empty<string?>())
+            .Select(u => (u ?? "").Trim())
+            .Where(u => u.Length > 0)
+            .Distinct(StringComparer.Ordinal)
+            .Take(MaxImages)
+            .ToList();
+
+        foreach (var url in cleaned)
+        {
+            if (url.Length > 500)
+            {
+                throw new DomainException($"La URL de imagen es muy larga (máximo 500).", 400, "invalid_shop_image");
+            }
+        }
+
+        if (cleaned.Count == 0)
+        {
+            ImageUrl = null;
+            ImageUrlsJson = null;
+            return;
+        }
+
+        ImageUrl = cleaned[0];
+        ImageUrlsJson = System.Text.Json.JsonSerializer.Serialize(cleaned);
+    }
+
+    public static IReadOnlyList<string> ParseImageUrls(string? json, string? cover)
+    {
+        if (!string.IsNullOrWhiteSpace(json))
+        {
+            try
+            {
+                var list = System.Text.Json.JsonSerializer.Deserialize<List<string>>(json);
+                if (list is { Count: > 0 })
+                {
+                    return list
+                        .Select(u => (u ?? "").Trim())
+                        .Where(u => u.Length > 0)
+                        .Distinct(StringComparer.Ordinal)
+                        .Take(MaxImages)
+                        .ToList();
+                }
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                // Fall through to cover.
+            }
+        }
+
+        var single = (cover ?? "").Trim();
+        return single.Length == 0 ? Array.Empty<string>() : [single];
     }
 
     private static string Slugify(string name)

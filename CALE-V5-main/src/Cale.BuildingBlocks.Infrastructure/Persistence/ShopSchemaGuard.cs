@@ -43,7 +43,8 @@ public static class ShopSchemaGuard
         );
         """,
         """CREATE INDEX IF NOT EXISTS "IX_ShopProducts_IsActive" ON "ShopProducts" ("IsActive");""",
-        """CREATE INDEX IF NOT EXISTS "IX_ShopProducts_SortOrder" ON "ShopProducts" ("SortOrder");"""
+        """CREATE INDEX IF NOT EXISTS "IX_ShopProducts_SortOrder" ON "ShopProducts" ("SortOrder");""",
+        """ALTER TABLE "ShopProducts" ADD COLUMN IF NOT EXISTS "ImageUrlsJson" text NULL;"""
     ];
 
     public static async Task EnsureAsync(

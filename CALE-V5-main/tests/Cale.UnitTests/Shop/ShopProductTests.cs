@@ -12,7 +12,7 @@ public sealed class ShopProductTests
             "Casco Integral Pro X",
             "Casco homologado con visor solar.",
             null,
-            "/uploads/casco.webp",
+            ["/uploads/casco-frente.webp", "/uploads/casco-lado.webp"],
             220_000,
             280_000,
             "Oferta",
@@ -27,6 +27,8 @@ public sealed class ShopProductTests
         Assert.Equal("casco-integral-pro-x", product.Slug);
         Assert.True(product.HasPromo);
         Assert.Equal(21, product.DiscountPercent);
+        Assert.Equal("/uploads/casco-frente.webp", product.ImageUrl);
+        Assert.Equal(2, product.ImageUrls.Count);
     }
 
     [Fact]

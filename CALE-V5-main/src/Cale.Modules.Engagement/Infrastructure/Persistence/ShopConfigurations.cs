@@ -30,6 +30,7 @@ public sealed class ShopProductConfiguration : IEntityTypeConfiguration<ShopProd
         builder.Property(x => x.ShortDescription).HasMaxLength(280).IsRequired();
         builder.Property(x => x.Description).HasMaxLength(ShopProduct.DescriptionMax);
         builder.Property(x => x.ImageUrl).HasMaxLength(500);
+        builder.Property(x => x.ImageUrlsJson).HasColumnType("text");
         builder.Property(x => x.PriceCop).HasPrecision(18, 2);
         builder.Property(x => x.CompareAtPriceCop).HasPrecision(18, 2);
         builder.Property(x => x.PromoLabel).HasMaxLength(ShopProduct.PromoMax);
@@ -39,5 +40,6 @@ public sealed class ShopProductConfiguration : IEntityTypeConfiguration<ShopProd
         builder.HasIndex(x => x.SortOrder);
         builder.Ignore(x => x.HasPromo);
         builder.Ignore(x => x.DiscountPercent);
+        builder.Ignore(x => x.ImageUrls);
     }
 }
