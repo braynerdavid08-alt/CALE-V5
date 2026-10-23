@@ -78,6 +78,31 @@
   border-bottom-color: var(--color-primary);
 }
 
+.nav-shop {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.nav-promo {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.42rem;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: #06210f;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.mobile-panel .nav-promo {
+  margin-left: 0.35rem;
+  vertical-align: middle;
+}
+
 .nav-item {
   position: relative;
   display: flex;
