@@ -708,7 +708,9 @@ public sealed class HomepageService
 
     private async Task<HomepageSettings> EnsureSettingsAsync(CancellationToken ct)
     {
-        var row = await _db.Set<HomepageSettings>().FirstOrDefaultAsync(ct);
+        var row = await _db.Set<HomepageSettings>()
+            .OrderBy(x => x.Id)
+            .FirstOrDefaultAsync(x => x.Id == 1, ct);
         if (row is not null)
         {
             if (row.ReplaceLegacyBrandDefaults())
