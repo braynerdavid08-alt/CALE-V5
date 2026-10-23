@@ -39,8 +39,14 @@ public sealed class Bank
         };
     }
 
-    public bool IsVisibleTo(int userId, bool isAdmin) =>
-        isAdmin || CreatedById is null || CreatedById == userId;
+    public bool IsVisibleTo(
+        int userId,
+        bool isAdmin,
+        IReadOnlyCollection<int>? schoolOwnerIds = null) =>
+        isAdmin
+        || CreatedById is null
+        || CreatedById == userId
+        || (CreatedById is int owner && schoolOwnerIds is not null && schoolOwnerIds.Contains(owner));
 
     public void Update(string name, string? description)
     {

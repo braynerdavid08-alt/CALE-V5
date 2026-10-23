@@ -10,7 +10,8 @@ public interface ICatalogStore
         bool activeOnly,
         CancellationToken ct,
         int? viewerUserId = null,
-        bool isAdmin = false);
+        bool isAdmin = false,
+        IReadOnlyCollection<int>? schoolOwnerIds = null);
 
     Task<Bank?> GetBankAsync(int id, CancellationToken ct);
     Task AddBankAsync(Bank bank, CancellationToken ct);

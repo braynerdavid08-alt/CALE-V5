@@ -14,9 +14,11 @@ public sealed class ListBanksHandler
         CancellationToken ct,
         bool includeThemes = false,
         int? viewerUserId = null,
-        bool isAdmin = false)
+        bool isAdmin = false,
+        IReadOnlyCollection<int>? schoolOwnerIds = null)
     {
-        var banks = await _store.ListBanksAsync(activeOnly, ct, viewerUserId, isAdmin);
+        var banks = await _store.ListBanksAsync(
+            activeOnly, ct, viewerUserId, isAdmin, schoolOwnerIds);
         var themesByBank = includeThemes
             ? await LoadThemesByBankAsync(ct)
             : new Dictionary<int, (string Label, IReadOnlyList<BankThemeDto> Themes)>();

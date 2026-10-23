@@ -37,8 +37,14 @@
           <button type="button" class="linkish" (click)="clearBanks()">Ninguna</button>
         </div>
       </div>
-      @if (!banks().length) {
+      @if (!banksLoaded()) {
         <p class="bank-empty">Cargando bancos…</p>
+      } @else if (!banks().length) {
+        <p class="bank-empty">
+          No hay bancos disponibles aquí. El administrador debe marcarlos como
+          <strong>Oficial CALE</strong> en Bancos, o un instructor de tu escuela debe
+          importarlos. Publicar un examen no basta.
+        </p>
       } @else {
         <ul class="bank-list compact">
           @for (bank of banks(); track bank.id) {

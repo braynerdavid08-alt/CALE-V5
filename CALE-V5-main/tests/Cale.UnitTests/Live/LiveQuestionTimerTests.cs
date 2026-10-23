@@ -230,6 +230,7 @@ public sealed class LiveQuestionTimerTests : IDisposable
         new LiveSessionStore(db),
         Unused<ICatalogStore>(),
         Unused<ICatalogAccessGuard>(),
+        Unused<IUserLookup>(),
         RecordingProxy<ILiveSessionBroadcaster>.Create(_broadcasts),
         new LivePresentationSlideState(),
         _clock,

@@ -17,7 +17,8 @@ public sealed class CatalogStore : ICatalogStore
         bool activeOnly,
         CancellationToken ct,
         int? viewerUserId = null,
-        bool isAdmin = false)
+        bool isAdmin = false,
+        IReadOnlyCollection<int>? schoolOwnerIds = null)
     {
         var query = _db.Set<Bank>().AsQueryable();
         if (activeOnly)
@@ -27,8 +28,21 @@ public sealed class CatalogStore : ICatalogStore
 
         if (!isAdmin && viewerUserId is int uid)
         {
-            // Official (null owner) + own imports.
-            query = query.Where(x => x.CreatedById == null || x.CreatedById == uid);
+            // Official (null owner) + own imports + banks of instructors in the same school.
+            var peers = (schoolOwnerIds ?? Array.Empty<int>())
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+            if (peers.Count == 0)
+            {
+                peers.Add(uid);
+            }
+            else if (!peers.Contains(uid))
+            {
+                peers.Add(uid);
+            }
+
+            query = query.Where(x => x.CreatedById == null || peers.Contains(x.CreatedById.Value));
         }
 
         if (activeOnly && !isAdmin)

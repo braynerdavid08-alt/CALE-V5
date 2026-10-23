@@ -18,15 +18,18 @@ public sealed class BanksController : ControllerBase
     private readonly ListBanksHandler _list;
     private readonly SaveBankHandler _save;
     private readonly ICatalogAccessGuard _access;
+    private readonly IUserLookup _users;
 
     public BanksController(
         ListBanksHandler list,
         SaveBankHandler save,
-        ICatalogAccessGuard access)
+        ICatalogAccessGuard access,
+        IUserLookup users)
     {
         _list = list;
         _save = save;
         _access = access;
+        _users = users;
     }
 
     [HttpGet]
@@ -46,12 +49,20 @@ public sealed class BanksController : ControllerBase
             await _access.EnsureSimulacroAsync(userId, role, ct);
         }
 
+        var isAdmin = role == Roles.Admin;
+        IReadOnlyList<int>? schoolOwners = null;
+        if (!isAdmin)
+        {
+            schoolOwners = await _users.ListSchoolCatalogOwnerIdsAsync(userId, ct);
+        }
+
         return Ok(await _list.HandleAsync(
             activeOnly,
             ct,
             includeThemes,
             userId,
-            role == Roles.Admin));
+            isAdmin,
+            schoolOwners));
     }
 
     [HttpGet("usage")]
