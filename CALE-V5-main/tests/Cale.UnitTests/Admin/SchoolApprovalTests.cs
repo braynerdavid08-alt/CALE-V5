@@ -112,9 +112,16 @@ public sealed class SchoolApprovalTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK, approved.StatusCode);
 
         Assert.False((await AdminSummaryAsync(schoolId)).GetProperty("pendingApproval").GetBoolean());
-        Assert.True(await IsPubliclyListedAsync());
+        Assert.False(await IsPubliclyListedAsync()); // still PendingPayment until activated
+
         var joined = await student.PostAsJsonAsync("/api/me/school-membership/requests", new { schoolQuery = Nit });
         Assert.True(joined.IsSuccessStatusCode, await joined.Content.ReadAsStringAsync());
+
+        var activated = await _api.ClientFor(_api.Users.Admin).PostAsJsonAsync(
+            $"/api/admin/memberships/{schoolId}/activate",
+            new { forceWithoutProof = true });
+        Assert.True(activated.IsSuccessStatusCode, await activated.Content.ReadAsStringAsync());
+        Assert.True(await IsPubliclyListedAsync());
 
         var again = await _api.ClientFor(_api.Users.Admin).PostAsync($"/api/admin/schools/{schoolId}/approve", null);
         Assert.Equal(HttpStatusCode.BadRequest, again.StatusCode);

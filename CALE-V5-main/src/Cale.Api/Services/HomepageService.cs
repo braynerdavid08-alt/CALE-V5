@@ -294,12 +294,17 @@ public sealed class HomepageService
     private static string PublicLocationPart(string value) =>
         value == SchoolProfile.NotRegistered ? "" : value;
 
-    private static bool IsListedSchool(SchoolProfile profile, DateTime now) =>
-        profile.CanOperateProduct(now)
-        && profile.SubscriptionStatus is not (
-            SchoolSubscriptionStatus.Suspended
-            or SchoolSubscriptionStatus.Rejected
-            or SchoolSubscriptionStatus.Cancelled);
+    /// <summary>
+    /// Public directory: only approved schools with an active membership.
+    /// Hides pending-payment, under-review, rejected, cancelled, suspended and unapproved registrations.
+    /// </summary>
+    private static bool IsListedSchool(SchoolProfile profile, DateTime now)
+    {
+        profile.RefreshStatus(now);
+        return !profile.IsPendingApproval
+            && profile.SubscriptionStatus == SchoolSubscriptionStatus.Active
+            && profile.CanOperateProduct(now);
+    }
 
     public async Task<IReadOnlyList<PublicInstructorCardDto>> ListPublicInstructorsAsync(
         int take,
