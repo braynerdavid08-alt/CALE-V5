@@ -238,7 +238,18 @@ const messages: Record<string, string> = {
   hours_invalid: 'El número de horas no es válido.',
   hours_unchanged: 'El nuevo total es igual al actual. No hay nada que cambiar.',
   exam_booking_too_soon: 'Ese horario es demasiado pronto. Elige una fecha con más días de anticipación.',
-  exam_booking_too_far: 'Esa fecha está demasiado lejos. Elige una fecha más cercana.'
+  exam_booking_too_far: 'Esa fecha está demasiado lejos. Elige una fecha más cercana.',
+  invalid_shop_title: 'Escribe el título de la tienda.',
+  invalid_shop_subtitle: 'Escribe una descripción corta de la tienda.',
+  invalid_shop_cta: 'Escribe el texto del botón de pedido.',
+  invalid_whatsapp: 'El WhatsApp debe tener entre 10 y 15 dígitos (con indicativo, ej. 573001234567).',
+  invalid_product_name: 'Escribe el nombre del producto.',
+  invalid_product_summary: 'Escribe una descripción corta del producto.',
+  invalid_price: 'El precio debe estar entre $1.000 y $50.000.000 COP.',
+  invalid_compare_price: 'El precio tachado debe ser mayor que el precio de venta.',
+  invalid_stock: 'El stock debe estar entre 0 y 10.000.',
+  shop_limit: 'Alcanzaste el máximo de productos del catálogo.',
+  product_not_found: 'Producto no encontrado.'
 };
 
 /** Machine error code sent by the API (`detail` of the problem response), if any. */

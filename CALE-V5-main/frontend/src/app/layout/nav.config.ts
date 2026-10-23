@@ -96,6 +96,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
         icon: 'settings',
         children: [
           { label: 'Página de inicio', path: '/admin/homepage', exact: true },
+          { label: 'Cascos y equipo', path: '/admin/shop', exact: true },
           { label: 'Ajustes', path: '/admin/settings', exact: true }
         ]
       }
