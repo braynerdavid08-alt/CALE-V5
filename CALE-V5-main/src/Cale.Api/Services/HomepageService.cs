@@ -4,7 +4,9 @@ using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Engagement;
 using Cale.BuildingBlocks.Domain.Time;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
+using Cale.Api.Services.Courses;
 using Cale.Modules.Assessment.Domain;
+using Cale.Modules.Courses.Domain;
 using Cale.Modules.Engagement.Domain;
 using Cale.Modules.Identity.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -268,6 +270,66 @@ public sealed class HomepageService
         await _db.SaveChangesAsync(ct);
         InvalidatePublicCache();
         return await GetAdminAsync(ct);
+    }
+
+    /// <summary>
+    /// Platform courses for the public menu/page. Uses the covers and titles saved in the DB
+    /// (the ones admins uploaded), not the seed defaults. Falls back to the curriculum seed if
+    /// the database has no platform courses yet.
+    /// </summary>
+    public async Task<IReadOnlyList<PublicCourseCardDto>> ListPublicCoursesAsync(CancellationToken ct)
+    {
+        try
+        {
+            var courses = await _db.Set<Course>().AsNoTracking()
+                .Where(c => c.SchoolUserId == null && c.IsActive && c.IsPublished)
+                .ToListAsync(ct);
+            if (courses.Count > 0)
+            {
+                var ids = courses.Select(c => c.Id).ToList();
+                var lessonCounts = await _db.Set<CourseLesson>().AsNoTracking()
+                    .Where(l => ids.Contains(l.CourseId))
+                    .GroupBy(l => l.CourseId)
+                    .Select(g => new { CourseId = g.Key, Count = g.Count() })
+                    .ToDictionaryAsync(x => x.CourseId, x => x.Count, ct);
+
+                var seedBySlug = CourseSeed.Curriculum()
+                    .Select((c, i) => (c.Slug, Index: i, c.CoverUrl))
+                    .ToDictionary(x => x.Slug, x => x);
+
+                return courses
+                    .OrderBy(c => c.Slug is { } s && seedBySlug.TryGetValue(s, out var meta) ? meta.Index : 999)
+                    .ThenBy(c => c.Title)
+                    .Select(c =>
+                    {
+                        var cover = c.CoverUrl;
+                        if (string.IsNullOrWhiteSpace(cover)
+                            && c.Slug is { } slug
+                            && seedBySlug.TryGetValue(slug, out var meta))
+                        {
+                            cover = meta.CoverUrl;
+                        }
+
+                        return new PublicCourseCardDto(
+                            c.Slug ?? $"curso-{c.Id}",
+                            c.Title,
+                            c.Description ?? "",
+                            c.Category,
+                            cover ?? "",
+                            lessonCounts.GetValueOrDefault(c.Id));
+                    })
+                    .ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Public course catalog unavailable; using seed fallback.");
+        }
+
+        return CourseSeed.Curriculum()
+            .Select(c => new PublicCourseCardDto(
+                c.Slug, c.Title, c.Description, c.Category, c.CoverUrl, c.Lessons.Count))
+            .ToList();
     }
 
     public async Task<IReadOnlyList<PublicSchoolCardDto>> ListPublicSchoolsAsync(

@@ -40,14 +40,36 @@ public sealed class PublicCoursesAndMarketplaceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Public_courses_list_returns_curriculum_covers()
+    public async Task Public_courses_list_uses_saved_cover_from_database()
     {
+        const string customCover = "/uploads/covers/mi-portada-senales.jpg";
+        using (var scope = _api.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<CaleDbContext>();
+            var course = await db.Set<Cale.Modules.Courses.Domain.Course>()
+                .FirstOrDefaultAsync(c => c.Slug == "senales-transito" && c.SchoolUserId == null);
+            if (course is null)
+            {
+                course = Cale.Modules.Courses.Domain.Course.Create(
+                    null, 0, "Señales de tránsito", "Desc", "Señales de tránsito",
+                    customCover, DateTime.UtcNow, "senales-transito");
+                course.Update(course.Title, course.Description, course.Category, customCover, true, DateTime.UtcNow);
+                db.Add(course);
+            }
+            else
+            {
+                course.Update(course.Title, course.Description, course.Category, customCover, true, DateTime.UtcNow);
+            }
+
+            await db.SaveChangesAsync();
+        }
+
         var anon = _api.ClientFor(null);
         var list = await anon.GetFromJsonAsync<JsonElement>("/api/public/courses");
-        Assert.True(list.GetArrayLength() >= 8);
-        Assert.Contains(list.EnumerateArray(), c => c.GetProperty("slug").GetString() == "senales-transito");
-        Assert.False(string.IsNullOrWhiteSpace(list[0].GetProperty("coverUrl").GetString()));
-        Assert.False(string.IsNullOrWhiteSpace(list[0].GetProperty("title").GetString()));
+        Assert.True(list.GetArrayLength() >= 1);
+        var signs = list.EnumerateArray().Single(c => c.GetProperty("slug").GetString() == "senales-transito");
+        Assert.Equal(customCover, signs.GetProperty("coverUrl").GetString());
+        Assert.False(string.IsNullOrWhiteSpace(signs.GetProperty("title").GetString()));
     }
 
     [Fact]

@@ -2,7 +2,6 @@ using System.Security.Claims;
 using System.Text.Json;
 using Cale.Api.Extensions;
 using Cale.Api.Services;
-using Cale.Api.Services.Courses;
 using Cale.BuildingBlocks.Domain.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -66,18 +65,10 @@ public sealed class PublicHomeController : ControllerBase
         CancellationToken ct = default) =>
         _home.ListPublicTestimonialsAsync(take, ct);
 
-    /// <summary>Platform curriculum preview (title, cover, category). Lesson content stays behind login.</summary>
+    /// <summary>Platform courses with the covers saved in the DB. Lesson content stays behind login.</summary>
     [HttpGet("courses")]
-    public ActionResult<IReadOnlyList<PublicCourseCardDto>> Courses() =>
-        Ok(CourseSeed.Curriculum()
-            .Select(c => new PublicCourseCardDto(
-                c.Slug,
-                c.Title,
-                c.Description,
-                c.Category,
-                c.CoverUrl,
-                c.Lessons.Count))
-            .ToList());
+    public Task<IReadOnlyList<PublicCourseCardDto>> Courses(CancellationToken ct) =>
+        _home.ListPublicCoursesAsync(ct);
 }
 
 [ApiController]
