@@ -55,20 +55,209 @@
   flex: 1;
 }
 
-.nav a {
+.nav a,
+.nav-trigger {
   color: rgba(215, 226, 234, 0.82);
   text-decoration: none;
   font-size: var(--text-sm);
   font-weight: 600;
   padding: 0.35rem 0;
+  border: 0;
   border-bottom: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
   transition: color var(--transition), border-color var(--transition);
 }
 
 .nav a:hover,
-.nav a.active {
+.nav a.active,
+.nav-trigger:hover,
+.nav-trigger.active {
   color: #fff;
   border-bottom-color: var(--color-primary);
+}
+
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.nav-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.chev {
+  font-size: 0.7em;
+  opacity: 0.75;
+}
+
+.nav-support {
+  opacity: 0.9;
+}
+
+.mega,
+.flyout {
+  position: absolute;
+  top: calc(100% + 0.55rem);
+  left: 0;
+  z-index: 40;
+  background: #101814;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1rem;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+  padding: 1rem;
+}
+
+.mega {
+  width: min(720px, calc(100vw - 2rem));
+  left: 50%;
+  transform: translateX(-35%);
+}
+
+.mega-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.mega-kicker {
+  margin: 0 0 0.2rem;
+  color: var(--color-primary);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mega-head h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.05rem;
+}
+
+.mega-all {
+  color: #9fe3b0 !important;
+  border-bottom: none !important;
+  white-space: nowrap;
+}
+
+.mega-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+.mega-card {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 0.65rem;
+  align-items: center;
+  padding: 0.55rem 0.6rem !important;
+  border-radius: 0.75rem;
+  border-bottom: none !important;
+  color: #e8eef2 !important;
+}
+
+.mega-card:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-bottom-color: transparent !important;
+}
+
+.mega-card img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 0.55rem;
+  background: #0a100d;
+}
+
+.mega-card strong {
+  display: block;
+  font-size: 0.86rem;
+  line-height: 1.25;
+}
+
+.mega-card small {
+  display: block;
+  margin-top: 0.15rem;
+  color: #93a7b5;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.mega-note {
+  margin: 0.75rem 0 0;
+  color: #8ea1b0;
+  font-size: 0.75rem;
+}
+
+.flyout {
+  min-width: 15rem;
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.45rem;
+}
+
+.flyout a {
+  display: block;
+  padding: 0.65rem 0.75rem !important;
+  border-radius: 0.65rem;
+  border-bottom: none !important;
+  color: #e8eef2 !important;
+  white-space: nowrap;
+}
+
+.flyout a:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-bottom-color: transparent !important;
+}
+
+.mobile-group {
+  border-radius: var(--radius-sm);
+}
+
+.mobile-group summary {
+  list-style: none;
+  cursor: pointer;
+  color: #d7e2ea;
+  font-weight: 600;
+  padding: 0.65rem 0.4rem;
+}
+
+.mobile-group summary::-webkit-details-marker {
+  display: none;
+}
+
+.mobile-courses,
+.mobile-sub {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0 0 0.4rem 0.5rem;
+}
+
+.mobile-courses a {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.mobile-courses img {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 0.45rem;
+  background: #070b09;
+}
+
+.mobile-all {
+  color: #9fe3b0 !important;
 }
 
 .actions {

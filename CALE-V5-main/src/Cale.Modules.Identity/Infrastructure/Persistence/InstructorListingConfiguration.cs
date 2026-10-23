@@ -12,5 +12,6 @@ public sealed class InstructorListingConfiguration : IEntityTypeConfiguration<In
         builder.HasKey(x => x.UserId);
         builder.Property(x => x.UserId).ValueGeneratedNever();
         builder.Property(x => x.CreatedAt).IsRequired();
+        builder.Property(x => x.AcceptsPrivateClasses).IsRequired();
     }
 }

@@ -691,6 +691,14 @@ export const routes: Routes = [
             .then((m) => m.TeacherHomePage)
       },
       {
+        path: 'teacher/clases-particulares',
+        canActivate: [roleGuard],
+        data: { roles: ['Teacher'] },
+        loadComponent: () =>
+          import('./features/teacher/pages/teacher-private-classes.page')
+            .then((m) => m.TeacherPrivateClassesPage)
+      },
+      {
         path: 'teacher/live',
         pathMatch: 'full',
         canActivate: [roleGuard],

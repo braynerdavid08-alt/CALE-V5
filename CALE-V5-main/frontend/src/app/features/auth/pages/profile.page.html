@@ -154,6 +154,14 @@
               (change)="toggleDirectory($event)" />
             Aparecer en el directorio público
           </label>
+          @if (directoryListed()) {
+            <p class="muted" style="margin-top:0.85rem">
+              También puedes recibir solicitudes de clases particulares desde el directorio.
+            </p>
+            <ui-button routerLink="/teacher/clases-particulares" type="button" variant="secondary">
+              Clases particulares
+            </ui-button>
+          }
         </ui-card>
       }
 

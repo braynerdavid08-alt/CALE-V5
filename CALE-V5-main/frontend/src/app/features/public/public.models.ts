@@ -65,6 +65,18 @@ export interface PublicInstructorCardDto {
   displayName: string;
   schoolName: string | null;
   detailPath: string;
+  acceptsPrivateClasses?: boolean;
+  averageStars?: number | null;
+  reviewCount?: number;
+}
+
+export interface PublicCourseCardDto {
+  slug: string;
+  title: string;
+  description: string;
+  category: string;
+  coverUrl: string;
+  lessonCount: number;
 }
 
 export interface PublicTestimonialDto {
