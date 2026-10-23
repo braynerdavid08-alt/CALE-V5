@@ -107,23 +107,31 @@ public sealed class AdminMembershipsController : ControllerBase
     public async Task<ActionResult<SchoolProfileDto>> Activate(
         int schoolUserId,
         ActivateSchoolPlanRequest? request,
-        CancellationToken ct) =>
-        Ok(await _managePlan.AdminActivateAsync(
+        CancellationToken ct)
+    {
+        var dto = await _managePlan.AdminActivateAsync(
             schoolUserId,
             CurrentUser.GetId(User),
             request,
-            ct));
+            ct);
+        _homepage.InvalidatePublicCache();
+        return Ok(dto);
+    }
 
     [HttpPost("memberships/{schoolUserId:int}/reject")]
     public async Task<ActionResult<SchoolProfileDto>> Reject(
         int schoolUserId,
         RejectSchoolMembershipRequest? request,
-        CancellationToken ct) =>
-        Ok(await _managePlan.AdminRejectAsync(
+        CancellationToken ct)
+    {
+        var dto = await _managePlan.AdminRejectAsync(
             schoolUserId,
             CurrentUser.GetId(User),
             request,
-            ct));
+            ct);
+        _homepage.InvalidatePublicCache();
+        return Ok(dto);
+    }
 
     [HttpPost("memberships/{schoolUserId:int}/cancel")]
     public async Task<ActionResult<SchoolProfileDto>> Cancel(
@@ -140,12 +148,16 @@ public sealed class AdminMembershipsController : ControllerBase
     public async Task<ActionResult<SchoolProfileDto>> Suspend(
         int schoolUserId,
         SuspendSchoolMembershipRequest? request,
-        CancellationToken ct) =>
-        Ok(await _managePlan.AdminSuspendAsync(
+        CancellationToken ct)
+    {
+        var dto = await _managePlan.AdminSuspendAsync(
             schoolUserId,
             CurrentUser.GetId(User),
             request,
-            ct));
+            ct);
+        _homepage.InvalidatePublicCache();
+        return Ok(dto);
+    }
 
     [HttpPost("schools/{schoolUserId:int}/approve")]
     public async Task<ActionResult<SchoolProfileDto>> Approve(
@@ -160,11 +172,15 @@ public sealed class AdminMembershipsController : ControllerBase
     [HttpPost("memberships/{schoolUserId:int}/unsuspend")]
     public async Task<ActionResult<SchoolProfileDto>> Unsuspend(
         int schoolUserId,
-        CancellationToken ct) =>
-        Ok(await _managePlan.AdminUnsuspendAsync(
+        CancellationToken ct)
+    {
+        var dto = await _managePlan.AdminUnsuspendAsync(
             schoolUserId,
             CurrentUser.GetId(User),
-            ct));
+            ct);
+        _homepage.InvalidatePublicCache();
+        return Ok(dto);
+    }
 
     [HttpGet("metrics")]
     public async Task<ActionResult<PilotMetricsDto>> Metrics(CancellationToken ct) =>
