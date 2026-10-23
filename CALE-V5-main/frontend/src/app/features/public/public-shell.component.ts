@@ -27,7 +27,7 @@ type OpenMenu = 'cursos' | 'instructores' | null;
     <div class="public-shell">
       <header class="top">
         <div class="top-inner">
-          <a routerLink="/" class="brand" (click)="closeAll()">
+          <a routerLink="/" class="brand" aria-label="Inicio — Luz Verde" (click)="closeAll()">
             <img class="brand-logo" [src]="brand.logoWideDark" [alt]="brand.name + ' — ' + brand.slogan" width="790" height="316" />
           </a>
 
@@ -77,10 +77,6 @@ type OpenMenu = 'cursos' | 'instructores' | null;
             </div>
 
             <a routerLink="/escuelas" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Escuelas</a>
-            <a routerLink="/cascos" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-shop">
-              Cascos
-              <span class="nav-promo">Descuento</span>
-            </a>
 
             <div class="nav-item" (mouseenter)="openDesktop('instructores')" (mouseleave)="scheduleClose()">
               <button
@@ -105,14 +101,21 @@ type OpenMenu = 'cursos' | 'instructores' | null;
               }
             </div>
 
-            <a routerLink="/contacto" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Contacto</a>
-            <a routerLink="/apoyar" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-support">
-              Apoyar Luz Verde
+            <a
+              routerLink="/cascos"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{ exact: true }"
+              class="nav-shop"
+              title="Cascos con descuento">
+              Tienda
+              <span class="nav-promo">Desc.</span>
             </a>
           </nav>
 
           <div class="actions desktop">
-            <ui-theme-toggle />
+            <span class="theme-slot" title="Tema claro u oscuro">
+              <ui-theme-toggle />
+            </span>
             @if (loggedIn()) {
               <ui-button [routerLink]="accountPath()" type="button">Mi cuenta</ui-button>
             } @else {
@@ -151,7 +154,6 @@ type OpenMenu = 'cursos' | 'instructores' | null;
                 </div>
               </details>
               <a routerLink="/escuelas" (click)="closeAll()">Escuelas</a>
-              <a routerLink="/cascos" (click)="closeAll()">Cascos <span class="nav-promo">Descuento</span></a>
               <details class="mobile-group" [open]="mobileGroup() === 'instructores'">
                 <summary (click)="toggleMobileGroup('instructores', $event)">Instructores</summary>
                 <div class="mobile-sub">
@@ -160,17 +162,18 @@ type OpenMenu = 'cursos' | 'instructores' | null;
                   <a routerLink="/instructores" [queryParams]="{ accion: 'calificar' }" (click)="closeAll()">Calificar instructor</a>
                 </div>
               </details>
-              <a routerLink="/contacto" (click)="closeAll()">Contacto</a>
-              <a routerLink="/apoyar" (click)="closeAll()">Apoyar Luz Verde</a>
+              <a routerLink="/cascos" (click)="closeAll()">Tienda <span class="nav-promo">Desc.</span></a>
             </nav>
             <div class="mobile-actions">
-              <ui-theme-toggle />
+              <span class="theme-slot">
+                <ui-theme-toggle />
+              </span>
               @if (loggedIn()) {
                 <a [routerLink]="accountPath()" (click)="closeAll()">
                   <ui-button type="button">Mi cuenta</ui-button>
                 </a>
               } @else {
-                <a routerLink="/login" (click)="closeAll()">Iniciar sesión</a>
+                <a routerLink="/login" class="link-login" (click)="closeAll()">Iniciar sesión</a>
                 <a routerLink="/register" (click)="closeAll()">
                   <ui-button type="button">Registrarme</ui-button>
                 </a>
@@ -230,8 +233,8 @@ export class PublicShellComponent implements OnInit {
     { label: 'Nosotros', path: '/nosotros' },
     { label: 'Cursos', path: '/cursos' },
     { label: 'Escuelas', path: '/escuelas' },
-    { label: 'Cascos con descuento', path: '/cascos' },
     { label: 'Instructores', path: '/instructores' },
+    { label: 'Tienda', path: '/cascos' },
     { label: 'Contacto', path: '/contacto' },
     { label: 'Apoyar Luz Verde', path: '/apoyar' }
   ];
