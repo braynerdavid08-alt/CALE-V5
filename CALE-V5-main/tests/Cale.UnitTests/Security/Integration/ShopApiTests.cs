@@ -28,6 +28,7 @@ public sealed class ShopApiTests(SecurityApiFixture fixture) : IClassFixture<Sec
             shortDescription = "Casco homologado para categoría A2.",
             description = "Visor transparente y calota ABS.",
             imageUrl = (string?)null,
+            imageUrls = new[] { "/uploads/a.webp", "/uploads/b.webp" },
             priceCop = 189000,
             compareAtPriceCop = 230000,
             promoLabel = "Nuevo",
@@ -60,6 +61,8 @@ public sealed class ShopApiTests(SecurityApiFixture fixture) : IClassFixture<Sec
         Assert.Single(publicShop.Products);
         Assert.Equal("Casco Integral A2", publicShop.Products[0].Name);
         Assert.True(publicShop.Products[0].HasPromo);
+        Assert.Equal(2, publicShop.Products[0].ImageUrls.Count);
+        Assert.Equal("/uploads/a.webp", publicShop.Products[0].ImageUrl);
 
         (await asAdmin.PutAsJsonAsync($"/api/admin/shop/products/{product.Id}", new
         {
@@ -67,6 +70,7 @@ public sealed class ShopApiTests(SecurityApiFixture fixture) : IClassFixture<Sec
             shortDescription = product.ShortDescription,
             description = product.Description,
             imageUrl = product.ImageUrl,
+            imageUrls = product.ImageUrls,
             priceCop = product.PriceCop,
             compareAtPriceCop = product.CompareAtPriceCop,
             promoLabel = product.PromoLabel,
@@ -103,6 +107,7 @@ public sealed class ShopApiTests(SecurityApiFixture fixture) : IClassFixture<Sec
         string ShortDescription,
         string? Description,
         string? ImageUrl,
+        IReadOnlyList<string> ImageUrls,
         decimal PriceCop,
         decimal? CompareAtPriceCop,
         string? PromoLabel,
@@ -120,6 +125,7 @@ public sealed class ShopApiTests(SecurityApiFixture fixture) : IClassFixture<Sec
         string ShortDescription,
         string? Description,
         string? ImageUrl,
+        IReadOnlyList<string> ImageUrls,
         decimal PriceCop,
         decimal? CompareAtPriceCop,
         string? PromoLabel,

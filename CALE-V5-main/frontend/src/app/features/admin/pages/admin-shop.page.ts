@@ -129,26 +129,40 @@ import {
               <label class="field">Orden
                 <input type="number" [(ngModel)]="draft.sortOrder" name="sortOrder" min="0" />
               </label>
-              <label class="field">URL imagen
-                <input [(ngModel)]="draft.imageUrl" name="imageUrl" />
-              </label>
             </div>
             <div class="checks">
               <label><input type="checkbox" [(ngModel)]="draft.isActive" name="isActive" /> Visible en la tienda</label>
               <label><input type="checkbox" [(ngModel)]="draft.isFeatured" name="isFeatured" /> Destacado</label>
             </div>
-            <div class="upload-row">
-              <label class="file-btn">
-                Subir foto del producto
-                <input type="file" accept="image/*" (change)="onUploadProduct($event)" hidden />
-              </label>
+            <div class="gallery-block">
+              <div class="panel-head">
+                <h3>Fotos (hasta 8 ángulos)</h3>
+                <label class="file-btn">
+                  Añadir fotos
+                  <input type="file" accept="image/*" multiple (change)="onUploadProduct($event)" hidden />
+                </label>
+              </div>
               @if (uploading() === 'product') {
                 <span class="hint">Subiendo…</span>
               }
+              <div class="gallery">
+                @for (url of draft.imageUrls; track url; let i = $index) {
+                  <figure class="gallery-item" [class.cover]="i === 0">
+                    <img [src]="media(url)" [alt]="'Foto ' + (i + 1)" />
+                    <div class="gallery-actions">
+                      @if (i !== 0) {
+                        <button type="button" (click)="makeCover(i)">Portada</button>
+                      } @else {
+                        <span class="cover-tag">Portada</span>
+                      }
+                      <button type="button" class="danger" (click)="removeImage(i)">Quitar</button>
+                    </div>
+                  </figure>
+                } @empty {
+                  <p class="hint">Sube varias fotos del mismo casco (frente, lado, interior…).</p>
+                }
+              </div>
             </div>
-            @if (draft.imageUrl) {
-              <img class="preview" [src]="media(draft.imageUrl)" alt="Vista previa producto" />
-            }
             <div class="item-actions">
               <ui-button type="submit" [disabled]="savingProduct()">
                 {{ savingProduct() ? 'Guardando…' : 'Guardar producto' }}
@@ -257,6 +271,42 @@ import {
       border-radius: var(--radius-md);
       border: 1px solid var(--color-border);
     }
+    .gallery-block { margin-top: 0.85rem; }
+    .gallery-block h3 { margin: 0; font-size: var(--text-sm); }
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 0.65rem;
+      margin-top: 0.65rem;
+    }
+    .gallery-item {
+      margin: 0;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: #101812;
+    }
+    .gallery-item.cover { border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border)); }
+    .gallery-item img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; }
+    .gallery-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      padding: 0.35rem;
+      background: var(--color-surface);
+    }
+    .gallery-actions button, .cover-tag {
+      font: inherit;
+      font-size: 0.7rem;
+      font-weight: 700;
+      border: 0;
+      background: transparent;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      padding: 0.15rem 0.25rem;
+    }
+    .gallery-actions .danger { color: #b42318; }
+    .cover-tag { color: var(--color-primary); cursor: default; }
     .actions, .item-actions {
       display: flex;
       flex-wrap: wrap;
@@ -312,6 +362,7 @@ export class AdminShopPage implements OnInit {
   readonly success = signal<string | null>(null);
   readonly model = signal<AdminShopDto | null>(null);
   readonly editing = signal<(UpsertShopProductRequest & { id?: number }) | null>(null);
+  readonly maxImages = 8;
   readonly savingSettings = signal(false);
   readonly savingProduct = signal(false);
   readonly uploading = signal<'settings' | 'product' | null>(null);
@@ -373,6 +424,7 @@ export class AdminShopPage implements OnInit {
       shortDescription: '',
       description: null,
       imageUrl: null,
+      imageUrls: [],
       priceCop: 180000,
       compareAtPriceCop: null,
       promoLabel: null,
@@ -387,12 +439,18 @@ export class AdminShopPage implements OnInit {
   }
 
   edit(p: AdminShopProductDto): void {
+    const urls = p.imageUrls?.length
+      ? [...p.imageUrls]
+      : p.imageUrl
+        ? [p.imageUrl]
+        : [];
     this.editing.set({
       id: p.id,
       name: p.name,
       shortDescription: p.shortDescription,
       description: p.description,
-      imageUrl: p.imageUrl,
+      imageUrl: urls[0] ?? null,
+      imageUrls: urls,
       priceCop: p.priceCop,
       compareAtPriceCop: p.compareAtPriceCop,
       promoLabel: p.promoLabel,
@@ -415,11 +473,13 @@ export class AdminShopPage implements OnInit {
     if (!draft) {
       return;
     }
+    const imageUrls = (draft.imageUrls ?? []).filter(Boolean);
     const body: UpsertShopProductRequest = {
       name: draft.name,
       shortDescription: draft.shortDescription,
       description: draft.description || null,
-      imageUrl: draft.imageUrl || null,
+      imageUrl: imageUrls[0] ?? null,
+      imageUrls,
       priceCop: Number(draft.priceCop),
       compareAtPriceCop: draft.compareAtPriceCop ? Number(draft.compareAtPriceCop) : null,
       promoLabel: draft.promoLabel || null,
@@ -478,13 +538,66 @@ export class AdminShopPage implements OnInit {
   }
 
   onUploadProduct(event: Event): void {
-    this.upload(event, 'product', (url) => {
-      const draft = this.editing();
-      if (draft) {
-        draft.imageUrl = url;
-        this.editing.set({ ...draft });
+    const input = event.target as HTMLInputElement;
+    const files = [...(input.files ?? [])];
+    if (!files.length) {
+      return;
+    }
+    const draft = this.editing();
+    if (!draft) {
+      return;
+    }
+    const room = this.maxImages - (draft.imageUrls?.length ?? 0);
+    if (room <= 0) {
+      this.error.set(`Máximo ${this.maxImages} fotos por producto.`);
+      input.value = '';
+      return;
+    }
+    const queue = files.slice(0, room);
+    this.uploading.set('product');
+    this.error.set(null);
+    this.uploadMany(queue, 0, [], (urls) => {
+      const current = this.editing();
+      if (!current) {
+        return;
       }
+      const imageUrls = [...(current.imageUrls ?? []), ...urls];
+      this.editing.set({
+        ...current,
+        imageUrls,
+        imageUrl: imageUrls[0] ?? null
+      });
+      this.uploading.set(null);
+      input.value = '';
+    }, (err) => {
+      this.error.set(mapApiError(err));
+      this.uploading.set(null);
+      input.value = '';
     });
+  }
+
+  removeImage(index: number): void {
+    const draft = this.editing();
+    if (!draft) {
+      return;
+    }
+    const imageUrls = (draft.imageUrls ?? []).filter((_, i) => i !== index);
+    this.editing.set({
+      ...draft,
+      imageUrls,
+      imageUrl: imageUrls[0] ?? null
+    });
+  }
+
+  makeCover(index: number): void {
+    const draft = this.editing();
+    if (!draft?.imageUrls?.length || index <= 0) {
+      return;
+    }
+    const imageUrls = [...draft.imageUrls];
+    const [picked] = imageUrls.splice(index, 1);
+    imageUrls.unshift(picked);
+    this.editing.set({ ...draft, imageUrls, imageUrl: imageUrls[0] });
   }
 
   private upload(
@@ -510,6 +623,23 @@ export class AdminShopPage implements OnInit {
         this.uploading.set(null);
         input.value = '';
       }
+    });
+  }
+
+  private uploadMany(
+    files: File[],
+    index: number,
+    done: string[],
+    ok: (urls: string[]) => void,
+    fail: (err: unknown) => void
+  ): void {
+    if (index >= files.length) {
+      ok(done);
+      return;
+    }
+    this.api.uploadMedia(files[index]).subscribe({
+      next: (res) => this.uploadMany(files, index + 1, [...done, res.url], ok, fail),
+      error: fail
     });
   }
 }

@@ -92,7 +92,7 @@ public sealed class ShopService
             body.Name,
             body.ShortDescription,
             body.Description,
-            body.ImageUrl,
+            ResolveImageUrls(body),
             body.PriceCop,
             body.CompareAtPriceCop,
             body.PromoLabel,
@@ -121,7 +121,7 @@ public sealed class ShopService
             body.Name,
             body.ShortDescription,
             body.Description,
-            body.ImageUrl,
+            ResolveImageUrls(body),
             body.PriceCop,
             body.CompareAtPriceCop,
             body.PromoLabel,
@@ -191,6 +191,16 @@ public sealed class ShopService
         return digits.Length is >= 10 and <= 15 ? digits : null;
     }
 
+    private static IReadOnlyList<string> ResolveImageUrls(UpsertShopProductRequest body)
+    {
+        if (body.ImageUrls is { Count: > 0 })
+        {
+            return body.ImageUrls;
+        }
+
+        return string.IsNullOrWhiteSpace(body.ImageUrl) ? [] : [body.ImageUrl];
+    }
+
     private static PublicShopProductDto ToPublicProduct(ShopProduct p) =>
         new(
             p.Id,
@@ -199,6 +209,7 @@ public sealed class ShopService
             p.ShortDescription,
             p.Description,
             p.ImageUrl,
+            p.ImageUrls,
             p.PriceCop,
             p.CompareAtPriceCop,
             p.PromoLabel,
@@ -217,6 +228,7 @@ public sealed class ShopService
             p.ShortDescription,
             p.Description,
             p.ImageUrl,
+            p.ImageUrls,
             p.PriceCop,
             p.CompareAtPriceCop,
             p.PromoLabel,
@@ -248,6 +260,7 @@ public sealed record PublicShopProductDto(
     string ShortDescription,
     string? Description,
     string? ImageUrl,
+    IReadOnlyList<string> ImageUrls,
     decimal PriceCop,
     decimal? CompareAtPriceCop,
     string? PromoLabel,
@@ -278,6 +291,7 @@ public sealed record AdminShopProductDto(
     string ShortDescription,
     string? Description,
     string? ImageUrl,
+    IReadOnlyList<string> ImageUrls,
     decimal PriceCop,
     decimal? CompareAtPriceCop,
     string? PromoLabel,
@@ -301,6 +315,7 @@ public sealed record UpsertShopProductRequest(
     string ShortDescription,
     string? Description,
     string? ImageUrl,
+    IReadOnlyList<string>? ImageUrls,
     decimal PriceCop,
     decimal? CompareAtPriceCop,
     string? PromoLabel,
