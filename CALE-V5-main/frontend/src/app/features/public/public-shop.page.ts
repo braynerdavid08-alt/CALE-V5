@@ -20,64 +20,66 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
         <ui-loading label="Cargando catálogo…" />
       } @else if (error()) {
         <ui-error [message]="error()" />
-      } @else if (shop(); as s) {
-        <header class="hero" [class.has-image]="!!s.heroImageUrl">
-          @if (s.heroImageUrl) {
-            <img class="hero-bg" [src]="media(s.heroImageUrl)" alt="" />
-            <div class="hero-scrim" aria-hidden="true"></div>
-          }
-          <div class="hero-copy">
-            <p class="eyebrow">Equipo de protección</p>
-            <h1>{{ s.pageTitle }}</h1>
-            <p class="lead">{{ s.pageSubtitle }}</p>
-          </div>
-        </header>
-
-        @if (s.products.length === 0) {
-          <p class="empty">Pronto publicaremos cascos y equipo. Vuelve en unos días.</p>
-        } @else {
-          <div class="grid">
-            @for (p of s.products; track p.id) {
-              <article class="item" [class.featured]="p.isFeatured">
-                <div class="media">
-                  @if (p.imageUrl) {
-                    <img [src]="media(p.imageUrl)" [alt]="p.name" width="480" height="360" loading="lazy" />
-                  } @else {
-                    <div class="placeholder" aria-hidden="true">Casco</div>
-                  }
-                  @if (p.promoLabel || p.discountPercent) {
-                    <span class="badge">{{ p.promoLabel || ('−' + p.discountPercent + '%') }}</span>
-                  }
-                </div>
-                <div class="body">
-                  <p class="cat">{{ p.category }}</p>
-                  <h2>{{ p.name }}</h2>
-                  <p class="desc">{{ p.shortDescription }}</p>
-                  @if (p.sizes) {
-                    <p class="sizes">Tallas: {{ p.sizes }}</p>
-                  }
-                  <div class="price-row">
-                    <strong>{{ p.priceCop | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
-                    @if (p.compareAtPriceCop && p.compareAtPriceCop > p.priceCop) {
-                      <span class="was">{{ p.compareAtPriceCop | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
-                    }
-                  </div>
-                  @if (p.stock <= 0) {
-                    <p class="stock out">Agotado por ahora</p>
-                  } @else if (p.stock <= 3) {
-                    <p class="stock">Quedan {{ p.stock }}</p>
-                  }
-                  <div class="actions">
-                    @if (s.canOrder && p.stock > 0) {
-                      <ui-button type="button" (click)="order(s, p)">{{ s.ctaLabel }}</ui-button>
-                    } @else if (!s.canOrder) {
-                      <p class="hint">WhatsApp de pedidos pendiente de configurar.</p>
-                    }
-                  </div>
-                </div>
-              </article>
+      } @else {
+        @if (shop(); as s) {
+          <header class="hero" [class.has-image]="!!s.heroImageUrl">
+            @if (s.heroImageUrl) {
+              <img class="hero-bg" [src]="media(s.heroImageUrl)" alt="" />
+              <div class="hero-scrim" aria-hidden="true"></div>
             }
-          </div>
+            <div class="hero-copy">
+              <p class="eyebrow">Equipo de protección</p>
+              <h1>{{ s.pageTitle }}</h1>
+              <p class="lead">{{ s.pageSubtitle }}</p>
+            </div>
+          </header>
+
+          @if (s.products.length === 0) {
+            <p class="empty">Pronto publicaremos cascos y equipo. Vuelve en unos días.</p>
+          } @else {
+            <div class="grid">
+              @for (p of s.products; track p.id) {
+                <article class="item" [class.featured]="p.isFeatured">
+                  <div class="media">
+                    @if (p.imageUrl) {
+                      <img [src]="media(p.imageUrl)" [alt]="p.name" width="480" height="360" loading="lazy" />
+                    } @else {
+                      <div class="placeholder" aria-hidden="true">Casco</div>
+                    }
+                    @if (p.promoLabel || p.discountPercent) {
+                      <span class="badge">{{ p.promoLabel || ('−' + p.discountPercent + '%') }}</span>
+                    }
+                  </div>
+                  <div class="body">
+                    <p class="cat">{{ p.category }}</p>
+                    <h2>{{ p.name }}</h2>
+                    <p class="desc">{{ p.shortDescription }}</p>
+                    @if (p.sizes) {
+                      <p class="sizes">Tallas: {{ p.sizes }}</p>
+                    }
+                    <div class="price-row">
+                      <strong>{{ p.priceCop | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
+                      @if (p.compareAtPriceCop && p.compareAtPriceCop > p.priceCop) {
+                        <span class="was">{{ p.compareAtPriceCop | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+                      }
+                    </div>
+                    @if (p.stock <= 0) {
+                      <p class="stock out">Agotado por ahora</p>
+                    } @else if (p.stock <= 3) {
+                      <p class="stock">Quedan {{ p.stock }}</p>
+                    }
+                    <div class="actions">
+                      @if (s.canOrder && p.stock > 0) {
+                        <ui-button type="button" (click)="order(s, p)">{{ s.ctaLabel }}</ui-button>
+                      } @else if (!s.canOrder) {
+                        <p class="hint">WhatsApp de pedidos pendiente de configurar.</p>
+                      }
+                    </div>
+                  </div>
+                </article>
+              }
+            </div>
+          }
         }
       }
     </div>

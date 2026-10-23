@@ -39,7 +39,8 @@ import {
 
     @if (loading()) {
       <ui-loading label="Cargando tienda…" />
-    } @else if (model(); as m) {
+    } @else {
+      @if (model(); as m) {
       <form class="stack" (ngSubmit)="saveSettings()">
         <section class="panel">
           <h2>Página pública</h2>
@@ -188,6 +189,7 @@ import {
           }
         </div>
       </section>
+      }
     }
   `,
   styles: [`
