@@ -112,16 +112,16 @@ public sealed class SchoolApprovalTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK, approved.StatusCode);
 
         Assert.False((await AdminSummaryAsync(schoolId)).GetProperty("pendingApproval").GetBoolean());
-        Assert.False(await IsPubliclyListedAsync()); // still PendingPayment until activated
+        Assert.False(await IsPubliclyListedAsync()); // approved but empty / unpaid stays hidden
 
         var joined = await student.PostAsJsonAsync("/api/me/school-membership/requests", new { schoolQuery = Nit });
         Assert.True(joined.IsSuccessStatusCode, await joined.Content.ReadAsStringAsync());
+        var joinId = (await joined.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
 
-        var activated = await _api.ClientFor(_api.Users.Admin).PostAsJsonAsync(
-            $"/api/admin/memberships/{schoolId}/activate",
-            new { forceWithoutProof = true });
-        Assert.True(activated.IsSuccessStatusCode, await activated.Content.ReadAsStringAsync());
-        Assert.True(await IsPubliclyListedAsync());
+        var schoolClient = _api.ClientFor(await SchoolUserAsync(schoolId));
+        var accepted = await schoolClient.PostAsync($"/api/school/join-requests/{joinId}/accept", null);
+        Assert.True(accepted.IsSuccessStatusCode, await accepted.Content.ReadAsStringAsync());
+        Assert.True(await IsPubliclyListedAsync()); // linked member makes it visible
 
         var again = await _api.ClientFor(_api.Users.Admin).PostAsync($"/api/admin/schools/{schoolId}/approve", null);
         Assert.Equal(HttpStatusCode.BadRequest, again.StatusCode);

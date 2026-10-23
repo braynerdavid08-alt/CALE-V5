@@ -274,36 +274,74 @@ public sealed class HomepageService
         int take,
         CancellationToken ct)
     {
-        var now = _clock.UtcNow;
-        var profiles = await _db.Set<SchoolProfile>().AsNoTracking().ToListAsync(ct);
-        var active = profiles
-            .Where(p => IsListedSchool(p, now))
+        var active = await ListListedSchoolProfilesAsync(ct);
+        return active
             .OrderBy(p => p.LegalName)
             .Take(Math.Clamp(take, 1, 50))
+            .Select(p => new PublicSchoolCardDto(
+                p.UserId,
+                p.LegalName,
+                PublicLocationPart(p.City),
+                PublicLocationPart(p.Department),
+                "/escuelas"))
             .ToList();
-
-        // Public cards: name + location only (plan and headcount stay private).
-        return active.Select(p => new PublicSchoolCardDto(
-            p.UserId,
-            p.LegalName,
-            PublicLocationPart(p.City),
-            PublicLocationPart(p.Department),
-            "/escuelas")).ToList();
     }
 
     private static string PublicLocationPart(string value) =>
         value == SchoolProfile.NotRegistered ? "" : value;
 
     /// <summary>
-    /// Public directory: only approved schools with an active membership.
-    /// Hides pending-payment, under-review, rejected, cancelled, suspended and unapproved registrations.
+    /// Public directory: approved schools that can operate, excluding suspended/rejected/cancelled.
+    /// Empty unpaid registrations stay hidden; schools with an active plan or at least one member stay visible
+    /// (needed while free-access mode lets unpaid schools keep operating).
     /// </summary>
-    private static bool IsListedSchool(SchoolProfile profile, DateTime now)
+    private async Task<List<SchoolProfile>> ListListedSchoolProfilesAsync(CancellationToken ct)
+    {
+        var now = _clock.UtcNow;
+        var profiles = await _db.Set<SchoolProfile>().AsNoTracking().ToListAsync(ct);
+        var candidates = profiles.Where(p => IsEligiblePublicSchool(p, now)).ToList();
+
+        var withMembers = new HashSet<int>();
+        var needMemberCheck = candidates
+            .Where(p => !p.IsCommerciallyActive(now))
+            .Select(p => p.UserId)
+            .ToList();
+        if (needMemberCheck.Count > 0)
+        {
+            var linked = await _db.Set<User>().AsNoTracking()
+                .Where(u => u.IsActive
+                    && ((u.SchoolId != null && needMemberCheck.Contains(u.SchoolId.Value))
+                        || (u.CreatedBySchoolId != null && needMemberCheck.Contains(u.CreatedBySchoolId.Value))))
+                .Select(u => new { u.SchoolId, u.CreatedBySchoolId })
+                .ToListAsync(ct);
+            foreach (var u in linked)
+            {
+                if (u.SchoolId is { } sid && needMemberCheck.Contains(sid))
+                {
+                    withMembers.Add(sid);
+                }
+
+                if (u.CreatedBySchoolId is { } cid && needMemberCheck.Contains(cid))
+                {
+                    withMembers.Add(cid);
+                }
+            }
+        }
+
+        return candidates
+            .Where(p => p.IsCommerciallyActive(now) || withMembers.Contains(p.UserId))
+            .ToList();
+    }
+
+    private static bool IsEligiblePublicSchool(SchoolProfile profile, DateTime now)
     {
         profile.RefreshStatus(now);
         return !profile.IsPendingApproval
-            && profile.SubscriptionStatus == SchoolSubscriptionStatus.Active
-            && profile.CanOperateProduct(now);
+            && profile.CanOperateProduct(now)
+            && profile.SubscriptionStatus is not (
+                SchoolSubscriptionStatus.Suspended
+                or SchoolSubscriptionStatus.Rejected
+                or SchoolSubscriptionStatus.Cancelled);
     }
 
     public async Task<IReadOnlyList<PublicInstructorCardDto>> ListPublicInstructorsAsync(
@@ -561,8 +599,7 @@ public sealed class HomepageService
         var users = await _db.Set<User>().AsNoTracking().ToListAsync(ct);
         var students = users.Count(u => u.IsActive && Roles.Normalize(u.Role) == Roles.Student);
         var teachers = users.Count(u => u.IsActive && Roles.Normalize(u.Role) == Roles.Teacher);
-        var profiles = await _db.Set<SchoolProfile>().AsNoTracking().ToListAsync(ct);
-        var schools = profiles.Count(p => IsListedSchool(p, now));
+        var schools = (await ListListedSchoolProfilesAsync(ct)).Count;
 
         var ratings = new List<int>();
         try
