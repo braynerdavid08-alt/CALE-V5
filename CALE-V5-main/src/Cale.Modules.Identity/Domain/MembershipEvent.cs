@@ -56,4 +56,9 @@ public static class MembershipEventTypes
     public const string MemberUpdated = "MemberUpdated";
     public const string MemberImported = "MemberImported";
     public const string SchoolApproved = "SchoolApproved";
+    public const string PaymentStatusChanged = "PaymentStatusChanged";
+    public const string CourtesyGranted = "CourtesyGranted";
+    public const string CourtesyCleared = "CourtesyCleared";
+    public const string SubscriptionAssigned = "SubscriptionAssigned";
+    public const string CommercialPlanUpdated = "CommercialPlanUpdated";
 }

@@ -13,6 +13,8 @@ import { NavigationEnd, Router } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import {
   AssistantApi,
+  AssistantExamAvailabilityUi,
+  AssistantExamDayUi,
   AssistantMessage,
   AssistantPendingAction
 } from '../core/assistant/assistant.api';
@@ -41,6 +43,8 @@ const QUICK: Record<string, QuickQuestion[]> = {
 };
 
 const HIDE_KEY = 'cale.assistant.hideUntil';
+const INITIAL_DAYS = 4;
+const DAY_NAMES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
 /** Full-screen flows where the floating button gets in the way. */
 const HIDDEN_PATHS = [
@@ -72,7 +76,18 @@ const HIDDEN_PATHS = [
           <header>
             <div>
               <strong>Asistente {{ brand.name }}</strong>
-              <small>Consultas y agenda. Siempre te pido confirmar.</small>
+              <small>
+                Consultas y agenda. Siempre te pido confirmar.
+                @if (remaining() > 0) {
+                  · {{ remaining() }} mensajes hoy
+                }
+                @if (nearLimit()) {
+                  · te acercas al límite diario
+                }
+                @if (atLimit()) {
+                  · cuota agotada; contacta al administrador si necesitas más
+                }
+              </small>
             </div>
             <div class="header-actions">
               <button type="button" class="ghost" (click)="hideToday()" title="Ocultar el botón hasta mañana">
@@ -89,7 +104,76 @@ const HIDDEN_PATHS = [
               </p>
             }
             @for (m of messages(); track $index) {
-              <p class="bubble" [class.bot]="m.role === 'assistant'" [class.me]="m.role === 'user'">{{ m.content }}</p>
+              @if (m.role === 'user') {
+                <p class="bubble me">{{ m.content }}</p>
+              } @else {
+                <div class="bot-block">
+                  @if (m.content) {
+                    <p class="bubble bot">{{ m.content }}</p>
+                  }
+                  @if (m.examAvailability; as card) {
+                    <div class="exam-card" [attr.data-msg]="$index">
+                      <div class="exam-head">
+                        <strong>{{ card.title }}</strong>
+                        <span class="exam-range">{{ formatRange(card.dateRangeFrom, card.dateRangeTo) }}</span>
+                      </div>
+                      @if (card.myBookingSummary) {
+                        <p class="exam-note">Cita actual: {{ card.myBookingSummary }}</p>
+                      }
+                      @if (card.blockReason) {
+                        <p class="exam-warn">{{ card.blockReason }}</p>
+                      }
+                      @if (!card.days.length) {
+                        <p class="exam-empty">No hay cupos libres en este rango.</p>
+                      } @else {
+                        @for (day of visibleDays(m); track day.date) {
+                          <article class="day">
+                            <header class="day-head">
+                              <div>
+                                <strong class="day-name">{{ weekdayName(day.date) }}</strong>
+                                <span class="day-date">{{ formatFullDate(day.date) }}</span>
+                              </div>
+                              <span class="day-count">{{ day.availableSlots.length }} horario{{ day.availableSlots.length === 1 ? '' : 's' }}</span>
+                            </header>
+                            <div class="slots" role="list">
+                              @for (slot of day.availableSlots; track slot.time) {
+                                @if (card.selectable) {
+                                  <button
+                                    type="button"
+                                    class="slot"
+                                    role="listitem"
+                                    [disabled]="busy()"
+                                    (click)="selectSlot(day.date, slot.time)"
+                                    [attr.aria-label]="'Agendar ' + slot.time + ', ' + slot.availableCapacity + ' cupos'">
+                                    <span class="slot-time">{{ slot.time }}</span>
+                                    <span class="slot-cap">{{ slot.availableCapacity }} cupo{{ slot.availableCapacity === 1 ? '' : 's' }}</span>
+                                  </button>
+                                } @else {
+                                  <div class="slot static" role="listitem">
+                                    <span class="slot-time">{{ slot.time }}</span>
+                                    <span class="slot-cap">{{ slot.availableCapacity }} cupo{{ slot.availableCapacity === 1 ? '' : 's' }}</span>
+                                  </div>
+                                }
+                              }
+                            </div>
+                          </article>
+                        }
+                        @if (card.days.length > INITIAL_DAYS) {
+                          <div class="more-row">
+                            @if ((m.daysVisible ?? INITIAL_DAYS) < card.days.length) {
+                              <button type="button" class="more" (click)="showMoreDays($index)">
+                                Ver más días ({{ card.days.length - (m.daysVisible ?? INITIAL_DAYS) }})
+                              </button>
+                            } @else {
+                              <button type="button" class="more" (click)="showFewerDays($index)">Mostrar menos</button>
+                            }
+                          </div>
+                        }
+                      }
+                    </div>
+                  }
+                </div>
+              }
             }
             @if (action(); as a) {
               <div class="action">
@@ -235,20 +319,162 @@ const HIDDEN_PATHS = [
       font-size: 1rem;
       cursor: pointer;
     }
-    .messages { flex: 1; overflow-y: auto; padding: 0.85rem; display: flex; flex-direction: column; gap: 0.55rem; }
+    .messages {
+      flex: 1;
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      min-height: 0;
+    }
+    .bot-block {
+      align-self: stretch;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      max-width: 100%;
+      min-width: 0;
+    }
     .bubble {
       margin: 0;
       padding: 0.6rem 0.8rem;
       border-radius: 0.85rem;
       max-width: 88%;
       white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
       line-height: 1.4;
       font-size: 0.95rem;
     }
     .bot { align-self: flex-start; background: var(--color-background); border: 1px solid var(--color-border); }
+    .bot-block > .bubble.bot { max-width: 100%; }
     .me { align-self: flex-end; background: color-mix(in srgb, var(--color-primary) 22%, transparent); }
     .typing { opacity: 0.75; font-style: italic; }
     .err { align-self: stretch; max-width: none; color: var(--color-danger, #f87171); border: 1px solid currentColor; }
+
+    .exam-card {
+      align-self: stretch;
+      display: grid;
+      gap: 0.55rem;
+      padding: 0.7rem;
+      border-radius: 0.85rem;
+      border: 1px solid var(--color-border);
+      background: var(--color-background);
+      min-width: 0;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    .exam-head {
+      display: grid;
+      gap: 0.15rem;
+      min-width: 0;
+    }
+    .exam-head strong {
+      font-size: 0.95rem;
+      line-height: 1.25;
+    }
+    .exam-range {
+      color: var(--color-text-secondary);
+      font-size: 0.8rem;
+    }
+    .exam-note, .exam-warn, .exam-empty {
+      margin: 0;
+      font-size: 0.85rem;
+      line-height: 1.35;
+    }
+    .exam-warn { color: var(--color-warning, #d97706); }
+    .exam-empty { color: var(--color-text-secondary); }
+
+    .day {
+      display: grid;
+      gap: 0.4rem;
+      padding: 0.55rem 0.6rem;
+      border-radius: 0.7rem;
+      border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
+      background: color-mix(in srgb, var(--color-surface, #111) 88%, var(--color-background));
+      min-width: 0;
+    }
+    .day-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .day-head > div { display: grid; gap: 0.05rem; min-width: 0; }
+    .day-name {
+      font-size: 0.92rem;
+      text-transform: capitalize;
+    }
+    .day-date {
+      color: var(--color-text-secondary);
+      font-size: 0.78rem;
+    }
+    .day-count {
+      flex-shrink: 0;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--color-text-secondary);
+      padding: 0.15rem 0.4rem;
+      border-radius: 999px;
+      border: 1px solid var(--color-border);
+    }
+    .slots {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+      gap: 0.35rem;
+    }
+    .slot {
+      display: grid;
+      gap: 0.1rem;
+      align-content: center;
+      min-height: 2.6rem;
+      padding: 0.35rem 0.4rem;
+      border-radius: 0.55rem;
+      border: 1px solid color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
+      background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+      text-align: left;
+      min-width: 0;
+    }
+    .slot:not(.static):hover:not(:disabled),
+    .slot:not(.static):focus-visible {
+      border-color: var(--color-primary);
+      background: color-mix(in srgb, var(--color-primary) 22%, transparent);
+    }
+    .slot.static {
+      cursor: default;
+      background: transparent;
+      border-color: var(--color-border);
+    }
+    .slot-time {
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      font-size: 0.92rem;
+      line-height: 1.2;
+    }
+    .slot-cap {
+      font-size: 0.7rem;
+      color: var(--color-text-secondary);
+      line-height: 1.2;
+    }
+    .more-row { display: flex; justify-content: center; }
+    .more {
+      border: 0;
+      background: transparent;
+      color: var(--color-primary);
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 800;
+      cursor: pointer;
+      padding: 0.35rem 0.5rem;
+      text-decoration: underline;
+      text-underline-offset: 0.15em;
+    }
+
     .chips {
       display: flex;
       gap: 0.4rem;
@@ -256,6 +482,7 @@ const HIDDEN_PATHS = [
       padding: 0.5rem 0.7rem 0;
       border-top: 1px solid var(--color-border);
       scrollbar-width: thin;
+      flex-shrink: 0;
     }
     .chips button {
       flex: none;
@@ -271,13 +498,27 @@ const HIDDEN_PATHS = [
       white-space: nowrap;
     }
     .chips + .composer { border-top: 0; }
-    .action { border: 2px solid var(--color-primary); border-radius: 0.85rem; padding: 0.75rem; display: grid; gap: 0.55rem; }
-    .action p { margin: 0; line-height: 1.4; font-size: 0.95rem; }
+    .action {
+      border: 2px solid var(--color-primary);
+      border-radius: 0.85rem;
+      padding: 0.75rem;
+      display: grid;
+      gap: 0.55rem;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    .action p { margin: 0; line-height: 1.4; font-size: 0.95rem; overflow-wrap: anywhere; }
     .action-btns { display: flex; gap: 0.45rem; }
     .action-btns button { flex: 1; min-height: 2.6rem; border-radius: 0.65rem; font: inherit; font-weight: 800; cursor: pointer; }
     .yes { border: 0; background: var(--color-primary); color: var(--color-on-primary, #04130a); }
     .no { border: 1px solid var(--color-border); background: transparent; color: inherit; }
-    .composer { display: flex; gap: 0.45rem; padding: 0.65rem; border-top: 1px solid var(--color-border); }
+    .composer {
+      display: flex;
+      gap: 0.45rem;
+      padding: 0.65rem;
+      border-top: 1px solid var(--color-border);
+      flex-shrink: 0;
+    }
     .composer textarea {
       flex: 1;
       resize: none;
@@ -288,6 +529,7 @@ const HIDDEN_PATHS = [
       color: inherit;
       font: inherit;
       font-size: 0.95rem;
+      min-width: 0;
     }
     .composer button {
       min-width: 4.75rem;
@@ -299,9 +541,10 @@ const HIDDEN_PATHS = [
       font: inherit;
       font-weight: 800;
       cursor: pointer;
+      flex-shrink: 0;
     }
     button:disabled { opacity: 0.55; cursor: default; }
-    .quota { padding: 0 0.8rem 0.45rem; color: var(--color-text-secondary); font-size: 0.75rem; }
+    .quota { padding: 0 0.8rem 0.45rem; color: var(--color-text-secondary); font-size: 0.75rem; flex-shrink: 0; }
     .ai-note { display: block; margin-top: -0.25rem; padding-bottom: 0.55rem; font-size: 0.68rem; line-height: 1.3; }
 
     @media (min-width: 721px) {
@@ -333,16 +576,20 @@ const HIDDEN_PATHS = [
         right: 0;
         bottom: 0;
         width: 100vw;
+        max-width: 100vw;
         height: min(78dvh, calc(100dvh - 3.5rem));
         border-radius: 1rem 1rem 0 0;
         border: 0;
         border-top: 1px solid var(--color-border);
       }
       .ghost { font-size: 0.72rem; }
+      .slots { grid-template-columns: repeat(auto-fill, minmax(4.75rem, 1fr)); }
     }
   `
 })
 export class AssistantWidgetComponent implements OnInit, OnDestroy {
+  readonly INITIAL_DAYS = INITIAL_DAYS;
+
   @Input() role: string | undefined;
   @ViewChild('scroller') private scroller?: ElementRef<HTMLElement>;
 
@@ -358,6 +605,8 @@ export class AssistantWidgetComponent implements OnInit, OnDestroy {
   readonly messages = signal<AssistantMessage[]>([]);
   readonly action = signal<AssistantPendingAction | null>(null);
   readonly remaining = signal(0);
+  readonly nearLimit = signal(false);
+  readonly atLimit = signal(false);
   readonly routeHidden = signal(false);
   readonly hiddenForToday = signal(false);
   draft = '';
@@ -382,6 +631,8 @@ export class AssistantWidgetComponent implements OnInit, OnDestroy {
       next: (s) => {
         this.enabled.set(s.enabled);
         this.remaining.set(s.remainingToday);
+        this.nearLimit.set(!!s.nearLimit);
+        this.atLimit.set(!!s.atLimit || s.remainingToday <= 0);
       },
       error: () => this.enabled.set(false)
     });
@@ -419,6 +670,80 @@ export class AssistantWidgetComponent implements OnInit, OnDestroy {
     this.send(this.draft);
   }
 
+  visibleDays(m: AssistantMessage): AssistantExamDayUi[] {
+    const card = m.examAvailability;
+    if (!card) return [];
+    const n = m.daysVisible ?? INITIAL_DAYS;
+    return card.days.slice(0, n);
+  }
+
+  showMoreDays(index: number): void {
+    this.messages.update((list) =>
+      list.map((m, i) => {
+        if (i !== index || !m.examAvailability) return m;
+        const next = Math.min(
+          (m.daysVisible ?? INITIAL_DAYS) + INITIAL_DAYS,
+          m.examAvailability.days.length
+        );
+        return { ...m, daysVisible: next };
+      })
+    );
+    this.scrollSoon();
+  }
+
+  showFewerDays(index: number): void {
+    this.messages.update((list) =>
+      list.map((m, i) => (i === index ? { ...m, daysVisible: INITIAL_DAYS } : m))
+    );
+  }
+
+  weekdayName(iso: string): string {
+    const d = parseIsoDate(iso);
+    return d ? DAY_NAMES[d.getUTCDay()] : iso;
+  }
+
+  formatFullDate(iso: string): string {
+    const d = parseIsoDate(iso);
+    if (!d) return iso;
+    const day = d.getUTCDate();
+    const month = d.toLocaleString('es-CO', { month: 'long', timeZone: 'UTC' });
+    const year = d.getUTCFullYear();
+    return `${day} de ${month} de ${year}`;
+  }
+
+  formatRange(from: string, to: string): string {
+    return `${this.formatFullDate(from)} — ${this.formatFullDate(to)}`;
+  }
+
+  selectSlot(date: string, time: string): void {
+    if (this.busy()) return;
+    const pending = this.action();
+    if (pending) {
+      this.api.discard(pending.id).subscribe({ error: () => undefined });
+      this.action.set(null);
+    }
+    this.error.set(null);
+    this.busy.set(true);
+    this.scrollSoon();
+    this.api.prepareExam(date, time).subscribe({
+      next: (r) => {
+        this.busy.set(false);
+        this.messages.update((list) => [
+          ...list,
+          { role: 'assistant', content: r.reply }
+        ]);
+        this.action.set(r.action);
+        this.remaining.set(r.remainingToday);
+        this.scrollSoon();
+      },
+      error: (err) => {
+        this.busy.set(false);
+        this.error.set(mapApiError(err));
+        this.scrollSoon();
+      }
+    });
+  }
+
   send(text: string): void {
     const content = text.trim();
     if (!content || this.busy()) return;
@@ -435,7 +760,7 @@ export class AssistantWidgetComponent implements OnInit, OnDestroy {
     this.api.chat(this.messages().slice(-10)).subscribe({
       next: (r) => {
         this.busy.set(false);
-        this.messages.update((list) => [...list, { role: 'assistant', content: r.reply }]);
+        this.pushAssistant(r.reply, r.examAvailability ?? null);
         this.action.set(r.action);
         this.remaining.set(r.remainingToday);
         this.scrollSoon();
@@ -457,7 +782,7 @@ export class AssistantWidgetComponent implements OnInit, OnDestroy {
     this.api.quick(q.key).subscribe({
       next: (r) => {
         this.busy.set(false);
-        this.messages.update((list) => [...list, { role: 'assistant', content: r.reply }]);
+        this.pushAssistant(r.reply, r.examAvailability ?? null);
         this.remaining.set(r.remainingToday);
         this.scrollSoon();
       },
@@ -493,6 +818,18 @@ export class AssistantWidgetComponent implements OnInit, OnDestroy {
     this.scrollSoon();
   }
 
+  private pushAssistant(content: string, exam: AssistantExamAvailabilityUi | null): void {
+    this.messages.update((list) => [
+      ...list,
+      {
+        role: 'assistant',
+        content,
+        examAvailability: exam,
+        daysVisible: exam ? INITIAL_DAYS : undefined
+      }
+    ]);
+  }
+
   private syncRoute(url: string): void {
     const path = url.split('?')[0] ?? url;
     this.routeHidden.set(HIDDEN_PATHS.some((re) => re.test(path)));
@@ -519,4 +856,15 @@ export class AssistantWidgetComponent implements OnInit, OnDestroy {
       if (el) el.scrollTop = el.scrollHeight;
     });
   }
+}
+
+function parseIsoDate(iso: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso.trim());
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]) - 1;
+  const d = Number(m[3]);
+  const dt = new Date(Date.UTC(y, mo, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo || dt.getUTCDate() !== d) return null;
+  return dt;
 }

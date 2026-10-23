@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Cale.Api.Services.Assistant;
 using Cale.BuildingBlocks.Domain.Auth;
+using Cale.UnitTests.Assistant;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -56,14 +57,14 @@ public sealed class AssistantServiceTests
     }
 
     [Fact]
-    public void Status_is_disabled_without_api_key_or_for_other_roles()
+    public async Task Status_is_disabled_without_api_key_or_for_other_roles()
     {
         var noKey = Create(new ScriptedLlm(), new FakeToolbox(), o => o.ApiKey = null);
-        Assert.False(noKey.Status(Student).Enabled);
+        Assert.False((await noKey.StatusAsync(Student, default)).Enabled);
 
         var withKey = Create(new ScriptedLlm(), new FakeToolbox());
-        Assert.True(withKey.Status(Student).Enabled);
-        Assert.False(withKey.Status(new AssistantUser(1, Roles.Admin, "Admin", null)).Enabled);
+        Assert.True((await withKey.StatusAsync(Student, default)).Enabled);
+        Assert.False((await withKey.StatusAsync(new AssistantUser(1, Roles.Admin, "Admin", null), default)).Enabled);
     }
 
     [Fact]
@@ -132,6 +133,40 @@ public sealed class AssistantServiceTests
     }
 
     [Fact]
+    public void Student_exam_ui_lists_only_slots_with_capacity()
+    {
+        var dto = new Cale.Modules.TheoreticalTraining.Application.DTOs.StudentExamAvailabilityDto(
+            From: "2026-10-20",
+            To: "2026-10-27",
+            CanBook: true,
+            BlockReason: null,
+            MyBooking: null,
+            MinCancelHours: 24,
+            Days:
+            [
+                new("2026-10-22",
+                [
+                    new("2026-10-22", "09:00", 2, "Available"),
+                    new("2026-10-22", "10:00", 0, "Full")
+                ]),
+                new("2026-10-23",
+                [
+                    new("2026-10-23", "11:00", 0, "Full")
+                ])
+            ]);
+
+        var ui = AssistantToolbox.BuildStudentExamUi(dto);
+
+        Assert.Equal("exam_availability", ui.Type);
+        Assert.True(ui.Selectable);
+        Assert.Single(ui.Days);
+        Assert.Equal("2026-10-22", ui.Days[0].Date);
+        Assert.Single(ui.Days[0].AvailableSlots);
+        Assert.Equal("09:00", ui.Days[0].AvailableSlots[0].Time);
+        Assert.Equal(2, ui.Days[0].AvailableSlots[0].AvailableCapacity);
+    }
+
+    [Fact]
     public void Clean_for_user_hides_internal_ids()
     {
         const string text = """
@@ -158,7 +193,13 @@ public sealed class AssistantServiceTests
         var options = new AssistantOptions { ApiKey = "test" };
         configure?.Invoke(options);
         var cache = new MemoryCache(new MemoryCacheOptions { SizeLimit = 1000 });
-        return new AssistantService(llm, toolbox, cache, Options.Create(options), NullLogger<AssistantService>.Instance);
+        return new AssistantService(
+            llm,
+            toolbox,
+            new InMemoryAssistantUsageStore(),
+            cache,
+            Options.Create(options),
+            NullLogger<AssistantService>.Instance);
     }
 
     private sealed class ScriptedLlm : IAssistantLlm
@@ -197,6 +238,10 @@ public sealed class AssistantServiceTests
 
         public Task<string> ReadAsync(AssistantUser user, string tool, JsonObject args, CancellationToken ct) =>
             Task.FromResult("Horas 10/20");
+
+        public Task<(string Text, AssistantExamAvailabilityUi? ExamAvailability)> ReadWithUiAsync(
+            AssistantUser user, string tool, JsonObject args, CancellationToken ct) =>
+            Task.FromResult<(string, AssistantExamAvailabilityUi?)>(("Horas 10/20", null));
 
         public Task<string> DescribeAsync(AssistantUser user, string tool, JsonObject args, CancellationToken ct) =>
             Task.FromResult($"Reservar clase {args["clase_id"]}");

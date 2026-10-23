@@ -41,7 +41,32 @@ public sealed record SchoolPlanDto(
     decimal MonthlyEquivalentCop,
     int DurationMonths,
     int MaxTeachers,
-    int MaxStudents);
+    int MaxStudents,
+    bool IsActive = true,
+    bool IsLegacy = false,
+    bool UnlimitedSeats = false);
+
+public sealed record UpdateCommercialPlanRequest(
+    string LabelEs,
+    decimal PriceCop,
+    int DurationMonths,
+    int? MaxTeachers,
+    int? MaxStudents,
+    bool IsActive);
+
+public sealed record AdminAssignSubscriptionRequest(
+    string PlanCode,
+    decimal AgreedPriceCop,
+    DateTime StartsAt,
+    DateTime EndsAt,
+    string PaymentAdminStatus,
+    bool Activate);
+
+public sealed record AdminSetPaymentStatusRequest(string PaymentAdminStatus, string? Note);
+
+public sealed record AdminCourtesyRequest(DateTime CourtesyUntil, string? Reason);
+
+public sealed record AdminClearCourtesyRequest(string? Note);
 
 public sealed record SchoolProfileDto(
     int UserId,
@@ -84,7 +109,12 @@ public sealed record SchoolProfileDto(
     int TeachersMax,
     int StudentsUsed,
     int StudentsMax,
-    bool PendingApproval = false);
+    bool PendingApproval = false,
+    string PaymentAdminStatus = "None",
+    decimal? AgreedPriceCop = null,
+    DateTime? CourtesyUntil = null,
+    string? CourtesyReason = null,
+    bool IsCourtesyActive = false);
 
 public sealed record SchoolPaymentInstructionsDto(
     string BankName,
@@ -189,7 +219,11 @@ public sealed record AdminSchoolSummaryDto(
     bool HasSeatOverrides,
     bool HasOpenRequest,
     DateTime CreatedAt,
-    bool PendingApproval = false);
+    bool PendingApproval = false,
+    string PaymentAdminStatus = "None",
+    decimal? AgreedPriceCop = null,
+    DateTime? CourtesyUntil = null,
+    bool IsCourtesyActive = false);
 
 public sealed record AdminSchoolDetailDto(
     int UserId,
@@ -220,7 +254,12 @@ public sealed record AdminSchoolDetailDto(
     bool HasOpenRequest,
     DateTime CreatedAt,
     IReadOnlyList<UserListItemDto> Members,
-    IReadOnlyList<MembershipEventDto> History);
+    IReadOnlyList<MembershipEventDto> History,
+    string PaymentAdminStatus = "None",
+    decimal? AgreedPriceCop = null,
+    DateTime? CourtesyUntil = null,
+    string? CourtesyReason = null,
+    bool IsCourtesyActive = false);
 
 public sealed record MembershipEventDto(
     int Id,

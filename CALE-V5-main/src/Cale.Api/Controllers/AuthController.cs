@@ -214,8 +214,8 @@ public sealed class AuthController : ControllerBase
 
     [HttpGet("school-plans")]
     [AllowAnonymous]
-    public ActionResult<IReadOnlyList<SchoolPlanDto>> SchoolPlans() =>
-        Ok(_plans.Handle());
+    public async Task<ActionResult<IReadOnlyList<SchoolPlanDto>>> SchoolPlans(CancellationToken ct) =>
+        Ok(await _plans.HandleAsync(ct));
 
     [HttpGet("access-mode")]
     [AllowAnonymous]

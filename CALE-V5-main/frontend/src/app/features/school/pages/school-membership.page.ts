@@ -3,6 +3,7 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
+import { AssistantApi, AssistantSchoolUsageSummary } from '../../../core/assistant/assistant.api';
 import { SessionStore } from '../../../core/auth/session.store';
 import { env } from '../../../core/config/env';
 import { mapApiError } from '../../../core/http/map-api-error';
@@ -69,6 +70,11 @@ interface SchoolProfileDto {
   teachersMax: number;
   studentsUsed: number;
   studentsMax: number;
+  paymentAdminStatus?: string;
+  agreedPriceCop?: number | null;
+  courtesyUntil?: string | null;
+  courtesyReason?: string | null;
+  isCourtesyActive?: boolean;
 }
 
 interface SchoolPlanDto {
@@ -163,11 +169,33 @@ interface MembershipEventDto {
                 <dd>{{ profile()!.membershipEndsAt | date:'mediumDate' }}</dd>
               </div>
             }
+            @if (profile()!.agreedPriceCop != null) {
+              <div>
+                <dt>Valor acordado</dt>
+                <dd>{{ profile()!.agreedPriceCop | currency:'COP':'symbol-narrow':'1.0-0' }}</dd>
+              </div>
+            }
+            <div>
+              <dt>Pago (control interno)</dt>
+              <dd>{{ paymentStatusLabel(profile()!.paymentAdminStatus) }}</dd>
+            </div>
+            @if (profile()!.isCourtesyActive && profile()!.courtesyUntil) {
+              <div>
+                <dt>Acceso de cortesía</dt>
+                <dd>Hasta {{ profile()!.courtesyUntil | date:'mediumDate' }}</dd>
+              </div>
+            }
             <div>
               <dt>Resumen</dt>
               <dd>{{ membershipSummary() }}</dd>
             </div>
           </dl>
+          @if (aiUsage()) {
+            <p class="muted ai-usage">
+              Consumo IA hoy: {{ aiUsage()!.totalMessages }} mensajes
+              ({{ aiUsage()!.studentCount }} usuarios con uso).
+            </p>
+          }
           <div class="row actions">
             <ui-button routerLink="/school/users" type="button" variant="ghost">Usuarios</ui-button>
             @if (canCancelRequest()) {
@@ -386,6 +414,7 @@ interface MembershipEventDto {
 export class SchoolMembershipPage implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly fb = inject(FormBuilder);
+  private readonly assistantApi = inject(AssistantApi);
   readonly session = inject(SessionStore);
 
   readonly loading = signal(true);
@@ -393,6 +422,7 @@ export class SchoolMembershipPage implements OnInit {
   readonly error = signal<string | null>(null);
   readonly success = signal<string | null>(null);
   readonly profile = signal<SchoolProfileDto | null>(null);
+  readonly aiUsage = signal<AssistantSchoolUsageSummary | null>(null);
   readonly plans = signal<SchoolPlanDto[]>([]);
   readonly selectedPlan = signal<string | null>(null);
   readonly history = signal<MembershipEventDto[]>([]);
@@ -431,6 +461,25 @@ export class SchoolMembershipPage implements OnInit {
       next: (plans) => this.plans.set(plans),
       error: () => this.plans.set([])
     });
+    this.assistantApi.schoolUsage().subscribe({
+      next: (u) => this.aiUsage.set(u),
+      error: () => this.aiUsage.set(null)
+    });
+  }
+
+  paymentStatusLabel(status?: string): string {
+    switch (status) {
+      case 'Pending':
+        return 'Pendiente';
+      case 'Reported':
+        return 'Reportado';
+      case 'Confirmed':
+        return 'Confirmado (interno)';
+      case 'Rejected':
+        return 'Rechazado';
+      default:
+        return 'Sin registrar';
+    }
   }
 
   selectedPlanPrice(): number | null {
