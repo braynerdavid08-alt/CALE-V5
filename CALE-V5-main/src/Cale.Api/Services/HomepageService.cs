@@ -328,11 +328,38 @@ public sealed class HomepageService
             .ToListAsync(ct);
         var names = profiles.ToDictionary(p => p.UserId, p => p.LegalName);
 
-        return teachers.Select(t => new PublicInstructorCardDto(
-            t.Id,
-            PublicDisplayName(t.Name),
-            t.SchoolId is { } sid && names.TryGetValue(sid, out var sn) ? sn : null,
-            "/instructores")).ToList();
+        var ids = teachers.Select(t => t.Id).ToList();
+        var listings = await _db.Set<InstructorListing>().AsNoTracking()
+            .Where(l => ids.Contains(l.UserId))
+            .ToDictionaryAsync(l => l.UserId, ct);
+
+        Dictionary<int, (double Avg, int Count)> ratings;
+        try
+        {
+            ratings = await _db.Set<InstructorRating>().AsNoTracking()
+                .Where(r => ids.Contains(r.InstructorUserId) && !r.Hidden)
+                .GroupBy(r => r.InstructorUserId)
+                .Select(g => new { Id = g.Key, Avg = g.Average(x => x.Stars), Count = g.Count() })
+                .ToDictionaryAsync(x => x.Id, x => (x.Avg, x.Count), ct);
+        }
+        catch
+        {
+            ratings = new Dictionary<int, (double Avg, int Count)>();
+        }
+
+        return teachers.Select(t =>
+        {
+            ratings.TryGetValue(t.Id, out var rating);
+            listings.TryGetValue(t.Id, out var listing);
+            return new PublicInstructorCardDto(
+                t.Id,
+                PublicDisplayName(t.Name),
+                t.SchoolId is { } sid && names.TryGetValue(sid, out var sn) ? sn : null,
+                "/instructores",
+                listing?.AcceptsPrivateClasses ?? false,
+                rating.Count > 0 ? Math.Round(rating.Avg, 1) : null,
+                rating.Count);
+        }).ToList();
     }
 
     public const string DirectoryInviteDedupeKey = "instructor-directory-invite-v1";
@@ -857,7 +884,7 @@ public sealed class HomepageService
         }
     }
 
-    private static string PublicDisplayName(string name)
+    public static string PublicDisplayName(string name)
     {
         var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length == 0)
@@ -966,7 +993,18 @@ public sealed record PublicInstructorCardDto(
     int Id,
     string DisplayName,
     string? SchoolName,
-    string DetailPath);
+    string DetailPath,
+    bool AcceptsPrivateClasses = false,
+    double? AverageStars = null,
+    int ReviewCount = 0);
+
+public sealed record PublicCourseCardDto(
+    string Slug,
+    string Title,
+    string Description,
+    string Category,
+    string CoverUrl,
+    int LessonCount);
 
 public sealed record PublicTestimonialDto(
     int Id,

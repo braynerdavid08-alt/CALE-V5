@@ -5,6 +5,7 @@ import { env } from '../../core/config/env';
 import { compressImage } from '../../core/media/compress-image';
 import {
   AdminHomepageDto,
+  PublicCourseCardDto,
   PublicHomeDto,
   PublicInstructorCardDto,
   PublicSchoolCardDto,
@@ -33,6 +34,10 @@ export class PublicHomeApi {
       `${this.base}/api/public/instructors`,
       { params: { take } }
     );
+  }
+
+  listCourses() {
+    return this.http.get<PublicCourseCardDto[]>(`${this.base}/api/public/courses`);
   }
 
   listTestimonials(take = 6) {
