@@ -21,38 +21,43 @@
 }
 
 .top-inner {
-  width: min(1120px, calc(100% - 2rem));
+  width: min(1180px, calc(100% - 1.75rem));
   margin: 0 auto;
   min-height: 64px;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
+  flex-wrap: nowrap;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
   text-decoration: none;
-  margin-right: 0.5rem;
+  flex-shrink: 0;
   line-height: 1.15;
 }
 
 .brand-logo {
   display: block;
-  height: 3rem;
+  height: 2.75rem;
   width: auto;
-  padding: 0.2rem 0.55rem;
-  border-radius: 0.7rem;
+  max-width: 11.5rem;
+  object-fit: contain;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.65rem;
   background: #000;
   flex-shrink: 0;
 }
 
 .nav {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.15rem 0.85rem;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.15rem 0.7rem;
   flex: 1;
+  min-width: 0;
+  overflow: visible;
 }
 
 .nav a,
@@ -61,12 +66,13 @@
   text-decoration: none;
   font-size: var(--text-sm);
   font-weight: 600;
-  padding: 0.35rem 0;
+  padding: 0.4rem 0.1rem;
   border: 0;
   border-bottom: 2px solid transparent;
   background: transparent;
   cursor: pointer;
   font-family: inherit;
+  white-space: nowrap;
   transition: color var(--transition), border-color var(--transition);
 }
 
@@ -78,24 +84,34 @@
   border-bottom-color: var(--color-primary);
 }
 
+.nav a:focus-visible,
+.nav-trigger:focus-visible,
+.link-login:focus-visible,
+.burger:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: 0.25rem;
+}
+
 .nav-shop {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.35rem;
 }
 
 .nav-promo {
   display: inline-flex;
   align-items: center;
-  padding: 0.12rem 0.42rem;
+  padding: 0.1rem 0.35rem;
   border-radius: 999px;
-  background: var(--color-primary);
-  color: #06210f;
-  font-size: 0.62rem;
+  background: rgba(46, 204, 113, 0.22);
+  color: #9fe3b0;
+  font-size: 0.58rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   line-height: 1.2;
+  border: 1px solid rgba(159, 227, 176, 0.35);
 }
 
 .mobile-panel .nav-promo {
@@ -118,10 +134,6 @@
 .chev {
   font-size: 0.7em;
   opacity: 0.75;
-}
-
-.nav-support {
-  opacity: 0.9;
 }
 
 .mega,
@@ -252,7 +264,10 @@
   cursor: pointer;
   color: #d7e2ea;
   font-weight: 600;
-  padding: 0.65rem 0.4rem;
+  padding: 0.75rem 0.4rem;
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
 }
 
 .mobile-group summary::-webkit-details-marker {
@@ -288,19 +303,36 @@
 .actions {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.55rem;
   margin-left: auto;
+  flex-shrink: 0;
+}
+
+.theme-slot {
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.72;
+  transform: scale(0.92);
+  transform-origin: center;
+  transition: opacity var(--transition);
+}
+
+.theme-slot:hover,
+.theme-slot:focus-within {
+  opacity: 1;
 }
 
 .link-login {
-  color: #fff;
+  color: rgba(255, 255, 255, 0.88);
   text-decoration: none;
   font-size: var(--text-sm);
   font-weight: 600;
   white-space: nowrap;
+  padding: 0.35rem 0.15rem;
 }
 
 .link-login:hover {
+  color: #fff;
   text-decoration: underline;
 }
 
@@ -313,6 +345,8 @@
   margin-left: auto;
   width: 2.75rem;
   height: 2.75rem;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: var(--radius-sm);
   background: transparent;
@@ -320,6 +354,7 @@
   cursor: pointer;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .mobile-panel {
@@ -338,7 +373,10 @@
   color: #d7e2ea;
   text-decoration: none;
   font-weight: 600;
-  padding: 0.65rem 0.4rem;
+  padding: 0.75rem 0.4rem;
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
   border-radius: var(--radius-sm);
 }
 
@@ -352,17 +390,21 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.75rem;
   margin-top: 0.85rem;
   padding-top: 0.85rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.mobile-actions > a {
+.mobile-actions > a,
+.mobile-actions .link-login {
   color: #fff;
   text-decoration: none;
   font-weight: 600;
   font-size: var(--text-sm);
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
 }
 
 .main {
@@ -377,7 +419,7 @@
 }
 
 .foot-inner {
-  width: min(1120px, calc(100% - 2rem));
+  width: min(1180px, calc(100% - 2rem));
   margin: 0 auto;
   display: grid;
   gap: 0.5rem;
@@ -427,6 +469,30 @@
   font-size: 0.8rem;
 }
 
+/* Tablets / nav denso: reducir gaps antes del hamburguesa */
+@media (max-width: 1100px) and (min-width: 961px) {
+  .top-inner {
+    gap: 0.5rem;
+  }
+
+  .nav {
+    gap: 0.1rem 0.45rem;
+  }
+
+  .brand-logo {
+    height: 2.45rem;
+    max-width: 10rem;
+  }
+
+  .actions {
+    gap: 0.4rem;
+  }
+
+  .nav-promo {
+    display: none;
+  }
+}
+
 @media (max-width: 960px) {
   .desktop {
     display: none !important;
@@ -438,5 +504,10 @@
 
   .mobile-panel {
     display: block;
+  }
+
+  .brand-logo {
+    height: 2.5rem;
+    max-width: min(42vw, 11rem);
   }
 }

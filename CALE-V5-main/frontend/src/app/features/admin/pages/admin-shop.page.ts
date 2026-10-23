@@ -539,7 +539,7 @@ export class AdminShopPage implements OnInit {
 
   onUploadProduct(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const files = [...(input.files ?? [])];
+    const files = Array.from(input.files ?? []);
     if (!files.length) {
       return;
     }
