@@ -77,6 +77,7 @@ type OpenMenu = 'cursos' | 'instructores' | null;
             </div>
 
             <a routerLink="/escuelas" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Escuelas</a>
+            <a routerLink="/cascos" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Cascos</a>
 
             <div class="nav-item" (mouseenter)="openDesktop('instructores')" (mouseleave)="scheduleClose()">
               <button
@@ -147,6 +148,7 @@ type OpenMenu = 'cursos' | 'instructores' | null;
                 </div>
               </details>
               <a routerLink="/escuelas" (click)="closeAll()">Escuelas</a>
+              <a routerLink="/cascos" (click)="closeAll()">Cascos</a>
               <details class="mobile-group" [open]="mobileGroup() === 'instructores'">
                 <summary (click)="toggleMobileGroup('instructores', $event)">Instructores</summary>
                 <div class="mobile-sub">
@@ -225,6 +227,7 @@ export class PublicShellComponent implements OnInit {
     { label: 'Nosotros', path: '/nosotros' },
     { label: 'Cursos', path: '/cursos' },
     { label: 'Escuelas', path: '/escuelas' },
+    { label: 'Cascos', path: '/cascos' },
     { label: 'Instructores', path: '/instructores' },
     { label: 'Contacto', path: '/contacto' },
     { label: 'Apoyar Luz Verde', path: '/apoyar' }

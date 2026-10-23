@@ -134,6 +134,7 @@ public static class WebApplicationExtensions
             // Always repair attempt columns needed for simulacros — independent of FeatureSchema.
             await AttemptSchemaGuard.EnsureAsync(db, bootLogger);
             await HomepageSchemaGuard.EnsureAsync(db, bootLogger);
+            await ShopSchemaGuard.EnsureAsync(db, bootLogger);
             await PlaySchemaGuard.EnsureAsync(db, bootLogger);
             await PushSchemaGuard.EnsureAsync(db, bootLogger);
             await UserRequestSchemaGuard.EnsureAsync(db, bootLogger);

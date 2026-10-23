@@ -179,6 +179,7 @@ public static class ServiceCollectionExtensions
         });
         services.AddScoped<Cale.Api.Services.PilotMetricsService>();
         services.AddScoped<Cale.Api.Services.HomepageService>();
+        services.AddScoped<Cale.Api.Services.Shop.ShopService>();
         services.AddSingleton<Cale.Api.Services.Play.PlayContent>();
         services.AddSingleton<Cale.Api.Services.Play.SignImageOverrides>();
         services.AddSingleton<Cale.Api.Services.Play.DuelService>();

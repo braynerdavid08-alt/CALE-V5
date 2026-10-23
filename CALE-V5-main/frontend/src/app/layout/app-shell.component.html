@@ -115,6 +115,13 @@
             <span>Biblioteca Jurídica</span>
           </a>
           <a
+            class="student-home-btn student-normas-btn"
+            routerLink="/cascos"
+            title="Cascos y equipo">
+            <ui-icon name="image" />
+            <span>Cascos</span>
+          </a>
+          <a
             class="student-home-btn student-donate-btn"
             routerLink="/donaciones"
             title="Apoyar Luz Verde">
@@ -134,6 +141,10 @@
 
       <span class="spacer" aria-hidden="true"></span>
       @if (!isStudentShell && role !== 'Admin' && !mustChangePassword) {
+        <a class="student-home-btn student-normas-btn staff-donate-btn" routerLink="/cascos" title="Cascos y equipo">
+          <ui-icon name="image" />
+          <span>Cascos</span>
+        </a>
         <a class="student-home-btn student-donate-btn staff-donate-btn" routerLink="/donaciones" title="Apoyar Luz Verde">
           <ui-icon name="heart" />
           <span>Donar</span>

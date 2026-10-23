@@ -46,6 +46,12 @@ export const routes: Routes = [
             .then((m) => m.PublicInstructorsPage)
       },
       {
+        path: 'cascos',
+        loadComponent: () =>
+          import('./features/public/public-shop.page')
+            .then((m) => m.PublicShopPage)
+      },
+      {
         path: 'blog',
         loadComponent: () =>
           import('./features/public/public-blog.page')
@@ -879,6 +885,15 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/admin/pages/admin-homepage.page')
             .then((m) => m.AdminHomepagePage)
+      },
+      {
+        path: 'admin/shop',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['Admin'] },
+        loadComponent: () =>
+          import('./features/admin/pages/admin-shop.page')
+            .then((m) => m.AdminShopPage)
       },
       {
         path: 'admin/ratings',
