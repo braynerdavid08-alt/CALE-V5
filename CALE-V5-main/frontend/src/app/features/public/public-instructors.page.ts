@@ -104,10 +104,10 @@ interface ReviewDto {
                 <div class="reviews">
                   @if (reviewsLoading() === ins.id) {
                     <p class="muted">Cargando…</p>
-                  } @else if (!(reviews()[ins.id]?.length)) {
+                  } @else if (!reviewsFor(ins.id).length) {
                     <p class="muted">Todavía no hay opiniones públicas.</p>
                   } @else {
-                    @for (r of reviews()[ins.id]; track r.id) {
+                    @for (r of reviewsFor(ins.id); track r.id) {
                       <blockquote>
                         <strong>{{ '★'.repeat(r.stars) }}</strong>
                         <p>{{ r.comment }}</p>
@@ -396,6 +396,10 @@ export class PublicInstructorsPage implements OnInit {
         }
       });
     }
+  }
+
+  reviewsFor(instructorId: number): ReviewDto[] {
+    return this.reviews()[instructorId] ?? [];
   }
 
   toggleReviews(ins: PublicInstructorCardDto): void {
