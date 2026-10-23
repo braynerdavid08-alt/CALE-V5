@@ -28,7 +28,7 @@ export interface NavOptions {
 }
 
 const DONATE_ITEM: NavItem = { label: 'Apoyar Luz Verde', path: '/donaciones', icon: 'heart', exact: true };
-const SHOP_ITEM: NavItem = { label: 'Cascos y equipo', path: '/cascos', icon: 'image', exact: true };
+const SHOP_ITEM: NavItem = { label: 'Cascos con descuento', path: '/cascos', icon: 'image', exact: true };
 const REQUESTS_ITEM: NavItem = { label: 'Proponer y sugerir', path: '/solicitudes', icon: 'idea', exact: true };
 const PQR_ITEM: NavItem = { label: 'PQR y mis datos', path: '/mis-pqr', icon: 'list', exact: true };
 

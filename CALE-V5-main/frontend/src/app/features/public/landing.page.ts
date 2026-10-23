@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { CurrencyPipe } from '@angular/common';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { RouterLink } from '@angular/router';
 import { resolveMediaUrl } from '../../core/media/resolve-media-url';
@@ -9,11 +10,13 @@ import { UiLoadingComponent } from '../../shared/ui/ui-loading.component';
 import { PublicHomeApi } from './public-home.api';
 import { PublicHomeDto, PublicTestimonialsDto, ResolvedStatDto } from './public.models';
 import { formatStatDisplay } from './public-stat.util';
+import { ShopApi } from './shop.api';
+import { PublicShopDto } from './shop.models';
 
 @Component({
   selector: 'app-landing-page',
   standalone: true,
-  imports: [RouterLink, UiButtonComponent, UiIconComponent, UiLoadingComponent],
+  imports: [CurrencyPipe, RouterLink, UiButtonComponent, UiIconComponent, UiLoadingComponent],
   template: `
     @if (loading()) {
       <div class="pad">
@@ -315,6 +318,57 @@ import { formatStatDisplay } from './public-stat.util';
           </section>
         }
 
+        <section class="section shop-band" [class.alt]="!h.instructorsVisible || !h.instructors.length">
+          <div class="wrap">
+            <header class="sec-head row">
+              <div>
+                <p class="eyebrow">Protección en la vía</p>
+                <h2>{{ shopHeadline() }}</h2>
+                <p>
+                  @if (shopPromoCount() > 0) {
+                    Cascos y equipo con precio rebajado. Elige el tuyo y pide por WhatsApp.
+                  } @else {
+                    Cascos homologados y equipo para motociclistas. Catálogo corto, precios claros y pedido por WhatsApp.
+                  }
+                </p>
+              </div>
+              <ui-button routerLink="/cascos" variant="secondary">Ver catálogo</ui-button>
+            </header>
+
+            @if (shopProducts().length) {
+              <div class="shop-grid">
+                @for (p of shopProducts(); track p.id) {
+                  <a class="shop-card" routerLink="/cascos">
+                    <div class="shop-media">
+                      @if (p.imageUrl) {
+                        <img [src]="media(p.imageUrl)" [alt]="p.name" width="280" height="200" loading="lazy" />
+                      } @else {
+                        <span class="shop-ph" aria-hidden="true">Casco</span>
+                      }
+                      @if (p.promoLabel || p.discountPercent) {
+                        <span class="shop-badge">{{ p.promoLabel || ('−' + p.discountPercent + '%') }}</span>
+                      }
+                    </div>
+                    <strong>{{ p.name }}</strong>
+                    <span class="shop-price">
+                      {{ p.priceCop | currency:'COP':'symbol-narrow':'1.0-0' }}
+                      @if (p.compareAtPriceCop && p.compareAtPriceCop > p.priceCop) {
+                        <s>{{ p.compareAtPriceCop | currency:'COP':'symbol-narrow':'1.0-0' }}</s>
+                      }
+                    </span>
+                  </a>
+                }
+              </div>
+            } @else {
+              <a class="shop-cta" routerLink="/cascos">
+                <span class="shop-cta-kicker">Oferta Luz Verde</span>
+                <strong>Cascos con descuento</strong>
+                <span>Mira el catálogo y pide el tuyo por WhatsApp.</span>
+              </a>
+            }
+          </div>
+        </section>
+
         <section class="section">
           <div class="wrap faq-wrap">
             <header class="sec-head">
@@ -353,12 +407,29 @@ import { formatStatDisplay } from './public-stat.util';
 export class LandingPage implements OnInit {
   readonly brand = BRAND;
   private readonly api = inject(PublicHomeApi);
+  private readonly shopApi = inject(ShopApi);
   private readonly title = inject(Title);
   private readonly meta = inject(Meta);
 
   readonly loading = signal(true);
   readonly home = signal<PublicHomeDto | null>(null);
   readonly reviews = signal<PublicTestimonialsDto | null>(null);
+  readonly shop = signal<PublicShopDto | null>(null);
+
+  readonly shopProducts = computed(() => {
+    const list = this.shop()?.products ?? [];
+    const promos = list.filter((p) => p.hasPromo || p.isFeatured);
+    const pick = (promos.length ? promos : list).slice(0, 4);
+    return pick;
+  });
+
+  readonly shopPromoCount = computed(
+    () => (this.shop()?.products ?? []).filter((p) => p.hasPromo).length
+  );
+
+  readonly shopHeadline = computed(() =>
+    this.shopPromoCount() > 0 ? 'Cascos con descuento' : 'Cascos y equipo'
+  );
 
   readonly studentFeatures = [
     'Simulacros con preguntas tipo examen oficial',
@@ -428,6 +499,14 @@ export class LandingPage implements OnInit {
       next: (r) => this.reviews.set(r),
       error: () => this.reviews.set(null)
     });
+    this.shopApi.getPublic().subscribe({
+      next: (s) => this.shop.set(s),
+      error: () => this.shop.set(null)
+    });
+  }
+
+  media(path: string | null | undefined): string {
+    return resolveMediaUrl(path);
   }
 
   heroImageUrl(h: PublicHomeDto): string {
