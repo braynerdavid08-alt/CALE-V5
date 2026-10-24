@@ -35,9 +35,14 @@ public sealed class ShopProductConfiguration : IEntityTypeConfiguration<ShopProd
         builder.Property(x => x.CompareAtPriceCop).HasPrecision(18, 2);
         builder.Property(x => x.PromoLabel).HasMaxLength(ShopProduct.PromoMax);
         builder.Property(x => x.Category).HasMaxLength(ShopProduct.CategoryMax).IsRequired();
+        builder.Property(x => x.ProductType).HasMaxLength(ShopProduct.ProductTypeMax);
+        builder.Property(x => x.Brand).HasMaxLength(ShopProduct.BrandMax);
+        builder.Property(x => x.Reference).HasMaxLength(ShopProduct.ReferenceMax);
         builder.Property(x => x.Sizes).HasMaxLength(ShopProduct.SizesMax);
+        builder.Property(x => x.Colors).HasMaxLength(ShopProduct.ColorsMax);
         builder.HasIndex(x => x.IsActive);
         builder.HasIndex(x => x.SortOrder);
+        builder.HasIndex(x => x.Slug).IsUnique();
         builder.Ignore(x => x.HasPromo);
         builder.Ignore(x => x.DiscountPercent);
         builder.Ignore(x => x.ImageUrls);

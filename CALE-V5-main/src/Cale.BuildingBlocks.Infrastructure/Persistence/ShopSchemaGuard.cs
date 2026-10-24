@@ -44,7 +44,12 @@ public static class ShopSchemaGuard
         """,
         """CREATE INDEX IF NOT EXISTS "IX_ShopProducts_IsActive" ON "ShopProducts" ("IsActive");""",
         """CREATE INDEX IF NOT EXISTS "IX_ShopProducts_SortOrder" ON "ShopProducts" ("SortOrder");""",
-        """ALTER TABLE "ShopProducts" ADD COLUMN IF NOT EXISTS "ImageUrlsJson" text NULL;"""
+        """CREATE UNIQUE INDEX IF NOT EXISTS "IX_ShopProducts_Slug" ON "ShopProducts" ("Slug");""",
+        """ALTER TABLE "ShopProducts" ADD COLUMN IF NOT EXISTS "ImageUrlsJson" text NULL;""",
+        """ALTER TABLE "ShopProducts" ADD COLUMN IF NOT EXISTS "Brand" varchar(80) NULL;""",
+        """ALTER TABLE "ShopProducts" ADD COLUMN IF NOT EXISTS "Reference" varchar(60) NULL;""",
+        """ALTER TABLE "ShopProducts" ADD COLUMN IF NOT EXISTS "Colors" varchar(120) NULL;""",
+        """ALTER TABLE "ShopProducts" ADD COLUMN IF NOT EXISTS "ProductType" varchar(60) NULL;"""
     ];
 
     public static async Task EnsureAsync(

@@ -7,6 +7,7 @@ import {
   AdminShopDto,
   AdminShopProductDto,
   PublicShopDto,
+  PublicShopProductDto,
   UpdateShopSettingsRequest,
   UpsertShopProductRequest
 } from './shop.models';
@@ -18,6 +19,12 @@ export class ShopApi {
 
   getPublic() {
     return this.http.get<PublicShopDto>(`${this.base}/api/public/shop`);
+  }
+
+  getPublicBySlug(slug: string) {
+    return this.http.get<PublicShopProductDto>(
+      `${this.base}/api/public/shop/${encodeURIComponent(slug)}`
+    );
   }
 
   getAdmin() {
