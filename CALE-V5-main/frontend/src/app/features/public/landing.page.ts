@@ -228,6 +228,62 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
             </section>
           }
 
+          <section class="section shop-band" aria-labelledby="shop-heading">
+            <div class="wrap">
+              <header class="sec-head row">
+                <div>
+                  <p class="eyebrow">Tienda Luz Verde</p>
+                  <h2 id="shop-heading">{{ shopHeadline() }}</h2>
+                  <p>
+                    @if (shopPromoCount() > 0) {
+                      Equipo de protección con precio vigente del catálogo. Elige y pide por WhatsApp.
+                    } @else {
+                      Cascos y equipo para motociclistas. Catálogo real, precios claros y pedido por WhatsApp.
+                    }
+                  </p>
+                </div>
+                <ui-button routerLink="/tienda" variant="secondary">Ver toda la tienda</ui-button>
+              </header>
+
+              @if (shopProducts().length) {
+                <div
+                  class="shop-grid"
+                  [class.cols-3]="shopProducts().length === 3"
+                  [class.cols-5]="shopProducts().length >= 5">
+                  @for (p of shopProducts(); track p.id) {
+                    <a class="shop-card" routerLink="/tienda">
+                      <div class="shop-media">
+                        @if (productImage(p)) {
+                          <img [src]="productImage(p)" [alt]="p.name" width="280" height="200" loading="lazy" />
+                        } @else {
+                          <span class="shop-ph" aria-hidden="true">Producto</span>
+                        }
+                        @if (productBadge(p); as badge) {
+                          <span class="shop-badge">{{ badge }}</span>
+                        }
+                      </div>
+                      <strong>{{ p.name }}</strong>
+                      <span class="shop-price">
+                        {{ p.priceCop | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}
+                        @if (p.compareAtPriceCop && p.compareAtPriceCop > p.priceCop) {
+                          <s>{{ p.compareAtPriceCop | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</s>
+                        }
+                      </span>
+                    </a>
+                  }
+                </div>
+              } @else {
+                <div class="shop-empty">
+                  <p>El catálogo se está actualizando. Mientras tanto puedes abrir la tienda o escribirnos.</p>
+                  <div class="cta-row">
+                    <ui-button routerLink="/tienda">Ir a la tienda</ui-button>
+                    <a class="ghost-btn" routerLink="/contacto">Contacto</a>
+                  </div>
+                </div>
+              }
+            </div>
+          </section>
+
           <section class="section" aria-labelledby="audience-heading">
             <div class="wrap">
               <header class="sec-head center">
@@ -398,62 +454,6 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                   <p>Refuerza tus conocimientos con las herramientas de la plataforma.</p>
                 </li>
               </ol>
-            </div>
-          </section>
-
-          <section class="section shop-band" aria-labelledby="shop-heading">
-            <div class="wrap">
-              <header class="sec-head row">
-                <div>
-                  <p class="eyebrow">Tienda Luz Verde</p>
-                  <h2 id="shop-heading">{{ shopHeadline() }}</h2>
-                  <p>
-                    @if (shopPromoCount() > 0) {
-                      Equipo de protección con precio vigente del catálogo. Elige y pide por WhatsApp.
-                    } @else {
-                      Cascos y equipo para motociclistas. Catálogo real, precios claros y pedido por WhatsApp.
-                    }
-                  </p>
-                </div>
-                <ui-button routerLink="/tienda" variant="secondary">Ver toda la tienda</ui-button>
-              </header>
-
-              @if (shopProducts().length) {
-                <div
-                  class="shop-grid"
-                  [class.cols-3]="shopProducts().length === 3"
-                  [class.cols-5]="shopProducts().length >= 5">
-                  @for (p of shopProducts(); track p.id) {
-                    <a class="shop-card" routerLink="/tienda">
-                      <div class="shop-media">
-                        @if (productImage(p)) {
-                          <img [src]="productImage(p)" [alt]="p.name" width="280" height="200" loading="lazy" />
-                        } @else {
-                          <span class="shop-ph" aria-hidden="true">Producto</span>
-                        }
-                        @if (productBadge(p); as badge) {
-                          <span class="shop-badge">{{ badge }}</span>
-                        }
-                      </div>
-                      <strong>{{ p.name }}</strong>
-                      <span class="shop-price">
-                        {{ p.priceCop | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}
-                        @if (p.compareAtPriceCop && p.compareAtPriceCop > p.priceCop) {
-                          <s>{{ p.compareAtPriceCop | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</s>
-                        }
-                      </span>
-                    </a>
-                  }
-                </div>
-              } @else {
-                <div class="shop-empty">
-                  <p>El catálogo se está actualizando. Mientras tanto puedes abrir la tienda o escribirnos.</p>
-                  <div class="cta-row">
-                    <ui-button routerLink="/tienda">Ir a la tienda</ui-button>
-                    <a class="ghost-btn" routerLink="/contacto">Contacto</a>
-                  </div>
-                </div>
-              }
             </div>
           </section>
         </div>
