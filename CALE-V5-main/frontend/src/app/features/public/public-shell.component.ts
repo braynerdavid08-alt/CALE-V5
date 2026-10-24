@@ -37,7 +37,7 @@ import { LEGAL_LINKS } from '../legal/legal-links';
               Tienda
               <span class="nav-promo">Ofertas</span>
             </a>
-            <a routerLink="/" fragment="para-cea">Para CEA</a>
+            <a routerLink="/contacto" routerLinkActive="active">Para CEA</a>
             <a routerLink="/nosotros" routerLinkActive="active">Nosotros</a>
           </nav>
 
@@ -71,7 +71,7 @@ import { LEGAL_LINKS } from '../legal/legal-links';
               <a routerLink="/cascos" (click)="closeMenu()">
                 Tienda <span class="nav-promo">Ofertas</span>
               </a>
-              <a routerLink="/" fragment="para-cea" (click)="closeMenu()">Para CEA</a>
+              <a routerLink="/contacto" (click)="closeMenu()">Para CEA</a>
               <a routerLink="/nosotros" (click)="closeMenu()">Nosotros</a>
             </nav>
             <div class="mobile-actions">
@@ -110,7 +110,7 @@ import { LEGAL_LINKS } from '../legal/legal-links';
           <nav class="foot-nav" aria-label="Pie">
             <a routerLink="/">Inicio</a>
             <a routerLink="/cascos">Tienda</a>
-            <a routerLink="/" fragment="para-cea">Para CEA</a>
+            <a routerLink="/contacto">Para CEA</a>
             <a routerLink="/nosotros">Nosotros</a>
             <a routerLink="/cursos">Cursos</a>
             <a routerLink="/escuelas">Escuelas</a>
