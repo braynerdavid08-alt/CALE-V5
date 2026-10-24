@@ -1,4 +1,3 @@
-import { CurrencyPipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { RouterLink } from '@angular/router';
@@ -10,13 +9,20 @@ import { UiLoadingComponent } from '../../shared/ui/ui-loading.component';
 import { PublicHomeApi } from './public-home.api';
 import { PublicHomeDto, PublicTestimonialsDto, ResolvedStatDto } from './public.models';
 import { formatStatDisplay } from './public-stat.util';
+import { PublicProductCardComponent } from './public-product-card.component';
 import { ShopApi } from './shop.api';
 import { PublicShopDto } from './shop.models';
 
 @Component({
   selector: 'app-landing-page',
   standalone: true,
-  imports: [CurrencyPipe, RouterLink, UiButtonComponent, UiIconComponent, UiLoadingComponent],
+  imports: [
+    RouterLink,
+    UiButtonComponent,
+    UiIconComponent,
+    UiLoadingComponent,
+    PublicProductCardComponent
+  ],
   template: `
     @if (loading()) {
       <div class="pad">
@@ -24,101 +30,150 @@ import { PublicShopDto } from './shop.models';
       </div>
     } @else {
       @if (home(); as h) {
-        @if (h.hero.visible) {
-          <section class="hero">
-            <div class="hero-bg" aria-hidden="true">
-              <span class="glow g1"></span>
-              <span class="glow g2"></span>
-              <span class="grid-lines"></span>
-            </div>
-            <div class="hero-inner">
-              <div class="hero-copy">
-                @if (h.hero.badge) {
-                  <p class="badge"><span class="dot" aria-hidden="true"></span>{{ h.hero.badge }}</p>
-                }
-                <h1>
-                  {{ h.hero.title }}
-                  @if (h.hero.titleHighlight) {
-                    <span class="hl">{{ h.hero.titleHighlight }}</span>
-                  }
-                </h1>
-                <p class="lead">{{ h.hero.description }}</p>
-                <div class="cta-row">
-                  <ui-button [routerLink]="h.hero.ctaPrimaryPath || '/register'">
-                    {{ h.hero.ctaPrimaryLabel || 'Comenzar ahora' }}
-                  </ui-button>
-                  @if (h.hero.videoUrl) {
-                    <a class="ghost-btn" [href]="h.hero.videoUrl" target="_blank" rel="noopener noreferrer">
-                      <ui-icon name="play" size="sm" />
-                      {{ h.hero.ctaSecondaryLabel || 'Ver video' }}
-                    </a>
-                  } @else {
-                    <a class="ghost-btn" routerLink="/escuelas">
-                      <ui-icon name="building" size="sm" />
-                      {{ h.hero.ctaSecondaryLabel || 'Ver escuelas' }}
-                    </a>
-                  }
-                </div>
-
-                <div class="trust">
-                  @if (reviews(); as r) {
-                    @if (r.count > 0) {
-                      <span class="avatars" aria-hidden="true">
-                        @for (t of r.items.slice(0, 4); track t.id) {
-                          <span class="av">{{ initials(t.displayName) }}</span>
-                        }
-                      </span>
-                      <span class="trust-text">
-                        <span class="stars" [attr.aria-label]="r.average + ' de 5 estrellas'">{{ starString(r.average) }}</span>
-                        <strong>{{ r.average }}/5</strong> · {{ r.count }} {{ r.count === 1 ? 'valoración' : 'valoraciones' }} de estudiantes
-                      </span>
-                    } @else {
-                      <span class="trust-text">✔ Preguntas tipo examen oficial · ✔ Normas actualizadas · ✔ Gratis para empezar</span>
-                    }
-                  } @else {
-                    <span class="trust-text">✔ Preguntas tipo examen oficial · ✔ Normas actualizadas · ✔ Gratis para empezar</span>
-                  }
-                </div>
+        <!-- Desktop: solo Inicio + Tienda en el bloque superior (sin stats ni otras secciones en medio). -->
+        <div class="home-lead">
+          @if (h.hero.visible) {
+            <section class="hero" aria-labelledby="home-heading">
+              <div class="hero-bg" aria-hidden="true">
+                <span class="glow g1"></span>
+                <span class="glow g2"></span>
+                <span class="grid-lines"></span>
               </div>
+              <div class="hero-inner">
+                <div class="hero-copy">
+                  <p class="eyebrow home-kicker">Inicio Luz Verde</p>
+                  @if (heroBadge(h); as badge) {
+                    <p class="badge"><span class="dot" aria-hidden="true"></span>{{ badge }}</p>
+                  }
+                  <h1 id="home-heading">
+                    {{ h.hero.title }}
+                    @if (h.hero.titleHighlight) {
+                      <span class="hl">{{ h.hero.titleHighlight }}</span>
+                    }
+                  </h1>
+                  <p class="lead">{{ h.hero.description }}</p>
+                  <div class="cta-row">
+                    <ui-button routerLink="/cascos">Explorar tienda</ui-button>
+                    <a class="ghost-btn" routerLink="/" fragment="para-cea">
+                      <ui-icon name="building" size="sm" />
+                      Plataforma para CEA
+                    </a>
+                  </div>
 
-              @if (h.hero.imageEnabled && heroImageUrl(h)) {
-                <div class="hero-media">
-                  <img [src]="heroImageUrl(h)" [alt]="h.hero.imageAlt || brand.name" loading="eager" />
+                  <div class="trust">
+                    @if (reviews(); as r) {
+                      @if (r.count > 0) {
+                        <span class="avatars" aria-hidden="true">
+                          @for (t of r.items.slice(0, 4); track t.id) {
+                            <span class="av">{{ initials(t.displayName) }}</span>
+                          }
+                        </span>
+                        <span class="trust-text">
+                          <span class="stars" [attr.aria-label]="r.average + ' de 5 estrellas'">{{ starString(r.average) }}</span>
+                          <strong>{{ r.average }}/5</strong> · {{ r.count }}
+                          {{ r.count === 1 ? 'valoración' : 'valoraciones' }} de estudiantes
+                        </span>
+                      } @else {
+                        <span class="trust-text"
+                          >Formación vial, gestión para CEA y equipo de protección en un solo lugar.</span
+                        >
+                      }
+                    } @else {
+                      <span class="trust-text"
+                        >Formación vial, gestión para CEA y equipo de protección en un solo lugar.</span
+                      >
+                    }
+                  </div>
                 </div>
-              } @else {
-                <div class="device-wrap" aria-hidden="true">
-                  <div class="float-chip chip-streak">🔥 7 días de racha</div>
-                  <div class="float-chip chip-badge">🏅 ¡Nueva insignia!</div>
-                  <div class="device">
-                    <div class="device-notch"></div>
-                    <div class="device-screen">
-                      <div class="mock-top">
-                        <span>Simulacro CALE</span>
-                        <span class="mock-timer">⏱ 24:10</span>
-                      </div>
-                      <div class="mock-progress"><span></span></div>
-                      <p class="mock-q-num">Pregunta 12 de 25</p>
-                      <div class="mock-sign">
-                        <svg viewBox="0 0 100 100" width="64" height="64">
-                          <polygon points="30,4 70,4 96,30 96,70 70,96 30,96 4,70 4,30" fill="#c0352b" stroke="#fff" stroke-width="4" />
-                          <text x="50" y="59" text-anchor="middle" font-size="24" font-weight="800" fill="#fff" font-family="system-ui">PARE</text>
-                        </svg>
-                      </div>
-                      <p class="mock-q">¿Qué debe hacer el conductor ante esta señal?</p>
-                      <div class="mock-opt">A. Reducir la velocidad</div>
-                      <div class="mock-opt ok">B. Detenerse por completo ✓</div>
-                      <div class="mock-opt">C. Tocar el pito y seguir</div>
-                      <div class="mock-ready">
-                        <span>¿Listo para el examen?</span>
-                        <strong>86%</strong>
+
+                @if (h.hero.imageEnabled && heroImageUrl(h)) {
+                  <div class="hero-media">
+                    <img [src]="heroImageUrl(h)" [alt]="h.hero.imageAlt || brand.name" loading="eager" />
+                  </div>
+                } @else {
+                  <div class="device-wrap" aria-hidden="true">
+                    <div class="device">
+                      <div class="device-notch"></div>
+                      <div class="device-screen">
+                        <div class="mock-top">
+                          <span>Simulacro CALE</span>
+                          <span class="mock-timer">⏱ 24:10</span>
+                        </div>
+                        <div class="mock-progress"><span></span></div>
+                        <p class="mock-q-num">Pregunta 12 de 25</p>
+                        <div class="mock-sign">
+                          <svg viewBox="0 0 100 100" width="64" height="64">
+                            <polygon
+                              points="30,4 70,4 96,30 96,70 70,96 30,96 4,70 4,30"
+                              fill="#c0352b"
+                              stroke="#fff"
+                              stroke-width="4" />
+                            <text
+                              x="50"
+                              y="59"
+                              text-anchor="middle"
+                              font-size="24"
+                              font-weight="800"
+                              fill="#fff"
+                              font-family="system-ui">
+                              PARE
+                            </text>
+                          </svg>
+                        </div>
+                        <p class="mock-q">¿Qué debe hacer el conductor ante esta señal?</p>
+                        <div class="mock-opt">A. Reducir la velocidad</div>
+                        <div class="mock-opt ok">B. Detenerse por completo ✓</div>
+                        <div class="mock-opt">C. Tocar el pito y seguir</div>
+                        <div class="mock-ready">
+                          <span>¿Listo para el examen?</span>
+                          <strong>86%</strong>
+                        </div>
                       </div>
                     </div>
+                  </div>
+                }
+              </div>
+            </section>
+          }
+
+          <section class="section shop-band" aria-labelledby="shop-heading">
+            <div class="wrap">
+              <header class="sec-head row">
+                <div>
+                  <p class="eyebrow">Tienda Luz Verde</p>
+                  <h2 id="shop-heading">{{ shopHeadline() }}</h2>
+                  <p>
+                    @if (shopPromoCount() > 0) {
+                      Equipo de protección con precio vigente del catálogo. Elige y pide por WhatsApp.
+                    } @else {
+                      Cascos y equipo para motociclistas. Catálogo real, precios claros y pedido por WhatsApp.
+                    }
+                  </p>
+                </div>
+                <ui-button routerLink="/cascos" variant="secondary">Ver toda la tienda</ui-button>
+              </header>
+
+              @if (shopProducts().length) {
+                <div
+                  class="shop-grid"
+                  [class.cols-3]="shopProducts().length === 3"
+                  [class.cols-5]="shopProducts().length >= 5">
+                  @for (p of shopProducts(); track p.id) {
+                    <app-public-product-card [product]="p" />
+                  }
+                </div>
+              } @else {
+                <div class="shop-empty">
+                  <p>El catálogo se está actualizando. Mientras tanto puedes abrir la tienda o escribirnos.</p>
+                  <div class="cta-row">
+                    <ui-button routerLink="/cascos">Ir a la tienda</ui-button>
+                    <a class="ghost-btn" routerLink="/contacto">Contacto</a>
                   </div>
                 </div>
               }
             </div>
           </section>
-        }
+        </div>
 
         @if (visibleStats(h).length) {
           <section class="stats-strip">
@@ -136,33 +191,40 @@ import { PublicShopDto } from './shop.models';
           </section>
         }
 
-        <section class="section">
+        <section id="para-cea" class="section cea-anchor" aria-labelledby="cea-heading">
           <div class="wrap">
             <header class="sec-head center">
-              <p class="eyebrow">Para cada etapa</p>
-              <h2>Una plataforma, dos formas de usarla</h2>
-              <p>Los estudiantes se preparan mejor y las escuelas ven el avance de cada aprendiz en tiempo real.</p>
+              <p class="eyebrow">Para CEA</p>
+              <h2 id="cea-heading">Gestor y formación para tu escuela</h2>
+              <p>
+                Luz Verde también es la plataforma con la que Centros de Enseñanza Automovilística
+                administran aprendices, agenda, exámenes y clases — y donde los estudiantes se preparan
+                para el examen teórico.
+              </p>
             </header>
             <div class="audience">
               <article class="aud-card student">
                 <span class="aud-tag">Estudiantes</span>
-                <h3>Llega al examen seguro de aprobar</h3>
+                <h3>Prepárate para aprobar</h3>
                 <ul>
                   @for (f of studentFeatures; track f) {
                     <li><span class="check" aria-hidden="true">✓</span>{{ f }}</li>
                   }
                 </ul>
-                <ui-button routerLink="/register">Crear mi cuenta gratis</ui-button>
+                <ui-button routerLink="/register">Crear cuenta de estudiante</ui-button>
               </article>
               <article class="aud-card school">
                 <span class="aud-tag">Escuelas (CEA)</span>
-                <h3>Gestiona tu escuela sin papeles</h3>
+                <h3>Gestiona sin papeles</h3>
                 <ul>
                   @for (f of schoolFeatures; track f) {
                     <li><span class="check" aria-hidden="true">✓</span>{{ f }}</li>
                   }
                 </ul>
-                <ui-button routerLink="/contacto" variant="secondary">Quiero Luz Verde para mi escuela</ui-button>
+                <div class="aud-actions">
+                  <ui-button routerLink="/register-school">Registrar mi escuela</ui-button>
+                  <ui-button routerLink="/contacto" variant="secondary">Hablar con comercial</ui-button>
+                </div>
               </article>
             </div>
           </div>
@@ -192,10 +254,10 @@ import { PublicShopDto } from './shop.models';
         <section class="section games">
           <div class="wrap games-inner">
             <div class="games-copy">
-              <p class="eyebrow">Nuevo</p>
+              <p class="eyebrow">Práctica</p>
               <h2>Practica jugando, no memorizando</h2>
               <p>Pequeños retos diarios que se sienten como un juego y te dejan listo para el examen teórico.</p>
-              <ui-button routerLink="/register">Empezar a jugar</ui-button>
+              <ui-button routerLink="/register">Empezar a practicar</ui-button>
             </div>
             <div class="games-grid">
               @for (g of games; track g.title) {
@@ -318,57 +380,6 @@ import { PublicShopDto } from './shop.models';
           </section>
         }
 
-        <section class="section shop-band" [class.alt]="!h.instructorsVisible || !h.instructors.length">
-          <div class="wrap">
-            <header class="sec-head row">
-              <div>
-                <p class="eyebrow">Protección en la vía</p>
-                <h2>{{ shopHeadline() }}</h2>
-                <p>
-                  @if (shopPromoCount() > 0) {
-                    Cascos y equipo con precio rebajado. Elige el tuyo y pide por WhatsApp.
-                  } @else {
-                    Cascos homologados y equipo para motociclistas. Catálogo corto, precios claros y pedido por WhatsApp.
-                  }
-                </p>
-              </div>
-              <ui-button routerLink="/cascos" variant="secondary">Ver catálogo</ui-button>
-            </header>
-
-            @if (shopProducts().length) {
-              <div class="shop-grid">
-                @for (p of shopProducts(); track p.id) {
-                  <a class="shop-card" routerLink="/cascos">
-                    <div class="shop-media">
-                      @if (p.imageUrl) {
-                        <img [src]="media(p.imageUrl)" [alt]="p.name" width="280" height="200" loading="lazy" />
-                      } @else {
-                        <span class="shop-ph" aria-hidden="true">Casco</span>
-                      }
-                      @if (p.promoLabel || p.discountPercent) {
-                        <span class="shop-badge">{{ p.promoLabel || ('−' + p.discountPercent + '%') }}</span>
-                      }
-                    </div>
-                    <strong>{{ p.name }}</strong>
-                    <span class="shop-price">
-                      {{ p.priceCop | currency:'COP':'symbol-narrow':'1.0-0' }}
-                      @if (p.compareAtPriceCop && p.compareAtPriceCop > p.priceCop) {
-                        <s>{{ p.compareAtPriceCop | currency:'COP':'symbol-narrow':'1.0-0' }}</s>
-                      }
-                    </span>
-                  </a>
-                }
-              </div>
-            } @else {
-              <a class="shop-cta" routerLink="/cascos">
-                <span class="shop-cta-kicker">Oferta Luz Verde</span>
-                <strong>Cascos con descuento</strong>
-                <span>Mira el catálogo y pide el tuyo por WhatsApp.</span>
-              </a>
-            }
-          </div>
-        </section>
-
         <section class="section">
           <div class="wrap faq-wrap">
             <header class="sec-head">
@@ -390,12 +401,12 @@ import { PublicShopDto } from './shop.models';
         <section class="cta-band">
           <div class="wrap cta-inner">
             <div>
-              <h2>Empieza tu formación hoy</h2>
-              <p>Crea tu cuenta en menos de un minuto y haz tu primer simulacro.</p>
+              <h2>Siguiente paso</h2>
+              <p>Explora la tienda o conoce el gestor para tu CEA.</p>
             </div>
             <div class="cta-row">
-              <ui-button routerLink="/register">Registrarme gratis</ui-button>
-              <a class="ghost-btn" routerLink="/apoyar">Apoyar Luz Verde</a>
+              <ui-button routerLink="/cascos">Explorar tienda</ui-button>
+              <a class="ghost-btn" routerLink="/" fragment="para-cea">Para CEA</a>
             </div>
           </div>
         </section>
@@ -418,9 +429,9 @@ export class LandingPage implements OnInit {
 
   readonly shopProducts = computed(() => {
     const list = this.shop()?.products ?? [];
-    const promos = list.filter((p) => p.hasPromo || p.isFeatured);
-    const pick = (promos.length ? promos : list).slice(0, 4);
-    return pick;
+    const featured = list.filter((p) => p.isFeatured || p.hasPromo);
+    const pool = featured.length >= 4 ? featured : list;
+    return pool.slice(0, 6);
   });
 
   readonly shopPromoCount = computed(
@@ -428,7 +439,7 @@ export class LandingPage implements OnInit {
   );
 
   readonly shopHeadline = computed(() =>
-    this.shopPromoCount() > 0 ? 'Cascos con descuento' : 'Cascos y equipo'
+    this.shopPromoCount() > 0 ? 'Equipo con precios vigentes' : 'Tienda de protección vial'
   );
 
   readonly studentFeatures = [
@@ -457,23 +468,19 @@ export class LandingPage implements OnInit {
   readonly faqs = [
     {
       q: '¿Qué es el examen CALE?',
-      a: 'Es la evaluación teórica que debes aprobar para obtener tu licencia de conducción en Colombia. En Luz Verde practicas gratis, todas las veces que quieras, con preguntas del mismo estilo y ves en qué temas debes mejorar.'
+      a: 'Es la evaluación teórica que debes aprobar para obtener tu licencia de conducción en Colombia. En Luz Verde practicas con preguntas del mismo estilo y ves en qué temas debes mejorar.'
     },
     {
-      q: '¿Cuánto cuesta?',
-      a: 'Nada. Luz Verde es gratis para estudiantes, instructores y escuelas, con acceso completo a simulacros, juegos, clases y contenidos. No necesitas pertenecer a una escuela para usarla.'
+      q: '¿Cómo compro en la tienda?',
+      a: 'Entra a Tienda, elige el producto y completa el pedido por WhatsApp con el botón del catálogo. No hay carrito en la web: el pedido se confirma por ese canal.'
     },
     {
-      q: 'Si es gratis, ¿cómo se mantiene?',
-      a: 'Con donaciones voluntarias de quienes la usan. Si la app te ayuda, puedes apoyarla con el QR de Nequi en la sección «Apoyar Luz Verde».'
+      q: 'Soy una escuela (CEA), ¿cómo empiezo?',
+      a: 'Regístrate como escuela o escríbenos desde Contacto para conocer el gestor de aprendices, agenda, exámenes y formación. También puedes ir a la sección Para CEA en el inicio.'
     },
     {
       q: '¿Cuántas preguntas puedo fallar en el examen?',
       a: 'En los simulacros usamos la regla del examen: puedes tener como máximo 3 respuestas incorrectas para aprobar.'
-    },
-    {
-      q: 'Soy una escuela, ¿cómo empiezo?',
-      a: 'Regístrate gratis como escuela: sin planes, sin pagos y sin límite de instructores ni estudiantes. Si necesitas ayuda para importar tus aprendices, escríbenos desde Contacto.'
     },
     {
       q: '¿Funciona en el celular?',
@@ -505,12 +512,16 @@ export class LandingPage implements OnInit {
     });
   }
 
-  media(path: string | null | undefined): string {
-    return resolveMediaUrl(path);
-  }
-
   heroImageUrl(h: PublicHomeDto): string {
     return resolveMediaUrl(h.hero.imageUrl);
+  }
+
+  /** Hide unverifiable marketing claims like “#1” from CMS badges. */
+  heroBadge(h: PublicHomeDto): string | null {
+    const raw = h.hero.badge?.trim();
+    if (!raw) return null;
+    if (/#\s*1\b|n[uú]mero\s*uno|n[uú]mero\s*1/i.test(raw)) return null;
+    return raw;
   }
 
   visibleStats(h: PublicHomeDto): ResolvedStatDto[] {
@@ -542,14 +553,14 @@ export class LandingPage implements OnInit {
     return {
       hero: {
         visible: true,
-        badge: 'Plataforma de formación vial',
-        title: 'Aprueba tu examen CALE',
-        titleHighlight: 'a la primera',
+        badge: 'Formación vial y protección',
+        title: 'Luz Verde',
+        titleHighlight: 'seguridad en la vía',
         description:
-          'Simulacros tipo examen, retos diarios y el acompañamiento de tu escuela de conducción, todo en un solo lugar.',
-        ctaPrimaryLabel: 'Comenzar gratis',
-        ctaPrimaryPath: '/register',
-        ctaSecondaryLabel: 'Ver escuelas',
+          'Plataforma de formación para conductores y CEA, con tienda de equipo de protección.',
+        ctaPrimaryLabel: 'Explorar tienda',
+        ctaPrimaryPath: '/cascos',
+        ctaSecondaryLabel: 'Para CEA',
         videoUrl: null,
         imageUrl: null,
         imageUrlMobile: null,
@@ -557,19 +568,87 @@ export class LandingPage implements OnInit {
         imageEnabled: false
       },
       benefits: [
-        { id: 'b1', title: 'Aprende a tu ritmo', description: 'Estudia desde donde estés con contenidos disponibles 24/7.', icon: 'graduate', tone: 'blue', sortOrder: 1, active: true },
-        { id: 'b2', title: 'Clases prácticas', description: 'Coordina tus clases con instructores certificados de tu escuela.', icon: 'play', tone: 'green', sortOrder: 2, active: true },
-        { id: 'b3', title: 'Evaluaciones inteligentes', description: 'Prepárate con simulacros teóricos como los del examen oficial.', icon: 'exam', tone: 'purple', sortOrder: 3, active: true },
-        { id: 'b4', title: 'Certificación', description: 'Cumple los requisitos y completa tu proceso de formación.', icon: 'star', tone: 'yellow', sortOrder: 4, active: true }
+        {
+          id: 'b1',
+          title: 'Aprende a tu ritmo',
+          description: 'Estudia desde donde estés con contenidos disponibles 24/7.',
+          icon: 'graduate',
+          tone: 'blue',
+          sortOrder: 1,
+          active: true
+        },
+        {
+          id: 'b2',
+          title: 'Clases prácticas',
+          description: 'Coordina tus clases con instructores certificados de tu escuela.',
+          icon: 'play',
+          tone: 'green',
+          sortOrder: 2,
+          active: true
+        },
+        {
+          id: 'b3',
+          title: 'Evaluaciones inteligentes',
+          description: 'Prepárate con simulacros teóricos como los del examen oficial.',
+          icon: 'exam',
+          tone: 'purple',
+          sortOrder: 3,
+          active: true
+        },
+        {
+          id: 'b4',
+          title: 'Certificación',
+          description: 'Cumple los requisitos y completa tu proceso de formación.',
+          icon: 'star',
+          tone: 'yellow',
+          sortOrder: 4,
+          active: true
+        }
       ],
       stepsVisible: true,
       stepsTitle: '¿Cómo funciona Luz Verde?',
       stepsSubtitle: 'Cuatro pasos claros para completar tu formación vial.',
       steps: [
-        { id: 's1', number: 1, title: 'Regístrate', description: 'Crea tu cuenta y vincúlate a tu escuela de conducción.', icon: 'users', tone: 'blue', sortOrder: 1, active: true },
-        { id: 's2', number: 2, title: 'Estudia', description: 'Accede a los contenidos teóricos y a la biblioteca jurídica.', icon: 'book', tone: 'green', sortOrder: 2, active: true },
-        { id: 's3', number: 3, title: 'Practica', description: 'Presenta simulacros y repasa las preguntas que fallaste.', icon: 'exam', tone: 'purple', sortOrder: 3, active: true },
-        { id: 's4', number: 4, title: 'Aprueba', description: 'Llega preparado al examen y obtén tu licencia.', icon: 'star', tone: 'yellow', sortOrder: 4, active: true }
+        {
+          id: 's1',
+          number: 1,
+          title: 'Regístrate',
+          description: 'Crea tu cuenta y vincúlate a tu escuela de conducción.',
+          icon: 'users',
+          tone: 'blue',
+          sortOrder: 1,
+          active: true
+        },
+        {
+          id: 's2',
+          number: 2,
+          title: 'Estudia',
+          description: 'Accede a los contenidos teóricos y a la biblioteca jurídica.',
+          icon: 'book',
+          tone: 'green',
+          sortOrder: 2,
+          active: true
+        },
+        {
+          id: 's3',
+          number: 3,
+          title: 'Practica',
+          description: 'Presenta simulacros y repasa las preguntas que fallaste.',
+          icon: 'exam',
+          tone: 'purple',
+          sortOrder: 3,
+          active: true
+        },
+        {
+          id: 's4',
+          number: 4,
+          title: 'Aprueba',
+          description: 'Llega preparado al examen y obtén tu licencia.',
+          icon: 'star',
+          tone: 'yellow',
+          sortOrder: 4,
+          active: true
+        }
       ],
       stats: [],
       schoolsVisible: false,

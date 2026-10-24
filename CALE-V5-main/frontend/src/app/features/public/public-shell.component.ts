@@ -1,16 +1,11 @@
-import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { BRAND } from '../../core/brand';
 import { SessionStore } from '../../core/auth/session.store';
-import { env } from '../../core/config/env';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiIconComponent } from '../../shared/ui/ui-icon.component';
 import { UiThemeToggleComponent } from '../../shared/ui/ui-theme-toggle.component';
 import { LEGAL_LINKS } from '../legal/legal-links';
-import { PublicHomeApi } from './public-home.api';
-import { PublicCourseCardDto } from './public.models';
-
-type OpenMenu = 'cursos' | 'instructores' | null;
 
 @Component({
   selector: 'app-public-shell',
@@ -27,101 +22,36 @@ type OpenMenu = 'cursos' | 'instructores' | null;
     <div class="public-shell">
       <header class="top">
         <div class="top-inner">
-          <a routerLink="/" class="brand" aria-label="Inicio — Luz Verde" (click)="closeAll()">
-            <img class="brand-logo" [src]="brand.logoWideDark" [alt]="brand.name + ' — ' + brand.slogan" width="790" height="316" />
+          <a routerLink="/" class="brand" aria-label="Inicio — Luz Verde" (click)="closeMenu()">
+            <img
+              class="brand-logo"
+              [src]="brand.logoWideDark"
+              [alt]="brand.name + ' — ' + brand.slogan"
+              width="790"
+              height="316" />
           </a>
 
           <nav class="nav desktop" aria-label="Principal">
-            @for (link of simpleLinks; track link.path) {
+            @for (link of primaryLinks; track link.label) {
               <a
                 [routerLink]="link.path"
-                routerLinkActive="active"
-                [routerLinkActiveOptions]="link.exact ? { exact: true } : { exact: false }">
+                [fragment]="link.fragment ?? undefined"
+                [routerLinkActive]="link.fragment ? '' : 'active'"
+                [routerLinkActiveOptions]="{ exact: !!link.exact }"
+                [class.nav-shop]="link.shop">
                 {{ link.label }}
+                @if (link.shop) {
+                  <span class="nav-promo">Ofertas</span>
+                }
               </a>
             }
-
-            <div class="nav-item" (mouseenter)="openDesktop('cursos')" (mouseleave)="scheduleClose()">
-              <button
-                type="button"
-                class="nav-trigger"
-                [class.active]="openMenu() === 'cursos'"
-                [attr.aria-expanded]="openMenu() === 'cursos'"
-                (click)="toggleDesktop('cursos')">
-                Cursos
-                <span class="chev" aria-hidden="true">▾</span>
-              </button>
-              @if (openMenu() === 'cursos') {
-                <div class="mega" role="menu" (mouseenter)="cancelClose()">
-                  <div class="mega-head">
-                    <div>
-                      <p class="mega-kicker">Malla Luz Verde</p>
-                      <h2>Cursos de formación vial</h2>
-                    </div>
-                    <a routerLink="/cursos" class="mega-all" (click)="closeAll()">Ver todos</a>
-                  </div>
-                  <div class="mega-grid">
-                    @for (c of courses(); track c.slug) {
-                      <a class="mega-card" routerLink="/cursos" [fragment]="c.slug" (click)="closeAll()">
-                        <img [src]="coverSrc(c.coverUrl)" [alt]="''" width="72" height="72" loading="lazy" />
-                        <span>
-                          <strong>{{ c.title }}</strong>
-                          <small>{{ c.category }} · {{ c.lessonCount }} lecciones</small>
-                        </span>
-                      </a>
-                    }
-                  </div>
-                  <p class="mega-note">El contenido completo se abre al iniciar sesión.</p>
-                </div>
-              }
-            </div>
-
-            <a routerLink="/escuelas" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Escuelas</a>
-
-            <div class="nav-item" (mouseenter)="openDesktop('instructores')" (mouseleave)="scheduleClose()">
-              <button
-                type="button"
-                class="nav-trigger"
-                [class.active]="openMenu() === 'instructores'"
-                [attr.aria-expanded]="openMenu() === 'instructores'"
-                (click)="toggleDesktop('instructores')">
-                Instructores
-                <span class="chev" aria-hidden="true">▾</span>
-              </button>
-              @if (openMenu() === 'instructores') {
-                <div class="flyout" role="menu" (mouseenter)="cancelClose()">
-                  <a routerLink="/instructores" (click)="closeAll()">Ver directorio</a>
-                  <a routerLink="/instructores" [queryParams]="{ accion: 'contratar' }" (click)="closeAll()">
-                    Contratar clase particular
-                  </a>
-                  <a routerLink="/instructores" [queryParams]="{ accion: 'calificar' }" (click)="closeAll()">
-                    Calificar instructor
-                  </a>
-                </div>
-              }
-            </div>
-
-            <a
-              routerLink="/cascos"
-              routerLinkActive="active"
-              [routerLinkActiveOptions]="{ exact: true }"
-              class="nav-shop"
-              title="Cascos con descuento">
-              Tienda
-              <span class="nav-promo">Desc.</span>
-            </a>
           </nav>
 
           <div class="actions desktop">
             <span class="theme-slot" title="Tema claro u oscuro">
               <ui-theme-toggle />
             </span>
-            @if (loggedIn()) {
-              <ui-button [routerLink]="accountPath()" type="button">Mi cuenta</ui-button>
-            } @else {
-              <a routerLink="/login" class="link-login">Iniciar sesión</a>
-              <ui-button routerLink="/register" type="button">Registrarme</ui-button>
-            }
+            <ui-button [routerLink]="accountPath()" type="button">Mi cuenta</ui-button>
           </div>
 
           <button
@@ -138,46 +68,26 @@ type OpenMenu = 'cursos' | 'instructores' | null;
         @if (menuOpen()) {
           <div id="public-mobile-nav" class="mobile-panel">
             <nav aria-label="Móvil">
-              @for (link of simpleLinks; track link.path) {
-                <a [routerLink]="link.path" (click)="closeAll()">{{ link.label }}</a>
-              }
-              <details class="mobile-group" [open]="mobileGroup() === 'cursos'">
-                <summary (click)="toggleMobileGroup('cursos', $event)">Cursos</summary>
-                <div class="mobile-courses">
-                  @for (c of courses(); track c.slug) {
-                    <a routerLink="/cursos" [fragment]="c.slug" (click)="closeAll()">
-                      <img [src]="coverSrc(c.coverUrl)" alt="" width="40" height="40" loading="lazy" />
-                      <span>{{ c.title }}</span>
-                    </a>
+              @for (link of primaryLinks; track link.label) {
+                <a
+                  [routerLink]="link.path"
+                  [fragment]="link.fragment ?? undefined"
+                  (click)="closeMenu()">
+                  {{ link.label }}
+                  @if (link.shop) {
+                    <span class="nav-promo">Ofertas</span>
                   }
-                  <a routerLink="/cursos" class="mobile-all" (click)="closeAll()">Ver todos los cursos</a>
-                </div>
-              </details>
-              <a routerLink="/escuelas" (click)="closeAll()">Escuelas</a>
-              <details class="mobile-group" [open]="mobileGroup() === 'instructores'">
-                <summary (click)="toggleMobileGroup('instructores', $event)">Instructores</summary>
-                <div class="mobile-sub">
-                  <a routerLink="/instructores" (click)="closeAll()">Ver directorio</a>
-                  <a routerLink="/instructores" [queryParams]="{ accion: 'contratar' }" (click)="closeAll()">Contratar clase particular</a>
-                  <a routerLink="/instructores" [queryParams]="{ accion: 'calificar' }" (click)="closeAll()">Calificar instructor</a>
-                </div>
-              </details>
-              <a routerLink="/cascos" (click)="closeAll()">Tienda <span class="nav-promo">Desc.</span></a>
+                </a>
+              }
+              <a [routerLink]="accountPath()" (click)="closeMenu()">Mi cuenta</a>
             </nav>
             <div class="mobile-actions">
               <span class="theme-slot">
                 <ui-theme-toggle />
               </span>
-              @if (loggedIn()) {
-                <a [routerLink]="accountPath()" (click)="closeAll()">
-                  <ui-button type="button">Mi cuenta</ui-button>
-                </a>
-              } @else {
-                <a routerLink="/login" class="link-login" (click)="closeAll()">Iniciar sesión</a>
-                <a routerLink="/register" (click)="closeAll()">
-                  <ui-button type="button">Registrarme</ui-button>
-                </a>
-              }
+              <a [routerLink]="accountPath()" (click)="closeMenu()">
+                <ui-button type="button">Mi cuenta</ui-button>
+              </a>
             </div>
           </div>
         }
@@ -190,11 +100,16 @@ type OpenMenu = 'cursos' | 'instructores' | null;
       <footer class="foot">
         <div class="foot-inner">
           <a routerLink="/" class="foot-brand">
-            <img [src]="brand.logoWide" [alt]="brand.name + ' — ' + brand.slogan" width="790" height="316" loading="lazy" />
+            <img
+              [src]="brand.logoWide"
+              [alt]="brand.name + ' — ' + brand.slogan"
+              width="790"
+              height="316"
+              loading="lazy" />
           </a>
           <nav class="foot-nav" aria-label="Pie">
-            @for (link of footerLinks; track link.path) {
-              <a [routerLink]="link.path">{{ link.label }}</a>
+            @for (link of footerLinks; track link.path + (link.fragment ?? '')) {
+              <a [routerLink]="link.path" [fragment]="link.fragment ?? undefined">{{ link.label }}</a>
             }
           </nav>
           <nav class="foot-nav foot-legal" aria-label="Documentos legales">
@@ -209,99 +124,60 @@ type OpenMenu = 'cursos' | 'instructores' | null;
   `,
   styleUrl: './public-shell.component.css'
 })
-export class PublicShellComponent implements OnInit {
+export class PublicShellComponent {
   private readonly session = inject(SessionStore);
-  private readonly api = inject(PublicHomeApi);
   readonly brand = BRAND;
   readonly legalLinks = LEGAL_LINKS;
   readonly menuOpen = signal(false);
-  readonly openMenu = signal<OpenMenu>(null);
-  readonly mobileGroup = signal<OpenMenu>(null);
-  readonly courses = signal<PublicCourseCardDto[]>([]);
   readonly loggedIn = computed(() => this.session.isAuthenticated());
-  readonly accountPath = computed(() => this.session.homeRoute());
+  /** Logged-in → panel by role; guest → login (auth redirect). */
+  readonly accountPath = computed(() =>
+    this.loggedIn() ? this.session.homeRoute() : '/login'
+  );
 
-  private closeTimer: ReturnType<typeof setTimeout> | null = null;
-
-  readonly simpleLinks = [
+  readonly primaryLinks: Array<{
+    label: string;
+    path: string;
+    exact?: boolean;
+    fragment?: string;
+    shop?: boolean;
+  }> = [
     { label: 'Inicio', path: '/', exact: true },
+    { label: 'Tienda', path: '/cascos', exact: true, shop: true },
+    { label: 'Para CEA', path: '/', fragment: 'para-cea' },
     { label: 'Nosotros', path: '/nosotros', exact: true }
   ];
 
+  /** Secondary destinations kept reachable from the footer. */
   readonly footerLinks = [
     { label: 'Inicio', path: '/' },
+    { label: 'Tienda', path: '/cascos' },
+    { label: 'Para CEA', path: '/', fragment: 'para-cea' },
     { label: 'Nosotros', path: '/nosotros' },
     { label: 'Cursos', path: '/cursos' },
     { label: 'Escuelas', path: '/escuelas' },
     { label: 'Instructores', path: '/instructores' },
-    { label: 'Tienda', path: '/cascos' },
     { label: 'Contacto', path: '/contacto' },
     { label: 'Apoyar Luz Verde', path: '/apoyar' }
   ];
 
-  ngOnInit(): void {
-    this.api.listCourses().subscribe({
-      next: (list) => this.courses.set(list),
-      error: () => this.courses.set([])
-    });
-  }
-
-  coverSrc(url: string): string {
-    if (!url) return '';
-    if (url.startsWith('http')) return url;
-    return `${env.apiUrl}${url.startsWith('/') ? url : '/' + url}`;
-  }
-
-  openDesktop(menu: OpenMenu): void {
-    this.cancelClose();
-    this.openMenu.set(menu);
-  }
-
-  toggleDesktop(menu: OpenMenu): void {
-    this.openMenu.update((v) => (v === menu ? null : menu));
-  }
-
-  scheduleClose(): void {
-    this.cancelClose();
-    this.closeTimer = setTimeout(() => this.openMenu.set(null), 180);
-  }
-
-  cancelClose(): void {
-    if (this.closeTimer) {
-      clearTimeout(this.closeTimer);
-      this.closeTimer = null;
-    }
-  }
-
   toggleMenu(): void {
     this.menuOpen.update((v) => !v);
-    if (!this.menuOpen()) {
-      this.mobileGroup.set(null);
-    }
   }
 
-  toggleMobileGroup(group: OpenMenu, event: Event): void {
-    event.preventDefault();
-    this.mobileGroup.update((v) => (v === group ? null : group));
-  }
-
-  closeAll(): void {
-    this.cancelClose();
+  closeMenu(): void {
     this.menuOpen.set(false);
-    this.openMenu.set(null);
-    this.mobileGroup.set(null);
   }
 
   @HostListener('window:resize')
   onResize(): void {
-    if (window.innerWidth > 960) {
+    if (typeof window !== 'undefined' && window.innerWidth > 960) {
       this.menuOpen.set(false);
-      this.mobileGroup.set(null);
     }
   }
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
-    this.closeAll();
+    this.closeMenu();
   }
 }
