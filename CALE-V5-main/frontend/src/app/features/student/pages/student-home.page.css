@@ -214,11 +214,6 @@
   color: #be123c;
 }
 
-.tile-accent {
-  border-color: color-mix(in srgb, var(--tone) 45%, var(--color-border));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--tone) 18%, transparent);
-}
-
 .pill {
   display: inline-flex;
   align-items: center;
