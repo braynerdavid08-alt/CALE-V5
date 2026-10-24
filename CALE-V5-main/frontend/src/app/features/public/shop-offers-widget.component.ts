@@ -94,9 +94,13 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
       color: var(--color-primary);
       text-decoration: none;
     }
+    :host {
+      display: block;
+      min-width: 0;
+    }
     .row {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
       gap: 0.75rem;
     }
     .card {
@@ -173,14 +177,16 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
       flex-wrap: wrap;
       gap: 0.35rem;
     }
-    @media (max-width: 960px) {
-      .row {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
     @media (max-width: 520px) {
       .row {
         grid-template-columns: 1fr;
+      }
+      .actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .head {
+        align-items: start;
       }
     }
   `

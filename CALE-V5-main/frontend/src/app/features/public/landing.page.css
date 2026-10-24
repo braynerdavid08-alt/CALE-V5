@@ -795,6 +795,32 @@
   letter-spacing: -0.02em;
 }
 
+.aud-lead {
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+  font-size: var(--text-md);
+}
+
+.ghost-btn.soft {
+  min-height: 2.6rem;
+  padding: 0 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 700;
+  display: inline-grid;
+  place-items: center;
+  text-decoration: none;
+}
+
+.ghost-btn.soft:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
 .aud-card ul {
   list-style: none;
   margin: 0 0 0.5rem;
@@ -838,6 +864,16 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
+}
+
+.bento.even-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.bento.even-4 .bento-card,
+.bento.even-4 .bento-card.wide,
+.bento.even-4 .bento-card:nth-child(4):last-child {
+  grid-column: auto;
 }
 
 .bento-card {
@@ -999,6 +1035,16 @@
 .game-emoji {
   font-size: 1.9rem;
   line-height: 1;
+}
+
+.game-icon {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--color-primary) 22%, transparent);
+  color: #86efac;
 }
 
 .game h3 {
@@ -1452,7 +1498,8 @@
     grid-template-columns: 1fr;
   }
 
-  .bento {
+  .bento,
+  .bento.even-4 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1472,6 +1519,7 @@
 
 @media (max-width: 600px) {
   .bento,
+  .bento.even-4,
   .games-grid,
   .timeline {
     grid-template-columns: 1fr;

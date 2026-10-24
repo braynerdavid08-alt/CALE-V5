@@ -177,6 +177,8 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
   const hasSchool = !!options?.hasSchool;
   const studentNav: NavItem[] = [
     { label: 'Inicio', path: '/student', icon: 'home', exact: true },
+    SHOP_ITEM,
+    DONATE_ITEM,
     { label: 'Aula en Vivo', path: '/live/join', icon: 'exam', exact: true },
     { label: 'Mis Evaluaciones', path: '/student/evaluations', icon: 'exam', exact: true },
     { label: 'Simulador', path: '/student/simulator', icon: 'exam', exact: true },
@@ -193,9 +195,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
     { label: 'Mensajes', path: '/notifications', icon: 'bell', exact: true },
     { label: 'Perfil', path: '/profile', icon: 'users', exact: true },
     REQUESTS_ITEM,
-    PQR_ITEM,
-    SHOP_ITEM,
-    DONATE_ITEM
+    PQR_ITEM
   ];
 
   return studentNav.filter((item) => !item.requiresSchool || hasSchool);
