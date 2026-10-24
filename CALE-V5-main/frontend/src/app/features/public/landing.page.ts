@@ -8,8 +8,7 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiIconComponent } from '../../shared/ui/ui-icon.component';
 import { UiLoadingComponent } from '../../shared/ui/ui-loading.component';
 import { PublicHomeApi } from './public-home.api';
-import { PublicHomeDto, PublicTestimonialsDto, ResolvedStatDto } from './public.models';
-import { formatStatDisplay } from './public-stat.util';
+import { PublicHomeDto, PublicTestimonialsDto } from './public.models';
 import { ShopApi } from './shop.api';
 import { PublicShopDto } from './shop.models';
 
@@ -24,7 +23,6 @@ import { PublicShopDto } from './shop.models';
       </div>
     } @else {
       @if (home(); as h) {
-        <!-- Desktop: solo Inicio + Tienda en el bloque superior (sin stats ni otras secciones en medio). -->
         <div class="home-lead">
           @if (h.hero.visible) {
             <section class="hero" aria-labelledby="home-heading">
@@ -48,7 +46,7 @@ import { PublicShopDto } from './shop.models';
                   <p class="lead">{{ h.hero.description }}</p>
                   <div class="cta-row">
                     <ui-button routerLink="/cascos">Explorar tienda</ui-button>
-                    <a class="ghost-btn" routerLink="/" fragment="para-cea">
+                    <a class="ghost-btn" routerLink="/contacto">
                       <ui-icon name="building" size="sm" />
                       Plataforma para CEA
                     </a>
@@ -63,7 +61,9 @@ import { PublicShopDto } from './shop.models';
                           }
                         </span>
                         <span class="trust-text">
-                          <span class="stars" [attr.aria-label]="r.average + ' de 5 estrellas'">{{ starString(r.average) }}</span>
+                          <span class="stars" [attr.aria-label]="r.average + ' de 5 estrellas'">{{
+                            starString(r.average)
+                          }}</span>
                           <strong>{{ r.average }}/5</strong> · {{ r.count }}
                           {{ r.count === 1 ? 'valoración' : 'valoraciones' }} de estudiantes
                         </span>
@@ -186,242 +186,6 @@ import { PublicShopDto } from './shop.models';
             </div>
           </section>
         </div>
-
-        @if (visibleStats(h).length) {
-          <section class="stats-strip">
-            <div class="wrap stats-grid">
-              @for (st of visibleStats(h); track st.key) {
-                <div class="stat">
-                  <span class="stat-icon" aria-hidden="true"><ui-icon [name]="st.icon || 'users'" /></span>
-                  <span>
-                    <strong class="stat-value">{{ formatStat(st) }}</strong>
-                    <span class="stat-label">{{ st.label }}</span>
-                  </span>
-                </div>
-              }
-            </div>
-          </section>
-        }
-
-        <section id="para-cea" class="section cea-anchor" aria-labelledby="cea-heading">
-          <div class="wrap">
-            <header class="sec-head center">
-              <p class="eyebrow">Para CEA</p>
-              <h2 id="cea-heading">Gestor y formación para tu escuela</h2>
-              <p>
-                Luz Verde también es la plataforma con la que Centros de Enseñanza Automovilística
-                administran aprendices, agenda, exámenes y clases — y donde los estudiantes se preparan
-                para el examen teórico.
-              </p>
-            </header>
-            <div class="audience">
-              <article class="aud-card student">
-                <span class="aud-tag">Estudiantes</span>
-                <h3>Prepárate para aprobar</h3>
-                <ul>
-                  @for (f of studentFeatures; track f) {
-                    <li><span class="check" aria-hidden="true">✓</span>{{ f }}</li>
-                  }
-                </ul>
-                <ui-button routerLink="/register">Crear cuenta de estudiante</ui-button>
-              </article>
-              <article class="aud-card school">
-                <span class="aud-tag">Escuelas (CEA)</span>
-                <h3>Gestiona sin papeles</h3>
-                <ul>
-                  @for (f of schoolFeatures; track f) {
-                    <li><span class="check" aria-hidden="true">✓</span>{{ f }}</li>
-                  }
-                </ul>
-                <div class="aud-actions">
-                  <ui-button routerLink="/register-school">Registrar mi escuela</ui-button>
-                  <ui-button routerLink="/contacto" variant="secondary">Hablar con comercial</ui-button>
-                </div>
-              </article>
-            </div>
-          </div>
-        </section>
-
-        @if (h.benefits.length) {
-          <section class="section alt">
-            <div class="wrap">
-              <header class="sec-head center">
-                <p class="eyebrow">Beneficios</p>
-                <h2>Por qué formarte con {{ brand.name }}</h2>
-                <p>Todo lo que necesitas para avanzar en tu licencia, en un solo lugar.</p>
-              </header>
-              <div class="bento">
-                @for (b of h.benefits; track b.id; let i = $index) {
-                  <article class="bento-card" [class.wide]="i === 0" [attr.data-tone]="b.tone || 'blue'">
-                    <span class="tone-icon" aria-hidden="true"><ui-icon [name]="b.icon || 'book'" /></span>
-                    <h3>{{ b.title }}</h3>
-                    <p>{{ b.description }}</p>
-                  </article>
-                }
-              </div>
-            </div>
-          </section>
-        }
-
-        <section class="section games">
-          <div class="wrap games-inner">
-            <div class="games-copy">
-              <p class="eyebrow">Práctica</p>
-              <h2>Practica jugando, no memorizando</h2>
-              <p>Pequeños retos diarios que se sienten como un juego y te dejan listo para el examen teórico.</p>
-              <ui-button routerLink="/register">Empezar a practicar</ui-button>
-            </div>
-            <div class="games-grid">
-              @for (g of games; track g.title) {
-                <article class="game">
-                  <span class="game-emoji" aria-hidden="true">{{ g.emoji }}</span>
-                  <h3>{{ g.title }}</h3>
-                  <p>{{ g.text }}</p>
-                </article>
-              }
-            </div>
-          </div>
-        </section>
-
-        @if (h.stepsVisible && h.steps.length) {
-          <section class="section">
-            <div class="wrap">
-              <header class="sec-head center">
-                <p class="eyebrow">Paso a paso</p>
-                <h2>{{ h.stepsTitle }}</h2>
-                <p>{{ h.stepsSubtitle }}</p>
-              </header>
-              <ol class="timeline">
-                @for (s of h.steps; track s.id) {
-                  <li class="t-step" [attr.data-tone]="s.tone || 'blue'">
-                    <span class="t-num">{{ s.number || $index + 1 }}</span>
-                    <h3>{{ s.title }}</h3>
-                    <p>{{ s.description }}</p>
-                  </li>
-                }
-              </ol>
-            </div>
-          </section>
-        }
-
-        @if (reviews(); as r) {
-          @if (r.items.length) {
-            <section class="section alt">
-              <div class="wrap">
-                <header class="sec-head row">
-                  <div>
-                    <p class="eyebrow">Valoraciones</p>
-                    <h2>Lo que dicen nuestros estudiantes</h2>
-                    <p>Opiniones reales dejadas al terminar un simulacro en {{ brand.name }}.</p>
-                  </div>
-                  <div class="rating-box">
-                    <strong>{{ r.average }}</strong>
-                    <span class="stars big">{{ starString(r.average) }}</span>
-                    <small>{{ r.count }} {{ r.count === 1 ? 'valoración' : 'valoraciones' }}</small>
-                  </div>
-                </header>
-                <div class="reviews">
-                  @for (t of r.items; track t.id) {
-                    <figure class="review">
-                      <span class="stars">{{ starString(t.stars) }}</span>
-                      <blockquote>“{{ t.comment }}”</blockquote>
-                      <figcaption>
-                        <span class="av solid">{{ initials(t.displayName) }}</span>
-                        <span>
-                          <strong>{{ t.displayName }}</strong>
-                          <small>{{ t.schoolName || 'Estudiante de ' + brand.name }}</small>
-                        </span>
-                      </figcaption>
-                    </figure>
-                  }
-                </div>
-              </div>
-            </section>
-          }
-        }
-
-        @if (h.schoolsVisible && h.schools.length) {
-          <section class="section">
-            <div class="wrap">
-              <header class="sec-head row">
-                <div>
-                  <p class="eyebrow">Red de escuelas</p>
-                  <h2>Escuelas aliadas</h2>
-                  <p>Centros de enseñanza automovilística que ya forman a sus estudiantes con {{ brand.name }}.</p>
-                </div>
-                <ui-button routerLink="/escuelas" variant="secondary">Ver todas</ui-button>
-              </header>
-              <div class="people">
-                @for (school of h.schools; track school.id) {
-                  <article class="person">
-                    <span class="av square">{{ initials(school.name) }}</span>
-                    <span>
-                      <strong>{{ school.name }}</strong>
-                      <small>{{ school.city }}{{ school.department ? ', ' + school.department : '' }}</small>
-                    </span>
-                  </article>
-                }
-              </div>
-            </div>
-          </section>
-        }
-
-        @if (h.instructorsVisible && h.instructors.length) {
-          <section class="section alt">
-            <div class="wrap">
-              <header class="sec-head row">
-                <div>
-                  <p class="eyebrow">Equipo</p>
-                  <h2>Instructores</h2>
-                  <p>Formadores que acompañan tu proceso teórico y práctico.</p>
-                </div>
-                <ui-button routerLink="/instructores" variant="secondary">Ver todos</ui-button>
-              </header>
-              <div class="people">
-                @for (ins of h.instructors; track ins.id) {
-                  <article class="person">
-                    <span class="av solid">{{ initials(ins.displayName) }}</span>
-                    <span>
-                      <strong>{{ ins.displayName }}</strong>
-                      <small>{{ ins.schoolName || 'Instructor ' + brand.name }}</small>
-                    </span>
-                  </article>
-                }
-              </div>
-            </div>
-          </section>
-        }
-
-        <section class="section">
-          <div class="wrap faq-wrap">
-            <header class="sec-head">
-              <p class="eyebrow">Preguntas frecuentes</p>
-              <h2>¿Tienes dudas?</h2>
-              <p>Si no encuentras tu respuesta, <a routerLink="/contacto">escríbenos</a>.</p>
-            </header>
-            <div class="faq">
-              @for (q of faqs; track q.q) {
-                <details>
-                  <summary>{{ q.q }}</summary>
-                  <p>{{ q.a }}</p>
-                </details>
-              }
-            </div>
-          </div>
-        </section>
-
-        <section class="cta-band">
-          <div class="wrap cta-inner">
-            <div>
-              <h2>Siguiente paso</h2>
-              <p>Explora la tienda o conoce el gestor para tu CEA.</p>
-            </div>
-            <div class="cta-row">
-              <ui-button routerLink="/cascos">Explorar tienda</ui-button>
-              <a class="ghost-btn" routerLink="/" fragment="para-cea">Para CEA</a>
-            </div>
-          </div>
-        </section>
       }
     }
   `,
@@ -453,52 +217,6 @@ export class LandingPage implements OnInit {
   readonly shopHeadline = computed(() =>
     this.shopPromoCount() > 0 ? 'Equipo con precios vigentes' : 'Tienda de protección vial'
   );
-
-  readonly studentFeatures = [
-    'Simulacros con preguntas tipo examen oficial',
-    'Reto diario y repaso de las preguntas que fallas',
-    'Medidor que te dice si ya estás listo',
-    'Biblioteca jurídica con las normas de tránsito',
-    'Clases en vivo con tu instructor'
-  ];
-
-  readonly schoolFeatures = [
-    'Aprendices, pagos y saldos en un solo panel',
-    'Programación de teoría, práctica y exámenes',
-    'Resultados por estudiante y por tema',
-    'Alertas de estudiantes que dejaron de practicar',
-    'Aula en vivo y presentaciones para tus instructores'
-  ];
-
-  readonly games = [
-    { emoji: '🔥', title: 'Reto diario', text: '5 preguntas al día para mantener tu racha.' },
-    { emoji: '⚡', title: 'Señal relámpago', text: '¿Cuántas señales reconoces en 60 segundos?' },
-    { emoji: '⚔️', title: 'Duelo 1 vs 1', text: 'Reta a un compañero con un código.' },
-    { emoji: '🏅', title: 'Insignias y ranking', text: 'Sube de nivel y compite con tu escuela.' }
-  ];
-
-  readonly faqs = [
-    {
-      q: '¿Qué es el examen CALE?',
-      a: 'Es la evaluación teórica que debes aprobar para obtener tu licencia de conducción en Colombia. En Luz Verde practicas con preguntas del mismo estilo y ves en qué temas debes mejorar.'
-    },
-    {
-      q: '¿Cómo compro en la tienda?',
-      a: 'Entra a Tienda, elige el producto y completa el pedido por WhatsApp con el botón del catálogo. No hay carrito en la web: el pedido se confirma por ese canal.'
-    },
-    {
-      q: 'Soy una escuela (CEA), ¿cómo empiezo?',
-      a: 'Regístrate como escuela o escríbenos desde Contacto para conocer el gestor de aprendices, agenda, exámenes y formación. También puedes ir a la sección Para CEA en el inicio.'
-    },
-    {
-      q: '¿Cuántas preguntas puedo fallar en el examen?',
-      a: 'En los simulacros usamos la regla del examen: puedes tener como máximo 3 respuestas incorrectas para aprobar.'
-    },
-    {
-      q: '¿Funciona en el celular?',
-      a: 'Sí. Luz Verde funciona en cualquier navegador y puedes instalarla en tu celular como una aplicación.'
-    }
-  ];
 
   ngOnInit(): void {
     this.api.getHome().subscribe({
@@ -548,17 +266,8 @@ export class LandingPage implements OnInit {
     return null;
   }
 
-  /** Hide unverifiable marketing claims like “#1” from CMS badges. */
   isUnverifiableBadge(raw: string): boolean {
     return /#\s*1\b|n[uú]mero\s*uno|n[uú]mero\s*1/i.test(raw.trim());
-  }
-
-  visibleStats(h: PublicHomeDto): ResolvedStatDto[] {
-    return [...h.stats].filter((s) => s.visible).sort((a, b) => a.sortOrder - b.sortOrder);
-  }
-
-  formatStat(stat: ResolvedStatDto): string {
-    return formatStatDisplay(stat);
   }
 
   initials(name: string): string {
@@ -596,89 +305,11 @@ export class LandingPage implements OnInit {
         imageAlt: BRAND.name,
         imageEnabled: false
       },
-      benefits: [
-        {
-          id: 'b1',
-          title: 'Aprende a tu ritmo',
-          description: 'Estudia desde donde estés con contenidos disponibles 24/7.',
-          icon: 'graduate',
-          tone: 'blue',
-          sortOrder: 1,
-          active: true
-        },
-        {
-          id: 'b2',
-          title: 'Clases prácticas',
-          description: 'Coordina tus clases con instructores certificados de tu escuela.',
-          icon: 'play',
-          tone: 'green',
-          sortOrder: 2,
-          active: true
-        },
-        {
-          id: 'b3',
-          title: 'Evaluaciones inteligentes',
-          description: 'Prepárate con simulacros teóricos como los del examen oficial.',
-          icon: 'exam',
-          tone: 'purple',
-          sortOrder: 3,
-          active: true
-        },
-        {
-          id: 'b4',
-          title: 'Certificación',
-          description: 'Cumple los requisitos y completa tu proceso de formación.',
-          icon: 'star',
-          tone: 'yellow',
-          sortOrder: 4,
-          active: true
-        }
-      ],
-      stepsVisible: true,
-      stepsTitle: '¿Cómo funciona Luz Verde?',
-      stepsSubtitle: 'Cuatro pasos claros para completar tu formación vial.',
-      steps: [
-        {
-          id: 's1',
-          number: 1,
-          title: 'Regístrate',
-          description: 'Crea tu cuenta y vincúlate a tu escuela de conducción.',
-          icon: 'users',
-          tone: 'blue',
-          sortOrder: 1,
-          active: true
-        },
-        {
-          id: 's2',
-          number: 2,
-          title: 'Estudia',
-          description: 'Accede a los contenidos teóricos y a la biblioteca jurídica.',
-          icon: 'book',
-          tone: 'green',
-          sortOrder: 2,
-          active: true
-        },
-        {
-          id: 's3',
-          number: 3,
-          title: 'Practica',
-          description: 'Presenta simulacros y repasa las preguntas que fallaste.',
-          icon: 'exam',
-          tone: 'purple',
-          sortOrder: 3,
-          active: true
-        },
-        {
-          id: 's4',
-          number: 4,
-          title: 'Aprueba',
-          description: 'Llega preparado al examen y obtén tu licencia.',
-          icon: 'star',
-          tone: 'yellow',
-          sortOrder: 4,
-          active: true
-        }
-      ],
+      benefits: [],
+      stepsVisible: false,
+      stepsTitle: '',
+      stepsSubtitle: '',
+      steps: [],
       stats: [],
       schoolsVisible: false,
       schools: [],
