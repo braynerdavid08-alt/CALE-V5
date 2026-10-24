@@ -136,6 +136,12 @@ export interface JoinLiveSessionResponse {
   joinCode: string;
 }
 
+export interface ResolveJoinCodeResponse {
+  kind: 'live' | 'gameShow' | string;
+  sessionId: number;
+  title: string;
+}
+
 export interface LiveDoubtDto {
   id: number;
   participantId: number;
@@ -228,6 +234,12 @@ export class LiveApi {
   getPresentation(sessionId: number, token: string) {
     return this.http.get<LivePresentationDto>(`${this.base}/sessions/${sessionId}/presentation`, {
       params: { token }
+    });
+  }
+
+  resolveJoin(code: string) {
+    return this.http.get<ResolveJoinCodeResponse>(`${this.base}/sessions/resolve`, {
+      params: { code }
     });
   }
 

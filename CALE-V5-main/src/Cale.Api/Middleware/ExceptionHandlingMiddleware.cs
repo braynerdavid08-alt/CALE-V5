@@ -76,6 +76,18 @@ public sealed class ExceptionHandlingMiddleware
                     requestId,
                     userId);
             }
+            else if (ex is NotFoundException)
+            {
+                // Expected probes (unified /live/join tries live then game-show) and mistyped codes.
+                _logger.LogInformation(
+                    "Not found {ErrorCode}: {Title} on {Method} {Path} RequestId={RequestId} UserId={UserId}",
+                    code,
+                    title,
+                    context.Request.Method,
+                    context.Request.Path.Value,
+                    requestId,
+                    userId);
+            }
             else if (ex is DomainException)
             {
                 _logger.LogWarning(

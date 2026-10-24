@@ -1,9 +1,13 @@
 using Cale.Api.Extensions;
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Exceptions;
+using Cale.Modules.GameShow.Application.Abstractions;
+using Cale.Modules.GameShow.Domain;
 using Cale.Modules.Identity.Application.Abstractions;
+using Cale.Modules.LiveClassroom.Application.Abstractions;
 using Cale.Modules.LiveClassroom.Application.Commands;
 using Cale.Modules.LiveClassroom.Application.DTOs;
+using Cale.Modules.LiveClassroom.Domain;
 using Cale.Modules.Presentation.Application.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,12 +23,21 @@ public sealed class LiveController : ControllerBase
     private readonly LiveSessionHandler _handler;
     private readonly IPresentationStore _presentations;
     private readonly IUserStore _users;
+    private readonly ILiveSessionStore _liveSessions;
+    private readonly IGameShowStore _gameShowSessions;
 
-    public LiveController(LiveSessionHandler handler, IPresentationStore presentations, IUserStore users)
+    public LiveController(
+        LiveSessionHandler handler,
+        IPresentationStore presentations,
+        IUserStore users,
+        ILiveSessionStore liveSessions,
+        IGameShowStore gameShowSessions)
     {
         _handler = handler;
         _presentations = presentations;
         _users = users;
+        _liveSessions = liveSessions;
+        _gameShowSessions = gameShowSessions;
     }
 
     [HttpPost("sessions")]
@@ -97,6 +110,46 @@ public sealed class LiveController : ControllerBase
             Math.Clamp(slideIndex, 0, Math.Max(0, slides.Count - 1)),
             slides.Count,
             slides));
+    }
+
+    /// <summary>
+    /// Tell the client whether a join code is an aula en vivo room or 100 Estudiantes Dijeron,
+    /// so /live/join does not have to probe live first and log a false 404.
+    /// </summary>
+    [HttpGet("sessions/resolve")]
+    [EnableRateLimiting(RateLimitPolicies.PublicJoin)]
+    [Authorize]
+    public async Task<ActionResult<ResolveJoinCodeResponse>> Resolve(
+        [FromQuery] string code,
+        CancellationToken ct)
+    {
+        var normalized = (code ?? "").Trim().ToUpperInvariant();
+        if (normalized.Length < 4)
+        {
+            throw new DomainException("Código inválido.", 400, "invalid_join_code");
+        }
+
+        var live = await _liveSessions.GetByJoinCodeAsync(normalized, ct);
+        if (live is not null && live.Status != LiveSessionStatuses.Ended)
+        {
+            return Ok(new ResolveJoinCodeResponse("live", live.Id, live.Title));
+        }
+
+        var game = await _gameShowSessions.GetByJoinCodeAsync(normalized, ct);
+        if (game is not null && game.Status != GameShowSessionStatuses.Ended)
+        {
+            return Ok(new ResolveJoinCodeResponse("gameShow", game.Id, game.Title));
+        }
+
+        if (live is not null || game is not null)
+        {
+            throw new DomainException(
+                live is not null ? "La sesión ya terminó." : "Esta partida ya terminó.",
+                400,
+                live is not null ? "session_ended" : "game_ended");
+        }
+
+        throw new NotFoundException("Sala no encontrada.", "session_not_found");
     }
 
     [HttpPost("sessions/join")]

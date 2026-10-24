@@ -121,6 +121,12 @@ public sealed record JoinLiveSessionResponse(
     string Status,
     string JoinCode);
 
+/// <param name="Kind">"live" or "gameShow".</param>
+public sealed record ResolveJoinCodeResponse(
+    string Kind,
+    int SessionId,
+    string Title);
+
 public sealed record LiveHostControlRequest(
     string Action,
     LiveQuickQuestionRequest? QuickQuestion = null);
