@@ -28,7 +28,13 @@ export interface NavOptions {
 }
 
 const DONATE_ITEM: NavItem = { label: 'Apoyar Luz Verde', path: '/donaciones', icon: 'heart', exact: true };
-const SHOP_ITEM: NavItem = { label: 'Cascos con descuento', path: '/cascos', icon: 'image', exact: true };
+const SHOP_ITEM: NavItem = { label: 'Tienda y descuentos', path: '/tienda', icon: 'image', exact: false };
+const SHOP_SCHOOL_ITEM: NavItem = {
+  label: 'Tienda y equipamiento',
+  path: '/tienda',
+  icon: 'image',
+  exact: false
+};
 const REQUESTS_ITEM: NavItem = { label: 'Proponer y sugerir', path: '/solicitudes', icon: 'idea', exact: true };
 const PQR_ITEM: NavItem = { label: 'PQR y mis datos', path: '/mis-pqr', icon: 'list', exact: true };
 
@@ -131,7 +137,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
       },
       REQUESTS_ITEM,
       PQR_ITEM,
-      SHOP_ITEM,
+      SHOP_SCHOOL_ITEM,
       ...(free ? [DONATE_ITEM] : [])
     ];
   }

@@ -6,14 +6,14 @@ import { PublicShopProductDto } from './shop.models';
 
 /**
  * Compact product teaser for landing / catalog consistency.
- * Links to the shop page (no per-product route); purchase stays on /cascos via WhatsApp.
+ * Links to the shop page (no per-product route); purchase stays on /tienda via WhatsApp.
  */
 @Component({
   selector: 'app-public-product-card',
   standalone: true,
   imports: [CurrencyPipe, RouterLink],
   template: `
-    <a class="card" routerLink="/cascos" [attr.aria-label]="'Ver ' + product.name + ' en la tienda'">
+    <a class="card" [routerLink]="['/tienda', product.slug]" [attr.aria-label]="'Ver ' + product.name + ' en la tienda'">
       <div class="media">
         @if (imageSrc) {
           <img [src]="imageSrc" [alt]="product.name" width="320" height="240" loading="lazy" />

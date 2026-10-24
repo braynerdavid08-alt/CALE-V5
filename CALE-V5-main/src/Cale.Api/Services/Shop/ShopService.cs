@@ -45,6 +45,21 @@ public sealed class ShopService
             products.Select(ToPublicProduct).ToList());
     }
 
+    public async Task<PublicShopProductDto?> GetPublicBySlugAsync(string slug, CancellationToken ct = default)
+    {
+        var normalized = (slug ?? "").Trim().ToLowerInvariant();
+        if (normalized.Length == 0)
+        {
+            return null;
+        }
+
+        var product = await _db.Set<ShopProduct>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.IsActive && p.Slug == normalized, ct);
+
+        return product is null ? null : ToPublicProduct(product);
+    }
+
     public async Task<AdminShopDto> GetAdminAsync(CancellationToken ct = default)
     {
         var settings = await EnsureSettingsAsync(ct);
@@ -102,8 +117,13 @@ public sealed class ShopService
             body.IsActive,
             body.IsFeatured,
             body.SortOrder,
-            _clock.UtcNow);
+            _clock.UtcNow,
+            body.Brand,
+            body.Reference,
+            body.Colors,
+            body.ProductType);
 
+        await EnsureUniqueSlugAsync(product, ct);
         _db.Set<ShopProduct>().Add(product);
         await _db.SaveChangesAsync(ct);
         return ToAdminProduct(product);
@@ -131,8 +151,13 @@ public sealed class ShopService
             body.IsActive,
             body.IsFeatured,
             body.SortOrder,
-            _clock.UtcNow);
+            _clock.UtcNow,
+            body.Brand,
+            body.Reference,
+            body.Colors,
+            body.ProductType);
 
+        await EnsureUniqueSlugAsync(product, ct);
         await _db.SaveChangesAsync(ct);
         return ToAdminProduct(product);
     }
@@ -147,6 +172,31 @@ public sealed class ShopService
 
         _db.Set<ShopProduct>().Remove(product);
         await _db.SaveChangesAsync(ct);
+    }
+
+    private async Task EnsureUniqueSlugAsync(ShopProduct product, CancellationToken ct)
+    {
+        var baseSlug = product.Slug;
+        var slug = baseSlug;
+        var n = 2;
+        while (await _db.Set<ShopProduct>()
+                   .AnyAsync(p => p.Slug == slug && p.Id != product.Id, ct))
+        {
+            slug = $"{baseSlug}-{n}";
+            n++;
+            if (n > 50)
+            {
+                throw new DomainException(
+                    "No se pudo generar una URL única para este producto.",
+                    400,
+                    "duplicate_slug");
+            }
+        }
+
+        if (slug != product.Slug)
+        {
+            product.MakeSlugUnique(slug);
+        }
     }
 
     private async Task<ShopSettings> EnsureSettingsAsync(CancellationToken ct)
@@ -215,10 +265,15 @@ public sealed class ShopService
             p.PromoLabel,
             p.DiscountPercent,
             p.Category,
+            p.ProductType,
+            p.Brand,
+            p.Reference,
             p.Sizes,
+            p.Colors,
             p.Stock,
             p.IsFeatured,
-            p.HasPromo);
+            p.HasPromo,
+            p.CreatedAt);
 
     private static AdminShopProductDto ToAdminProduct(ShopProduct p) =>
         new(
@@ -233,11 +288,16 @@ public sealed class ShopService
             p.CompareAtPriceCop,
             p.PromoLabel,
             p.Category,
+            p.ProductType,
+            p.Brand,
+            p.Reference,
             p.Sizes,
+            p.Colors,
             p.Stock,
             p.IsActive,
             p.IsFeatured,
             p.SortOrder,
+            p.CreatedAt,
             p.UpdatedAt);
 
     private static ShopSettingsDto ToSettingsDto(ShopSettings s) =>
@@ -266,10 +326,15 @@ public sealed record PublicShopProductDto(
     string? PromoLabel,
     int? DiscountPercent,
     string Category,
+    string? ProductType,
+    string? Brand,
+    string? Reference,
     string? Sizes,
+    string? Colors,
     int Stock,
     bool IsFeatured,
-    bool HasPromo);
+    bool HasPromo,
+    DateTime CreatedAt);
 
 public sealed record AdminShopDto(
     ShopSettingsDto Settings,
@@ -296,11 +361,16 @@ public sealed record AdminShopProductDto(
     decimal? CompareAtPriceCop,
     string? PromoLabel,
     string Category,
+    string? ProductType,
+    string? Brand,
+    string? Reference,
     string? Sizes,
+    string? Colors,
     int Stock,
     bool IsActive,
     bool IsFeatured,
     int SortOrder,
+    DateTime CreatedAt,
     DateTime UpdatedAt);
 
 public sealed record UpdateShopSettingsRequest(
@@ -320,7 +390,11 @@ public sealed record UpsertShopProductRequest(
     decimal? CompareAtPriceCop,
     string? PromoLabel,
     string? Category,
+    string? ProductType,
+    string? Brand,
+    string? Reference,
     string? Sizes,
+    string? Colors,
     int Stock,
     bool IsActive,
     bool IsFeatured,

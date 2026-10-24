@@ -12,6 +12,7 @@ import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
+import { ShopOffersWidgetComponent } from '../../public/shop-offers-widget.component';
 
 interface SchoolProfileDto {
   contactName: string;
@@ -59,7 +60,8 @@ const VISIBLE_TODOS = 6;
     UiBadgeComponent,
     UiButtonComponent,
     UiErrorComponent,
-    UiLoadingComponent
+    UiLoadingComponent,
+    ShopOffersWidgetComponent
   ],
   templateUrl: './school-home.page.html',
   styleUrl: './school-home.page.css'

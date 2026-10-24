@@ -1,131 +1,173 @@
-import { CurrencyPipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
+import { RouterLink } from '@angular/router';
 import { brandPageTitle } from '../../core/brand';
 import { mapApiError } from '../../core/http/map-api-error';
 import { resolveMediaUrl } from '../../core/media/resolve-media-url';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../shared/ui/ui-loading.component';
+import { discountPercent, sortProducts } from './shop-commerce';
+import { ShopProductCardComponent } from './shop-product-card.component';
 import { ShopApi } from './shop.api';
-import { PublicShopDto, PublicShopProductDto } from './shop.models';
+import { PublicShopDto, PublicShopProductDto, SHOP_CATEGORIES } from './shop.models';
 
 @Component({
   selector: 'app-public-shop-page',
   standalone: true,
-  imports: [CurrencyPipe, UiButtonComponent, UiErrorComponent, UiLoadingComponent],
+  imports: [
+    RouterLink,
+    UiButtonComponent,
+    UiErrorComponent,
+    UiLoadingComponent,
+    ShopProductCardComponent
+  ],
   template: `
     <div class="page">
       @if (loading()) {
         <ui-loading label="Cargando catálogo…" />
       } @else if (error()) {
         <ui-error [message]="error()" />
-      } @else {
-        @if (shop(); as s) {
-          <header class="hero" [class.has-image]="!!s.heroImageUrl">
-            @if (s.heroImageUrl) {
-              <img class="hero-bg" [src]="media(s.heroImageUrl)" alt="" />
-              <div class="hero-scrim" aria-hidden="true"></div>
-            }
-            <div class="hero-copy">
-              <p class="eyebrow">Equipo de protección</p>
-              <h1>{{ s.pageTitle }}</h1>
-              <p class="lead">{{ s.pageSubtitle }}</p>
+        <ui-button type="button" (click)="load()">Reintentar</ui-button>
+      } @else if (shop()) {
+        <header class="hero" [class.has-image]="!!shop()?.heroImageUrl">
+          @if (shop()!.heroImageUrl) {
+            <img class="hero-bg" [src]="media(shop()!.heroImageUrl)" alt="" />
+            <div class="hero-scrim" aria-hidden="true"></div>
+          }
+          <div class="hero-copy">
+            <p class="eyebrow">Tienda Luz Verde</p>
+            <h1>Equípate para un camino más seguro</h1>
+            <p class="lead">
+              Encuentra cascos, guantes y accesorios para motociclistas con excelentes precios. Explora
+              las ofertas y consulta por WhatsApp, sin compromiso.
+            </p>
+            <div class="hero-actions">
+              <ui-button type="button" (click)="scrollTo('ofertas')">Ver ofertas</ui-button>
+              <a routerLink="/tienda/catalogo" class="ghost">Explorar catálogo</a>
             </div>
-          </header>
+            <p class="hero-note">Consulta disponibilidad por WhatsApp</p>
+          </div>
+        </header>
 
-          @if (s.products.length === 0) {
-            <p class="empty">Pronto publicaremos cascos y equipo. Vuelve en unos días.</p>
-          } @else {
+        <section class="cats" aria-label="Categorías">
+          @for (c of categoryChips(); track c.name) {
+            <a
+              class="chip"
+              [class.disabled]="c.count === 0"
+              [routerLink]="c.count ? '/tienda/catalogo' : null"
+              [queryParams]="c.count ? { categoria: c.name } : null">
+              {{ c.name }}
+              <span class="n">{{ c.count }}</span>
+            </a>
+          }
+        </section>
+
+        @if (topDiscounts().length) {
+          <section id="ofertas" class="block">
+            <header class="block-head">
+              <div>
+                <p class="eyebrow">Mayores descuentos</p>
+                <h2>Ofertas destacadas</h2>
+              </div>
+              <a routerLink="/tienda/catalogo" [queryParams]="{}" class="more">Ver catálogo</a>
+            </header>
             <div class="grid">
-              @for (p of s.products; track p.id) {
-                <article class="item" [class.featured]="p.isFeatured">
-                  <div class="media">
-                    @if (productImages(p).length) {
-                      <img
-                        [src]="media(activeImage(p))"
-                        [alt]="p.name"
-                        width="480"
-                        height="360"
-                        loading="lazy" />
-                    } @else {
-                      <div class="placeholder" aria-hidden="true">Casco</div>
-                    }
-                    @if (p.promoLabel || p.discountPercent) {
-                      <span class="badge">{{ p.promoLabel || ('−' + p.discountPercent + '%') }}</span>
-                    }
-                  </div>
-                  @if (productImages(p).length > 1) {
-                    <div class="thumbs" role="list">
-                      @for (url of productImages(p); track url; let i = $index) {
-                        <button
-                          type="button"
-                          class="thumb"
-                          [class.on]="activeIndex(p.id) === i"
-                          (click)="setActive(p.id, i)"
-                          [attr.aria-label]="'Ángulo ' + (i + 1)">
-                          <img [src]="media(url)" alt="" width="56" height="42" loading="lazy" />
-                        </button>
-                      }
-                    </div>
-                  }
-                  <div class="body">
-                    <p class="cat">{{ p.category }}</p>
-                    <h2>{{ p.name }}</h2>
-                    <p class="desc">{{ p.shortDescription }}</p>
-                    @if (p.sizes) {
-                      <p class="sizes">Tallas: {{ p.sizes }}</p>
-                    }
-                    <div class="price-row">
-                      <strong>{{ p.priceCop | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
-                      @if (p.compareAtPriceCop && p.compareAtPriceCop > p.priceCop) {
-                        <span class="was">{{ p.compareAtPriceCop | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
-                      }
-                      @if (discountLabel(p); as disc) {
-                        <span class="disc">{{ disc }}</span>
-                      }
-                    </div>
-                    @if (p.stock <= 0) {
-                      <p class="stock out">Agotado por ahora</p>
-                    } @else if (p.stock <= 3) {
-                      <p class="stock">Quedan {{ p.stock }}</p>
-                    }
-                    <div class="actions">
-                      @if (s.canOrder && p.stock > 0) {
-                        <ui-button type="button" (click)="order(s, p)">{{ s.ctaLabel }}</ui-button>
-                      } @else if (!s.canOrder) {
-                        <p class="hint">WhatsApp de pedidos pendiente de configurar.</p>
-                      }
-                    </div>
-                  </div>
-                </article>
+              @for (p of topDiscounts(); track p.id) {
+                <app-shop-product-card [product]="p" [shop]="shop()!" />
               }
             </div>
+          </section>
+        }
+
+        @if (featured().length) {
+          <section class="block">
+            <header class="block-head">
+              <div>
+                <p class="eyebrow">Selección Luz Verde</p>
+                <h2>Productos destacados</h2>
+              </div>
+            </header>
+            <div class="grid">
+              @for (p of featured(); track p.id) {
+                <app-shop-product-card [product]="p" [shop]="shop()!" />
+              }
+            </div>
+          </section>
+        }
+
+        @if (newest().length) {
+          <section class="block">
+            <header class="block-head">
+              <div>
+                <p class="eyebrow">Novedades</p>
+                <h2>Nuevos productos</h2>
+              </div>
+            </header>
+            <div class="grid">
+              @for (p of newest(); track p.id) {
+                <app-shop-product-card [product]="p" [shop]="shop()!" />
+              }
+            </div>
+          </section>
+        }
+
+        @for (sec of typeSections(); track sec.title) {
+          @if (sec.items.length) {
+            <section class="block">
+              <header class="block-head">
+                <div>
+                  <p class="eyebrow">{{ sec.eyebrow }}</p>
+                  <h2>{{ sec.title }}</h2>
+                </div>
+                <a
+                  routerLink="/tienda/catalogo"
+                  [queryParams]="sec.query"
+                  class="more"
+                  >Ver más</a
+                >
+              </header>
+              <div class="grid">
+                @for (p of sec.items; track p.id) {
+                  <app-shop-product-card [product]="p" [shop]="shop()!" />
+                }
+              </div>
+            </section>
           }
         }
+
+        <section class="cta-banner">
+          <div>
+            <h2>Explora el catálogo completo</h2>
+            <p>Filtra por categoría, marca, precio y descuento. Consulta por WhatsApp cuando quieras.</p>
+          </div>
+          <ui-button routerLink="/tienda/catalogo" type="button">Ir al catálogo</ui-button>
+        </section>
       }
     </div>
   `,
-  styles: [`
+  styles: `
     .page {
       width: min(1120px, calc(100% - 2rem));
       margin: 0 auto;
-      padding: 1.5rem 0 3.5rem;
+      padding: 1.25rem 0 3.5rem;
     }
     .hero {
       position: relative;
       border-radius: var(--radius-xl, 1.25rem);
       overflow: hidden;
-      margin-bottom: 1.75rem;
+      margin-bottom: 1.25rem;
       background:
         radial-gradient(120% 80% at 10% 0%, color-mix(in srgb, var(--color-primary) 28%, transparent), transparent 55%),
         linear-gradient(160deg, #0d1712 0%, #15241c 55%, #1a2e22 100%);
       color: #f4faf6;
-      min-height: 12rem;
+      min-height: 14rem;
       display: grid;
       align-items: end;
     }
-    .hero.has-image { min-height: 16rem; }
+    .hero.has-image {
+      min-height: 18rem;
+    }
     .hero-bg {
       position: absolute;
       inset: 0;
@@ -136,158 +178,144 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
     .hero-scrim {
       position: absolute;
       inset: 0;
-      background: linear-gradient(180deg, rgba(8, 16, 12, 0.25), rgba(8, 16, 12, 0.78));
+      background: linear-gradient(180deg, rgba(8, 16, 12, 0.2), rgba(8, 16, 12, 0.82));
     }
     .hero-copy {
       position: relative;
       z-index: 1;
-      padding: 1.75rem 1.5rem 1.6rem;
+      padding: 1.75rem 1.5rem 1.5rem;
       max-width: 40rem;
+      display: grid;
+      gap: 0.65rem;
     }
     .eyebrow {
-      margin: 0 0 0.35rem;
+      margin: 0;
       font-size: var(--text-xs);
       font-weight: 800;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: color-mix(in srgb, var(--color-primary) 70%, white);
     }
-    h1 { margin: 0 0 0.45rem; font-size: clamp(1.6rem, 3vw, 2.2rem); line-height: 1.15; }
-    .lead { margin: 0; color: rgba(244, 250, 246, 0.88); line-height: 1.45; }
-    .empty {
+    h1 {
       margin: 0;
-      padding: 2rem 0;
+      font-size: clamp(1.65rem, 3.2vw, 2.35rem);
+      line-height: 1.15;
+    }
+    .lead {
+      margin: 0;
+      color: rgba(244, 250, 246, 0.88);
+      line-height: 1.45;
+    }
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+    }
+    .ghost {
+      min-height: 2.6rem;
+      padding: 0 1rem;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      background: rgba(255, 255, 255, 0.06);
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      display: inline-grid;
+      place-items: center;
+      text-decoration: none;
+    }
+    .hero-note {
+      margin: 0;
+      font-size: 0.8rem;
+      color: rgba(244, 250, 246, 0.7);
+    }
+    .cats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-bottom: 1.5rem;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      min-height: 2.35rem;
+      padding: 0.3rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid var(--color-border);
+      color: inherit;
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+    .chip.disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    .chip .n {
+      font-size: 0.72rem;
       color: var(--color-text-secondary);
+    }
+    .block {
+      margin-bottom: 2rem;
+    }
+    .block-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: end;
+      margin-bottom: 0.9rem;
+    }
+    .block-head h2 {
+      margin: 0.15rem 0 0;
+      font-size: clamp(1.25rem, 2.5vw, 1.55rem);
+    }
+    .block-head .eyebrow {
+      color: var(--color-primary);
+    }
+    .more {
+      font-weight: 700;
+      color: var(--color-primary);
+      text-decoration: none;
+      white-space: nowrap;
     }
     .grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 1.1rem;
     }
-    .item {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      box-shadow: var(--shadow-sm);
-      display: grid;
-      grid-template-rows: auto 1fr;
-    }
-    .item.featured {
-      border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
-      box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 25%, transparent);
-    }
-    .media {
-      position: relative;
-      aspect-ratio: 4 / 3;
-      background: #101812;
-      overflow: hidden;
-    }
-    .media img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-    .thumbs {
+    .cta-banner {
       display: flex;
-      gap: 0.35rem;
-      padding: 0.45rem 0.55rem 0;
-      overflow-x: auto;
-      scrollbar-width: thin;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: center;
+      padding: 1.4rem 1.35rem;
+      border-radius: var(--radius-xl);
+      border: 1px solid color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
+      background:
+        radial-gradient(80% 120% at 100% 0%, color-mix(in srgb, var(--color-primary) 18%, transparent), transparent),
+        var(--color-surface);
     }
-    .thumb {
-      flex: none;
-      width: 3.2rem;
-      height: 2.4rem;
-      padding: 0;
-      border: 2px solid transparent;
-      border-radius: 0.4rem;
-      overflow: hidden;
-      background: #101812;
-      cursor: pointer;
+    .cta-banner h2 {
+      margin: 0 0 0.3rem;
     }
-    .thumb.on { border-color: var(--color-primary); }
-    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .placeholder {
-      width: 100%;
-      height: 100%;
-      display: grid;
-      place-items: center;
-      color: rgba(244, 250, 246, 0.45);
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      font-size: var(--text-xs);
-    }
-    .badge {
-      position: absolute;
-      top: 0.7rem;
-      left: 0.7rem;
-      background: var(--color-primary);
-      color: #06210f;
-      font-size: 0.72rem;
-      font-weight: 800;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      padding: 0.28rem 0.55rem;
-      border-radius: 999px;
-    }
-    .body {
-      padding: 0.95rem 1rem 1.1rem;
-      display: grid;
-      align-content: start;
-      gap: 0.35rem;
-    }
-    .cat {
-      margin: 0;
-      color: var(--color-primary);
-      font-size: var(--text-xs);
-      font-weight: 800;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-    }
-    h2 {
-      margin: 0;
-      font-size: var(--text-md);
-      line-height: 1.25;
-    }
-    .desc, .sizes, .stock, .hint {
+    .cta-banner p {
       margin: 0;
       color: var(--color-text-secondary);
-      font-size: var(--text-sm);
-      line-height: 1.4;
+      max-width: 36rem;
     }
-    .price-row {
-      display: flex;
-      align-items: baseline;
-      gap: 0.55rem;
-      margin-top: 0.25rem;
-    }
-    .price-row strong {
-      font-size: 1.15rem;
-      color: var(--color-text);
-    }
-    .was {
-      text-decoration: line-through;
-      color: var(--color-text-secondary);
-      font-size: var(--text-sm);
-    }
-    .disc {
-      font-size: 0.75rem;
-      font-weight: 800;
-      color: var(--color-primary);
-    }
-    .stock.out { color: #b42318; font-weight: 700; }
-    .actions { margin-top: 0.55rem; }
     @media (max-width: 900px) {
-      .grid { grid-template-columns: repeat(2, 1fr); }
+      .grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
     }
     @media (max-width: 560px) {
-      .grid { grid-template-columns: 1fr; }
-      .hero { min-height: 11rem; }
+      .grid {
+        grid-template-columns: 1fr;
+      }
     }
-  `]
+  `
 })
 export class PublicShopPage implements OnInit {
   private readonly api = inject(ShopApi);
@@ -297,14 +325,84 @@ export class PublicShopPage implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly shop = signal<PublicShopDto | null>(null);
-  readonly activeByProduct = signal<Record<number, number>>({});
+
+  readonly categoryChips = computed(() => {
+    const products = this.shop()?.products ?? [];
+    const counts = new Map<string, number>();
+    for (const p of products) {
+      const key = (p.category || 'Cascos').trim();
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return SHOP_CATEGORIES.map((name) => ({ name, count: counts.get(name) ?? 0 }));
+  });
+
+  readonly topDiscounts = computed(() =>
+    sortProducts(this.shop()?.products ?? [], 'discount')
+      .filter((p) => discountPercent(p) > 0)
+      .slice(0, 8)
+  );
+
+  readonly featured = computed(() => {
+    const featured = (this.shop()?.products ?? []).filter((p) => p.isFeatured);
+    return featured.slice(0, 4);
+  });
+
+  readonly newest = computed(() => {
+    const list = sortProducts(this.shop()?.products ?? [], 'newest');
+    // Only show if we have real createdAt diversity / any products
+    return list.slice(0, 4);
+  });
+
+  readonly typeSections = computed(() => {
+    const products = this.shop()?.products ?? [];
+    const byType = (label: string, match: (p: PublicShopProductDto) => boolean, query: Record<string, string>) => ({
+      eyebrow: 'Colección',
+      title: label,
+      query,
+      items: products.filter(match).slice(0, 3)
+    });
+
+    return [
+      byType(
+        'Cascos integrales',
+        (p) => /integral/i.test(p.productType ?? '') || /integral/i.test(p.name),
+        { tipo: 'Integral', categoria: 'Cascos' }
+      ),
+      byType(
+        'Cascos abatibles',
+        (p) => /abatible|modular/i.test(p.productType ?? '') || /abatible/i.test(p.name),
+        { tipo: 'Abatible', categoria: 'Cascos' }
+      ),
+      byType(
+        'Cascos abiertos',
+        (p) => /abierto/i.test(p.productType ?? '') || /abierto/i.test(p.name),
+        { tipo: 'Abierto', categoria: 'Cascos' }
+      ),
+      byType(
+        'Accesorios y equipamiento',
+        (p) => !/^cascos$/i.test(p.category || ''),
+        { categoria: 'Accesorios' }
+      )
+    ];
+  });
 
   ngOnInit(): void {
+    this.load();
+  }
+
+  load(): void {
+    this.loading.set(true);
+    this.error.set(null);
     this.api.getPublic().subscribe({
       next: (data) => {
         this.shop.set(data);
-        this.title.setTitle(brandPageTitle(data.pageTitle));
-        this.meta.updateTag({ name: 'description', content: data.pageSubtitle });
+        this.title.setTitle(brandPageTitle(data.pageTitle || 'Tienda'));
+        this.meta.updateTag({
+          name: 'description',
+          content:
+            data.pageSubtitle ||
+            'Cascos y equipo de protección. Consulta por WhatsApp desde Luz Verde.'
+        });
         this.loading.set(false);
       },
       error: (err) => {
@@ -318,50 +416,7 @@ export class PublicShopPage implements OnInit {
     return resolveMediaUrl(path);
   }
 
-  productImages(p: PublicShopProductDto): string[] {
-    if (p.imageUrls?.length) {
-      return p.imageUrls;
-    }
-    return p.imageUrl ? [p.imageUrl] : [];
-  }
-
-  activeIndex(productId: number): number {
-    return this.activeByProduct()[productId] ?? 0;
-  }
-
-  activeImage(p: PublicShopProductDto): string {
-    const imgs = this.productImages(p);
-    return imgs[this.activeIndex(p.id)] ?? imgs[0] ?? '';
-  }
-
-  setActive(productId: number, index: number): void {
-    this.activeByProduct.update((m) => ({ ...m, [productId]: index }));
-  }
-
-  discountLabel(p: PublicShopProductDto): string | null {
-    if (p.discountPercent != null && p.discountPercent > 0) {
-      return `−${p.discountPercent}%`;
-    }
-    if (p.compareAtPriceCop != null && p.compareAtPriceCop > p.priceCop) {
-      const pct = Math.round((1 - p.priceCop / p.compareAtPriceCop) * 100);
-      return pct > 0 ? `−${pct}%` : null;
-    }
-    return null;
-  }
-
-  order(shop: PublicShopDto, product: PublicShopProductDto): void {
-    if (!shop.whatsApp) {
-      return;
-    }
-    const price = new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      maximumFractionDigits: 0
-    }).format(product.priceCop);
-    const text =
-      `Hola, me interesa *${product.name}* (${price}). ` +
-      `¿Está disponible? Quiero pedirlo desde Luz Verde.`;
-    const url = `https://wa.me/${shop.whatsApp}?text=${encodeURIComponent(text)}`;
-    window.open(url, '_blank', 'noopener');
+  scrollTo(id: string): void {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 }

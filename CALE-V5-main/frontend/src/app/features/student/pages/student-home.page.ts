@@ -9,6 +9,7 @@ import { PlayFxService } from '../../play/play-fx.service';
 import { ProgressDashboardComponent } from '../components/progress-dashboard.component';
 import { NextStepBannerComponent } from '../components/next-step-banner.component';
 import { StudentTheoryApi, TheoryStudentDashboardDto } from '../api/student-theory.api';
+import { ShopOffersWidgetComponent } from '../../public/shop-offers-widget.component';
 
 interface LauncherTile {
   id: string;
@@ -28,7 +29,8 @@ interface LauncherTile {
     UiIconComponent,
     PlayBadgesToastComponent,
     ProgressDashboardComponent,
-    NextStepBannerComponent
+    NextStepBannerComponent,
+    ShopOffersWidgetComponent
   ],
   templateUrl: './student-home.page.html',
   styleUrl: './student-home.page.css'

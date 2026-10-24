@@ -15,6 +15,13 @@ public sealed class PublicShopController : ControllerBase
 
     [HttpGet]
     public Task<PublicShopDto> Get(CancellationToken ct) => _shop.GetPublicAsync(ct);
+
+    [HttpGet("{slug}")]
+    public async Task<ActionResult<PublicShopProductDto>> GetBySlug(string slug, CancellationToken ct)
+    {
+        var product = await _shop.GetPublicBySlugAsync(slug, ct);
+        return product is null ? NotFound() : product;
+    }
 }
 
 [ApiController]

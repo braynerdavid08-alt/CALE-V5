@@ -46,12 +46,24 @@ export const routes: Routes = [
             .then((m) => m.PublicInstructorsPage)
       },
       {
-        path: 'cascos',
+        path: 'tienda',
         loadComponent: () =>
           import('./features/public/public-shop.page')
             .then((m) => m.PublicShopPage)
       },
-      { path: 'tienda', redirectTo: 'cascos', pathMatch: 'full' },
+      {
+        path: 'tienda/catalogo',
+        loadComponent: () =>
+          import('./features/public/public-shop-catalog.page')
+            .then((m) => m.PublicShopCatalogPage)
+      },
+      {
+        path: 'tienda/:slug',
+        loadComponent: () =>
+          import('./features/public/public-shop-product.page')
+            .then((m) => m.PublicShopProductPage)
+      },
+      { path: 'cascos', redirectTo: 'tienda', pathMatch: 'full' },
       {
         path: 'blog',
         loadComponent: () =>

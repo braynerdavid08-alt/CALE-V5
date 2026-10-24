@@ -105,6 +105,15 @@ import {
               <label class="field">Categoría
                 <input [(ngModel)]="draft.category" name="category" placeholder="Cascos" />
               </label>
+              <label class="field">Tipo (ej. Integral)
+                <input [(ngModel)]="draft.productType" name="productType" placeholder="Integral, Abatible…" />
+              </label>
+              <label class="field">Marca
+                <input [(ngModel)]="draft.brand" name="brand" placeholder="HJC, LS2…" />
+              </label>
+              <label class="field">Referencia
+                <input [(ngModel)]="draft.reference" name="reference" placeholder="C10" />
+              </label>
               <label class="field full">Descripción corta
                 <textarea rows="2" [(ngModel)]="draft.shortDescription" name="shortDescription" required></textarea>
               </label>
@@ -122,6 +131,9 @@ import {
               </label>
               <label class="field">Tallas
                 <input [(ngModel)]="draft.sizes" name="sizes" placeholder="S, M, L, XL" />
+              </label>
+              <label class="field">Colores
+                <input [(ngModel)]="draft.colors" name="colors" placeholder="Negro, Rojo/Negro" />
               </label>
               <label class="field">Stock
                 <input type="number" [(ngModel)]="draft.stock" name="stock" min="0" />
@@ -429,7 +441,11 @@ export class AdminShopPage implements OnInit {
       compareAtPriceCop: null,
       promoLabel: null,
       category: 'Cascos',
+      productType: 'Integral',
+      brand: null,
+      reference: null,
       sizes: 'S, M, L, XL',
+      colors: null,
       stock: 5,
       isActive: true,
       isFeatured: false,
@@ -455,7 +471,11 @@ export class AdminShopPage implements OnInit {
       compareAtPriceCop: p.compareAtPriceCop,
       promoLabel: p.promoLabel,
       category: p.category,
+      productType: p.productType,
+      brand: p.brand,
+      reference: p.reference,
       sizes: p.sizes,
+      colors: p.colors,
       stock: p.stock,
       isActive: p.isActive,
       isFeatured: p.isFeatured,
@@ -484,7 +504,11 @@ export class AdminShopPage implements OnInit {
       compareAtPriceCop: draft.compareAtPriceCop ? Number(draft.compareAtPriceCop) : null,
       promoLabel: draft.promoLabel || null,
       category: draft.category || 'Cascos',
+      productType: draft.productType || null,
+      brand: draft.brand || null,
+      reference: draft.reference || null,
       sizes: draft.sizes || null,
+      colors: draft.colors || null,
       stock: Number(draft.stock),
       isActive: draft.isActive,
       isFeatured: draft.isFeatured,

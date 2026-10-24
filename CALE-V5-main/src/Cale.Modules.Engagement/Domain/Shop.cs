@@ -99,6 +99,10 @@ public sealed class ShopProduct
     public const int PromoMax = 40;
     public const int SizesMax = 120;
     public const int CategoryMax = 60;
+    public const int BrandMax = 80;
+    public const int ReferenceMax = 60;
+    public const int ColorsMax = 120;
+    public const int ProductTypeMax = 60;
     public const int MaxImages = 8;
 
     public int Id { get; private set; }
@@ -114,7 +118,12 @@ public sealed class ShopProduct
     public decimal? CompareAtPriceCop { get; private set; }
     public string? PromoLabel { get; private set; }
     public string Category { get; private set; } = "Cascos";
+    /// <summary>Optional subtype (e.g. Integral, Abatible) within the category.</summary>
+    public string? ProductType { get; private set; }
+    public string? Brand { get; private set; }
+    public string? Reference { get; private set; }
     public string? Sizes { get; private set; }
+    public string? Colors { get; private set; }
     public int Stock { get; private set; }
     public bool IsActive { get; private set; } = true;
     public bool IsFeatured { get; private set; }
@@ -142,12 +151,17 @@ public sealed class ShopProduct
         bool isActive,
         bool isFeatured,
         int sortOrder,
-        DateTime utcNow)
+        DateTime utcNow,
+        string? brand = null,
+        string? reference = null,
+        string? colors = null,
+        string? productType = null)
     {
         var product = new ShopProduct { CreatedAt = utcNow };
         product.Apply(
             name, shortDescription, description, imageUrls, priceCop, compareAtPriceCop,
-            promoLabel, category, sizes, stock, isActive, isFeatured, sortOrder, utcNow);
+            promoLabel, category, sizes, stock, isActive, isFeatured, sortOrder, utcNow,
+            brand, reference, colors, productType);
         return product;
     }
 
@@ -165,10 +179,15 @@ public sealed class ShopProduct
         bool isActive,
         bool isFeatured,
         int sortOrder,
-        DateTime utcNow) =>
+        DateTime utcNow,
+        string? brand = null,
+        string? reference = null,
+        string? colors = null,
+        string? productType = null) =>
         Apply(
             name, shortDescription, description, imageUrls, priceCop, compareAtPriceCop,
-            promoLabel, category, sizes, stock, isActive, isFeatured, sortOrder, utcNow);
+            promoLabel, category, sizes, stock, isActive, isFeatured, sortOrder, utcNow,
+            brand, reference, colors, productType);
 
     public bool HasPromo =>
         !string.IsNullOrWhiteSpace(PromoLabel)
@@ -201,7 +220,11 @@ public sealed class ShopProduct
         bool isActive,
         bool isFeatured,
         int sortOrder,
-        DateTime utcNow)
+        DateTime utcNow,
+        string? brand = null,
+        string? reference = null,
+        string? colors = null,
+        string? productType = null)
     {
         Name = Required(name, NameMax, "Escribe el nombre del producto.", "invalid_product_name");
         ShortDescription = Required(
@@ -227,7 +250,11 @@ public sealed class ShopProduct
         Category = string.IsNullOrWhiteSpace(category)
             ? "Cascos"
             : Required(category, CategoryMax, "Categoría inválida.", "invalid_category");
+        ProductType = Optional(productType, ProductTypeMax);
+        Brand = Optional(brand, BrandMax);
+        Reference = Optional(reference, ReferenceMax);
         Sizes = Optional(sizes, SizesMax);
+        Colors = Optional(colors, ColorsMax);
         if (stock is < 0 or > 10_000)
         {
             throw new DomainException("El stock debe estar entre 0 y 10.000.", 400, "invalid_stock");
@@ -239,6 +266,18 @@ public sealed class ShopProduct
         SortOrder = Math.Clamp(sortOrder, 0, 10_000);
         Slug = Slugify(Name);
         UpdatedAt = utcNow;
+    }
+
+    /// <summary>Used when the auto slug collides with another product.</summary>
+    public void MakeSlugUnique(string candidate)
+    {
+        var cleaned = Slugify(candidate);
+        if (cleaned.Length == 0)
+        {
+            cleaned = Slugify(Name);
+        }
+
+        Slug = Required(cleaned, 140, "Slug inválido.", "invalid_slug");
     }
 
     private void SetImages(IEnumerable<string?>? imageUrls)

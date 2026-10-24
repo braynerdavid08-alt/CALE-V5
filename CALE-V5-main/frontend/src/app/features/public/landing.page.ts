@@ -42,7 +42,7 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                   <p class="vitrine-title">En oferta</p>
                   <div class="vitrine-list">
                     @for (p of vitrineOffers(); track p.id) {
-                      <a class="vitrine-item" routerLink="/cascos">
+                      <a class="vitrine-item" routerLink="/tienda">
                         <span class="vitrine-thumb">
                           @if (productImage(p)) {
                             <img [src]="productImage(p)" [alt]="''" width="56" height="56" loading="lazy" />
@@ -63,7 +63,7 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                       </a>
                     }
                   </div>
-                  <a class="vitrine-more" routerLink="/cascos">Ver tienda →</a>
+                  <a class="vitrine-more" routerLink="/tienda">Ver tienda →</a>
                 </aside>
               }
 
@@ -86,7 +86,7 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                     } @else {
                       <ui-button routerLink="/login">Iniciar sesión</ui-button>
                     }
-                    <ui-button routerLink="/cascos">Explorar tienda</ui-button>
+                    <ui-button routerLink="/tienda">Explorar tienda</ui-button>
                     <a class="ghost-btn" routerLink="/contacto">
                       <ui-icon name="building" size="sm" />
                       Plataforma para CEA
@@ -174,7 +174,7 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                   <p class="vitrine-title">Destacados</p>
                   <div class="vitrine-list">
                     @for (p of vitrineFeatured(); track p.id) {
-                      <a class="vitrine-item" routerLink="/cascos">
+                      <a class="vitrine-item" routerLink="/tienda">
                         <span class="vitrine-thumb">
                           @if (productImage(p)) {
                             <img [src]="productImage(p)" [alt]="''" width="56" height="56" loading="lazy" />
@@ -195,7 +195,7 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                       </a>
                     }
                   </div>
-                  <a class="vitrine-more" routerLink="/cascos">Ver tienda →</a>
+                  <a class="vitrine-more" routerLink="/tienda">Ver tienda →</a>
                 </aside>
               }
 
@@ -203,11 +203,11 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                 <div class="mobile-offers" aria-label="Ofertas de la tienda">
                   <div class="mobile-offers-head">
                     <p class="eyebrow">Ofertas</p>
-                    <a routerLink="/cascos">Ver tienda</a>
+                    <a routerLink="/tienda">Ver tienda</a>
                   </div>
                   <div class="mobile-offers-track">
                     @for (p of mobileOffers(); track p.id) {
-                      <a class="mobile-offer-card" routerLink="/cascos">
+                      <a class="mobile-offer-card" routerLink="/tienda">
                         <span class="mobile-offer-media">
                           @if (productImage(p)) {
                             <img [src]="productImage(p)" [alt]="p.name" width="120" height="90" loading="lazy" />
@@ -242,7 +242,7 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                     }
                   </p>
                 </div>
-                <ui-button routerLink="/cascos" variant="secondary">Ver toda la tienda</ui-button>
+                <ui-button routerLink="/tienda" variant="secondary">Ver toda la tienda</ui-button>
               </header>
 
               @if (shopProducts().length) {
@@ -251,7 +251,7 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                   [class.cols-3]="shopProducts().length === 3"
                   [class.cols-5]="shopProducts().length >= 5">
                   @for (p of shopProducts(); track p.id) {
-                    <a class="shop-card" routerLink="/cascos">
+                    <a class="shop-card" routerLink="/tienda">
                       <div class="shop-media">
                         @if (productImage(p)) {
                           <img [src]="productImage(p)" [alt]="p.name" width="280" height="200" loading="lazy" />
@@ -276,7 +276,7 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                 <div class="shop-empty">
                   <p>El catálogo se está actualizando. Mientras tanto puedes abrir la tienda o escribirnos.</p>
                   <div class="cta-row">
-                    <ui-button routerLink="/cascos">Ir a la tienda</ui-button>
+                    <ui-button routerLink="/tienda">Ir a la tienda</ui-button>
                     <a class="ghost-btn" routerLink="/contacto">Contacto</a>
                   </div>
                 </div>
@@ -426,7 +426,7 @@ export class LandingPage implements OnInit {
         description:
           'Plataforma de formación para conductores y CEA, con tienda de equipo de protección.',
         ctaPrimaryLabel: 'Explorar tienda',
-        ctaPrimaryPath: '/cascos',
+        ctaPrimaryPath: '/tienda',
         ctaSecondaryLabel: 'Para CEA',
         videoUrl: null,
         imageUrl: null,

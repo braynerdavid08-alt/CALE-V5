@@ -11,10 +11,15 @@ export interface PublicShopProductDto {
   promoLabel: string | null;
   discountPercent: number | null;
   category: string;
+  productType: string | null;
+  brand: string | null;
+  reference: string | null;
   sizes: string | null;
+  colors: string | null;
   stock: number;
   isFeatured: boolean;
   hasPromo: boolean;
+  createdAt: string;
 }
 
 export interface PublicShopDto {
@@ -48,11 +53,16 @@ export interface AdminShopProductDto {
   compareAtPriceCop: number | null;
   promoLabel: string | null;
   category: string;
+  productType: string | null;
+  brand: string | null;
+  reference: string | null;
   sizes: string | null;
+  colors: string | null;
   stock: number;
   isActive: boolean;
   isFeatured: boolean;
   sortOrder: number;
+  createdAt: string;
   updatedAt: string;
 }
 
@@ -80,9 +90,31 @@ export interface UpsertShopProductRequest {
   compareAtPriceCop: number | null;
   promoLabel: string | null;
   category: string | null;
+  productType: string | null;
+  brand: string | null;
+  reference: string | null;
   sizes: string | null;
+  colors: string | null;
   stock: number;
   isActive: boolean;
   isFeatured: boolean;
   sortOrder: number;
 }
+
+export const SHOP_CATEGORIES = [
+  'Cascos',
+  'Guantes',
+  'Chaquetas',
+  'Chalecos reflectivos',
+  'Impermeables',
+  'Visores',
+  'Accesorios'
+] as const;
+
+export const SHOP_HELMET_TYPES = [
+  'Integral',
+  'Abatible',
+  'Abierto',
+  'Modular',
+  'Infantil'
+] as const;
