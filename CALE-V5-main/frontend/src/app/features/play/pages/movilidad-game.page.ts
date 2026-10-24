@@ -9,7 +9,7 @@ import { PlayFxService } from '../play-fx.service';
 
 const RESULT_TYPE = 'luzverde.movilidad.result';
 /** Cache-bust so deploys and CSP/static fixes do not leave a blank iframe. */
-const GAME_URL = '/games/movilidad/index.html?v=5';
+const GAME_URL = '/games/movilidad/index.html?v=6';
 
 interface MovilidadMessage {
   type?: string;
