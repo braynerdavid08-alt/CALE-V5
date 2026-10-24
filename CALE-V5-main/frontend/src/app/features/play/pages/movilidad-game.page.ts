@@ -8,8 +8,8 @@ import { PlayTopbarComponent } from '../components/play-topbar.component';
 import { PlayFxService } from '../play-fx.service';
 
 const RESULT_TYPE = 'luzverde.movilidad.result';
-/** Cache-bust so deploys and the 304/Brotli static-file bug do not leave a blank iframe. */
-const GAME_URL = '/games/movilidad/index.html?v=2';
+/** Cache-bust so deploys and CSP/static fixes do not leave a blank iframe. */
+const GAME_URL = '/games/movilidad/index.html?v=3';
 
 interface MovilidadMessage {
   type?: string;
@@ -105,7 +105,7 @@ export class MovilidadGamePage {
   reload(): void {
     this.frameNonce++;
     this.frameSrc.set(
-      this.sanitizer.bypassSecurityTrustResourceUrl(`${GAME_URL}?r=${this.frameNonce}`)
+      this.sanitizer.bypassSecurityTrustResourceUrl(`${GAME_URL}&r=${this.frameNonce}`)
     );
     this.notice.set(null);
     this.error.set(false);

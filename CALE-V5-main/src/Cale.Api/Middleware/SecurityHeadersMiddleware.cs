@@ -7,6 +7,7 @@ namespace Cale.Api.Middleware;
 /// - fonts.googleapis.com / fonts.gstatic.com: the DM Sans font.
 /// - img-src https: teachers and the admin may reference external images.
 /// - frame-src YouTube: lesson video blocks; frame-ancestors 'self': the live host embeds our own presentation page.
+/// - /games/* script-src 'unsafe-inline': Canvas games ship as a single HTML with inline script + onclick.
 /// Security:Csp:Mode = enforce (default) | report-only | off, to roll back without a deploy if something breaks.
 /// </summary>
 public sealed class SecurityHeadersMiddleware
@@ -36,7 +37,8 @@ public sealed class SecurityHeadersMiddleware
 
         if (_mode != "off")
         {
-            var policy = BuildPolicy(context.Request.Host.Value ?? "");
+            var allowInlineScripts = context.Request.Path.StartsWithSegments("/games");
+            var policy = BuildPolicy(context.Request.Host.Value ?? "", allowInlineScripts);
             headers[_mode == "report-only" ? "Content-Security-Policy-Report-Only" : "Content-Security-Policy"] = policy;
         }
 
@@ -58,10 +60,12 @@ public sealed class SecurityHeadersMiddleware
         return _next(context);
     }
 
-    public static string BuildPolicy(string host) =>
-        string.Join("; ",
+    public static string BuildPolicy(string host, bool allowInlineScripts = false)
+    {
+        var scriptSrc = allowInlineScripts ? "script-src 'self' 'unsafe-inline'" : "script-src 'self'";
+        return string.Join("; ",
             "default-src 'self'",
-            "script-src 'self'",
+            scriptSrc,
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
             "font-src 'self' data: https://fonts.gstatic.com",
             "img-src 'self' data: blob: https:",
@@ -74,4 +78,5 @@ public sealed class SecurityHeadersMiddleware
             "base-uri 'self'",
             "form-action 'self'",
             "frame-ancestors 'self'");
+    }
 }
