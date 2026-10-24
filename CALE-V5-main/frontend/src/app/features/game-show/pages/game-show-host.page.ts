@@ -20,16 +20,33 @@ import { phaseHasTurnClock, remainingFromServerSnapshot, secondsUntilDeadline } 
 import { phraseForLightning, phraseForSteal, phraseForStrike3 } from '../api/game-show-phrases';
 import { Router } from '@angular/router';
 import { GameShowReviewPanelComponent } from '../components/game-show-review-panel.component';
+import { GameShowRulesComponent } from '../components/game-show-rules.component';
 
 const HIDE_ANSWERS_KEY = 'cale.gameshow.hideAnswers';
 
 @Component({
   selector: 'app-game-show-host-page',
   standalone: true,
-  imports: [RouterLink, UiButtonComponent, UiErrorComponent, GameShowReviewPanelComponent],
+  imports: [
+    RouterLink,
+    UiButtonComponent,
+    UiErrorComponent,
+    GameShowReviewPanelComponent,
+    GameShowRulesComponent
+  ],
   template: `
     @if (lobby(); as L) {
       <section class="host">
+        @if (confirmStart()) {
+          <div class="rules-overlay" role="presentation">
+            <app-game-show-rules
+              [modal]="true"
+              primaryLabel="Entendido, iniciar partida"
+              secondaryLabel="Cancelar"
+              (primary)="confirmAndStart()"
+              (secondary)="confirmStart.set(false)" />
+          </div>
+        }
         <header class="bar">
           <div>
             <p class="eyebrow">Control del profesor</p>
@@ -78,7 +95,7 @@ const HIDE_ANSWERS_KEY = 'cale.gameshow.hideAnswers';
 
         <div class="controls">
           @if (L.status === 'Lobby') {
-            <ui-button type="button" (click)="start()">Iniciar partida</ui-button>
+            <ui-button type="button" (click)="confirmStart.set(true)">Iniciar partida</ui-button>
           }
           @if (L.status === 'Running' && L.settings?.allowPause !== false) {
             <ui-button type="button" variant="secondary" (click)="pause()">Pausar</ui-button>
@@ -343,6 +360,16 @@ const HIDE_ANSWERS_KEY = 'cale.gameshow.hideAnswers';
     .dot { display: inline-block; width: 0.65rem; height: 0.65rem; border-radius: 50%; margin-right: 0.35rem; vertical-align: middle; }
     .mvp-list { list-style: none; padding: 0; margin: 0.75rem 0 0; display: grid; gap: 0.35rem; }
     .mvp-list li { display: flex; gap: 0.5rem; align-items: center; padding: 0.35rem 0; background: transparent; }
+    .rules-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(4px);
+    }
     @media (max-width: 700px) {
       .join-panel, .cols, .score { grid-template-columns: 1fr; }
       .qr { justify-self: start; }
@@ -368,6 +395,7 @@ export class GameShowHostPage implements OnInit, OnDestroy {
   readonly revealingId = signal<number | null>(null);
   readonly hideAnswers = signal(localStorage.getItem(HIDE_ANSWERS_KEY) === '1');
   readonly refreshKey = signal(0);
+  readonly confirmStart = signal(false);
   private hub: HubConnection | null = null;
   private sessionId = 0;
   private flashTimer: ReturnType<typeof setTimeout> | null = null;
@@ -453,7 +481,10 @@ export class GameShowHostPage implements OnInit, OnDestroy {
     void this.copyText(this.joinUrl(code), 'Enlace copiado');
   }
 
-  start(): void { this.act(() => this.api.start(this.sessionId)); }
+  confirmAndStart(): void {
+    this.confirmStart.set(false);
+    this.act(() => this.api.start(this.sessionId));
+  }
   pause(): void { this.api.pause(this.sessionId).subscribe({ next: () => this.reload(), error: (e) => this.error.set(mapApiError(e)) }); }
   resume(): void { this.api.resume(this.sessionId).subscribe({ next: () => this.reload(), error: (e) => this.error.set(mapApiError(e)) }); }
   forceBuzz(team: string): void { this.act(() => this.api.forceBuzz(this.sessionId, team)); }
