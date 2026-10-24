@@ -179,38 +179,60 @@ public sealed class AssistantToolbox : IAssistantToolbox
     {
         var d = await _theory.GetStudentDashboardAsync(user.UserId, ct);
         var sb = new StringBuilder();
-        sb.AppendLine($"Horas de teoría: {d.HoursCompleted}/{d.HoursRequired}. Taller: {d.WorkshopHoursCompleted}/{d.WorkshopHoursRequired}. Faltas: {d.Absences}.");
-        sb.AppendLine($"Grupo: {DayType(d.AttendanceDayType)}. Saldo pendiente: {Money(d.BalanceDue)}.");
+
+        sb.AppendLine("Tu formación");
+        sb.AppendLine($"• Teoría: {Hours(d.HoursCompleted)} de {Hours(d.HoursRequired)} h");
+        sb.AppendLine($"• Taller: {Hours(d.WorkshopHoursCompleted)} de {Hours(d.WorkshopHoursRequired)} h");
+        sb.AppendLine($"• Faltas: {d.Absences}");
+        sb.AppendLine($"• Grupo: {DayType(d.AttendanceDayType)}");
+        sb.AppendLine($"• Saldo pendiente: {Money(d.BalanceDue)}");
+
         if (d.NextClass is { } next)
         {
-            sb.AppendLine($"Próxima clase teórica: {next.TopicName}, {Day(next.SessionDate)} {next.StartTime}.");
+            sb.AppendLine();
+            sb.AppendLine("Próxima clase teórica");
+            sb.AppendLine($"• {next.TopicName}");
+            sb.AppendLine($"• {Day(next.SessionDate)} a las {next.StartTime}");
         }
 
-        foreach (var r in d.UpcomingReservations.Take(10))
+        var reservations = d.UpcomingReservations.Take(10).ToList();
+        if (reservations.Count > 0)
         {
-            sb.AppendLine($"Reserva teórica reserva_id={r.MyReservationId}: {r.TopicName}, {Day(r.SessionDate)} {r.StartTime}.");
+            sb.AppendLine();
+            sb.AppendLine("Tus reservas teóricas");
+            foreach (var r in reservations)
+            {
+                sb.AppendLine($"• {r.TopicName} — {Day(r.SessionDate)} a las {r.StartTime} (reserva_id={r.MyReservationId})");
+            }
         }
 
         var e = d.PracticalEligibility;
         if (e is not null)
         {
-            sb.AppendLine($"Examen teórico: autorizado={YesNo(e.TheoryExamAuthorized)}, aprobado={YesNo(e.TheoryExamPassed)}.");
-            sb.AppendLine($"Clases de manejo: autorizado={YesNo(e.PracticalAuthorized)}, puede reservar={YesNo(e.CanBookPractical)}.");
+            sb.AppendLine();
+            sb.AppendLine("Examen y manejo");
+            sb.AppendLine($"• Examen teórico: {AuthorizedLabel(e.TheoryExamAuthorized)}, {(e.TheoryExamPassed ? "ya aprobado" : "aún no aprobado")}");
+            sb.AppendLine($"• Clases de manejo: {AuthorizedLabel(e.PracticalAuthorized)}, {(e.CanBookPractical ? "puedes reservar" : "aún no puedes reservar")}");
             if (!string.IsNullOrWhiteSpace(e.BlockReason))
             {
-                sb.AppendLine($"Lo que falta: {e.BlockReason}");
+                sb.AppendLine($"• Lo que falta: {e.BlockReason}");
             }
         }
 
+        sb.AppendLine();
+        sb.AppendLine("Cita de examen");
         sb.AppendLine(d.NextExamAppointment is { } exam
-            ? $"Cita de examen cita_id={exam.Id}: {exam.ExamDate} {exam.SlotTime}."
-            : "Sin cita de examen.");
+            ? $"• Agendada: {exam.ExamDate} a las {exam.SlotTime} (cita_id={exam.Id})"
+            : "• Todavía no tienes cita");
+
         if (!string.IsNullOrWhiteSpace(d.NextAction))
         {
-            sb.AppendLine($"Sugerencia de la app: {d.NextAction}");
+            sb.AppendLine();
+            sb.AppendLine("Qué te conviene hacer");
+            sb.AppendLine($"• {d.NextAction}");
         }
 
-        return sb.ToString();
+        return sb.ToString().TrimEnd();
     }
 
     private async Task<string> TheoryWeekAsync(AssistantUser user, DateOnly? weekStart, CancellationToken ct)
@@ -821,6 +843,13 @@ public sealed class AssistantToolbox : IAssistantToolbox
     private static string Time(TimeOnly t) => t.ToString("HH:mm", CultureInfo.InvariantCulture);
 
     private static string YesNo(bool value) => value ? "sí" : "no";
+
+    private static string AuthorizedLabel(bool value) => value ? "autorizado" : "no autorizado";
+
+    private static string Hours(decimal value) =>
+        value == decimal.Truncate(value)
+            ? ((int)value).ToString(CultureInfo.InvariantCulture)
+            : value.ToString("0.#", CultureInfo.InvariantCulture);
 
     private static string Money(decimal value) =>
         "$" + value.ToString("N0", CultureInfo.InvariantCulture).Replace(',', '.');
