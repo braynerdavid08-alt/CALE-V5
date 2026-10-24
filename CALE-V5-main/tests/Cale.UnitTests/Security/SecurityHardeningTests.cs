@@ -399,9 +399,29 @@ public sealed class SecurityHeadersTests
         Assert.Equal("SAMEORIGIN", h.XFrameOptions.ToString());
         var csp = h.ContentSecurityPolicy.ToString();
         Assert.Contains("script-src 'self'", csp);
+        Assert.DoesNotContain("unsafe-inline", csp.Split(';').First(d => d.TrimStart().StartsWith("script-src")));
         Assert.DoesNotContain("unsafe-eval", csp);
         Assert.Contains("object-src 'none'", csp);
         Assert.Contains("frame-ancestors 'self'", csp);
+    }
+
+    [Fact]
+    public async Task Games_paths_allow_inline_scripts_required_by_canvas_html()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Host = new HostString("luzverde.test");
+        context.Request.Path = "/games/movilidad/index.html";
+        var config = new ConfigurationBuilder().Build();
+        var middleware = new SecurityHeadersMiddleware(_ => Task.CompletedTask, config, new FakeEnv(Environments.Production));
+
+        await middleware.InvokeAsync(context);
+
+        var scriptSrc = context.Response.Headers.ContentSecurityPolicy.ToString()
+            .Split(';')
+            .Select(d => d.Trim())
+            .First(d => d.StartsWith("script-src"));
+        Assert.Contains("'unsafe-inline'", scriptSrc);
+        Assert.DoesNotContain("unsafe-eval", scriptSrc);
     }
 }
 
