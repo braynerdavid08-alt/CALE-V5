@@ -1159,17 +1159,23 @@ public sealed class LiveSessionHandler
 
     private async Task BroadcastAnswerRosterAsync(LiveSession session, CancellationToken ct)
     {
-        var roster = await BuildAnswerRosterAsync(session, ct);
-        if (roster is null)
+        var publicRoster = await BuildAnswerRosterAsync(session, forceRevealForHost: false, ct);
+        if (publicRoster is not null)
         {
-            return;
+            await _broadcast.AnswerRosterUpdatedAsync(session.Id, publicRoster, ct);
         }
 
-        await _broadcast.AnswerRosterUpdatedAsync(session.Id, roster, ct);
+        // Host always sees who got it right/wrong (students never join the host group).
+        var hostRoster = await BuildAnswerRosterAsync(session, forceRevealForHost: true, ct);
+        if (hostRoster is not null)
+        {
+            await _broadcast.HostAnswerRosterUpdatedAsync(session.Id, hostRoster, ct);
+        }
     }
 
     private async Task<LiveAnswerRosterDto?> BuildAnswerRosterAsync(
         LiveSession session,
+        bool forceRevealForHost,
         CancellationToken ct)
     {
         if (session.CurrentQuestionIndex < 0 || session.Questions.Count == 0)
@@ -1187,8 +1193,8 @@ public sealed class LiveSessionHandler
         var answers = await _store.ListAnswersForQuestionAsync(current.Id, ct);
         var byParticipant = answers.ToDictionary(a => a.ParticipantId);
         var config = ReadConfig(session);
-        var revealCorrectness = session.RevealCorrect
-            && session.Mode is not LiveSessionModes.Exam;
+        var revealCorrectness = forceRevealForHost
+            || (session.RevealCorrect && session.Mode is not LiveSessionModes.Exam);
 
         var correct = new List<LiveAnswerRosterEntryDto>();
         var incorrect = new List<LiveAnswerRosterEntryDto>();

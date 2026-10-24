@@ -43,6 +43,9 @@ public sealed class LiveClassroomHub : Hub
 
     public static string GroupName(int sessionId) => $"{GroupPrefix}{sessionId}";
 
+    /// <summary>Host-only channel (roster with correctness, teacher tools). Students are not in this group.</summary>
+    public static string HostGroupName(int sessionId) => $"{GroupPrefix}host-{sessionId}";
+
     public async Task JoinAsHost(int sessionId)
     {
         var userId = TryGetUserId()
@@ -58,6 +61,7 @@ public sealed class LiveClassroomHub : Hub
         }
 
         await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(sessionId));
+        await Groups.AddToGroupAsync(Context.ConnectionId, HostGroupName(sessionId));
         _activity.HostConnected(LiveRoomKind.LiveClass, sessionId, Context.ConnectionId, _clock.UtcNow);
         _logger.LogInformation(
             "Live host connected {ConnectionId} session {SessionId} user {UserId}",
@@ -217,6 +221,10 @@ public sealed class LiveSessionBroadcaster : Cale.Modules.LiveClassroom.Applicat
     public Task AnswerRosterUpdatedAsync(int sessionId, object payload, CancellationToken ct = default) =>
         _hub.Clients.Group(LiveClassroomHub.GroupName(sessionId))
             .SendAsync("AnswerRosterUpdated", payload, ct);
+
+    public Task HostAnswerRosterUpdatedAsync(int sessionId, object payload, CancellationToken ct = default) =>
+        _hub.Clients.Group(LiveClassroomHub.HostGroupName(sessionId))
+            .SendAsync("HostAnswerRosterUpdated", payload, ct);
 
     public Task RankingUpdatedAsync(int sessionId, object payload, CancellationToken ct = default) =>
         _hub.Clients.Group(LiveClassroomHub.GroupName(sessionId))
