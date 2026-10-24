@@ -2,7 +2,6 @@ import { CurrencyPipe } from '@angular/common';
 import { Component, OnInit, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { resolveMediaUrl } from '../../core/media/resolve-media-url';
-import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { discountLabel, openWhatsAppOrder, productImages, sortProducts } from './shop-commerce';
 import { ShopApi } from './shop.api';
 import { PublicShopDto, PublicShopProductDto } from './shop.models';
@@ -10,7 +9,7 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
 @Component({
   selector: 'app-shop-offers-widget',
   standalone: true,
-  imports: [CurrencyPipe, RouterLink, UiButtonComponent],
+  imports: [CurrencyPipe, RouterLink],
   template: `
     @if (offers().length && shop(); as s) {
       <section class="offers" [attr.aria-label]="title()">
@@ -19,174 +18,193 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
             <p class="eyebrow">Tienda Luz Verde</p>
             <h2>{{ title() }}</h2>
           </div>
-          <a routerLink="/tienda" class="all">Ver toda la tienda</a>
+          <a routerLink="/tienda" class="all">Ver tienda →</a>
         </header>
-        <div class="row">
+        <ul class="list">
           @for (p of offers(); track p.id) {
-            <article class="card">
-              <a class="media" [routerLink]="['/tienda', p.slug]">
-                @if (cover(p); as img) {
-                  <img [src]="media(img)" [alt]="p.name" loading="lazy" />
-                } @else {
-                  <div class="ph">Producto</div>
-                }
-                @if (badge(p); as b) {
-                  <span class="badge">{{ b }}</span>
-                }
+            <li>
+              <a class="row" [routerLink]="['/tienda', p.slug]">
+                <span class="thumb">
+                  @if (cover(p); as img) {
+                    <img [src]="media(img)" [alt]="" loading="lazy" width="56" height="56" />
+                  } @else {
+                    <span class="ph" aria-hidden="true">·</span>
+                  }
+                  @if (badge(p); as b) {
+                    <span class="badge">{{ b }}</span>
+                  }
+                </span>
+                <span class="meta">
+                  <strong>{{ p.name }}</strong>
+                  <span class="price">
+                    {{ p.priceCop | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}
+                    @if (p.compareAtPriceCop && p.compareAtPriceCop > p.priceCop) {
+                      <s>{{ p.compareAtPriceCop | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</s>
+                    }
+                  </span>
+                </span>
               </a>
-              <div class="body">
-                <h3>
-                  <a [routerLink]="['/tienda', p.slug]">{{ p.name }}</a>
-                </h3>
-                <div class="price">
-                  <strong>{{ p.priceCop | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</strong>
-                  @if (p.compareAtPriceCop && p.compareAtPriceCop > p.priceCop) {
-                    <span class="was">{{
-                      p.compareAtPriceCop | currency: 'COP' : 'symbol-narrow' : '1.0-0'
-                    }}</span>
-                  }
-                </div>
-                <div class="actions">
-                  <ui-button type="button" variant="secondary" [routerLink]="['/tienda', p.slug]"
-                    >Ver producto</ui-button
-                  >
-                  @if (s.canOrder && p.stock > 0) {
-                    <ui-button type="button" (click)="consult(s, p)">{{ s.ctaLabel }}</ui-button>
-                  }
-                </div>
-              </div>
-            </article>
+              @if (s.canOrder && p.stock > 0) {
+                <button type="button" class="wa" (click)="consult(s, p)">WhatsApp</button>
+              }
+            </li>
           }
-        </div>
+        </ul>
       </section>
     }
   `,
   styles: `
+    :host {
+      display: block;
+      min-width: 0;
+    }
     .offers {
-      margin: 1.25rem 0 0;
-      padding: 1.1rem 1rem 1.2rem;
-      border-radius: var(--radius-lg);
+      margin: 0;
+      padding: 0.85rem 0.9rem;
+      border-radius: var(--radius-md);
       border: 1px solid var(--color-border);
-      background: var(--color-surface);
+      background: var(--color-surface-raised, var(--color-surface));
     }
     .head {
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
-      gap: 0.75rem;
-      align-items: end;
-      margin-bottom: 0.85rem;
+      gap: 0.4rem 0.75rem;
+      align-items: baseline;
+      margin-bottom: 0.65rem;
     }
     .eyebrow {
       margin: 0;
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       font-weight: 800;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: var(--color-primary);
+      color: var(--color-text-secondary);
     }
     h2 {
-      margin: 0.15rem 0 0;
-      font-size: 1.15rem;
+      margin: 0.1rem 0 0;
+      font-size: 0.95rem;
+      font-weight: 750;
+      color: var(--color-text);
     }
     .all {
+      font-size: 0.85rem;
       font-weight: 700;
       color: var(--color-primary);
       text-decoration: none;
+      white-space: nowrap;
     }
-    :host {
-      display: block;
+    .list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.45rem;
+    }
+    .list > li {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.45rem;
+      align-items: center;
       min-width: 0;
     }
     .row {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-      gap: 0.75rem;
+      grid-template-columns: 3.1rem minmax(0, 1fr);
+      gap: 0.65rem;
+      align-items: center;
+      min-width: 0;
+      text-decoration: none;
+      color: inherit;
+      padding: 0.35rem;
+      border-radius: 0.65rem;
     }
-    .card {
-      border: 1px solid var(--color-border);
-      border-radius: 0.85rem;
-      overflow: hidden;
-      background: color-mix(in srgb, var(--color-surface) 92%, #000 8%);
-      display: grid;
-      grid-template-rows: auto 1fr;
+    .row:hover,
+    .row:focus-visible {
+      background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+      outline: none;
     }
-    .media {
+    .thumb {
       position: relative;
-      aspect-ratio: 4 / 3;
-      background: #f4f7f5;
-      display: block;
+      width: 3.1rem;
+      height: 3.1rem;
+      border-radius: 0.55rem;
+      overflow: hidden;
+      background: var(--color-chip, #e5eee8);
+      flex-shrink: 0;
     }
-    .media img {
+    .thumb img {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      display: block;
     }
     .ph {
-      width: 100%;
-      height: 100%;
       display: grid;
       place-items: center;
-      color: #6b7c72;
-      font-size: 0.7rem;
-      font-weight: 700;
-      text-transform: uppercase;
+      width: 100%;
+      height: 100%;
+      color: var(--color-text-secondary);
     }
     .badge {
       position: absolute;
-      top: 0.45rem;
-      left: 0.45rem;
+      top: 0.15rem;
+      left: 0.15rem;
       background: var(--color-primary);
       color: #06210f;
-      font-size: 0.68rem;
+      font-size: 0.58rem;
       font-weight: 800;
-      padding: 0.2rem 0.45rem;
+      padding: 0.08rem 0.28rem;
       border-radius: 999px;
+      line-height: 1.2;
     }
-    .body {
-      padding: 0.65rem 0.7rem 0.8rem;
+    .meta {
       display: grid;
-      gap: 0.35rem;
-      align-content: start;
+      gap: 0.12rem;
+      min-width: 0;
     }
-    h3 {
-      margin: 0;
-      font-size: 0.92rem;
+    .meta strong {
+      font-size: 0.88rem;
+      font-weight: 700;
       line-height: 1.25;
-    }
-    h3 a {
-      color: inherit;
-      text-decoration: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .price {
       display: flex;
       flex-wrap: wrap;
       gap: 0.35rem;
       align-items: baseline;
-    }
-    .price strong {
+      font-size: 0.82rem;
+      font-weight: 750;
       color: var(--color-primary);
     }
-    .was {
-      text-decoration: line-through;
+    .price s {
+      font-weight: 600;
       color: var(--color-text-secondary);
-      font-size: 0.8rem;
+      font-size: 0.75rem;
     }
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.35rem;
+    .wa {
+      flex-shrink: 0;
+      min-height: 2.1rem;
+      padding: 0 0.65rem;
+      border-radius: 0.5rem;
+      border: 1px solid color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
+      background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+      color: var(--color-primary);
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 750;
+      cursor: pointer;
     }
     @media (max-width: 520px) {
-      .row {
-        grid-template-columns: 1fr;
+      .list > li {
+        grid-template-columns: minmax(0, 1fr);
       }
-      .actions {
-        flex-direction: column;
-        align-items: stretch;
-      }
-      .head {
-        align-items: start;
+      .wa {
+        justify-self: start;
+        margin-left: 3.75rem;
       }
     }
   `
@@ -194,9 +212,8 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
 export class ShopOffersWidgetComponent implements OnInit {
   private readonly api = inject(ShopApi);
 
-  /** Widget heading */
   readonly title = input('Ofertas para ti');
-  readonly limit = input(4);
+  readonly limit = input(3);
 
   readonly shop = signal<PublicShopDto | null>(null);
   readonly offers = signal<PublicShopProductDto[]>([]);
