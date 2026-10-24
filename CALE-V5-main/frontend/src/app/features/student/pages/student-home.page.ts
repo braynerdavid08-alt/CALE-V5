@@ -81,22 +81,6 @@ export class StudentHomePage implements OnInit {
   /** Large shortcuts — home is only a launcher for seniors. */
   readonly tiles: LauncherTile[] = [
     {
-      id: 'shop',
-      label: 'Tienda y descuentos',
-      hint: 'Cascos y equipo · WhatsApp',
-      path: '/tienda',
-      icon: 'image',
-      tone: 'green'
-    },
-    {
-      id: 'donate',
-      label: 'Apoyar Luz Verde',
-      hint: 'Donar para mantener la app gratis',
-      path: '/donaciones',
-      icon: 'heart',
-      tone: 'violet'
-    },
-    {
       id: 'courses',
       label: 'Cursos virtuales',
       hint: 'Lecciones con videos y actividades',
