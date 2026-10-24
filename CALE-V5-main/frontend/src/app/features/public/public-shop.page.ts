@@ -8,6 +8,7 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../shared/ui/ui-loading.component';
 import { discountPercent, sortProducts } from './shop-commerce';
+import { ShopAnalyticsService } from './shop-analytics.service';
 import { ShopProductCardComponent } from './shop-product-card.component';
 import { ShopApi } from './shop.api';
 import { PublicShopDto, PublicShopProductDto, SHOP_CATEGORIES } from './shop.models';
@@ -319,6 +320,7 @@ import { PublicShopDto, PublicShopProductDto, SHOP_CATEGORIES } from './shop.mod
 })
 export class PublicShopPage implements OnInit {
   private readonly api = inject(ShopApi);
+  private readonly analytics = inject(ShopAnalyticsService);
   private readonly title = inject(Title);
   private readonly meta = inject(Meta);
 
@@ -396,6 +398,7 @@ export class PublicShopPage implements OnInit {
     this.api.getPublic().subscribe({
       next: (data) => {
         this.shop.set(data);
+        this.analytics.track('view_shop');
         this.title.setTitle(brandPageTitle(data.pageTitle || 'Tienda'));
         this.meta.updateTag({
           name: 'description',

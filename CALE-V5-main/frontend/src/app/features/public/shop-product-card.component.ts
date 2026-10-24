@@ -9,6 +9,7 @@ import {
   productImages,
   savingsCop
 } from './shop-commerce';
+import { ShopAnalyticsService } from './shop-analytics.service';
 import { ShopFavoritesService } from './shop-favorites.service';
 import { PublicShopDto, PublicShopProductDto } from './shop.models';
 
@@ -220,6 +221,7 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
 })
 export class ShopProductCardComponent {
   readonly fav = inject(ShopFavoritesService);
+  private readonly analytics = inject(ShopAnalyticsService);
 
   @Input({ required: true }) product!: PublicShopProductDto;
   @Input({ required: true }) shop!: PublicShopDto;
@@ -244,6 +246,8 @@ export class ShopProductCardComponent {
   consult(): void {
     if (!openWhatsAppOrder(this.shop, this.product)) {
       this.whatsappMissing.emit();
+      return;
     }
+    this.analytics.track('whatsapp', this.product.id);
   }
 }

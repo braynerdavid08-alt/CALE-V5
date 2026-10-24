@@ -380,3 +380,35 @@ public sealed class ShopProduct
         return trimmed;
     }
 }
+
+/// <summary>Lightweight interest signal for the public shop (views, favorites, WhatsApp).</summary>
+public sealed class ShopInterestEvent
+{
+    public const int VisitorKeyMax = 64;
+    public const int EventTypeMax = 24;
+
+    public long Id { get; set; }
+    public string EventType { get; set; } = "";
+    public int? ProductId { get; set; }
+    public int? UserId { get; set; }
+    public string VisitorKey { get; set; } = "";
+    public DateTime CreatedAt { get; set; }
+}
+
+public static class ShopInterestEventTypes
+{
+    public const string ViewShop = "view_shop";
+    public const string ViewProduct = "view_product";
+    public const string Favorite = "favorite";
+    public const string Unfavorite = "unfavorite";
+    public const string WhatsApp = "whatsapp";
+
+    public static readonly HashSet<string> All =
+    [
+        ViewShop,
+        ViewProduct,
+        Favorite,
+        Unfavorite,
+        WhatsApp
+    ];
+}

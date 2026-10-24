@@ -1,6 +1,9 @@
+using System.Security.Claims;
+using Cale.Api.Extensions;
 using Cale.Api.Services.Shop;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Cale.Api.Controllers;
 
@@ -22,6 +25,23 @@ public sealed class PublicShopController : ControllerBase
         var product = await _shop.GetPublicBySlugAsync(slug, ct);
         return product is null ? NotFound() : product;
     }
+
+    [HttpPost("interest")]
+    [EnableRateLimiting(RateLimitPolicies.PublicJoin)]
+    public async Task<IActionResult> TrackInterest(
+        [FromBody] TrackShopInterestRequest body,
+        CancellationToken ct)
+    {
+        int? userId = null;
+        var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (int.TryParse(claim, out var id))
+        {
+            userId = id;
+        }
+
+        await _shop.TrackInterestAsync(body, userId, ct);
+        return NoContent();
+    }
 }
 
 [ApiController]
@@ -35,6 +55,10 @@ public sealed class AdminShopController : ControllerBase
 
     [HttpGet]
     public Task<AdminShopDto> Get(CancellationToken ct) => _shop.GetAdminAsync(ct);
+
+    [HttpGet("insights")]
+    public Task<ShopInsightsDto> Insights([FromQuery] int days = 30, CancellationToken ct = default) =>
+        _shop.GetInsightsAsync(days, ct);
 
     [HttpPut("settings")]
     public Task<AdminShopDto> PutSettings([FromBody] UpdateShopSettingsRequest body, CancellationToken ct) =>

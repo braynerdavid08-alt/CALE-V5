@@ -18,6 +18,7 @@ import {
   savingsCop,
   splitVariants
 } from './shop-commerce';
+import { ShopAnalyticsService } from './shop-analytics.service';
 import { ShopFavoritesService } from './shop-favorites.service';
 import { ShopProductCardComponent } from './shop-product-card.component';
 import { ShopApi } from './shop.api';
@@ -390,6 +391,7 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
 })
 export class PublicShopProductPage implements OnInit {
   private readonly api = inject(ShopApi);
+  private readonly analytics = inject(ShopAnalyticsService);
   private readonly route = inject(ActivatedRoute);
   private readonly title = inject(Title);
   private readonly meta = inject(Meta);
@@ -443,11 +445,13 @@ export class PublicShopProductPage implements OnInit {
     const s = this.shop();
     const p = this.product();
     if (!s || !p) return;
-    openWhatsAppOrder(s, p, {
+    if (openWhatsAppOrder(s, p, {
       size: this.size(),
       color: this.color(),
       quantity: this.qty
-    });
+    })) {
+      this.analytics.track('whatsapp', p.id);
+    }
   }
 
   private load(slug: string): void {
@@ -469,6 +473,7 @@ export class PublicShopProductPage implements OnInit {
       this.shop.set(shop);
       this.product.set(product);
       if (product) {
+        this.analytics.track('view_product', product.id);
         this.title.setTitle(brandPageTitle(product.name));
         this.meta.updateTag({
           name: 'description',

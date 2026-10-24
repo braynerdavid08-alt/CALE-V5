@@ -49,7 +49,20 @@ public static class ShopSchemaGuard
         """ALTER TABLE "ShopProducts" ADD COLUMN IF NOT EXISTS "Brand" varchar(80) NULL;""",
         """ALTER TABLE "ShopProducts" ADD COLUMN IF NOT EXISTS "Reference" varchar(60) NULL;""",
         """ALTER TABLE "ShopProducts" ADD COLUMN IF NOT EXISTS "Colors" varchar(120) NULL;""",
-        """ALTER TABLE "ShopProducts" ADD COLUMN IF NOT EXISTS "ProductType" varchar(60) NULL;"""
+        """ALTER TABLE "ShopProducts" ADD COLUMN IF NOT EXISTS "ProductType" varchar(60) NULL;""",
+        """
+        CREATE TABLE IF NOT EXISTS "ShopInterestEvents" (
+            "Id" bigserial PRIMARY KEY,
+            "EventType" varchar(24) NOT NULL,
+            "ProductId" integer NULL,
+            "UserId" integer NULL,
+            "VisitorKey" varchar(64) NOT NULL,
+            "CreatedAt" timestamp with time zone NOT NULL
+        );
+        """,
+        """CREATE INDEX IF NOT EXISTS "IX_ShopInterestEvents_CreatedAt" ON "ShopInterestEvents" ("CreatedAt");""",
+        """CREATE INDEX IF NOT EXISTS "IX_ShopInterestEvents_Event_Product" ON "ShopInterestEvents" ("EventType", "ProductId");""",
+        """CREATE INDEX IF NOT EXISTS "IX_ShopInterestEvents_VisitorKey" ON "ShopInterestEvents" ("VisitorKey");"""
     ];
 
     public static async Task EnsureAsync(
@@ -78,7 +91,7 @@ public static class ShopSchemaGuard
 
         if (failures == 0)
         {
-            logger?.LogInformation("ShopSchemaGuard applied (ShopSettings/ShopProducts).");
+            logger?.LogInformation("ShopSchemaGuard applied (ShopSettings/ShopProducts/ShopInterestEvents).");
         }
     }
 }

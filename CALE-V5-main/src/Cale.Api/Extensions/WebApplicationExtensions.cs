@@ -335,12 +335,21 @@ public static class WebApplicationExtensions
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     // Angular content-hashes bundle names, so they never change once deployed; everything
-    // else (index.html, config.js, sw.js, uploads) must be revalidated to pick up new deploys.
+    // else (index.html, config.js, sw.js, games/*) must be revalidated to pick up new deploys.
     private static void ApplySpaCacheHeaders(HttpContext http)
     {
         var path = http.Request.Path.Value ?? "";
-        http.Response.Headers.CacheControl = HashedAsset.IsMatch(path)
-            ? "public, max-age=31536000, immutable"
-            : "no-cache";
+        if (HashedAsset.IsMatch(path))
+        {
+            http.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+            return;
+        }
+
+        http.Response.Headers.CacheControl = "no-cache";
+        // StaticFiles would otherwise answer If-None-Match with 304. ResponseCompression
+        // (Brotli) then throws: "Writing to the response body is invalid for status 304"
+        // and the iframe for /games/movilidad/index.html (and /sw.js) comes back empty.
+        http.Response.Headers.Remove("ETag");
+        http.Response.Headers.Remove("Last-Modified");
     }
 }
