@@ -32,26 +32,25 @@ import { LEGAL_LINKS } from '../legal/legal-links';
           </a>
 
           <nav class="nav desktop" aria-label="Principal">
-            @for (link of primaryLinks; track link.label) {
-              <a
-                [routerLink]="link.path"
-                [fragment]="link.fragment ?? undefined"
-                [routerLinkActive]="link.fragment ? '' : 'active'"
-                [routerLinkActiveOptions]="{ exact: !!link.exact }"
-                [class.nav-shop]="link.shop">
-                {{ link.label }}
-                @if (link.shop) {
-                  <span class="nav-promo">Ofertas</span>
-                }
-              </a>
-            }
+            <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Inicio</a>
+            <a routerLink="/cascos" routerLinkActive="active" class="nav-shop">
+              Tienda
+              <span class="nav-promo">Ofertas</span>
+            </a>
+            <a routerLink="/" fragment="para-cea">Para CEA</a>
+            <a routerLink="/nosotros" routerLinkActive="active">Nosotros</a>
           </nav>
 
           <div class="actions desktop">
             <span class="theme-slot" title="Tema claro u oscuro">
               <ui-theme-toggle />
             </span>
-            <ui-button [routerLink]="accountPath()" type="button">Mi cuenta</ui-button>
+            @if (loggedIn()) {
+              <ui-button [routerLink]="accountPath()" type="button">Mi cuenta</ui-button>
+            } @else {
+              <a routerLink="/login" class="link-login">Iniciar sesión</a>
+              <ui-button routerLink="/register" type="button">Registrarme</ui-button>
+            }
           </div>
 
           <button
@@ -68,26 +67,27 @@ import { LEGAL_LINKS } from '../legal/legal-links';
         @if (menuOpen()) {
           <div id="public-mobile-nav" class="mobile-panel">
             <nav aria-label="Móvil">
-              @for (link of primaryLinks; track link.label) {
-                <a
-                  [routerLink]="link.path"
-                  [fragment]="link.fragment ?? undefined"
-                  (click)="closeMenu()">
-                  {{ link.label }}
-                  @if (link.shop) {
-                    <span class="nav-promo">Ofertas</span>
-                  }
-                </a>
-              }
-              <a [routerLink]="accountPath()" (click)="closeMenu()">Mi cuenta</a>
+              <a routerLink="/" (click)="closeMenu()">Inicio</a>
+              <a routerLink="/cascos" (click)="closeMenu()">
+                Tienda <span class="nav-promo">Ofertas</span>
+              </a>
+              <a routerLink="/" fragment="para-cea" (click)="closeMenu()">Para CEA</a>
+              <a routerLink="/nosotros" (click)="closeMenu()">Nosotros</a>
             </nav>
             <div class="mobile-actions">
               <span class="theme-slot">
                 <ui-theme-toggle />
               </span>
-              <a [routerLink]="accountPath()" (click)="closeMenu()">
-                <ui-button type="button">Mi cuenta</ui-button>
-              </a>
+              @if (loggedIn()) {
+                <a [routerLink]="accountPath()" (click)="closeMenu()">
+                  <ui-button type="button">Mi cuenta</ui-button>
+                </a>
+              } @else {
+                <a routerLink="/login" class="link-login" (click)="closeMenu()">Iniciar sesión</a>
+                <a routerLink="/register" (click)="closeMenu()">
+                  <ui-button type="button">Registrarme</ui-button>
+                </a>
+              }
             </div>
           </div>
         }
@@ -108,9 +108,15 @@ import { LEGAL_LINKS } from '../legal/legal-links';
               loading="lazy" />
           </a>
           <nav class="foot-nav" aria-label="Pie">
-            @for (link of footerLinks; track link.path + (link.fragment ?? '')) {
-              <a [routerLink]="link.path" [fragment]="link.fragment ?? undefined">{{ link.label }}</a>
-            }
+            <a routerLink="/">Inicio</a>
+            <a routerLink="/cascos">Tienda</a>
+            <a routerLink="/" fragment="para-cea">Para CEA</a>
+            <a routerLink="/nosotros">Nosotros</a>
+            <a routerLink="/cursos">Cursos</a>
+            <a routerLink="/escuelas">Escuelas</a>
+            <a routerLink="/instructores">Instructores</a>
+            <a routerLink="/contacto">Contacto</a>
+            <a routerLink="/apoyar">Apoyar Luz Verde</a>
           </nav>
           <nav class="foot-nav foot-legal" aria-label="Documentos legales">
             @for (link of legalLinks; track link.key) {
@@ -130,36 +136,7 @@ export class PublicShellComponent {
   readonly legalLinks = LEGAL_LINKS;
   readonly menuOpen = signal(false);
   readonly loggedIn = computed(() => this.session.isAuthenticated());
-  /** Logged-in → panel by role; guest → login (auth redirect). */
-  readonly accountPath = computed(() =>
-    this.loggedIn() ? this.session.homeRoute() : '/login'
-  );
-
-  readonly primaryLinks: Array<{
-    label: string;
-    path: string;
-    exact?: boolean;
-    fragment?: string;
-    shop?: boolean;
-  }> = [
-    { label: 'Inicio', path: '/', exact: true },
-    { label: 'Tienda', path: '/cascos', exact: true, shop: true },
-    { label: 'Para CEA', path: '/', fragment: 'para-cea' },
-    { label: 'Nosotros', path: '/nosotros', exact: true }
-  ];
-
-  /** Secondary destinations kept reachable from the footer. */
-  readonly footerLinks = [
-    { label: 'Inicio', path: '/' },
-    { label: 'Tienda', path: '/cascos' },
-    { label: 'Para CEA', path: '/', fragment: 'para-cea' },
-    { label: 'Nosotros', path: '/nosotros' },
-    { label: 'Cursos', path: '/cursos' },
-    { label: 'Escuelas', path: '/escuelas' },
-    { label: 'Instructores', path: '/instructores' },
-    { label: 'Contacto', path: '/contacto' },
-    { label: 'Apoyar Luz Verde', path: '/apoyar' }
-  ];
+  readonly accountPath = computed(() => this.session.homeRoute());
 
   toggleMenu(): void {
     this.menuOpen.update((v) => !v);

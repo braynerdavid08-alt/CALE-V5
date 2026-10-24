@@ -1,3 +1,4 @@
+import { CurrencyPipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { RouterLink } from '@angular/router';
@@ -9,20 +10,13 @@ import { UiLoadingComponent } from '../../shared/ui/ui-loading.component';
 import { PublicHomeApi } from './public-home.api';
 import { PublicHomeDto, PublicTestimonialsDto, ResolvedStatDto } from './public.models';
 import { formatStatDisplay } from './public-stat.util';
-import { PublicProductCardComponent } from './public-product-card.component';
 import { ShopApi } from './shop.api';
 import { PublicShopDto } from './shop.models';
 
 @Component({
   selector: 'app-landing-page',
   standalone: true,
-  imports: [
-    RouterLink,
-    UiButtonComponent,
-    UiIconComponent,
-    UiLoadingComponent,
-    PublicProductCardComponent
-  ],
+  imports: [CurrencyPipe, RouterLink, UiButtonComponent, UiIconComponent, UiLoadingComponent],
   template: `
     @if (loading()) {
       <div class="pad">
@@ -42,8 +36,8 @@ import { PublicShopDto } from './shop.models';
               <div class="hero-inner">
                 <div class="hero-copy">
                   <p class="eyebrow home-kicker">Inicio Luz Verde</p>
-                  @if (heroBadge(h); as badge) {
-                    <p class="badge"><span class="dot" aria-hidden="true"></span>{{ badge }}</p>
+                  @if (h.hero.badge && !isUnverifiableBadge(h.hero.badge)) {
+                    <p class="badge"><span class="dot" aria-hidden="true"></span>{{ h.hero.badge }}</p>
                   }
                   <h1 id="home-heading">
                     {{ h.hero.title }}
@@ -159,7 +153,25 @@ import { PublicShopDto } from './shop.models';
                   [class.cols-3]="shopProducts().length === 3"
                   [class.cols-5]="shopProducts().length >= 5">
                   @for (p of shopProducts(); track p.id) {
-                    <app-public-product-card [product]="p" />
+                    <a class="shop-card" routerLink="/cascos">
+                      <div class="shop-media">
+                        @if (productImage(p)) {
+                          <img [src]="productImage(p)" [alt]="p.name" width="280" height="200" loading="lazy" />
+                        } @else {
+                          <span class="shop-ph" aria-hidden="true">Producto</span>
+                        }
+                        @if (productBadge(p); as badge) {
+                          <span class="shop-badge">{{ badge }}</span>
+                        }
+                      </div>
+                      <strong>{{ p.name }}</strong>
+                      <span class="shop-price">
+                        {{ p.priceCop | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}
+                        @if (p.compareAtPriceCop && p.compareAtPriceCop > p.priceCop) {
+                          <s>{{ p.compareAtPriceCop | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</s>
+                        }
+                      </span>
+                    </a>
                   }
                 </div>
               } @else {
@@ -516,12 +528,29 @@ export class LandingPage implements OnInit {
     return resolveMediaUrl(h.hero.imageUrl);
   }
 
+  productImage(p: { imageUrl: string | null; imageUrls?: string[] }): string {
+    const url = p.imageUrls?.[0] || p.imageUrl;
+    return url ? resolveMediaUrl(url) : '';
+  }
+
+  productBadge(p: {
+    promoLabel: string | null;
+    discountPercent: number | null;
+    compareAtPriceCop: number | null;
+    priceCop: number;
+  }): string | null {
+    if (p.promoLabel?.trim()) return p.promoLabel.trim();
+    if (p.discountPercent != null && p.discountPercent > 0) return `−${p.discountPercent}%`;
+    if (p.compareAtPriceCop != null && p.compareAtPriceCop > p.priceCop) {
+      const pct = Math.round((1 - p.priceCop / p.compareAtPriceCop) * 100);
+      return pct > 0 ? `−${pct}%` : null;
+    }
+    return null;
+  }
+
   /** Hide unverifiable marketing claims like “#1” from CMS badges. */
-  heroBadge(h: PublicHomeDto): string | null {
-    const raw = h.hero.badge?.trim();
-    if (!raw) return null;
-    if (/#\s*1\b|n[uú]mero\s*uno|n[uú]mero\s*1/i.test(raw)) return null;
-    return raw;
+  isUnverifiableBadge(raw: string): boolean {
+    return /#\s*1\b|n[uú]mero\s*uno|n[uú]mero\s*1/i.test(raw.trim());
   }
 
   visibleStats(h: PublicHomeDto): ResolvedStatDto[] {
