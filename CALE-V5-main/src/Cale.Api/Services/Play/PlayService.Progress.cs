@@ -190,6 +190,7 @@ public sealed partial class PlayService
         int userId,
         string? scope,
         int? groupId,
+        DateOnly? weekStartParam,
         CancellationToken ct)
     {
         var me = await _db.Set<User>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId, ct)
@@ -204,6 +205,7 @@ public sealed partial class PlayService
             .Select(g => new { g.Id, g.Name })
             .ToListAsync(ct);
 
+        // School + global always stay available; class groups are optional extras.
         var scopes = new List<RankingScopeDto>();
         if (me.SchoolId is not null)
         {
@@ -224,17 +226,24 @@ public sealed partial class PlayService
             ? groups.FirstOrDefault(g => g.Id == groupId) ?? groups[0]
             : null;
 
-        var weekStart = WeekStart();
+        var currentWeek = WeekStart();
+        var earliestWeek = await EarliestRankingWeekAsync(ct);
+        var availableWeeks = BuildAvailableWeeks(earliestWeek, currentWeek);
+        var weekStart = NormalizeWeekStart(weekStartParam, earliestWeek, currentWeek);
+        var isCurrentWeek = weekStart == currentWeek;
+
         var boardKey = resolved switch
         {
             "school" => $"play:board:school:{me.SchoolId}:{weekStart:yyyyMMdd}",
             "group" => $"play:board:group:{selectedGroup?.Id}:{weekStart:yyyyMMdd}",
             _ => $"play:board:global:{weekStart:yyyyMMdd}"
         };
+        // Past weeks are immutable → cache longer; current week stays fresh.
+        var cacheTtl = isCurrentWeek ? TimeSpan.FromSeconds(60) : TimeSpan.FromHours(6);
         if (!_cache.TryGetValue(boardKey, out List<BoardRow>? cachedBoard) || cachedBoard is null)
         {
             cachedBoard = await LoadBoardAsync(resolved, me.SchoolId, selectedGroup?.Id, weekStart, ct);
-            CacheSmall(boardKey, cachedBoard, TimeSpan.FromSeconds(60));
+            CacheSmall(boardKey, cachedBoard, cacheTtl);
         }
 
         var myXp = (await ComputeWeeklyXpAsync([userId], weekStart, ct)).GetValueOrDefault(userId);
@@ -281,7 +290,9 @@ public sealed partial class PlayService
             xp.GetValueOrDefault(userId),
             entries.Count,
             myVisible,
-            scopes);
+            scopes,
+            availableWeeks,
+            isCurrentWeek);
     }
 
     private async Task<List<BoardRow>> LoadBoardAsync(
@@ -352,6 +363,8 @@ public sealed partial class PlayService
         }
 
         var sinceUtc = ColombiaTime.StartOfDayUtc(weekStart);
+        var untilUtc = ColombiaTime.StartOfDayUtc(weekStart.AddDays(7));
+        var weekEnd = weekStart.AddDays(6);
         void Add(int user, int value)
         {
             if (value > 0)
@@ -363,7 +376,10 @@ public sealed partial class PlayService
         var correct = await (
                 from ans in _db.Set<AttemptAnswer>().AsNoTracking()
                 join at in _db.Set<Attempt>().AsNoTracking() on ans.AttemptId equals at.Id
-                where userIds.Contains(at.UserId) && at.FinishedAt >= sinceUtc && ans.IsCorrect
+                where userIds.Contains(at.UserId)
+                    && at.FinishedAt >= sinceUtc
+                    && at.FinishedAt < untilUtc
+                    && ans.IsCorrect
                 group ans by at.UserId into g
                 select new { UserId = g.Key, Count = g.Count() })
             .ToListAsync(ct);
@@ -373,7 +389,10 @@ public sealed partial class PlayService
         }
 
         var passed = await _db.Set<Attempt>().AsNoTracking()
-            .Where(a => userIds.Contains(a.UserId) && a.FinishedAt >= sinceUtc && a.Passed)
+            .Where(a => userIds.Contains(a.UserId)
+                && a.FinishedAt >= sinceUtc
+                && a.FinishedAt < untilUtc
+                && a.Passed)
             .GroupBy(a => a.UserId)
             .Select(g => new { UserId = g.Key, Count = g.Count() })
             .ToListAsync(ct);
@@ -383,7 +402,9 @@ public sealed partial class PlayService
         }
 
         var daily = await _db.Set<DailyChallenge>().AsNoTracking()
-            .Where(d => userIds.Contains(d.UserId) && d.ChallengeDate >= weekStart)
+            .Where(d => userIds.Contains(d.UserId)
+                && d.ChallengeDate >= weekStart
+                && d.ChallengeDate <= weekEnd)
             .Select(d => new { d.UserId, Completed = d.CompletedAt != null, d.CorrectCount })
             .ToListAsync(ct);
         foreach (var r in daily)
@@ -392,7 +413,10 @@ public sealed partial class PlayService
         }
 
         var mastered = await _db.Set<MistakeReview>().AsNoTracking()
-            .Where(m => userIds.Contains(m.UserId) && m.Mastered && m.UpdatedAt >= sinceUtc)
+            .Where(m => userIds.Contains(m.UserId)
+                && m.Mastered
+                && m.UpdatedAt >= sinceUtc
+                && m.UpdatedAt < untilUtc)
             .GroupBy(m => m.UserId)
             .Select(g => new { UserId = g.Key, Count = g.Count() })
             .ToListAsync(ct);
@@ -402,7 +426,9 @@ public sealed partial class PlayService
         }
 
         var games = await _db.Set<GameResult>().AsNoTracking()
-            .Where(g => userIds.Contains(g.UserId) && g.PlayedAt >= sinceUtc)
+            .Where(g => userIds.Contains(g.UserId)
+                && g.PlayedAt >= sinceUtc
+                && g.PlayedAt < untilUtc)
             .Select(g => new { g.UserId, g.Game, g.Correct, g.Won })
             .ToListAsync(ct);
         foreach (var r in games)
@@ -413,5 +439,103 @@ public sealed partial class PlayService
         }
 
         return result;
+    }
+
+    private async Task<DateOnly> EarliestRankingWeekAsync(CancellationToken ct)
+    {
+        const string cacheKey = "play:rank:earliestWeek";
+        if (_cache.TryGetValue(cacheKey, out DateOnly cached))
+        {
+            return cached;
+        }
+
+        var current = WeekStart();
+        var floor = current.AddDays(-7 * 104); // ~2 years
+        DateTime? earliestUtc = null;
+
+        var attemptAt = await _db.Set<Attempt>().AsNoTracking()
+            .Where(a => a.FinishedAt != null)
+            .OrderBy(a => a.FinishedAt)
+            .Select(a => a.FinishedAt)
+            .FirstOrDefaultAsync(ct);
+        var gameAt = await _db.Set<GameResult>().AsNoTracking()
+            .OrderBy(g => g.PlayedAt)
+            .Select(g => (DateTime?)g.PlayedAt)
+            .FirstOrDefaultAsync(ct);
+        var dailyDate = await _db.Set<DailyChallenge>().AsNoTracking()
+            .OrderBy(d => d.ChallengeDate)
+            .Select(d => (DateOnly?)d.ChallengeDate)
+            .FirstOrDefaultAsync(ct);
+
+        foreach (var candidate in new[] { attemptAt, gameAt })
+        {
+            if (candidate is DateTime dt && (earliestUtc is null || dt < earliestUtc))
+            {
+                earliestUtc = dt;
+            }
+        }
+
+        DateOnly earliest;
+        if (earliestUtc is DateTime utc)
+        {
+            var local = TimeZoneInfo.ConvertTimeFromUtc(
+                DateTime.SpecifyKind(utc, DateTimeKind.Utc),
+                ColombiaTime.TimeZone);
+            earliest = WeekStartOf(DateOnly.FromDateTime(local));
+        }
+        else if (dailyDate is DateOnly day)
+        {
+            earliest = WeekStartOf(day);
+        }
+        else
+        {
+            earliest = current;
+        }
+
+        if (earliest < floor)
+        {
+            earliest = floor;
+        }
+
+        if (earliest > current)
+        {
+            earliest = current;
+        }
+
+        CacheSmall(cacheKey, earliest, TimeSpan.FromHours(6));
+        return earliest;
+    }
+
+    private static DateOnly NormalizeWeekStart(DateOnly? requested, DateOnly earliest, DateOnly current)
+    {
+        var week = requested is null ? current : WeekStartOf(requested.Value);
+        if (week > current)
+        {
+            return current;
+        }
+
+        if (week < earliest)
+        {
+            return earliest;
+        }
+
+        return week;
+    }
+
+    private static IReadOnlyList<DateOnly> BuildAvailableWeeks(DateOnly earliest, DateOnly current)
+    {
+        var weeks = new List<DateOnly>();
+        for (var w = current; w >= earliest; w = w.AddDays(-7))
+        {
+            weeks.Add(w);
+        }
+
+        return weeks;
+    }
+
+    internal static DateOnly WeekStartOf(DateOnly day)
+    {
+        var offset = ((int)day.DayOfWeek + 6) % 7;
+        return day.AddDays(-offset);
     }
 }
