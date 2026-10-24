@@ -5,8 +5,6 @@ import { SessionStore } from '../../core/auth/session.store';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiIconComponent } from '../../shared/ui/ui-icon.component';
 import { UiThemeToggleComponent } from '../../shared/ui/ui-theme-toggle.component';
-import { LEGAL_LINKS } from '../legal/legal-links';
-
 @Component({
   selector: 'app-public-shell',
   standalone: true,
@@ -96,36 +94,6 @@ import { LEGAL_LINKS } from '../legal/legal-links';
       <main class="main">
         <router-outlet />
       </main>
-
-      <footer class="foot">
-        <div class="foot-inner">
-          <a routerLink="/" class="foot-brand">
-            <img
-              [src]="brand.logoWide"
-              [alt]="brand.name + ' — ' + brand.slogan"
-              width="790"
-              height="316"
-              loading="lazy" />
-          </a>
-          <nav class="foot-nav" aria-label="Pie">
-            <a routerLink="/">Inicio</a>
-            <a routerLink="/cascos">Tienda</a>
-            <a routerLink="/contacto">Para CEA</a>
-            <a routerLink="/nosotros">Nosotros</a>
-            <a routerLink="/cursos">Cursos</a>
-            <a routerLink="/escuelas">Escuelas</a>
-            <a routerLink="/instructores">Instructores</a>
-            <a routerLink="/contacto">Contacto</a>
-            <a routerLink="/apoyar">Apoyar Luz Verde</a>
-          </nav>
-          <nav class="foot-nav foot-legal" aria-label="Documentos legales">
-            @for (link of legalLinks; track link.key) {
-              <a [routerLink]="['/legal', link.key]">{{ link.label }}</a>
-            }
-            <a routerLink="/pqr">PQR y datos personales</a>
-          </nav>
-        </div>
-      </footer>
     </div>
   `,
   styleUrl: './public-shell.component.css'
@@ -133,7 +101,6 @@ import { LEGAL_LINKS } from '../legal/legal-links';
 export class PublicShellComponent {
   private readonly session = inject(SessionStore);
   readonly brand = BRAND;
-  readonly legalLinks = LEGAL_LINKS;
   readonly menuOpen = signal(false);
   readonly loggedIn = computed(() => this.session.isAuthenticated());
   readonly accountPath = computed(() => this.session.homeRoute());
