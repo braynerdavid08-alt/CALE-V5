@@ -138,12 +138,12 @@
       <a class="today-card" data-tone="sky" routerLink="/student/play/ranking">
         <span class="today-head">
           <span class="today-icon" aria-hidden="true">🏁</span>
-          <span class="today-kicker">Ranking semanal</span>
+          <span class="today-kicker">Ranking (2 años)</span>
         </span>
         <strong>
-          @if (s.weeklyRank && s.weeklyXp > 0) { Vas en el puesto #{{ s.weeklyRank }} } @else { Aún sin puesto esta semana }
+          @if (s.weeklyRank && s.weeklyXp > 0) { Vas en el puesto #{{ s.weeklyRank }} } @else { Aún sin puesto en el ranking }
         </strong>
-        <span class="today-hint">{{ s.weeklyXp }} XP ganados esta semana.</span>
+        <span class="today-hint">{{ s.weeklyXp }} XP en los últimos 2 años.</span>
         <span class="today-cta">Ver ranking →</span>
       </a>
     </section>
