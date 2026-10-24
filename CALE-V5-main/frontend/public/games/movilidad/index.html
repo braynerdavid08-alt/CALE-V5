@@ -364,34 +364,340 @@ if(lv<=0||z>=END){finish(lv>0?'fin':'vidas',lv>0?'🏁 ¡Llegaste a destino!':'�
 
 /* 2. CRUCE */
 function cruce(){au();
-A.innerHTML=hdr('🔀 Cruce sin semáforo',1)+'<div class=hud id=hud></div>'+CV+'<p class=kb>Toca o haz clic en el carro, o usa '+kk('↑')+kk('→')+kk('↓')+kk('←')+' (o W A S D) según el lado del que viene. Regla: cede el paso a quien llega por tu derecha.</p>';
-const cv=$('#cv'),c=ctx(),CX=180,CY=240,OUT=[[0,1],[1,0],[0,-1],[-1,0]],LAT=[[25,0],[0,-25],[-25,0],[0,25]],COL=['#dc2626','#2563eb','#f59e0b','#16a34a'],NM=['sur','oriente','norte','occidente'],ANG=[0,-Math.PI/2,Math.PI,Math.PI/2],AR=['↓','→','↑','←'];
-let q=[[],[],[],[]],gone=[],lv=3,ok=0,sp=.5,ms='',mt=0,boom=0,T=0;const WIN=12,pos=(a,r)=>[CX+OUT[a][0]*r+LAT[a][0],CY+OUT[a][1]*r+LAT[a][1]];
-const rel=a=>{if(!q[a].length)return;const k=q[a].shift(),r=(a+1)%4;
-if(q[r].length){SFX.crash();lv--;boom=.9;ms=`💥 ¡Choque! Debías ceder al carro del ${NM[r]}, que viene por tu derecha.`;mt=3.5}else{SFX.ok();ok++;ms='✅ ¡Bien! No tenía a nadie por su derecha.';mt=1.4}gone.push(k)};
-cv.onpointerdown=e=>{const B=cv.getBoundingClientRect(),mx=(e.clientX-B.left)*360/B.width,my=(e.clientY-B.top)*480/B.height;let best=null,bd=75;
-for(let a=0;a<4;a++){const k=q[a][0];if(!k)continue;const[x,y]=pos(a,k.r),d=Math.hypot(x-mx,y-my);if(d<bd){bd=d;best=a}}if(best!=null)rel(best)};
-const KM={arrowdown:0,s:0,arrowright:1,d:1,arrowup:2,w:2,arrowleft:3,a:3};
-window.onkeydown=e=>{const k=e.key.toLowerCase();if(k in KM){e.preventDefault();if(!e.repeat)rel(KM[k])}};
-const blocks=[[0,0,130,190],[230,0,130,190],[0,290,130,190],[230,290,130,190]],BC=['#94a3b8','#a8a29e','#9ca3af','#a1a1aa'];
-loop(dt=>{T+=dt;
-sp-=dt;if(sp<=0){sp=1.5+Math.random()*1.5;const o=[0,1,2,3].filter(a=>q[a].length<3&&!(q[a].length==0&&[0,1,2,3].filter(b=>b!=a&&q[b].length).length==3));if(o.length){const a=o[R(0,o.length-1)];q[a].push({a,r:250})}}
-q.forEach(l=>l.forEach((k,i)=>k.r=Math.max(92+40*i,k.r-130*dt)));gone.forEach(k=>k.r-=170*dt);gone=gone.filter(k=>k.r>-270);
-c.fillStyle='#3fa862';c.fillRect(0,0,360,480);
-blocks.forEach((b,i)=>{c.fillStyle='#d1d5db';c.fillRect(...b);c.fillStyle=BC[i];rr(c,b[0]+(b[0]?14:22),b[1]+(b[1]?14:22),b[2]-36,b[3]-36,6);c.fill();c.fillStyle='#ffffff30';c.fillRect(b[0]+(b[0]?14:22),b[1]+(b[1]?14:22),b[2]-36,8);tree(c,b[0]+(b[0]?112:18),b[1]+(b[1]?172:18),9)});
-c.fillStyle='#3b3f46';c.fillRect(130,0,100,480);c.fillRect(0,190,360,100);c.fillStyle='#facc15';for(let i=0;i<480;i+=36){if(i<170||i>290)c.fillRect(178,i,4,18)}for(let i=0;i<360;i+=36){if(i<110||i>230)c.fillRect(i,238,18,4)}
-for(let a=0;a<4;a++){c.save();c.translate(CX,CY);c.rotate(ANG[a]);c.fillStyle='#fff';for(let x=-44;x<46;x+=16)c.fillRect(x,52,9,12);c.fillRect(-50,48,50,3);c.restore()}
-for(let a=0;a<4;a++){const kx=CX+OUT[a][0]*118-LAT[a][0]*.9,ky=CY+OUT[a][1]*118-LAT[a][1]*.9;c.fillStyle='#fffd';rr(c,kx-11,ky-11,22,22,5);c.fill();c.fillStyle='#111';c.font='bold 15px system-ui';c.textAlign='center';c.fillText(AR[a],kx,ky+5)}
-const dr=k=>{const[x,y]=pos(k.a,k.r);car(c,x,y,COL[k.a],ANG[k.a])};q.forEach(l=>l.forEach(dr));gone.forEach(dr);
-q.forEach(l=>{const k=l[0];if(k&&k.r<=k.a*0+110){const[x,y]=pos(k.a,k.r);c.strokeStyle='#fff';c.globalAlpha=.4+.4*Math.sin(T*6);c.lineWidth=2;c.beginPath();c.arc(x,y,34,0,7);c.stroke();c.globalAlpha=1}});
-if(boom>0){boom-=dt;c.font='64px serif';c.textAlign='center';c.fillText('💥',CX,CY+22)}
-c.textAlign='center';if(mt>0){mt-=dt;toast(c,ms,10)}
-$('#hud').innerHTML=`<span class=pill>${'❤️'.repeat(Math.max(0,lv))||'💔'}</span><div class=pb><i style="width:${ok/WIN*100}%"></i></div><span class=pill>✅ ${ok}/${WIN}</span>`;
-if(lv<=0||ok>=WIN){over('🔀 Cruce sin semáforo',`<h3>${lv>0?'🏆 ¡Cruce despejado!':'💥 Demasiados choques'}</h3><p>Pasos correctos: ${ok}/${WIN}</p><p>Recuerda: en un cruce sin señales, cede el paso a quien llega por tu derecha.</p>`,'cruce',{mode:'cruce',score:ok|0,correct:ok|0,total:WIN,won:lv>0});return 1}})}
+/* Prelación vial — Art. 70 + glorietas. Escenarios con ≥2 vehículos y punto de conflicto. */
+const WIN=10,LIVES0=3;
+const COLS=['#dc2626','#2563eb','#f59e0b','#16a34a','#7c3aed','#0891b2'];
+const BANK=[
+{id:'der2',kind:'cross',title:'Derecha en cruce',prompt:'Toca quién tiene PRELACIÓN',
+ law:'Art. 70: tiene prelación el vehículo que se encuentre o ingrese por el lado derecho del otro.',
+ actors:[
+  {id:'A',label:'A',col:0,from:'s',intent:'n',note:'Va al norte'},
+  {id:'B',label:'B',col:1,from:'e',intent:'w',note:'Va al occidente'}
+ ],
+ correct:['B'],whyOk:'B entra por la derecha de A: B tiene prelación.',
+ whyBad:'En cruce sin señalización, cede a quien llega por tu derecha. B está a la derecha de A.'},
+{id:'der3',kind:'cross',title:'Tres en conflicto',prompt:'Toca el 1.º que debe pasar',
+ law:'Art. 70 — prelación por la derecha, en cadena.',
+ actors:[
+  {id:'A',label:'A',col:0,from:'s',intent:'n',note:'Sur→Norte'},
+  {id:'B',label:'B',col:1,from:'e',intent:'w',note:'Oriente→Occidente'},
+  {id:'C',label:'C',col:2,from:'n',intent:'s',note:'Norte→Sur'}
+ ],
+ correct:['B'],order:['B','C','A'],
+ whyOk:'B tiene a nadie por su derecha crítica frente a A; B pasa primero. Luego se reevalúa.',
+ whyBad:'Con varios vehículos, aplica la derecha en el punto de conflicto. B es el primero seguro.'},
+{id:'jer',kind:'avenue',title:'Vía de mayor jerarquía',prompt:'Toca quién tiene PRELACIÓN',
+ law:'Art. 70: los que van por vía de mayor jerarquía tienen prelación sobre la de menor jerarquía.',
+ actors:[
+  {id:'A',label:'A',col:0,role:'main',note:'Avenida (principal)'},
+  {id:'B',label:'B',col:1,role:'side',note:'Calle secundaria'}
+ ],
+ correct:['A'],whyOk:'A circula por la avenida (mayor jerarquía).',
+ whyBad:'La avenida/vía principal manda sobre la calle secundaria, aunque B “llegue primero” visualmente.'},
+{id:'pav',kind:'dirt',title:'Pavimentada vs sin pavimentar',prompt:'Toca quién tiene PRELACIÓN',
+ law:'Art. 70: vehículos en vía pavimentada tienen preferencia sobre los de vía sin pavimentar.',
+ actors:[
+  {id:'A',label:'A',col:3,role:'paved',note:'Vía pavimentada'},
+  {id:'B',label:'B',col:2,role:'dirt',note:'Vía sin pavimentar'}
+ ],
+ correct:['A'],whyOk:'A viene por pavimento: tiene preferencia.',
+ whyBad:'Sin señalización, el que sale del afirmado cede al que ya va por la vía pavimentada.'},
+{id:'glo1',kind:'round',title:'Glorieta: ¿quién cede?',prompt:'Toca quién tiene PRELACIÓN',
+ law:'Art. 70: en glorieta, el que ya gira dentro tiene prelación sobre quien va a ingresar.',
+ actors:[
+  {id:'A',label:'A',col:0,role:'inside',ang:-.6,note:'Ya circula dentro'},
+  {id:'B',label:'B',col:1,role:'enter',note:'Quiere entrar'}
+ ],
+ correct:['A'],whyOk:'A ya está dentro: B debe ceder.',
+ whyBad:'Nunca “empujes” la entrada. Quien ya circula en la glorieta tiene la vía.'},
+{id:'glo2',kind:'round',title:'Glorieta: dos quieren entrar',prompt:'Toca quién tiene PRELACIÓN',
+ law:'Art. 70 glorieta + derecha al aproximarse sin estar aún dentro.',
+ actors:[
+  {id:'A',label:'A',col:0,role:'enterS',note:'Entra desde el sur'},
+  {id:'B',label:'B',col:1,role:'enterE',note:'Entra desde el oriente'},
+  {id:'C',label:'C',col:4,role:'inside',ang:1.2,note:'Ya dentro'}
+ ],
+ correct:['C'],whyOk:'C ya gira dentro: A y B esperan.',
+ whyBad:'Aunque A y B peleen la entrada, C (dentro) manda. Luego A/B aplican ceder al entrar.'},
+{id:'izq',kind:'left',title:'Giro a la izquierda',prompt:'Toca quién tiene PRELACIÓN',
+ law:'Art. 70: quien gira a la izquierda cede el paso a los que van en sentido opuesto.',
+ actors:[
+  {id:'A',label:'A',col:0,role:'turnL',note:'Quiere girar a la izquierda'},
+  {id:'B',label:'B',col:1,role:'oncoming',note:'Viene de frente'}
+ ],
+ correct:['B'],whyOk:'B sigue de frente: A debe ceder al girar a la izquierda.',
+ whyBad:'Girar a la izquierda no “roba” la vía al tráfico opuesto.'},
+{id:'izq3',kind:'left',title:'Giro + cruce peatonal',prompt:'Toca quién pasa 1.º entre vehículos',
+ law:'Art. 70 giro a la izquierda (prioridad entre vehículos). El peatón se respeta aparte.',
+ actors:[
+  {id:'A',label:'A',col:0,role:'turnL',note:'Gira izquierda'},
+  {id:'B',label:'B',col:1,role:'oncoming',note:'Frente'},
+  {id:'P',label:'P',col:5,role:'ped',note:'Peatón en el paso',notCar:1}
+ ],
+ correct:['B'],whyOk:'Entre A y B, B tiene prelación. El peatón se protege; no “gana” la disputa A vs B.',
+ whyBad:'Primero resuelve vehículos: B de frente. El peatón no te autoriza a cortar a B.'},
+{id:'lane',kind:'roundQuiz',title:'Glorieta: elige el carril',prompt:'El auto Amarillo sale en la 3.ª salida. ¿Qué carril debe usar al entrar?',
+ law:'Carril interno (izquierdo) si tomas 3.ª salida o retorno (U). Externo: 1.ª o 2.ª.',
+ actors:[
+  {id:'EXT',label:'Externo',col:1,role:'pickExt',note:'1.ª / 2.ª salida'},
+  {id:'INT',label:'Interno',col:2,role:'pickInt',note:'3.ª / retorno'}
+ ],
+ correct:['INT'],whyOk:'3.ª salida = carril interno.',
+ whyBad:'Para una salida lejana o retorno usas el carril interno; el externo es para salir pronto.'},
+{id:'dir',kind:'roundQuiz',title:'Direccional al salir',prompt:'¿Quién cumple la obligación de avisar la salida?',
+ law:'En glorieta es obligatorio activar direccional derecha antes de tomar la salida.',
+ actors:[
+  {id:'A',label:'A',col:0,role:'sigOk',note:'Direccional derecha ON',sig:1},
+  {id:'B',label:'B',col:1,role:'sigBad',note:'Sin direccional',sig:0}
+ ],
+ correct:['A'],whyOk:'A avisa con direccional derecha al salir: obliga la norma.',
+ whyBad:'Salir sin direccional derecha deja a los que esperan sin saber cuándo entrar.'},
+{id:'speed',kind:'roundQuiz',title:'Velocidad en glorieta',prompt:'¿Cuál respeta la velocidad máxima en glorieta (Colombia)?',
+ law:'Velocidad máxima en glorieta: 30 km/h. Prohibido cortar en línea recta la isleta.',
+ actors:[
+  {id:'A',label:'28',col:3,role:'slow',note:'28 km/h, sigue la curva'},
+  {id:'B',label:'55',col:0,role:'fast',note:'55 km/h, corta la isleta'}
+ ],
+ correct:['A'],whyOk:'A va ≤30 km/h y respeta la curvatura.',
+ whyBad:'55 km/h y cortar la isleta violan la norma de glorietas.'},
+{id:'mix',kind:'cross',title:'Conflicto doble',prompt:'Toca el 1.º con prelación',
+ law:'Art. 70 derecha + punto de conflicto real (trayectorias que se cortan).',
+ actors:[
+  {id:'A',label:'A',col:0,from:'w',intent:'e',note:'Occidente→Oriente'},
+  {id:'B',label:'B',col:1,from:'n',intent:'s',note:'Norte→Sur'},
+  {id:'C',label:'C',col:4,from:'e',intent:'w',note:'Oriente→Occidente (no cruza a A aún)'}
+ ],
+ correct:['A'],
+ whyOk:'A y B se cortan: B ve a A por su derecha → A tiene prelación. C no entra aún en ese conflicto.',
+ whyBad:'Mira el cruce A↔B. Quien tiene al otro por la derecha cede: B cede a A.'},
+{id:'none',kind:'roundQuiz',title:'¿Hay prelación?',prompt:'Solo un vehículo se mueve; el otro está estacionado fuera del cruce. ¿Qué aplica?',
+ law:'La prelación del Art. 70 nace cuando dos o más trayectorias se cortan en la intersección.',
+ actors:[
+  {id:'YES',label:'Hay que ceder',col:0,role:'choice',note:'Como si hubiera cruce'},
+  {id:'NO',label:'No hay prelación',col:3,role:'choice',note:'Sin punto de conflicto'}
+ ],
+ correct:['NO'],whyOk:'Sin trayectorias que se corten, no opera la prelación del Art. 70.',
+ whyBad:'Prelación ≠ “el que aparezca en pantalla”. Hace falta conflicto real de trayectorias.'}
+];
 
-/* 3. SEÑALES */
-const S=[['⚠️','Curva peligrosa',0,'advierte un peligro'],['🛑','PARE',1,'ordena detenerse'],['🅿️','Parqueadero',2,'informa un servicio'],['🚸','Zona escolar',0,'advierte presencia de niños'],['⛔','Prohibido el paso',1,'prohíbe una acción'],['🏥','Hospital',2,'informa un servicio'],['🚧','Obras en la vía',0,'advierte trabajos'],['🚫','Prohibido adelantar',1,'prohíbe una acción'],['⛽','Gasolinera',2,'informa un servicio'],['🦌','Paso de animales',0,'advierte un riesgo'],['🔟','Velocidad máxima',1,'es un límite obligatorio'],['🚏','Paradero de bus',2,'informa un servicio'],['↩️','Giro en U prohibido',1,'prohíbe una acción'],['🐄','Ganado en la vía',0,'advierte un riesgo']];
-const CN=['preventiva','reglamentaria','informativa'];
+A.innerHTML=hdr('⚖️ Prelación · Art. 70',1)+'<div class=hud id=hud></div>'+CV+'<p class=kb id=tip>Toca el vehículo con prelación. Si hay orden, toca solo el 1.º.</p>';
+const cv=$('#cv'),c=ctx();
+let lives=LIVES0,ok=0,streak=0,ms='',mt=0,flash=0,pulse=0,mode='play';
+let deck=BANK.slice().sort(()=>Math.random()-.5);
+let si=0,cur=null,picked=[],shake=0;
+
+const next=()=>{
+  if(ok>=WIN){over('⚖️ Prelación vial',`<h3>¡Juez de la vía!</h3><p>Acertaste <b>${ok}</b> conflictos con reglas del Art. 70 y glorietas.</p><p><small>Recuerda: solo hay prelación cuando hay dos o más trayectorias que se cortan.</small></p>`,'cruce',{mode:'cruce',score:ok|0,correct:ok|0,total:Math.max(WIN,ok+ (LIVES0-lives))|0,won:1});return}
+  if(si>=deck.length)deck=BANK.slice().sort(()=>Math.random()-.5),si=0;
+  cur=deck[si++];picked=[];mode='play';ms='';mt=0;
+};
+next();
+
+const actorAt=(x,y)=>{
+  if(!cur)return null;
+  const hits=hitmap(cur);
+  let best=null,bd=42;
+  hits.forEach(h=>{const d=Math.hypot(h.x-x,h.y-y);if(d<bd){bd=d;best=h.id}});
+  return best;
+};
+
+cv.onpointerdown=e=>{
+  if(mode!=='play'||!cur)return;
+  const B=cv.getBoundingClientRect(),mx=(e.clientX-B.left)*360/B.width,my=(e.clientY-B.top)*480/B.height;
+  const id=actorAt(mx,my);if(!id)return;
+  const want=cur.correct[0];
+  if(id===want){
+    SFX.ok();ok++;streak++;flash=.45;ms='✓ '+cur.whyOk;mt=2.2;mode='ok';
+    setTimeout(()=>{if(lives>0)next()},900);
+  }else{
+    SFX.bad();lives--;streak=0;shake=.4;ms='✗ '+cur.whyBad+' — '+cur.law;mt=3.6;mode='bad';
+    if(lives<=0){over('⚖️ Prelación vial',`<h3>Fin del juicio</h3><p>Aciertos: <b>${ok}</b></p><p>${cur.law}</p><p><small>${cur.whyBad}</small></p>`,'cruce',{mode:'cruce',score:ok|0,correct:ok|0,total:Math.max(1,ok+(LIVES0))|0,won:ok>=WIN});return}
+    setTimeout(()=>{if(lives>0)next()},1400);
+  }
+};
+
+window.onkeydown=e=>{
+  const k=e.key.toLowerCase();
+  if(!cur||mode!=='play')return;
+  const map={a:0,b:1,c:2,d:3,'1':0,'2':1,'3':2,'4':3};
+  if(k in map&&cur.actors[map[k]]){
+    e.preventDefault();
+    const id=cur.actors[map[k]].id;
+    const fake={clientX:0,clientY:0};
+    // synthesize via shared judge
+    const want=cur.correct[0];
+    if(id===want){SFX.ok();ok++;streak++;flash=.45;ms='✓ '+cur.whyOk;mt=2.2;mode='ok';setTimeout(()=>{if(lives>0)next()},900)}
+    else{SFX.bad();lives--;streak=0;shake=.4;ms='✗ '+cur.whyBad+' — '+cur.law;mt=3.6;mode='bad';
+      if(lives<=0){over('⚖️ Prelación vial',`<h3>Fin del juicio</h3><p>Aciertos: <b>${ok}</b></p><p>${cur.law}</p>`,'cruce',{mode:'cruce',score:ok|0,correct:ok|0,total:Math.max(1,ok+LIVES0)|0,won:0});return}
+      setTimeout(()=>{if(lives>0)next()},1400)}
+  }
+};
+
+function hitmap(sc){
+  const H=[];
+  if(sc.kind==='cross'){
+    const slot={s:[180,330,0],n:[180,150,Math.PI],e:[270,240,-Math.PI/2],w:[90,240,Math.PI/2]};
+    sc.actors.forEach(a=>{const p=slot[a.from];if(p)H.push({id:a.id,x:p[0],y:p[1]})});
+  }else if(sc.kind==='avenue'){
+    H.push({id:'A',x:180,y:200},{id:'B',x:95,y:300});
+  }else if(sc.kind==='dirt'){
+    H.push({id:'A',x:200,y:220},{id:'B',x:100,y:320});
+  }else if(sc.kind==='round'){
+    sc.actors.forEach(a=>{
+      if(a.role==='inside'){const ang=a.ang||0;H.push({id:a.id,x:180+Math.cos(ang)*78,y:250+Math.sin(ang)*78})}
+      else if(a.role==='enter'||a.role==='enterS')H.push({id:a.id,x:180,y:390});
+      else if(a.role==='enterE')H.push({id:a.id,x:310,y:250});
+    });
+  }else if(sc.kind==='left'){
+    sc.actors.forEach(a=>{
+      if(a.role==='turnL')H.push({id:a.id,x:180,y:320});
+      else if(a.role==='oncoming')H.push({id:a.id,x:180,y:150});
+      else if(a.role==='ped')H.push({id:a.id,x:250,y:240});
+    });
+  }else if(sc.kind==='roundQuiz'){
+    sc.actors.forEach((a,i)=>H.push({id:a.id,x:110+i*140,y:320}));
+  }
+  return H;
+}
+
+function drawCross(sc){
+  c.fillStyle='#3fa862';c.fillRect(0,0,360,480);
+  // blocks
+  [[0,0,130,170],[230,0,130,170],[0,310,130,170],[230,310,130,170]].forEach((b,i)=>{c.fillStyle='#d1d5db';c.fillRect(...b);c.fillStyle='#9ca3af';rr(c,b[0]+18,b[1]+18,b[2]-36,b[3]-36,6);c.fill()});
+  c.fillStyle='#3b3f46';c.fillRect(130,0,100,480);c.fillRect(0,170,360,140);
+  c.fillStyle='#facc15';for(let i=0;i<480;i+=36){if(i<150||i>310)c.fillRect(178,i,4,18)}for(let i=0;i<360;i+=36){if(i<110||i>230)c.fillRect(i,238,18,4)}
+  // conflict pulse
+  c.save();c.globalAlpha=.25+.25*Math.sin(pulse*6);c.fillStyle='#ef4444';c.beginPath();c.arc(180,240,28,0,7);c.fill();c.restore();
+  c.fillStyle='#fff';c.font='bold 11px system-ui';c.textAlign='center';c.fillText('CONFLICTO',180,244);
+  const slot={s:[180,330,0],n:[180,150,Math.PI],e:[270,240,-Math.PI/2],w:[90,240,Math.PI/2]};
+  sc.actors.forEach(a=>{const p=slot[a.from];if(!p)return;car(c,p[0],p[1],COLS[a.col],p[2]);badge(p[0],p[1]-36,a.label,COLS[a.col])});
+}
+
+function drawAvenue(sc){
+  c.fillStyle='#3fa862';c.fillRect(0,0,360,480);
+  c.fillStyle='#374151';c.fillRect(120,0,120,480); // main N-S
+  c.fillStyle='#4b5563';c.fillRect(0,250,360,70); // side
+  c.fillStyle='#facc15';for(let i=0;i<480;i+=34)c.fillRect(178,i,3,16);
+  c.fillStyle='#e5e7eb';c.font='bold 12px system-ui';c.textAlign='left';c.fillText('AVENIDA',128,40);
+  c.fillText('calle',16,240);
+  c.save();c.globalAlpha=.25+.25*Math.sin(pulse*6);c.fillStyle='#ef4444';c.beginPath();c.arc(180,285,26,0,7);c.fill();c.restore();
+  car(c,180,200,COLS[0],0);badge(180,164,'A',COLS[0]);
+  car(c,95,285,COLS[1],Math.PI/2);badge(95,249,'B',COLS[1]);
+}
+
+function drawDirt(sc){
+  c.fillStyle='#4d7c0f';c.fillRect(0,0,360,480);
+  c.fillStyle='#57534e';c.fillRect(150,0,90,480);
+  // dirt road
+  c.fillStyle='#a8a29e';c.fillRect(0,280,160,70);
+  for(let i=0;i<40;i++){c.fillStyle='#78716c';c.fillRect(10+i*4,290+(i%5)*8,3,3)}
+  c.fillStyle='#fff';c.font='bold 11px system-ui';c.fillText('pavimentada',160,40);c.fillText('sin pavimentar',16,270);
+  c.save();c.globalAlpha=.25+.25*Math.sin(pulse*6);c.fillStyle='#ef4444';c.beginPath();c.arc(160,300,24,0,7);c.fill();c.restore();
+  car(c,200,220,COLS[3],0);badge(200,184,'A',COLS[3]);
+  car(c,100,320,COLS[2],Math.PI/2);badge(100,284,'B',COLS[2]);
+}
+
+function drawRound(sc){
+  c.fillStyle='#3fa862';c.fillRect(0,0,360,480);
+  c.fillStyle='#3b3f46';c.beginPath();c.arc(180,250,120,0,7);c.fill();
+  c.fillStyle='#3fa862';c.beginPath();c.arc(180,250,48,0,7);c.fill();
+  c.fillStyle='#facc15';c.lineWidth=3;c.setLineDash([10,10]);c.beginPath();c.arc(180,250,84,0,7);c.stroke();c.setLineDash([]);
+  // approach roads
+  c.fillStyle='#3b3f46';c.fillRect(155,370,50,110);c.fillRect(300,225,60,50);c.fillRect(0,225,60,50);c.fillRect(155,0,50,70);
+  c.fillStyle='#fff';c.font='bold 11px system-ui';c.textAlign='center';c.fillText('GLORIETA',180,254);
+  c.save();c.globalAlpha=.25+.25*Math.sin(pulse*6);c.fillStyle='#ef4444';c.beginPath();c.arc(180,350,20,0,7);c.fill();c.restore();
+  sc.actors.forEach(a=>{
+    if(a.role==='inside'){const ang=a.ang||0,x=180+Math.cos(ang)*78,y=250+Math.sin(ang)*78;car(c,x,y,COLS[a.col],ang+Math.PI/2);badge(x,y-34,a.label,COLS[a.col])}
+    else if(a.role==='enter'||a.role==='enterS'){car(c,180,390,COLS[a.col],0);badge(180,354,a.label,COLS[a.col])}
+    else if(a.role==='enterE'){car(c,310,250,COLS[a.col],-Math.PI/2);badge(310,214,a.label,COLS[a.col])}
+  });
+}
+
+function drawLeft(sc){
+  c.fillStyle='#3fa862';c.fillRect(0,0,360,480);
+  c.fillStyle='#3b3f46';c.fillRect(140,0,80,480);c.fillRect(0,200,360,80);
+  c.fillStyle='#facc15';for(let i=0;i<480;i+=36){if(i<180||i>300)c.fillRect(178,i,4,18)}
+  // left-turn arrow
+  c.strokeStyle='#38bdf8';c.lineWidth=3;c.beginPath();c.moveTo(180,340);c.lineTo(180,260);c.lineTo(240,260);c.stroke();
+  c.fillStyle='#38bdf8';c.beginPath();c.moveTo(240,252);c.lineTo(252,260);c.lineTo(240,268);c.fill();
+  c.save();c.globalAlpha=.25+.25*Math.sin(pulse*6);c.fillStyle='#ef4444';c.beginPath();c.arc(180,240,22,0,7);c.fill();c.restore();
+  sc.actors.forEach(a=>{
+    if(a.role==='turnL'){car(c,180,320,COLS[a.col],0);badge(180,284,a.label,COLS[a.col])}
+    else if(a.role==='oncoming'){car(c,180,150,COLS[a.col],Math.PI);badge(180,114,a.label,COLS[a.col])}
+    else if(a.role==='ped'){c.fillStyle='#fff';c.beginPath();c.arc(250,240,10,0,7);c.fill();c.fillStyle='#1e3a8a';c.fillRect(246,248,8,16);badge(250,210,'P','#0891b2')}
+  });
+}
+
+function drawRoundQuiz(sc){
+  c.fillStyle='#0f172a';c.fillRect(0,0,360,480);
+  c.fillStyle='#3b3f46';c.beginPath();c.arc(180,160,90,0,7);c.fill();
+  c.fillStyle='#14532d';c.beginPath();c.arc(180,160,36,0,7);c.fill();
+  c.fillStyle='#facc15';c.setLineDash([8,8]);c.beginPath();c.arc(180,160,63,0,7);c.stroke();c.setLineDash([]);
+  c.fillStyle='#e2e8f0';c.font='bold 13px system-ui';c.textAlign='center';c.fillText(sc.title,180,40);
+  c.font='12px system-ui';c.fillStyle='#94a3b8';wrap(c,sc.prompt,180,70);
+  sc.actors.forEach((a,i)=>{
+    const x=110+i*140,y=320;
+    c.fillStyle='#1e293b';rr(c,x-55,y-70,110,130,14);c.fill();
+    c.strokeStyle=COLS[a.col];c.lineWidth=3;rr(c,x-55,y-70,110,130,14);c.stroke();
+    if(a.role==='pickExt'||a.role==='pickInt'){
+      car(c,x,y-10,COLS[a.col],0);
+      c.fillStyle='#fff';c.font='bold 14px system-ui';c.fillText(a.label,x,y+50);
+      c.font='11px system-ui';c.fillStyle='#94a3b8';c.fillText(a.note,x,y+66);
+    }else if(a.sig!=null){
+      car(c,x,y-10,COLS[a.col],0);
+      if(a.sig){c.fillStyle='#22c55e';c.beginPath();c.moveTo(x+18,y-28);c.lineTo(x+34,y-20);c.lineTo(x+18,y-12);c.fill();c.fillText('→',x+26,y-16)}
+      c.fillStyle='#fff';c.font='bold 14px system-ui';c.fillText(a.label,x,y+48);
+      c.font='11px system-ui';c.fillStyle='#94a3b8';c.fillText(a.note,x,y+64);
+    }else if(a.role==='choice'){
+      c.fillStyle=COLS[a.col];c.font='bold 16px system-ui';c.fillText(a.label,x,y-5);
+      c.fillStyle='#94a3b8';c.font='11px system-ui';c.fillText(a.note,x,y+50);
+    }else{
+      c.fillStyle=COLS[a.col];c.font='bold 28px system-ui';c.fillText(a.label+' km/h',x,y-5);
+      c.fillStyle='#94a3b8';c.font='11px system-ui';c.fillText(a.note,x,y+50);
+    }
+    badge(x,y-88,a.label,COLS[a.col]);
+  });
+}
+
+function badge(x,y,t,col){
+  c.fillStyle=col;rr(c,x-12,y-10,24,18,6);c.fill();
+  c.fillStyle='#fff';c.font='bold 12px system-ui';c.textAlign='center';c.textBaseline='middle';c.fillText(t,x,y);c.textBaseline='alphabetic';
+}
+
+function drawLegend(sc){
+  let y=455;
+  c.fillStyle='#0f172acc';rr(c,8,y-18,344,28,8);c.fill();
+  c.font='11px system-ui';c.textAlign='left';c.fillStyle='#e2e8f0';
+  const bits=sc.actors.map(a=>a.label+': '+(a.note||'')).join(' · ');
+  c.fillText(bits.length>52?bits.slice(0,52)+'…':bits,14,y);
+}
+
+loop(dt=>{
+  pulse+=dt;if(mt>0)mt-=dt;if(flash>0)flash-=dt;if(shake>0)shake-=dt;
+  const hud=$('#hud');
+  if(hud)hud.innerHTML=`<span class=pill>${'❤'.repeat(Math.max(0,lives))||'✕'}</span><span class=pill>✔ ${ok}/${WIN}</span><span class=pill>🔥 ${streak}</span><span class=pill>${(cur&&cur.title)||''}</span>`;
+  const tip=$('#tip');if(tip&&cur)tip.textContent=cur.prompt+(cur.actors.length>2?' · Hay '+cur.actors.length+' en el conflicto.':'');
+
+  c.save();
+  if(shake>0)c.translate((Math.random()-.5)*6,(Math.random()-.5)*6);
+  if(!cur){c.restore();return}
+  if(cur.kind==='cross')drawCross(cur);
+  else if(cur.kind==='avenue')drawAvenue(cur);
+  else if(cur.kind==='dirt')drawDirt(cur);
+  else if(cur.kind==='round')drawRound(cur);
+  else if(cur.kind==='left')drawLeft(cur);
+  else if(cur.kind==='roundQuiz')drawRoundQuiz(cur);
+  if(cur.kind!=='roundQuiz'){
+    c.fillStyle='#0f172ae6';rr(c,12,12,336,54,12);c.fill();
+    c.fillStyle='#fff';c.font='bold 14px system-ui';c.textAlign='center';c.fillText(cur.prompt,180,34);
+    c.font='11px system-ui';c.fillStyle='#93c5fd';c.fillText(cur.title,180,52);
+    drawLegend(cur);
+  }
+  if(flash>0){c.fillStyle=`rgba(34,197,94,${flash})`;c.fillRect(0,0,360,480)}
+  if(mt>0)toast(c,ms,mode==='bad'?70:90);
+  c.restore();
+});
+}
 function sen(){au();
 A.innerHTML=hdr('🚸 Clasifica las señales',1)+'<div class=hud id=hud></div>'+CV+'<div class=g style="grid-template-columns:repeat(3,1fr);margin-top:10px;gap:8px"><button class=cb data-c=0 style="border-color:#facc15">⚠️ Preventiva<small>'+kk('1')+' · '+kk('←')+'</small></button><button class=cb data-c=1 style="border-color:#dc2626">⛔ Reglamentaria<small>'+kk('2')+' · '+kk('↓')+'</small></button><button class=cb data-c=2 style="border-color:#2563eb">ℹ️ Informativa<small>'+kk('3')+' · '+kk('→')+'</small></button></div><p class=kb>Clasifica la señal más baja antes de que toque el suelo.</p>';
 const c=ctx();let sg=[],lv=3,sc=0,sp=.3,ms='',mt=0;
@@ -415,6 +721,6 @@ const upd=()=>{const x=calc();$('#info').innerHTML=`Reacción (1,5 s): <b>${x.r.
 $('#v').oninput=$('#f').onchange=upd;upd();$('#obs').style.left=Math.min(88,d/1.1)+'%';
 window.onkeydown=e=>{const k=e.key,v=$('#v'),f=$('#f');if(k=='ArrowLeft'){v.value=+v.value-5;upd()}else if(k=='ArrowRight'){v.value=+v.value+5;upd()}else if(k=='ArrowUp'){f.selectedIndex=Math.max(0,f.selectedIndex-1);upd()}else if(k=='ArrowDown'){f.selectedIndex=Math.min(2,f.selectedIndex+1);upd()}else if(k=='Enter'||k==' '){e.preventDefault();$('#go').click()}if(k.startsWith('Arrow'))e.preventDefault()};
 $('#go').onclick=()=>{const x=calc(),ok=x.t<=d;SFX.skid();if(!ok)setTimeout(SFX.crash,800);else setTimeout(SFX.ok,1000);$('#car').style.left=Math.min(88,Math.min(x.t,d)/1.1)+'%';try{report({mode:'freno',score:ok?1:0,correct:ok?1:0,total:1,won:!!ok})}catch(_e){}if(!ok)$('#car').textContent='💥';$('#info').innerHTML+=`<br>${ok?'✅ ¡Frenas a tiempo! Te sobran '+(d-x.t).toFixed(1)+' m.':'💥 Choque. Te faltaron '+(x.t-d).toFixed(1)+' m. Baja la velocidad.'}<br><small>Al duplicar la velocidad, el frenado se cuadruplica.</small>`;$('#go').textContent='Nuevo reto (Enter)';$('#go').onclick=freno}}
-const G=[['🚗','Conductor responsable',condStart,'Maneja y respeta las normas','linear-gradient(135deg,#2563eb,#1e40af)'],['🔀','Cruce sin semáforo',cruce,'¿Quién pasa primero?','linear-gradient(135deg,#f59e0b,#b45309)'],['🚸','Clasifica las señales',sen,'Arcade de reflejos','linear-gradient(135deg,#16a34a,#166534)'],['📏','Distancia de frenado',freno,'Simulador de física','linear-gradient(135deg,#7c3aed,#4c1d95)']];
+const G=[['🚗','Conductor responsable',condStart,'Maneja y respeta las normas','linear-gradient(135deg,#2563eb,#1e40af)'],['⚖️','Prelación Art. 70',cruce,'¿Quién tiene la vía?','linear-gradient(135deg,#f59e0b,#b45309)'],['🚸','Clasifica las señales',sen,'Arcade de reflejos','linear-gradient(135deg,#16a34a,#166534)'],['📏','Distancia de frenado',freno,'Simulador de física','linear-gradient(135deg,#7c3aed,#4c1d95)']];
 home();
 </script></body></html>
