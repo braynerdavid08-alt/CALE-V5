@@ -59,8 +59,17 @@
 .people li.on::before { content: "● "; color: #2e7d32; }
 .waiting { text-align: center; padding: 2rem 1rem; color: #0d1410; }
 .waiting h2 { color: #0d1410; }
+.projection-panel {
+  margin: 0 0 1rem;
+  padding: clamp(1rem, 2.5vw, 1.75rem);
+  border-radius: 18px;
+  border: 1px solid #c5d6e8;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+  box-shadow: 0 10px 28px rgba(21, 101, 192, 0.08);
+}
 .question-head { display: flex; justify-content: space-between; align-items: center; color: #5a6f82; }
 .timer { font-size: 2.5rem; font-weight: 900; color: #1565c0; margin: 0; }
+.timer.urgent { color: #c62828; }
 .q-text {
   font-size: clamp(1.5rem, 3.5vw, 2.25rem);
   line-height: 1.35;
@@ -127,10 +136,17 @@
 
 .roster {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 0.75rem;
   margin: 1rem 0 0;
   text-align: left;
+}
+.host-roster {
+  margin-top: 0.25rem;
+  padding-top: 0.25rem;
+}
+.host-roster .roster-col ul {
+  max-height: 220px;
 }
 .roster-col {
   border: 1px solid #d7e0ea;

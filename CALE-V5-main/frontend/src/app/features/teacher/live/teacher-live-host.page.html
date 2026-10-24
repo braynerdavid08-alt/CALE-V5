@@ -276,108 +276,80 @@
             </div>
           </div>
         } @else {
-          @if ((l.status === 'Running' || l.status === 'Paused') && analytics(); as liveA) {
-            @if (liveA.topics.length) {
-              <div class="topic-strip" aria-label="Comprensión por tema">
-                @for (t of liveA.topics; track t.topic) {
-                  <span class="topic-chip">
-                    <em>{{ t.topic }}</em>
-                    <strong>{{ t.accuracyPercent }}%</strong>
-                  </span>
+          <section class="projection-panel" aria-label="Proyección de la pregunta">
+            <div class="question-head">
+              <p>
+                Pregunta {{ l.currentQuestion.index + 1 }} / {{ l.currentQuestion.total }}
+                @if (l.currentQuestion.isSurprise) {
+                  <span class="surprise-tag">Sorpresa</span>
                 }
-              </div>
-            }
-          }
-          <div class="question-head">
-            <p>
-              Pregunta {{ l.currentQuestion.index + 1 }} / {{ l.currentQuestion.total }}
-              @if (l.currentQuestion.isSurprise) {
-                <span class="surprise-tag">Sorpresa</span>
+              </p>
+              @if (secondsLeft() !== null) {
+                <p class="timer" [class.urgent]="(secondsLeft() ?? 99) <= 10">{{ secondsLeft() }}s</p>
               }
-            </p>
-            @if (secondsLeft() !== null) {
-              <p class="timer">{{ secondsLeft() }}s</p>
+            </div>
+            @if (surpriseNotice()) {
+              <p class="surprise-banner">{{ surpriseNotice() }}</p>
             }
-          </div>
-          @if (surpriseNotice()) {
-            <p class="surprise-banner">{{ surpriseNotice() }}</p>
-          }
-          <h2 class="q-text">{{ l.currentQuestion.text }}</h2>
-          @if (l.currentQuestion.imageUrl) {
-            <img class="q-img" [src]="l.currentQuestion.imageUrl" alt="" />
-          }
-          <ul class="options">
-            @for (opt of l.currentQuestion.options; track opt.id; let i = $index) {
-              <li
-                class="option-card"
-                [class.revealed-correct]="l.revealCorrect && opt.isCorrect === true">
-                <span class="option-letter">{{ optionLetter(i) }}</span>
-                <span class="option-body">
-                  @if (opt.imageUrl) {
-                    <img class="option-img" [src]="opt.imageUrl" alt="" />
-                  }
-                  @if (opt.text) {
-                    <span class="option-text">{{ opt.text }}</span>
-                  }
-                </span>
-              </li>
+            <h2 class="q-text">{{ l.currentQuestion.text }}</h2>
+            @if (l.currentQuestion.imageUrl) {
+              <img class="q-img" [src]="l.currentQuestion.imageUrl" alt="" />
             }
-          </ul>
-          @if (l.currentQuestion.explanation && l.revealCorrect) {
-            <p class="explain">{{ l.currentQuestion.explanation }}</p>
-          }
+            <ul class="options">
+              @for (opt of l.currentQuestion.options; track opt.id; let i = $index) {
+                <li
+                  class="option-card"
+                  [class.revealed-correct]="l.revealCorrect && opt.isCorrect === true">
+                  <span class="option-letter">{{ optionLetter(i) }}</span>
+                  <span class="option-body">
+                    @if (opt.imageUrl) {
+                      <img class="option-img" [src]="opt.imageUrl" alt="" />
+                    }
+                    @if (opt.text) {
+                      <span class="option-text">{{ opt.text }}</span>
+                    }
+                  </span>
+                </li>
+              }
+            </ul>
+            @if (l.currentQuestion.explanation && l.revealCorrect) {
+              <p class="explain">{{ l.currentQuestion.explanation }}</p>
+            }
+          </section>
 
-          @if (answerRoster(); as roster) {
+          @if (hostAnswerRoster(); as roster) {
             @if (roster.sessionQuestionId === l.currentQuestion.sessionQuestionId) {
-              <div class="roster">
-                @if (roster.revealCorrectness) {
-                  <div class="roster-col ok">
-                    <h3>Correctos ({{ roster.correctCount }})</h3>
-                    <ul>
-                      @for (row of roster.correct; track row.participantId) {
-                        <li>
-                          {{ row.displayName }}
-                          @if (rosterOptionLetter(row.optionId); as letter) {
-                            <span class="picked"> · {{ letter }}</span>
-                          }
-                        </li>
-                      } @empty {
-                        <li class="empty">Nadie aún</li>
-                      }
-                    </ul>
-                  </div>
-                  <div class="roster-col bad">
-                    <h3>Incorrectos ({{ roster.incorrectCount }})</h3>
-                    <ul>
-                      @for (row of roster.incorrect; track row.participantId) {
-                        <li>
-                          {{ row.displayName }}
-                          @if (rosterOptionLetter(row.optionId); as letter) {
-                            <span class="picked"> · {{ letter }}</span>
-                          }
-                        </li>
-                      } @empty {
-                        <li class="empty">Nadie</li>
-                      }
-                    </ul>
-                  </div>
-                } @else {
-                  <div class="roster-col">
-                    <h3>Respondieron ({{ roster.incorrect.length }})</h3>
-                    <ul>
-                      @for (row of roster.incorrect; track row.participantId) {
-                        <li>
-                          {{ row.displayName }}
-                          @if (rosterOptionLetter(row.optionId); as letter) {
-                            <span class="picked"> · {{ letter }}</span>
-                          }
-                        </li>
-                      } @empty {
-                        <li class="empty">Nadie</li>
-                      }
-                    </ul>
-                  </div>
-                }
+              <div class="roster host-roster" aria-label="Quién respondió">
+                <div class="roster-col ok">
+                  <h3>Respondieron bien ({{ roster.correctCount }})</h3>
+                  <ul>
+                    @for (row of roster.correct; track row.participantId) {
+                      <li>
+                        {{ row.displayName }}
+                        @if (rosterOptionLetter(row.optionId); as letter) {
+                          <span class="picked"> · {{ letter }}</span>
+                        }
+                      </li>
+                    } @empty {
+                      <li class="empty">Nadie aún</li>
+                    }
+                  </ul>
+                </div>
+                <div class="roster-col bad">
+                  <h3>Respondieron mal ({{ roster.incorrectCount }})</h3>
+                  <ul>
+                    @for (row of roster.incorrect; track row.participantId) {
+                      <li>
+                        {{ row.displayName }}
+                        @if (rosterOptionLetter(row.optionId); as letter) {
+                          <span class="picked"> · {{ letter }}</span>
+                        }
+                      </li>
+                    } @empty {
+                      <li class="empty">Nadie</li>
+                    }
+                  </ul>
+                </div>
                 <div class="roster-col mute">
                   <h3>Sin respuesta ({{ roster.unansweredCount }})</h3>
                   <ul>

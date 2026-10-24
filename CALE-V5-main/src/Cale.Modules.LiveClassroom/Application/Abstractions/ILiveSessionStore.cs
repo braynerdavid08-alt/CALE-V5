@@ -52,6 +52,8 @@ public interface ILiveSessionBroadcaster
     Task SessionEndedAsync(int sessionId, object payload, CancellationToken ct = default);
     Task RevealUpdatedAsync(int sessionId, object payload, CancellationToken ct = default);
     Task AnswerRosterUpdatedAsync(int sessionId, object payload, CancellationToken ct = default);
+    /// <summary>Roster with correctness, only for the host group (students never receive this).</summary>
+    Task HostAnswerRosterUpdatedAsync(int sessionId, object payload, CancellationToken ct = default);
     Task RankingUpdatedAsync(int sessionId, object payload, CancellationToken ct = default);
     Task DoubtsUpdatedAsync(int sessionId, object payload, CancellationToken ct = default);
     Task RematchReadyAsync(int sessionId, object payload, CancellationToken ct = default);

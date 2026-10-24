@@ -70,6 +70,8 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   readonly secondsLeft = signal<number | null>(null);
   readonly answersReceived = signal(0);
   readonly answerRoster = signal<LiveAnswerRosterDto | null>(null);
+  /** Host-only roster: always includes who got it right/wrong. */
+  readonly hostAnswerRoster = signal<LiveAnswerRosterDto | null>(null);
   readonly roundRanking = signal(false);
   readonly quickOpen = signal(false);
   readonly quickText = signal('');
@@ -119,6 +121,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
       this.analytics.set(null);
       this.surpriseNotice.set(null);
       this.answerRoster.set(null);
+      this.hostAnswerRoster.set(null);
       this.roundRanking.set(false);
       this.autoCloseSent = false;
       this.lastAnalyticsAtAnswers = -1;
@@ -748,6 +751,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
       }
       this.answersReceived.set(0);
       this.answerRoster.set(null);
+      this.hostAnswerRoster.set(null);
       this.roundRanking.set(false);
       this.autoCloseSent = false;
       this.surpriseNotice.set(payload.isSurprise ? '¡Pregunta sorpresa!' : null);
@@ -794,6 +798,9 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     });
     this.hub.on('AnswerRosterUpdated', (payload: LiveAnswerRosterDto) => {
       this.answerRoster.set(payload ?? null);
+    });
+    this.hub.on('HostAnswerRosterUpdated', (payload: LiveAnswerRosterDto) => {
+      this.hostAnswerRoster.set(payload ?? null);
     });
     this.hub.on('RankingUpdated', (payload: LiveRankingDto) => this.ranking.set(payload));
     this.hub.on('DoubtsUpdated', (payload: LiveDoubtDto[]) => this.doubts.set(payload ?? []));
