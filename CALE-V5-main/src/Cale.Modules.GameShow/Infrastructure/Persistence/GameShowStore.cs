@@ -83,6 +83,21 @@ public sealed class GameShowStore : IGameShowStore
         return updated == 1;
     }
 
+    public async Task<bool> TryClaimExpiredDeadlineAsync(int roundId, DateTime utcNow, CancellationToken ct)
+    {
+        var updated = await _db.Set<GameShowRound>()
+            .Where(r =>
+                r.Id == roundId
+                && r.AnswerDeadlineUtc != null
+                && r.AnswerDeadlineUtc <= utcNow)
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(r => r.AnswerDeadlineUtc, (DateTime?)null),
+                ct);
+        return updated == 1;
+    }
+
+    public void ClearChangeTracker() => _db.ChangeTracker.Clear();
+
     public Task RemovePlayerAsync(GameShowPlayer player, CancellationToken ct)
     {
         _db.Set<GameShowPlayer>().Remove(player);

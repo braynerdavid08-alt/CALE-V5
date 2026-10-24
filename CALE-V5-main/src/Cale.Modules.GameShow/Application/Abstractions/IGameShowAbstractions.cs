@@ -20,6 +20,13 @@ public interface IGameShowStore
     Task<bool> TryClaimBuzzAsync(int roundId, string team, CancellationToken ct);
     /// <summary>Atomically gives a pending steal (StealBuzz) to the first team that presses.</summary>
     Task<bool> TryClaimStealAsync(int roundId, string team, CancellationToken ct);
+    /// <summary>
+    /// Claims an expired turn clock so only one concurrent timeout (many phones) processes the turn.
+    /// Clears AnswerDeadlineUtc when it was already due.
+    /// </summary>
+    Task<bool> TryClaimExpiredDeadlineAsync(int roundId, DateTime utcNow, CancellationToken ct);
+    /// <summary>Drops tracked entities so a reload after ExecuteUpdate sees DB values.</summary>
+    void ClearChangeTracker();
     Task RemovePlayerAsync(GameShowPlayer player, CancellationToken ct);
     Task<IReadOnlyList<GameShowSession>> ListForHostAsync(int hostUserId, CancellationToken ct);
     Task<IReadOnlyList<GameShowSession>> ListForSchoolAsync(int schoolUserId, CancellationToken ct);
