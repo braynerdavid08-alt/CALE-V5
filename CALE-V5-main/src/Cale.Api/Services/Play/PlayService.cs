@@ -610,6 +610,59 @@ public sealed partial class PlayService
             newBadges);
     }
 
+    public async Task<GameSavedDto> SaveMovilidadResultAsync(
+        int userId,
+        MovilidadResultRequest request,
+        CancellationToken ct)
+    {
+        if (request.Total < 0 || request.Total > 500
+            || request.Correct < 0 || request.Correct > request.Total
+            || request.Score < 0 || request.Score > 100_000)
+        {
+            throw new DomainException("Invalid game result.", 400, "invalid_result");
+        }
+
+        var mode = SanitizeMovilidadMode(request.Mode);
+        var gameKey = mode == "unknown" ? GameKinds.Movilidad : $"{GameKinds.Movilidad}-{mode}";
+        var previousBest = await _db.Set<GameResult>().AsNoTracking()
+            .Where(x => x.UserId == userId && x.Game == gameKey)
+            .Select(x => (int?)x.Score)
+            .MaxAsync(ct) ?? 0;
+
+        _db.Set<GameResult>().Add(new GameResult
+        {
+            UserId = userId,
+            Game = gameKey,
+            Score = request.Score,
+            Correct = request.Correct,
+            Total = request.Total,
+            Won = request.Won || request.Score > previousBest,
+            PlayedAt = _clock.UtcNow
+        });
+        await _db.SaveChangesAsync(ct);
+        var newBadges = await CheckAchievementsAsync(userId, ct);
+
+        return new GameSavedDto(
+            request.Score,
+            Math.Max(previousBest, request.Score),
+            request.Score > previousBest && request.Score > 0,
+            newBadges);
+    }
+
+    private static string SanitizeMovilidadMode(string? mode)
+    {
+        if (string.IsNullOrWhiteSpace(mode))
+        {
+            return "unknown";
+        }
+
+        var clean = new string(mode.Trim().ToLowerInvariant()
+            .Where(ch => ch is >= 'a' and <= 'z' or '-')
+            .Take(16)
+            .ToArray());
+        return string.IsNullOrEmpty(clean) ? "unknown" : clean;
+    }
+
     // ───────────────────────── Summary ─────────────────────────
 
     public async Task<PlaySummaryDto> GetSummaryAsync(int userId, CancellationToken ct)

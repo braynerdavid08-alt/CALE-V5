@@ -105,6 +105,14 @@ public sealed record SignDto(string Code, string Family, string Name, string Ima
 
 public sealed record SignsResultRequest(int Correct, int Total);
 
+/// <summary>Result from the static Canvas mobility games (iframe postMessage).</summary>
+public sealed record MovilidadResultRequest(
+    string? Mode,
+    int Score,
+    int Correct,
+    int Total,
+    bool Won = false);
+
 public sealed record QuickCheckResultDto(bool Correct, int? CorrectOptionId);
 
 public sealed record SignsExamReportDto(

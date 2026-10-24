@@ -55,6 +55,7 @@ export class StudentHomePage implements OnInit {
   });
 
   readonly games = [
+    { id: 'movilidad', label: 'Juegos de movilidad', hint: 'Conduce y respeta las normas', path: '/student/play/movilidad', emoji: '🚗' },
     { id: 'signs', label: 'Señal relámpago', hint: '¿Cuántas señales en 60 s?', path: '/student/play/signs', emoji: '⚡' },
     { id: 'duel', label: 'Duelo 1 vs 1', hint: 'Reta a un compañero', path: '/student/play/duel', emoji: '⚔️' },
     { id: 'achievements', label: 'Mis logros', hint: 'Nivel e insignias', path: '/student/play/achievements', emoji: '🏅' }
