@@ -4,6 +4,7 @@ import { Meta, Title } from '@angular/platform-browser';
 import { RouterLink } from '@angular/router';
 import { resolveMediaUrl } from '../../core/media/resolve-media-url';
 import { BRAND } from '../../core/brand';
+import { SessionStore } from '../../core/auth/session.store';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiIconComponent } from '../../shared/ui/ui-icon.component';
 import { UiLoadingComponent } from '../../shared/ui/ui-loading.component';
@@ -45,6 +46,11 @@ import { PublicShopDto } from './shop.models';
                   </h1>
                   <p class="lead">{{ h.hero.description }}</p>
                   <div class="cta-row">
+                    @if (loggedIn()) {
+                      <ui-button [routerLink]="accountPath()">Mi cuenta</ui-button>
+                    } @else {
+                      <ui-button routerLink="/login">Iniciar sesión</ui-button>
+                    }
                     <ui-button routerLink="/cascos">Explorar tienda</ui-button>
                     <a class="ghost-btn" routerLink="/contacto">
                       <ui-icon name="building" size="sm" />
@@ -195,6 +201,7 @@ export class LandingPage implements OnInit {
   readonly brand = BRAND;
   private readonly api = inject(PublicHomeApi);
   private readonly shopApi = inject(ShopApi);
+  private readonly session = inject(SessionStore);
   private readonly title = inject(Title);
   private readonly meta = inject(Meta);
 
@@ -202,6 +209,8 @@ export class LandingPage implements OnInit {
   readonly home = signal<PublicHomeDto | null>(null);
   readonly reviews = signal<PublicTestimonialsDto | null>(null);
   readonly shop = signal<PublicShopDto | null>(null);
+  readonly loggedIn = computed(() => this.session.isAuthenticated());
+  readonly accountPath = computed(() => this.session.homeRoute());
 
   readonly shopProducts = computed(() => {
     const list = this.shop()?.products ?? [];
