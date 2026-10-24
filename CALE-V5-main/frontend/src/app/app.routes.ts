@@ -51,6 +51,7 @@ export const routes: Routes = [
           import('./features/public/public-shop.page')
             .then((m) => m.PublicShopPage)
       },
+      { path: 'tienda', redirectTo: 'cascos', pathMatch: 'full' },
       {
         path: 'blog',
         loadComponent: () =>

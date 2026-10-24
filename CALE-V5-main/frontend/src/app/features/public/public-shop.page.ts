@@ -81,6 +81,9 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                       @if (p.compareAtPriceCop && p.compareAtPriceCop > p.priceCop) {
                         <span class="was">{{ p.compareAtPriceCop | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
                       }
+                      @if (discountLabel(p); as disc) {
+                        <span class="disc">{{ disc }}</span>
+                      }
                     </div>
                     @if (p.stock <= 0) {
                       <p class="stock out">Agotado por ahora</p>
@@ -270,6 +273,11 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
       color: var(--color-text-secondary);
       font-size: var(--text-sm);
     }
+    .disc {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--color-primary);
+    }
     .stock.out { color: #b42318; font-weight: 700; }
     .actions { margin-top: 0.55rem; }
     @media (max-width: 900px) {
@@ -328,6 +336,17 @@ export class PublicShopPage implements OnInit {
 
   setActive(productId: number, index: number): void {
     this.activeByProduct.update((m) => ({ ...m, [productId]: index }));
+  }
+
+  discountLabel(p: PublicShopProductDto): string | null {
+    if (p.discountPercent != null && p.discountPercent > 0) {
+      return `−${p.discountPercent}%`;
+    }
+    if (p.compareAtPriceCop != null && p.compareAtPriceCop > p.priceCop) {
+      const pct = Math.round((1 - p.priceCop / p.compareAtPriceCop) * 100);
+      return pct > 0 ? `−${pct}%` : null;
+    }
+    return null;
   }
 
   order(shop: PublicShopDto, product: PublicShopProductDto): void {
