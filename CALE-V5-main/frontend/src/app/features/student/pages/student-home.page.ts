@@ -6,7 +6,6 @@ import { UiIconComponent } from '../../../shared/ui/ui-icon.component';
 import { Badge, PlayApi, PlaySummary } from '../../play/api/play.api';
 import { PlayBadgesToastComponent } from '../../play/components/play-badges-toast.component';
 import { PlayFxService } from '../../play/play-fx.service';
-import { ProgressDashboardComponent } from '../components/progress-dashboard.component';
 import { NextStepBannerComponent } from '../components/next-step-banner.component';
 import { StudentTheoryApi, TheoryStudentDashboardDto } from '../api/student-theory.api';
 import { ShopOffersWidgetComponent } from '../../public/shop-offers-widget.component';
@@ -28,7 +27,6 @@ interface LauncherTile {
     UiButtonComponent,
     UiIconComponent,
     PlayBadgesToastComponent,
-    ProgressDashboardComponent,
     NextStepBannerComponent,
     ShopOffersWidgetComponent
   ],
@@ -82,6 +80,22 @@ export class StudentHomePage implements OnInit {
 
   /** Large shortcuts — home is only a launcher for seniors. */
   readonly tiles: LauncherTile[] = [
+    {
+      id: 'shop',
+      label: 'Tienda y descuentos',
+      hint: 'Cascos y equipo · WhatsApp',
+      path: '/tienda',
+      icon: 'image',
+      tone: 'green'
+    },
+    {
+      id: 'donate',
+      label: 'Apoyar Luz Verde',
+      hint: 'Donar para mantener la app gratis',
+      path: '/donaciones',
+      icon: 'heart',
+      tone: 'violet'
+    },
     {
       id: 'courses',
       label: 'Cursos virtuales',

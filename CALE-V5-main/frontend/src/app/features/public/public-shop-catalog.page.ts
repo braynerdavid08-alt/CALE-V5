@@ -219,6 +219,11 @@ const PAGE_SIZE = 12;
       width: min(1180px, calc(100% - 2rem));
       margin: 0 auto;
       padding: 1.25rem 0 3rem;
+      overflow-x: clip;
+      box-sizing: border-box;
+    }
+    .results {
+      min-width: 0;
     }
     .eyebrow {
       margin: 0;
@@ -261,6 +266,10 @@ const PAGE_SIZE = 12;
     .sort select,
     .filters input,
     .filters select {
+      box-sizing: border-box;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
       min-height: 2.4rem;
       padding: 0.35rem 0.55rem;
       border-radius: 0.55rem;
@@ -268,6 +277,11 @@ const PAGE_SIZE = 12;
       background: var(--color-surface);
       color: inherit;
       font: inherit;
+    }
+    .filters .check input {
+      width: auto;
+      min-height: 0;
+      padding: 0;
     }
     .filters-btn,
     .close-filters {
@@ -286,13 +300,15 @@ const PAGE_SIZE = 12;
     }
     .layout {
       display: grid;
-      grid-template-columns: 240px 1fr;
+      grid-template-columns: minmax(0, 16.5rem) minmax(0, 1fr);
       gap: 1.25rem;
       align-items: start;
     }
     .filters {
       position: sticky;
       top: 1rem;
+      min-width: 0;
+      max-width: 100%;
     }
     .filters-inner {
       display: grid;
@@ -301,6 +317,16 @@ const PAGE_SIZE = 12;
       border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
       background: var(--color-surface);
+      min-width: 0;
+      max-width: 100%;
+      overflow-x: clip;
+      box-sizing: border-box;
+    }
+    .filters-inner > ui-button,
+    .filters-inner > .close-filters {
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
     }
     fieldset {
       margin: 0;
@@ -308,6 +334,8 @@ const PAGE_SIZE = 12;
       border: 0;
       display: grid;
       gap: 0.35rem;
+      min-width: 0;
+      max-width: 100%;
     }
     legend {
       font-size: 0.78rem;
@@ -315,20 +343,29 @@ const PAGE_SIZE = 12;
       text-transform: uppercase;
       letter-spacing: 0.04em;
       margin-bottom: 0.2rem;
+      max-width: 100%;
     }
     label {
       display: grid;
       gap: 0.25rem;
       font-size: 0.85rem;
+      min-width: 0;
+      max-width: 100%;
     }
     .check {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 0.4rem;
       grid-template-columns: none;
+      min-width: 0;
+    }
+    .check span,
+    .check {
+      overflow-wrap: anywhere;
     }
     .row2 {
-      grid-template-columns: 1fr 1fr;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       gap: 0.45rem;
     }
     .row2 legend {

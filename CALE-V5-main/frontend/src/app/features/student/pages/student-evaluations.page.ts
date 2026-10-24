@@ -10,8 +10,6 @@ import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
 import { ExamApi, ReviewResponse } from '../api/exam.api';
 import { StudentApi } from '../api/student.api';
-import { ProgressDashboardComponent } from '../components/progress-dashboard.component';
-
 interface ResultRow {
   attemptId: number;
   percent: number;
@@ -31,8 +29,7 @@ interface ResultRow {
     UiEmptyComponent,
     UiErrorComponent,
     UiLoadingComponent,
-    UiPageHeaderComponent,
-    ProgressDashboardComponent
+    UiPageHeaderComponent
   ],
   template: `
     <ui-page-header
@@ -45,8 +42,6 @@ interface ResultRow {
     <div class="actions">
       <ui-button routerLink="/student/simulator" type="button">Abrir simulador</ui-button>
     </div>
-
-    <app-progress-dashboard />
 
     <h2 class="history-title">Historial de intentos</h2>
 

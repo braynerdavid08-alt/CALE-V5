@@ -72,6 +72,27 @@
     </a>
   </header>
 
+  <section class="priority" aria-label="Tienda y apoyo">
+    <a class="priority-card shop" routerLink="/tienda">
+      <span class="priority-icon" aria-hidden="true"><ui-icon name="image" size="lg" /></span>
+      <span class="priority-copy">
+        <strong>Tienda Luz Verde</strong>
+        <small>Cascos y equipo con descuentos · consulta por WhatsApp</small>
+      </span>
+      <span class="priority-cta">Ver ofertas →</span>
+    </a>
+    <a class="priority-card donate" routerLink="/donaciones">
+      <span class="priority-icon" aria-hidden="true"><ui-icon name="heart" size="lg" /></span>
+      <span class="priority-copy">
+        <strong>Apoya Luz Verde</strong>
+        <small>Tu donación ayuda a mantener la plataforma gratis</small>
+      </span>
+      <span class="priority-cta">Donar →</span>
+    </a>
+  </section>
+
+  <app-shop-offers-widget title="Ofertas para ti" [limit]="3" />
+
   @if (!session.user()?.schoolId) {
     <section class="school-banner" role="status">
       <span class="banner-icon" aria-hidden="true"><ui-icon name="building" /></span>
@@ -129,12 +150,6 @@
       </a>
     </section>
 
-    <div class="progress-slot">
-      <app-progress-dashboard
-        heading="Mi progreso"
-        subheading="Así van tus resultados en cada examen o práctica que terminas." />
-    </div>
-
     <section class="games" aria-label="Juegos">
       <div class="games-head">
         <h2 class="section-title">Juega y aprende</h2>
@@ -160,6 +175,7 @@
       <a
         class="tile"
         [attr.data-tone]="tile.tone"
+        [class.tile-accent]="tile.id === 'shop' || tile.id === 'donate'"
         [routerLink]="tile.path"
         [attr.aria-label]="tile.label + '. ' + tile.hint">
         <span class="tile-icon" aria-hidden="true">
@@ -173,8 +189,6 @@
       </a>
     }
   </nav>
-
-  <app-shop-offers-widget title="Ofertas para ti" />
 
   <p class="support-line">
     ¿Necesitas ayuda?

@@ -38,8 +38,20 @@
   margin-left: 0.35rem;
 }
 
+.student-shop-btn,
 .student-donate-btn {
   margin-left: 0.35rem;
+}
+
+.student-shop-btn {
+  background: color-mix(in srgb, var(--color-primary) 22%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary) 45%, transparent);
+}
+
+.student-donate-btn {
+  background: color-mix(in srgb, #f43f5e 14%, transparent);
+  border-color: color-mix(in srgb, #f43f5e 40%, transparent);
+  color: #be123c;
 }
 
 .student-donate-btn ui-icon {
@@ -51,6 +63,7 @@
 }
 
 @media (max-width: 600px) {
+  /* Keep Tienda + Donar visible; hide secondary shortcuts */
   .student-normas-btn {
     display: none;
   }
@@ -61,21 +74,26 @@
 
   .shell.no-sidebar .topbar {
     flex-wrap: nowrap;
+    gap: 0.3rem;
+    padding-inline: 0.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .shell.no-sidebar .topbar::-webkit-scrollbar {
+    display: none;
   }
 
   .shell.no-sidebar .topbar .spacer {
-    min-width: 0;
-  }
-
-  .shell.no-sidebar .topbar {
-    gap: 0.3rem;
-    padding-inline: 0.6rem;
+    min-width: 0.35rem;
+    flex: 1 1 auto;
   }
 
   .shell.no-sidebar .topbar ::ng-deep .notif-btn .btn,
   .shell.no-sidebar .topbar ::ng-deep .logout-btn .btn {
     min-width: 0;
-    padding-inline: 0.5rem;
+    padding-inline: 0.45rem;
   }
 
   .shell.no-sidebar .student-profile-link {
@@ -83,15 +101,22 @@
   }
 
   .student-home-btn {
-    padding: 0.5rem 0.7rem;
+    padding: 0.45rem 0.65rem;
+    font-size: 0.85rem;
   }
 
-  .student-home-btn:not(.student-donate-btn) span {
+  .student-home-btn:not(.student-donate-btn):not(.student-shop-btn) span {
     display: none;
   }
 
+  .student-shop-btn,
   .student-donate-btn {
-    margin-left: 0;
+    margin-left: 0.2rem;
+  }
+
+  .student-shop-btn span,
+  .student-donate-btn span {
+    display: inline;
   }
 }
 
