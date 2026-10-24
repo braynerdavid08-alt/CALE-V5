@@ -121,12 +121,21 @@ export class SessionStore {
   }
 
   set(response: AuthResponse): void {
+    // AuthResponse has no school fields; keep membership/photo from the same user so a
+    // cookie refresh (or 401 retry) does not resurrect the "Vincula tu escuela" banner.
+    const current = this.user();
+    const sameUser = current?.id === response.userId;
     const user: SessionUser = {
       id: response.userId,
       name: response.name,
       email: response.email,
       role: response.role,
-      mustChangePassword: !!response.mustChangePassword
+      mustChangePassword: !!response.mustChangePassword,
+      schoolId: sameUser ? current?.schoolId ?? null : null,
+      isMembershipActive: sameUser ? current?.isMembershipActive : undefined,
+      planLabel: sameUser ? current?.planLabel ?? null : null,
+      freeAccess: sameUser ? current?.freeAccess : undefined,
+      photoUrl: sameUser ? current?.photoUrl ?? null : null
     };
     const usesCookie = !!response.usesCookieAuth;
     this.cookieAuth.set(usesCookie);
