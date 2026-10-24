@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { authenticatedShopMatch } from './core/guards/authenticated-shop.match';
 import { catalogAccessGuard, paidModelGuard, simulacroAccessGuard } from './core/guards/catalog-access.guard';
 import { guestGuard } from './core/guards/guest.guard';
 import { roleGuard } from './core/guards/role.guard';
@@ -7,7 +8,35 @@ import { LoginPage } from './features/auth/pages/login.page';
 
 const staffRoles = ['Teacher', 'Admin'] as const;
 
+const shopPageRoutes: Routes = [
+  {
+    path: 'tienda',
+    loadComponent: () =>
+      import('./features/public/public-shop.page').then((m) => m.PublicShopPage)
+  },
+  {
+    path: 'tienda/catalogo',
+    loadComponent: () =>
+      import('./features/public/public-shop-catalog.page').then((m) => m.PublicShopCatalogPage)
+  },
+  {
+    path: 'tienda/:slug',
+    loadComponent: () =>
+      import('./features/public/public-shop-product.page').then((m) => m.PublicShopProductPage)
+  },
+  { path: 'cascos', redirectTo: 'tienda', pathMatch: 'full' }
+];
+
 export const routes: Routes = [
+  /** Logged-in users keep AppShell when opening the shop (same URLs). */
+  {
+    path: '',
+    canMatch: [authenticatedShopMatch],
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./layout/app-shell.component').then((m) => m.AppShellComponent),
+    children: shopPageRoutes
+  },
   {
     path: '',
     loadComponent: () =>
@@ -45,25 +74,7 @@ export const routes: Routes = [
           import('./features/public/public-instructors.page')
             .then((m) => m.PublicInstructorsPage)
       },
-      {
-        path: 'tienda',
-        loadComponent: () =>
-          import('./features/public/public-shop.page')
-            .then((m) => m.PublicShopPage)
-      },
-      {
-        path: 'tienda/catalogo',
-        loadComponent: () =>
-          import('./features/public/public-shop-catalog.page')
-            .then((m) => m.PublicShopCatalogPage)
-      },
-      {
-        path: 'tienda/:slug',
-        loadComponent: () =>
-          import('./features/public/public-shop-product.page')
-            .then((m) => m.PublicShopProductPage)
-      },
-      { path: 'cascos', redirectTo: 'tienda', pathMatch: 'full' },
+      ...shopPageRoutes,
       {
         path: 'blog',
         loadComponent: () =>
