@@ -302,6 +302,125 @@ public sealed class ShopService
 
     private static ShopSettingsDto ToSettingsDto(ShopSettings s) =>
         new(s.PageTitle, s.PageSubtitle, s.HeroImageUrl, s.WhatsApp, s.CtaLabel, s.UpdatedAt);
+
+    public async Task TrackInterestAsync(
+        TrackShopInterestRequest body,
+        int? userId,
+        CancellationToken ct = default)
+    {
+        var type = (body.EventType ?? "").Trim().ToLowerInvariant();
+        if (!ShopInterestEventTypes.All.Contains(type))
+        {
+            throw new DomainException("Tipo de evento no válido.", 400, "invalid_shop_event");
+        }
+
+        var visitor = (body.VisitorKey ?? "").Trim();
+        if (visitor.Length is < 8 or > ShopInterestEvent.VisitorKeyMax)
+        {
+            throw new DomainException("Visitante no válido.", 400, "invalid_shop_visitor");
+        }
+
+        if (!visitor.All(ch => char.IsLetterOrDigit(ch) || ch is '-' or '_'))
+        {
+            throw new DomainException("Visitante no válido.", 400, "invalid_shop_visitor");
+        }
+
+        int? productId = body.ProductId;
+        if (type is ShopInterestEventTypes.ViewProduct
+            or ShopInterestEventTypes.Favorite
+            or ShopInterestEventTypes.Unfavorite
+            or ShopInterestEventTypes.WhatsApp)
+        {
+            if (productId is null or <= 0)
+            {
+                throw new DomainException("Falta el producto.", 400, "invalid_shop_product");
+            }
+
+            var exists = await _db.Set<ShopProduct>().AsNoTracking()
+                .AnyAsync(p => p.Id == productId.Value, ct);
+            if (!exists)
+            {
+                throw new DomainException("Producto no encontrado.", 404, "shop_product_not_found");
+            }
+        }
+        else
+        {
+            productId = null;
+        }
+
+        _db.Set<ShopInterestEvent>().Add(new ShopInterestEvent
+        {
+            EventType = type,
+            ProductId = productId,
+            UserId = userId,
+            VisitorKey = visitor,
+            CreatedAt = _clock.UtcNow
+        });
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<ShopInsightsDto> GetInsightsAsync(int days = 30, CancellationToken ct = default)
+    {
+        days = Math.Clamp(days, 1, 90);
+        var since = _clock.UtcNow.AddDays(-days);
+
+        var rows = await _db.Set<ShopInterestEvent>().AsNoTracking()
+            .Where(e => e.CreatedAt >= since)
+            .Select(e => new { e.EventType, e.ProductId, e.UserId, e.VisitorKey })
+            .ToListAsync(ct);
+
+        var products = await _db.Set<ShopProduct>().AsNoTracking()
+            .Select(p => new { p.Id, p.Name, p.Category, p.IsActive })
+            .ToListAsync(ct);
+        var names = products.ToDictionary(p => p.Id, p => p);
+
+        var shopViews = rows.Count(r => r.EventType == ShopInterestEventTypes.ViewShop);
+        var uniqueVisitors = rows
+            .Where(r => r.EventType is ShopInterestEventTypes.ViewShop or ShopInterestEventTypes.ViewProduct)
+            .Select(r => r.VisitorKey)
+            .Distinct()
+            .Count();
+        var uniqueStudents = rows
+            .Where(r => r.UserId != null)
+            .Select(r => r.UserId!.Value)
+            .Distinct()
+            .Count();
+
+        var byProduct = rows
+            .Where(r => r.ProductId != null)
+            .GroupBy(r => r.ProductId!.Value)
+            .Select(g =>
+            {
+                names.TryGetValue(g.Key, out var p);
+                return new ShopProductInsightDto(
+                    g.Key,
+                    p?.Name ?? $"Producto #{g.Key}",
+                    p?.Category ?? "",
+                    p?.IsActive ?? false,
+                    g.Count(x => x.EventType == ShopInterestEventTypes.ViewProduct),
+                    g.Where(x => x.EventType == ShopInterestEventTypes.ViewProduct)
+                        .Select(x => x.VisitorKey)
+                        .Distinct()
+                        .Count(),
+                    g.Count(x => x.EventType == ShopInterestEventTypes.Favorite),
+                    g.Count(x => x.EventType == ShopInterestEventTypes.Unfavorite),
+                    g.Count(x => x.EventType == ShopInterestEventTypes.WhatsApp));
+            })
+            .OrderByDescending(x => x.WhatsAppClicks)
+            .ThenByDescending(x => x.Favorites)
+            .ThenByDescending(x => x.Views)
+            .ToList();
+
+        return new ShopInsightsDto(
+            days,
+            since,
+            shopViews,
+            uniqueVisitors,
+            uniqueStudents,
+            rows.Count(r => r.EventType == ShopInterestEventTypes.WhatsApp),
+            rows.Count(r => r.EventType == ShopInterestEventTypes.Favorite),
+            byProduct);
+    }
 }
 
 public sealed record PublicShopDto(
@@ -399,3 +518,29 @@ public sealed record UpsertShopProductRequest(
     bool IsActive,
     bool IsFeatured,
     int SortOrder);
+
+public sealed record TrackShopInterestRequest(
+    string EventType,
+    string VisitorKey,
+    int? ProductId = null);
+
+public sealed record ShopProductInsightDto(
+    int ProductId,
+    string Name,
+    string Category,
+    bool IsActive,
+    int Views,
+    int UniqueViewers,
+    int Favorites,
+    int Unfavorites,
+    int WhatsAppClicks);
+
+public sealed record ShopInsightsDto(
+    int Days,
+    DateTime SinceUtc,
+    int ShopPageViews,
+    int UniqueVisitors,
+    int UniqueStudents,
+    int WhatsAppClicks,
+    int Favorites,
+    IReadOnlyList<ShopProductInsightDto> Products);

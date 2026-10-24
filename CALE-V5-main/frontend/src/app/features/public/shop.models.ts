@@ -118,3 +118,26 @@ export const SHOP_HELMET_TYPES = [
   'Modular',
   'Infantil'
 ] as const;
+
+export interface ShopProductInsightDto {
+  productId: number;
+  name: string;
+  category: string;
+  isActive: boolean;
+  views: number;
+  uniqueViewers: number;
+  favorites: number;
+  unfavorites: number;
+  whatsAppClicks: number;
+}
+
+export interface ShopInsightsDto {
+  days: number;
+  sinceUtc: string;
+  shopPageViews: number;
+  uniqueVisitors: number;
+  uniqueStudents: number;
+  whatsAppClicks: number;
+  favorites: number;
+  products: ShopProductInsightDto[];
+}

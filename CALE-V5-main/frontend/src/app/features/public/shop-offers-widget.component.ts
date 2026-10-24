@@ -2,6 +2,7 @@ import { CurrencyPipe } from '@angular/common';
 import { Component, OnInit, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { resolveMediaUrl } from '../../core/media/resolve-media-url';
+import { ShopAnalyticsService } from './shop-analytics.service';
 import { discountLabel, openWhatsAppOrder, productImages, sortProducts } from './shop-commerce';
 import { ShopApi } from './shop.api';
 import { PublicShopDto, PublicShopProductDto } from './shop.models';
@@ -211,6 +212,7 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
 })
 export class ShopOffersWidgetComponent implements OnInit {
   private readonly api = inject(ShopApi);
+  private readonly analytics = inject(ShopAnalyticsService);
 
   readonly title = input('Ofertas para ti');
   readonly limit = input(3);
@@ -248,6 +250,8 @@ export class ShopOffersWidgetComponent implements OnInit {
   }
 
   consult(shop: PublicShopDto, product: PublicShopProductDto): void {
-    openWhatsAppOrder(shop, product);
+    if (openWhatsAppOrder(shop, product)) {
+      this.analytics.track('whatsapp', product.id);
+    }
   }
 }

@@ -8,6 +8,7 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../shared/ui/ui-loading.component';
 import { discountPercent, sortProducts, type ShopSort } from './shop-commerce';
+import { ShopAnalyticsService } from './shop-analytics.service';
 import { ShopFavoritesService } from './shop-favorites.service';
 import { ShopProductCardComponent } from './shop-product-card.component';
 import { ShopApi } from './shop.api';
@@ -431,6 +432,7 @@ const PAGE_SIZE = 12;
 })
 export class PublicShopCatalogPage implements OnInit {
   private readonly api = inject(ShopApi);
+  private readonly analytics = inject(ShopAnalyticsService);
   private readonly title = inject(Title);
   private readonly meta = inject(Meta);
   private readonly route = inject(ActivatedRoute);
@@ -530,6 +532,7 @@ export class PublicShopCatalogPage implements OnInit {
     this.api.getPublic().subscribe({
       next: (data) => {
         this.shop.set(data);
+        this.analytics.track('view_shop');
         this.title.setTitle(brandPageTitle('Catálogo — ' + data.pageTitle));
         this.meta.updateTag({ name: 'description', content: data.pageSubtitle });
         this.loading.set(false);

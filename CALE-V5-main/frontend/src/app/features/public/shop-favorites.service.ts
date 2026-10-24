@@ -1,9 +1,11 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { ShopAnalyticsService } from './shop-analytics.service';
 
 const FAV_KEY = 'cale.shop.favorites';
 
 @Injectable({ providedIn: 'root' })
 export class ShopFavoritesService {
+  private readonly analytics = inject(ShopAnalyticsService);
   private readonly ids = signal<number[]>(readFavs());
 
   readonly list = this.ids.asReadonly();
@@ -15,8 +17,10 @@ export class ShopFavoritesService {
 
   toggle(id: number): void {
     this.ids.update((list) => {
-      const next = list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
+      const removing = list.includes(id);
+      const next = removing ? list.filter((x) => x !== id) : [...list, id];
       writeFavs(next);
+      this.analytics.track(removing ? 'unfavorite' : 'favorite', id);
       return next;
     });
   }

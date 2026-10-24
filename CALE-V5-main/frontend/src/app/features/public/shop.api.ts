@@ -8,6 +8,7 @@ import {
   AdminShopProductDto,
   PublicShopDto,
   PublicShopProductDto,
+  ShopInsightsDto,
   UpdateShopSettingsRequest,
   UpsertShopProductRequest
 } from './shop.models';
@@ -29,6 +30,12 @@ export class ShopApi {
 
   getAdmin() {
     return this.http.get<AdminShopDto>(`${this.base}/api/admin/shop`);
+  }
+
+  getInsights(days = 30) {
+    return this.http.get<ShopInsightsDto>(`${this.base}/api/admin/shop/insights`, {
+      params: { days }
+    });
   }
 
   saveSettings(body: UpdateShopSettingsRequest) {

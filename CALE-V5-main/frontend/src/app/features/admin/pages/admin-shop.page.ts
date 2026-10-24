@@ -12,6 +12,7 @@ import { ShopApi } from '../../public/shop.api';
 import {
   AdminShopDto,
   AdminShopProductDto,
+  ShopInsightsDto,
   UpdateShopSettingsRequest,
   UpsertShopProductRequest
 } from '../../public/shop.models';
@@ -41,6 +42,61 @@ import {
       <ui-loading label="Cargando tienda…" />
     } @else {
       @if (model(); as m) {
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Interés de la tienda</h2>
+          <div class="insight-days">
+            <button type="button" class="chip" [class.on]="insightDays() === 7" (click)="loadInsights(7)">7 días</button>
+            <button type="button" class="chip" [class.on]="insightDays() === 30" (click)="loadInsights(30)">30 días</button>
+          </div>
+        </div>
+        @if (insightsLoading()) {
+          <p class="hint">Cargando interés…</p>
+        } @else if (insights()) {
+          <div class="insight-kpis">
+            <div><strong>{{ insights()!.uniqueVisitors }}</strong><span>Personas que miraron</span></div>
+            <div><strong>{{ insights()!.uniqueStudents }}</strong><span>Con cuenta (estudiantes/usuarios)</span></div>
+            <div><strong>{{ insights()!.shopPageViews }}</strong><span>Aperturas de tienda</span></div>
+            <div><strong>{{ insights()!.favorites }}</strong><span>Favoritos</span></div>
+            <div><strong>{{ insights()!.whatsAppClicks }}</strong><span>Clics a WhatsApp</span></div>
+          </div>
+          <p class="hint">
+            Datos desde que activamos el registro. Sirve para ver qué casco o producto conviene promocionar.
+          </p>
+          @if (insights()!.products.length) {
+            <div class="table-wrap">
+              <table class="insight-table">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Vistas</th>
+                    <th>Personas</th>
+                    <th>♥</th>
+                    <th>WhatsApp</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of insights()!.products; track row.productId) {
+                    <tr>
+                      <td>
+                        <strong>{{ row.name }}</strong>
+                        <small>{{ row.category }}@if (!row.isActive) { · inactivo}</small>
+                      </td>
+                      <td>{{ row.views }}</td>
+                      <td>{{ row.uniqueViewers }}</td>
+                      <td>{{ row.favorites }}</td>
+                      <td>{{ row.whatsAppClicks }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <p class="hint">Aún no hay clics en productos. Cuando alguien abra la tienda o marque un casco, aparecerá aquí.</p>
+          }
+        }
+      </section>
+
       <form class="stack" (ngSubmit)="saveSettings()">
         <section class="panel">
           <h2>Página pública</h2>
@@ -359,6 +415,53 @@ import {
     .meta strong { font-size: var(--text-sm); }
     .meta span { color: var(--color-text-secondary); font-size: var(--text-xs); }
     .row-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: flex-end; }
+    .insight-days { display: flex; gap: 0.4rem; }
+    .insight-days .chip {
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      border-radius: 999px;
+      padding: 0.25rem 0.7rem;
+      font: inherit;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .insight-days .chip.on {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+      font-weight: 700;
+    }
+    .insight-kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+      gap: 0.65rem;
+      margin: 0.75rem 0;
+    }
+    .insight-kpis div {
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 0.65rem 0.75rem;
+      display: grid;
+      gap: 0.15rem;
+    }
+    .insight-kpis strong { font-size: 1.25rem; }
+    .insight-kpis span { font-size: 0.75rem; color: var(--color-text-secondary); }
+    .table-wrap { overflow-x: auto; margin-top: 0.5rem; }
+    .insight-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .insight-table th, .insight-table td {
+      text-align: left;
+      padding: 0.45rem 0.4rem;
+      border-bottom: 1px solid var(--color-border);
+      vertical-align: top;
+    }
+    .insight-table small {
+      display: block;
+      color: var(--color-text-secondary);
+      font-size: 0.75rem;
+    }
     @media (max-width: 720px) {
       .grid-2 { grid-template-columns: 1fr; }
       .row { grid-template-columns: 64px 1fr; }
@@ -370,6 +473,9 @@ export class AdminShopPage implements OnInit {
   private readonly api = inject(ShopApi);
 
   readonly loading = signal(true);
+  readonly insights = signal<ShopInsightsDto | null>(null);
+  readonly insightsLoading = signal(false);
+  readonly insightDays = signal(30);
   readonly error = signal<string | null>(null);
   readonly success = signal<string | null>(null);
   readonly model = signal<AdminShopDto | null>(null);
@@ -381,10 +487,26 @@ export class AdminShopPage implements OnInit {
 
   ngOnInit(): void {
     this.reload();
+    this.loadInsights(30);
   }
 
   media(path: string | null | undefined): string {
     return resolveMediaUrl(path);
+  }
+
+  loadInsights(days: number): void {
+    this.insightDays.set(days);
+    this.insightsLoading.set(true);
+    this.api.getInsights(days).subscribe({
+      next: (data) => {
+        this.insights.set(data);
+        this.insightsLoading.set(false);
+      },
+      error: () => {
+        this.insights.set(null);
+        this.insightsLoading.set(false);
+      }
+    });
   }
 
   reload(): void {

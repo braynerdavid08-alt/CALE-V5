@@ -48,3 +48,17 @@ public sealed class ShopProductConfiguration : IEntityTypeConfiguration<ShopProd
         builder.Ignore(x => x.ImageUrls);
     }
 }
+
+public sealed class ShopInterestEventConfiguration : IEntityTypeConfiguration<ShopInterestEvent>
+{
+    public void Configure(EntityTypeBuilder<ShopInterestEvent> builder)
+    {
+        builder.ToTable("ShopInterestEvents");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.EventType).HasMaxLength(ShopInterestEvent.EventTypeMax).IsRequired();
+        builder.Property(x => x.VisitorKey).HasMaxLength(ShopInterestEvent.VisitorKeyMax).IsRequired();
+        builder.HasIndex(x => x.CreatedAt);
+        builder.HasIndex(x => new { x.EventType, x.ProductId });
+        builder.HasIndex(x => x.VisitorKey);
+    }
+}
