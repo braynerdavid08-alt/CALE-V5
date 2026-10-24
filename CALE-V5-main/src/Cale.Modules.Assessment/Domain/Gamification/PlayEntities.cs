@@ -59,4 +59,6 @@ public static class GameKinds
 {
     public const string Signs = "signs";
     public const string Duel = "duel";
+    /** Canvas HTML mobility minigames (cond / cruce / sen / freno). */
+    public const string Movilidad = "movilidad";
 }

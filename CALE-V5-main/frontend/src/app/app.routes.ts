@@ -589,6 +589,12 @@ export const routes: Routes = [
                 .then((m) => m.SignsGamePage)
           },
           {
+            path: 'movilidad',
+            loadComponent: () =>
+              import('./features/play/pages/movilidad-game.page')
+                .then((m) => m.MovilidadGamePage)
+          },
+          {
             path: 'duel',
             loadComponent: () =>
               import('./features/play/pages/duel.page')

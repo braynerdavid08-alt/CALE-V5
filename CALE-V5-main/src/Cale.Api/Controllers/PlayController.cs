@@ -65,6 +65,10 @@ public sealed class PlayController : ControllerBase
     public Task<GameSavedDto> SignsResult(SignsResultRequest request, CancellationToken ct) =>
         _play.SaveSignsResultAsync(UserId, request, ct);
 
+    [HttpPost("movilidad/result")]
+    public Task<GameSavedDto> MovilidadResult(MovilidadResultRequest request, CancellationToken ct) =>
+        _play.SaveMovilidadResultAsync(UserId, request, ct);
+
     [HttpGet("ranking")]
     public Task<RankingDto> Ranking(
         [FromQuery] string? scope,

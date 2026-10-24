@@ -321,6 +321,16 @@ export class PlayApi {
     return this.http.post<GameSaved>(`${this.base}/signs/result`, { correct, total });
   }
 
+  saveMovilidad(body: {
+    mode: string;
+    score: number;
+    correct: number;
+    total: number;
+    won: boolean;
+  }) {
+    return this.http.post<GameSaved>(`${this.base}/movilidad/result`, body);
+  }
+
   ranking(scope?: string | null, groupId?: number | null) {
     let params = new HttpParams();
     if (scope) params = params.set('scope', scope);
