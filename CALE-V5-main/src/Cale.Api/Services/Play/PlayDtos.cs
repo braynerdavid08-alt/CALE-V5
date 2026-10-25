@@ -152,7 +152,9 @@ public sealed record RankingDto(
     int MyXp,
     int Participants,
     bool ShowInRanking,
-    IReadOnlyList<RankingScopeDto> Scopes);
+    IReadOnlyList<RankingScopeDto> Scopes,
+    IReadOnlyList<DateOnly> AvailableWeeks,
+    bool IsCurrentWeek);
 
 public sealed record RankingVisibilityRequest(bool ShowInRanking);
 
