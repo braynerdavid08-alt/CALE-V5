@@ -47,7 +47,11 @@ public sealed class RequestTelemetryMiddleware
         }))
         {
             var sw = Stopwatch.StartNew();
-            var originalBody = context.Features.Get<IHttpResponseBodyFeature>();
+            // SignalR / WebSocket upgrades replace the response stream. Wrapping the body (or
+            // calling CompleteAsync afterward) throws: "Cannot write to response body after
+            // connection has been upgraded."
+            var skipBodyWrap = ShouldSkipResponseBodyWrap(context, path);
+            var originalBody = skipBodyWrap ? null : context.Features.Get<IHttpResponseBodyFeature>();
             var countingBody = originalBody is null ? null : new CountingResponseBodyFeature(originalBody);
             if (countingBody is not null)
             {
@@ -57,7 +61,7 @@ public sealed class RequestTelemetryMiddleware
             try
             {
                 await _next(context);
-                if (countingBody is not null)
+                if (countingBody is not null && !IsConnectionUpgraded(context))
                 {
                     await countingBody.CompleteAsync();
                 }
@@ -146,6 +150,14 @@ public sealed class RequestTelemetryMiddleware
         context.Items.TryGetValue(ItemKey, out var value) && value is string id && !string.IsNullOrWhiteSpace(id)
             ? id
             : context.TraceIdentifier;
+
+    internal static bool ShouldSkipResponseBodyWrap(HttpContext context, string path) =>
+        path.StartsWith("/hubs/", StringComparison.OrdinalIgnoreCase)
+        || context.WebSockets.IsWebSocketRequest
+        || !string.IsNullOrEmpty(context.Request.Headers.Upgrade);
+
+    internal static bool IsConnectionUpgraded(HttpContext context) =>
+        context.Response.StatusCode == StatusCodes.Status101SwitchingProtocols;
 }
 
 /// <summary>

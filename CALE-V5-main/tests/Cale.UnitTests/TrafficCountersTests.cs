@@ -1,5 +1,6 @@
 using Cale.Api.Middleware;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 
 namespace Cale.UnitTests;
 
@@ -81,5 +82,49 @@ public sealed class TrafficCountersTests
 
         Assert.Equal(3500, sink.Length);
         Assert.Same(original, context.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpResponseBodyFeature>());
+    }
+
+    [Fact]
+    public async Task Middleware_skips_body_wrap_on_signalr_hubs()
+    {
+        IHttpResponseBodyFeature? bodyDuringNext = null;
+        var middleware = new RequestTelemetryMiddleware(
+            ctx =>
+            {
+                bodyDuringNext = ctx.Features.Get<IHttpResponseBodyFeature>();
+                ctx.Response.StatusCode = StatusCodes.Status101SwitchingProtocols;
+                return Task.CompletedTask;
+            },
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<RequestTelemetryMiddleware>.Instance);
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+        context.Request.Path = "/hubs/game-show";
+        var original = context.Features.Get<IHttpResponseBodyFeature>();
+
+        await middleware.InvokeAsync(context);
+
+        Assert.Same(original, bodyDuringNext);
+        Assert.Same(original, context.Features.Get<IHttpResponseBodyFeature>());
+    }
+
+    [Fact]
+    public async Task Middleware_does_not_complete_body_after_101_upgrade()
+    {
+        var middleware = new RequestTelemetryMiddleware(
+            ctx =>
+            {
+                // Body was wrapped; response then upgrades — CompleteAsync must be skipped.
+                ctx.Response.StatusCode = StatusCodes.Status101SwitchingProtocols;
+                return Task.CompletedTask;
+            },
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<RequestTelemetryMiddleware>.Instance);
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+        context.Request.Path = "/api/upgrade-probe";
+
+        var ex = await Record.ExceptionAsync(() => middleware.InvokeAsync(context));
+
+        Assert.Null(ex);
+        Assert.Equal(StatusCodes.Status101SwitchingProtocols, context.Response.StatusCode);
     }
 }
