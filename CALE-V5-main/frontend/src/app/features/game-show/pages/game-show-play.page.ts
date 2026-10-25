@@ -17,14 +17,23 @@ import {
 } from '../api/game-show.api';
 import { phaseHasTurnClock, remainingFromServerSnapshot, secondsUntilDeadline } from '../api/game-show-deadline';
 import { GameShowSfxService } from '../api/game-show-sfx.service';
+import { GameShowRulesComponent } from '../components/game-show-rules.component';
 
 @Component({
   selector: 'app-game-show-play-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, UiButtonComponent, UiErrorComponent],
+  imports: [FormsModule, RouterLink, UiButtonComponent, UiErrorComponent, GameShowRulesComponent],
   template: `
     @if (lobby(); as L) {
       <section class="play">
+        @if (L.status === 'Lobby' && !rulesSeen() && !removed() && !replaced()) {
+          <div class="rules-overlay" role="presentation">
+            <app-game-show-rules
+              [modal]="true"
+              primaryLabel="Entendido, listo para jugar"
+              (primary)="ackRules()" />
+          </div>
+        }
         <header>
           <h1>{{ L.title }}</h1>
           <div class="score">
@@ -154,6 +163,17 @@ import { GameShowSfxService } from '../api/game-show-sfx.service';
     .timer.urgent { color: #dc2626; }
     .field { display: grid; gap: 0.35rem; font-weight: 600; }
     .input { min-height: 3rem; font-size: 1.1rem; }
+    .rules-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+      overflow: auto;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(4px);
+    }
   `]
 })
 export class GameShowPlayPage implements OnInit, OnDestroy {
@@ -172,6 +192,7 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
   readonly removed = signal(false);
   /** This seat was opened in another tab; this one stopped listening to the game. */
   readonly replaced = signal(false);
+  readonly rulesSeen = signal(false);
   readonly timerSec = signal<number | null>(null);
   answer = '';
   private hub: HubConnection | null = null;
@@ -214,6 +235,10 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
     window.removeEventListener('online', this.onWake);
     window.removeEventListener('focus', this.onWake);
     void this.hub?.stop();
+  }
+
+  ackRules(): void {
+    this.rulesSeen.set(true);
   }
 
   leave(): void {
