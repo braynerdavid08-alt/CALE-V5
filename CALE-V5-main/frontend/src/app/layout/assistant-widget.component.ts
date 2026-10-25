@@ -339,16 +339,21 @@ const HIDDEN_PATHS = [
     }
     .bubble {
       margin: 0;
-      padding: 0.6rem 0.8rem;
+      padding: 0.7rem 0.9rem;
       border-radius: 0.85rem;
       max-width: 88%;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
       word-break: break-word;
-      line-height: 1.4;
+      line-height: 1.55;
       font-size: 0.95rem;
     }
-    .bot { align-self: flex-start; background: var(--color-background); border: 1px solid var(--color-border); }
+    .bot {
+      align-self: flex-start;
+      background: var(--color-background);
+      border: 1px solid var(--color-border);
+      letter-spacing: 0.01em;
+    }
     .bot-block > .bubble.bot { max-width: 100%; }
     .me { align-self: flex-end; background: color-mix(in srgb, var(--color-primary) 22%, transparent); }
     .typing { opacity: 0.75; font-style: italic; }
