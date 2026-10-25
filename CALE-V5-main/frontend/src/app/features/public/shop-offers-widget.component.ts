@@ -58,6 +58,8 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
     :host {
       display: block;
       min-width: 0;
+      position: relative;
+      z-index: 0;
     }
     .offers {
       margin: 0;
@@ -65,6 +67,8 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
       border-radius: var(--radius-md);
       border: 1px solid var(--color-border);
       background: var(--color-surface-raised, var(--color-surface));
+      position: relative;
+      z-index: 0;
     }
     .head {
       display: flex;
