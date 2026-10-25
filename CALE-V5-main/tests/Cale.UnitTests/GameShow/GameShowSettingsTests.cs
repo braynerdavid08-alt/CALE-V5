@@ -221,6 +221,9 @@ public sealed class GameShowSettingsTests
             Task.FromResult(false);
         public Task<bool> TryClaimStealAsync(int roundId, string team, CancellationToken ct) =>
             Task.FromResult(false);
+        public Task<bool> TryClaimExpiredDeadlineAsync(int roundId, DateTime utcNow, CancellationToken ct) =>
+            Task.FromResult(false);
+        public void ClearChangeTracker() { }
         public Task RemovePlayerAsync(GameShowPlayer player, CancellationToken ct) =>
             Task.CompletedTask;
         public Task<IReadOnlyList<GameShowSession>> ListForHostAsync(int hostUserId, CancellationToken ct) =>

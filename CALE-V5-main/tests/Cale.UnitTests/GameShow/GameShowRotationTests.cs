@@ -100,7 +100,7 @@ public sealed class GameShowRotationTests
     }
 
     [Fact]
-    public void ProcessAnswer_teammate_who_is_not_ActivePlayer_throws_not_your_turn()
+    public void ProcessAnswer_teammate_who_is_not_ActivePlayer_may_still_answer()
     {
         var t0 = DateTime.UtcNow;
         var session = SessionWithRoster(
@@ -111,10 +111,12 @@ public sealed class GameShowRotationTests
         var round = session.Rounds[0];
         GameShowEngine.EnterFaceOff(round, GameShowTeams.A, DateTime.UtcNow, session, preferredPlayerId: 1);
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            GameShowEngine.ProcessAnswer(session, round, P(session, 2), "Frenos", DateTime.UtcNow));
-        Assert.Equal("not_your_turn", ex.Message);
+        var outcome = GameShowEngine.ProcessAnswer(session, round, P(session, 2), "Frenos", DateTime.UtcNow);
+        Assert.Equal(GameShowEngine.OutcomeKind.FaceOffWonControl, outcome.Kind);
+        Assert.Equal(GameShowTeams.A, round.ControllingTeam);
+        // After a face-off hit, control rotates to the next teammate (spotlight).
         Assert.Equal(1, round.ActivePlayerId);
+        Assert.Contains(round.Attempts, a => a.PlayerId == 2 && a.IsCorrect);
     }
 
     [Fact]
@@ -139,9 +141,11 @@ public sealed class GameShowRotationTests
         Assert.Equal(GameShowRoundPhases.Steal, round.Phase);
         Assert.Equal(2, round.ActivePlayerId);
 
-        var blocked = Assert.Throws<InvalidOperationException>(() =>
-            GameShowEngine.ProcessAnswer(session, round, P(session, 3), "Espejos", DateTime.UtcNow));
-        Assert.Equal("not_your_turn", blocked.Message);
+        // Any teammate on the stealing side can answer (classroom phones).
+        var stolen = GameShowEngine.ProcessAnswer(session, round, P(session, 3), "Espejos", DateTime.UtcNow);
+        Assert.Equal(GameShowEngine.OutcomeKind.StealSucceeded, stolen.Kind);
+        Assert.Contains(round.Attempts, a => a.PlayerId == 3 && a.IsCorrect && a.IsSteal);
+        Assert.True(session.TeamBScore > 0);
     }
 
     [Fact]

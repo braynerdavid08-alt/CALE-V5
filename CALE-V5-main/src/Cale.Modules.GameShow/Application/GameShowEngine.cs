@@ -201,12 +201,14 @@ public static class GameShowEngine
             new { fromTeam = from, toTeam = next, timedOut, activePlayerId = round.ActivePlayerId });
     }
 
+    /// <summary>
+    /// Any teammate on the answering side may type. ActivePlayerId is only a spotlight/hint
+    /// (rotation after strikes); blocking non-active teammates broke classrooms with 2+ phones per team.
+    /// </summary>
     public static void EnsureActivePlayerAllowed(GameShowRound round, GameShowPlayer player)
     {
-        if (round.ActivePlayerId is int active && active != player.Id)
-        {
-            throw new InvalidOperationException("not_your_turn");
-        }
+        // Keep ActivePlayer pointing at whoever just answered so the board/UI stay coherent.
+        round.ActivePlayerId = player.Id;
     }
 
     public static void OpenBuzz(GameShowRound round, DateTime? utcNow = null)
@@ -610,11 +612,16 @@ public static class GameShowEngine
     }
 
     /// <summary>
-    /// Apply turn-clock expiry. Idempotent: returns Noop when deadline is null or still in the future.
+    /// Apply turn-clock expiry. Idempotent: returns Noop when deadline is null or still in the future
+    /// unless <paramref name="deadlineAlreadyClaimed"/> (caller cleared it atomically in the DB).
     /// </summary>
-    public static Outcome ProcessTimeout(GameShowSession session, GameShowRound round, DateTime utcNow)
+    public static Outcome ProcessTimeout(
+        GameShowSession session,
+        GameShowRound round,
+        DateTime utcNow,
+        bool deadlineAlreadyClaimed = false)
     {
-        if (!GameShowTiming.IsExpired(round, utcNow))
+        if (!deadlineAlreadyClaimed && !GameShowTiming.IsExpired(round, utcNow))
         {
             return new Outcome(OutcomeKind.Noop, "TimerTick", new { expired = false });
         }

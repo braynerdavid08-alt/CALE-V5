@@ -384,7 +384,8 @@ public sealed partial class GameShowHandler
             throw new DomainException("Otro equipo ya ganó el buzzer.", 409, "buzz_taken");
         }
 
-        // Reload so in-memory graph matches the atomic claim.
+        // Reload so in-memory graph matches the atomic claim (ExecuteUpdate bypasses the tracker).
+        _store.ClearChangeTracker();
         session = await RequireSessionAsync(sessionId, ct);
         round = CurrentRound(session);
         player = session.Players.First(p => p.PlayerToken == playerToken);
@@ -436,6 +437,7 @@ public sealed partial class GameShowHandler
             throw new DomainException("Otro equipo ya ganó el buzzer.", 409, "buzz_taken");
         }
 
+        _store.ClearChangeTracker();
         session = await RequireHostAsync(sessionId, hostUserId, ct);
         round = CurrentRound(session);
         GameShowTiming.SetDeadline(round, _clock.UtcNow, GameShowSessionSettings.FromSession(session));
@@ -464,6 +466,9 @@ public sealed partial class GameShowHandler
             throw new DomainException("Otro equipo ya ganó el robo.", 409, "steal_taken");
         }
 
+        _store.ClearChangeTracker();
+        session = await RequireSessionAsync(session.Id, ct);
+        round = CurrentRound(session);
         GameShowEngine.EnterSteal(session, round, team, _clock.UtcNow, playerId);
         var player = playerId is int pid ? session.Players.FirstOrDefault(p => p.Id == pid) : null;
         if (player is not null) player.BuzzWins++;
@@ -493,13 +498,19 @@ public sealed partial class GameShowHandler
 
         if (GameShowTiming.IsExpired(round, now))
         {
-            var timedOut = GameShowEngine.ProcessTimeout(session, round, now);
-            await _store.SaveChangesAsync(ct);
-            await BroadcastLobbyAsync(session, ct);
-            if (timedOut.Kind != GameShowEngine.OutcomeKind.Noop)
+            if (await _store.TryClaimExpiredDeadlineAsync(round.Id, now, ct))
             {
-                await _broadcaster.EventAsync(session.Id, timedOut.EventName, timedOut.Payload, ct);
-                await BroadcastYourTurnAsync(session, round, ct);
+                _store.ClearChangeTracker();
+                session = await RequireSessionAsync(sessionId, ct);
+                round = CurrentRound(session);
+                var timedOut = GameShowEngine.ProcessTimeout(session, round, now, deadlineAlreadyClaimed: true);
+                await _store.SaveChangesAsync(ct);
+                await BroadcastLobbyAsync(session, ct);
+                if (timedOut.Kind != GameShowEngine.OutcomeKind.Noop)
+                {
+                    await _broadcaster.EventAsync(session.Id, timedOut.EventName, timedOut.Payload, ct);
+                    await BroadcastYourTurnAsync(session, round, ct);
+                }
             }
 
             throw new DomainException("Se acabó el tiempo.", 400, "time_expired");
@@ -573,7 +584,32 @@ public sealed partial class GameShowHandler
         }
 
         var round = CurrentRound(session);
-        var outcome = GameShowEngine.ProcessTimeout(session, round, _clock.UtcNow);
+        var now = _clock.UtcNow;
+        if (!GameShowTiming.IsExpired(round, now))
+        {
+            return await MapLobbyAsync(session,
+                hostView: isHost,
+                ct: ct,
+                viewerPlayerId: viewer?.Id,
+                viewerTeam: viewer?.Team);
+        }
+
+        // Many phones hit timeout at once — only the first claim advances the round.
+        if (!await _store.TryClaimExpiredDeadlineAsync(round.Id, now, ct))
+        {
+            _store.ClearChangeTracker();
+            session = await RequireSessionAsync(sessionId, ct);
+            return await MapLobbyAsync(session,
+                hostView: isHost,
+                ct: ct,
+                viewerPlayerId: viewer?.Id,
+                viewerTeam: viewer?.Team);
+        }
+
+        _store.ClearChangeTracker();
+        session = await RequireSessionAsync(sessionId, ct);
+        round = CurrentRound(session);
+        var outcome = GameShowEngine.ProcessTimeout(session, round, now, deadlineAlreadyClaimed: true);
         if (outcome.Kind != GameShowEngine.OutcomeKind.Noop)
         {
             await _store.SaveChangesAsync(ct);

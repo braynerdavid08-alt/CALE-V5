@@ -88,7 +88,7 @@ import { GameShowSfxService } from '../api/game-show-sfx.service';
             @if (R.phase === 'FaceOff' || R.phase === 'FaceOffSecond') {
               <p class="steal">Enfrentamiento: acierta para tomar el control. Un fallo pasa el turno.</p>
             }
-            <p class="steal">Te toca responder</p>
+            <p class="steal">Turno de tu equipo — cualquier compañero puede escribir la respuesta</p>
             <label class="field">Tu respuesta
               <input class="input" [(ngModel)]="answer" name="answer" autofocus (keyup.enter)="send()" />
             </label>
@@ -345,10 +345,7 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
   myTurn(L: GameShowLobbyDto): boolean {
     const r = L.currentRound;
     if (!r) return false;
-    const me = L.viewerPlayerId ?? this.myPlayerId;
-    if (me == null || r.activePlayerId == null || r.activePlayerId !== me) {
-      return false;
-    }
+    // Any phone on the answering team may type (not only ActivePlayer spotlight).
     if (r.phase === 'Steal') {
       const stealer = r.stealingTeam ?? (r.controllingTeam === 'A' ? 'B' : 'A');
       return stealer === this.myTeam();
@@ -376,8 +373,11 @@ export class GameShowPlayPage implements OnInit, OnDestroy {
   }
 
   waitingAnswerHint(L: GameShowLobbyDto): string {
+    if (this.myTurn(L)) {
+      return 'Turno de tu equipo: cualquiera puede responder desde su celular.';
+    }
     const name = L.currentRound?.activePlayerName;
-    if (name) return `Espera: responde ${name}`;
+    if (name) return `Espera: turno de ${teamNameOf(L, L.currentRound?.controllingTeam)} (${name}).`;
     if (L.currentRound?.phase === 'Steal') {
       return `${teamNameOf(L, L.currentRound.stealingTeam)} intenta robar la ronda. Espera el resultado.`;
     }
