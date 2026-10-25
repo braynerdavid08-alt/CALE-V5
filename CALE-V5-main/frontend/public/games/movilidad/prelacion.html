@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Prelación Art. 70 — animado</title>
+<!-- Juego de PRELACIÓN (Art. 70 + glorietas) · Luz Verde.
+Un solo archivo. Al terminar envía parent.postMessage({type:'luzverde.movilidad.result',mode:'cruce',score,correct,total,won}).
+Flujo: llegan los carros → eliges quién pasa → se ve la consecuencia real (pasa en orden o chocan). -->
+<style>
+:root{--bg:#eef2f7;--c:#fff;--t:#0f172a;--m:#64748b;--p:#2563eb;--bd:#e2e8f0;box-sizing:border-box;padding-top:env(safe-area-inset-top,0);padding-bottom:env(safe-area-inset-bottom,0)}
+@media(prefers-color-scheme:dark){:root{--bg:#0b1220;--c:#162033;--t:#e8eefb;--m:#94a3b8;--bd:#26344d}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--t);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{max-width:560px;margin:auto;padding:14px}
+h2{margin:0;font-size:18px;flex:1}
+.bar2{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.back{width:42px;height:42px;border-radius:12px;border:1px solid var(--bd);background:var(--c);color:var(--t);font-size:20px;cursor:pointer}
+.b{background:var(--c);color:var(--t);border:1px solid var(--bd);border-radius:12px;padding:12px;font-size:16px;cursor:pointer;width:100%;margin:5px 0;touch-action:manipulation}
+.b:disabled{opacity:.45;cursor:default}
+.p{background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;border:0;font-weight:700}
+.card{background:var(--c);border:1px solid var(--bd);border-radius:14px;padding:14px;margin:8px 0;box-shadow:0 2px 8px #0001}
+.hud{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}
+.pill{background:var(--c);border:1px solid var(--bd);border-radius:20px;padding:4px 12px;font-size:14px}
+.kb{color:var(--m);font-size:13px;text-align:center;margin:8px 0}
+#cv{display:block;margin:8px auto;width:min(100%,480px);height:auto;border-radius:16px;box-shadow:0 8px 24px #0004;background:#14532d;touch-action:manipulation}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+(function () {
+'use strict';
+const $ = (s) => document.querySelector(s), A = $('#app');
+
+/* ───────── Dibujo base ───────── */
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+    r = Math.max(0, Math.min(r || 0, w / 2, h / 2));
+    this.moveTo(x + r, y); this.arcTo(x + w, y, x + w, y + h, r); this.arcTo(x + w, y + h, x, y + h, r);
+    this.arcTo(x, y + h, x, y, r); this.arcTo(x, y, x + w, y, r); this.closePath();
+  };
+}
+const rr = (c, x, y, w, h, r) => { c.beginPath(); c.roundRect(x, y, w, h, r); };
+
+// Carro visto desde arriba; a=0 mira hacia arriba. o.br=luz de freno, o.sg='R'|'L' direccional (parpadeo o.bl)
+const car = (c, x, y, col, a, o) => {
+  o = o || {};
+  c.save(); c.translate(x, y); c.rotate(a);
+  c.fillStyle = '#0005'; rr(c, -14, -22, 32, 54, 9); c.fill();
+  c.fillStyle = '#111'; [-17, 12].forEach((X) => [-17, 10].forEach((Y) => c.fillRect(X, Y, 5, 12)));
+  c.fillStyle = col; rr(c, -15, -26, 30, 52, 9); c.fill();
+  const g = c.createLinearGradient(-15, 0, 15, 0);
+  g.addColorStop(0, '#fff6'); g.addColorStop(.5, '#fff0'); g.addColorStop(1, '#0005');
+  c.fillStyle = g; rr(c, -15, -26, 30, 52, 9); c.fill();
+  c.fillStyle = '#1e293bd9'; rr(c, -11, -15, 22, 10, 3); c.fill(); rr(c, -11, 9, 22, 8, 3); c.fill();
+  c.fillStyle = '#fde047'; c.fillRect(-12, -26, 6, 3); c.fillRect(6, -26, 6, 3);
+  c.fillStyle = o.br ? '#ff1f1f' : '#7f1d1d'; c.fillRect(-12, 24, 7, 3); c.fillRect(5, 24, 7, 3);
+  if (o.br) { c.fillStyle = '#ff1f1f55'; c.beginPath(); c.arc(-9, 27, 8, 0, 7); c.arc(9, 27, 8, 0, 7); c.fill(); }
+  if (o.sg && o.bl) {
+    const sx = o.sg === 'R' ? 14 : -14;
+    c.fillStyle = '#fbbf24'; c.beginPath(); c.arc(sx, -25, 4, 0, 7); c.arc(sx, 25, 4, 0, 7); c.fill();
+    c.fillStyle = '#fbbf2455'; c.beginPath(); c.arc(sx, -25, 9, 0, 7); c.arc(sx, 25, 9, 0, 7); c.fill();
+  }
+  c.restore();
+};
+
+/* ───────── Sonido (WebAudio; se activa con el primer toque, requisito de iPhone) ───────── */
+const AC = window.AudioContext || window.webkitAudioContext;
+let ac, eg, eo, nb, mute = false;
+const snd = () => {
+  try {
+    if (!AC) return;
+    if (!ac) {
+      ac = new AC(); eo = ac.createOscillator(); eo.type = 'sawtooth';
+      const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 240;
+      eg = ac.createGain(); eg.gain.value = 0; eo.connect(f); f.connect(eg); eg.connect(ac.destination); eo.start();
+      nb = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+      const d = nb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    if (ac.state !== 'running') ac.resume();
+  } catch (e) {}
+};
+['pointerdown', 'touchend', 'click'].forEach((e) => document.addEventListener(e, snd, { passive: true }));
+const tone = (f, d, ty, v, t, f2) => {
+  if (!ac || mute) return;
+  const o = ac.createOscillator(), g = ac.createGain(), n = ac.currentTime + (t || 0);
+  o.type = ty || 'sine'; o.frequency.setValueAtTime(f, n);
+  if (f2) o.frequency.exponentialRampToValueAtTime(f2, n + d);
+  g.gain.setValueAtTime(v || .15, n); g.gain.exponentialRampToValueAtTime(.001, n + d);
+  o.connect(g); g.connect(ac.destination); o.start(n); o.stop(n + d + .02);
+};
+const noise = (d, v, fr, lo) => {
+  if (!ac || mute) return;
+  const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(), n = ac.currentTime;
+  s.buffer = nb; f.type = lo ? 'lowpass' : 'highpass'; f.frequency.value = fr;
+  g.gain.setValueAtTime(v, n); g.gain.exponentialRampToValueAtTime(.001, n + d);
+  s.connect(f); f.connect(g); g.connect(ac.destination); s.start(n); s.stop(n + d);
+};
+const SFX = {
+  ok: () => { tone(660, .15, 'sine', .2); tone(880, .3, 'sine', .2, .12); },
+  bad: () => tone(200, .45, 'sawtooth', .13, 0, 80),
+  horn: () => { tone(420, .45, 'square', .07); tone(525, .45, 'square', .07); },
+  brake: () => noise(.55, .14, 2600),
+  crash: () => { noise(.7, .6, 900, 1); tone(95, .45, 'sine', .45, 0, 35); noise(.25, .3, 3000); },
+  tick: () => tone(1500, .03, 'square', .05),
+  eng: (v) => {
+    if (!ac) return;
+    const t = ac.currentTime;
+    eg.gain.setTargetAtTime(mute ? 0 : Math.min(.06, v / 110 * .06), t, .08);
+    eo.frequency.setTargetAtTime(48 + v * .55, t, .08);
+  }
+};
+
+const report = (s) => {
+  try { if (window.parent && window.parent !== window) window.parent.postMessage(Object.assign({ type: 'luzverde.movilidad.result' }, s || {}), '*'); } catch (_) {}
+};
+const hdr = (t, x) =>
+  `<div class=bar2><button class=back onclick="location.href='index.html'" aria-label="Menú">←</button><h2>${t}</h2>${x || ''}</div>`;
+const over = (t, h, s) => {
+  if (s) report(s);
+  SFX.eng(0);
+  A.innerHTML = hdr(t) + `<div class=card>${h}</div><button class="b p" onclick="location.reload()">Jugar otra vez</button>`;
+};
+
+/* ───────── Banco de escenarios (Art. 70 + glorietas) ───────── */
+const WIN = 8, LIVES0 = 3;
+const BANK = [
+  { id: 'der2', title: 'Cruce sin semáforo',
+    sit: 'Dos carros llegan al mismo tiempo a un cruce sin señales. Sus trayectorias se cortan.',
+    q: '¿Quién tiene prelación?',
+    law: 'Art. 70: tiene prelación quien ingresa por el lado derecho del otro.',
+    cars: [
+      { id: 'A', name: 'Rojo', desc: 'viene del sur, va al norte', col: '#dc2626' },
+      { id: 'B', name: 'Azul', desc: 'viene del oriente, va al occidente', col: '#2563eb' }],
+    ans: 'B',
+    ok: 'El azul (B) está a la derecha del rojo (A). B tiene la vía.',
+    bad: 'En cruce sin señal, cedes a quien llega por tu derecha. Aquí B está a la derecha de A.' },
+  { id: 'der3', title: 'Tres carros en conflicto',
+    sit: 'Tres carros llegan juntos y todos siguen de frente (línea recta). No hay nadie por el occidente.',
+    q: '¿Quién pasa primero?',
+    law: 'Art. 70: tiene prelación quien está a la derecha del otro. Se aplica carro por carro.',
+    cars: [
+      { id: 'A', name: 'Rojo', desc: 'sur → norte (de frente le queda el azul a la derecha)', col: '#dc2626' },
+      { id: 'B', name: 'Azul', desc: 'oriente → occidente (de frente le queda el amarillo a la derecha)', col: '#2563eb' },
+      { id: 'C', name: 'Amarillo', desc: 'norte → sur (a su derecha no hay nadie)', col: '#f59e0b' }],
+    ans: 'C',
+    ok: 'Primero el amarillo: a su derecha (occidente) no hay carro. El azul cede al amarillo; el rojo cede al azul.',
+    bad: 'Mira la derecha de cada uno: rojo ve al azul; azul ve al amarillo; amarillo no ve a nadie → pasa primero el amarillo.' },
+  { id: 'jer', title: 'Avenida vs calle',
+    sit: 'Un carro va por la avenida. Otro sale de una calle secundaria. No hay semáforo ni PARE.',
+    q: '¿Quién tiene prelación?',
+    law: 'Art. 70: la vía de mayor jerarquía tiene prelación sobre la de menor jerarquía.',
+    cars: [
+      { id: 'A', name: 'Rojo', desc: 'va por la AVENIDA', col: '#dc2626' },
+      { id: 'B', name: 'Azul', desc: 'sale de la CALLE secundaria', col: '#2563eb' }],
+    ans: 'A',
+    ok: 'El rojo (A) va por la avenida (mayor jerarquía).',
+    bad: 'Aunque el azul “llegue” a la esquina, la avenida manda sobre la calle secundaria.' },
+  { id: 'pav', title: 'Pavimento vs tierra',
+    sit: 'Un carro circula por vía pavimentada. Otro sale de una vía sin pavimentar.',
+    q: '¿Quién tiene prelación?',
+    law: 'Art. 70: vía pavimentada tiene preferencia sobre vía sin pavimentar.',
+    cars: [
+      { id: 'A', name: 'Verde', desc: 'va por vía PAVIMENTADA', col: '#16a34a' },
+      { id: 'B', name: 'Amarillo', desc: 'sale de vía SIN PAVIMENTAR', col: '#f59e0b' }],
+    ans: 'A',
+    ok: 'El verde (A) ya va por pavimento: tiene preferencia.',
+    bad: 'Quien sale del afirmado cede al que circula por la vía pavimentada.' },
+  { id: 'glo1', title: 'Glorieta: ¿quién cede?',
+    sit: 'Un carro ya gira dentro de la glorieta. Otro espera para entrar.',
+    q: '¿Quién tiene prelación?',
+    law: 'Art. 70: en glorieta, quien ya circula dentro tiene prelación sobre quien va a ingresar.',
+    cars: [
+      { id: 'A', name: 'Rojo', desc: 'YA ESTÁ DENTRO, circulando', col: '#dc2626' },
+      { id: 'B', name: 'Azul', desc: 'quiere ENTRAR desde el sur', col: '#2563eb' }],
+    ans: 'A',
+    ok: 'El rojo (A) ya está dentro. El azul debe ceder.',
+    bad: 'Nunca empujes la entrada: quien ya circula en la glorieta tiene la vía.' },
+  { id: 'glo2', title: 'Glorieta con 3 carros',
+    sit: 'Uno ya está dentro. Dos más quieren entrar desde sur y oriente.',
+    q: '¿Quién tiene prelación ahora?',
+    law: 'Art. 70 glorieta: primero quien ya está dentro.',
+    cars: [
+      { id: 'A', name: 'Rojo', desc: 'quiere entrar (sur)', col: '#dc2626' },
+      { id: 'B', name: 'Azul', desc: 'quiere entrar (oriente)', col: '#2563eb' },
+      { id: 'C', name: 'Morado', desc: 'YA está dentro', col: '#7c3aed' }],
+    ans: 'C',
+    ok: 'El morado (C) ya gira dentro. A y B esperan.',
+    bad: 'Aunque A y B peleen la entrada, manda quien ya está dentro (C).' },
+  { id: 'izq', title: 'Giro a la izquierda',
+    sit: 'El rojo quiere girar a la izquierda. De frente viene el azul en sentido contrario.',
+    q: '¿Quién tiene prelación?',
+    law: 'Art. 70: quien gira a la izquierda cede a los que van en sentido opuesto.',
+    cars: [
+      { id: 'A', name: 'Rojo', desc: 'quiere GIRAR a la izquierda', col: '#dc2626' },
+      { id: 'B', name: 'Azul', desc: 'viene DE FRENTE, sigue derecho', col: '#2563eb' }],
+    ans: 'B',
+    ok: 'El azul (B) sigue de frente. El rojo debe ceder al girar.',
+    bad: 'Girar a la izquierda no te da derecho sobre el tráfico opuesto.' },
+  { id: 'lane', title: 'Carril en la glorieta',
+    sit: 'Vas a tomar la 3.ª salida (giro largo / casi retorno).',
+    q: '¿Qué carril debes usar al entrar?',
+    law: 'Carril interno (izquierdo) = 3.ª salida o retorno. Externo = 1.ª o 2.ª.',
+    cars: [
+      { id: 'EXT', name: 'Carril externo', desc: 'para 1.ª o 2.ª salida', col: '#2563eb' },
+      { id: 'INT', name: 'Carril interno', desc: 'para 3.ª salida o retorno U', col: '#16a34a' }],
+    ans: 'INT',
+    ok: '3.ª salida → carril interno.',
+    bad: 'Salida lejana o retorno = carril interno. El externo es para salir pronto.' },
+  { id: 'dir', title: 'Direccional al salir',
+    sit: 'Dos conductores van a salir de la glorieta.',
+    q: '¿Quién cumple la norma?',
+    law: 'Obligatorio activar direccional derecha antes de tomar la salida.',
+    cars: [
+      { id: 'A', name: 'Rojo', desc: 'pone direccional DERECHA al salir', col: '#dc2626' },
+      { id: 'B', name: 'Azul', desc: 'sale SIN direccional', col: '#2563eb' }],
+    ans: 'A',
+    ok: 'El rojo avisa con direccional derecha: eso exige la norma.',
+    bad: 'Salir sin direccional deja a los que esperan sin saber cuándo entrar.' },
+  { id: 'speed', title: 'Velocidad en glorieta',
+    sit: 'En Colombia la glorieta tiene límite y debes seguir la curva (no cortar la isleta).',
+    q: '¿Cuál conducta es correcta?',
+    law: 'Máximo 30 km/h. Prohibido cortar en línea recta la isleta central.',
+    cars: [
+      { id: 'A', name: '28 km/h', desc: 'sigue la curvatura de la isleta', col: '#16a34a' },
+      { id: 'B', name: '55 km/h', desc: 'corta la isleta en línea recta', col: '#dc2626' }],
+    ans: 'A',
+    ok: '≤30 km/h y respetar la curva es lo correcto.',
+    bad: '55 km/h y cortar la isleta violan la norma de glorietas.' },
+  { id: 'none', title: '¿Hay prelación?',
+    sit: 'Solo un carro se mueve. El otro está estacionado, fuera del cruce. No se cortan trayectorias.',
+    q: '¿Qué aplica?',
+    law: 'La prelación del Art. 70 existe cuando dos o más trayectorias se cortan.',
+    cars: [
+      { id: 'YES', name: 'Hay que ceder', desc: 'tratarlo como si hubiera cruce', col: '#dc2626' },
+      { id: 'NO', name: 'No hay prelación', desc: 'sin punto de conflicto de trayectorias', col: '#16a34a' }],
+    ans: 'NO',
+    ok: 'Sin trayectorias que se corten, no opera el Art. 70.',
+    bad: 'Prelación no es “el que se ve en pantalla”: hace falta conflicto real.' }
+];
+
+/* ───────── Geometría y movimiento (lienzo lógico 360×280, conducción por la derecha) ───────── */
+const arc = (r, a0, a1) => {
+  const o = [], n = Math.max(1, Math.ceil(Math.abs(a1 - a0) / 6));
+  for (let i = 0; i <= n; i++) { const a = (a0 + (a1 - a0) * i / n) * Math.PI / 180; o.push([180 + r * Math.cos(a), 140 + r * Math.sin(a)]); }
+  return o;
+};
+const rg = (a, r) => arc(r || 68, a, a)[0];
+const bz = (a, b, c) => { const o = []; for (let i = 0; i <= 8; i++) { const t = i / 8, u = 1 - t; o.push([u * u * a[0] + 2 * u * t * b[0] + t * t * c[0], u * u * a[1] + 2 * u * t * b[1] + t * t * c[1]]); } return o; };
+// Vehículo: la 1.ª parte termina donde se detiene (hi); el resto es la maniobra
+const V = (id, col, n, parts, o) => {
+  const p = []; let hi = 0;
+  parts.forEach((pt, k) => {
+    pt.forEach((q) => { const l = p[p.length - 1]; if (!l || Math.hypot(q[0] - l[0], q[1] - l[1]) > .01) p.push(q); });
+    if (!k) hi = p.length - 1;
+  });
+  const cl = [0];
+  for (let i = 1; i < p.length; i++) cl.push(cl[i - 1] + Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]));
+  return Object.assign({ id, col, n, p, hi, cl, len: cl[cl.length - 1], h: cl[hi] }, o);
+};
+const pos = (a, s) => {
+  const cl = a.cl, p = a.p; let i = 1;
+  while (i < cl.length - 1 && cl[i] < s) i++;
+  const t = Math.min(1, Math.max(0, (s - cl[i - 1]) / ((cl[i] - cl[i - 1]) || 1))), x0 = p[i - 1], x1 = p[i];
+  return [x0[0] + (x1[0] - x0[0]) * t, x0[1] + (x1[1] - x0[1]) * t, Math.atan2(x1[0] - x0[0], -(x1[1] - x0[1]))];
+};
+let CAR = {};
+const m = (id, parts, o) => V(id, CAR[id].col, CAR[id].name, parts, o);
+const S = [[200, 320], [200, 210]], E = [[420, 120], [252, 120]], N = [[160, -40], [160, 70]];
+const ringIn = (id) => m(id, [arc(68, 190, 131), arc(68, 131, -80), [[192, -40]]]);
+const enterS = (id) => m(id, [[[192, 330], [192, 268]], [rg(80)], arc(68, 80, 10), [[420, 152]]]);
+const enterE = (id) => m(id, [[[420, 128], [300, 128]], [rg(-10)], arc(68, -10, -80), [[192, -40]]]);
+const avenue = (bg) => () => ({ bg, ord: ['A', 'B'],
+  v: [m('A', [[[205, 320], [205, 215]], [[205, -40]]]), m('B', [[[-40, 167], [105, 167]], [[420, 167]]])] });
+const G = {
+  der2: () => ({ bg: 'X', ord: ['B', 'A'], v: [m('A', [S, [[200, -40]]]), m('B', [E, [[-40, 120]]])] }),
+  der3: () => ({ bg: 'X', ord: ['C', 'B', 'A'], v: [m('A', [S, [[200, -40]]]), m('B', [E, [[-40, 120]]]), m('C', [N, [[160, 320]]])] }),
+  jer: avenue('T'), pav: avenue('D'),
+  glo1: () => ({ bg: 'R', ord: ['A', 'B'], v: [ringIn('A'), enterS('B')] }),
+  glo2: () => ({ bg: 'R', ord: ['C', 'A', 'B'], v: [enterS('A'), enterE('B'), ringIn('C')] }),
+  izq: () => ({ bg: 'L', ord: ['B', 'A'], v: [
+    m('A', [[[192, 320], [192, 215]], bz([192, 178], [192, 128], [150, 128]), [[-40, 128]]], { sig: 'L', pre: 1 }),
+    m('B', [[[168, -40], [168, 76]], [[168, 320]]])] }),
+  // Preguntas de conducta: se anima lo que hace la opción elegida
+  lane: (ch) => { const r = ch === 'EXT' ? 82 : 54; return { bg: 'R', go: { R: 0 }, v: [
+    V('R', '#16a34a', 'Tú', [[[192, 330], [192, 268]], [rg(80, r)], arc(r, 80, -170), [[-40, 128]]])] }; },
+  dir: (ch) => ({ bg: 'R', go: { R: 0, W: ch === 'A' ? 1.3 : 3.6 }, v: [
+    V('R', '#f97316', 'Conductor', [arc(68, 190, 118), arc(68, 118, 10), [[420, 152]]], { sig: ch === 'A' ? 'R' : 0 }),
+    V('W', '#64748b', 'Espera', [[[420, 128], [300, 128]], [rg(-10)], arc(68, -10, -80), [[192, -40]]], { yl: 1, honk: ch === 'A' ? 0 : 2.4 })] }),
+  speed: (ch) => ({ bg: 'R', go: { R: 0 }, v: [ch === 'B'
+    ? V('R', '#dc2626', 'Tú', [[[192, 330], [192, 268]], [[190, 200], [184, 150], [180, 60], [180, -40]]], { vmax: 150, crashAt: 147, lbl: '55 km/h' })
+    : V('R', '#16a34a', 'Tú', [[[192, 330], [192, 268]], [rg(80)], arc(68, 80, -80), [[192, -40]]], { vmax: 62, lbl: '28 km/h' })] }),
+  none: (ch) => ({ bg: 'L', go: { R: ch === 'YES' ? 3.2 : 0 }, park: [165, 232, 0, '#2563eb', 'Estacionado'],
+    v: [V('R', '#dc2626', 'Tú', [[[-40, 152], [100, 152]], [[420, 152]]], { honk: ch === 'YES' ? 1.8 : 0 })] })
+};
+const GAP = 1.7;
+const mk = (sc, ch) => { CAR = {}; sc.cars.forEach((k) => { CAR[k.id] = k; }); return G[sc.id](ch); };
+const seg = (p, q, r, s) => {
+  const d = (q[0] - p[0]) * (s[1] - r[1]) - (q[1] - p[1]) * (s[0] - r[0]); if (!d) return null;
+  const t = ((r[0] - p[0]) * (s[1] - r[1]) - (r[1] - p[1]) * (s[0] - r[0])) / d, u = ((r[0] - p[0]) * (q[1] - p[1]) - (r[1] - p[1]) * (q[0] - p[0])) / d;
+  return t >= 0 && t <= 1 && u >= 0 && u <= 1 ? [t, u] : null;
+};
+// Punto donde se cortan las trayectorias de a y b (distancia recorrida por cada uno)
+const hit = (a, b) => {
+  for (let i = a.hi; i < a.p.length - 1; i++) for (let j = b.hi; j < b.p.length - 1; j++) {
+    const r = seg(a.p[i], a.p[i + 1], b.p[j], b.p[j + 1]);
+    if (r) return [a.cl[i] + r[0] * (a.cl[i + 1] - a.cl[i]), b.cl[j] + r[1] * (b.cl[j + 1] - b.cl[j])];
+  }
+  return null;
+};
+const tArr = (d) => d <= 32.4 ? Math.sqrt(2 * d / 170) : .62 + (d - 32.4) / 105;
+// Horario de salida: respuesta correcta = pasan en orden; incorrecta = el elegido se mete y llega junto al que tenía la vía
+const goT = (sc, g, ch) => {
+  if (g.go) return g.go;
+  const o = g.ord, ci = o.indexOf(ch), go = {}, by = {};
+  g.v.forEach((a) => { by[a.id] = a; });
+  o.forEach((id, i) => { go[id] = (ch === sc.ans || i > ci) ? i * GAP : 0; });
+  if (ch !== sc.ans) for (let j = 0; j < ci; j++) {
+    const a = by[ch], b = by[o[j]], x = hit(a, b);
+    if (x) { const ta = tArr(x[0] - a.h), tb = tArr(x[1] - b.h), T = Math.max(ta, tb); go[ch] = T - ta; go[o[j]] = T - tb; break; }
+  }
+  return go;
+};
+const newRun = (g, go) => ({
+  tr: 0, cr: 0, tc: 0, cx: 0, cy: 0, end: 0,
+  vs: g.v.map((a) => { a.s = a.h; a.v = 0; a.go = go[a.id] || 0; a.done = 0; a.hk = 0; return a; })
+});
+const step = (R, dt) => {
+  R.tr += dt; const q = R.vs;
+  q.forEach((a) => {
+    if (a.done) return;
+    if (R.cr) a.v = Math.max(0, a.v - 500 * dt);
+    else if (R.tr >= a.go) a.v = Math.min(a.vmax || 105, a.v + 170 * dt);
+    a.s = Math.min(a.len, a.s + a.v * dt);
+    if (a.s >= a.len) a.done = 1;
+    if (!R.cr && a.crashAt && a.s >= a.crashAt) { R.cr = 1; R.tc = R.tr; const p = pos(a, a.s); R.cx = p[0]; R.cy = p[1]; }
+  });
+  if (!R.cr) for (let i = 0; i < q.length; i++) for (let j = i + 1; j < q.length; j++) {
+    const a = q[i], b = q[j];
+    if ((a.v > 0 || b.v > 0) && !a.done && !b.done) {
+      const p = pos(a, a.s), r = pos(b, b.s);
+      if (Math.hypot(p[0] - r[0], p[1] - r[1]) < 22) { R.cr = 1; R.tc = R.tr; R.cx = (p[0] + r[0]) / 2; R.cy = (p[1] + r[1]) / 2; }
+    }
+  }
+  R.end = R.cr ? R.tr - R.tc > 1.3 : (q.every((a) => a.done) || R.tr > 12) ? 1 : 0;
+};
+window.LV = { BANK, mk, goT, newRun, step };
+
+/* ───────── Juego ───────── */
+function start() {
+  A.innerHTML = hdr('⚖️ Prelación · Art. 70', '<button class=back id=mu aria-label="Sonido">🔊</button>') +
+    `<div class=hud id=hud></div>
+<div class=card id=sit style="margin-top:6px"></div>
+<canvas id=cv width=720 height=560></canvas>
+<div id=choices style="display:grid;gap:8px;margin:8px 0"></div>
+<div class=card id=fb style="display:none"></div>
+<p class=kb>Mira cómo llegan los carros · elige quién pasa · verás qué pasa en la vía.</p>`;
+  const c = $('#cv').getContext('2d'); c.scale(2, 2);
+  $('#mu').onclick = () => { mute = !mute; $('#mu').textContent = mute ? '🔇' : '🔊'; if (mute) SFX.eng(0); };
+
+  let lives = LIVES0, okN = 0, deck = BANK.slice().sort(() => Math.random() - .5), si = 0;
+  let cur = null, g = null, R = null, st = 'wait', t = 0, bk = 0, last = 0, pick = null, bl = 0, lb = 0, rp = 0;
+  const T1 = 1.7;
+
+  const paintHud = () => {
+    $('#hud').innerHTML = `<span class=pill>${'❤️'.repeat(Math.max(0, lives)) || '💔'}</span><span class=pill>✔ ${okN}/${WIN}</span><span class=pill>${(cur && cur.title) || ''}</span>`;
+  };
+
+  function bg(k) {
+    const road = '#334155';
+    c.fillStyle = k === 'D' ? '#365314' : '#14532d'; c.fillRect(0, 0, 360, 280);
+    c.fillStyle = road;
+    if (k === 'X' || k === 'L') {
+      const w = k === 'X' ? 40 : 30;
+      c.fillRect(180 - w, 0, 2 * w, 280); c.fillRect(0, 140 - w, 360, 2 * w);
+      c.fillStyle = '#facc15';
+      for (let y = 8; y < 280; y += 28) if (Math.abs(y + 7 - 140) > w + 4) c.fillRect(178, y, 4, 14);
+      for (let x = 8; x < 360; x += 28) if (Math.abs(x + 7 - 180) > w + 4) c.fillRect(x, 138, 14, 4);
+    } else if (k === 'T' || k === 'D') {
+      c.fillRect(130, 0, 100, 280);
+      c.fillStyle = k === 'D' ? '#a8a29e' : '#475569'; c.fillRect(0, 130, 130, 50);
+      if (k === 'D') { c.fillStyle = '#78716c'; for (let i = 0; i < 60; i++) c.fillRect(6 + (i * 37) % 120, 134 + (i * 11) % 42, 3, 2); }
+      c.fillStyle = '#facc15'; for (let y = 8; y < 280; y += 28) c.fillRect(178, y, 4, 14);
+      c.fillStyle = '#e2e8f0'; c.font = 'bold 11px system-ui'; c.textAlign = 'center';
+      c.fillText(k === 'D' ? 'PAVIMENTADA' : 'AVENIDA', 180, 14);
+      c.fillText(k === 'D' ? 'SIN PAVIMENTAR' : 'calle', 62, 124);
+    } else {
+      c.fillRect(155, 225, 50, 55); c.fillRect(155, 0, 50, 55); c.fillRect(265, 115, 95, 50); c.fillRect(0, 115, 95, 50);
+      c.beginPath(); c.arc(180, 140, 95, 0, 7); c.fill();
+      c.fillStyle = '#14532d'; c.beginPath(); c.arc(180, 140, 40, 0, 7); c.fill();
+      c.strokeStyle = '#ffffff88'; c.lineWidth = 2; c.setLineDash([8, 8]); c.beginPath(); c.arc(180, 140, 68, 0, 7); c.stroke(); c.setLineDash([]);
+      c.fillStyle = '#fff'; c.font = 'bold 10px system-ui'; c.textAlign = 'center'; c.fillText('GLORIETA', 180, 144);
+    }
+  }
+  function tag(x, y, n, col) {
+    c.font = 'bold 12px system-ui'; const w = c.measureText(n).width + 14;
+    c.fillStyle = col; rr(c, x - w / 2, y - 46, w, 20, 8); c.fill();
+    c.fillStyle = '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(n, x, y - 36); c.textBaseline = 'alphabetic';
+  }
+  function draw() {
+    c.save();
+    if (R && R.cr && R.tr - R.tc < .45) c.translate((Math.random() - .5) * 6, (Math.random() - .5) * 6);
+    bg(g.bg);
+    if (g.park) { car(c, g.park[0], g.park[1], g.park[3], g.park[2], { br: 0 }); tag(g.park[0], g.park[1], g.park[4], '#475569'); }
+    const run = !!R, LW = { X: 36, L: 26, T: 22, D: 22, R: 22 }[g.bg] || 24;
+    // Línea de frenado: solo tras responder, en el carril y sentido de quien debe ceder
+    if (run) g.v.forEach((a) => {
+      if (!(a.yl || (g.ord && g.ord.indexOf(a.id) > 0))) return;
+      const p = pos(a, a.h), x = p[0] + Math.sin(p[2]) * 30, y = p[1] - Math.cos(p[2]) * 30, nx = Math.cos(p[2]) * LW / 2, ny = Math.sin(p[2]) * LW / 2;
+      c.globalAlpha = Math.min(1, R.tr * 3); c.strokeStyle = '#fff'; c.lineWidth = 4;
+      c.beginPath(); c.moveTo(x - nx, y - ny); c.lineTo(x + nx, y + ny); c.stroke(); c.globalAlpha = 1;
+    });
+    // Ruta que piensa seguir el carro (giro a la izquierda)
+    if (!run) g.v.forEach((a) => {
+      if (!a.pre) return;
+      c.strokeStyle = '#38bdf8'; c.lineWidth = 3; c.setLineDash([6, 6]); c.beginPath();
+      a.p.slice(a.hi).forEach((q, i) => (i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]))); c.stroke(); c.setLineDash([]);
+    });
+    g.v.forEach((a) => {
+      const p = pos(a, a.s);
+      const waiting = run ? (R.tr < a.go && !a.done) || R.cr : (st === 'in' && t / T1 > .25) || st === 'ask';
+      car(c, p[0], p[1], a.col, p[2], { br: waiting && !a.done, sg: (run || a.pre) ? a.sig : 0, bl });
+      if (!a.done || !run) tag(p[0], p[1], a.n, a.col);
+      if (run && a.lbl && !a.done) { c.fillStyle = '#fff'; c.font = 'bold 13px system-ui'; c.textAlign = 'center'; c.fillText(a.lbl, p[0], p[1] + 46); }
+    });
+    if (R && R.cr) {
+      const d = R.tr - R.tc;
+      c.strokeStyle = `rgba(251,191,36,${Math.max(0, 1 - d)})`; c.lineWidth = 4; c.beginPath(); c.arc(R.cx, R.cy, 8 + d * 55, 0, 7); c.stroke();
+      c.font = '38px system-ui'; c.textAlign = 'center'; c.fillText('💥', R.cx, R.cy + 13);
+    }
+    c.restore();
+  }
+
+  function frame(ts) {
+    const dt = Math.min(.05, (ts - last) / 1000 || 0); last = ts;
+    let vmax = 0; bl = Math.floor(ts / 350) % 2;
+    if (st === 'in') {
+      t += dt; const u = Math.min(1, t / T1);
+      g.v.forEach((a) => { a.s = a.h * (1 - (1 - u) * (1 - u)); a.v = 2 * a.h * (1 - u) / T1; vmax = Math.max(vmax, a.v); });
+      if (u > .7 && !bk) { bk = 1; SFX.brake(); }
+      if (u >= 1) { st = 'ask'; document.querySelectorAll('#choices button').forEach((b) => { b.disabled = false; }); }
+    } else if (st === 'run') {
+      step(R, dt);
+      if (bl !== lb) { lb = bl; if (R.vs.some((a) => a.sig && !a.done)) SFX.tick(); }
+      R.vs.forEach((a) => {
+        vmax = Math.max(vmax, a.v);
+        if (a.honk && R.tr >= a.honk && !a.hk) { a.hk = 1; SFX.horn(); }
+      });
+      if (R.cr && !R.snd) { R.snd = 1; SFX.horn(); SFX.crash(); try { navigator.vibrate && navigator.vibrate(200); } catch (e) {} }
+      if (R.end) { if (rp) st = 'done'; else finish(); }
+    }
+    SFX.eng(vmax);
+    if (g) draw();
+    requestAnimationFrame(frame);
+  }
+
+  function show(sc) {
+    cur = sc; pick = null; rp = 0; bk = 0; t = 0; st = 'in'; R = null; bl = 0;
+    g = mk(sc, null); g.v.forEach((a) => { a.s = 0; a.v = 0; });
+    paintHud();
+    $('#sit').innerHTML =
+      `<div style="font-size:12px;color:var(--m);font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px">${sc.title}</div>` +
+      `<p style="margin:0 0 8px;font-size:15px;line-height:1.35">${sc.sit}</p>` +
+      `<p style="margin:0;font-weight:800;font-size:17px;color:var(--p)">${sc.q}</p>`;
+    const fb = $('#fb'); fb.style.display = 'none'; fb.innerHTML = '';
+    const box = $('#choices'); box.innerHTML = '';
+    sc.cars.forEach((k) => {
+      const b = document.createElement('button');
+      b.className = 'b'; b.type = 'button'; b.disabled = true;
+      b.style.cssText = `display:flex;align-items:center;gap:12px;text-align:left;padding:14px;border-width:2px;border-color:${k.col};font-weight:700`;
+      b.innerHTML = `<span style="flex:none;width:18px;height:18px;border-radius:6px;background:${k.col}"></span>` +
+        `<span style="flex:1"><span style="display:block;font-size:16px">${k.name}</span><small style="display:block;font-weight:500;color:var(--m);margin-top:2px">${k.desc}</small></span>`;
+      b.onclick = () => judge(k.id);
+      box.appendChild(b);
+    });
+  }
+
+  // Al elegir: se anima la consecuencia (pasan en orden, o chocan / pasa algo ilógico)
+  function judge(id) {
+    if (st !== 'ask') return;
+    pick = id; st = 'run'; snd();
+    document.querySelectorAll('#choices button').forEach((b) => { b.disabled = true; });
+    g = mk(cur, id);
+    R = newRun(g, goT(cur, g, id));
+  }
+
+  // Terminada la animación: resultado y explicación legal
+  function finish() {
+    st = 'done';
+    const good = pick === cur.ans, fb = $('#fb');
+    fb.style.display = 'block';
+    if (good) { SFX.ok(); okN++; } else { if (!R.cr) SFX.bad(); lives--; }
+    fb.innerHTML = good
+      ? `<p style="margin:0 0 6px;color:#16a34a;font-weight:800">✓ Correcto</p><p style="margin:0 0 8px">${cur.ok}</p>`
+      : `<p style="margin:0 0 6px;color:#dc2626;font-weight:800">✗ Incorrecto</p><p style="margin:0 0 8px">${cur.bad}</p>`;
+    fb.innerHTML += `<p style="margin:0;font-size:13px;color:var(--m)">${cur.law}</p>` +
+      `<button class=b id=rp style="margin-top:10px">↻ Ver de nuevo</button><button class="b p" id=nx>${!good && lives <= 0 ? 'Ver resultado' : 'Siguiente'}</button>`;
+    paintHud();
+    fb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    $('#rp').onclick = () => { if (st !== 'done') return; rp = 1; st = 'run'; g = mk(cur, pick); R = newRun(g, goT(cur, g, pick)); };
+    $('#nx').onclick = () => {
+      if (lives <= 0) {
+        over('⚖️ Prelación vial', `<h3>Fin</h3><p>Aciertos: <b>${okN}</b></p><p>${cur.law}</p>`,
+          { mode: 'cruce', score: okN | 0, correct: okN | 0, total: Math.max(1, okN + LIVES0) | 0, won: false });
+      } else if (okN >= WIN) {
+        over('⚖️ Prelación vial', `<h3>¡Muy bien!</h3><p>Resolviste <b>${okN}</b> casos del Art. 70 y glorietas.</p><p><small>Prelación solo existe si hay trayectorias que se cortan.</small></p>`,
+          { mode: 'cruce', score: okN | 0, correct: okN | 0, total: WIN | 0, won: true });
+      } else next();
+    };
+  }
+
+  function next() {
+    if (si >= deck.length) { deck = BANK.slice().sort(() => Math.random() - .5); si = 0; }
+    show(deck[si++]);
+  }
+  next();
+  requestAnimationFrame(frame);
+}
+start();
+})();
+</script>
+</body>
+</html>
