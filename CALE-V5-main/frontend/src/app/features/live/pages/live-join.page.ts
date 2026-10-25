@@ -197,6 +197,26 @@ export class LiveJoinPage implements OnInit {
     this.form.controls.code.setValue(code);
     const displayName = this.session.user()?.name || 'Estudiante';
 
+    this.api.resolveJoin(code).subscribe({
+      next: (resolved) => {
+        if (resolved.kind === 'gameShow') {
+          this.joinGameShow(code, displayName);
+          return;
+        }
+        this.joinLive(code, displayName);
+      },
+      error: (err) => {
+        this.loading.set(false);
+        this.error.set(
+          isRoomMissing(err)
+            ? 'No encontramos esa sala. Revisa el código con tu instructor.'
+            : mapApiError(err)
+        );
+      }
+    });
+  }
+
+  private joinLive(code: string, displayName: string): void {
     this.api.join(code, displayName).subscribe({
       next: (res) => {
         this.loading.set(false);
@@ -204,10 +224,6 @@ export class LiveJoinPage implements OnInit {
         void this.router.navigate(['/live/play', res.sessionId]);
       },
       error: (err) => {
-        if (isRoomMissing(err)) {
-          this.joinGameShow(code, displayName);
-          return;
-        }
         this.loading.set(false);
         this.error.set(mapApiError(err));
       }
