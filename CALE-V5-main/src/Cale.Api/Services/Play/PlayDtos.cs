@@ -145,16 +145,14 @@ public sealed record RankingDto(
     string Scope,
     string ScopeLabel,
     int? GroupId,
-    DateOnly WeekStart,
-    DateOnly WeekEnd,
+    DateOnly PeriodStart,
+    DateOnly PeriodEnd,
     IReadOnlyList<RankingEntryDto> Entries,
     int? MyPosition,
     int MyXp,
     int Participants,
     bool ShowInRanking,
-    IReadOnlyList<RankingScopeDto> Scopes,
-    IReadOnlyList<DateOnly> AvailableWeeks,
-    bool IsCurrentWeek);
+    IReadOnlyList<RankingScopeDto> Scopes);
 
 public sealed record RankingVisibilityRequest(bool ShowInRanking);
 

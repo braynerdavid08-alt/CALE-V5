@@ -169,16 +169,14 @@ export interface Ranking {
   scope: string;
   scopeLabel: string;
   groupId?: number | null;
-  weekStart: string;
-  weekEnd: string;
+  periodStart: string;
+  periodEnd: string;
   entries: RankingEntry[];
   myPosition?: number | null;
   myXp: number;
   participants: number;
   showInRanking: boolean;
   scopes: RankingScope[];
-  availableWeeks: string[];
-  isCurrentWeek: boolean;
 }
 
 export interface PlaySummary {
@@ -333,11 +331,10 @@ export class PlayApi {
     return this.http.post<GameSaved>(`${this.base}/movilidad/result`, body);
   }
 
-  ranking(scope?: string | null, groupId?: number | null, weekStart?: string | null) {
+  ranking(scope?: string | null, groupId?: number | null) {
     let params = new HttpParams();
     if (scope) params = params.set('scope', scope);
     if (groupId != null) params = params.set('groupId', groupId);
-    if (weekStart) params = params.set('weekStart', weekStart);
     return this.http.get<Ranking>(`${this.base}/ranking`, { params });
   }
 
