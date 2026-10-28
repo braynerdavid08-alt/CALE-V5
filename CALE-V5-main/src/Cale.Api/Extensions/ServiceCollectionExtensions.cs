@@ -163,7 +163,7 @@ public static class ServiceCollectionExtensions
         services.AddClassroomModule();
         services.AddLiveClassroomModule();
         services.AddGameShowModule();
-        services.AddTheoreticalTrainingModule();
+        services.AddTheoreticalTrainingModule(config);
         services.AddEngagementModule();
         services.AddPresentationModule();
         Cale.Modules.Courses.Infrastructure.DependencyInjection.AddCoursesModule(services);

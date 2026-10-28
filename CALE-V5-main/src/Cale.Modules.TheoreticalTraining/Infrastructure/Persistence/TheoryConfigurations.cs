@@ -281,3 +281,31 @@ public sealed class ApprenticePaymentAbonoConfiguration
         builder.HasIndex(x => new { x.SchoolUserId, x.StudentUserId, x.PaymentDate });
     }
 }
+
+public sealed class SchedulingReportRunConfiguration : IEntityTypeConfiguration<SchedulingReportRun>
+{
+    public void Configure(EntityTypeBuilder<SchedulingReportRun> builder)
+    {
+        builder.ToTable("SchedulingReportRuns");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Type).HasMaxLength(32).IsRequired();
+        builder.Property(x => x.Status).HasMaxLength(32).IsRequired();
+        builder.Property(x => x.FileName).HasMaxLength(256).IsRequired();
+        builder.Property(x => x.Error).HasMaxLength(1024);
+        builder.HasIndex(x => new { x.SchoolUserId, x.TargetDate, x.Type, x.CreatedAt });
+    }
+}
+
+public sealed class SchedulingReportSnapshotConfiguration
+    : IEntityTypeConfiguration<SchedulingReportSnapshot>
+{
+    public void Configure(EntityTypeBuilder<SchedulingReportSnapshot> builder)
+    {
+        builder.ToTable("SchedulingReportSnapshots");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.CutKind).HasMaxLength(32).IsRequired();
+        builder.Property(x => x.PayloadJson).IsRequired();
+        builder.Property(x => x.PayloadHash).HasMaxLength(64).IsRequired();
+        builder.HasIndex(x => new { x.SchoolUserId, x.TargetDate, x.CutKind }).IsUnique();
+    }
+}

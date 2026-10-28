@@ -293,6 +293,15 @@ export const routes: Routes = [
             .then((m) => m.SchoolAgendaPage)
       },
       {
+        path: 'school/reports',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['School'] },
+        loadComponent: () =>
+          import('./features/school/pages/school-scheduling-reports.page')
+            .then((m) => m.SchoolSchedulingReportsPage)
+      },
+      {
         path: 'school/exam-control',
         pathMatch: 'full',
         canActivate: [roleGuard],

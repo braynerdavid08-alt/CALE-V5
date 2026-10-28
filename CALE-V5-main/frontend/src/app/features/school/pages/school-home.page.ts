@@ -102,6 +102,12 @@ export class SchoolHomePage implements OnInit {
   readonly secondaryActions: EasyAction[] = [
     { emoji: '🗓️', label: 'Agenda semanal', hint: 'Vista de la semana', path: '/school/agenda' },
     {
+      emoji: '📑',
+      label: 'Reportes de programación',
+      hint: 'Excel del día · WhatsApp próximamente',
+      path: '/school/reports'
+    },
+    {
       emoji: '📝',
       label: 'Exámenes teóricos',
       hint: 'Cupos y citas',

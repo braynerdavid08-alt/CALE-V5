@@ -135,6 +135,7 @@ public static class WebApplicationExtensions
             await AttemptSchemaGuard.EnsureAsync(db, bootLogger);
             await HomepageSchemaGuard.EnsureAsync(db, bootLogger);
             await ShopSchemaGuard.EnsureAsync(db, bootLogger);
+            await SchedulingReportsSchemaGuard.EnsureAsync(db, bootLogger);
             await PlaySchemaGuard.EnsureAsync(db, bootLogger);
             await PushSchemaGuard.EnsureAsync(db, bootLogger);
             await UserRequestSchemaGuard.EnsureAsync(db, bootLogger);

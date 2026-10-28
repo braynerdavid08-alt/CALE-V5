@@ -142,6 +142,13 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
         emphasize: true
       },
       {
+        label: 'Reportes de programación',
+        path: '/school/reports',
+        icon: 'chart',
+        exact: true,
+        section: formacion
+      },
+      {
         label: 'Estudiantes y expedientes',
         path: '/school/apprentices',
         icon: 'graduate',
