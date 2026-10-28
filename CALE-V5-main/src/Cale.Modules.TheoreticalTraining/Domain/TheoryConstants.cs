@@ -50,6 +50,8 @@ public static class PracticalSessionKinds
 public static class PracticalScheduleLimits
 {
     public const int MaxDailyInstructorHours = 8;
+    /// <summary>Clase y examen de manejo: un solo aprendiz por cupo.</summary>
+    public const int SeatsPerSlot = 1;
 }
 
 /// <summary>Clases prácticas requeridas por categoría (Colombia CEA).</summary>
