@@ -167,7 +167,7 @@ public sealed class AssistantService
                 {
                     var text = string.IsNullOrWhiteSpace(reply.Content)
                         ? (pending is null ? "No entendí bien. ¿Me lo puedes decir de otra forma?" : "Revisa el botón de abajo y confirma si está bien.")
-                        : reply.Content.Trim();
+                        : FinalizeReply(reply.Content);
                     if (examUi is not null)
                     {
                         text = ExamAvailabilityReply(examUi, text);
@@ -236,7 +236,13 @@ public sealed class AssistantService
                     examUi);
             }
 
-            var reply = CleanForUser(text) + "\n\nSi quieres reservar, cancelar o cambiar algo, escríbeme.";
+            var reply = FinalizeReply(text);
+            if (!reply.Contains("Si quieres", StringComparison.OrdinalIgnoreCase)
+                && !reply.Contains("listado completo", StringComparison.OrdinalIgnoreCase))
+            {
+                reply += "\n\nSi quieres reservar, cancelar o ver el listado completo, escríbeme.";
+            }
+
             return new AssistantChatResult(reply, null, await RemainingAsync(user, ct));
         }
         catch (Exception ex) when (ex is DomainException or AssistantToolException)
@@ -337,15 +343,32 @@ public sealed class AssistantService
         [(Roles.School, "con_saldo")] = new("progreso_estudiantes", () => new JsonObject { ["filtro"] = "con_saldo" })
     };
 
-    /// <summary>Tool text is written for the model; hide internal ids and key=value noise.</summary>
+    /// <summary>
+    /// Hide internal ids from people. Tool text may still carry (clase_id=…) for the model.
+    /// </summary>
     public static string CleanForUser(string text)
     {
-        var s = Regex.Replace(text, @"\s*\((?:\w+_id)=\d+\)", "");
+        var s = Regex.Replace(text, @"(?m)^\s*-\s*\((\w+_id)=\d+\)\s*$", "");
+        s = Regex.Replace(s, @"\s*\((?:\w+_id)=\d+\)", "");
         s = Regex.Replace(s, @"(?m)^\w+_id=\d+\s*\|\s*", "");
-        s = Regex.Replace(s, @"\s*\|?\s*YA RESERVADA \w+_id=\d+", " | ya la tienes reservada");
+        s = Regex.Replace(s, @"\s*\|?\s*YA RESERVADA \w+_id=\d+", " · ya la tienes reservada");
         s = Regex.Replace(s, @"\s*\w+_id=\d+", "");
         s = Regex.Replace(s, @"(\p{L}[\p{L} ]*?)=(sí|no)\b", "$1: $2");
+        s = Regex.Replace(s, @"[ \t]+\n", "\n");
+        s = Regex.Replace(s, @"\n{3,}", "\n\n");
         return s.Trim();
+    }
+
+    /// <summary>Strip ids and, if the model echoed a pipe dump, keep it readable.</summary>
+    public static string FinalizeReply(string text)
+    {
+        var clean = CleanForUser(text);
+        if (clean.Contains('|') && clean.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length <= 3)
+        {
+            clean = clean.Replace(" | ", "\n- ", StringComparison.Ordinal);
+        }
+
+        return clean.Trim();
     }
 
     public async Task<AssistantActionResult> ConfirmAsync(AssistantUser user, string actionId, CancellationToken ct)
@@ -484,9 +507,11 @@ public sealed class AssistantService
             Eres el asistente de {_options.AppName}, la app de formación vial. Hablas con {user.Name}, {who}.
             Hoy es {DayNames[(int)today.DayOfWeek]} {today:yyyy-MM-dd}, hora de Colombia.
             Reglas:
-            - Responde en español de Colombia, con frases cortas, claras y amables. Sin tecnicismos ni identificadores internos (no muestres *_id).
-            - Formato: una idea por línea. Cuando digas varios datos (horas, saldos, citas, cupos), usa viñetas con "•" y títulos cortos. Nunca amontones todo en un solo párrafo.
-            - Usa las herramientas para consultar datos. Nunca inventes horarios, cupos, horas, saldos ni nombres. Si la herramienta ya viene ordenada, respeta esa estructura y solo aclara si hace falta.
+            - Responde en español de Colombia, claro y natural. Sin tecnicismos ni identificadores internos (nunca muestres *_id ni líneas con "|").
+            - Contesta primero lo que preguntaron. Las respuestas simples van cortas; las listas van organizadas.
+            - Formato: títulos breves en negrita con **así**, una idea por línea, viñetas con "-" o "•". Agrupa por día cuando haya varias citas. No amontones registros en un solo párrafo.
+            - Usa las herramientas para consultar datos. Nunca inventes horarios, cupos, horas, saldos ni nombres.
+            - Cuando la herramienta ya traiga un listado legible, resume o reescribe en el mismo estilo (títulos + viñetas). No copies dumps técnicos. Si dice que hay más resultados, menciona el total y ofrece el listado completo; usa completo=true solo si el usuario pide todos.
             - Para reservar, cancelar, agendar, asignar o autorizar usa la herramienta correspondiente: eso solo PREPARA la acción y el usuario debe tocar "Confirmar". Nunca digas que ya quedó hecho.
             - Si algo no se puede (sin cupo, saldo pendiente, falta autorización), explica el motivo que da la herramienta y qué puede hacer.
             - Si faltan datos (fecha, hora, qué clase), pregunta antes de preparar la acción.

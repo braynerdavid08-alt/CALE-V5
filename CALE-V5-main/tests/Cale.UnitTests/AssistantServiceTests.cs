@@ -179,10 +179,28 @@ public sealed class AssistantServiceTests
         var clean = AssistantService.CleanForUser(text);
 
         Assert.DoesNotContain("_id", clean);
-        Assert.Contains("lunes 2026-10-05 07:00-09:00 | Normas | cupos 3/20 | ya la tienes reservada", clean);
+        Assert.Contains("lunes 2026-10-05 07:00-09:00 | Normas | cupos 3/20", clean);
+        Assert.Contains("ya la tienes reservada", clean);
         Assert.Contains("Listos para examen: Ana, Juan", clean);
         Assert.Contains("autorizado: sí, aprobado: no", clean);
         Assert.Contains("Cita de examen: 2026-10-05 11:00.", clean);
+    }
+
+    [Fact]
+    public void Finalize_reply_strips_ids_from_formatted_lists()
+    {
+        const string text = """
+            **Agenda**
+            - **18:00 – 20:00** · Clase teórica
+              - Instructor: sin asignar
+              - (clase_id=12)
+            """;
+
+        var clean = AssistantService.FinalizeReply(text);
+
+        Assert.Contains("Clase teórica", clean);
+        Assert.DoesNotContain("clase_id", clean);
+        Assert.DoesNotContain("_id", clean);
     }
 
     private static AssistantService Create(

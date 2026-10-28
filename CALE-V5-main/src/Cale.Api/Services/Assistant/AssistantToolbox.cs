@@ -52,8 +52,6 @@ public interface IAssistantToolbox
 /// </summary>
 public sealed class AssistantToolbox : IAssistantToolbox
 {
-    private const int MaxLines = 60;
-
     private readonly CaleDbContext _db;
     private readonly IUserStore _users;
     private readonly TheoryTrainingService _theory;
@@ -86,20 +84,23 @@ public sealed class AssistantToolbox : IAssistantToolbox
     [
         Read("mi_progreso", "Progreso del estudiante: horas de teoría y taller, faltas, reservas, examen teórico, clases de manejo y saldo."),
         Read("clases_teoricas", "Clases teóricas de una semana con cupos y si el estudiante puede reservar.",
-            P("semana_inicio", "string", "Lunes de la semana en formato AAAA-MM-DD. Vacío = semana actual.")),
+            P("semana_inicio", "string", "Lunes de la semana en formato AAAA-MM-DD. Vacío = semana actual."),
+            P("completo", "boolean", "true para listar todas las clases de la semana; si no, un resumen razonable.")),
         Write("reservar_clase_teorica", "Prepara la reserva de una clase teórica (el usuario debe confirmar).",
             P("clase_id", "integer", "clase_id de la lista de clases teóricas.", true)),
         Write("cancelar_reserva_teorica", "Prepara la cancelación de una reserva de clase teórica.",
             P("reserva_id", "integer", "reserva_id de la clase reservada.", true)),
         Read("cupos_examen", "Cupos disponibles para el examen teórico y la cita actual del estudiante.",
             P("desde", "string", "Fecha inicial AAAA-MM-DD (opcional)."),
-            P("hasta", "string", "Fecha final AAAA-MM-DD (opcional).")),
+            P("hasta", "string", "Fecha final AAAA-MM-DD (opcional)."),
+            P("completo", "boolean", "true para listar todos los días con cupo.")),
         Write("agendar_examen", "Prepara la cita del examen teórico en una fecha y hora con cupo.",
             P("fecha", "string", "Fecha AAAA-MM-DD.", true),
             P("hora", "string", "Hora HH:mm tal como aparece en los cupos.", true)),
         Write("cancelar_examen", "Prepara la cancelación de la cita de examen teórico.",
             P("cita_id", "integer", "cita_id de la cita actual.", true)),
-        Read("clases_manejo", "Clases y examen de manejo: progreso (N-1 clases + examen), cupos y si ya puede agendar el examen."),
+        Read("clases_manejo", "Clases y examen de manejo: progreso (N-1 clases + examen), cupos y si ya puede agendar el examen.",
+            P("completo", "boolean", "true para listar todos los cupos publicados.")),
         Write("reservar_clase_manejo", "Prepara la reserva de una clase de manejo (no examen).",
             P("clase_id", "integer", "clase_id de tipo Clase en la lista de clases_manejo.", true)),
         Write("reservar_examen_manejo", "Prepara la reserva del examen de manejo (última hora del programa). Solo si ya completó todas las clases menos una.",
@@ -113,16 +114,20 @@ public sealed class AssistantToolbox : IAssistantToolbox
         Read("resumen_escuela", "Resumen general: estudiantes, saldos, listos para examen o manejo, exámenes próximos."),
         Read("progreso_estudiantes", "Progreso de los estudiantes (horas, examen, manejo, saldo). Se puede filtrar o buscar por nombre.",
             P("filtro", "string", "todos | listos_examen | autorizados_examen | listos_manejo | en_manejo | con_saldo | pendientes | faltan_horas"),
-            P("buscar", "string", "Parte del nombre o correo del estudiante.")),
+            P("buscar", "string", "Parte del nombre o correo del estudiante."),
+            P("completo", "boolean", "true para listar todos (hasta 60); si no, un resumen con los primeros.")),
         Read("detalle_estudiante", "Expediente de un estudiante: categoría, horas, examen, práctica, saldo y autorizaciones.",
             P("estudiante_id", "integer", "estudiante_id de la lista de progreso.", true)),
         Read("agenda_escuela", "Agenda de clases teóricas, exámenes y clases de manejo en un rango de fechas.",
             P("desde", "string", "Fecha inicial AAAA-MM-DD (opcional, por defecto esta semana)."),
-            P("hasta", "string", "Fecha final AAAA-MM-DD (opcional).")),
+            P("hasta", "string", "Fecha final AAAA-MM-DD (opcional)."),
+            P("completo", "boolean", "true para listar todas las actividades del rango.")),
         Read("cupos_examen_escuela", "Cupos libres del calendario de exámenes teóricos.",
             P("desde", "string", "Fecha inicial AAAA-MM-DD (opcional)."),
-            P("hasta", "string", "Fecha final AAAA-MM-DD (opcional).")),
-        Read("opciones_manejo", "Vehículos, instructores y estudiantes habilitados para asignar clases de manejo."),
+            P("hasta", "string", "Fecha final AAAA-MM-DD (opcional)."),
+            P("completo", "boolean", "true para listar todos los días con cupo.")),
+        Read("opciones_manejo", "Vehículos, instructores y estudiantes habilitados para asignar clases de manejo.",
+            P("completo", "boolean", "true para listar todos los estudiantes autorizados.")),
         Write("autorizar_examen", "Prepara habilitar (o quitar) el examen teórico de un estudiante.",
             P("estudiante_id", "integer", "estudiante_id.", true),
             P("autorizar", "boolean", "true para habilitar, false para quitar.", true)),
@@ -170,15 +175,15 @@ public sealed class AssistantToolbox : IAssistantToolbox
         return tool switch
         {
             "mi_progreso" => (await MyProgressAsync(user, ct), null),
-            "clases_teoricas" => (await TheoryWeekAsync(user, OptDate(args, "semana_inicio"), ct), null),
-            "cupos_examen" => await StudentExamSlotsRichAsync(user, OptDate(args, "desde"), OptDate(args, "hasta"), ct),
-            "clases_manejo" => (await StudentPracticalAsync(user, ct), null),
+            "clases_teoricas" => (await TheoryWeekAsync(user, OptDate(args, "semana_inicio"), WantsFullList(args), ct), null),
+            "cupos_examen" => await StudentExamSlotsRichAsync(user, OptDate(args, "desde"), OptDate(args, "hasta"), WantsFullList(args), ct),
+            "clases_manejo" => (await StudentPracticalAsync(user, WantsFullList(args), ct), null),
             "resumen_escuela" => (await SchoolSummaryAsync(user, ct), null),
-            "progreso_estudiantes" => (await StudentsProgressAsync(user, Str(args, "filtro"), Str(args, "buscar"), ct), null),
+            "progreso_estudiantes" => (await StudentsProgressAsync(user, Str(args, "filtro"), Str(args, "buscar"), WantsFullList(args), ct), null),
             "detalle_estudiante" => (await StudentDetailAsync(user, ReqInt(args, "estudiante_id"), ct), null),
-            "agenda_escuela" => (await SchoolAgendaAsync(user, OptDate(args, "desde"), OptDate(args, "hasta"), ct), null),
-            "cupos_examen_escuela" => await SchoolExamSlotsRichAsync(user, OptDate(args, "desde"), OptDate(args, "hasta"), ct),
-            "opciones_manejo" => (await PracticalOptionsAsync(user, ct), null),
+            "agenda_escuela" => (await SchoolAgendaAsync(user, OptDate(args, "desde"), OptDate(args, "hasta"), WantsFullList(args), ct), null),
+            "cupos_examen_escuela" => await SchoolExamSlotsRichAsync(user, OptDate(args, "desde"), OptDate(args, "hasta"), WantsFullList(args), ct),
+            "opciones_manejo" => (await PracticalOptionsAsync(user, WantsFullList(args), ct), null),
             _ => throw new AssistantToolException($"Herramienta desconocida: {tool}.")
         };
     }
@@ -243,45 +248,33 @@ public sealed class AssistantToolbox : IAssistantToolbox
         return sb.ToString().TrimEnd();
     }
 
-    private async Task<string> TheoryWeekAsync(AssistantUser user, DateOnly? weekStart, CancellationToken ct)
+    private async Task<string> TheoryWeekAsync(AssistantUser user, DateOnly? weekStart, bool fullList, CancellationToken ct)
     {
         var w = await _theory.GetStudentWeekScheduleAsync(user.UserId, weekStart, ct);
-        var sb = new StringBuilder();
-        sb.AppendLine($"Semana {w.WeekStart:yyyy-MM-dd} a {w.WeekEnd:yyyy-MM-dd}. Grupo del estudiante: {DayType(w.StudentAttendanceDayType)}.");
-        var sessions = w.Sessions.OrderBy(x => x.SessionDate).ThenBy(x => x.StartTime).ToList();
-        if (sessions.Count == 0)
-        {
-            sb.AppendLine("No hay clases programadas esa semana.");
-        }
-
-        foreach (var s in sessions.Take(MaxLines))
-        {
-            var mine = s.MyReservationId is int rid ? $" | YA RESERVADA reserva_id={rid}" : "";
-            var state = string.IsNullOrWhiteSpace(s.BookingMessage) ? s.BookingState : $"{s.BookingState}: {s.BookingMessage}";
-            sb.AppendLine($"clase_id={s.Id} | {Day(s.SessionDate)} {s.StartTime}-{s.EndTime} | {s.TopicName} | {s.ClassroomName} | cupos {s.AvailableSeats}/{s.Capacity} | {Status(s.Status)} | {state}{mine}");
-        }
-
-        return sb.ToString();
+        return AssistantReplyFormatter.FormatTheoryWeek(
+            w.WeekStart,
+            w.WeekEnd,
+            DayType(w.StudentAttendanceDayType),
+            w.Sessions,
+            fullList);
     }
 
     private async Task<(string Text, AssistantExamAvailabilityUi Ui)> StudentExamSlotsRichAsync(
-        AssistantUser user, DateOnly? from, DateOnly? to, CancellationToken ct)
+        AssistantUser user, DateOnly? from, DateOnly? to, bool fullList, CancellationToken ct)
     {
         var a = await _exams.GetStudentAvailabilityAsync(user.UserId, from, to, ct);
-        var sb = new StringBuilder();
-        sb.AppendLine($"Rango {a.From} a {a.To}. Puede agendar: {YesNo(a.CanBook)}.");
-        if (!string.IsNullOrWhiteSpace(a.BlockReason))
-        {
-            sb.AppendLine($"Motivo: {a.BlockReason}");
-        }
-
-        if (a.MyBooking is { } b)
-        {
-            sb.AppendLine($"Cita actual cita_id={b.Id}: {b.Date} {b.Time} ({b.Status}). Puede cancelar: {YesNo(b.CanCancel)} (mínimo {a.MinCancelHours} h antes).");
-        }
-
-        AppendSlots(sb, a.Days.Select(d => (d.Date, d.Slots.Where(s => s.Available > 0).Select(s => (s.Time, s.Available)))));
-        return (sb.ToString(), BuildStudentExamUi(a));
+        string? booking = a.MyBooking is { } b
+            ? $"Cita actual: {AssistantReplyFormatter.DayTitle(b.Date)} a las {b.Time} ({Status(b.Status)}). Puede cancelar: {YesNo(b.CanCancel)} (mínimo {a.MinCancelHours} h antes). (cita_id={b.Id})"
+            : null;
+        var days = a.Days
+            .Select(d => (d.Date, (IReadOnlyList<(string Time, int Available)>)d.Slots
+                .Where(s => s.Available > 0)
+                .Select(s => (s.Time, s.Available))
+                .ToList()))
+            .ToList();
+        var text = AssistantReplyFormatter.FormatExamSlotsText(
+            a.From, a.To, a.CanBook, a.BlockReason, booking, days, fullList);
+        return (text, BuildStudentExamUi(a));
     }
 
     public static AssistantExamAvailabilityUi BuildStudentExamUi(StudentExamAvailabilityDto a)
@@ -312,87 +305,81 @@ public sealed class AssistantToolbox : IAssistantToolbox
             Days: days);
     }
 
-    private async Task<string> StudentPracticalAsync(AssistantUser user, CancellationToken ct)
+    private async Task<string> StudentPracticalAsync(AssistantUser user, bool fullList, CancellationToken ct)
     {
         var d = await _practical.GetStudentDashboardAsync(user.UserId, ct);
-        var sb = new StringBuilder();
         var practiceReq = d.PracticeRequiredLessons > 0 ? d.PracticeRequiredLessons : Math.Max(0, d.RequiredLessons - 1);
-        sb.AppendLine(
-            $"Progreso manejo: {d.CompletedLessons}/{practiceReq} clases formativas (programa {d.RequiredLessons} h; la última es el examen).");
-        sb.AppendLine($"Puede reservar clases: {YesNo(d.Eligibility.CanBookPractical)}. Puede agendar examen de manejo: {YesNo(d.CanBookPracticalExam)}.");
+        var notes = new List<string>();
         if (!d.Eligibility.CanBookPractical && !string.IsNullOrWhiteSpace(d.Eligibility.BlockReason))
         {
-            sb.AppendLine($"Motivo clases: {d.Eligibility.BlockReason}");
+            notes.Add($"Motivo clases: {d.Eligibility.BlockReason}");
         }
 
         if (!d.CanBookPracticalExam && !string.IsNullOrWhiteSpace(d.PracticalExamBlockReason))
         {
-            sb.AppendLine($"Motivo examen: {d.PracticalExamBlockReason}");
+            notes.Add($"Motivo examen: {d.PracticalExamBlockReason}");
         }
 
         if (d.PracticalExamScheduled)
         {
-            sb.AppendLine("Ya tienes un examen de manejo agendado.");
+            notes.Add("Ya tienes un examen de manejo agendado.");
         }
 
         if (d.PracticalExamAttended)
         {
-            sb.AppendLine("Ya presentaste el examen de manejo.");
+            notes.Add("Ya presentaste el examen de manejo.");
         }
 
-        foreach (var r in d.UpcomingReservations.Take(10))
-        {
-            var kind = string.Equals(r.Kind, "Exam", StringComparison.OrdinalIgnoreCase) ? "Examen" : "Clase";
-            sb.AppendLine($"Reservada reserva_id={r.MyReservationId}: {kind} {r.SessionDate} {r.StartTime}-{r.EndTime}, instructor {r.InstructorName}, vehículo {r.VehicleLabel}.");
-        }
+        var reservations = d.UpcomingReservations
+            .Where(r => r.MyReservationId is int)
+            .Take(10)
+            .Select(r => (
+                r.MyReservationId!.Value,
+                string.Equals(r.Kind, "Exam", StringComparison.OrdinalIgnoreCase) ? "Examen" : "Clase",
+                r.SessionDate,
+                r.StartTime,
+                r.EndTime,
+                r.InstructorName,
+                r.VehicleLabel))
+            .ToList();
+        var lessons = d.AvailableLessons
+            .Where(l => !string.Equals(l.Kind, "Exam", StringComparison.OrdinalIgnoreCase))
+            .Select(l => (l.Id, "Clase", l.SessionDate, l.StartTime, l.EndTime, l.InstructorName, l.VehicleLabel, l.BookingState ?? ""))
+            .ToList();
+        var exams = d.AvailableLessons
+            .Where(l => string.Equals(l.Kind, "Exam", StringComparison.OrdinalIgnoreCase))
+            .Select(l => (l.Id, "Examen", l.SessionDate, l.StartTime, l.EndTime, l.InstructorName, l.VehicleLabel, l.BookingState ?? ""))
+            .ToList();
 
-        var lessons = d.AvailableLessons.Where(l => !string.Equals(l.Kind, "Exam", StringComparison.OrdinalIgnoreCase)).Take(20).ToList();
-        var exams = d.AvailableLessons.Where(l => string.Equals(l.Kind, "Exam", StringComparison.OrdinalIgnoreCase)).Take(20).ToList();
-        if (lessons.Count == 0 && exams.Count == 0)
-        {
-            sb.AppendLine("No hay cupos de manejo publicados.");
-        }
-
-        foreach (var l in lessons)
-        {
-            sb.AppendLine($"clase_id={l.Id} | Clase | {DayIso(l.SessionDate)} {l.StartTime}-{l.EndTime} | instructor {l.InstructorName} | vehículo {l.VehicleLabel} | {l.BookingState}");
-        }
-
-        foreach (var l in exams)
-        {
-            sb.AppendLine($"clase_id={l.Id} | Examen | {DayIso(l.SessionDate)} {l.StartTime}-{l.EndTime} | instructor {l.InstructorName} | vehículo {l.VehicleLabel} | {l.BookingState}");
-        }
-
-        return sb.ToString();
+        return AssistantReplyFormatter.FormatPracticalDashboard(
+            $"Progreso: {d.CompletedLessons}/{practiceReq} clases formativas (programa {d.RequiredLessons} h; la última es el examen)",
+            $"Puede reservar clases: {YesNo(d.Eligibility.CanBookPractical)}. Puede agendar examen de manejo: {YesNo(d.CanBookPracticalExam)}",
+            notes,
+            reservations,
+            lessons,
+            exams,
+            fullList);
     }
 
     private async Task<string> SchoolSummaryAsync(AssistantUser user, CancellationToken ct)
     {
         var d = await _registry.GetDashboardAsync(SchoolOf(user), ct);
-        var sb = new StringBuilder();
-        sb.AppendLine($"Estudiantes: {d.ApprenticeCount}. Matrículas pendientes: {d.PendingEnrollmentCount}.");
-        sb.AppendLine($"Con saldo: {d.BalancePendingCount} (total {Money(d.BalancePendingTotal)}).");
-        sb.AppendLine($"Listos para examen: {d.ReadyForExamCount}. Sin cita de examen: {d.NoExamAppointmentCount}. Listos para manejo: {d.ReadyForPracticalCount}.");
-        sb.AppendLine($"Exámenes en los próximos 7 días: {d.ExamsNext7Days}.");
-        if (d.TopReadyForExam.Count > 0)
-        {
-            sb.AppendLine("Listos para examen: " + string.Join(", ", d.TopReadyForExam.Select(x => $"{x.StudentName} (estudiante_id={x.StudentUserId})")));
-        }
-
-        if (d.TopNoExamAppointment.Count > 0)
-        {
-            sb.AppendLine("Sin cita de examen: " + string.Join(", ", d.TopNoExamAppointment.Select(x => $"{x.StudentName} (estudiante_id={x.StudentUserId})")));
-        }
-
-        if (d.TopBalanceDue.Count > 0)
-        {
-            sb.AppendLine("Mayores saldos: " + string.Join(", ", d.TopBalanceDue.Select(x => $"{x.StudentName} {Money(x.BalanceDue)}")));
-        }
-
-        return sb.ToString();
+        return AssistantReplyFormatter.FormatSchoolSummary(
+            d.ApprenticeCount,
+            d.PendingEnrollmentCount,
+            d.BalancePendingCount,
+            d.BalancePendingTotal,
+            d.ReadyForExamCount,
+            d.NoExamAppointmentCount,
+            d.ReadyForPracticalCount,
+            d.ExamsNext7Days,
+            d.TopReadyForExam.Select(x => (x.StudentName, x.StudentUserId)),
+            d.TopNoExamAppointment.Select(x => (x.StudentName, x.StudentUserId)),
+            d.TopBalanceDue.Select(x => (x.StudentName, x.BalanceDue)));
     }
 
-    private async Task<string> StudentsProgressAsync(AssistantUser user, string? filter, string? search, CancellationToken ct)
+    private async Task<string> StudentsProgressAsync(
+        AssistantUser user, string? filter, string? search, bool fullList, CancellationToken ct)
     {
         var rows = await _theory.ListEnrollmentsAsync(SchoolOf(user), ct);
         IEnumerable<EnrollmentDto> query = rows;
@@ -417,23 +404,9 @@ public sealed class AssistantToolbox : IAssistantToolbox
             _ => query
         };
 
-        var list = query.ToList();
-        var sb = new StringBuilder();
-        sb.AppendLine($"{list.Count} estudiante(s).");
-        foreach (var x in list.Take(MaxLines))
-        {
-            var e = x.PracticalEligibility;
-            var hours = e is null ? "horas ?" : $"teoría {e.TheoryHoursCompleted}/{e.TheoryHoursRequired}, taller {e.WorkshopHoursCompleted}/{e.WorkshopHoursRequired}";
-            var exam = e?.TheoryExamPassed == true ? "aprobado" : x.TheoryExamAuthorized ? "autorizado" : "no autorizado";
-            sb.AppendLine($"estudiante_id={x.StudentUserId} | {x.StudentName} | matrícula {EnrollmentStatus(x.Status)} | {hours} | examen {exam} | manejo {(x.PracticalAuthorized ? "autorizado" : "no")} | saldo {Money(x.BalanceDue)}");
-        }
-
-        if (list.Count > MaxLines)
-        {
-            sb.AppendLine($"(Se muestran {MaxLines}; usa filtro o buscar para ver el resto.)");
-        }
-
-        return sb.ToString();
+        // A name search is already focused: show the full match set (still hard-capped).
+        var effectiveFull = fullList || !string.IsNullOrWhiteSpace(search);
+        return AssistantReplyFormatter.FormatStudentsProgress(query.ToList(), filter, effectiveFull);
     }
 
     private async Task<string> StudentDetailAsync(AssistantUser user, int studentUserId, CancellationToken ct)
@@ -441,62 +414,54 @@ public sealed class AssistantToolbox : IAssistantToolbox
         var d = await _registry.GetDetailAsync(SchoolOf(user), studentUserId, ct);
         var p = d.Profile;
         var t = d.Training;
-        var sb = new StringBuilder();
-        // The document number and phone stay out of the model's context: they go to an external provider.
-        sb.AppendLine($"{p.StudentName} (estudiante_id={p.StudentUserId}). Categoría {p.LicenseCategories ?? "sin asignar"}, grupo {DayType(p.AttendanceDayType)}, matrícula {EnrollmentStatus(p.EnrollmentStatus)}.");
-        sb.AppendLine("El documento y el celular no se comparten con el asistente; están en la ficha del estudiante.");
-        sb.AppendLine($"Pagado {Money(p.AmountPaid)} de {Money(p.AmountDue)}. Saldo {Money(p.BalanceDue)}.");
-        sb.AppendLine($"Teoría {t.TheoryHoursCompleted}/{t.TheoryHoursRequired} h, taller {t.WorkshopHoursCompleted}/{t.WorkshopHoursRequired} h.");
-        sb.AppendLine($"Examen: autorizado={YesNo(p.TheoryExamAuthorized)}, aprobado={YesNo(t.TheoryExamPassed)}. Manejo autorizado={YesNo(p.PracticalAuthorized)}.");
-        sb.AppendLine(d.NextExam is { } exam ? $"Cita de examen: {exam.ExamDate} {exam.SlotTime}." : "Sin cita de examen.");
-        sb.AppendLine($"Práctica: {d.Practical.CompletedLessons}/{d.Practical.RequiredLessons} clases, {d.Practical.ScheduledLessons} programadas.");
-        if (d.Practical.NextLessonDate is not null)
-        {
-            sb.AppendLine($"Próxima clase de manejo: {d.Practical.NextLessonDate} {d.Practical.NextLessonTime}.");
-        }
-
-        if (!t.CanBookPractical && !string.IsNullOrWhiteSpace(t.BlockReason))
-        {
-            sb.AppendLine($"Lo que falta: {t.BlockReason}");
-        }
-
-        return sb.ToString();
+        return AssistantReplyFormatter.FormatStudentDetail(
+            p.StudentName,
+            p.StudentUserId,
+            p.LicenseCategories ?? "sin asignar",
+            DayType(p.AttendanceDayType),
+            EnrollmentStatus(p.EnrollmentStatus),
+            p.AmountPaid,
+            p.AmountDue,
+            p.BalanceDue,
+            $"{t.TheoryHoursCompleted}/{t.TheoryHoursRequired} h",
+            $"{t.WorkshopHoursCompleted}/{t.WorkshopHoursRequired} h",
+            p.TheoryExamAuthorized,
+            t.TheoryExamPassed,
+            p.PracticalAuthorized,
+            d.NextExam is { } exam ? $"{exam.ExamDate} a las {exam.SlotTime}" : null,
+            $"{d.Practical.CompletedLessons}/{d.Practical.RequiredLessons} clases, {d.Practical.ScheduledLessons} programadas",
+            d.Practical.NextLessonDate is not null
+                ? $"{d.Practical.NextLessonDate} {d.Practical.NextLessonTime}"
+                : null,
+            !t.CanBookPractical ? t.BlockReason : null);
     }
 
-    private async Task<string> SchoolAgendaAsync(AssistantUser user, DateOnly? from, DateOnly? to, CancellationToken ct)
+    private async Task<string> SchoolAgendaAsync(
+        AssistantUser user, DateOnly? from, DateOnly? to, bool fullList, CancellationToken ct)
     {
         var a = await _agenda.GetAsync(SchoolOf(user), from, to, ct);
         // Empty exam slots are noise here; cupos_examen_escuela lists free seats.
         var items = a.Items.Where(i => i.Kind != "exam" || i.Occupied > 0).ToList();
-        var sb = new StringBuilder();
-        sb.AppendLine($"Agenda {a.From} a {a.To}: {items.Count} actividad(es).");
-        foreach (var i in items.Take(MaxLines))
-        {
-            var names = i.Students.Count == 0
-                ? ""
-                : " | " + string.Join(", ", i.Students.Take(8).Select(s => s.Name)) + (i.Students.Count > 8 ? "…" : "");
-            sb.AppendLine($"{AgendaKind(i.Kind)} | {DayIso(i.Date)} {i.StartTime}{(i.EndTime is null ? "" : "-" + i.EndTime)} | {i.Title} | {i.InstructorName ?? "sin instructor"} | {i.Occupied}/{i.Capacity} ocupados | {Status(i.Status)}{names}");
-        }
-
-        return sb.ToString();
+        return AssistantReplyFormatter.FormatAgenda(a, items, fullList);
     }
 
     private async Task<(string Text, AssistantExamAvailabilityUi Ui)> SchoolExamSlotsRichAsync(
-        AssistantUser user, DateOnly? from, DateOnly? to, CancellationToken ct)
+        AssistantUser user, DateOnly? from, DateOnly? to, bool fullList, CancellationToken ct)
     {
         var w = await _exams.GetWeekAsync(SchoolOf(user), from, to, ct);
-        var sb = new StringBuilder();
-        sb.AppendLine($"Calendario de exámenes {w.From} a {w.To}.");
-        if (!w.HasTemplates)
-        {
-            sb.AppendLine("La escuela aún no tiene horarios de examen configurados.");
-        }
-
         var today = ColombiaTime.TodayInColombia().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         var openDays = w.Days
             .Where(d => !d.IsClosed && string.CompareOrdinal(d.Date, today) >= 0)
             .ToList();
-        AppendSlots(sb, openDays.Select(d => (d.Date, d.Slots.Where(s => s.Available > 0).Select(s => (s.Time, s.Available)))));
+        var slotDays = openDays
+            .Select(d => (d.Date, (IReadOnlyList<(string Time, int Available)>)d.Slots
+                .Where(s => s.Available > 0)
+                .Select(s => (s.Time, s.Available))
+                .ToList()))
+            .ToList();
+        var block = w.HasTemplates ? null : "La escuela aún no tiene horarios de examen configurados.";
+        var text = AssistantReplyFormatter.FormatExamSlotsText(
+            w.From, w.To, canBook: false, block, null, slotDays, fullList);
 
         var days = openDays
             .Select(d => new AssistantExamDayUi(
@@ -514,15 +479,15 @@ public sealed class AssistantToolbox : IAssistantToolbox
             DateRangeFrom: w.From,
             DateRangeTo: w.To,
             CanBook: false,
-            BlockReason: w.HasTemplates ? null : "La escuela aún no tiene horarios de examen configurados.",
+            BlockReason: block,
             MyBookingSummary: null,
             Selectable: false,
             Days: days);
 
-        return (sb.ToString(), ui);
+        return (text, ui);
     }
 
-    private async Task<string> PracticalOptionsAsync(AssistantUser user, CancellationToken ct)
+    private async Task<string> PracticalOptionsAsync(AssistantUser user, bool fullList, CancellationToken ct)
     {
         var school = SchoolOf(user);
         var vehicles = await _practical.ListVehiclesAsync(school, true, ct);
@@ -531,20 +496,23 @@ public sealed class AssistantToolbox : IAssistantToolbox
             .OrderBy(x => x.Name)
             .ToList();
         var students = await _practical.ListSchedulingStudentsAsync(school, ct);
-        var sb = new StringBuilder();
-        sb.AppendLine("Vehículos: " + (vehicles.Count == 0 ? "ninguno activo" : string.Join(", ", vehicles.Select(v => $"{v.Label}{(v.Plate is null ? "" : " " + v.Plate)} (vehiculo_id={v.Id})"))));
-        sb.AppendLine("Instructores: " + (instructors.Count == 0 ? "ninguno" : string.Join(", ", instructors.Select(i => $"{i.Name} (instructor_id={i.Id})"))));
-        sb.AppendLine("Estudiantes autorizados para manejo:");
-        foreach (var s in students.Take(MaxLines))
-        {
-            var practiceReq = s.PracticeRequiredLessons > 0
-                ? s.PracticeRequiredLessons
-                : Math.Max(0, s.RequiredLessons - 1);
-            sb.AppendLine(
-                $"estudiante_id={s.StudentUserId} | {s.StudentName} | clases {s.CompletedLessons}/{practiceReq} (programa {s.RequiredLessons}h) | clase {YesNo(s.IsEligible)} | examen {YesNo(s.CanBookExam)}{(s.BlockReason is null ? "" : " | " + s.BlockReason)}");
-        }
-
-        return sb.ToString();
+        return AssistantReplyFormatter.FormatPracticalOptions(
+            vehicles.Select(v => (v.Id, v.Label + (v.Plate is null ? "" : " " + v.Plate))).ToList(),
+            instructors.Select(i => (i.Id, i.Name)).ToList(),
+            students.Select(s =>
+            {
+                var practiceReq = s.PracticeRequiredLessons > 0
+                    ? s.PracticeRequiredLessons
+                    : Math.Max(0, s.RequiredLessons - 1);
+                return (
+                    s.StudentUserId,
+                    s.StudentName,
+                    $"clases {s.CompletedLessons}/{practiceReq} (programa {s.RequiredLessons} h)",
+                    s.IsEligible,
+                    s.CanBookExam,
+                    s.BlockReason);
+            }).ToList(),
+            fullList);
     }
 
     // ── Writes: description (before confirmation) ───────────────────────
@@ -883,25 +851,25 @@ public sealed class AssistantToolbox : IAssistantToolbox
         return new JsonObject { ["type"] = "object", ["properties"] = properties, ["required"] = required };
     }
 
-    private static void AppendSlots(StringBuilder sb, IEnumerable<(string Date, IEnumerable<(string Time, int Available)> Slots)> days)
+    private static bool WantsFullList(JsonObject args)
     {
-        var any = false;
-        foreach (var (date, slots) in days)
+        if (args["completo"] is not JsonValue v)
         {
-            var list = slots.ToList();
-            if (list.Count == 0)
-            {
-                continue;
-            }
-
-            any = true;
-            sb.AppendLine($"{DayIso(date)}: " + string.Join(", ", list.Select(s => $"{s.Time} ({s.Available} cupo{(s.Available == 1 ? "" : "s")})")));
+            return false;
         }
 
-        if (!any)
+        if (v.TryGetValue<bool>(out var b))
         {
-            sb.AppendLine("No hay cupos libres en ese rango.");
+            return b;
         }
+
+        if (v.TryGetValue<string>(out var s) && !string.IsNullOrWhiteSpace(s))
+        {
+            var t = s.Trim().ToLowerInvariant();
+            return t is "true" or "1" or "si" or "sí" or "yes" or "todos" or "completo";
+        }
+
+        return false;
     }
 
     private static string? Str(JsonObject args, string key) =>
@@ -996,11 +964,4 @@ public sealed class AssistantToolbox : IAssistantToolbox
         _ => status
     };
 
-    private static string AgendaKind(string kind) => kind.ToLowerInvariant() switch
-    {
-        "theory" => "Clase teórica",
-        "exam" => "Examen",
-        "practical" => "Clase de manejo",
-        _ => kind
-    };
 }

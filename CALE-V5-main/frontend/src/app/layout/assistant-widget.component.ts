@@ -11,6 +11,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import {
   AssistantApi,
   AssistantExamAvailabilityUi,
@@ -18,6 +19,7 @@ import {
   AssistantMessage,
   AssistantPendingAction
 } from '../core/assistant/assistant.api';
+import { renderAssistantMarkdown } from '../core/assistant/assistant-markdown';
 import { BRAND } from '../core/brand';
 import { mapApiError } from '../core/http/map-api-error';
 
@@ -109,7 +111,7 @@ const HIDDEN_PATHS = [
               } @else {
                 <div class="bot-block">
                   @if (m.content) {
-                    <p class="bubble bot">{{ m.content }}</p>
+                    <div class="bubble bot md" [innerHTML]="asHtml(m.content)"></div>
                   }
                   @if (m.examAvailability; as card) {
                     <div class="exam-card" [attr.data-msg]="$index">
@@ -355,6 +357,37 @@ const HIDDEN_PATHS = [
       letter-spacing: 0.01em;
     }
     .bot-block > .bubble.bot { max-width: 100%; }
+    .bubble.md {
+      white-space: normal;
+      display: grid;
+      gap: 0.45rem;
+      min-width: 0;
+    }
+    .bubble.md :is(p, ul, ol, h2, h3, h4) {
+      margin: 0;
+      min-width: 0;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .bubble.md .asst-title {
+      margin: 0.15rem 0 0;
+      font-size: 0.98rem;
+      line-height: 1.35;
+    }
+    .bubble.md .asst-title strong { font-weight: 800; }
+    .bubble.md ul, .bubble.md ol {
+      padding-left: 1.1rem;
+      display: grid;
+      gap: 0.35rem;
+    }
+    .bubble.md li { padding-left: 0.1rem; }
+    .bubble.md ul.asst-sub {
+      margin-top: 0.25rem;
+      gap: 0.15rem;
+      color: var(--color-text-secondary);
+      font-size: 0.9em;
+    }
+    .bubble.md strong { font-weight: 800; }
     .me { align-self: flex-end; background: color-mix(in srgb, var(--color-primary) 22%, transparent); }
     .typing { opacity: 0.75; font-style: italic; }
     .err { align-self: stretch; max-width: none; color: var(--color-danger, #f87171); border: 1px solid currentColor; }
@@ -600,6 +633,7 @@ export class AssistantWidgetComponent implements OnInit, OnDestroy {
 
   private readonly api = inject(AssistantApi);
   private readonly router = inject(Router);
+  private readonly sanitizer = inject(DomSanitizer);
   private navSub?: Subscription;
 
   readonly brand = BRAND;
@@ -618,6 +652,11 @@ export class AssistantWidgetComponent implements OnInit, OnDestroy {
 
   get quick(): QuickQuestion[] {
     return QUICK[this.role ?? ''] ?? [];
+  }
+
+  /** Escape-first Markdown → trusted HTML for bot bubbles only. */
+  asHtml(content: string): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(renderAssistantMarkdown(content));
   }
 
   ngOnInit(): void {

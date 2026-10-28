@@ -241,19 +241,21 @@
                     </div>
                   </div>
                 }
-              } @else if (continuationLesson(mobileDay(), slot); as cont) {
-                <span class="mobile-cont">↳ {{ lessonWindow(cont) }}</span>
-              } @else if (canPublishSlot(mobileDay(), slot)) {
-                <div class="mobile-empty-actions">
-                  <button type="button" class="mobile-assign ghost" (click)="publishEmptySlot(mobileDay(), slot)">
-                    Publicar cupo ({{ durationHours() }}h)
-                  </button>
-                  <button type="button" class="mobile-assign" (click)="openPicker(mobileDay(), slot)">
-                    + Asignar ({{ durationHours() }}h)
-                  </button>
-                </div>
               } @else {
-                <span class="mobile-limit">Límite {{ maxDailyHours }}h</span>
+                @if (continuationLesson(mobileDay(), slot); as cont) {
+                  <span class="mobile-cont">↳ {{ lessonWindow(cont) }}</span>
+                } @else if (canPublishSlot(mobileDay(), slot)) {
+                  <div class="mobile-empty-actions">
+                    <button type="button" class="mobile-assign ghost" (click)="publishEmptySlot(mobileDay(), slot)">
+                      Publicar cupo ({{ durationHours() }}h)
+                    </button>
+                    <button type="button" class="mobile-assign" (click)="openPicker(mobileDay(), slot)">
+                      + Asignar ({{ durationHours() }}h)
+                    </button>
+                  </div>
+                } @else {
+                  <span class="mobile-limit">Límite {{ maxDailyHours }}h</span>
+                }
               }
             </div>
           </li>
@@ -305,19 +307,21 @@
                         </div>
                       </div>
                     }
-                  } @else if (continuationLesson(i, slot); as cont) {
-                    <div class="cell cont" title="{{ lessonWindow(cont) }}">↳ {{ lessonWindow(cont) }}</div>
-                  } @else if (canPublishSlot(i, slot)) {
-                    <div class="cell-stack">
-                      <button type="button" class="cell empty ghost" (click)="publishEmptySlot(i, slot)">
-                        Publicar {{ durationHours() }}h
-                      </button>
-                      <button type="button" class="cell empty" (click)="openPicker(i, slot)">
-                        + Asignar {{ durationHours() }}h
-                      </button>
-                    </div>
                   } @else {
-                    <span class="cell limit" title="Máximo {{ maxDailyHours }} horas por día">Límite {{ maxDailyHours }}h</span>
+                    @if (continuationLesson(i, slot); as cont) {
+                      <div class="cell cont" title="{{ lessonWindow(cont) }}">↳ {{ lessonWindow(cont) }}</div>
+                    } @else if (canPublishSlot(i, slot)) {
+                      <div class="cell-stack">
+                        <button type="button" class="cell empty ghost" (click)="publishEmptySlot(i, slot)">
+                          Publicar {{ durationHours() }}h
+                        </button>
+                        <button type="button" class="cell empty" (click)="openPicker(i, slot)">
+                          + Asignar {{ durationHours() }}h
+                        </button>
+                      </div>
+                    } @else {
+                      <span class="cell limit" title="Máximo {{ maxDailyHours }} horas por día">Límite {{ maxDailyHours }}h</span>
+                    }
                   }
                 </td>
               }
