@@ -8,6 +8,7 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
+import { SchoolDayBoardsNavComponent } from '../components/school-day-boards-nav.component';
 import {
   AttendanceRowDto,
   TheoryApi,
@@ -30,7 +31,8 @@ interface ClassroomGroup {
     UiButtonComponent,
     UiErrorComponent,
     UiLoadingComponent,
-    UiPageHeaderComponent
+    UiPageHeaderComponent,
+    SchoolDayBoardsNavComponent
   ],
   templateUrl: './school-attendance-today.page.html',
   styleUrl: './school-attendance-today.page.css'

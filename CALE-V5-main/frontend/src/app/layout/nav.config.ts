@@ -136,22 +136,18 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
         section: formacion,
         children: [
           { label: 'Clases teóricas', path: '/school/training', exact: true },
+          { label: 'Asistencia de hoy', path: '/school/attendance', exact: true },
           { label: 'Exámenes teóricos', path: '/school/theory-exams', exact: true },
-          { label: 'Horarios de examen', path: '/school/theory-exams/schedule', exact: true },
-          { label: 'Examen en curso', path: '/school/exam-control', exact: true }
+          { label: 'Horarios de examen', path: '/school/theory-exams/schedule', exact: true }
         ]
       },
       {
         label: 'Manejo',
         icon: 'play',
         section: formacion,
-        children: [
-          { label: 'Clases de manejo', path: '/school/practical', exact: true },
-          { label: 'Vehículos de hoy', path: '/school/practical-fleet', exact: true }
-        ]
+        children: [{ label: 'Clases de manejo', path: '/school/practical', exact: true }]
       },
       { label: 'Estudiantes', path: '/school/apprentices', icon: 'graduate', exact: true, section: seguimiento },
-      { label: 'Asistencia de hoy', path: '/school/attendance', icon: 'list', exact: true, section: seguimiento },
       { label: 'Resultados', path: '/school/results', icon: 'chart', exact: true, section: seguimiento },
       {
         label: 'Instructores y usuarios',

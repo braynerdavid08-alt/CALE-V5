@@ -15,6 +15,7 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
+import { SchoolDayBoardsNavComponent } from '../components/school-day-boards-nav.component';
 
 type FleetStatus = 'Free' | 'Reserved' | 'Present' | 'Absent' | 'Completed';
 type FleetFilter = 'all' | FleetStatus;
@@ -28,7 +29,8 @@ type FleetFilter = 'all' | FleetStatus;
     UiButtonComponent,
     UiErrorComponent,
     UiLoadingComponent,
-    UiPageHeaderComponent
+    UiPageHeaderComponent,
+    SchoolDayBoardsNavComponent
   ],
   templateUrl: './school-practical-fleet.page.html',
   styleUrl: './school-practical-fleet.page.css'
