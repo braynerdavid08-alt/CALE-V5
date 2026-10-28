@@ -134,17 +134,17 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
         ]
       },
       {
-        label: 'Agenda semanal',
-        path: '/school/agenda',
-        icon: 'calendar',
+        label: 'Reporte del día',
+        path: '/school/reports',
+        icon: 'chart',
         exact: true,
         section: formacion,
         emphasize: true
       },
       {
-        label: 'Reportes de programación',
-        path: '/school/reports',
-        icon: 'chart',
+        label: 'Agenda semanal',
+        path: '/school/agenda',
+        icon: 'calendar',
         exact: true,
         section: formacion
       },

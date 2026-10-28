@@ -95,17 +95,11 @@ export class SchoolHomePage implements OnInit {
   readonly exporting = signal(false);
 
   /**
-   * Secondary tools only — never repeat Estudiantes / Programación / Cartera / Operación de hoy.
+   * Secondary tools only — never repeat the Operación de la escuela cards.
    * Export is a real download (not Importar Excel).
    */
   readonly secondaryActions: EasyAction[] = [
     { emoji: '🗓️', label: 'Agenda semanal', hint: 'Vista de la semana', path: '/school/agenda' },
-    {
-      emoji: '📑',
-      label: 'Reportes de programación',
-      hint: 'Excel del día · WhatsApp próximamente',
-      path: '/school/reports'
-    },
     {
       emoji: '📝',
       label: 'Exámenes teóricos',
@@ -143,7 +137,7 @@ export class SchoolHomePage implements OnInit {
     });
   });
 
-  /** Four main cards: access + real KPIs from school dashboard / profile. */
+  /** Main cards: access + real KPIs from school dashboard / profile. */
   readonly operationCards = computed<OpCard[]>(() => {
     const o = this.ops();
     const p = this.profile();
@@ -159,6 +153,14 @@ export class SchoolHomePage implements OnInit {
     const readyPractical = o?.readyForPracticalCount ?? null;
 
     return [
+      {
+        key: 'reports',
+        emoji: '📑',
+        label: 'Reporte del día',
+        hint: 'Descargar Excel de la programación de hoy',
+        path: '/school/reports',
+        metrics: [{ value: 'Excel', label: 'descarga manual' }]
+      },
       {
         key: 'students',
         emoji: '🎓',
