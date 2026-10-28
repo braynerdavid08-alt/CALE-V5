@@ -104,7 +104,6 @@
         @for (a of visibleSecondaryActions(); track a.path + a.label) {
           <a
             class="easy-tool"
-            [class.muted]="a.muted"
             [routerLink]="a.path"
             [queryParams]="a.query || null">
             <span aria-hidden="true">{{ a.emoji }}</span>

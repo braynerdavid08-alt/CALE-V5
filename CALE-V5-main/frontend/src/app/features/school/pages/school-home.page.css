@@ -238,14 +238,6 @@
   color: var(--color-text);
   outline: none;
 }
-.easy-tool.muted {
-  opacity: 0.88;
-  background: transparent;
-}
-.easy-tool-export {
-  border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
-  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
-}
 .easy-tool-export:disabled {
   opacity: 0.6;
   cursor: wait;

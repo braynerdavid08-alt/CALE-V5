@@ -37,7 +37,6 @@ interface EasyAction {
   hint: string;
   path: string;
   query?: Record<string, string | boolean>;
-  muted?: boolean;
 }
 
 interface OpMetric {
@@ -123,15 +122,14 @@ export class SchoolHomePage implements OnInit {
     { emoji: '📊', label: 'Resultados', hint: 'Notas y progreso', path: '/school/results' },
     { emoji: '👥', label: 'Instructores y usuarios', hint: 'Invitar y gestionar', path: '/school/users' },
     { emoji: '📥', label: 'Importar expedientes', hint: 'Carga masiva Excel', path: '/school/import' },
-    { emoji: '💬', label: 'PQR y mis datos', hint: 'Solicitudes', path: '/mis-pqr', muted: true },
-    { emoji: '🛒', label: 'Tienda y equipamiento', hint: 'Cascos y equipo', path: '/tienda', muted: true },
-    { emoji: '💡', label: 'Proponer y sugerir', hint: 'Ideas para Luz Verde', path: '/solicitudes', muted: true },
+    { emoji: '💬', label: 'PQR y mis datos', hint: 'Solicitudes', path: '/mis-pqr' },
+    { emoji: '🛒', label: 'Tienda y equipamiento', hint: 'Cascos y equipo', path: '/tienda' },
+    { emoji: '💡', label: 'Proponer y sugerir', hint: 'Ideas para Luz Verde', path: '/solicitudes' },
     {
       emoji: '💚',
       label: 'Apoyar Luz Verde',
       hint: 'Donación voluntaria',
-      path: '/donaciones',
-      muted: true
+      path: '/donaciones'
     }
   ];
 
