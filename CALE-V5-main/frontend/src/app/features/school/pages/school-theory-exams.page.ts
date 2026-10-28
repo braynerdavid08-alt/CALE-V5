@@ -17,6 +17,7 @@ import {
 import { ApprenticeApi, TheoryExamSchedulingStudentDto } from '../api/apprentice.api';
 import { ExamDayDto, ExamScheduleApi, ExamSlotDto, ExamWeekDto } from '../api/exam-schedule.api';
 import { ExamSlotDetailComponent } from '../components/exam-slot-detail.component';
+import { SchoolTheoryExamsNavComponent } from '../components/school-theory-exams-nav.component';
 import { activeBookings, plural, slotStatusLabel, slotStatusTone } from '../utils/exam-labels';
 
 interface DayView {
@@ -37,6 +38,7 @@ const VISIBLE_NAMES = 3;
     ExamSlotDetailComponent,
     FormsModule,
     RouterLink,
+    SchoolTheoryExamsNavComponent,
     UiErrorComponent,
     UiLoadingComponent,
     UiSheetComponent

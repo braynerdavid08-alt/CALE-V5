@@ -292,7 +292,7 @@
         <ui-button type="button" variant="secondary" (click)="bulkAuthorizePractical()">
           Autorizar manejo ({{ eligibleForPracticalCount() }})
         </ui-button>
-        <ui-button routerLink="/school/theory-exams" type="button" variant="secondary">Calendario de exámenes</ui-button>
+        <ui-button routerLink="/school/theory-exams" type="button" variant="secondary">Programación de exámenes teóricos</ui-button>
       </div>
 
       @if (!enrollments().length) {
@@ -499,7 +499,7 @@
             </p>
           }
           <p class="muted">
-            La cita en el calendario (Exámenes teóricos) es la fecha en tu escuela.
+            La cita en Programación de exámenes teóricos es la fecha en tu escuela.
             Este examen es el que el estudiante aprueba en la plataforma para pasar a manejo.
           </p>
           @if (!examOptions().length) {

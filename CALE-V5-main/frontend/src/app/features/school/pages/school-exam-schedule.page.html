@@ -1,11 +1,10 @@
 <section class="xe-page">
-  <header class="top page-banner">
-    <div class="xe-head">
-      <h1>Horarios semanales de examen</h1>
-      <p class="xe-lead">Se repiten todas las semanas. Para cambiar un solo día usa la vista de Exámenes.</p>
-    </div>
-    <a class="xe-btn back" routerLink="/school/theory-exams">← Volver a Exámenes</a>
+  <header class="xe-head page-banner">
+    <h1>Programar examen teórico</h1>
+    <p class="xe-lead">Configura la disponibilidad recurrente: días de la semana, horas y cupos. Se repite todas las semanas.</p>
   </header>
+
+  <app-school-theory-exams-nav active="schedule" />
 
   @if (notice()) {
     <p class="xe-banner success" role="status"><span>✅ {{ notice() }}</span></p>

@@ -1,11 +1,12 @@
 <section class="xe-page">
   <header class="xe-head page-banner">
-    <h1>Exámenes teóricos</h1>
-    <p class="xe-lead">Citas de examen teórico de esta semana: cupos y estudiantes agendados. Los horarios semanales son la plantilla que se repite cada semana.</p>
+    <h1>Programación de exámenes teóricos</h1>
+    <p class="xe-lead">Administra las citas de esta semana: cupos, estudiantes agendados, horarios extra y cierre de días.</p>
   </header>
 
-  <nav class="xe-actions" aria-label="Opciones de exámenes teóricos">
-    <a class="xe-btn primary" routerLink="/school/theory-exams/schedule">🗓️ Horarios semanales (plantilla)</a>
+  <app-school-theory-exams-nav active="programming" />
+
+  <nav class="xe-actions" aria-label="Opciones adicionales">
     <a class="xe-btn" routerLink="/school/exam-control">🖥️ Examen en curso</a>
     <a class="xe-btn" routerLink="/school/import">📥 Importar Excel</a>
   </nav>
@@ -31,9 +32,9 @@
     @if (!w.hasTemplates && !hasAnything()) {
       <div class="xe-empty">
         <span class="xe-empty-emoji" aria-hidden="true">🗓️</span>
-        <h2>Todavía no has configurado tus horarios de examen</h2>
-        <p>Dinos qué días y a qué horas haces exámenes. Solo lo haces una vez y se repite todas las semanas.</p>
-        <a class="xe-btn primary big" routerLink="/school/theory-exams/schedule">Configurar horarios</a>
+        <h2>Todavía no has configurado la disponibilidad</h2>
+        <p>Define en «Horarios disponibles» qué días y horas ofreces examen. Solo lo haces una vez y se repite cada semana.</p>
+        <a class="xe-btn primary big" routerLink="/school/theory-exams/schedule">Programar examen teórico</a>
       </div>
     } @else {
       <div class="days">
