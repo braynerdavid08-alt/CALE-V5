@@ -27,7 +27,7 @@ import { ActivityDto, GroupDto, StudentApi } from '../api/student.api';
     <ui-page-header
       eyebrow="Estudiante"
       title="Mis clases"
-      subtitle="Grupos de tu escuela y actividades pendientes del aula." />
+      subtitle="Elige el grupo que te indicó tu instructor y sigue tus actividades." />
 
     <ui-error [message]="error()" />
 
@@ -38,28 +38,38 @@ import { ActivityDto, GroupDto, StudentApi } from '../api/student.api';
         <section class="panel warn-panel">
           <h2>Necesitas una escuela</h2>
           <p class="lead">
-            Solo los estudiantes vinculados a una escuela pueden unirse a grupos.
+            Solo los estudiantes vinculados a una escuela pueden ver y unirse a grupos.
             Ve a tu perfil y solicita unirte con el NIT o correo de tu CEA.
           </p>
-          <ui-button routerLink="/profile" type="button">Ir a Perfil</ui-button>
+          <ui-button routerLink="/profile" [queryParams]="{ tab: 'context' }" type="button">
+            Ir a Perfil
+          </ui-button>
         </section>
-      } @else {
-        <section class="panel join-panel">
-          <h2>Unirme a un grupo</h2>
-          <p class="lead">Usa el código que te dio tu instructor. Debe ser de tu misma escuela.</p>
-          <form class="join" (ngSubmit)="join()">
-            <label>
-              Código del grupo
-              <input
-                class="input"
-                [(ngModel)]="code"
-                name="code"
-                placeholder="CALE-XXXXXXXX"
-                aria-label="Código del grupo"
-                autocomplete="off" />
-            </label>
-            <ui-button type="submit">Unirme</ui-button>
-          </form>
+      }
+
+      @if (hasSchool() && available().length) {
+        <section class="panel">
+          <h2>Grupos disponibles en tu escuela</h2>
+          <p class="lead">Únete solo al grupo que te diga tu instructor.</p>
+          <ul class="list">
+            @for (g of available(); track g.id) {
+              <li>
+                <div class="row">
+                  <div>
+                    <strong>{{ g.name }}</strong>
+                    <p class="meta">{{ g.teacherName || 'Sin instructor' }}</p>
+                  </div>
+                  <ui-button
+                    type="button"
+                    [loading]="joiningId() === g.id"
+                    [disabled]="joiningId() === g.id"
+                    (click)="joinById(g)">
+                    Unirme
+                  </ui-button>
+                </div>
+              </li>
+            }
+          </ul>
         </section>
       }
 
@@ -67,8 +77,8 @@ import { ActivityDto, GroupDto, StudentApi } from '../api/student.api';
         <h2>Mis grupos</h2>
         @if (!groups().length) {
           <ui-empty
-            title="Sin grupos"
-            message="Cuando te unas con un código de tu escuela, aparecerán aquí." />
+            title="Aún no estás en un grupo"
+            message="Cuando tu instructor te diga a cuál unirte, elígelo arriba." />
         } @else {
           <ul class="list">
             @for (g of groups(); track g.id) {
@@ -76,7 +86,7 @@ import { ActivityDto, GroupDto, StudentApi } from '../api/student.api';
                 <a class="row" [routerLink]="['/student/group', g.id]">
                   <div>
                     <strong>{{ g.name }}</strong>
-                    <p class="meta">{{ g.teacherName || 'Sin instructor' }} · {{ g.code }}</p>
+                    <p class="meta">{{ g.teacherName || 'Sin instructor' }}</p>
                   </div>
                   <span class="link">Abrir</span>
                 </a>
@@ -128,19 +138,6 @@ import { ActivityDto, GroupDto, StudentApi } from '../api/student.api';
       line-height: 1.45;
       max-width: 36rem;
     }
-    .join {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-      align-items: flex-end;
-    }
-    .join label {
-      display: grid;
-      gap: 0.35rem;
-      flex: 1 1 16rem;
-      font-size: var(--text-sm);
-      color: var(--color-text-secondary);
-    }
     .list { list-style: none; margin: 0; padding: 0; }
     .list li + li { border-top: 1px solid var(--color-border); }
     .row {
@@ -164,14 +161,23 @@ export class StudentClassesPage implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly groups = signal<GroupDto[]>([]);
+  readonly available = signal<GroupDto[]>([]);
   readonly pending = signal<ActivityDto[]>([]);
   readonly hasSchool = signal(false);
+  readonly joiningId = signal<number | null>(null);
   readonly statusLabel = itemStatusLabel;
-  code = '';
 
   ngOnInit(): void {
-    this.hasSchool.set(!!this.session.user()?.schoolId);
-    this.reload();
+    this.session.refreshMe().subscribe({
+      next: () => {
+        this.hasSchool.set(!!this.session.user()?.schoolId);
+        this.reload();
+      },
+      error: () => {
+        this.hasSchool.set(!!this.session.user()?.schoolId);
+        this.reload();
+      }
+    });
   }
 
   reload(): void {
@@ -180,6 +186,7 @@ export class StudentClassesPage implements OnInit {
     this.api.dashboard().subscribe({
       next: (d) => {
         this.groups.set(d.groups);
+        this.available.set(d.availableGroups ?? []);
         this.pending.set(d.pendingActivities);
         this.loading.set(false);
       },
@@ -190,18 +197,21 @@ export class StudentClassesPage implements OnInit {
     });
   }
 
-  join(): void {
-    if (!this.hasSchool()) {
-      this.error.set('Debes estar vinculado a una escuela para unirte a un grupo.');
+  joinById(group: GroupDto): void {
+    if (!this.hasSchool() || this.joiningId() != null) {
       return;
     }
-    if (!this.code.trim()) return;
-    this.api.joinGroup(this.code.trim()).subscribe({
+    this.joiningId.set(group.id);
+    this.error.set(null);
+    this.api.joinGroupById(group.id).subscribe({
       next: () => {
-        this.code = '';
+        this.joiningId.set(null);
         this.reload();
       },
-      error: (err) => this.error.set(mapApiError(err))
+      error: (err) => {
+        this.joiningId.set(null);
+        this.error.set(mapApiError(err));
+      }
     });
   }
 }

@@ -429,7 +429,7 @@ public sealed class SchoolJoinRequestHandler
                     NotificationTypes.Membership,
                     RelatedEntity: "school_join_request",
                     RelatedId: join.Id,
-                    Link: "/profile",
+                    Link: "/student",
                     Priority: NotificationPriorities.Normal),
                 ct);
         }

@@ -21,6 +21,7 @@ import { AuthApi } from '../api/auth.api';
 import { AuthFacade } from '../application/auth.facade';
 import { PushSettingsComponent } from '../components/push-settings.component';
 import { ProfilePhotoComponent } from '../components/profile-photo.component';
+import { PwaInstallButtonComponent } from '../../../shared/pwa/pwa-install-button.component';
 import {
   SchoolInfo,
   SchoolInfoFormComponent
@@ -52,6 +53,7 @@ interface SchoolJoinRequestDto {
     DatePipe,
     ProfilePhotoComponent,
     PushSettingsComponent,
+    PwaInstallButtonComponent,
     ReactiveFormsModule,
     SchoolInfoFormComponent,
     RouterLink,

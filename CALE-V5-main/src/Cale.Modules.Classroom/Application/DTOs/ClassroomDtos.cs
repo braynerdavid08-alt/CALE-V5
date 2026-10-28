@@ -99,7 +99,8 @@ public sealed record StudentDashboardDto(
     IReadOnlyList<ActivityDto> PendingActivities,
     IReadOnlyList<AnnouncementDto> Announcements,
     int UnreadNotifications,
-    decimal? BestPercent);
+    decimal? BestPercent,
+    IReadOnlyList<GroupDto>? AvailableGroups = null);
 
 public sealed record TeacherDashboardDto(
     string TeacherName,

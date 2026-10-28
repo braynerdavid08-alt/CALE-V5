@@ -93,163 +93,149 @@
 
   <div class="main">
     <header class="topbar">
-      @if (isStudentShell) {
-        @if (showStudentHomeLink) {
-          <a class="student-home-btn" routerLink="/student" title="Volver al inicio">
-            <ui-icon name="home" />
-            <span>Inicio</span>
-          </a>
+      <div class="topbar-start">
+        @if (isStudentShell) {
+          @if (showStudentHomeLink) {
+            <a class="top-chip" routerLink="/student" title="Volver al inicio">
+              <ui-icon name="home" />
+              <span>Inicio</span>
+            </a>
+          } @else {
+            <a class="student-brand" routerLink="/student" [attr.title]="brand.name">
+              <img class="logo-wide" [src]="brand.logoWide" [alt]="brand.name + ' — ' + brand.slogan" width="790" height="316" />
+            </a>
+          }
         } @else {
-          <a class="student-brand" routerLink="/student" [attr.title]="brand.name">
-            <img class="logo-wide" [src]="brand.logoWide" [alt]="brand.name + ' — ' + brand.slogan" width="790" height="316" />
-          </a>
+          <ui-button type="button" variant="ghost" class="menu-btn" (click)="toggleMenu()">
+            <ui-icon name="menu" />
+            <span class="sr">Menú</span>
+          </ui-button>
         }
-        @if (!mustChangePassword) {
-          <a
-            class="student-home-btn student-normas-btn"
-            routerLink="/student/cursos"
-            title="Cursos virtuales">
-            <ui-icon name="book" />
-            <span>Cursos</span>
-          </a>
-          <a
-            class="student-home-btn student-normas-btn"
-            routerLink="/student/normas-transito"
-            title="Biblioteca Jurídica">
-            <ui-icon name="book" />
-            <span>Biblioteca Jurídica</span>
-          </a>
-          <a
-            class="student-home-btn student-shop-btn"
-            routerLink="/tienda"
-            title="Tienda y descuentos">
-            <ui-icon name="image" />
-            <span>Tienda</span>
-          </a>
-          <a
-            class="student-home-btn student-donate-btn"
-            routerLink="/donaciones"
-            title="Apoyar Luz Verde">
-            <ui-icon name="heart" />
-            <span>Donar</span>
-          </a>
-        }
-      } @else {
-        <ui-button type="button" variant="ghost" class="menu-btn" (click)="toggleMenu()">
-          <ui-icon name="menu" />
-          <span class="sr">Menú</span>
-        </ui-button>
+      </div>
+
+      @if (!mustChangePassword) {
+        <nav class="topbar-links" aria-label="Accesos rápidos">
+          @if (isStudentShell) {
+            <a class="top-chip" routerLink="/student/cursos" title="Cursos virtuales">
+              <ui-icon name="book" />
+              <span>Cursos</span>
+            </a>
+            <a class="top-chip top-chip-wide" routerLink="/student/normas-transito" title="Biblioteca Jurídica">
+              <ui-icon name="book" />
+              <span>Biblioteca</span>
+            </a>
+          }
+          @if (role !== 'Admin') {
+            <a class="top-chip top-chip-shop" routerLink="/tienda" title="Tienda y descuentos">
+              <ui-icon name="image" />
+              <span>Tienda</span>
+            </a>
+            <a class="top-chip top-chip-donate" routerLink="/donaciones" title="Apoyar Luz Verde">
+              <ui-icon name="heart" />
+              <span>Donar</span>
+            </a>
+          }
+        </nav>
       }
 
       <span class="spacer" aria-hidden="true"></span>
       <ui-motivation class="top-motivation" [role]="role" />
-
       <span class="spacer" aria-hidden="true"></span>
-      @if (!isStudentShell && role !== 'Admin' && !mustChangePassword) {
-        <a class="student-home-btn student-normas-btn staff-donate-btn" routerLink="/tienda" title="Tienda y descuentos">
-          <ui-icon name="image" />
-          <span>Cascos</span>
-        </a>
-        <a class="student-home-btn student-donate-btn staff-donate-btn" routerLink="/donaciones" title="Apoyar Luz Verde">
-          <ui-icon name="heart" />
-          <span>Donar</span>
-        </a>
-      }
-      @if (!isStudentShell) {
-        <ui-text-size-toggle />
-        <ui-theme-toggle />
-      }
-      <div class="notif">
-        <ui-button
-          type="button"
-          variant="ghost"
-          class="notif-btn"
-          [attr.aria-expanded]="panelOpen()"
-          aria-haspopup="true"
-          aria-controls="notif-panel"
-          [attr.aria-label]="
-            unread() > 0
-              ? 'Mensajes, ' + unread() + ' sin leer'
-              : 'Mensajes'
-          "
-          (click)="togglePanel($event)">
-          <ui-icon name="bell" />
-          @if (isStudentShell) {
-            <span class="topbar-label">Mensajes</span>
-          }
-          @if (unread() > 0) {
-            <ui-badge tone="primary">{{ unread() }}</ui-badge>
-          }
-        </ui-button>
-        @if (panelOpen()) {
-          <div
-            id="notif-panel"
-            class="notif-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Notificaciones recientes">
-            <div class="notif-head">
-              <strong>Notificaciones</strong>
-              <div class="notif-head-actions">
-                @if (unread() > 0) {
-                  <button type="button" class="linkish" (click)="markAllFromPanel()">
-                    Marcar todas
-                  </button>
+
+      <div class="topbar-actions" aria-label="Cuenta y ajustes">
+        @if (!mustChangePassword) {
+          <app-pwa-install-button variant="compact" />
+          <ui-text-size-toggle />
+          <ui-theme-toggle />
+          <div class="notif">
+            <ui-button
+              type="button"
+              variant="ghost"
+              class="notif-btn"
+              [attr.aria-expanded]="panelOpen()"
+              aria-haspopup="true"
+              aria-controls="notif-panel"
+              [attr.aria-label]="
+                unread() > 0
+                  ? 'Mensajes, ' + unread() + ' sin leer'
+                  : 'Mensajes'
+              "
+              (click)="togglePanel($event)">
+              <ui-icon name="bell" />
+              <span class="topbar-label">Mensajes</span>
+              @if (unread() > 0) {
+                <ui-badge tone="primary">{{ unread() }}</ui-badge>
+              }
+            </ui-button>
+            @if (panelOpen()) {
+              <div
+                id="notif-panel"
+                class="notif-panel"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Notificaciones recientes">
+                <div class="notif-head">
+                  <strong>Notificaciones</strong>
+                  <div class="notif-head-actions">
+                    @if (unread() > 0) {
+                      <button type="button" class="linkish" (click)="markAllFromPanel()">
+                        Marcar todas
+                      </button>
+                    }
+                    <a routerLink="/notifications" (click)="panelOpen.set(false)">Ver todas</a>
+                  </div>
+                </div>
+                @if (panelLoading()) {
+                  <p class="notif-empty">Cargando…</p>
+                } @else if (recent().length === 0) {
+                  <p class="notif-empty">No tienes notificaciones nuevas.</p>
+                } @else {
+                  <ul class="notif-list">
+                    @for (n of recent(); track n.id) {
+                      <li>
+                        <button
+                          type="button"
+                          class="notif-item"
+                          [class.unread]="!n.isRead"
+                          (click)="openNotification(n)">
+                          <span class="notif-type">{{ typeLabel(n.type) }}</span>
+                          <span class="notif-title">{{ n.title }}</span>
+                          <span class="notif-msg">{{ n.message }}</span>
+                          <time [attr.datetime]="n.createdAt">{{ relative(n.createdAt) }}</time>
+                        </button>
+                      </li>
+                    }
+                  </ul>
                 }
-                <a routerLink="/notifications" (click)="panelOpen.set(false)">Ver todas</a>
               </div>
-            </div>
-            @if (panelLoading()) {
-              <p class="notif-empty">Cargando…</p>
-            } @else if (recent().length === 0) {
-              <p class="notif-empty">No tienes notificaciones nuevas.</p>
-            } @else {
-              <ul class="notif-list">
-                @for (n of recent(); track n.id) {
-                  <li>
-                    <button
-                      type="button"
-                      class="notif-item"
-                      [class.unread]="!n.isRead"
-                      (click)="openNotification(n)">
-                      <span class="notif-type">{{ typeLabel(n.type) }}</span>
-                      <span class="notif-title">{{ n.title }}</span>
-                      <span class="notif-msg">{{ n.message }}</span>
-                      <time [attr.datetime]="n.createdAt">{{ relative(n.createdAt) }}</time>
-                    </button>
-                  </li>
-                }
-              </ul>
             }
           </div>
         }
-      </div>
-      <a
-        class="student-profile-link"
-        routerLink="/profile"
-        [attr.title]="session.user()?.name"
-        [attr.aria-label]="'Mi perfil, ' + (session.user()?.name || '')">
-        <span class="avatar" aria-hidden="true">
-          @if (photoSrc) {
-            <img [src]="photoSrc" alt="" />
-          } @else {
-            {{ initials }}
-          }
-        </span>
-        @if (isStudentShell) {
+        <a
+          class="student-profile-link"
+          routerLink="/profile"
+          [attr.title]="session.user()?.name"
+          [attr.aria-label]="'Mi perfil, ' + (session.user()?.name || '')">
+          <span class="avatar" aria-hidden="true">
+            @if (photoSrc) {
+              <img [src]="photoSrc" alt="" />
+            } @else {
+              {{ initials }}
+            }
+          </span>
           <span class="topbar-label">Mi perfil</span>
-        }
-      </a>
-      <ui-button
-        type="button"
-        variant="ghost"
-        class="logout-btn"
-        (click)="logout()"
-        aria-label="Cerrar sesión"
-        title="Cerrar sesión">
-        <ui-icon name="logout" />
-        <span class="logout-label">Cerrar sesión</span>
-      </ui-button>
+        </a>
+        <ui-button
+          type="button"
+          variant="ghost"
+          class="logout-btn"
+          (click)="logout()"
+          aria-label="Cerrar sesión"
+          title="Cerrar sesión">
+          <ui-icon name="logout" />
+          <span class="logout-label">Cerrar sesión</span>
+        </ui-button>
+      </div>
     </header>
     <main class="content">
       @if (!mustChangePassword) {

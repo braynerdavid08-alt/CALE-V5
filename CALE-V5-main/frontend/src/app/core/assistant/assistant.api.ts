@@ -5,6 +5,10 @@ import { env } from '../config/env';
 export interface AssistantExamSlotUi {
   time: string;
   availableCapacity: number;
+  endTime?: string | null;
+  detail?: string | null;
+  sessionId?: number | null;
+  bookTool?: string | null;
 }
 
 export interface AssistantExamDayUi {
@@ -12,9 +16,9 @@ export interface AssistantExamDayUi {
   availableSlots: AssistantExamSlotUi[];
 }
 
-/** Structured card from the API for exam availability (not free-form LLM HTML). */
+/** Structured card for exam / theory / practical slots (not free-form LLM HTML). */
 export interface AssistantExamAvailabilityUi {
-  type: 'exam_availability' | string;
+  type: 'exam_availability' | 'theory_week' | 'practical_slots' | string;
   title: string;
   dateRangeFrom: string;
   dateRangeTo: string;
@@ -98,6 +102,14 @@ export class AssistantApi {
   /** Prepare agendar_examen from a tapped slot (still requires confirm). */
   prepareExam(date: string, time: string) {
     return this.http.post<AssistantChatResult>(`${this.base}/actions/prepare-exam`, { date, time });
+  }
+
+  /** Prepare theory/practical reservation from a tapped session card. */
+  prepareSession(sessionId: number, tool: string) {
+    return this.http.post<AssistantChatResult>(`${this.base}/actions/prepare-session`, {
+      sessionId,
+      tool
+    });
   }
 
   discard(actionId: string) {

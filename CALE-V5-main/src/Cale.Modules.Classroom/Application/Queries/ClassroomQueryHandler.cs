@@ -188,6 +188,7 @@ public sealed class ClassroomQueryHandler
         CancellationToken ct)
     {
         var groups = await StudentGroups(userId, ct);
+        var joinedIds = groups.Select(g => g.Id).ToHashSet();
         var groupDtos = new List<GroupDto>();
         var announcements = new List<AnnouncementDto>();
         var pending = new List<ActivityDto>();
@@ -219,13 +220,23 @@ public sealed class ClassroomQueryHandler
             }
         }
 
+        var available = new List<GroupDto>();
+        foreach (var group in await SchoolActiveGroupsAsync(userId, ct))
+        {
+            if (!joinedIds.Contains(group.Id))
+            {
+                available.Add(await MapGroup(group, ct));
+            }
+        }
+
         return new StudentDashboardDto(
             name,
             groupDtos,
             pending,
             announcements.OrderByDescending(x => x.CreatedAt).Take(8).ToList(),
             await _notifications.CountUnreadAsync(userId, ct),
-            await _attempts.BestPercentAsync(userId, ct));
+            await _attempts.BestPercentAsync(userId, ct),
+            available);
     }
 
     public async Task<TeacherDashboardDto> TeacherDashboardAsync(
@@ -342,7 +353,24 @@ public sealed class ClassroomQueryHandler
             }
         }
 
-        return result;
+        return result.OrderBy(x => x.Name).ToList();
+    }
+
+    /// <summary>
+    /// Active groups of teachers in the student's school (for choosing which to join).
+    /// </summary>
+    private async Task<IReadOnlyList<Group>> SchoolActiveGroupsAsync(
+        int userId,
+        CancellationToken ct)
+    {
+        var schoolId = await _users.GetSchoolIdAsync(userId, ct);
+        if (schoolId is null)
+        {
+            return [];
+        }
+
+        var schoolStaffIds = await _users.ListSchoolCatalogOwnerIdsAsync(userId, ct);
+        return await _store.ListActiveByTeacherIdsAsync(schoolStaffIds, ct);
     }
 
     private async Task EnsureCanView(

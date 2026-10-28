@@ -120,8 +120,20 @@ export class NotificationsPage implements OnInit {
         void this.router.navigateByUrl(link);
       }
     };
+    const afterSync = () => {
+      const isMembership =
+        n.type === 'membership' || n.category === 'membership';
+      if (!isMembership) {
+        go();
+        return;
+      }
+      this.session.refreshMe().subscribe({
+        next: () => go(),
+        error: () => go()
+      });
+    };
     if (n.isRead) {
-      go();
+      afterSync();
       return;
     }
     this.api.markRead(n.id).subscribe({
@@ -130,7 +142,7 @@ export class NotificationsPage implements OnInit {
           list.map((x) => (x.id === n.id ? { ...x, isRead: true } : x))
         );
         this.unread.update((c) => Math.max(0, c - 1));
-        go();
+        afterSync();
       },
       error: (err) => this.error.set(mapApiError(err))
     });

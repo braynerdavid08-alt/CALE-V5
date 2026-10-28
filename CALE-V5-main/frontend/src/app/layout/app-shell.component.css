@@ -14,110 +14,66 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
-.student-home-btn {
+.topbar-start,
+.topbar-actions {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.35rem;
   flex-shrink: 0;
-  padding: 0.55rem 0.95rem;
+}
+
+.topbar-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.topbar-links::-webkit-scrollbar {
+  display: none;
+}
+
+.top-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  min-height: 2.55rem;
+  padding: 0.45rem 0.85rem;
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--color-primary) 16%, transparent);
   color: var(--color-primary);
   font-weight: 800;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   text-decoration: none;
   line-height: 1.2;
   border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+  white-space: nowrap;
 }
 
-.student-home-btn:hover {
+.top-chip:hover {
   background: color-mix(in srgb, var(--color-primary) 24%, transparent);
 }
 
-.student-normas-btn {
-  margin-left: 0.35rem;
-}
-
-.student-shop-btn,
-.student-donate-btn {
-  margin-left: 0.35rem;
-}
-
-.student-shop-btn {
+.top-chip-shop {
   background: color-mix(in srgb, var(--color-primary) 22%, transparent);
   border-color: color-mix(in srgb, var(--color-primary) 45%, transparent);
 }
 
-.student-donate-btn {
+.top-chip-donate {
   background: color-mix(in srgb, #f43f5e 14%, transparent);
   border-color: color-mix(in srgb, #f43f5e 40%, transparent);
   color: #be123c;
 }
 
-.student-donate-btn ui-icon {
+.top-chip-donate ui-icon {
   color: #f43f5e;
-}
-
-.staff-donate-btn {
-  margin: 0 0.35rem 0 0;
-}
-
-@media (max-width: 600px) {
-  /* Keep Tienda + Donar visible; hide secondary shortcuts */
-  .student-normas-btn {
-    display: none;
-  }
-
-  .topbar .topbar-label {
-    display: none;
-  }
-
-  .shell.no-sidebar .topbar {
-    flex-wrap: nowrap;
-    gap: 0.3rem;
-    padding-inline: 0.5rem;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-
-  .shell.no-sidebar .topbar::-webkit-scrollbar {
-    display: none;
-  }
-
-  .shell.no-sidebar .topbar .spacer {
-    min-width: 0.35rem;
-    flex: 1 1 auto;
-  }
-
-  .shell.no-sidebar .topbar ::ng-deep .notif-btn .btn,
-  .shell.no-sidebar .topbar ::ng-deep .logout-btn .btn {
-    min-width: 0;
-    padding-inline: 0.45rem;
-  }
-
-  .shell.no-sidebar .student-profile-link {
-    padding-inline: 0.15rem;
-  }
-
-  .student-home-btn {
-    padding: 0.45rem 0.65rem;
-    font-size: 0.85rem;
-  }
-
-  .student-home-btn:not(.student-donate-btn):not(.student-shop-btn) span {
-    display: none;
-  }
-
-  .student-shop-btn,
-  .student-donate-btn {
-    margin-left: 0.2rem;
-  }
-
-  .student-shop-btn span,
-  .student-donate-btn span {
-    display: inline;
-  }
 }
 
 .student-brand {
@@ -140,11 +96,6 @@
 }
 
 @media (max-width: 600px) {
-  .student-home-btn span {
-    /* Keep the label readable for seniors even on small screens */
-    font-size: 0.9rem;
-  }
-
   .student-brand .logo-wide {
     height: 2.4rem;
     padding-inline: 0.3rem;
@@ -442,7 +393,7 @@
   min-height: var(--topbar-height);
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.55rem;
   padding: calc(0.65rem + var(--safe-top, 0px))
     calc(var(--page-pad) + var(--safe-right, 0px))
     0.65rem
@@ -450,6 +401,7 @@
   background: color-mix(in srgb, var(--color-surface) 92%, transparent);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--color-border);
+  min-width: 0;
 }
 
 .spacer { flex: 1; min-width: 0.5rem; }
@@ -626,25 +578,61 @@
 
 @media (max-width: 600px) {
   .topbar {
-    gap: 0.25rem;
+    gap: 0.3rem;
     padding-top: calc(0.4rem + var(--safe-top, 0px));
     padding-bottom: 0.4rem;
-    padding-inline: var(--spacing-sm, 0.5rem);
+    padding-inline: 0.5rem;
+  }
+
+  .topbar-links {
+    flex: 1 1 auto;
+    order: 0;
+  }
+
+  .topbar-actions {
+    gap: 0.2rem;
+  }
+
+  .topbar .topbar-label,
+  .topbar .logout-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .top-chip {
+    min-height: 2.4rem;
+    padding: 0.4rem 0.65rem;
+    font-size: 0.85rem;
+  }
+
+  /* Keep Tienda/Donar readable; other chips icon-first when tight. */
+  .topbar-links .top-chip:not(.top-chip-shop):not(.top-chip-donate) span {
+    display: none;
   }
 
   .topbar ::ng-deep .notif-btn .btn,
   .topbar ::ng-deep .logout-btn .btn,
   .topbar ::ng-deep .menu-btn .btn {
     min-width: 0;
-    padding-inline: 0.5rem;
+    padding-inline: 0.45rem;
+  }
+
+  .topbar ::ng-deep ui-text-size-toggle .size-toggle,
+  .topbar ::ng-deep ui-theme-toggle .theme-toggle {
+    min-width: 2.4rem;
+    padding-inline: 0.45rem;
+  }
+
+  .topbar ::ng-deep ui-theme-toggle .label,
+  .topbar ::ng-deep ui-text-size-toggle .label {
+    display: none;
   }
 
   .student-profile-link {
-    padding-inline: 0.15rem;
-  }
-
-  .staff-donate-btn span {
-    display: none;
+    padding-inline: 0.1rem;
   }
 
   .content {

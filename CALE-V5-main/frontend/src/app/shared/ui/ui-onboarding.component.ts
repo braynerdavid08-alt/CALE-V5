@@ -41,7 +41,7 @@ const TIPS: Record<OnboardingRole, OnboardingTip[]> = {
     },
     {
       title: 'Grupos de tu escuela',
-      text: 'Solo puedes unirte a grupos si estás vinculado a un CEA. Pide el código a tu instructor.',
+      text: 'Verás los grupos activos de tu CEA y te unes solo al que te indique tu instructor.',
       link: '/student/classes',
       linkLabel: 'Mis clases'
     },

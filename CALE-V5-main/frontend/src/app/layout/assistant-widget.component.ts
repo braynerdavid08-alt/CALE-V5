@@ -120,13 +120,13 @@ const HIDDEN_PATHS = [
                         <span class="exam-range">{{ formatRange(card.dateRangeFrom, card.dateRangeTo) }}</span>
                       </div>
                       @if (card.myBookingSummary) {
-                        <p class="exam-note">Cita actual: {{ card.myBookingSummary }}</p>
+                        <p class="exam-note">{{ scheduleSummaryLabel(card) }}{{ card.myBookingSummary }}</p>
                       }
                       @if (card.blockReason) {
                         <p class="exam-warn">{{ card.blockReason }}</p>
                       }
                       @if (!card.days.length) {
-                        <p class="exam-empty">No hay cupos libres en este rango.</p>
+                        <p class="exam-empty">{{ emptySlotsLabel(card.type) }}</p>
                       } @else {
                         @for (day of visibleDays(m); track day.date) {
                           <article class="day">
@@ -138,21 +138,27 @@ const HIDDEN_PATHS = [
                               <span class="day-count">{{ day.availableSlots.length }} horario{{ day.availableSlots.length === 1 ? '' : 's' }}</span>
                             </header>
                             <div class="slots" role="list">
-                              @for (slot of day.availableSlots; track slot.time) {
-                                @if (card.selectable) {
+                              @for (slot of day.availableSlots; track slotTrack(slot)) {
+                                @if (isSlotSelectable(card, slot)) {
                                   <button
                                     type="button"
                                     class="slot"
                                     role="listitem"
                                     [disabled]="busy()"
-                                    (click)="selectSlot(day.date, slot.time)"
-                                    [attr.aria-label]="'Agendar ' + slot.time + ', ' + slot.availableCapacity + ' cupos'">
-                                    <span class="slot-time">{{ slot.time }}</span>
+                                    (click)="selectSlot(day.date, slot)"
+                                    [attr.aria-label]="slotAria(slot)">
+                                    <span class="slot-time">{{ slotLabel(slot) }}</span>
+                                    @if (slot.detail) {
+                                      <span class="slot-detail">{{ slot.detail }}</span>
+                                    }
                                     <span class="slot-cap">{{ slot.availableCapacity }} cupo{{ slot.availableCapacity === 1 ? '' : 's' }}</span>
                                   </button>
                                 } @else {
                                   <div class="slot static" role="listitem">
-                                    <span class="slot-time">{{ slot.time }}</span>
+                                    <span class="slot-time">{{ slotLabel(slot) }}</span>
+                                    @if (slot.detail) {
+                                      <span class="slot-detail">{{ slot.detail }}</span>
+                                    }
                                     <span class="slot-cap">{{ slot.availableCapacity }} cupo{{ slot.availableCapacity === 1 ? '' : 's' }}</span>
                                   </div>
                                 }
@@ -460,7 +466,7 @@ const HIDDEN_PATHS = [
     }
     .slots {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
       gap: 0.35rem;
     }
     .slot {
@@ -493,6 +499,14 @@ const HIDDEN_PATHS = [
       font-variant-numeric: tabular-nums;
       font-size: 0.92rem;
       line-height: 1.2;
+    }
+    .slot-detail {
+      font-size: 0.68rem;
+      color: var(--color-text-secondary);
+      line-height: 1.2;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .slot-cap {
       font-size: 0.7rem;
@@ -621,7 +635,7 @@ const HIDDEN_PATHS = [
         border-top: 1px solid var(--color-border);
       }
       .ghost { font-size: 0.72rem; }
-      .slots { grid-template-columns: repeat(auto-fill, minmax(4.75rem, 1fr)); }
+      .slots { grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr)); }
     }
   `
 })
@@ -759,7 +773,43 @@ export class AssistantWidgetComponent implements OnInit, OnDestroy {
     return `${this.formatFullDate(from)} — ${this.formatFullDate(to)}`;
   }
 
-  selectSlot(date: string, time: string): void {
+  scheduleSummaryLabel(card: AssistantExamAvailabilityUi): string {
+    return card.type === 'exam_availability' ? 'Cita actual: ' : '';
+  }
+
+  emptySlotsLabel(type: string): string {
+    if (type === 'theory_week') return 'No hay clases teóricas publicadas en este rango.';
+    if (type === 'practical_slots') return 'No hay cupos de manejo publicados.';
+    return 'No hay cupos libres en este rango.';
+  }
+
+  slotTrack(slot: { time: string; sessionId?: number | null; endTime?: string | null }): string {
+    return `${slot.sessionId ?? 't'}-${slot.time}-${slot.endTime ?? ''}`;
+  }
+
+  slotLabel(slot: { time: string; endTime?: string | null }): string {
+    return slot.endTime ? `${slot.time}–${slot.endTime}` : slot.time;
+  }
+
+  slotAria(slot: { time: string; endTime?: string | null; availableCapacity: number; detail?: string | null }): string {
+    const range = this.slotLabel(slot);
+    const detail = slot.detail ? `, ${slot.detail}` : '';
+    return `Reservar ${range}${detail}, ${slot.availableCapacity} cupos`;
+  }
+
+  isSlotSelectable(
+    card: AssistantExamAvailabilityUi,
+    slot: { sessionId?: number | null; bookTool?: string | null }
+  ): boolean {
+    if (!card.selectable) return false;
+    if (card.type === 'exam_availability') return true;
+    return !!slot.sessionId && !!slot.bookTool;
+  }
+
+  selectSlot(
+    date: string,
+    slot: { time: string; sessionId?: number | null; bookTool?: string | null }
+  ): void {
     if (this.busy()) return;
     const pending = this.action();
     if (pending) {
@@ -769,7 +819,13 @@ export class AssistantWidgetComponent implements OnInit, OnDestroy {
     this.error.set(null);
     this.busy.set(true);
     this.scrollSoon();
-    this.api.prepareExam(date, time).subscribe({
+
+    const req$ =
+      slot.sessionId && slot.bookTool
+        ? this.api.prepareSession(slot.sessionId, slot.bookTool)
+        : this.api.prepareExam(date, slot.time);
+
+    req$.subscribe({
       next: (r) => {
         this.busy.set(false);
         this.messages.update((list) => [

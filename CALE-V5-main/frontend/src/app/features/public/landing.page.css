@@ -401,24 +401,46 @@
   align-items: center;
 }
 
+/* Hero CTAs: same green fill, same size, same weight. */
+.cta-row > ui-button,
+.cta-row > .ghost-btn {
+  flex: 0 1 auto;
+}
+
+.cta-row > ui-button ::ng-deep .btn {
+  min-height: 2.85rem;
+  padding: 0 1.2rem;
+  border-radius: 0.85rem;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+  box-shadow: 0 8px 22px rgba(34, 197, 94, 0.28);
+}
+
+.cta-row > ui-button ::ng-deep .btn:hover {
+  box-shadow: 0 10px 26px rgba(34, 197, 94, 0.38);
+}
+
 .ghost-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.45rem;
-  min-height: 2.75rem;
-  padding: 0 1.1rem;
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
-  font-weight: 700;
+  min-height: 2.85rem;
+  padding: 0 1.2rem;
+  border-radius: 0.85rem;
+  border: 0;
+  background: var(--color-primary, #22c55e);
+  color: var(--color-on-primary, #04130a);
+  font-weight: 750;
+  letter-spacing: 0.01em;
   text-decoration: none;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  box-shadow: 0 8px 22px rgba(34, 197, 94, 0.28);
+  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .ghost-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.4);
+  background: var(--color-primary-hover, #16a34a);
+  box-shadow: 0 10px 26px rgba(34, 197, 94, 0.38);
 }
 
 .trust {

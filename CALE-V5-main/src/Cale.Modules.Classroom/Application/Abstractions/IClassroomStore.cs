@@ -6,6 +6,9 @@ public interface IClassroomStore
 {
     Task<IReadOnlyList<Group>> ListAllAsync(CancellationToken ct);
     Task<IReadOnlyList<Group>> ListByTeacherAsync(int teacherId, CancellationToken ct);
+    Task<IReadOnlyList<Group>> ListActiveByTeacherIdsAsync(
+        IReadOnlyCollection<int> teacherIds,
+        CancellationToken ct);
     Task<Group?> GetGroupAsync(int id, CancellationToken ct);
     Task<Group?> FindByCodeAsync(string code, CancellationToken ct);
     Task AddGroupAsync(Group group, CancellationToken ct);

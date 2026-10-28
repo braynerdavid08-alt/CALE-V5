@@ -22,7 +22,7 @@
         Para usar Biblioteca, bancos y exámenes debes estar vinculado a una escuela con plan activo.
         Desde tu perfil puedes solicitar unirte a tu escuela o aceptar su invitación.
       </p>
-      <a routerLink="/profile">Ir a mi perfil</a>
+      <a routerLink="/profile" [queryParams]="{ tab: 'context' }">Vincular escuela</a>
     </div>
   }
 

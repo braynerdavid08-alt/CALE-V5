@@ -85,13 +85,13 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                       <ui-button [routerLink]="accountPath()">Mi cuenta</ui-button>
                     } @else {
                       <ui-button routerLink="/login">Iniciar sesión</ui-button>
-                      <ui-button routerLink="/register" variant="secondary">Crear cuenta</ui-button>
+                      <ui-button routerLink="/register">Crear cuenta</ui-button>
                     }
                     <ui-button routerLink="/tienda">Explorar tienda</ui-button>
-                    <a class="ghost-btn" routerLink="/contacto">
+                    <ui-button routerLink="/contacto">
                       <ui-icon name="building" size="sm" />
                       Plataforma para CEA
-                    </a>
+                    </ui-button>
                   </div>
 
                   <div class="trust">
@@ -278,7 +278,7 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                   <p>El catálogo se está actualizando. Mientras tanto puedes abrir la tienda o escribirnos.</p>
                   <div class="cta-row">
                     <ui-button routerLink="/tienda">Ir a la tienda</ui-button>
-                    <a class="ghost-btn" routerLink="/contacto">Contacto</a>
+                    <ui-button routerLink="/contacto">Contacto</ui-button>
                   </div>
                 </div>
               }

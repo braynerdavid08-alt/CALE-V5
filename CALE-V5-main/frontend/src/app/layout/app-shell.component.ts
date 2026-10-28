@@ -41,6 +41,7 @@ import { UiTextSizeToggleComponent } from '../shared/ui/ui-text-size-toggle.comp
 import { TextSizeService } from '../core/theme/text-size.service';
 import { RequestsApi } from '../features/requests/api/requests.api';
 import { LegalBannerComponent } from '../features/legal/legal-banner.component';
+import { PwaInstallButtonComponent } from '../shared/pwa/pwa-install-button.component';
 import {
   NavBadge,
   NavChild,
@@ -65,7 +66,8 @@ const SIDEBAR_COLLAPSED_KEY = 'cale.sidebar.collapsed';
     UiMotivationComponent,
     UiThemeToggleComponent,
     UiTextSizeToggleComponent,
-    LegalBannerComponent
+    LegalBannerComponent,
+    PwaInstallButtonComponent
   ],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.css'
@@ -157,6 +159,20 @@ export class AppShellComponent implements OnInit {
       30000,
       () => this.fetchUnreadCount(),
       { leading: false }
+    )
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe();
+    // While waiting for the CEA to accept a join request, re-check /me when the tab is visible.
+    pollWhileVisible(
+      45000,
+      () => {
+        const user = this.session.user();
+        if (!user || user.role !== 'Student' || user.schoolId) {
+          return of(null);
+        }
+        return this.session.refreshMe().pipe(catchError(() => of(null)));
+      },
+      { leading: true }
     )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe();
@@ -352,16 +368,29 @@ export class AppShellComponent implements OnInit {
         void this.router.navigateByUrl('/notifications');
       }
     };
+    const afterSchoolSync = () => {
+      const isMembership =
+        n.type === 'membership' || n.category === 'membership';
+      if (!isMembership) {
+        navigate();
+        return;
+      }
+      // School acceptance updates SchoolId on the server; refresh so "Vincula tu escuela" hides.
+      this.session.refreshMe().subscribe({
+        next: () => navigate(),
+        error: () => navigate()
+      });
+    };
     if (n.isRead) {
-      navigate();
+      afterSchoolSync();
       return;
     }
     this.notificationsApi.markRead(n.id).subscribe({
       next: () => {
         this.unread.update((c) => Math.max(0, c - 1));
-        navigate();
+        afterSchoolSync();
       },
-      error: () => navigate()
+      error: () => afterSchoolSync()
     });
   }
 

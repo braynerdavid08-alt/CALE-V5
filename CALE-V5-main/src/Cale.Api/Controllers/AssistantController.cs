@@ -86,6 +86,19 @@ public sealed class AssistantController : ControllerBase
             request.Time ?? "",
             ct));
 
+    /// <summary>
+    /// Student selected a theory or practical session card; prepares the matching
+    /// confirmable write tool (still requires Confirm).
+    /// </summary>
+    [HttpPost("actions/prepare-session")]
+    [EnableRateLimiting(RateLimitPolicies.Assistant)]
+    public async Task<IActionResult> PrepareSession(AssistantPrepareSessionRequest request, CancellationToken ct) =>
+        Ok(await _assistant.PrepareSessionBookingAsync(
+            await CurrentAsync(ct),
+            request.SessionId,
+            request.Tool ?? "",
+            ct));
+
     [HttpPost("actions/{id}/discard")]
     public async Task<IActionResult> Discard(string id, CancellationToken ct)
     {

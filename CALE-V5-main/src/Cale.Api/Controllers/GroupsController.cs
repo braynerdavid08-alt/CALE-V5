@@ -72,6 +72,10 @@ public sealed class GroupsController : ControllerBase
         CancellationToken ct) =>
         Ok(await _commands.JoinAsync(request, CurrentUser.GetId(User), ct));
 
+    [HttpPost("{id:int}/join")]
+    public async Task<IActionResult> JoinById(int id, CancellationToken ct) =>
+        Ok(await _commands.JoinByIdAsync(id, CurrentUser.GetId(User), ct));
+
     [HttpPost("{id:int}/members")]
     [Authorize(Policy = "TeacherOrAdmin")]
     public async Task<IActionResult> AddMember(

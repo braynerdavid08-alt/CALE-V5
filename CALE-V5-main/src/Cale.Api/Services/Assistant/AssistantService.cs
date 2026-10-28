@@ -13,8 +13,17 @@ public sealed record AssistantChatMessage(string Role, string Content);
 
 public sealed record AssistantPendingActionDto(string Id, string Title);
 
-/// <summary>Structured exam-slot card for the chat UI (camelCase JSON).</summary>
-public sealed record AssistantExamSlotUi(string Time, int AvailableCapacity);
+/// <summary>
+/// Structured schedule card for the chat UI (camelCase JSON).
+/// Used for theory exam cups, theory week classes and practical slots.
+/// </summary>
+public sealed record AssistantExamSlotUi(
+    string Time,
+    int AvailableCapacity,
+    string? EndTime = null,
+    string? Detail = null,
+    int? SessionId = null,
+    string? BookTool = null);
 
 public sealed record AssistantExamDayUi(string Date, IReadOnlyList<AssistantExamSlotUi> AvailableSlots);
 
@@ -28,6 +37,8 @@ public sealed record AssistantExamAvailabilityUi(
     string? MyBookingSummary,
     bool Selectable,
     IReadOnlyList<AssistantExamDayUi> Days);
+
+public sealed record AssistantPrepareSessionRequest(int SessionId, string Tool);
 
 public sealed record AssistantChatResult(
     string Reply,
@@ -170,7 +181,7 @@ public sealed class AssistantService
                         : FinalizeReply(reply.Content);
                     if (examUi is not null)
                     {
-                        text = ExamAvailabilityReply(examUi, text);
+                        text = ScheduleCardReply(examUi, text);
                     }
 
                     await _usage.CommitMessageAsync(user.UserId, user.SchoolUserId, ct);
@@ -230,7 +241,7 @@ public sealed class AssistantService
             if (examUi is not null)
             {
                 return new AssistantChatResult(
-                    ExamAvailabilityReply(examUi),
+                    ScheduleCardReply(examUi),
                     null,
                     await RemainingAsync(user, ct),
                     examUi);
@@ -252,8 +263,8 @@ public sealed class AssistantService
     }
 
     /// <summary>
-    /// Student picks a slot in the chat UI; we prepare the same confirmable
-    /// <c>agendar_examen</c> action the LLM would create (booking still needs Confirm).
+    /// Student picks a theory-exam slot in the chat UI; prepares <c>agendar_examen</c>
+    /// (booking still needs Confirm).
     /// </summary>
     public async Task<AssistantChatResult> PrepareExamBookingAsync(
         AssistantUser user, string date, string time, CancellationToken ct)
@@ -264,19 +275,48 @@ public sealed class AssistantService
             throw new DomainException("Solo los estudiantes pueden agendar su examen desde el chat.", 403);
         }
 
-        var args = new JsonObject
-        {
-            ["fecha"] = date.Trim(),
-            ["hora"] = time.Trim()
-        };
+        return await PrepareWriteAsync(
+            user,
+            "agendar_examen",
+            new JsonObject { ["fecha"] = date.Trim(), ["hora"] = time.Trim() },
+            ct);
+    }
 
+    /// <summary>
+    /// Student picks a theory or practical session card; prepares the matching write tool.
+    /// </summary>
+    public async Task<AssistantChatResult> PrepareSessionBookingAsync(
+        AssistantUser user, int sessionId, string tool, CancellationToken ct)
+    {
+        EnsureEnabled(user);
+        if (user.Role != Roles.Student)
+        {
+            throw new DomainException("Solo los estudiantes pueden reservar desde el chat.", 403);
+        }
+
+        var allowed = tool is "reservar_clase_teorica" or "reservar_clase_manejo" or "reservar_examen_manejo";
+        if (!allowed || sessionId <= 0)
+        {
+            throw new DomainException("Esa reserva no es válida.", 400, "assistant_slot_invalid");
+        }
+
+        return await PrepareWriteAsync(
+            user,
+            tool,
+            new JsonObject { ["clase_id"] = sessionId },
+            ct);
+    }
+
+    private async Task<AssistantChatResult> PrepareWriteAsync(
+        AssistantUser user, string tool, JsonObject args, CancellationToken ct)
+    {
         try
         {
-            var title = await _toolbox.DescribeAsync(user, "agendar_examen", args, ct);
+            var title = await _toolbox.DescribeAsync(user, tool, args, ct);
             var id = Guid.NewGuid().ToString("N");
             _cache.Set(
                 ActionKey(id),
-                new PendingAction(user.UserId, "agendar_examen", args.ToJsonString(), title),
+                new PendingAction(user.UserId, tool, args.ToJsonString(), title),
                 new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = ActionLifetime, Size = 1 });
 
             return new AssistantChatResult(
@@ -290,11 +330,15 @@ public sealed class AssistantService
         }
     }
 
-    private static string ExamAvailabilityReply(AssistantExamAvailabilityUi ui, string? llmHint = null)
+    private static string ScheduleCardReply(AssistantExamAvailabilityUi ui, string? llmHint = null)
     {
         var sb = new System.Text.StringBuilder();
         sb.AppendLine(ui.Title + ".");
-        sb.AppendLine($"Rango consultado: {ui.DateRangeFrom} a {ui.DateRangeTo}.");
+        if (!string.IsNullOrWhiteSpace(ui.DateRangeFrom) && !string.IsNullOrWhiteSpace(ui.DateRangeTo))
+        {
+            sb.AppendLine($"Rango consultado: {ui.DateRangeFrom} a {ui.DateRangeTo}.");
+        }
+
         if (!string.IsNullOrWhiteSpace(ui.BlockReason))
         {
             sb.AppendLine(ui.BlockReason);
@@ -302,12 +346,18 @@ public sealed class AssistantService
 
         if (!string.IsNullOrWhiteSpace(ui.MyBookingSummary))
         {
-            sb.AppendLine($"Cita actual: {ui.MyBookingSummary}.");
+            sb.AppendLine(ui.MyBookingSummary);
         }
 
         if (ui.Days.Count == 0)
         {
-            sb.AppendLine("No hay cupos libres en ese rango.");
+            sb.AppendLine(
+                ui.Type switch
+                {
+                    "theory_week" => "No hay clases teóricas publicadas en ese rango.",
+                    "practical_slots" => "No hay cupos de manejo publicados.",
+                    _ => "No hay cupos libres en ese rango."
+                });
         }
         else
         {
@@ -319,7 +369,7 @@ public sealed class AssistantService
 
         if (!string.IsNullOrWhiteSpace(llmHint)
             && llmHint.Length < 280
-            && !llmHint.Contains(':')
+            && !llmHint.Contains('|')
             && llmHint.IndexOf("cupo", StringComparison.OrdinalIgnoreCase) < 0)
         {
             sb.AppendLine();

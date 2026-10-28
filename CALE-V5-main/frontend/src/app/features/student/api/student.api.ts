@@ -42,6 +42,8 @@ export interface StudentDashboardDto {
   announcements: AnnouncementDto[];
   unreadNotifications: number;
   bestPercent?: number | null;
+  /** Active school groups the student has not joined yet. */
+  availableGroups?: GroupDto[];
 }
 
 export interface NotificationDto {
@@ -85,6 +87,10 @@ export class StudentApi {
 
   joinGroup(code: string) {
     return this.http.post<GroupDto>(`${this.base}/api/groups/join`, { code });
+  }
+
+  joinGroupById(groupId: number) {
+    return this.http.post<GroupDto>(`${this.base}/api/groups/${groupId}/join`, {});
   }
 
   groups() {

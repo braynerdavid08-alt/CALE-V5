@@ -1,7 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { SessionStore } from '../../../core/auth/session.store';
-import { AuthApi } from '../../auth/api/auth.api';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiIconComponent } from '../../../shared/ui/ui-icon.component';
 import { Badge, PlayApi, PlaySummary } from '../../play/api/play.api';
@@ -36,7 +35,6 @@ interface LauncherTile {
 })
 export class StudentHomePage implements OnInit {
   readonly session = inject(SessionStore);
-  private readonly authApi = inject(AuthApi);
   private readonly play = inject(PlayApi);
   private readonly fx = inject(PlayFxService);
   private readonly theoryApi = inject(StudentTheoryApi);
@@ -73,12 +71,10 @@ export class StudentHomePage implements OnInit {
       },
       error: () => this.summary.set(null)
     });
-    // Re-sync school from /me so a wiped session (or race after login) hides the banner.
-    this.authApi.me().subscribe({
-      next: (me) => {
-        this.session.applySchoolContext(me.school ?? null, me.freeAccess);
-        this.session.patchUser({ photoUrl: me.photoUrl ?? null });
-        if (me.school?.schoolId) {
+    // Re-sync school from /me so after the CEA accepts the join request the banner disappears.
+    this.session.refreshMe().subscribe({
+      next: () => {
+        if (this.session.user()?.schoolId) {
           this.loadTheory();
         }
       },

@@ -6,6 +6,7 @@ import { SessionStore } from '../../core/auth/session.store';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiIconComponent } from '../../shared/ui/ui-icon.component';
 import { UiThemeToggleComponent } from '../../shared/ui/ui-theme-toggle.component';
+import { PwaInstallButtonComponent } from '../../shared/pwa/pwa-install-button.component';
 import { ShopFavoritesService } from './shop-favorites.service';
 
 @Component({
@@ -18,7 +19,8 @@ import { ShopFavoritesService } from './shop-favorites.service';
     RouterLinkActive,
     UiButtonComponent,
     UiIconComponent,
-    UiThemeToggleComponent
+    UiThemeToggleComponent,
+    PwaInstallButtonComponent
   ],
   template: `
     <div class="public-shell">
@@ -69,6 +71,7 @@ import { ShopFavoritesService } from './shop-favorites.service';
             <span class="theme-slot" title="Tema claro u oscuro">
               <ui-theme-toggle />
             </span>
+            <app-pwa-install-button variant="compact" />
             @if (loggedIn()) {
               <ui-button [routerLink]="accountPath()" type="button">Mi cuenta</ui-button>
             } @else {
@@ -115,6 +118,7 @@ import { ShopFavoritesService } from './shop-favorites.service';
               <span class="theme-slot">
                 <ui-theme-toggle />
               </span>
+              <app-pwa-install-button variant="default" buttonVariant="secondary" />
               @if (loggedIn()) {
                 <a [routerLink]="accountPath()" (click)="closeMenu()">
                   <ui-button type="button">Mi cuenta</ui-button>

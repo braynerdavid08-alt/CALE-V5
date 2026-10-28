@@ -62,6 +62,27 @@ public sealed class GroupCommandHandler
         var code = request.Code.Trim().ToUpperInvariant();
         var group = await _store.FindByCodeAsync(code, ct)
             ?? throw new NotFoundException("Group code not found.", "group_not_found");
+        return await JoinGroupAsync(group, userId, ct);
+    }
+
+    /// <summary>
+    /// Student joins an active group of their own school without typing the invite code.
+    /// </summary>
+    public async Task<GroupDto> JoinByIdAsync(
+        int groupId,
+        int userId,
+        CancellationToken ct)
+    {
+        var group = await _store.GetGroupAsync(groupId, ct)
+            ?? throw new NotFoundException("Group not found.", "group_not_found");
+        return await JoinGroupAsync(group, userId, ct);
+    }
+
+    private async Task<GroupDto> JoinGroupAsync(
+        Group group,
+        int userId,
+        CancellationToken ct)
+    {
         if (!group.IsActive)
         {
             throw new ForbiddenException("Group is inactive.");

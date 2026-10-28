@@ -98,7 +98,7 @@
         <strong>Vincula tu escuela</strong>
         <p>Para ver tus clases de teoría y manejo necesitas estar registrado en un CEA.</p>
       </div>
-      <ui-button routerLink="/profile" type="button" variant="secondary">Vincular ahora</ui-button>
+      <ui-button routerLink="/profile" [queryParams]="{ tab: 'context' }" type="button" variant="secondary">Vincular ahora</ui-button>
     </section>
   }
 

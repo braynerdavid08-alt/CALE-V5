@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Cale.Api.Services.Assistant;
 using Cale.BuildingBlocks.Domain.Auth;
+using Cale.Modules.TheoreticalTraining.Domain;
 using Cale.UnitTests.Assistant;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -130,6 +131,59 @@ public sealed class AssistantServiceTests
         Assert.Equal(0, llm.Calls);
         await Assert.ThrowsAsync<Cale.BuildingBlocks.Domain.Exceptions.DomainException>(
             () => service.QuickAsync(Student, "resumen", default));
+    }
+
+    [Fact]
+    public void Practical_requirements_match_license_categories()
+    {
+        Assert.Equal(15, PracticalLessonRequirements.GetRequired("A2"));
+        Assert.Equal(14, PracticalLessonRequirements.GetPracticeRequired("A2"));
+        Assert.Equal(20, PracticalLessonRequirements.GetRequired("B1"));
+        Assert.Equal(19, PracticalLessonRequirements.GetPracticeRequired("B1"));
+        Assert.Equal(30, PracticalLessonRequirements.GetRequired("C1"));
+        Assert.Equal(29, PracticalLessonRequirements.GetPracticeRequired("C1"));
+    }
+
+    [Fact]
+    public void Theory_week_ui_exposes_bookable_session_ids()
+    {
+        var week = new Cale.Modules.TheoreticalTraining.Application.DTOs.TheoryWeekScheduleDto(
+            new DateOnly(2026, 10, 27),
+            new DateOnly(2026, 11, 2),
+            [
+                new(
+                    11,
+                    new DateOnly(2026, 10, 28),
+                    "08:00",
+                    "09:59",
+                    1,
+                    "Normas",
+                    "#0f0",
+                    1,
+                    "Aula 1",
+                    20,
+                    0,
+                    20,
+                    "Scheduled",
+                    null,
+                    null,
+                    null,
+                    DateTime.UtcNow,
+                    DateTime.UtcNow.AddHours(2),
+                    "can_reserve",
+                    "20 cupos disponibles",
+                    null,
+                    null)
+            ],
+            [],
+            "Weekday");
+
+        var ui = AssistantToolbox.BuildTheoryWeekUi(week, fullList: true);
+
+        Assert.Equal("theory_week", ui.Type);
+        Assert.True(ui.Selectable);
+        Assert.Equal(11, ui.Days[0].AvailableSlots[0].SessionId);
+        Assert.Equal("reservar_clase_teorica", ui.Days[0].AvailableSlots[0].BookTool);
     }
 
     [Fact]

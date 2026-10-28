@@ -1,8 +1,13 @@
 .tabs {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.4rem;
   margin-bottom: 1rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  overscroll-behavior-x: contain;
+  padding-bottom: 0.15rem;
 }
 
 .tabs button {
@@ -13,6 +18,20 @@
   padding: 0.45rem 0.9rem;
   font-weight: 600;
   cursor: pointer;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .tabs {
+    scrollbar-width: none;
+    margin-inline: -0.15rem;
+    padding-inline: 0.15rem;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .tabs button.active {

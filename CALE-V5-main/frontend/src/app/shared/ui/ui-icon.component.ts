@@ -143,6 +143,17 @@ import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
           <circle cx="9" cy="10" r="2"/>
           <path d="m21 16-5-5-9 9"/>
         }
+        @case ('download') {
+          <path d="M12 3v12"/>
+          <path d="m7 10 5 5 5-5"/>
+          <path d="M5 21h14"/>
+        }
+        @case ('share') {
+          <circle cx="18" cy="5" r="3"/>
+          <circle cx="6" cy="12" r="3"/>
+          <circle cx="18" cy="19" r="3"/>
+          <path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/>
+        }
       }
     </svg>
   `,

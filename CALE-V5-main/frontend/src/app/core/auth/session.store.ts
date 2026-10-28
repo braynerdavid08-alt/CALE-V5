@@ -1,8 +1,8 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Observable, finalize, firstValueFrom, shareReplay, tap } from 'rxjs';
+import { Observable, catchError, finalize, firstValueFrom, shareReplay, tap, throwError } from 'rxjs';
 import { AuthApi } from '../../features/auth/api/auth.api';
-import { AuthResponse, MeSchoolContext, SessionUser } from './session.models';
+import { AuthResponse, MeResponse, MeSchoolContext, SessionUser } from './session.models';
 
 const STORAGE_KEY = 'cale.session.v5';
 /** Renew well before the 60-minute access cookie runs out, so live-room sockets never reconnect with an expired cookie. */
@@ -163,14 +163,28 @@ export class SessionStore {
       email: me.email,
       role: me.role,
       mustChangePassword: !!me.mustChangePassword,
-      schoolId: me.school?.schoolId ?? current?.schoolId ?? null,
-      isMembershipActive: me.school?.isMembershipActive ?? current?.isMembershipActive,
-      planLabel: me.school?.planLabel ?? current?.planLabel ?? null,
+      // Trust /me: after school acceptance schoolId appears; if unlinked it must clear.
+      schoolId: me.school?.schoolId ?? null,
+      isMembershipActive: me.school?.isMembershipActive ?? false,
+      planLabel: me.school?.planLabel ?? null,
       freeAccess: me.freeAccess ?? current?.freeAccess,
       photoUrl: me.photoUrl ?? null
     };
     this.user.set(user);
     this.persist(user, this.cookieAuth() ? null : this.token());
+  }
+
+  /** Re-fetch /me so banners update after the school accepts a join request. */
+  refreshMe(): Observable<MeResponse> {
+    return this.authApi.me().pipe(
+      tap((me) => this.applyMe(me)),
+      catchError((err) => {
+        if (isAuthRejection(err)) {
+          this.clear();
+        }
+        return throwError(() => err);
+      })
+    );
   }
 
   applySchoolContext(school: MeSchoolContext | null | undefined, freeAccess?: boolean): void {

@@ -23,6 +23,23 @@ public sealed class ClassroomStore : IClassroomStore
             .OrderBy(x => x.Name)
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<Group>> ListActiveByTeacherIdsAsync(
+        IReadOnlyCollection<int> teacherIds,
+        CancellationToken ct)
+    {
+        if (teacherIds.Count == 0)
+        {
+            return [];
+        }
+
+        return await _db.Set<Group>()
+            .Where(x => x.IsActive
+                && x.TeacherId != null
+                && teacherIds.Contains(x.TeacherId.Value))
+            .OrderBy(x => x.Name)
+            .ToListAsync(ct);
+    }
+
     public Task<Group?> GetGroupAsync(int id, CancellationToken ct) =>
         _db.Set<Group>().FirstOrDefaultAsync(x => x.Id == id, ct);
 
