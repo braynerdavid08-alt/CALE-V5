@@ -5,7 +5,6 @@ import { SessionStore } from '../../core/auth/session.store';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiIconComponent } from '../../shared/ui/ui-icon.component';
 import { UiThemeToggleComponent } from '../../shared/ui/ui-theme-toggle.component';
-import { PwaInstallButtonComponent } from '../../shared/pwa/pwa-install-button.component';
 
 @Component({
   selector: 'app-public-shell',
@@ -16,8 +15,7 @@ import { PwaInstallButtonComponent } from '../../shared/pwa/pwa-install-button.c
     RouterLinkActive,
     UiButtonComponent,
     UiIconComponent,
-    UiThemeToggleComponent,
-    PwaInstallButtonComponent
+    UiThemeToggleComponent
   ],
   template: `
     <div class="public-shell">
@@ -43,7 +41,6 @@ import { PwaInstallButtonComponent } from '../../shared/pwa/pwa-install-button.c
             <span class="theme-slot" title="Tema claro u oscuro">
               <ui-theme-toggle />
             </span>
-            <app-pwa-install-button variant="compact" />
             @if (loggedIn()) {
               <ui-button [routerLink]="accountPath()" type="button">Mi cuenta</ui-button>
             } @else {
@@ -75,7 +72,6 @@ import { PwaInstallButtonComponent } from '../../shared/pwa/pwa-install-button.c
               <span class="theme-slot">
                 <ui-theme-toggle />
               </span>
-              <app-pwa-install-button variant="default" buttonVariant="secondary" />
               @if (loggedIn()) {
                 <a [routerLink]="accountPath()" (click)="closeMenu()">
                   <ui-button type="button">Mi cuenta</ui-button>

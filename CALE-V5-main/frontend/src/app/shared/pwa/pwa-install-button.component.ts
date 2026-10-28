@@ -159,7 +159,8 @@ import { UiIconComponent } from '../ui/ui-icon.component';
     }
     .card {
       background: var(--color-surface);
-      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      border: 1px solid var(--color-border-strong, var(--color-border));
       border-radius: var(--radius-lg);
       padding: 1.15rem 1.25rem;
     }
@@ -181,6 +182,7 @@ import { UiIconComponent } from '../ui/ui-icon.component';
     .card h2 {
       margin: 0 0 0.35rem;
       font-size: 1.1rem;
+      color: var(--color-text);
     }
     .muted {
       margin: 0;

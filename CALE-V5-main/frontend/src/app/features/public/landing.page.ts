@@ -8,6 +8,7 @@ import { SessionStore } from '../../core/auth/session.store';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiIconComponent } from '../../shared/ui/ui-icon.component';
 import { UiLoadingComponent } from '../../shared/ui/ui-loading.component';
+import { PwaInstallButtonComponent } from '../../shared/pwa/pwa-install-button.component';
 import { PublicHomeApi } from './public-home.api';
 import { PublicHomeDto, PublicTestimonialsDto } from './public.models';
 import { ShopApi } from './shop.api';
@@ -16,7 +17,14 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
 @Component({
   selector: 'app-landing-page',
   standalone: true,
-  imports: [CurrencyPipe, RouterLink, UiButtonComponent, UiIconComponent, UiLoadingComponent],
+  imports: [
+    CurrencyPipe,
+    RouterLink,
+    UiButtonComponent,
+    UiIconComponent,
+    UiLoadingComponent,
+    PwaInstallButtonComponent
+  ],
   template: `
     @if (loading()) {
       <div class="pad">
@@ -228,6 +236,12 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
               }
             </section>
           }
+
+          <section class="section pwa-band" aria-label="Instalar Luz Verde">
+            <div class="wrap pwa-wrap">
+              <app-pwa-install-button variant="card" />
+            </div>
+          </section>
 
           <section class="section shop-band" aria-labelledby="shop-heading">
             <div class="wrap">
