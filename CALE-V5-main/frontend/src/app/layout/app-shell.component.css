@@ -14,6 +14,15 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+.topbar-row {
+  display: flex;
+  align-items: center;
+  gap: inherit;
+  min-width: 0;
+  width: 100%;
+  min-height: inherit;
+}
+
 .topbar-start,
 .topbar-actions {
   display: inline-flex;
@@ -394,10 +403,11 @@
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  padding: calc(0.65rem + var(--safe-top, 0px))
-    calc(var(--page-pad) + var(--safe-right, 0px))
+  /* Direct env() so iPhone notch / Dynamic Island never covers controls */
+  padding: calc(0.65rem + env(safe-area-inset-top, 0px))
+    calc(var(--page-pad) + env(safe-area-inset-right, 0px))
     0.65rem
-    calc(var(--page-pad) + var(--safe-left, 0px));
+    calc(var(--page-pad) + env(safe-area-inset-left, 0px));
   background: color-mix(in srgb, var(--color-surface) 92%, transparent);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--color-border);
@@ -562,11 +572,12 @@
     background: var(--color-scrim);
   }
 
-  .topbar {
+  .topbar,
+  .topbar-row {
     flex-wrap: nowrap;
   }
 
-  .topbar > .top-motivation {
+  .topbar .top-motivation {
     display: none;
   }
 
@@ -579,14 +590,44 @@
 @media (max-width: 600px) {
   .topbar {
     gap: 0.3rem;
-    padding-top: calc(0.4rem + var(--safe-top, 0px));
+    padding-top: calc(0.4rem + env(safe-area-inset-top, 0px));
     padding-bottom: 0.4rem;
-    padding-inline: 0.5rem;
+    padding-left: calc(0.5rem + env(safe-area-inset-left, 0px));
+    padding-right: calc(0.5rem + env(safe-area-inset-right, 0px));
+    /* Sticky keeps padding; row below scrolls so icons stay reachable */
+    overflow: visible;
+  }
+
+  .topbar-row {
+    gap: 0.3rem;
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x;
+    padding-bottom: 0.1rem;
+  }
+
+  .topbar-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .topbar-row > .spacer {
+    display: none;
   }
 
   .topbar-links {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     order: 0;
+    max-width: none;
+    overflow: visible;
+  }
+
+  .topbar-start,
+  .topbar-actions {
+    flex-shrink: 0;
   }
 
   .topbar-actions {
@@ -635,8 +676,18 @@
     padding-inline: 0.1rem;
   }
 
+  /* Avoid clipping the dropdown inside the horizontal scroll row */
+  .notif-panel {
+    position: fixed;
+    top: calc(0.4rem + env(safe-area-inset-top, 0px) + 3.1rem);
+    left: max(0.5rem, env(safe-area-inset-left, 0px));
+    right: max(0.5rem, env(safe-area-inset-right, 0px));
+    width: auto;
+  }
+
   .content {
-    padding-inline: calc(0.75rem + var(--safe-left, 0px)) calc(0.75rem + var(--safe-right, 0px));
+    padding-inline: calc(0.75rem + env(safe-area-inset-left, 0px))
+      calc(0.75rem + env(safe-area-inset-right, 0px));
   }
 }
 

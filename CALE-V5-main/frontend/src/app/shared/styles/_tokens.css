@@ -76,6 +76,12 @@
 
     --sidebar-width: 272px;
   --topbar-height: 64px;
+
+  /* Defaults; @supports block below refreshes with live env() values */
+  --safe-top: 0px;
+  --safe-right: 0px;
+  --safe-bottom: 0px;
+  --safe-left: 0px;
 }
 
 [data-theme='dark'] {
