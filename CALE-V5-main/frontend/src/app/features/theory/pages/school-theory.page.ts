@@ -8,7 +8,6 @@ import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import { mapApiError } from '../../../core/http/map-api-error';
 import {
   TheoryApi,
-  AttendanceRowDto,
   BulkAuthorizeResultDto,
   EnrollmentDto,
   TheoryClassroomDto,
@@ -54,7 +53,7 @@ export class SchoolTheoryPage implements OnInit {
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
   readonly notice = signal<string | null>(null);
-  readonly tab = signal<'schedule' | 'students' | 'attendance' | 'topics' | 'classrooms' | 'settings'>('schedule');
+  readonly tab = signal<'schedule' | 'students' | 'topics' | 'classrooms' | 'settings'>('schedule');
   readonly dashboard = signal<TheorySchoolDashboardDto | null>(null);
   readonly schedule = signal<TheoryWeekScheduleDto | null>(null);
   readonly monthSchedule = signal<TheoryMonthScheduleDto | null>(null);
@@ -64,9 +63,6 @@ export class SchoolTheoryPage implements OnInit {
   readonly scheduleLoading = signal(false);
   readonly topics = signal<TheoryTopicDto[]>([]);
   readonly classrooms = signal<TheoryClassroomDto[]>([]);
-  readonly attendanceSessions = signal<TheoryClassSessionDto[]>([]);
-  readonly selectedAttendanceSessionId = signal<number | null>(null);
-  readonly attendanceRows = signal<AttendanceRowDto[]>([]);
   readonly settings = signal<TheorySettingsDto | null>(null);
   readonly bookingPresetName = signal('');
   readonly showNotifications = signal(false);
@@ -74,7 +70,6 @@ export class SchoolTheoryPage implements OnInit {
   readonly enrollments = signal<EnrollmentDto[]>([]);
   readonly enrollmentFilter = signal<'all' | 'weekday' | 'saturday' | 'unassigned'>('all');
   readonly enrollmentSearch = signal('');
-  readonly attendanceLoading = signal(false);
 
   readonly licenseCategoryOptions = [
     { value: 'A2', label: 'A2' },
@@ -302,11 +297,8 @@ export class SchoolTheoryPage implements OnInit {
     this.monthKey.set(currentMonthKey(parseDate(this.weekStart())));
   }
 
-  setTab(value: 'schedule' | 'students' | 'attendance' | 'topics' | 'classrooms' | 'settings'): void {
+  setTab(value: 'schedule' | 'students' | 'topics' | 'classrooms' | 'settings'): void {
     this.tab.set(value);
-    if (value === 'attendance') {
-      this.loadAttendanceSessions();
-    }
     if (value === 'students') {
       this.loadEnrollments();
     }
@@ -831,71 +823,6 @@ export class SchoolTheoryPage implements OnInit {
     return `Puedes programar clases: ${parts.join(' y ')}.`;
   }
 
-  loadAttendanceSessions(): void {
-    this.attendanceLoading.set(true);
-    this.api.listAttendanceSessions().subscribe({
-      next: (sessions) => {
-        this.attendanceSessions.set(sessions);
-        const current = this.selectedAttendanceSessionId();
-        if (!current && sessions.length) {
-          this.selectAttendanceSession(sessions[0].id);
-        } else if (current && !sessions.some((s) => s.id === current)) {
-          this.selectAttendanceSession(sessions[0]?.id ?? null);
-        } else if (current) {
-          this.loadAttendanceRows(current);
-        }
-        this.attendanceLoading.set(false);
-      },
-      error: (err) => {
-        this.error.set(mapApiError(err));
-        this.attendanceSessions.set([]);
-        this.attendanceLoading.set(false);
-      }
-    });
-  }
-
-  selectAttendanceSession(sessionId: number | null): void {
-    this.selectedAttendanceSessionId.set(sessionId);
-    if (sessionId) {
-      this.loadAttendanceRows(sessionId);
-    } else {
-      this.attendanceRows.set([]);
-    }
-  }
-
-  loadAttendanceRows(sessionId: number): void {
-    this.api.listAttendance(sessionId).subscribe({
-      next: (rows) => this.attendanceRows.set(rows),
-      error: (err) => this.error.set(mapApiError(err))
-    });
-  }
-
-  markStudentAttendance(studentUserId: number, status: string): void {
-    const sessionId = this.selectedAttendanceSessionId();
-    if (!sessionId) {
-      return;
-    }
-    this.api.markAttendance(sessionId, { studentUserId, status }).subscribe({
-      next: () => this.loadAttendanceRows(sessionId),
-      error: (err) => this.error.set(mapApiError(err))
-    });
-  }
-
-  markAllPresent(): void {
-    const sessionId = this.selectedAttendanceSessionId();
-    const rows = this.attendanceRows();
-    if (!sessionId || !rows.length) {
-      return;
-    }
-    this.api.markAttendanceBatch(
-      sessionId,
-      rows.map((r) => ({ studentUserId: r.studentUserId, status: 'Present' }))
-    ).subscribe({
-      next: () => this.loadAttendanceRows(sessionId),
-      error: (err) => this.error.set(mapApiError(err))
-    });
-  }
-
   saveSettings(): void {
     const s = this.settings();
     if (!s) {
@@ -920,23 +847,6 @@ export class SchoolTheoryPage implements OnInit {
       },
       error: (err) => this.error.set(mapApiError(err))
     });
-  }
-
-  attendanceStatusLabel(status: string): string {
-    switch (status) {
-      case 'Present':
-        return 'Presente';
-      case 'Absent':
-        return 'Ausente';
-      case 'Late':
-        return 'Tarde';
-      default:
-        return 'Pendiente';
-    }
-  }
-
-  formatSessionLabel(s: TheoryClassSessionDto): string {
-    return `${s.sessionDate} · ${s.startTime.slice(0, 5)} · ${s.topicName} · ${s.classroomName}`;
   }
 
   sessionsAt(dayIndex: number, start: string): TheoryClassSessionDto[] {
