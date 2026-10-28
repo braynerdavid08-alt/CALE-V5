@@ -274,7 +274,27 @@
 
 .sidebar nav {
   display: grid;
-  gap: 0.2rem;
+  gap: 0.18rem;
+  align-content: start;
+}
+
+.nav-section {
+  margin: 0.85rem 0.35rem 0.3rem;
+  padding: 0 0.5rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-sidebar-text) 58%, transparent);
+  line-height: 1.3;
+}
+
+.nav-section:first-child {
+  margin-top: 0.15rem;
+}
+
+.sidebar-collapsed .nav-section {
+  display: none;
 }
 
 :host-context(html[data-size='large']) .nav-link {
@@ -285,18 +305,18 @@
 .nav-link {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.7rem;
   width: 100%;
-  min-height: 2.65rem;
-  padding: 0.55rem 0.85rem;
+  min-height: 2.55rem;
+  padding: 0.5rem 0.8rem;
   border: 0;
-  border-radius: 0.75rem;
+  border-radius: 0.7rem;
   background: transparent;
   color: var(--color-sidebar-text);
   font: inherit;
   font-weight: 600;
-  font-size: 0.92rem;
-  line-height: 1.2;
+  font-size: 0.9rem;
+  line-height: 1.25;
   text-align: left;
   text-decoration: none;
   cursor: pointer;
@@ -304,7 +324,20 @@
 
 .nav-link ui-icon {
   flex-shrink: 0;
-  opacity: 0.92;
+  width: 1.15rem;
+  display: inline-grid;
+  place-items: center;
+  opacity: 0.9;
+}
+
+.nav-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.nav-link.emphasize:not(.on) {
+  font-weight: 750;
+  color: var(--color-sidebar-active);
 }
 
 .nav-link:hover {
@@ -315,7 +348,7 @@
 .nav-link.on {
   background: var(--color-primary);
   color: var(--color-on-primary);
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--color-primary) 35%, transparent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-primary) 28%, transparent);
 }
 
 .nav-hint {

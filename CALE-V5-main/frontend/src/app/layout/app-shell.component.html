@@ -37,13 +37,17 @@
           </a>
           <p class="nav-hint">Debes actualizar tu clave temporal antes de usar el resto de Luz Verde.</p>
         } @else {
-          @for (item of items; track item.label + (item.path || '')) {
+          @for (item of items; track item.label + (item.path || ''); let i = $index) {
+            @if (item.section && item.section !== items[i - 1]?.section) {
+              <p class="nav-section" role="presentation">{{ item.section }}</p>
+            }
             @if (item.children?.length) {
               <div class="nav-group" [class.open]="isGroupOpen(item)" [class.on]="isNavOn(item)">
                 <button
                   type="button"
                   class="nav-link nav-group-btn"
                   [class.on]="isNavOn(item)"
+                  [class.emphasize]="!!item.emphasize"
                   [attr.title]="item.label"
                   (click)="toggleGroup(item, $event)">
                   <ui-icon [name]="item.icon" />
@@ -75,6 +79,7 @@
                 [routerLink]="item.path"
                 [queryParams]="item.queryParams || {}"
                 [class.on]="isNavOn(item)"
+                [class.emphasize]="!!item.emphasize"
                 [attr.title]="item.label">
                 <ui-icon [name]="item.icon" />
                 <span class="nav-label">{{ item.label }}</span>
