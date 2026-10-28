@@ -263,9 +263,23 @@ public sealed class SchedulingReportGenerator
 
     private static void WriteItems(IXLWorksheet sheet, IReadOnlyList<AgendaItemDto> items)
     {
+        // One row per student when enrolled; class still appears once if empty.
         var headers = new[]
         {
-            "Tipo", "Hora", "Fin", "Título", "Instructor", "Cupos", "Ocupados", "Disponibles", "Estudiantes", "Estado"
+            "Tipo",
+            "Hora clase",
+            "Fin",
+            "Título",
+            "Instructor",
+            "Cupos",
+            "Ocupados",
+            "Disponibles",
+            "Estado clase",
+            "Agendó (fecha y hora)",
+            "Nombre completo",
+            "Cédula / documento",
+            "Celular",
+            "Estado inscripción"
         };
         for (var c = 0; c < headers.Length; c++)
         {
@@ -276,17 +290,37 @@ public sealed class SchedulingReportGenerator
         var row = 2;
         foreach (var item in items.OrderBy(x => x.StartTime, StringComparer.Ordinal).ThenBy(x => x.Title))
         {
-            sheet.Cell(row, 1).Value = KindLabel(item.Kind);
-            sheet.Cell(row, 2).Value = item.StartTime;
-            sheet.Cell(row, 3).Value = item.EndTime ?? "";
-            sheet.Cell(row, 4).Value = item.Title;
-            sheet.Cell(row, 5).Value = item.InstructorName ?? "";
-            sheet.Cell(row, 6).Value = item.Capacity;
-            sheet.Cell(row, 7).Value = item.Occupied;
-            sheet.Cell(row, 8).Value = item.Available;
-            sheet.Cell(row, 9).Value = string.Join("; ", item.Students.Select(s => s.Name));
-            sheet.Cell(row, 10).Value = item.Status;
-            row++;
+            var instructor = string.IsNullOrWhiteSpace(item.InstructorName)
+                ? "Sin instructor"
+                : item.InstructorName;
+
+            if (item.Students.Count == 0)
+            {
+                WriteSessionCells(sheet, row, item, instructor);
+                sheet.Cell(row, 10).Value = "";
+                sheet.Cell(row, 11).Value = "Sin estudiantes inscritos";
+                sheet.Cell(row, 12).Value = "";
+                sheet.Cell(row, 13).Value = "";
+                sheet.Cell(row, 14).Value = "";
+                row++;
+                continue;
+            }
+
+            foreach (var student in item.Students
+                .OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase))
+            {
+                WriteSessionCells(sheet, row, item, instructor);
+                sheet.Cell(row, 10).Value = FormatReservedAt(student.ReservedAtUtc);
+                sheet.Cell(row, 11).Value = student.Name;
+                sheet.Cell(row, 12).Value = string.IsNullOrWhiteSpace(student.DocumentNumber)
+                    ? ""
+                    : student.DocumentNumber.Trim();
+                sheet.Cell(row, 13).Value = string.IsNullOrWhiteSpace(student.Phone)
+                    ? ""
+                    : student.Phone.Trim();
+                sheet.Cell(row, 14).Value = student.Status;
+                row++;
+            }
         }
 
         if (items.Count == 0)
@@ -297,6 +331,37 @@ public sealed class SchedulingReportGenerator
         var lastRow = Math.Max(1, row - 1);
         sheet.Range(1, 1, lastRow, headers.Length).SetAutoFilter();
         sheet.Columns().AdjustToContents(1, 50);
+    }
+
+    private static void WriteSessionCells(
+        IXLWorksheet sheet,
+        int row,
+        AgendaItemDto item,
+        string instructor)
+    {
+        sheet.Cell(row, 1).Value = KindLabel(item.Kind);
+        sheet.Cell(row, 2).Value = item.StartTime;
+        sheet.Cell(row, 3).Value = item.EndTime ?? "";
+        sheet.Cell(row, 4).Value = item.Title;
+        sheet.Cell(row, 5).Value = instructor;
+        sheet.Cell(row, 6).Value = item.Capacity;
+        sheet.Cell(row, 7).Value = item.Occupied;
+        sheet.Cell(row, 8).Value = item.Available;
+        sheet.Cell(row, 9).Value = item.Status;
+    }
+
+    private static string FormatReservedAt(DateTime? reservedAtUtc)
+    {
+        if (reservedAtUtc is null)
+        {
+            return "";
+        }
+
+        var utc = reservedAtUtc.Value.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(reservedAtUtc.Value, DateTimeKind.Utc)
+            : reservedAtUtc.Value.ToUniversalTime();
+        var local = TimeZoneInfo.ConvertTimeFromUtc(utc, ColombiaTime.TimeZone);
+        return local.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
     }
 
     private static string KindLabel(string kind) => kind switch

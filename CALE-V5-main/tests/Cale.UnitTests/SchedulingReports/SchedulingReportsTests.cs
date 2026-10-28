@@ -121,6 +121,46 @@ public sealed class SchedulingReportsTests
         Assert.Contains(wb.Worksheets, w => w.Name == "Manejo");
         Assert.Contains(wb.Worksheets, w => w.Name == "Exámenes");
         Assert.Equal("Teoría", wb.Worksheet("Teoría").Cell(2, 1).GetString());
+        Assert.Equal("Sin estudiantes inscritos", wb.Worksheet("Teoría").Cell(2, 11).GetString());
+        Assert.Equal("Nombre completo", wb.Worksheet("Teoría").Cell(1, 11).GetString());
+    }
+
+    [Fact]
+    public void Generator_theory_lists_enrolled_student_details()
+    {
+        var student = new AgendaStudentDto(
+            9,
+            "Ana Pérez",
+            "Reserved",
+            "1234567890",
+            "3001112233",
+            new DateTime(2026, 10, 27, 15, 30, 0, DateTimeKind.Utc));
+        var items = new List<AgendaItemDto>
+        {
+            new(
+                "theory",
+                1,
+                "2026-10-28",
+                "08:00",
+                "09:59",
+                "Normas · Aula 1",
+                "Luis",
+                "Scheduled",
+                20,
+                1,
+                19,
+                [student])
+        };
+
+        var bytes = SchedulingReportGenerator.BuildWorkbook(new DateOnly(2026, 10, 28), items);
+        using var ms = new MemoryStream(bytes);
+        using var wb = new ClosedXML.Excel.XLWorkbook(ms);
+        var sheet = wb.Worksheet("Teoría");
+        Assert.Equal("Ana Pérez", sheet.Cell(2, 11).GetString());
+        Assert.Equal("1234567890", sheet.Cell(2, 12).GetString());
+        Assert.Equal("3001112233", sheet.Cell(2, 13).GetString());
+        Assert.Equal("Reserved", sheet.Cell(2, 14).GetString());
+        Assert.Contains("2026-10-27", sheet.Cell(2, 10).GetString(), StringComparison.Ordinal);
     }
 
     [Fact]

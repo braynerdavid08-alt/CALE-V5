@@ -116,7 +116,14 @@ public sealed record SchoolAuditEntryDto(
     string? ActorName,
     DateTime CreatedAt);
 
-public sealed record AgendaStudentDto(int? StudentUserId, string Name, string Status);
+public sealed record AgendaStudentDto(
+    int? StudentUserId,
+    string Name,
+    string Status,
+    string? DocumentNumber = null,
+    string? Phone = null,
+    /// <summary>UTC instant when the student reserved / booked the slot.</summary>
+    DateTime? ReservedAtUtc = null);
 
 public sealed record AgendaItemDto(
     string Kind,

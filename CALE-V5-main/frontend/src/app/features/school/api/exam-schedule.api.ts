@@ -145,6 +145,9 @@ export interface AgendaStudentDto {
   studentUserId?: number | null;
   name: string;
   status: string;
+  documentNumber?: string | null;
+  phone?: string | null;
+  reservedAtUtc?: string | null;
 }
 
 export interface AgendaItemDto {

@@ -83,6 +83,7 @@ public sealed class SchoolAgendaService
             reservations.Select(x => x.StudentUserId)
                 .Concat(sessions.Where(x => x.InstructorUserId is int).Select(x => x.InstructorUserId!.Value)),
             ct);
+        var profiles = await ProfilesAsync(schoolUserId, reservations.Select(x => x.StudentUserId), ct);
 
         return sessions.Select(s =>
         {
@@ -93,6 +94,12 @@ public sealed class SchoolAgendaService
                 title += $" · {s.Classroom.Name}";
             }
 
+            var instructor = s.InstructorUserId is int i
+                && names.TryGetValue(i, out var instructorName)
+                && !string.IsNullOrWhiteSpace(instructorName)
+                    ? instructorName
+                    : null;
+
             return new AgendaItemDto(
                 "theory",
                 s.Id,
@@ -100,15 +107,13 @@ public sealed class SchoolAgendaService
                 T(s.StartTime),
                 T(s.EndTime),
                 title,
-                s.InstructorUserId is int i ? names.GetValueOrDefault(i) : null,
+                instructor,
                 s.Status,
                 s.Capacity,
                 seats.Count,
                 Math.Max(0, s.Capacity - seats.Count),
-                seats.Select(r => new AgendaStudentDto(
-                    r.StudentUserId,
-                    names.GetValueOrDefault(r.StudentUserId, $"Estudiante {r.StudentUserId}"),
-                    r.Status)).ToList());
+                seats.Select(r => ToAgendaStudent(r.StudentUserId, names, profiles, r.Status, r.ReservedAt))
+                    .ToList());
         }).ToList();
     }
 
@@ -140,6 +145,7 @@ public sealed class SchoolAgendaService
         var names = await NamesAsync(
             reservations.Select(x => x.StudentUserId).Concat(lessons.Select(x => x.InstructorUserId)),
             ct);
+        var profiles = await ProfilesAsync(schoolUserId, reservations.Select(x => x.StudentUserId), ct);
 
         return lessons.Select(l =>
         {
@@ -147,6 +153,10 @@ public sealed class SchoolAgendaService
             var vehicle = l.Vehicle is null
                 ? "Clase de manejo"
                 : $"Clase de manejo · {l.Vehicle.Label}{(string.IsNullOrWhiteSpace(l.Vehicle.Plate) ? "" : $" ({l.Vehicle.Plate})")}";
+            var instructor = names.TryGetValue(l.InstructorUserId, out var instructorName)
+                && !string.IsNullOrWhiteSpace(instructorName)
+                    ? instructorName
+                    : null;
             return new AgendaItemDto(
                 "practical",
                 l.Id,
@@ -154,15 +164,13 @@ public sealed class SchoolAgendaService
                 T(l.StartTime),
                 T(l.EndTime),
                 vehicle,
-                names.GetValueOrDefault(l.InstructorUserId),
+                instructor,
                 l.Status,
                 l.Capacity,
                 seats.Count,
                 Math.Max(0, l.Capacity - seats.Count),
-                seats.Select(r => new AgendaStudentDto(
-                    r.StudentUserId,
-                    names.GetValueOrDefault(r.StudentUserId, $"Estudiante {r.StudentUserId}"),
-                    r.Status)).ToList());
+                seats.Select(r => ToAgendaStudent(r.StudentUserId, names, profiles, r.Status, r.ReservedAt))
+                    .ToList());
         }).ToList();
     }
 
@@ -173,6 +181,13 @@ public sealed class SchoolAgendaService
         CancellationToken ct)
     {
         var week = await _exams.GetWeekAsync(schoolUserId, start, end, ct);
+        var studentIds = week.Days
+            .SelectMany(d => d.Slots)
+            .SelectMany(s => s.Bookings)
+            .Where(b => b.StudentUserId is int)
+            .Select(b => b.StudentUserId!.Value);
+        var profiles = await ProfilesAsync(schoolUserId, studentIds, ct);
+
         return week.Days
             .SelectMany(day => day.Slots.Select(slot => new AgendaItemDto(
                 "exam",
@@ -186,7 +201,17 @@ public sealed class SchoolAgendaService
                 slot.Capacity,
                 slot.Occupied,
                 slot.Available,
-                slot.Bookings.Select(b => new AgendaStudentDto(b.StudentUserId, b.StudentName, b.Status)).ToList())))
+                slot.Bookings.Select(b =>
+                {
+                    profiles.TryGetValue(b.StudentUserId ?? 0, out var profile);
+                    return new AgendaStudentDto(
+                        b.StudentUserId,
+                        b.StudentName,
+                        b.Status,
+                        profile?.DocumentNumber,
+                        profile?.Phone,
+                        b.CreatedAt);
+                }).ToList())))
             .ToList();
     }
 
@@ -202,6 +227,46 @@ public sealed class SchoolAgendaService
             .AsNoTracking()
             .Where(u => list.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, u => u.Name, ct);
+    }
+
+    private async Task<Dictionary<int, SchoolApprenticeProfile>> ProfilesAsync(
+        int schoolUserId,
+        IEnumerable<int> studentIds,
+        CancellationToken ct)
+    {
+        var list = studentIds.Distinct().ToList();
+        if (list.Count == 0)
+        {
+            return [];
+        }
+
+        var rows = await _db.Set<SchoolApprenticeProfile>()
+            .AsNoTracking()
+            .Where(x => x.SchoolUserId == schoolUserId && list.Contains(x.StudentUserId))
+            .ToListAsync(ct);
+        return rows
+            .GroupBy(x => x.StudentUserId)
+            .ToDictionary(g => g.Key, g => g.First());
+    }
+
+    private static AgendaStudentDto ToAgendaStudent(
+        int studentUserId,
+        IReadOnlyDictionary<int, string> names,
+        IReadOnlyDictionary<int, SchoolApprenticeProfile> profiles,
+        string status,
+        DateTime reservedAtUtc)
+    {
+        profiles.TryGetValue(studentUserId, out var profile);
+        var name = names.TryGetValue(studentUserId, out var n) && !string.IsNullOrWhiteSpace(n)
+            ? n
+            : $"Estudiante {studentUserId}";
+        return new AgendaStudentDto(
+            studentUserId,
+            name,
+            status,
+            profile?.DocumentNumber,
+            profile?.Phone,
+            reservedAtUtc);
     }
 
     private static DateOnly MondayOf(DateOnly date) => date.AddDays(-(((int)date.DayOfWeek + 6) % 7));
