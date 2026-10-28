@@ -27,7 +27,7 @@ interface AgendaDay {
 const KIND_LABELS: Record<AgendaItemKind, string> = {
   theory: 'Clase teórica',
   practical: 'Clase de manejo',
-  exam: 'Examen'
+  exam: 'Examen teórico'
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -72,7 +72,7 @@ export class SchoolAgendaPage implements OnInit {
     { value: 'all', label: 'Todo' },
     { value: 'theory', label: 'Clases teóricas' },
     { value: 'practical', label: 'Clases de manejo' },
-    { value: 'exam', label: 'Exámenes' }
+    { value: 'exam', label: 'Exámenes teóricos' }
   ];
 
   readonly weekEnd = computed(() => addDays(this.weekStart(), 6));

@@ -69,7 +69,7 @@ const TIPS: Record<OnboardingRole, OnboardingTip[]> = {
       title: 'Formación',
       text: 'Programa teoría, citas de examen y clases de manejo.',
       link: '/school/training',
-      linkLabel: 'Programación'
+      linkLabel: 'Clases teóricas'
     }
   ]
 };
