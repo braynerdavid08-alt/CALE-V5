@@ -223,7 +223,7 @@ public sealed class PracticalTrainingService
                 end,
                 request.InstructorUserId,
                 request.VehicleId,
-                capacity: 1,
+                capacity: PracticalScheduleLimits.SeatsPerSlot,
                 notes: null,
                 kind,
                 ct);
@@ -360,7 +360,7 @@ public sealed class PracticalTrainingService
                 source.EndTime,
                 request.InstructorUserId,
                 request.VehicleId,
-                source.Capacity,
+                PracticalScheduleLimits.SeatsPerSlot,
                 source.Notes,
                 PracticalSessionKinds.Normalize(source.Kind),
                 ct);
@@ -398,7 +398,7 @@ public sealed class PracticalTrainingService
             end,
             request.InstructorUserId,
             request.VehicleId,
-            Math.Clamp(request.Capacity ?? 1, 1, 4),
+            PracticalScheduleLimits.SeatsPerSlot,
             string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
             kind,
             ct);
@@ -442,7 +442,7 @@ public sealed class PracticalTrainingService
         var kind = PracticalSessionKinds.Normalize(request.Kind);
         EnsureExamDuration(kind, start, end);
 
-        var capacity = Math.Clamp(request.Capacity ?? 1, 1, 4);
+        var capacity = PracticalScheduleLimits.SeatsPerSlot;
         var notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
         var today = ColombiaTime.TodayInColombia();
         var from = request.FromDate < today ? today : request.FromDate;
@@ -725,9 +725,13 @@ public sealed class PracticalTrainingService
         var reserved = await _db.Set<PracticalLessonReservation>()
             .CountAsync(x => x.LessonSessionId == lessonId
                 && PracticalReservationStatuses.ActiveStatuses.Contains(x.Status), ct);
-        if (reserved >= session.Capacity)
+        // Clase y examen: siempre 1 persona por cupo (aunque Capacity legado diga otra cosa).
+        if (reserved >= PracticalScheduleLimits.SeatsPerSlot)
         {
-            throw new DomainException("No hay cupos disponibles.", 400, "lesson_full");
+            throw new DomainException(
+                "Este horario ya tiene un estudiante. Solo se permite 1 persona por clase o examen de manejo.",
+                400,
+                "lesson_full");
         }
 
         var existing = await _db.Set<PracticalLessonReservation>()
@@ -950,7 +954,7 @@ public sealed class PracticalTrainingService
             EndTime = end,
             InstructorUserId = instructorUserId,
             VehicleId = vehicle.Id,
-            Capacity = Math.Clamp(capacity, 1, 4),
+            Capacity = PracticalScheduleLimits.SeatsPerSlot,
             Kind = normalizedKind,
             Notes = notes,
             Status = PracticalLessonStatuses.Scheduled,
@@ -1171,7 +1175,7 @@ public sealed class PracticalTrainingService
             else
             {
                 bookingState = "can_reserve";
-                bookingMessage = $"{session.Capacity - activeReserved} cupo(s)";
+                bookingMessage = session.Capacity - activeReserved > 0 ? "1 cupo" : "Sin cupos";
             }
         }
 

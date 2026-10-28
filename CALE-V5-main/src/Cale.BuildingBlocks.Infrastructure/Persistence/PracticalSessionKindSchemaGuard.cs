@@ -13,6 +13,7 @@ public static class PracticalSessionKindSchemaGuard
         """
         ALTER TABLE "PracticalLessonSessions"
           ADD COLUMN IF NOT EXISTS "Kind" varchar(16) NOT NULL DEFAULT 'Lesson';
+        UPDATE "PracticalLessonSessions" SET "Capacity" = 1 WHERE "Capacity" <> 1;
         """;
 
     public static async Task EnsureAsync(CaleDbContext db, ILogger? logger = null, CancellationToken ct = default)
@@ -48,6 +49,10 @@ public static class PracticalSessionKindSchemaGuard
                         """ALTER TABLE "PracticalLessonSessions" ADD COLUMN "Kind" TEXT NOT NULL DEFAULT 'Lesson';""",
                         ct);
                 }
+
+                await db.Database.ExecuteSqlRawAsync(
+                    """UPDATE "PracticalLessonSessions" SET "Capacity" = 1 WHERE "Capacity" <> 1;""",
+                    ct);
             }
         }
         catch (Exception ex)
