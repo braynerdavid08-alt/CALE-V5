@@ -32,8 +32,9 @@ public sealed class SchoolApprenticeController : ControllerBase
         [FromQuery] string? search,
         [FromQuery] string? month,
         [FromQuery] bool? withBalance,
+        [FromQuery] bool? pendingEnrollment,
         CancellationToken ct) =>
-        Ok(await _registry.ListAsync(SchoolId, search, month, withBalance, ct));
+        Ok(await _registry.ListAsync(SchoolId, search, month, withBalance, ct, pendingEnrollment));
 
     [HttpGet("apprentices/{studentUserId:int}")]
     public async Task<IActionResult> GetDetail(int studentUserId, CancellationToken ct) =>

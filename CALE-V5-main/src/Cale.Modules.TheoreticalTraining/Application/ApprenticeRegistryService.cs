@@ -66,7 +66,8 @@ public sealed class ApprenticeRegistryService
         string? search,
         string? month,
         bool? withBalance,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool? pendingEnrollment = null)
     {
         var students = await _users.ListBySchoolAsync(schoolUserId, ct);
         var studentMap = students
@@ -121,6 +122,11 @@ public sealed class ApprenticeRegistryService
         if (withBalance == true)
         {
             query = query.Where(x => x.BalanceDue > 0);
+        }
+
+        if (pendingEnrollment == true)
+        {
+            query = query.Where(x => !x.IsEnrolled);
         }
 
         return query.ToList();
