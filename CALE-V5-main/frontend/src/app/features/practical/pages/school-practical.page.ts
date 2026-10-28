@@ -66,11 +66,30 @@ export class SchoolPracticalPage implements OnInit {
   readonly instructorId = signal(0);
   readonly vehicleId = signal(0);
   readonly showVehicles = signal(false);
+  readonly showFixedPanel = signal(false);
   readonly picker = signal<PickerCell | null>(null);
   readonly studentSearch = signal('');
   readonly mobileDay = signal(this.defaultMobileDay());
+  readonly notice = signal<string | null>(null);
 
   vehicleForm = { label: '', plate: '', isActive: true };
+
+  /** one = single day slot; range = month/year bulk of empty slots. */
+  createMode: 'one' | 'range' = 'one';
+  fixedDate = '';
+  bulkFrom = '';
+  bulkTo = '';
+  /** .NET DayOfWeek: Mon=1 … Sat=6 */
+  bulkDays: number[] = [1, 2, 3, 4, 5];
+  readonly bulkDayChoices = [
+    { value: 1, label: 'Lun' },
+    { value: 2, label: 'Mar' },
+    { value: 3, label: 'Mié' },
+    { value: 4, label: 'Jue' },
+    { value: 5, label: 'Vie' },
+    { value: 6, label: 'Sáb' }
+  ];
+  fixedSlotStart = PRACTICAL_TIME_SLOTS[2]?.start ?? '10:00';
 
   readonly weekRangeLabel = computed(() => {
     const start = this.parseDate(this.weekStart());
@@ -229,15 +248,202 @@ export class SchoolPracticalPage implements OnInit {
       .reduce((sum, l) => sum + lessonDurationHours(l), 0);
   }
 
-  canAssignSlot(dayIndex: number, slot: TimeSlot): boolean {
+  /** True when an empty cell can still accept a new 2h slot under the daily hour cap. */
+  canPublishSlot(dayIndex: number, slot: TimeSlot): boolean {
     if (this.lessonAt(dayIndex, slot)) {
       return false;
     }
     return this.dayScheduledHours(dayIndex) + slotDurationHours(slot) <= this.maxDailyHours;
   }
 
+  canAssignSlot(dayIndex: number, slot: TimeSlot): boolean {
+    const existing = this.lessonAt(dayIndex, slot);
+    if (existing) {
+      return !existing.assignment;
+    }
+    return this.canPublishSlot(dayIndex, slot);
+  }
+
   isDayAtHourLimit(dayIndex: number): boolean {
     return this.dayScheduledHours(dayIndex) >= this.maxDailyHours;
+  }
+
+  fixedSlot(): TimeSlot {
+    return this.timeSlots.find((s) => s.start === this.fixedSlotStart) ?? this.timeSlots[0];
+  }
+
+  setCreateMode(mode: 'one' | 'range'): void {
+    this.createMode = mode;
+    this.notice.set(null);
+    if (mode === 'range' && (!this.bulkFrom || !this.bulkTo)) {
+      this.applyBulkMonth();
+    }
+    if (mode === 'one' && !this.fixedDate) {
+      this.fixedDate = this.dayDate(this.mobileDay());
+    }
+  }
+
+  applyBulkMonth(): void {
+    const start = this.parseDate(this.weekStart());
+    const from = new Date(start.getFullYear(), start.getMonth(), 1);
+    const to = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+    this.bulkFrom = this.toDateKey(from);
+    this.bulkTo = this.toDateKey(to);
+  }
+
+  applyBulkYear(): void {
+    const start = this.parseDate(this.weekStart());
+    const today = new Date();
+    const from = today > start ? today : start;
+    const to = new Date(start.getFullYear(), 11, 31);
+    this.bulkFrom = this.toDateKey(from);
+    this.bulkTo = this.toDateKey(to);
+  }
+
+  toggleBulkDay(day: number, on: boolean): void {
+    if (on) {
+      if (!this.bulkDays.includes(day)) {
+        this.bulkDays = [...this.bulkDays, day].sort((a, b) => a - b);
+      }
+      return;
+    }
+    this.bulkDays = this.bulkDays.filter((d) => d !== day);
+  }
+
+  isBulkDayOn(day: number): boolean {
+    return this.bulkDays.includes(day);
+  }
+
+  publishFixedHours(): void {
+    const instructor = this.instructorId();
+    const vehicle = this.vehicleId();
+    const slot = this.fixedSlot();
+    if (!instructor || !vehicle || !slot) {
+      this.error.set('Selecciona instructor y vehículo primero.');
+      return;
+    }
+
+    this.saving.set(true);
+    this.error.set(null);
+    this.notice.set(null);
+
+    if (this.createMode === 'one') {
+      if (!this.fixedDate) {
+        this.saving.set(false);
+        this.error.set('Elige la fecha del cupo.');
+        return;
+      }
+      this.api
+        .createLesson({
+          sessionDate: this.fixedDate,
+          startTime: slot.start,
+          endTime: slot.end,
+          instructorUserId: instructor,
+          vehicleId: vehicle,
+          capacity: 1
+        })
+        .subscribe({
+          next: () => {
+            this.saving.set(false);
+            this.notice.set('Cupo publicado. La escuela puede asignar o el estudiante agendar.');
+            this.loadWeek();
+          },
+          error: (err) => {
+            this.saving.set(false);
+            this.error.set(mapApiError(err));
+          }
+        });
+      return;
+    }
+
+    if (!this.bulkFrom || !this.bulkTo) {
+      this.saving.set(false);
+      this.error.set('Indica el rango de fechas.');
+      return;
+    }
+    if (!this.bulkDays.length) {
+      this.saving.set(false);
+      this.error.set('Selecciona al menos un día de la semana.');
+      return;
+    }
+
+    this.api
+      .bulkCreateLessons({
+        fromDate: this.bulkFrom,
+        toDate: this.bulkTo,
+        daysOfWeek: this.bulkDays,
+        startTime: slot.start,
+        endTime: slot.end,
+        instructorUserId: instructor,
+        vehicleId: vehicle,
+        capacity: 1
+      })
+      .subscribe({
+        next: (res) => {
+          this.saving.set(false);
+          const parts = [`${res.created} cupos publicados`];
+          if (res.skippedExisting) {
+            parts.push(`${res.skippedExisting} ya existían`);
+          }
+          if (res.skippedConflictOrInvalid) {
+            parts.push(`${res.skippedConflictOrInvalid} omitidos (conflicto o límite 8h)`);
+          }
+          this.notice.set(parts.join(' · ') + '. Quedan libres para asignar o que el estudiante agende.');
+          this.loadWeek();
+        },
+        error: (err) => {
+          this.saving.set(false);
+          this.error.set(mapApiError(err));
+        }
+      });
+  }
+
+  publishEmptySlot(dayIndex: number, slot: TimeSlot): void {
+    const instructor = this.instructorId();
+    const vehicle = this.vehicleId();
+    if (!instructor || !vehicle) {
+      this.error.set('Selecciona instructor y vehículo primero.');
+      return;
+    }
+    if (!this.canPublishSlot(dayIndex, slot)) {
+      this.error.set(`Este instructor ya alcanzó el máximo de ${this.maxDailyHours} horas ese día.`);
+      return;
+    }
+
+    this.saving.set(true);
+    this.error.set(null);
+    this.api
+      .createLesson({
+        sessionDate: this.dayDate(dayIndex),
+        startTime: slot.start,
+        endTime: slot.end,
+        instructorUserId: instructor,
+        vehicleId: vehicle,
+        capacity: 1
+      })
+      .subscribe({
+        next: () => {
+          this.saving.set(false);
+          this.loadWeek();
+        },
+        error: (err) => {
+          this.saving.set(false);
+          this.error.set(mapApiError(err));
+        }
+      });
+  }
+
+  cancelOpenLesson(lesson: PracticalLessonSessionDto): void {
+    if (lesson.assignment) {
+      return;
+    }
+    if (!confirm('¿Quitar este cupo libre del horario?')) {
+      return;
+    }
+    this.api.cancelLesson(lesson.id).subscribe({
+      next: () => this.loadWeek(),
+      error: (err) => this.error.set(mapApiError(err))
+    });
   }
 
   lessonAt(dayIndex: number, slot: TimeSlot): PracticalLessonSessionDto | null {
@@ -259,8 +465,12 @@ export class SchoolPracticalPage implements OnInit {
       this.error.set('Selecciona instructor y vehículo primero.');
       return;
     }
-    if (!this.canAssignSlot(dayIndex, slot)) {
+    const existing = this.lessonAt(dayIndex, slot);
+    if (!existing && !this.canPublishSlot(dayIndex, slot)) {
       this.error.set(`Este instructor ya alcanzó el máximo de ${this.maxDailyHours} horas ese día.`);
+      return;
+    }
+    if (existing?.assignment) {
       return;
     }
     this.studentSearch.set('');
@@ -327,6 +537,20 @@ export class SchoolPracticalPage implements OnInit {
       next: () => this.loadWeek(),
       error: (err) => this.error.set(mapApiError(err))
     });
+  }
+
+  toggleFixedPanel(): void {
+    const next = !this.showFixedPanel();
+    this.showFixedPanel.set(next);
+    if (next) {
+      this.notice.set(null);
+      if (!this.fixedDate) {
+        this.fixedDate = this.dayDate(this.mobileDay());
+      }
+      if (!this.bulkFrom || !this.bulkTo) {
+        this.applyBulkMonth();
+      }
+    }
   }
 
   duplicateWeek(): void {

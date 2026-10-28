@@ -397,6 +397,108 @@ public sealed class PracticalTrainingService
         return await MapLessonAsync(session, null, includeAssignment: true, ct);
     }
 
+    public async Task<BulkCreatePracticalLessonsResult> BulkCreateLessonsAsync(
+        int schoolUserId,
+        BulkCreatePracticalLessonsRequest request,
+        CancellationToken ct)
+    {
+        await _membership.EnsureActiveAsync(schoolUserId, ct);
+
+        if (request.ToDate < request.FromDate)
+        {
+            throw new DomainException("La fecha final debe ser posterior o igual a la inicial.", 400, "invalid_date_range");
+        }
+
+        if (request.ToDate.DayNumber - request.FromDate.DayNumber > 366)
+        {
+            throw new DomainException("El rango máximo es de un año.", 400, "range_too_long");
+        }
+
+        var days = (request.DaysOfWeek ?? Array.Empty<int>())
+            .Where(d => d is >= 0 and <= 6)
+            .Distinct()
+            .ToHashSet();
+        if (days.Count == 0)
+        {
+            throw new DomainException("Selecciona al menos un día de la semana.", 400, "days_required");
+        }
+
+        var start = ParseTime(request.StartTime);
+        var end = ParseTime(request.EndTime);
+        if (end <= start)
+        {
+            throw new DomainException("La hora de fin debe ser posterior al inicio.", 400, "invalid_time_range");
+        }
+
+        var capacity = Math.Clamp(request.Capacity ?? 1, 1, 4);
+        var notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
+        var today = ColombiaTime.TodayInColombia();
+        var from = request.FromDate < today ? today : request.FromDate;
+
+        // Validate instructor + vehicle once up front.
+        _ = await _db.Set<PracticalVehicle>()
+            .FirstOrDefaultAsync(x => x.Id == request.VehicleId && x.SchoolUserId == schoolUserId && x.IsActive, ct)
+            ?? throw new DomainException("Vehículo no válido.", 400, "invalid_vehicle");
+        var instructor = await _users.GetByIdAsync(request.InstructorUserId, ct)
+            ?? throw new DomainException("Instructor no válido.", 400, "invalid_instructor");
+        if (instructor.SchoolId != schoolUserId || instructor.Role != Roles.Teacher)
+        {
+            throw new DomainException("El instructor no pertenece a la escuela.", 400, "invalid_instructor");
+        }
+
+        var created = 0;
+        var skippedExisting = 0;
+        var skippedConflictOrInvalid = 0;
+
+        for (var date = from; date <= request.ToDate; date = date.AddDays(1))
+        {
+            if (!days.Contains((int)date.DayOfWeek))
+            {
+                continue;
+            }
+
+            if (date.DayOfWeek == DayOfWeek.Sunday)
+            {
+                skippedConflictOrInvalid++;
+                continue;
+            }
+
+            var exists = await _db.Set<PracticalLessonSession>()
+                .AnyAsync(x => x.SchoolUserId == schoolUserId
+                    && x.SessionDate == date
+                    && x.StartTime == start
+                    && x.InstructorUserId == request.InstructorUserId
+                    && x.VehicleId == request.VehicleId
+                    && x.Status != PracticalLessonStatuses.Cancelled, ct);
+            if (exists)
+            {
+                skippedExisting++;
+                continue;
+            }
+
+            try
+            {
+                await CreateLessonInternalAsync(
+                    schoolUserId,
+                    date,
+                    start,
+                    end,
+                    request.InstructorUserId,
+                    request.VehicleId,
+                    capacity,
+                    notes,
+                    ct);
+                created++;
+            }
+            catch (DomainException)
+            {
+                skippedConflictOrInvalid++;
+            }
+        }
+
+        return new BulkCreatePracticalLessonsResult(created, skippedExisting, skippedConflictOrInvalid);
+    }
+
     public async Task CancelLessonAsync(int schoolUserId, int lessonId, CancellationToken ct)
     {
         await _membership.EnsureActiveAsync(schoolUserId, ct);
@@ -482,7 +584,7 @@ public sealed class PracticalTrainingService
                 && x.SessionDate >= today)
             .OrderBy(x => x.SessionDate)
             .ThenBy(x => x.StartTime)
-            .Take(30)
+            .Take(90)
             .ToListAsync(ct);
 
         var availableDtos = new List<PracticalLessonSessionDto>();

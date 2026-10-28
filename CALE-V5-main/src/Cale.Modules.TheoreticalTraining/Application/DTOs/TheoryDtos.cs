@@ -332,6 +332,26 @@ public sealed record CreatePracticalLessonRequest(
     int? Capacity,
     string? Notes);
 
+/// <summary>
+/// Publishes empty practical slots (no student) on each selected weekday between FromDate and ToDate.
+/// DaysOfWeek uses .NET values: 0=Sunday … 6=Saturday. Sundays are always skipped.
+/// </summary>
+public sealed record BulkCreatePracticalLessonsRequest(
+    DateOnly FromDate,
+    DateOnly ToDate,
+    IReadOnlyList<int> DaysOfWeek,
+    string StartTime,
+    string EndTime,
+    int InstructorUserId,
+    int VehicleId,
+    int? Capacity,
+    string? Notes);
+
+public sealed record BulkCreatePracticalLessonsResult(
+    int Created,
+    int SkippedExisting,
+    int SkippedConflictOrInvalid);
+
 public sealed record PracticalStudentDashboardDto(
     PracticalEligibilityDto Eligibility,
     PracticalLessonSessionDto? NextLesson,

@@ -73,6 +73,12 @@ public sealed class SchoolPracticalController : ControllerBase
         CancellationToken ct) =>
         Ok(await _service.CreateLessonAsync(SchoolId, request, ct));
 
+    [HttpPost("lessons/bulk")]
+    public async Task<IActionResult> BulkCreateLessons(
+        BulkCreatePracticalLessonsRequest request,
+        CancellationToken ct) =>
+        Ok(await _service.BulkCreateLessonsAsync(SchoolId, request, ct));
+
     [HttpPost("lessons/{id:int}/cancel")]
     public async Task<IActionResult> CancelLesson(int id, CancellationToken ct)
     {
