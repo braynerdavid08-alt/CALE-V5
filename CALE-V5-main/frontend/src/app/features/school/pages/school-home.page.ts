@@ -78,13 +78,43 @@ export class SchoolHomePage implements OnInit {
   readonly ops = signal<SchoolOperationsDashboard | null>(null);
   readonly showAllTodos = signal(false);
 
-  readonly actions: EasyAction[] = [
-    { emoji: '➕', label: 'Inscribir estudiante', hint: 'Crear la cuenta de un estudiante nuevo', path: '/school/users' },
-    { emoji: '✅', label: 'Tomar asistencia', hint: 'Marcar quién vino hoy', path: '/school/attendance' },
-    { emoji: '💰', label: 'Cobrar saldos', hint: 'Ver quién debe y registrar pagos', path: '/school/apprentices', query: { withBalance: true } },
-    { emoji: '📅', label: 'Exámenes', hint: 'Ver cupos de la semana y dar citas de examen', path: '/school/theory-exams' },
-    { emoji: '🚗', label: 'Clases de manejo', hint: 'Programar prácticas en vehículo', path: '/school/practical' },
-    { emoji: '📊', label: 'Ver resultados', hint: 'Notas de exámenes y simulacros', path: '/school/results' }
+  /** Primary ops: program, students, attendance, cartera — only existing modules. */
+  readonly primaryActions: EasyAction[] = [
+    {
+      emoji: '📅',
+      label: 'Programar',
+      hint: 'Clases teóricas, exámenes y manejo',
+      path: '/school/training'
+    },
+    {
+      emoji: '🎓',
+      label: 'Estudiantes',
+      hint: 'Expedientes, progreso y autorizaciones',
+      path: '/school/apprentices'
+    },
+    {
+      emoji: '✅',
+      label: 'Asistencia',
+      hint: 'Tableros del día: teoría, examen y flota',
+      path: '/school/attendance'
+    },
+    {
+      emoji: '💰',
+      label: 'Cartera',
+      hint: 'Quién debe y registro de pagos',
+      path: '/school/apprentices',
+      query: { withBalance: true }
+    }
+  ];
+
+  readonly secondaryActions: EasyAction[] = [
+    { emoji: '🗓️', label: 'Agenda semanal', hint: 'Consulta de la semana', path: '/school/agenda' },
+    { emoji: '📝', label: 'Exámenes teóricos', hint: 'Cupos y citas', path: '/school/theory-exams' },
+    { emoji: '🚗', label: 'Clases de manejo', hint: 'Programar prácticas', path: '/school/practical' },
+    { emoji: '⏰', label: 'Horarios de examen', hint: 'Plantilla semanal', path: '/school/theory-exams/schedule' },
+    { emoji: '📊', label: 'Resultados', hint: 'Notas y progreso', path: '/school/results' },
+    { emoji: '👥', label: 'Instructores y usuarios', hint: 'Invitar y gestionar', path: '/school/users' },
+    { emoji: '📥', label: 'Importar Excel', hint: 'Expedientes y exámenes', path: '/school/import' }
   ];
 
   /** Everything that needs attention, written as plain sentences with one action each. */

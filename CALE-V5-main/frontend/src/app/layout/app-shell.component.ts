@@ -225,6 +225,13 @@ export class AppShellComponent implements OnInit {
         queryParams: item.queryParams
       });
     }
+    // Bare /school/apprentices should not stay active when a filtered list is open.
+    if (item.path === '/school/apprentices') {
+      const q = this.url().split('?')[1] || '';
+      if (/(?:^|&)withBalance=true(?:&|$)/.test(q) || /(?:^|&)pendingEnrollment=true(?:&|$)/.test(q)) {
+        return false;
+      }
+    }
     return true;
   }
 
