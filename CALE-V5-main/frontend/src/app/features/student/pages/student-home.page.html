@@ -92,7 +92,7 @@
   </section>
 
   @if (!session.user()?.schoolId) {
-    <section class="school-banner" role="status" data-tour="student-school">
+    <section class="school-banner" role="status">
       <span class="banner-icon" aria-hidden="true"><ui-icon name="building" /></span>
       <div>
         <strong>Vincula tu escuela</strong>
@@ -173,7 +173,7 @@
       <a
         class="tile"
         [attr.data-tone]="tile.tone"
-        [attr.data-tour]="tile.id === 'classes' ? 'student-school' : null"
+        [attr.data-tour]="tourAttr(tile.id)"
         [routerLink]="tile.path"
         [attr.aria-label]="tile.label + '. ' + tile.hint">
         <span class="tile-icon" aria-hidden="true">

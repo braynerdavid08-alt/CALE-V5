@@ -181,4 +181,19 @@ export class StudentHomePage implements OnInit {
   displayTiles(): LauncherTile[] {
     return this.visibleTiles();
   }
+
+  tourAttr(tileId: string): string | null {
+    switch (tileId) {
+      case 'courses':
+        return 'student-courses';
+      case 'live':
+        return 'student-live';
+      case 'classes':
+        return 'student-classes';
+      case 'biblioteca-juridica':
+        return 'student-library';
+      default:
+        return null;
+    }
+  }
 }

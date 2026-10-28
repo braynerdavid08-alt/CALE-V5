@@ -9,7 +9,8 @@ import {
   TourStep
 } from './tour.types';
 
-const KEY_PREFIX = 'luzverde.tour.student.v1.';
+/** v2: redesigned steps (cursos, vivo, clases/biblioteca, Kazu). */
+const KEY_PREFIX = 'luzverde.tour.student.v2.';
 
 @Injectable({ providedIn: 'root' })
 export class TourService {

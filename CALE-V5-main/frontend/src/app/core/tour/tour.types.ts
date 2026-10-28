@@ -1,4 +1,5 @@
-export const MASCOT_NAME = 'Kuzu';
+/** Official mascot + AI assistant name. */
+export const MASCOT_NAME = 'Kazu';
 
 export type TourPose = 'explain' | 'celebrate';
 export type TourPhase = 'idle' | 'welcome' | 'step' | 'celebrate';

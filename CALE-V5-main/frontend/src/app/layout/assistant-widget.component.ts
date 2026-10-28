@@ -21,6 +21,7 @@ import {
 } from '../core/assistant/assistant.api';
 import { renderAssistantMarkdown } from '../core/assistant/assistant-markdown';
 import { BRAND } from '../core/brand';
+import { MASCOT_NAME } from '../core/tour/tour.types';
 import { mapApiError } from '../core/http/map-api-error';
 
 interface QuickQuestion {
@@ -68,18 +69,24 @@ const HIDDEN_PATHS = [
   template: `
     @if (enabled() && !routeHidden() && !hiddenForToday()) {
       @if (!open()) {
-        <button type="button" class="fab" (click)="toggle()" aria-label="Abrir el asistente">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z" /><path d="M8 9h8M8 12h5" /></svg>
-          <span class="fab-label">Ayuda</span>
+        <button
+          type="button"
+          class="fab"
+          data-tour="student-kazu"
+          (click)="toggle()"
+          [attr.aria-label]="'Abrir a ' + mascotName">
+          <img class="fab-avatar" src="/mascot/kuzu-explain-128.gif" [alt]="''" width="40" height="40" decoding="async" />
+          <span class="fab-label">{{ mascotName }}</span>
         </button>
       } @else {
-        <button type="button" class="backdrop" (click)="close()" aria-label="Cerrar el asistente"></button>
-        <section class="panel" role="dialog" aria-label="Asistente" aria-modal="true">
+        <button type="button" class="backdrop" (click)="close()" [attr.aria-label]="'Cerrar a ' + mascotName"></button>
+        <section class="panel" role="dialog" [attr.aria-label]="mascotName" aria-modal="true">
           <header>
+            <img class="head-avatar" src="/mascot/kuzu-explain-128.gif" [alt]="''" width="40" height="40" decoding="async" />
             <div>
-              <strong>Asistente {{ brand.name }}</strong>
+              <strong>{{ mascotName }}</strong>
               <small>
-                Consultas y agenda. Siempre te pido confirmar.
+                Asistente de {{ brand.name }}. Consultas y agenda. Siempre te pido confirmar.
                 @if (remaining() > 0) {
                   · {{ remaining() }} mensajes hoy
                 }
@@ -95,14 +102,14 @@ const HIDDEN_PATHS = [
               <button type="button" class="ghost" (click)="hideToday()" title="Ocultar el botón hasta mañana">
                 Hoy no
               </button>
-              <button type="button" class="close" (click)="close()" aria-label="Cerrar el asistente">✕</button>
+              <button type="button" class="close" (click)="close()" [attr.aria-label]="'Cerrar a ' + mascotName">✕</button>
             </div>
           </header>
 
           <div class="messages" #scroller aria-live="polite">
             @if (!messages().length) {
               <p class="bubble bot">
-                Hola. ¿Qué necesitas? Toca una consulta rápida (no gasta mensajes) o escríbeme.
+                Hola, soy {{ mascotName }}. ¿Qué necesitas? Toca una consulta rápida (no gasta mensajes) o escríbeme.
               </p>
             }
             @for (m of messages(); track $index) {
@@ -241,30 +248,28 @@ const HIDDEN_PATHS = [
       align-items: center;
       justify-content: center;
       gap: 0.35rem;
-      width: 3rem;
-      height: 3rem;
-      padding: 0;
-      border: 0;
+      width: 3.35rem;
+      height: 3.35rem;
+      padding: 0.2rem;
+      border: 2px solid color-mix(in srgb, var(--color-primary) 55%, #fff);
       border-radius: 999px;
-      background: color-mix(in srgb, var(--color-primary) 92%, #000);
+      background: color-mix(in srgb, var(--color-surface) 88%, var(--color-primary));
       color: var(--color-on-primary, #04130a);
       font: inherit;
       font-weight: 800;
       font-size: 0.85rem;
       cursor: pointer;
-      box-shadow: 0 4px 14px rgb(0 0 0 / 0.28);
-      opacity: 0.92;
+      box-shadow: 0 6px 18px rgb(0 0 0 / 0.32);
+      opacity: 0.96;
+      overflow: hidden;
     }
-    .fab:hover, .fab:focus-visible { opacity: 1; }
-    .fab svg {
-      width: 1.25rem;
-      height: 1.25rem;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2;
-      stroke-linejoin: round;
-      stroke-linecap: round;
-      flex-shrink: 0;
+    .fab:hover, .fab:focus-visible { opacity: 1; transform: translateY(-1px); }
+    .fab-avatar {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      pointer-events: none;
     }
     .fab-label { display: none; }
 
@@ -296,13 +301,21 @@ const HIDDEN_PATHS = [
 
     header {
       display: flex;
-      gap: 0.5rem;
+      gap: 0.55rem;
       align-items: flex-start;
       justify-content: space-between;
       padding: 0.75rem 0.85rem;
       border-bottom: 1px solid var(--color-border);
     }
-    header div:first-child { display: grid; gap: 0.1rem; min-width: 0; }
+    .head-avatar {
+      flex: none;
+      width: 2.5rem;
+      height: 2.5rem;
+      object-fit: contain;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--color-primary) 16%, var(--color-surface));
+    }
+    header > div:nth-child(2) { display: grid; gap: 0.1rem; min-width: 0; flex: 1; }
     header strong { font-size: 1rem; }
     header small { color: var(--color-text-secondary); font-size: 0.78rem; line-height: 1.3; }
     .header-actions { display: flex; gap: 0.35rem; align-items: center; flex-shrink: 0; }
@@ -651,6 +664,7 @@ export class AssistantWidgetComponent implements OnInit, OnDestroy {
   private navSub?: Subscription;
 
   readonly brand = BRAND;
+  readonly mascotName = MASCOT_NAME;
   readonly enabled = signal(false);
   readonly open = signal(false);
   readonly busy = signal(false);

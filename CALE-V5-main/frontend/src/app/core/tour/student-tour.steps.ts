@@ -6,34 +6,41 @@ export const STUDENT_TOUR_STEPS: TourStep[] = [
     route: '/student',
     target: '[data-tour="student-panel"]',
     title: 'Tu panel',
-    body: `Aquí empieza tu día en Luz Verde. Verás tu progreso, racha y accesos rápidos. ${MASCOT_NAME} te acompaña en esta guía corta.`
+    body: `Aquí empieza tu día. Verás tu progreso, racha y accesos rápidos. Soy ${MASCOT_NAME} y te acompaño en esta guía.`
   },
   {
     id: 'daily',
     route: '/student',
     target: '[data-tour="student-daily"]',
     title: 'Reto diario',
-    body: 'Este es tu reto del día. Sirve para practicar un poco cada jornada y mantener tu racha.'
+    body: 'Practica un poco cada día para mantener tu racha. El simulacro también está cerca si quieres un examen completo.'
   },
   {
-    id: 'simulator',
+    id: 'courses',
     route: '/student',
-    target: '[data-tour="student-simulator"]',
-    title: 'Simulacro',
-    body: 'Con el simulacro practicas preguntas tipo examen CALE, a tu ritmo, todas las veces que quieras.'
+    target: '[data-tour="student-courses"]',
+    title: 'Cursos virtuales',
+    body: 'Aquí están las lecciones con videos y actividades. Es tu formación teórica paso a paso, a tu ritmo.'
   },
   {
-    id: 'school',
+    id: 'live',
     route: '/student',
-    target: '[data-tour="student-school"]',
-    title: 'Tu escuela',
-    body: 'Si estudias con un CEA, aquí vinculas tu escuela o entras a tus clases de teoría y manejo.'
+    target: '[data-tour="student-live"]',
+    title: 'Aula en vivo',
+    body: 'Cuando tu instructor abre una clase, entras aquí con el código o el QR para participar en tiempo real.'
   },
   {
-    id: 'profile',
+    id: 'classes-library',
     route: '/student',
-    target: '[data-tour="student-profile"]',
-    title: 'Tu perfil',
-    body: 'Desde el perfil cambias tema, preferencias e instalas Luz Verde en tu celular. También puedes repetir esta guía cuando quieras.'
+    target: '[data-tour="student-classes"]',
+    title: 'Mis clases y Biblioteca',
+    body: 'En Mis clases ves materiales de tu CEA. Justo debajo, la Biblioteca jurídica reúne las normas de tránsito para consultar cuando estudies.'
+  },
+  {
+    id: 'kazu',
+    route: '/student',
+    target: '[data-tour="student-kazu"]',
+    title: `Habla con ${MASCOT_NAME}`,
+    body: `${MASCOT_NAME} es el asistente de Luz Verde. Pregúntale por horas, agenda o dudas de tu formación. Siempre te pedirá confirmar antes de hacer cambios.`
   }
 ];

@@ -60,8 +60,8 @@ const PAD = 8;
             <app-tour-mascot pose="explain" size="md" />
             <h2>¡Hola! Soy {{ tour.mascotName }}</h2>
             <p>
-              Te muestro Luz Verde en {{ tour.stepCount }} pasos rápidos.
-              Esta guía se guarda en este dispositivo para tu cuenta.
+              Soy el asistente de Luz Verde. Te muestro lo esencial en
+              {{ tour.stepCount }} pasos. Esta guía se guarda en este dispositivo para tu cuenta.
             </p>
             <div class="actions">
               <ui-button type="button" (click)="tour.beginTour()">Empezar guía</ui-button>
@@ -99,7 +99,10 @@ const PAD = 8;
           <section class="card welcome" tabindex="-1" #focusEl>
             <app-tour-mascot pose="celebrate" size="md" />
             <h2>¡Listo!</h2>
-            <p>Ya sabes moverte por Luz Verde. Puedes repetir esta guía desde Preferencias.</p>
+            <p>
+              Ya conoces cursos, aula en vivo, clases y cómo hablar conmigo.
+              Puedes repetir esta guía desde Preferencias.
+            </p>
             <div class="actions">
               <ui-button type="button" (click)="finish()">Ir a mi panel</ui-button>
             </div>
@@ -154,7 +157,8 @@ const PAD = 8;
     .bubble {
       left: 50%;
       transform: translateX(-50%);
-      bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+      /* Keep above the Kazu FAB on phones */
+      bottom: max(4.75rem, calc(3.75rem + env(safe-area-inset-bottom, 0px)));
       text-align: left;
       justify-items: stretch;
     }
