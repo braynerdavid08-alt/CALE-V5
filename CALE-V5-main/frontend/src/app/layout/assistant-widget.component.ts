@@ -441,13 +441,14 @@ const HIDDEN_PATHS = [
       color: var(--color-text-secondary);
       font-size: 0.8rem;
     }
-    .exam-note, .exam-warn, .exam-empty {
+    .exam-note, .exam-warn, .exam-empty, .exam-hint {
       margin: 0;
       font-size: 0.85rem;
       line-height: 1.35;
     }
     .exam-warn { color: var(--color-warning, #d97706); }
-    .exam-empty { color: var(--color-text-secondary); }
+    .exam-empty, .exam-hint { color: var(--color-text-secondary); }
+    .bubble.tip { font-size: 0.9rem; }
 
     .day {
       display: grid;
