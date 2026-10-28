@@ -6,15 +6,9 @@
 
   <ui-error [message]="error()" />
 
-  <nav class="school-tabs" aria-label="Secciones de práctica">
-    <button type="button" [class.on]="tab() === 'schedule'" (click)="setTab('schedule')">Horario</button>
-    <button type="button" [class.on]="tab() === 'attendance'" (click)="setTab('attendance')">Asistencia</button>
-    <a class="tab-link" routerLink="/school/practical-fleet">Hoy (flota)</a>
-  </nav>
-
-@if (loading() && tab() === 'schedule') {
+@if (loading()) {
   <ui-loading />
-} @else if (tab() === 'schedule') {
+} @else {
   <section class="school-toolbar">
     <div class="toolbar-row">
       <div class="week-nav">
@@ -187,71 +181,8 @@
 
     <p class="muted hint">
       Clic en una celda vacía → elige estudiante. Máximo {{ maxDailyHours }} horas de manejo por instructor y día.
+      La asistencia del día está en Operación de hoy → Manejo.
     </p>
-  }
-} @else {
-  @if (attendanceLoading()) {
-    <ui-loading />
-  } @else {
-    <div class="attendance-layout">
-      <aside class="card">
-        <h2>Clases con reservas</h2>
-        @if (!attendanceLessons().length) {
-          <p class="muted">No hay clases de manejo con estudiantes reservados.</p>
-        } @else {
-          <ul class="session-pick">
-            @for (l of attendanceLessons(); track l.id) {
-              <li>
-                <button
-                  type="button"
-                  class="session-pick-btn"
-                  [class.on]="selectedAttendanceLessonId() === l.id"
-                  (click)="selectAttendanceLesson(l.id)">
-                  {{ lessonLabel(l) }}
-                  <small>{{ l.reservedCount }} reservas</small>
-                </button>
-              </li>
-            }
-          </ul>
-        }
-      </aside>
-
-      <div class="card">
-        @if (selectedAttendanceLessonId(); as lessonId) {
-          <div class="attendance-head">
-            <h2>Lista de asistencia</h2>
-            <ui-button type="button" (click)="markAllPresent()">Marcar todos presentes</ui-button>
-          </div>
-          @if (!attendanceRows().length) {
-            <p class="muted">Sin reservas para esta clase.</p>
-          } @else {
-            <table class="attendance-table">
-              <thead>
-                <tr>
-                  <th>Estudiante</th>
-                  <th>Estado</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (row of attendanceRows(); track row.studentUserId) {
-                  <tr>
-                    <td>{{ row.studentName }}</td>
-                    <td>{{ row.status }}</td>
-                    <td class="actions">
-                      <button type="button" (click)="markAttendance(row, 'Present')">Presente</button>
-                      <button type="button" (click)="markAttendance(row, 'Absent')">Ausente</button>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          }
-        } @else {
-          <p class="muted">Selecciona una clase para marcar asistencia.</p>
-        }
-      </div>
-    </div>
   }
 }
 

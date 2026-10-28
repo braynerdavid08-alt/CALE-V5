@@ -94,8 +94,8 @@ export class SchoolHomePage implements OnInit {
     },
     {
       emoji: '✅',
-      label: 'Asistencia',
-      hint: 'Tableros del día: teoría, examen y flota',
+      label: 'Operación de hoy',
+      hint: 'Asistencia de teoría, examen y manejo',
       path: '/school/attendance'
     },
     {

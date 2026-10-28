@@ -2,7 +2,7 @@
   <ui-page-header
     eyebrow="Escuela"
     title="Clases teóricas"
-    subtitle="Horarios, estudiantes, temas y aulas. La asistencia del día está en Asistencia." />
+    subtitle="Horarios, estudiantes, temas y aulas de tu escuela." />
 
   <ui-error [message]="error()" />
 
@@ -18,8 +18,6 @@
   <nav class="school-tabs" aria-label="Secciones de clases teóricas">
     <button type="button" [class.on]="tab() === 'schedule'" (click)="setTab('schedule')">Horario</button>
     <button type="button" [class.on]="tab() === 'students'" (click)="setTab('students')">Estudiantes</button>
-    <a class="tab-link" routerLink="/school/attendance">Asistencia</a>
-    <a class="tab-link" routerLink="/school/exam-control">Sala de examen</a>
     <button type="button" [class.on]="tab() === 'topics'" (click)="setTab('topics')">Temas</button>
     <button type="button" [class.on]="tab() === 'classrooms'" (click)="setTab('classrooms')">Aulas</button>
     <button type="button" [class.on]="tab() === 'settings'" (click)="setTab('settings')">Ajustes</button>
