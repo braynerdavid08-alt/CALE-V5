@@ -82,6 +82,135 @@ public sealed partial class TheoryTrainingService
         return await MapSessionAsync(session.Id, null, ct);
     }
 
+    public async Task<BulkCreateTheoryClassesResult> BulkCreateSessionsAsync(
+        int schoolUserId,
+        BulkCreateTheoryClassesRequest request,
+        CancellationToken ct)
+    {
+        await EnsureSchoolMembershipActiveAsync(schoolUserId, ct);
+        var settings = await GetOrCreateSettingsAsync(schoolUserId, ct);
+        var topic = await _db.Set<TheoryTopic>()
+            .FirstOrDefaultAsync(x => x.Id == request.TopicId && x.SchoolUserId == schoolUserId && x.IsActive, ct)
+            ?? throw new DomainException("Tema no válido.", 400, "invalid_topic");
+        var classroom = await _db.Set<TheoryClassroom>()
+            .FirstOrDefaultAsync(x => x.Id == request.ClassroomId && x.SchoolUserId == schoolUserId && x.IsActive, ct)
+            ?? throw new DomainException("Aula no válida.", 400, "invalid_classroom");
+
+        if (request.ToDate < request.FromDate)
+        {
+            throw new DomainException("La fecha final debe ser posterior o igual a la inicial.", 400, "invalid_date_range");
+        }
+
+        if (request.ToDate.DayNumber - request.FromDate.DayNumber > 366)
+        {
+            throw new DomainException("El rango máximo es de un año.", 400, "range_too_long");
+        }
+
+        var days = (request.DaysOfWeek ?? Array.Empty<int>())
+            .Where(d => d is >= 0 and <= 6)
+            .Distinct()
+            .ToHashSet();
+        if (days.Count == 0)
+        {
+            throw new DomainException("Selecciona al menos un día de la semana.", 400, "days_required");
+        }
+
+        var start = ParseTime(request.StartTime);
+        var end = ParseTime(request.EndTime);
+        if (end <= start)
+        {
+            throw new DomainException("La hora de fin debe ser posterior al inicio.", 400, "invalid_time");
+        }
+
+        var capacity = request.Capacity is > 0
+            ? Math.Min(request.Capacity.Value, classroom.Capacity)
+            : classroom.Capacity;
+        var notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
+        var today = ColombiaTime.TodayInColombia();
+        var from = request.FromDate < today ? today : request.FromDate;
+
+        var existing = await _db.Set<TheoryClassSession>()
+            .AsNoTracking()
+            .Where(x => x.SchoolUserId == schoolUserId
+                && x.SessionDate >= from
+                && x.SessionDate <= request.ToDate
+                && x.ClassroomId == classroom.Id
+                && x.StartTime == start
+                && x.Status != TheoryClassStatuses.Cancelled)
+            .Select(x => x.SessionDate)
+            .ToListAsync(ct);
+        var existingSet = existing.ToHashSet();
+
+        var created = 0;
+        var skippedExisting = 0;
+        var skippedInvalid = 0;
+        var now = _clock.UtcNow;
+        var toAdd = new List<TheoryClassSession>();
+
+        for (var date = from; date <= request.ToDate; date = date.AddDays(1))
+        {
+            if (!days.Contains((int)date.DayOfWeek))
+            {
+                continue;
+            }
+
+            if (date.DayOfWeek == DayOfWeek.Sunday)
+            {
+                skippedInvalid++;
+                continue;
+            }
+
+            try
+            {
+                ValidateSessionDayForSettings(date, settings);
+            }
+            catch (DomainException)
+            {
+                skippedInvalid++;
+                continue;
+            }
+
+            if (existingSet.Contains(date))
+            {
+                skippedExisting++;
+                continue;
+            }
+
+            var (openUtc, closeUtc) = ColombiaTime.ComputeReservationWindow(
+                date,
+                start,
+                settings.ReservationCloseMinutesBefore,
+                TheoryBookingPolicy.ReservationOpenDaysBefore(settings, date));
+
+            toAdd.Add(new TheoryClassSession
+            {
+                SchoolUserId = schoolUserId,
+                TopicId = topic.Id,
+                ClassroomId = classroom.Id,
+                InstructorUserId = request.InstructorUserId,
+                SessionDate = date,
+                StartTime = start,
+                EndTime = end,
+                Capacity = capacity,
+                Status = TheoryClassStatuses.Scheduled,
+                ReservationOpenAt = openUtc,
+                ReservationCloseAt = closeUtc,
+                Notes = notes,
+                CreatedAt = now,
+                UpdatedAt = now
+            });
+            created++;
+        }
+
+        if (toAdd.Count > 0)
+        {
+            await _db.Set<TheoryClassSession>().AddRangeAsync(toAdd, ct);
+            await _db.SaveChangesAsync(ct);
+        }
+
+        return new BulkCreateTheoryClassesResult(created, skippedExisting, skippedInvalid);
+    }
+
     public async Task<TheoryClassSessionDto> UpdateSessionAsync(
         int schoolUserId,
         int sessionId,

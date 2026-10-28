@@ -51,7 +51,9 @@ export class SchoolTheoryPage implements OnInit {
   private readonly api = inject(TheoryApi);
 
   readonly loading = signal(true);
+  readonly saving = signal(false);
   readonly error = signal<string | null>(null);
+  readonly notice = signal<string | null>(null);
   readonly tab = signal<'schedule' | 'students' | 'attendance' | 'topics' | 'classrooms' | 'settings'>('schedule');
   readonly dashboard = signal<TheorySchoolDashboardDto | null>(null);
   readonly schedule = signal<TheoryWeekScheduleDto | null>(null);
@@ -99,6 +101,20 @@ export class SchoolTheoryPage implements OnInit {
     capacity: 0,
     notes: ''
   };
+  /** one = single class; range = month/year bulk using the same slot. */
+  createMode: 'one' | 'range' = 'one';
+  bulkFrom = '';
+  bulkTo = '';
+  /** .NET DayOfWeek: Mon=1 … Sat=6 (Sunday never offered). */
+  bulkDays: number[] = [1, 2, 3, 4, 5];
+  readonly bulkDayChoices = [
+    { value: 1, label: 'Lun' },
+    { value: 2, label: 'Mar' },
+    { value: 3, label: 'Mié' },
+    { value: 4, label: 'Jue' },
+    { value: 5, label: 'Vie' },
+    { value: 6, label: 'Sáb' }
+  ];
 
   ngOnInit(): void {
     this.reload();
@@ -998,6 +1014,11 @@ export class SchoolTheoryPage implements OnInit {
   }
 
   saveSession(): void {
+    this.notice.set(null);
+    if (this.createMode === 'range' && !this.editingSessionId()) {
+      this.saveBulkSessions();
+      return;
+    }
     if (!this.createForm.sessionDate || !this.createForm.topicId || !this.createForm.classroomId) {
       this.error.set('Completa fecha, tema y aula.');
       return;
@@ -1018,22 +1039,124 @@ export class SchoolTheoryPage implements OnInit {
       notes: this.createForm.notes || undefined
     };
     const editId = this.editingSessionId();
+    this.saving.set(true);
+    this.error.set(null);
     const req = editId
       ? this.api.updateSession(editId, body)
       : this.api.createSession(body);
     req.subscribe({
       next: () => {
+        this.saving.set(false);
         this.createForm.notes = '';
         this.editingSessionId.set(null);
         this.jumpToSessionWeek(body.sessionDate);
         this.reload();
       },
-      error: (err) => this.error.set(mapApiError(err))
+      error: (err) => {
+        this.saving.set(false);
+        this.error.set(mapApiError(err));
+      }
     });
   }
 
   createSession(): void {
     this.saveSession();
+  }
+
+  setCreateMode(mode: 'one' | 'range'): void {
+    this.createMode = mode;
+    this.editingSessionId.set(null);
+    this.error.set(null);
+    this.notice.set(null);
+    if (mode === 'range' && (!this.bulkFrom || !this.bulkTo)) {
+      this.applyBulkMonth();
+    }
+  }
+
+  toggleBulkDay(day: number, on: boolean): void {
+    if (on) {
+      if (!this.bulkDays.includes(day)) {
+        this.bulkDays = [...this.bulkDays, day].sort((a, b) => a - b);
+      }
+      return;
+    }
+    this.bulkDays = this.bulkDays.filter((d) => d !== day);
+  }
+
+  isBulkDayOn(day: number): boolean {
+    return this.bulkDays.includes(day);
+  }
+
+  applyBulkMonth(): void {
+    const key = this.monthKey();
+    const [y, m] = key.split('-').map(Number);
+    const start = new Date(y, m - 1, 1);
+    const end = new Date(y, m, 0);
+    this.bulkFrom = formatDateOnly(start);
+    this.bulkTo = formatDateOnly(end);
+  }
+
+  applyBulkYear(): void {
+    const today = new Date();
+    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const end = new Date(today.getFullYear(), 11, 31);
+    if (end < start) {
+      end.setFullYear(end.getFullYear() + 1);
+    }
+    this.bulkFrom = formatDateOnly(start);
+    this.bulkTo = formatDateOnly(end);
+  }
+
+  private saveBulkSessions(): void {
+    if (!this.bulkFrom || !this.bulkTo || !this.createForm.topicId || !this.createForm.classroomId) {
+      this.error.set('Completa el rango de fechas, tema y aula.');
+      return;
+    }
+    if (!this.bulkDays.length) {
+      this.error.set('Selecciona al menos un día de la semana.');
+      return;
+    }
+    const allowedDays = this.bulkDays.filter((d) => {
+      const idx = d === 0 ? 6 : d - 1;
+      return this.isDayAllowed(idx);
+    });
+    if (!allowedDays.length) {
+      this.error.set(this.schedulingDaysMessage());
+      return;
+    }
+    this.saving.set(true);
+    this.error.set(null);
+    this.api
+      .bulkCreateSessions({
+        fromDate: this.bulkFrom,
+        toDate: this.bulkTo,
+        daysOfWeek: allowedDays,
+        startTime: this.createForm.startTime,
+        endTime: this.createForm.endTime,
+        topicId: this.createForm.topicId,
+        classroomId: this.createForm.classroomId,
+        capacity: this.createForm.capacity > 0 ? this.createForm.capacity : undefined,
+        notes: this.createForm.notes || undefined
+      })
+      .subscribe({
+        next: (res) => {
+          this.saving.set(false);
+          const parts = [`Se publicaron ${res.created} clases.`];
+          if (res.skippedExisting) {
+            parts.push(`${res.skippedExisting} ya existían y se omitieron.`);
+          }
+          if (res.skippedInvalidDay) {
+            parts.push(`${res.skippedInvalidDay} cayeron en días no habilitados.`);
+          }
+          this.notice.set(parts.join(' '));
+          this.jumpToSessionWeek(this.bulkFrom);
+          this.reload();
+        },
+        error: (err) => {
+          this.saving.set(false);
+          this.error.set(mapApiError(err));
+        }
+      });
   }
 
   pickSlot(dayIndex: number, start: string): void {
@@ -1045,6 +1168,8 @@ export class SchoolTheoryPage implements OnInit {
     if (!sch) {
       return;
     }
+    this.createMode = 'one';
+    this.notice.set(null);
     const d = addDays(parseDate(sch.weekStart), dayIndex);
     this.createForm.sessionDate = formatDateOnly(d);
     this.createForm.startTime = start;
