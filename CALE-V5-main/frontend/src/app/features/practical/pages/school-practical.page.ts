@@ -10,14 +10,17 @@ import { mapApiError } from '../../../core/http/map-api-error';
 import { env } from '../../../core/config/env';
 import {
   PRACTICAL_MAX_DAILY_HOURS,
-  PRACTICAL_TIME_SLOTS,
+  PRACTICAL_START_HOURS,
   PracticalApi,
+  PracticalDurationHours,
   PracticalLessonSessionDto,
   PracticalSchedulingStudentDto,
   PracticalVehicleDto,
   TimeSlot,
-  lessonDurationHours,
-  slotDurationHours
+  buildPracticalSlot,
+  formatLessonWindow,
+  lessonCoversStart,
+  lessonDurationHours
 } from '../api/practical.api';
 
 interface MemberRow {
@@ -50,9 +53,15 @@ export class SchoolPracticalPage implements OnInit {
   private readonly api = inject(PracticalApi);
   private readonly http = inject(HttpClient);
 
-  readonly timeSlots = PRACTICAL_TIME_SLOTS;
   readonly maxDailyHours = PRACTICAL_MAX_DAILY_HOURS;
   readonly dayLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  readonly durationChoices: { value: PracticalDurationHours; label: string }[] = [
+    { value: 1, label: '1 hora' },
+    { value: 2, label: '2 horas' }
+  ];
+
+  /** Selected class length for grid publish/assign and fixed panel. */
+  readonly durationHours = signal<PracticalDurationHours>(2);
 
   readonly loading = signal(true);
   readonly gridLoading = signal(false);
@@ -89,7 +98,18 @@ export class SchoolPracticalPage implements OnInit {
     { value: 5, label: 'Vie' },
     { value: 6, label: 'Sáb' }
   ];
-  fixedSlotStart = PRACTICAL_TIME_SLOTS[2]?.start ?? '10:00';
+  fixedSlotStart = '10:00';
+
+  /** Hourly grid rows (06:00–22:00) built with the selected duration. */
+  readonly timeSlots = computed(() =>
+    PRACTICAL_START_HOURS.map((h) => buildPracticalSlot(h, this.durationHours()))
+  );
+
+  readonly startHourOptions = computed(() =>
+    PRACTICAL_START_HOURS.filter((h) => h + this.durationHours() <= 24).map((h) =>
+      buildPracticalSlot(h, this.durationHours())
+    )
+  );
 
   readonly weekRangeLabel = computed(() => {
     const start = this.parseDate(this.weekStart());
@@ -248,16 +268,34 @@ export class SchoolPracticalPage implements OnInit {
       .reduce((sum, l) => sum + lessonDurationHours(l), 0);
   }
 
-  /** True when an empty cell can still accept a new 2h slot under the daily hour cap. */
+  setDurationHours(hours: PracticalDurationHours): void {
+    this.durationHours.set(hours);
+    const options = this.startHourOptions();
+    if (!options.some((s) => s.start === this.fixedSlotStart) && options[0]) {
+      this.fixedSlotStart = options[0].start;
+    }
+  }
+
+  /** True when this hour row can start a new empty slot with the selected duration. */
   canPublishSlot(dayIndex: number, slot: TimeSlot): boolean {
-    if (this.lessonAt(dayIndex, slot)) {
+    if (this.coveringLesson(dayIndex, slot)) {
       return false;
     }
-    return this.dayScheduledHours(dayIndex) + slotDurationHours(slot) <= this.maxDailyHours;
+    const hours = this.durationHours();
+    if (parseInt(slot.start, 10) + hours > 24) {
+      return false;
+    }
+    for (let i = 0; i < hours; i++) {
+      const hourStart = `${String(parseInt(slot.start, 10) + i).padStart(2, '0')}:00`;
+      if (this.coveringLessonAt(dayIndex, hourStart)) {
+        return false;
+      }
+    }
+    return this.dayScheduledHours(dayIndex) + hours <= this.maxDailyHours;
   }
 
   canAssignSlot(dayIndex: number, slot: TimeSlot): boolean {
-    const existing = this.lessonAt(dayIndex, slot);
+    const existing = this.lessonStartingAt(dayIndex, slot);
     if (existing) {
       return !existing.assignment;
     }
@@ -269,7 +307,15 @@ export class SchoolPracticalPage implements OnInit {
   }
 
   fixedSlot(): TimeSlot {
-    return this.timeSlots.find((s) => s.start === this.fixedSlotStart) ?? this.timeSlots[0];
+    return (
+      this.startHourOptions().find((s) => s.start === this.fixedSlotStart) ??
+      this.startHourOptions()[0] ??
+      buildPracticalSlot(10, this.durationHours())
+    );
+  }
+
+  lessonWindow(lesson: PracticalLessonSessionDto): string {
+    return formatLessonWindow(lesson);
   }
 
   setCreateMode(mode: 'one' | 'range'): void {
@@ -446,9 +492,38 @@ export class SchoolPracticalPage implements OnInit {
     });
   }
 
-  lessonAt(dayIndex: number, slot: TimeSlot): PracticalLessonSessionDto | null {
+  /** Lesson that starts exactly on this hour row. */
+  lessonStartingAt(dayIndex: number, slot: TimeSlot): PracticalLessonSessionDto | null {
     const date = this.dayDate(dayIndex);
-    return this.lessons().find((l) => l.sessionDate === date && l.startTime.slice(0, 5) === slot.start) ?? null;
+    return (
+      this.lessons().find((l) => l.sessionDate === date && l.startTime.slice(0, 5) === slot.start) ?? null
+    );
+  }
+
+  /** Alias used by templates for the primary (starting) cell. */
+  lessonAt(dayIndex: number, slot: TimeSlot): PracticalLessonSessionDto | null {
+    return this.lessonStartingAt(dayIndex, slot);
+  }
+
+  coveringLesson(dayIndex: number, slot: TimeSlot): PracticalLessonSessionDto | null {
+    return this.coveringLessonAt(dayIndex, slot.start);
+  }
+
+  coveringLessonAt(dayIndex: number, hourStart: string): PracticalLessonSessionDto | null {
+    const date = this.dayDate(dayIndex);
+    return this.lessons().find((l) => l.sessionDate === date && lessonCoversStart(l, hourStart)) ?? null;
+  }
+
+  /** Continuation row of a multi-hour lesson (not the start hour). */
+  continuationLesson(dayIndex: number, slot: TimeSlot): PracticalLessonSessionDto | null {
+    const covering = this.coveringLesson(dayIndex, slot);
+    if (!covering) {
+      return null;
+    }
+    if (covering.startTime.slice(0, 5) === slot.start) {
+      return null;
+    }
+    return covering;
   }
 
   assignmentLabel(lesson: PracticalLessonSessionDto): string {
@@ -465,18 +540,28 @@ export class SchoolPracticalPage implements OnInit {
       this.error.set('Selecciona instructor y vehículo primero.');
       return;
     }
-    const existing = this.lessonAt(dayIndex, slot);
+    const existing = this.lessonStartingAt(dayIndex, slot);
     if (!existing && !this.canPublishSlot(dayIndex, slot)) {
-      this.error.set(`Este instructor ya alcanzó el máximo de ${this.maxDailyHours} horas ese día.`);
+      this.error.set(
+        this.coveringLesson(dayIndex, slot)
+          ? 'Ese horario ya está ocupado por otra clase.'
+          : `Este instructor ya alcanzó el máximo de ${this.maxDailyHours} horas ese día.`
+      );
       return;
     }
     if (existing?.assignment) {
       return;
     }
+    const activeSlot = existing
+      ? buildPracticalSlot(
+          parseInt(existing.startTime, 10),
+          (lessonDurationHours(existing) === 1 ? 1 : 2) as PracticalDurationHours
+        )
+      : buildPracticalSlot(parseInt(slot.start, 10), this.durationHours());
     this.studentSearch.set('');
     this.picker.set({
       dayIndex,
-      slot,
+      slot: activeSlot,
       sessionDate: this.dayDate(dayIndex)
     });
   }

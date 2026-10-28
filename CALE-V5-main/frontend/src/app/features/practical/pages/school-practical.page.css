@@ -147,6 +147,19 @@
   align-items: flex-start;
   cursor: default;
 }
+.cell.cont {
+  min-height: 42px;
+  border-style: solid;
+  border-color: var(--color-border);
+  background: color-mix(in srgb, var(--color-background) 70%, var(--color-primary-soft, #dcfce7));
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  cursor: default;
+  justify-content: center;
+}
+.duration-filter span { font-weight: 700; font-size: 0.9rem; }
+.duration-mode { min-width: 180px; }
+.fixed-tip { margin: 0; flex-basis: 100%; }
 .cell-stack {
   display: grid;
   gap: 0.35rem;
@@ -495,6 +508,13 @@
 }
 
 .mobile-open span {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+.mobile-cont {
+  display: flex;
+  align-items: center;
+  min-height: 3rem;
   color: var(--color-text-secondary);
   font-size: 0.9rem;
 }

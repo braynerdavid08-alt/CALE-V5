@@ -77,7 +77,7 @@
                 @let status = boardStatus(lesson);
                 <tr [attr.data-status]="status">
                   <td class="time">
-                    {{ lesson.startTime.slice(0, 5) }}–{{ lesson.endTime.slice(0, 5) }}
+                    {{ lessonWindow(lesson) }}
                   </td>
                   <td>
                     <strong>{{ lesson.vehicleLabel }}</strong>

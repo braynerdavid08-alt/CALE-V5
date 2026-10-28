@@ -74,41 +74,108 @@ export interface PracticalAttendanceRowDto {
   reservationId: number;
 }
 
+export type PracticalDurationHours = 1 | 2;
+
 export interface TimeSlot {
   start: string;
+  /** Internal exclusive-safe end (e.g. 2h from 14:00 → 15:59). */
   end: string;
+  /** Human label using wall-clock end (e.g. 14:00 – 16:00). */
   label: string;
+  durationHours: PracticalDurationHours;
 }
 
-function buildTwoHourSlot(startHour: number): TimeSlot {
-  const start = `${String(startHour).padStart(2, '0')}:00`;
-  const end = startHour >= 22 ? '23:59' : `${String(startHour + 2).padStart(2, '0')}:59`;
-  return { start, end, label: `${start} – ${end}` };
+function pad2(n: number): string {
+  return String(n).padStart(2, '0');
 }
 
-/** Bloques de 2 horas, igual que clases teóricas: 06:00 hasta 22:00 (fin 23:59). */
-export const PRACTICAL_TIME_SLOTS: TimeSlot[] = [6, 8, 10, 12, 14, 16, 18, 20, 22].map(
-  buildTwoHourSlot
-);
+export function parseHour(value: string): number {
+  return Number(value.slice(0, 2));
+}
+
+/**
+ * Internal end: last minute of the occupied block so the next hour stays free.
+ * 14:00 + 2h → 15:59 (never touches 16:00).
+ */
+export function practicalInternalEnd(startHour: number, durationHours: PracticalDurationHours): string {
+  const lastOccupiedHour = startHour + durationHours - 1;
+  if (lastOccupiedHour >= 23) {
+    return '23:59';
+  }
+  return `${pad2(lastOccupiedHour)}:59`;
+}
+
+/** Visible end on the clock (14:00 + 2h → 16:00). */
+export function practicalDisplayEnd(startHour: number, durationHours: PracticalDurationHours): string {
+  const endHour = startHour + durationHours;
+  if (endHour >= 24) {
+    return '24:00';
+  }
+  return `${pad2(endHour)}:00`;
+}
+
+export function buildPracticalSlot(
+  startHour: number,
+  durationHours: PracticalDurationHours
+): TimeSlot {
+  const start = `${pad2(startHour)}:00`;
+  const end = practicalInternalEnd(startHour, durationHours);
+  const displayEnd = practicalDisplayEnd(startHour, durationHours);
+  return { start, end, label: `${start} – ${displayEnd}`, durationHours };
+}
+
+/** Hourly starts for the school grid / pickers: 06:00 … 22:00. */
+export const PRACTICAL_START_HOURS: number[] = Array.from({ length: 17 }, (_, i) => 6 + i);
 
 export const PRACTICAL_MAX_DAILY_HOURS = 8;
 
+/** @deprecated Prefer buildPracticalSlot(start, duration). Kept for callers that still import the name. */
+export const PRACTICAL_TIME_SLOTS: TimeSlot[] = PRACTICAL_START_HOURS.map((h) =>
+  buildPracticalSlot(h, 2)
+);
+
 export function slotDurationHours(slot: TimeSlot): number {
-  const [sh, sm] = slot.start.split(':').map(Number);
-  const [eh, em] = slot.end.split(':').map(Number);
-  const startMinutes = sh * 60 + sm;
-  const endMinutes = eh * 60 + em;
-  return (endMinutes - startMinutes + (em === 59 ? 1 : 0)) / 60;
+  return slot.durationHours;
+}
+
+function exclusiveEndMinutes(endTime: string): number {
+  const [eh, em] = endTime.slice(0, 5).split(':').map(Number);
+  if (em === 59) {
+    return (eh + 1) * 60;
+  }
+  return eh * 60 + em;
 }
 
 export function lessonDurationHours(lesson: PracticalLessonSessionDto): number {
-  const start = lesson.startTime.slice(0, 5);
-  const end = lesson.endTime.slice(0, 5);
-  const [sh, sm] = start.split(':').map(Number);
-  const [eh, em] = end.split(':').map(Number);
+  const [sh, sm] = lesson.startTime.slice(0, 5).split(':').map(Number);
   const startMinutes = sh * 60 + sm;
-  const endMinutes = eh * 60 + em;
-  return (endMinutes - startMinutes + (em === 59 ? 1 : 0)) / 60;
+  const endExclusive = exclusiveEndMinutes(lesson.endTime);
+  return Math.max(0, (endExclusive - startMinutes) / 60);
+}
+
+/** Wall-clock range for UI: 14:00 – 16:00 (even if stored end is 15:59). */
+export function formatLessonWindow(lesson: Pick<PracticalLessonSessionDto, 'startTime' | 'endTime'>): string {
+  const start = lesson.startTime.slice(0, 5);
+  const startHour = parseHour(start);
+  const duration = lessonDurationHours(lesson as PracticalLessonSessionDto);
+  const hours = (duration === 1 || duration === 2 ? duration : Math.round(duration)) as number;
+  const displayEnd =
+    hours === 1 || hours === 2
+      ? practicalDisplayEnd(startHour, hours as PracticalDurationHours)
+      : (() => {
+          const endExclusive = exclusiveEndMinutes(lesson.endTime);
+          return `${pad2(Math.floor(endExclusive / 60))}:${pad2(endExclusive % 60)}`;
+        })();
+  return `${start} – ${displayEnd}`;
+}
+
+/** True when a lesson occupies the hour row (e.g. 2h from 14:00 covers 14:00 and 15:00). */
+export function lessonCoversStart(lesson: PracticalLessonSessionDto, hourStart: string): boolean {
+  const [sh, sm] = lesson.startTime.slice(0, 5).split(':').map(Number);
+  const hour = parseHour(hourStart) * 60;
+  const start = sh * 60 + sm;
+  const endExclusive = exclusiveEndMinutes(lesson.endTime);
+  return hour >= start && hour < endExclusive;
 }
 
 @Injectable({ providedIn: 'root' })
