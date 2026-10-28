@@ -179,7 +179,12 @@ import { PublicShopDto, PublicShopProductDto, SHOP_CATEGORIES } from './shop.mod
     .hero-scrim {
       position: absolute;
       inset: 0;
-      background: linear-gradient(180deg, rgba(8, 16, 12, 0.2), rgba(8, 16, 12, 0.82));
+      background: linear-gradient(
+        105deg,
+        rgba(8, 16, 12, 0.88) 0%,
+        rgba(8, 16, 12, 0.55) 48%,
+        rgba(8, 16, 12, 0.28) 100%
+      );
     }
     .hero-copy {
       position: relative;
@@ -188,6 +193,8 @@ import { PublicShopDto, PublicShopProductDto, SHOP_CATEGORIES } from './shop.mod
       max-width: 40rem;
       display: grid;
       gap: 0.65rem;
+      /* Force light text: global h1 uses --color-text and goes dark in day mode */
+      color: #f4faf6;
     }
     .eyebrow {
       margin: 0;
@@ -195,16 +202,17 @@ import { PublicShopDto, PublicShopProductDto, SHOP_CATEGORIES } from './shop.mod
       font-weight: 800;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: color-mix(in srgb, var(--color-primary) 70%, white);
+      color: #86efac;
     }
-    h1 {
+    .hero-copy h1 {
       margin: 0;
       font-size: clamp(1.65rem, 3.2vw, 2.35rem);
       line-height: 1.15;
+      color: #f4faf6;
     }
     .lead {
       margin: 0;
-      color: rgba(244, 250, 246, 0.88);
+      color: rgba(244, 250, 246, 0.9);
       line-height: 1.45;
     }
     .hero-actions {
