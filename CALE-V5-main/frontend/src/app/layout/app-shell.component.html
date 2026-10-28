@@ -38,7 +38,7 @@
           <p class="nav-hint">Debes actualizar tu clave temporal antes de usar el resto de Luz Verde.</p>
         } @else {
           @for (item of items; track item.label + (item.path || ''); let i = $index) {
-            @if (item.section && item.section !== items[i - 1]?.section) {
+            @if (item.section && (i === 0 || item.section !== items[i - 1].section)) {
               <p class="nav-section" role="presentation">{{ item.section }}</p>
             }
             @if (item.children?.length) {

@@ -849,6 +849,10 @@ export class SchoolTheoryPage implements OnInit {
     });
   }
 
+  formatSessionLabel(s: TheoryClassSessionDto): string {
+    return `${s.sessionDate} · ${s.startTime.slice(0, 5)} · ${s.topicName} · ${s.classroomName}`;
+  }
+
   sessionsAt(dayIndex: number, start: string): TheoryClassSessionDto[] {
     const sch = this.schedule();
     if (!sch) {
