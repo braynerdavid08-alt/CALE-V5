@@ -211,6 +211,14 @@ export class AppShellComponent implements OnInit {
     if (!item.path) {
       return false;
     }
+    // One menu entry covers theory / exam / practical day boards.
+    if (item.path === '/school/attendance') {
+      return (
+        path === '/school/attendance'
+        || path === '/school/exam-control'
+        || path === '/school/practical-fleet'
+      );
+    }
     const pathOk = item.exact
       ? path === item.path
       : path === item.path || path.startsWith(item.path + '/');

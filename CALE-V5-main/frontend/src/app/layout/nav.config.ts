@@ -149,7 +149,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
         section: seguimiento
       },
       {
-        label: 'Asistencia',
+        label: 'Operación de hoy',
         path: '/school/attendance',
         icon: 'list',
         exact: true,
@@ -174,13 +174,6 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
         label: 'Instructores y usuarios',
         path: '/school/users',
         icon: 'instructor',
-        exact: true,
-        section: administracion
-      },
-      {
-        label: 'Vehículos de hoy',
-        path: '/school/practical-fleet',
-        icon: 'play',
         exact: true,
         section: administracion
       },

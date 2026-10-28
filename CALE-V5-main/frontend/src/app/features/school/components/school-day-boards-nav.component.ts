@@ -12,14 +12,14 @@ export type SchoolDayBoard = 'attendance' | 'exam' | 'fleet';
   standalone: true,
   imports: [RouterLink, RouterLinkActive],
   template: `
-    <nav class="school-tabs day-boards-nav" aria-label="Tableros del día">
+    <nav class="school-tabs day-boards-nav" aria-label="Operación de hoy">
       <a
         class="tab-link"
         routerLink="/school/attendance"
         routerLinkActive="on"
         [routerLinkActiveOptions]="{ exact: true }"
         [attr.aria-current]="active === 'attendance' ? 'page' : null">
-        Asistencia de hoy
+        Teoría
       </a>
       <a
         class="tab-link"
@@ -27,7 +27,7 @@ export type SchoolDayBoard = 'attendance' | 'exam' | 'fleet';
         routerLinkActive="on"
         [routerLinkActiveOptions]="{ exact: true }"
         [attr.aria-current]="active === 'exam' ? 'page' : null">
-        Examen en curso
+        Examen
       </a>
       <a
         class="tab-link"
@@ -35,7 +35,7 @@ export type SchoolDayBoard = 'attendance' | 'exam' | 'fleet';
         routerLinkActive="on"
         [routerLinkActiveOptions]="{ exact: true }"
         [attr.aria-current]="active === 'fleet' ? 'page' : null">
-        Vehículos de hoy
+        Manejo
       </a>
     </nav>
   `,

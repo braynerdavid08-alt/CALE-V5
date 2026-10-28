@@ -2,7 +2,6 @@ import { forkJoin } from 'rxjs';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { RouterLink } from '@angular/router';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
@@ -13,7 +12,6 @@ import {
   PRACTICAL_MAX_DAILY_HOURS,
   PRACTICAL_TIME_SLOTS,
   PracticalApi,
-  PracticalAttendanceRowDto,
   PracticalLessonSessionDto,
   PracticalSchedulingStudentDto,
   PracticalVehicleDto,
@@ -40,7 +38,6 @@ interface PickerCell {
   standalone: true,
   imports: [
     FormsModule,
-    RouterLink,
     UiButtonComponent,
     UiErrorComponent,
     UiLoadingComponent,
@@ -61,7 +58,6 @@ export class SchoolPracticalPage implements OnInit {
   readonly gridLoading = signal(false);
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
-  readonly tab = signal<'schedule' | 'attendance'>('schedule');
   readonly vehicles = signal<PracticalVehicleDto[]>([]);
   readonly lessons = signal<PracticalLessonSessionDto[]>([]);
   readonly teachers = signal<MemberRow[]>([]);
@@ -73,11 +69,6 @@ export class SchoolPracticalPage implements OnInit {
   readonly picker = signal<PickerCell | null>(null);
   readonly studentSearch = signal('');
   readonly mobileDay = signal(this.defaultMobileDay());
-
-  readonly attendanceLessons = signal<PracticalLessonSessionDto[]>([]);
-  readonly selectedAttendanceLessonId = signal<number | null>(null);
-  readonly attendanceRows = signal<PracticalAttendanceRowDto[]>([]);
-  readonly attendanceLoading = signal(false);
 
   vehicleForm = { label: '', plate: '', isActive: true };
 
@@ -113,13 +104,6 @@ export class SchoolPracticalPage implements OnInit {
 
   ngOnInit(): void {
     this.reload();
-  }
-
-  setTab(value: 'schedule' | 'attendance'): void {
-    this.tab.set(value);
-    if (value === 'attendance') {
-      this.loadAttendanceLessons();
-    }
   }
 
   reload(): void {
@@ -397,73 +381,6 @@ export class SchoolPracticalPage implements OnInit {
         this.error.set(mapApiError(err));
       }
     });
-  }
-
-  loadAttendanceLessons(): void {
-    this.attendanceLoading.set(true);
-    this.api.listAttendanceLessons().subscribe({
-      next: (sessions) => {
-        this.attendanceLessons.set(sessions);
-        const current = this.selectedAttendanceLessonId();
-        if (!current && sessions.length) {
-          this.selectAttendanceLesson(sessions[0].id);
-        } else if (current) {
-          this.loadAttendanceRows(current);
-        } else {
-          this.attendanceLoading.set(false);
-        }
-      },
-      error: (err) => {
-        this.attendanceLoading.set(false);
-        this.error.set(mapApiError(err));
-      }
-    });
-  }
-
-  selectAttendanceLesson(id: number): void {
-    this.selectedAttendanceLessonId.set(id);
-    this.loadAttendanceRows(id);
-  }
-
-  loadAttendanceRows(lessonId: number): void {
-    this.attendanceLoading.set(true);
-    this.api.listAttendance(lessonId).subscribe({
-      next: (rows) => {
-        this.attendanceRows.set(rows);
-        this.attendanceLoading.set(false);
-      },
-      error: (err) => {
-        this.attendanceLoading.set(false);
-        this.error.set(mapApiError(err));
-      }
-    });
-  }
-
-  markAttendance(row: PracticalAttendanceRowDto, status: string): void {
-    const lessonId = this.selectedAttendanceLessonId();
-    if (!lessonId) {
-      return;
-    }
-    this.api.markAttendance(lessonId, row.studentUserId, status).subscribe({
-      next: () => this.loadAttendanceRows(lessonId),
-      error: (err) => this.error.set(mapApiError(err))
-    });
-  }
-
-  markAllPresent(): void {
-    const lessonId = this.selectedAttendanceLessonId();
-    const rows = this.attendanceRows();
-    if (!lessonId || !rows.length) {
-      return;
-    }
-    this.api.markAllPresent(lessonId, rows).subscribe({
-      next: () => this.loadAttendanceRows(lessonId),
-      error: (err) => this.error.set(mapApiError(err))
-    });
-  }
-
-  lessonLabel(lesson: PracticalLessonSessionDto): string {
-    return `${lesson.sessionDate} · ${lesson.startTime.slice(0, 5)} – ${lesson.endTime.slice(0, 5)}`;
   }
 
   studentProgressLabel(student: PracticalSchedulingStudentDto): string {
