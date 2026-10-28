@@ -9,6 +9,15 @@
           · {{ o.apprenticeCount }} en expediente
         }
       </p>
+      @if (!free()) {
+        <p class="easy-status">
+          Plan {{ p.planLabel }}
+          <ui-badge [tone]="statusTone(p.displayStatus || p.subscriptionStatus)">
+            {{ statusLabel(p.displayStatus || p.subscriptionStatus) }}
+          </ui-badge>
+          · {{ p.daysRemaining }} {{ p.daysRemaining === 1 ? 'día restante' : 'días restantes' }}
+        </p>
+      }
     }
   </header>
 
@@ -27,14 +36,30 @@
   @if (loading()) {
     <ui-loading />
   } @else {
-    <section aria-labelledby="primary-title">
-      <h2 id="primary-title" class="easy-title">Accesos principales</h2>
-      <nav class="easy-actions" aria-label="Accesos principales">
-        @for (a of primaryActions; track a.path + a.label) {
-          <a class="easy-action" [routerLink]="a.path" [queryParams]="a.query || null">
-            <span class="easy-emoji" aria-hidden="true">{{ a.emoji }}</span>
-            <strong>{{ a.label }}</strong>
-            <small>{{ a.hint }}</small>
+    <section class="easy-ops-section" aria-labelledby="ops-main-title">
+      <h2 id="ops-main-title" class="easy-title">Operación de la escuela</h2>
+      <nav class="easy-ops-grid" aria-label="Operación de la escuela">
+        @for (card of operationCards(); track card.key) {
+          <a
+            class="easy-op-card"
+            [routerLink]="card.path"
+            [queryParams]="card.query || null">
+            <span class="easy-op-top">
+              <span class="easy-emoji" aria-hidden="true">{{ card.emoji }}</span>
+              <span class="easy-op-arrow" aria-hidden="true">→</span>
+            </span>
+            <strong class="easy-op-label">{{ card.label }}</strong>
+            @if (card.metrics.length) {
+              <div class="easy-op-metrics">
+                @for (m of card.metrics; track m.label) {
+                  <p class="easy-op-metric">
+                    <span class="easy-op-value">{{ m.value }}</span>
+                    <span class="easy-op-metric-label">{{ m.label }}</span>
+                  </p>
+                }
+              </div>
+            }
+            <small class="easy-op-hint">{{ card.hint }}</small>
           </a>
         }
       </nav>
@@ -62,80 +87,62 @@
       }
     </section>
 
-    @if (ops(); as o) {
-      <section class="easy-panel" aria-labelledby="ops-title">
-        <h2 id="ops-title">Resumen de operación</h2>
-        <div class="easy-ops" role="list">
-          <a class="easy-op" role="listitem" routerLink="/school/apprentices">
-            <strong>{{ o.apprenticeCount }}</strong>
-            <span>Estudiantes</span>
-          </a>
-          <a class="easy-op" role="listitem" routerLink="/school/apprentices" [queryParams]="{ withBalance: true }">
-            <strong>{{ o.balancePendingCount }}</strong>
-            <span>Con saldo</span>
-          </a>
-          <a class="easy-op" role="listitem" routerLink="/school/theory-exams">
-            <strong>{{ o.examsNext7Days }}</strong>
-            <span>Exámenes (7 días)</span>
-          </a>
-          <a class="easy-op" role="listitem" routerLink="/school/training">
-            <strong>{{ o.readyForExamCount }}</strong>
-            <span>Listos para examen</span>
-          </a>
-          <a class="easy-op" role="listitem" routerLink="/school/practical">
-            <strong>{{ o.readyForPracticalCount }}</strong>
-            <span>Listos para manejo</span>
-          </a>
-          <a class="easy-op" role="listitem" routerLink="/school/apprentices" [queryParams]="{ pendingEnrollment: true }">
-            <strong>{{ o.pendingEnrollmentCount }}</strong>
-            <span>Sin enrolar</span>
-          </a>
-        </div>
-        @if (o.balancePendingTotal > 0) {
-          <p class="easy-text">
-            Cartera pendiente:
-            <strong>{{ formatMoney(o.balancePendingTotal) }}</strong>
-          </p>
-        }
-      </section>
-    }
-
     <section class="easy-panel" aria-labelledby="secondary-title">
       <h2 id="secondary-title">Más herramientas</h2>
-      <div class="easy-links">
-        @for (a of secondaryActions; track a.path + a.label) {
-          <a [routerLink]="a.path" [queryParams]="a.query || null">{{ a.emoji }} {{ a.label }}</a>
+      <div class="easy-tools">
+        <button
+          type="button"
+          class="easy-tool easy-tool-export"
+          [disabled]="exporting()"
+          (click)="exportApprenticesExcel()">
+          <span aria-hidden="true">📤</span>
+          <span>
+            <strong>Exportar a Excel</strong>
+            <small>Descargar expedientes de estudiantes</small>
+          </span>
+        </button>
+        @for (a of visibleSecondaryActions(); track a.path + a.label) {
+          <a
+            class="easy-tool"
+            [class.muted]="a.muted"
+            [routerLink]="a.path"
+            [queryParams]="a.query || null">
+            <span aria-hidden="true">{{ a.emoji }}</span>
+            <span>
+              <strong>{{ a.label }}</strong>
+              <small>{{ a.hint }}</small>
+            </span>
+          </a>
         }
       </div>
     </section>
 
     @if (profile(); as p) {
       @if (free()) {
-        <section class="easy-panel donate-panel">
+        <section class="easy-panel donate-panel easy-soft">
           <h2>Luz Verde es gratis para tu escuela</h2>
           <p class="easy-text">
-            Agrega todos los instructores y estudiantes que necesites, sin planes ni pagos.
+            Agrega instructores y estudiantes sin planes ni pagos.
             Si Luz Verde le sirve a tu escuela, puedes apoyarlo con una donación por Nequi.
           </p>
           <ui-button routerLink="/donaciones" type="button" variant="secondary">Apoyar Luz Verde</ui-button>
         </section>
       } @else {
-        <section class="easy-panel">
+        <section class="easy-panel easy-soft">
           <h2>Tu plan</h2>
           <p class="easy-text">
-            Plan {{ p.planLabel }}:
-            <ui-badge [tone]="statusTone(p.displayStatus || p.subscriptionStatus)">
-              {{ statusLabel(p.displayStatus || p.subscriptionStatus) }}
-            </ui-badge>
-            · {{ p.daysRemaining }} {{ p.daysRemaining === 1 ? 'día restante' : 'días restantes' }}
-            @if (p.membershipEndsAt) { · vence {{ p.membershipEndsAt | date:'mediumDate' }} }
+            Estudiantes {{ p.studentsUsed }}/{{ p.studentsMax }} · Instructores {{ p.teachersUsed }}/{{ p.teachersMax }}
+            @if (p.membershipEndsAt) {
+              · vence {{ p.membershipEndsAt | date:'mediumDate' }}
+            }
           </p>
-          <p class="easy-text">Estudiantes {{ p.studentsUsed }}/{{ p.studentsMax }} · Instructores {{ p.teachersUsed }}/{{ p.teachersMax }}</p>
           <ui-button routerLink="/school/membership" type="button" variant="secondary">Ver mi plan</ui-button>
         </section>
       }
     }
 
-    <app-shop-offers-widget title="Equipamiento y descuentos" [limit]="3" />
+    <div class="easy-soft-widget">
+      <app-shop-offers-widget title="Equipamiento y descuentos" [limit]="3" />
+    </div>
   }
 </section>

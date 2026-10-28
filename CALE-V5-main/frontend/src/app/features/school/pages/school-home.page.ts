@@ -37,6 +37,22 @@ interface EasyAction {
   hint: string;
   path: string;
   query?: Record<string, string | boolean>;
+  muted?: boolean;
+}
+
+interface OpMetric {
+  value: string;
+  label: string;
+}
+
+interface OpCard {
+  key: string;
+  emoji: string;
+  label: string;
+  hint: string;
+  path: string;
+  query?: Record<string, string | boolean>;
+  metrics: OpMetric[];
 }
 
 interface TodoItem {
@@ -77,47 +93,143 @@ export class SchoolHomePage implements OnInit {
   readonly profile = signal<SchoolProfileDto | null>(null);
   readonly ops = signal<SchoolOperationsDashboard | null>(null);
   readonly showAllTodos = signal(false);
+  readonly exporting = signal(false);
 
-  /** Primary ops: program, students, attendance, cartera — only existing modules. */
-  readonly primaryActions: EasyAction[] = [
+  /**
+   * Secondary tools only — never repeat Estudiantes / Programación / Cartera / Operación de hoy.
+   * Export is a real download (not Importar Excel).
+   */
+  readonly secondaryActions: EasyAction[] = [
+    { emoji: '🗓️', label: 'Agenda semanal', hint: 'Vista de la semana', path: '/school/agenda' },
     {
-      emoji: '📅',
-      label: 'Programar',
-      hint: 'Clases teóricas, exámenes y manejo',
-      path: '/school/training'
+      emoji: '📝',
+      label: 'Exámenes teóricos',
+      hint: 'Cupos y citas',
+      path: '/school/theory-exams'
     },
     {
-      emoji: '🎓',
-      label: 'Estudiantes',
-      hint: 'Expedientes, progreso y autorizaciones',
-      path: '/school/apprentices'
+      emoji: '⏰',
+      label: 'Crear horarios disponibles',
+      hint: 'Plantilla de cupos de examen',
+      path: '/school/theory-exams/schedule'
     },
+    { emoji: '🚗', label: 'Clases de manejo', hint: 'Programar prácticas y examen', path: '/school/practical' },
+    { emoji: '📊', label: 'Resultados', hint: 'Notas y progreso', path: '/school/results' },
+    { emoji: '👥', label: 'Instructores y usuarios', hint: 'Invitar y gestionar', path: '/school/users' },
+    { emoji: '📥', label: 'Importar expedientes', hint: 'Carga masiva Excel', path: '/school/import' },
+    { emoji: '💬', label: 'PQR y mis datos', hint: 'Solicitudes', path: '/mis-pqr', muted: true },
+    { emoji: '🛒', label: 'Tienda y equipamiento', hint: 'Cascos y equipo', path: '/tienda', muted: true },
+    { emoji: '💡', label: 'Proponer y sugerir', hint: 'Ideas para Luz Verde', path: '/solicitudes', muted: true },
     {
-      emoji: '✅',
-      label: 'Operación de hoy',
-      hint: 'Asistencia de teoría, examen y manejo',
-      path: '/school/attendance'
-    },
-    {
-      emoji: '💰',
-      label: 'Cartera',
-      hint: 'Quién debe y registro de pagos',
-      path: '/school/apprentices',
-      query: { withBalance: true }
+      emoji: '💚',
+      label: 'Apoyar Luz Verde',
+      hint: 'Donación voluntaria',
+      path: '/donaciones',
+      muted: true
     }
   ];
 
-  readonly secondaryActions: EasyAction[] = [
-    { emoji: '🗓️', label: 'Agenda semanal', hint: 'Consulta de la semana', path: '/school/agenda' },
-    { emoji: '📝', label: 'Programación de exámenes teóricos', hint: 'Cupos y citas de la semana', path: '/school/theory-exams' },
-    { emoji: '🚗', label: 'Clases de manejo', hint: 'Programar prácticas', path: '/school/practical' },
-    { emoji: '⏰', label: 'Crear horarios disponibles', hint: 'Días, horas y cupos recurrentes', path: '/school/theory-exams/schedule' },
-    { emoji: '📊', label: 'Resultados', hint: 'Notas y progreso', path: '/school/results' },
-    { emoji: '👥', label: 'Instructores y usuarios', hint: 'Invitar y gestionar', path: '/school/users' },
-    { emoji: '📥', label: 'Importar Excel', hint: 'Expedientes y exámenes', path: '/school/import' }
-  ];
+  readonly visibleSecondaryActions = computed(() => {
+    const free = this.free();
+    return this.secondaryActions.filter((a) => {
+      if (a.path === '/donaciones' && !free) {
+        return false;
+      }
+      return true;
+    });
+  });
 
-  /** Everything that needs attention, written as plain sentences with one action each. */
+  /** Four main cards: access + real KPIs from school dashboard / profile. */
+  readonly operationCards = computed<OpCard[]>(() => {
+    const o = this.ops();
+    const p = this.profile();
+    const today = this.todayKey();
+    const examsToday =
+      o?.upcomingExams?.filter((e) => e.examDate === today).length ?? null;
+
+    const studentsValue =
+      o?.apprenticeCount ?? p?.studentsUsed ?? null;
+    const balanceTotal = o?.balancePendingTotal ?? null;
+    const balanceCount = o?.balancePendingCount ?? null;
+    const examsWeek = o?.examsNext7Days ?? null;
+    const readyPractical = o?.readyForPracticalCount ?? null;
+
+    return [
+      {
+        key: 'students',
+        emoji: '🎓',
+        label: 'Estudiantes',
+        hint: 'Expedientes, progreso y autorizaciones',
+        path: '/school/apprentices',
+        metrics: studentsValue != null
+          ? [{ value: String(studentsValue), label: 'en expediente' }]
+          : []
+      },
+      {
+        key: 'program',
+        emoji: '📅',
+        label: 'Programación',
+        hint: 'Clases teóricas, exámenes y manejo',
+        path: '/school/agenda',
+        metrics: [
+          ...(examsWeek != null
+            ? [{ value: String(examsWeek), label: 'exámenes (7 días)' }]
+            : []),
+          ...(readyPractical != null && readyPractical > 0
+            ? [{ value: String(readyPractical), label: 'listos para manejo' }]
+            : [])
+        ]
+      },
+      {
+        key: 'cartera',
+        emoji: '💰',
+        label: 'Cartera',
+        hint: 'Quién debe y registro de pagos',
+        path: '/school/apprentices',
+        query: { withBalance: true },
+        metrics:
+          balanceTotal != null && balanceTotal > 0
+            ? [
+                { value: this.formatMoney(balanceTotal), label: 'pendiente' },
+                ...(balanceCount != null
+                  ? [{ value: String(balanceCount), label: 'con saldo' }]
+                  : [])
+              ]
+            : balanceCount != null
+              ? [{ value: String(balanceCount), label: 'con saldo' }]
+              : [{ value: 'Al día', label: 'sin saldos pendientes' }]
+      },
+      {
+        key: 'today',
+        emoji: '✅',
+        label: 'Operación de hoy',
+        hint: 'Asistencia, exámenes y clases en tiempo real',
+        path: '/school/attendance',
+        metrics: [
+          ...(examsToday != null
+            ? [{ value: String(examsToday), label: 'exámenes hoy' }]
+            : []),
+          ...(o?.noExamAppointmentCount != null && o.noExamAppointmentCount > 0
+            ? [
+                {
+                  value: String(o.noExamAppointmentCount),
+                  label: 'sin cita de examen'
+                }
+              ]
+            : []),
+          ...(o?.pendingEnrollmentCount != null && o.pendingEnrollmentCount > 0
+            ? [
+                {
+                  value: String(o.pendingEnrollmentCount),
+                  label: 'sin enrolar'
+                }
+              ]
+            : [])
+        ]
+      }
+    ];
+  });
+
   readonly todos = computed<TodoItem[]>(() => {
     const o = this.ops();
     if (!o) return [];
@@ -167,9 +279,10 @@ export class SchoolHomePage implements OnInit {
       items.push({
         key: 'practical',
         emoji: '🚗',
-        text: o.readyForPracticalCount === 1
-          ? '1 estudiante aprobó el examen teórico y puede empezar clases de manejo'
-          : `${o.readyForPracticalCount} estudiantes aprobaron el examen teórico y pueden empezar clases de manejo`,
+        text:
+          o.readyForPracticalCount === 1
+            ? '1 estudiante aprobó el examen teórico y puede empezar clases de manejo'
+            : `${o.readyForPracticalCount} estudiantes aprobaron el examen teórico y pueden empezar clases de manejo`,
         action: 'Programar',
         link: '/school/practical',
         tone: 'good'
@@ -179,9 +292,10 @@ export class SchoolHomePage implements OnInit {
       items.push({
         key: 'enroll',
         emoji: '📝',
-        text: o.pendingEnrollmentCount === 1
-          ? '1 estudiante está pendiente de enrolar'
-          : `${o.pendingEnrollmentCount} estudiantes están pendientes de enrolar`,
+        text:
+          o.pendingEnrollmentCount === 1
+            ? '1 estudiante está pendiente de enrolar'
+            : `${o.pendingEnrollmentCount} estudiantes están pendientes de enrolar`,
         action: 'Ver',
         link: '/school/apprentices',
         query: { pendingEnrollment: true },
@@ -224,6 +338,29 @@ export class SchoolHomePage implements OnInit {
     });
   }
 
+  exportApprenticesExcel(): void {
+    if (this.exporting()) {
+      return;
+    }
+    this.exporting.set(true);
+    this.error.set(null);
+    this.apprenticeApi.exportApprenticesXlsx().subscribe({
+      next: (blob) => {
+        this.exporting.set(false);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `estudiantes-luz-verde-${this.todayKey()}.xlsx`;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: (err) => {
+        this.exporting.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
   statusLabel(status: string): string {
     if (status === 'Active') return 'Activo';
     if (status === 'Expiring') return 'Por vencer';
@@ -241,13 +378,30 @@ export class SchoolHomePage implements OnInit {
     if (status === 'Active') return 'success';
     if (status === 'Expiring' || status === 'PendingPayment') return 'warning';
     if (status === 'UnderReview' || status === 'PaymentSubmitted') return 'primary';
-    if (status === 'Rejected' || status === 'Expired' || status === 'Suspended' || status === 'Cancelled') {
+    if (
+      status === 'Rejected' ||
+      status === 'Expired' ||
+      status === 'Suspended' ||
+      status === 'Cancelled'
+    ) {
       return 'danger';
     }
     return 'neutral';
   }
 
   formatMoney(value: number): string {
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value);
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      maximumFractionDigits: 0
+    }).format(value);
+  }
+
+  private todayKey(): string {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = `${d.getMonth() + 1}`.padStart(2, '0');
+    const day = `${d.getDate()}`.padStart(2, '0');
+    return `${y}-${m}-${day}`;
   }
 }
