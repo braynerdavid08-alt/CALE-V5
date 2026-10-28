@@ -7,7 +7,8 @@ import { mapApiError } from '../../../core/http/map-api-error';
 import {
   PracticalApi,
   PracticalLessonSessionDto,
-  PracticalStudentDashboardDto
+  PracticalStudentDashboardDto,
+  formatLessonWindow
 } from '../api/practical.api';
 
 @Component({
@@ -75,6 +76,10 @@ export class StudentPracticalPage implements OnInit {
   canReserve(session: PracticalLessonSessionDto): boolean {
     const elig = this.dashboard()?.eligibility;
     return !!elig?.canBookPractical && session.bookingState === 'can_reserve';
+  }
+
+  lessonWindow(session: PracticalLessonSessionDto): string {
+    return formatLessonWindow(session);
   }
 
   reserve(session: PracticalLessonSessionDto): void {

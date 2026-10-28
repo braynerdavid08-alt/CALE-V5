@@ -36,6 +36,19 @@
           }
         </select>
       </label>
+      <div class="filter duration-filter" role="group" aria-label="Duración de la clase">
+        <span>Duración</span>
+        <div class="create-mode duration-mode">
+          @for (d of durationChoices; track d.value) {
+            <button
+              type="button"
+              [class.on]="durationHours() === d.value"
+              (click)="setDurationHours(d.value)">
+              {{ d.label }}
+            </button>
+          }
+        </div>
+      </div>
       <ui-button type="button" variant="secondary" [loading]="saving()" (click)="duplicateWeek()">
         Copiar semana anterior
       </ui-button>
@@ -102,13 +115,17 @@
 
       <div class="fixed-fields">
         <label>
-          Bloque horario
+          Hora de inicio
           <select [(ngModel)]="fixedSlotStart" name="fixedSlot">
-            @for (slot of timeSlots; track slot.start) {
+            @for (slot of startHourOptions(); track slot.start) {
               <option [ngValue]="slot.start">{{ slot.label }}</option>
             }
           </select>
         </label>
+        <p class="tip fixed-tip">
+          Se guarda hasta el minuto :59 de la última hora (ej. 2 h desde las 14:00 → interno 14:00–15:59,
+          visible 14:00–16:00) para no ocupar las 16:00.
+        </p>
       </div>
 
       <div class="fixed-actions">
@@ -164,7 +181,7 @@
         <span>{{ selectedInstructorName() }} · {{ selectedVehicleLabel() }}</span>
       </header>
       <ul class="mobile-slot-list">
-        @for (slot of timeSlots; track slot.start) {
+        @for (slot of timeSlots(); track slot.start) {
           <li class="mobile-slot">
             <time>{{ slot.start }}</time>
             <div class="mobile-slot-body">
@@ -172,7 +189,7 @@
                 @if (lesson.assignment; as a) {
                   <div class="mobile-assigned" [class.done]="a.reservationStatus === 'Attended'">
                     <strong>{{ a.studentName }}</strong>
-                    <span>{{ a.licenseCategory }} · {{ a.lessonNumber }}/{{ a.lessonsRequired }}</span>
+                    <span>{{ lessonWindow(lesson) }} · {{ a.licenseCategory }} · {{ a.lessonNumber }}/{{ a.lessonsRequired }}</span>
                     <div class="cell-actions">
                       @if (a.reservationStatus === 'Reserved') {
                         <button type="button" (click)="markLessonPresent(lesson)">Presente</button>
@@ -183,20 +200,22 @@
                 } @else {
                   <div class="mobile-open">
                     <strong>Cupo libre</strong>
-                    <span>Listo para asignar o que el estudiante agende</span>
+                    <span>{{ lessonWindow(lesson) }} · listo para asignar o agendar</span>
                     <div class="cell-actions">
                       <button type="button" (click)="openPicker(mobileDay(), slot)">Asignar</button>
                       <button type="button" class="danger" (click)="cancelOpenLesson(lesson)">Quitar cupo</button>
                     </div>
                   </div>
                 }
+              } @else if (continuationLesson(mobileDay(), slot); as cont) {
+                <span class="mobile-cont">↳ {{ lessonWindow(cont) }}</span>
               } @else if (canPublishSlot(mobileDay(), slot)) {
                 <div class="mobile-empty-actions">
                   <button type="button" class="mobile-assign ghost" (click)="publishEmptySlot(mobileDay(), slot)">
-                    Publicar cupo
+                    Publicar cupo ({{ durationHours() }}h)
                   </button>
                   <button type="button" class="mobile-assign" (click)="openPicker(mobileDay(), slot)">
-                    + Asignar
+                    + Asignar ({{ durationHours() }}h)
                   </button>
                 </div>
               } @else {
@@ -219,7 +238,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (slot of timeSlots; track slot.start) {
+          @for (slot of timeSlots(); track slot.start) {
             <tr>
               <th class="time-col">{{ slot.start }}</th>
               @for (label of dayLabels; track label; let i = $index) {
@@ -229,7 +248,7 @@
                       <div class="cell assigned" [class.done]="a.reservationStatus === 'Attended'">
                         <span class="cat">{{ a.licenseCategory }}</span>
                         <strong>{{ a.studentName }}</strong>
-                        <small>{{ a.lessonNumber }}/{{ a.lessonsRequired }}</small>
+                        <small>{{ lessonWindow(lesson) }} · {{ a.lessonNumber }}/{{ a.lessonsRequired }}</small>
                         <div class="cell-actions">
                           @if (a.reservationStatus === 'Reserved') {
                             <button type="button" (click)="markLessonPresent(lesson)">Presente</button>
@@ -240,19 +259,23 @@
                     } @else {
                       <div class="cell open">
                         <strong>Cupo libre</strong>
-                        <small>Asignar o agendar</small>
+                        <small>{{ lessonWindow(lesson) }}</small>
                         <div class="cell-actions">
                           <button type="button" (click)="openPicker(i, slot)">Asignar</button>
                           <button type="button" class="danger" (click)="cancelOpenLesson(lesson)">Quitar</button>
                         </div>
                       </div>
                     }
+                  } @else if (continuationLesson(i, slot); as cont) {
+                    <div class="cell cont" title="{{ lessonWindow(cont) }}">↳ {{ lessonWindow(cont) }}</div>
                   } @else if (canPublishSlot(i, slot)) {
                     <div class="cell-stack">
                       <button type="button" class="cell empty ghost" (click)="publishEmptySlot(i, slot)">
-                        Publicar cupo
+                        Publicar {{ durationHours() }}h
                       </button>
-                      <button type="button" class="cell empty" (click)="openPicker(i, slot)">+ Asignar</button>
+                      <button type="button" class="cell empty" (click)="openPicker(i, slot)">
+                        + Asignar {{ durationHours() }}h
+                      </button>
                     </div>
                   } @else {
                     <span class="cell limit" title="Máximo {{ maxDailyHours }} horas por día">Límite {{ maxDailyHours }}h</span>
@@ -266,9 +289,9 @@
     </div>
 
     <p class="muted hint">
-      Publica cupos fijos (día, mes o año) o usa la grilla: <strong>Publicar cupo</strong> deja el horario libre
-      para que el estudiante agende; <strong>+ Asignar</strong> elige el estudiante desde la escuela.
-      Máximo {{ maxDailyHours }} horas por instructor y día. Asistencia del día: Operación de hoy → Manejo.
+      Elige <strong>1 hora</strong> o <strong>2 horas</strong>: se ve hasta la hora en punto (14:00–16:00) y se guarda
+      hasta :59 (14:00–15:59) para no ocupar la siguiente. Máximo {{ maxDailyHours }} h/instructor/día.
+      Asistencia: Operación de hoy → Manejo.
     </p>
   }
 }

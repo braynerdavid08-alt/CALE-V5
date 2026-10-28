@@ -9,7 +9,8 @@ import { pollWhileVisible } from '../../../core/rxjs/poll-while-visible';
 import {
   PracticalApi,
   PracticalLessonSessionDto,
-  PracticalVehicleDto
+  PracticalVehicleDto,
+  formatLessonWindow
 } from '../../practical/api/practical.api';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
@@ -182,6 +183,10 @@ export class SchoolPracticalFleetPage implements OnInit {
     }
     const cat = a.licenseCategory ? `${a.licenseCategory} · ` : '';
     return `${cat}${a.studentName} (${a.lessonNumber}/${a.lessonsRequired})`;
+  }
+
+  lessonWindow(lesson: PracticalLessonSessionDto): string {
+    return formatLessonWindow(lesson);
   }
 
   mark(lesson: PracticalLessonSessionDto, status: 'Present' | 'Absent'): void {
