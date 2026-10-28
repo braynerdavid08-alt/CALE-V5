@@ -24,7 +24,7 @@ export type TheoryExamsTab = 'programming' | 'schedule';
         routerLinkActive="on"
         [routerLinkActiveOptions]="{ exact: true }"
         [attr.aria-current]="active === 'schedule' ? 'page' : null">
-        Horarios disponibles
+        Crear horarios disponibles
       </a>
     </nav>
   `,

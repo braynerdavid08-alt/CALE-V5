@@ -129,7 +129,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
         children: [
           { label: 'Clases teóricas', path: '/school/training', exact: true },
           { label: 'Programación de exámenes teóricos', path: '/school/theory-exams', exact: true },
-          { label: 'Programar examen teórico', path: '/school/theory-exams/schedule', exact: true },
+          { label: 'Crear horarios disponibles', path: '/school/theory-exams/schedule', exact: true },
           { label: 'Clases de manejo', path: '/school/practical', exact: true }
         ]
       },
