@@ -57,13 +57,13 @@ public static class PracticalScheduleLimits
 /// <summary>
 /// Horas totales del programa de manejo por categoría (Colombia CEA).
 /// La última hora es el examen práctico; las demás son clases formativas.
-/// A2=15 (14 clases + examen), B1=20 (19+examen), C1=25 (24+examen).
+/// A2=15 (14 clases + examen), B1=20 (19+examen), C1=30 (29+examen).
 /// </summary>
 public static class PracticalLessonRequirements
 {
     public const int A2 = 15;
     public const int B1 = 20;
-    public const int C1 = 25;
+    public const int C1 = 30;
 
     public static int GetRequired(string? licenseCategories)
     {
