@@ -141,6 +141,21 @@
 
       <app-pwa-install-button variant="card" />
 
+      @if (role() === 'Student') {
+        <ui-card>
+          <h2>Guía de {{ mascotName }}</h2>
+          <p class="muted">
+            Vuelve a ver la introducción de Luz Verde. El progreso de la guía se guarda solo en este
+            dispositivo para tu cuenta.
+          </p>
+          <div class="row actions" style="margin-top: 0.85rem;">
+            <ui-button type="button" variant="secondary" (click)="replayTour()">
+              Repetir guía de {{ mascotName }}
+            </ui-button>
+          </div>
+        </ui-card>
+      }
+
       @if (role() === 'Teacher') {
         <ui-card>
           <h2>Directorio público de instructores</h2>

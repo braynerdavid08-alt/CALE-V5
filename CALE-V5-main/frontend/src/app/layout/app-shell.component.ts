@@ -41,6 +41,8 @@ import { UiTextSizeToggleComponent } from '../shared/ui/ui-text-size-toggle.comp
 import { TextSizeService } from '../core/theme/text-size.service';
 import { RequestsApi } from '../features/requests/api/requests.api';
 import { LegalBannerComponent } from '../features/legal/legal-banner.component';
+import { TourHostComponent } from '../shared/tour/tour-host.component';
+import { TourService } from '../core/tour/tour.service';
 import {
   NavBadge,
   NavChild,
@@ -65,7 +67,8 @@ const SIDEBAR_COLLAPSED_KEY = 'cale.sidebar.collapsed';
     UiMotivationComponent,
     UiThemeToggleComponent,
     UiTextSizeToggleComponent,
-    LegalBannerComponent
+    LegalBannerComponent,
+    TourHostComponent
   ],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.css'
@@ -73,6 +76,7 @@ const SIDEBAR_COLLAPSED_KEY = 'cale.sidebar.collapsed';
 export class AppShellComponent implements OnInit {
   readonly brand = BRAND;
   readonly session = inject(SessionStore);
+  readonly tour = inject(TourService);
   private readonly auth = inject(AuthFacade);
   private readonly router = inject(Router);
   private readonly notificationsApi = inject(NotificationsApi);

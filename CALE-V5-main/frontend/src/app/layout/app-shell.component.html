@@ -214,6 +214,7 @@
           <a
             class="student-profile-link"
             routerLink="/profile"
+            data-tour="student-profile"
             [attr.title]="session.user()?.name"
             [attr.aria-label]="'Mi perfil, ' + (session.user()?.name || '')">
             <span class="avatar" aria-hidden="true">
@@ -239,7 +240,7 @@
       </div>
     </header>
     <main class="content">
-      @if (!mustChangePassword) {
+      @if (!mustChangePassword && !tour.active()) {
         <app-push-prompt />
       }
       @if (!isStudentShell) {
@@ -251,7 +252,10 @@
       <router-outlet />
     </main>
   </div>
-  @if (!mustChangePassword && (role === 'Student' || role === 'School')) {
+  @if (!mustChangePassword && (role === 'Student' || role === 'School') && !tour.active()) {
     <app-assistant-widget [role]="role" />
+  }
+  @if (role === 'Student' && !mustChangePassword) {
+    <app-tour-host />
   }
 </div>

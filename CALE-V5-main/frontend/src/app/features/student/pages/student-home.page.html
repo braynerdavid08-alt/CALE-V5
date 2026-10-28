@@ -1,4 +1,4 @@
-<section class="launcher">
+<section class="launcher" data-tour="student-panel">
   <app-next-step-banner [theory]="theory()" />
 
   <header class="hero">
@@ -20,10 +20,10 @@
         }
       </p>
       <div class="hero-actions">
-        <a class="btn-primary" routerLink="/student/play/daily">
+        <a class="btn-primary" routerLink="/student/play/daily" data-tour="student-daily">
           @if (summary()?.dailyCompleted) { Ver mi reto de hoy } @else { Jugar reto diario }
         </a>
-        <a class="btn-ghost" routerLink="/student/simulator">
+        <a class="btn-ghost" routerLink="/student/simulator" data-tour="student-simulator">
           <ui-icon name="exam" />
           Hacer simulacro
         </a>
@@ -92,7 +92,7 @@
   </section>
 
   @if (!session.user()?.schoolId) {
-    <section class="school-banner" role="status">
+    <section class="school-banner" role="status" data-tour="student-school">
       <span class="banner-icon" aria-hidden="true"><ui-icon name="building" /></span>
       <div>
         <strong>Vincula tu escuela</strong>
@@ -173,6 +173,7 @@
       <a
         class="tile"
         [attr.data-tone]="tile.tone"
+        [attr.data-tour]="tile.id === 'classes' ? 'student-school' : null"
         [routerLink]="tile.path"
         [attr.aria-label]="tile.label + '. ' + tile.hint">
         <span class="tile-icon" aria-hidden="true">

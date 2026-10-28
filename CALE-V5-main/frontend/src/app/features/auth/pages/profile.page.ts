@@ -22,6 +22,8 @@ import { AuthFacade } from '../application/auth.facade';
 import { PushSettingsComponent } from '../components/push-settings.component';
 import { ProfilePhotoComponent } from '../components/profile-photo.component';
 import { PwaInstallButtonComponent } from '../../../shared/pwa/pwa-install-button.component';
+import { TourService } from '../../../core/tour/tour.service';
+import { MASCOT_NAME } from '../../../core/tour/tour.types';
 import {
   SchoolInfo,
   SchoolInfoFormComponent
@@ -77,6 +79,8 @@ export class ProfilePage implements OnInit {
   readonly session = inject(SessionStore);
   readonly auth = inject(AuthFacade);
   readonly theme = inject(ThemeService);
+  private readonly tour = inject(TourService);
+  readonly mascotName = MASCOT_NAME;
   readonly roleLabel = roleLabel;
 
   readonly loading = signal(true);
@@ -408,6 +412,11 @@ export class ProfilePage implements OnInit {
   setTheme(mode: 'light' | 'dark'): void {
     this.theme.set(mode);
     this.success.set(`Tema cambiado a modo ${mode === 'dark' ? 'noche' : 'día'}.`);
+  }
+
+  replayTour(): void {
+    this.tour.replay();
+    void this.router.navigateByUrl('/student');
   }
 
   statusLabel(status: string): string {

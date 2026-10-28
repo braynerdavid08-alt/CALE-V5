@@ -9,6 +9,7 @@ import { PlayFxService } from '../../play/play-fx.service';
 import { NextStepBannerComponent } from '../components/next-step-banner.component';
 import { StudentTheoryApi, TheoryStudentDashboardDto } from '../api/student-theory.api';
 import { ShopOffersWidgetComponent } from '../../public/shop-offers-widget.component';
+import { TourService } from '../../../core/tour/tour.service';
 
 interface LauncherTile {
   id: string;
@@ -38,6 +39,7 @@ export class StudentHomePage implements OnInit {
   private readonly play = inject(PlayApi);
   private readonly fx = inject(PlayFxService);
   private readonly theoryApi = inject(StudentTheoryApi);
+  private readonly tour = inject(TourService);
 
   readonly summary = signal<PlaySummary | null>(null);
   readonly theory = signal<TheoryStudentDashboardDto | null>(null);
@@ -77,11 +79,13 @@ export class StudentHomePage implements OnInit {
         if (this.session.user()?.schoolId) {
           this.loadTheory();
         }
+        queueMicrotask(() => this.tour.maybeAutoStart());
       },
       error: () => {
         if (this.session.user()?.schoolId) {
           this.loadTheory();
         }
+        queueMicrotask(() => this.tour.maybeAutoStart());
       }
     });
   }
