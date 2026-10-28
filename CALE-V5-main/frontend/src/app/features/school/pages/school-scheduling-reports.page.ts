@@ -38,10 +38,10 @@ interface SchedulingReportsStatus {
 
     @if (loading()) {
       <ui-loading />
-    } @else if (status(); as s) {
+    } @else if (status()) {
       <section class="sr-banner" role="status">
-        <p class="sr-banner__eyebrow">{{ s.activationMessage }}</p>
-        <p class="sr-banner__copy">{{ s.pendingCopy }}</p>
+        <p class="sr-banner__eyebrow">{{ status()!.activationMessage }}</p>
+        <p class="sr-banner__copy">{{ status()!.pendingCopy }}</p>
       </section>
 
       <section class="sr-panel">
@@ -53,19 +53,19 @@ interface SchedulingReportsStatus {
           <button
             type="button"
             class="btn primary"
-            [disabled]="!s.allowManualDownload || downloading()"
+            [disabled]="!status()!.allowManualDownload || downloading()"
             (click)="downloadToday()">
             {{ downloading() === 'today' ? 'Generando…' : 'Solicitar reporte de hoy' }}
           </button>
           <button
             type="button"
             class="btn"
-            [disabled]="!s.allowManualDownload || downloading()"
+            [disabled]="!status()!.allowManualDownload || downloading()"
             (click)="downloadTomorrow()">
             {{ downloading() === 'tomorrow' ? 'Generando…' : 'Reporte de mañana' }}
           </button>
         </div>
-        @if (!s.allowManualDownload) {
+        @if (!status()!.allowManualDownload) {
           <p class="sr-muted">La descarga manual está deshabilitada en el servidor.</p>
         }
       </section>
@@ -92,7 +92,7 @@ interface SchedulingReportsStatus {
             <span class="sr-tag">Pendiente de activación</span>
           </li>
         </ul>
-        <p class="sr-muted">{{ s.scheduleInfo.note }}</p>
+        <p class="sr-muted">{{ status()!.scheduleInfo.note }}</p>
       </section>
     }
   `,
