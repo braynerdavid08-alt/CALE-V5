@@ -115,8 +115,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
   }
 
   if (role === 'School') {
-    // Flat menu with everyday words: school owners are often older and less used to apps.
-    // Order: Inicio → formación → seguimiento → administración → complementarias.
+    // Order: Inicio → formación (agenda / teoría / manejo) → seguimiento → administración → complementarias.
     const formacion = 'Formación y programación';
     const seguimiento = 'Seguimiento académico';
     const administracion = 'Administración';
@@ -131,9 +130,26 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
         section: formacion,
         emphasize: true
       },
-      { label: 'Clases teóricas', path: '/school/training', icon: 'clock', exact: true, section: formacion },
-      { label: 'Exámenes', path: '/school/theory-exams', icon: 'exam', exact: true, section: formacion },
-      { label: 'Clases de manejo', path: '/school/practical', icon: 'play', exact: true, section: formacion },
+      {
+        label: 'Teoría',
+        icon: 'clock',
+        section: formacion,
+        children: [
+          { label: 'Clases teóricas', path: '/school/training', exact: true },
+          { label: 'Exámenes teóricos', path: '/school/theory-exams', exact: true },
+          { label: 'Horarios de examen', path: '/school/theory-exams/schedule', exact: true },
+          { label: 'Examen en curso', path: '/school/exam-control', exact: true }
+        ]
+      },
+      {
+        label: 'Manejo',
+        icon: 'play',
+        section: formacion,
+        children: [
+          { label: 'Clases de manejo', path: '/school/practical', exact: true },
+          { label: 'Vehículos de hoy', path: '/school/practical-fleet', exact: true }
+        ]
+      },
       { label: 'Estudiantes', path: '/school/apprentices', icon: 'graduate', exact: true, section: seguimiento },
       { label: 'Asistencia de hoy', path: '/school/attendance', icon: 'list', exact: true, section: seguimiento },
       { label: 'Resultados', path: '/school/results', icon: 'chart', exact: true, section: seguimiento },
@@ -160,9 +176,6 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
         icon: 'grid',
         section: otras,
         children: [
-          { label: 'Horarios de examen', path: '/school/theory-exams/schedule', exact: true },
-          { label: 'Examen en curso', path: '/school/exam-control', exact: true },
-          { label: 'Vehículos de hoy', path: '/school/practical-fleet', exact: true },
           { label: 'Importar expedientes', path: '/school/import', exact: true },
           { label: 'Ver preguntas', path: '/school/questions', exact: true },
           { label: 'Ver bancos de preguntas', path: '/school/banks', exact: true }

@@ -1,8 +1,14 @@
 <section class="xe-page">
   <header class="xe-head page-banner">
     <h1>Agenda de la semana</h1>
-    <p class="xe-lead">Todo lo que pasa en tu escuela esta semana: clases teóricas, clases de manejo y exámenes.</p>
+    <p class="xe-lead">Consulta lo programado: clases teóricas, clases de manejo y exámenes teóricos. Para crear o editar, usa los accesos de abajo.</p>
   </header>
+
+  <nav class="xe-actions" aria-label="Programar actividades">
+    <a class="xe-btn primary" routerLink="/school/training">Clases teóricas</a>
+    <a class="xe-btn" routerLink="/school/practical">Clases de manejo</a>
+    <a class="xe-btn" routerLink="/school/theory-exams">Exámenes teóricos</a>
+  </nav>
 
   <div class="xe-weeknav">
     <h2>{{ weekLabel() }}</h2>
@@ -30,10 +36,11 @@
       <div class="xe-empty">
         <span class="xe-empty-emoji" aria-hidden="true">📭</span>
         <h2>No hay nada programado esta semana</h2>
-        <p>Cuando programes clases o exámenes, aparecerán aquí.</p>
+        <p>Cuando programes clases o exámenes teóricos, aparecerán aquí.</p>
         <div class="xe-actions">
           <a class="xe-btn primary" routerLink="/school/training">Programar clases teóricas</a>
-          <a class="xe-btn" routerLink="/school/theory-exams">Ver exámenes</a>
+          <a class="xe-btn" routerLink="/school/practical">Programar clases de manejo</a>
+          <a class="xe-btn" routerLink="/school/theory-exams">Ver exámenes teóricos</a>
         </div>
       </div>
     } @else {
