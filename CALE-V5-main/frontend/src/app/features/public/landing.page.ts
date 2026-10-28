@@ -85,6 +85,7 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                       <ui-button [routerLink]="accountPath()">Mi cuenta</ui-button>
                     } @else {
                       <ui-button routerLink="/login">Iniciar sesión</ui-button>
+                      <ui-button routerLink="/register" variant="secondary">Crear cuenta</ui-button>
                     }
                     <ui-button routerLink="/tienda">Explorar tienda</ui-button>
                     <a class="ghost-btn" routerLink="/contacto">
