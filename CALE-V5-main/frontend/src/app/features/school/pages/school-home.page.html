@@ -1,15 +1,20 @@
 <section class="easy">
   <header class="easy-hello">
-    <p class="easy-kicker">Hola 👋</p>
+    <p class="easy-kicker">Escuela</p>
     <h1>{{ profile()?.legalName || 'Tu escuela' }}</h1>
     @if (profile(); as p) {
-      <p class="easy-sub">{{ p.studentsUsed }} estudiantes · {{ p.teachersUsed }} instructores</p>
+      <p class="easy-sub">
+        {{ p.studentsUsed }} estudiantes · {{ p.teachersUsed }} instructores
+        @if (ops(); as o) {
+          · {{ o.apprenticeCount }} en expediente
+        }
+      </p>
     }
   </header>
 
   @if (profile()?.pendingApproval) {
     <section class="easy-panel easy-pending" role="status">
-      <h2>⏳ Escuela pendiente de aprobación</h2>
+      <h2>Escuela pendiente de aprobación</h2>
       <p class="easy-text">
         Luz Verde está revisando los datos de tu escuela. Mientras tanto no puedes invitar instructores
         ni estudiantes, y tu escuela no aparece en la página pública. Te avisaremos cuando quede aprobada.
@@ -17,26 +22,28 @@
     </section>
   }
 
-  <h2 class="easy-title">¿Qué quieres hacer hoy?</h2>
-  <nav class="easy-actions" aria-label="Tareas principales">
-    @for (a of actions; track a.path + a.label) {
-      <a class="easy-action" [routerLink]="a.path" [queryParams]="a.query || null">
-        <span class="easy-emoji" aria-hidden="true">{{ a.emoji }}</span>
-        <strong>{{ a.label }}</strong>
-        <small>{{ a.hint }}</small>
-      </a>
-    }
-  </nav>
-
   <ui-error [message]="error()" />
 
   @if (loading()) {
     <ui-loading />
   } @else {
+    <section aria-labelledby="primary-title">
+      <h2 id="primary-title" class="easy-title">Accesos principales</h2>
+      <nav class="easy-actions" aria-label="Accesos principales">
+        @for (a of primaryActions; track a.path + a.label) {
+          <a class="easy-action" [routerLink]="a.path" [queryParams]="a.query || null">
+            <span class="easy-emoji" aria-hidden="true">{{ a.emoji }}</span>
+            <strong>{{ a.label }}</strong>
+            <small>{{ a.hint }}</small>
+          </a>
+        }
+      </nav>
+    </section>
+
     <section class="easy-panel" aria-labelledby="todo-title">
-      <h2 id="todo-title">Pendientes de hoy</h2>
+      <h2 id="todo-title">Pendientes</h2>
       @if (!todos().length) {
-        <p class="easy-done">✅ Todo al día. No hay nada pendiente.</p>
+        <p class="easy-done">Todo al día. No hay nada pendiente.</p>
       } @else {
         <ul class="easy-todos">
           @for (t of visibleTodos(); track t.key) {
@@ -53,6 +60,53 @@
           </button>
         }
       }
+    </section>
+
+    @if (ops(); as o) {
+      <section class="easy-panel" aria-labelledby="ops-title">
+        <h2 id="ops-title">Resumen de operación</h2>
+        <div class="easy-ops" role="list">
+          <a class="easy-op" role="listitem" routerLink="/school/apprentices">
+            <strong>{{ o.apprenticeCount }}</strong>
+            <span>Estudiantes</span>
+          </a>
+          <a class="easy-op" role="listitem" routerLink="/school/apprentices" [queryParams]="{ withBalance: true }">
+            <strong>{{ o.balancePendingCount }}</strong>
+            <span>Con saldo</span>
+          </a>
+          <a class="easy-op" role="listitem" routerLink="/school/theory-exams">
+            <strong>{{ o.examsNext7Days }}</strong>
+            <span>Exámenes (7 días)</span>
+          </a>
+          <a class="easy-op" role="listitem" routerLink="/school/training">
+            <strong>{{ o.readyForExamCount }}</strong>
+            <span>Listos para examen</span>
+          </a>
+          <a class="easy-op" role="listitem" routerLink="/school/practical">
+            <strong>{{ o.readyForPracticalCount }}</strong>
+            <span>Listos para manejo</span>
+          </a>
+          <a class="easy-op" role="listitem" routerLink="/school/apprentices" [queryParams]="{ pendingEnrollment: true }">
+            <strong>{{ o.pendingEnrollmentCount }}</strong>
+            <span>Sin enrolar</span>
+          </a>
+        </div>
+        @if (o.balancePendingTotal > 0) {
+          <p class="easy-text">
+            Cartera pendiente:
+            <strong>{{ formatMoney(o.balancePendingTotal) }}</strong>
+          </p>
+        }
+      </section>
+    }
+
+    <section class="easy-panel" aria-labelledby="secondary-title">
+      <h2 id="secondary-title">Más herramientas</h2>
+      <div class="easy-links">
+        @for (a of secondaryActions; track a.path + a.label) {
+          <a [routerLink]="a.path" [queryParams]="a.query || null">{{ a.emoji }} {{ a.label }}</a>
+        }
+      </div>
     </section>
 
     @if (profile(); as p) {
@@ -81,18 +135,6 @@
         </section>
       }
     }
-
-    <section class="easy-panel">
-      <h2>Otras opciones</h2>
-      <div class="easy-links">
-        <a routerLink="/school/agenda">🗓️ Agenda de la semana</a>
-        <a routerLink="/school/theory-exams/schedule">⏰ Horarios de examen</a>
-        <a routerLink="/school/import">📥 Importar expedientes desde Excel</a>
-        <a routerLink="/school/exam-control">🖥️ Examen en curso</a>
-        <a routerLink="/school/practical-fleet">🚗 Vehículos de hoy</a>
-        <a routerLink="/school/users">👥 Instructores y usuarios</a>
-      </div>
-    </section>
 
     <app-shop-offers-widget title="Equipamiento y descuentos" [limit]="3" />
   }
