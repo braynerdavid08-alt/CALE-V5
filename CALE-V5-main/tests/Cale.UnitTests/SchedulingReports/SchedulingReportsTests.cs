@@ -161,6 +161,25 @@ public sealed class SchedulingReportsTests
         Assert.Equal("3001112233", sheet.Cell(2, 13).GetString());
         Assert.Equal("Reserved", sheet.Cell(2, 14).GetString());
         Assert.Contains("2026-10-27", sheet.Cell(2, 10).GetString(), StringComparison.Ordinal);
+        Assert.Equal("Normas · Aula 1", sheet.Cell(2, 4).GetString());
+    }
+
+    [Fact]
+    public void Generator_inserts_blank_row_between_time_slots()
+    {
+        var items = new List<AgendaItemDto>
+        {
+            new("theory", 1, "2026-10-28", "08:00", "09:59", "Normas", "Ana", "Scheduled", 20, 0, 20, []),
+            new("theory", 2, "2026-10-28", "10:00", "11:59", "Señales", "Ana", "Scheduled", 20, 0, 20, [])
+        };
+
+        var bytes = SchedulingReportGenerator.BuildWorkbook(new DateOnly(2026, 10, 28), items);
+        using var ms = new MemoryStream(bytes);
+        using var wb = new ClosedXML.Excel.XLWorkbook(ms);
+        var sheet = wb.Worksheet("Teoría");
+        Assert.Equal("08:00", sheet.Cell(2, 2).GetString());
+        Assert.True(string.IsNullOrWhiteSpace(sheet.Cell(3, 1).GetString()));
+        Assert.Equal("10:00", sheet.Cell(4, 2).GetString());
     }
 
     [Fact]

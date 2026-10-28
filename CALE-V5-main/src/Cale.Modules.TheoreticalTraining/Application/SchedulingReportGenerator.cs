@@ -263,7 +263,7 @@ public sealed class SchedulingReportGenerator
 
     private static void WriteItems(IXLWorksheet sheet, IReadOnlyList<AgendaItemDto> items)
     {
-        // One row per student when enrolled; class still appears once if empty.
+        // One row per student when enrolled; blank row between each scheduled slot.
         var headers = new[]
         {
             "Tipo",
@@ -283,44 +283,86 @@ public sealed class SchedulingReportGenerator
         };
         for (var c = 0; c < headers.Length; c++)
         {
-            sheet.Cell(1, c + 1).Value = headers[c];
-            sheet.Cell(1, c + 1).Style.Font.Bold = true;
+            var cell = sheet.Cell(1, c + 1);
+            cell.Value = headers[c];
+            cell.Style.Font.Bold = true;
+            cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#E8F5E9");
         }
 
+        sheet.SheetView.FreezeRows(1);
+
+        var ordered = items
+            .OrderBy(x => x.StartTime, StringComparer.Ordinal)
+            .ThenBy(x => x.Title, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
         var row = 2;
-        foreach (var item in items.OrderBy(x => x.StartTime, StringComparer.Ordinal).ThenBy(x => x.Title))
+        var wroteAny = false;
+        foreach (var item in ordered)
         {
+            if (wroteAny)
+            {
+                // Visual break between scheduled time slots.
+                sheet.Row(row).Height = 10;
+                row++;
+            }
+
             var instructor = string.IsNullOrWhiteSpace(item.InstructorName)
                 ? "Sin instructor"
                 : item.InstructorName;
+            var blockStart = row;
 
             if (item.Students.Count == 0)
             {
-                WriteSessionCells(sheet, row, item, instructor);
+                WriteSessionCells(sheet, row, item, instructor, emphasize: true);
                 sheet.Cell(row, 10).Value = "";
                 sheet.Cell(row, 11).Value = "Sin estudiantes inscritos";
+                sheet.Cell(row, 11).Style.Font.Italic = true;
                 sheet.Cell(row, 12).Value = "";
                 sheet.Cell(row, 13).Value = "";
                 sheet.Cell(row, 14).Value = "";
                 row++;
-                continue;
+            }
+            else
+            {
+                var first = true;
+                foreach (var student in item.Students
+                    .OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase))
+                {
+                    if (first)
+                    {
+                        WriteSessionCells(sheet, row, item, instructor, emphasize: true);
+                        first = false;
+                    }
+                    else
+                    {
+                        // Same slot: keep student columns aligned; leave session cols blank.
+                        for (var c = 1; c <= 9; c++)
+                        {
+                            sheet.Cell(row, c).Value = "";
+                        }
+                    }
+
+                    sheet.Cell(row, 10).Value = FormatReservedAt(student.ReservedAtUtc);
+                    sheet.Cell(row, 11).Value = student.Name;
+                    sheet.Cell(row, 12).Value = string.IsNullOrWhiteSpace(student.DocumentNumber)
+                        ? ""
+                        : student.DocumentNumber.Trim();
+                    sheet.Cell(row, 13).Value = string.IsNullOrWhiteSpace(student.Phone)
+                        ? ""
+                        : student.Phone.Trim();
+                    sheet.Cell(row, 14).Value = student.Status;
+                    row++;
+                }
             }
 
-            foreach (var student in item.Students
-                .OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase))
-            {
-                WriteSessionCells(sheet, row, item, instructor);
-                sheet.Cell(row, 10).Value = FormatReservedAt(student.ReservedAtUtc);
-                sheet.Cell(row, 11).Value = student.Name;
-                sheet.Cell(row, 12).Value = string.IsNullOrWhiteSpace(student.DocumentNumber)
-                    ? ""
-                    : student.DocumentNumber.Trim();
-                sheet.Cell(row, 13).Value = string.IsNullOrWhiteSpace(student.Phone)
-                    ? ""
-                    : student.Phone.Trim();
-                sheet.Cell(row, 14).Value = student.Status;
-                row++;
-            }
+            // Soft band across the slot block (session + its students).
+            sheet.Range(blockStart, 1, row - 1, headers.Length).Style.Border.OutsideBorder =
+                XLBorderStyleValues.Thin;
+            sheet.Range(blockStart, 1, row - 1, headers.Length).Style.Border.OutsideBorderColor =
+                XLColor.FromHtml("#A5D6A7");
+
+            wroteAny = true;
         }
 
         if (items.Count == 0)
@@ -329,15 +371,17 @@ public sealed class SchedulingReportGenerator
         }
 
         var lastRow = Math.Max(1, row - 1);
-        sheet.Range(1, 1, lastRow, headers.Length).SetAutoFilter();
-        sheet.Columns().AdjustToContents(1, 50);
+        // Filter only header + contiguous data is awkward with blank separators; skip AutoFilter.
+        sheet.Columns().AdjustToContents(1, 55);
+        sheet.Row(1).Style.Alignment.WrapText = true;
     }
 
     private static void WriteSessionCells(
         IXLWorksheet sheet,
         int row,
         AgendaItemDto item,
-        string instructor)
+        string instructor,
+        bool emphasize)
     {
         sheet.Cell(row, 1).Value = KindLabel(item.Kind);
         sheet.Cell(row, 2).Value = item.StartTime;
@@ -348,6 +392,13 @@ public sealed class SchedulingReportGenerator
         sheet.Cell(row, 7).Value = item.Occupied;
         sheet.Cell(row, 8).Value = item.Available;
         sheet.Cell(row, 9).Value = item.Status;
+
+        if (emphasize)
+        {
+            var band = sheet.Range(row, 1, row, 9);
+            band.Style.Font.Bold = true;
+            band.Style.Fill.BackgroundColor = XLColor.FromHtml("#F1F8F2");
+        }
     }
 
     private static string FormatReservedAt(DateTime? reservedAtUtc)
