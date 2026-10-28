@@ -201,6 +201,9 @@ public sealed class PracticalTrainingService
             throw new DomainException("La hora de fin debe ser posterior al inicio.", 400, "invalid_time_range");
         }
 
+        var kind = PracticalSessionKinds.Normalize(request.Kind);
+        EnsureExamDuration(kind, start, end);
+
         var session = await _db.Set<PracticalLessonSession>()
             .Include(x => x.Vehicle)
             .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId
@@ -222,6 +225,7 @@ public sealed class PracticalTrainingService
                 request.VehicleId,
                 capacity: 1,
                 notes: null,
+                kind,
                 ct);
         }
         else
@@ -358,6 +362,7 @@ public sealed class PracticalTrainingService
                 request.VehicleId,
                 source.Capacity,
                 source.Notes,
+                PracticalSessionKinds.Normalize(source.Kind),
                 ct);
             created++;
         }
@@ -383,6 +388,9 @@ public sealed class PracticalTrainingService
             throw new DomainException("La hora de fin debe ser posterior al inicio.", 400, "invalid_time_range");
         }
 
+        var kind = PracticalSessionKinds.Normalize(request.Kind);
+        EnsureExamDuration(kind, start, end);
+
         var session = await CreateLessonInternalAsync(
             schoolUserId,
             request.SessionDate,
@@ -392,6 +400,7 @@ public sealed class PracticalTrainingService
             request.VehicleId,
             Math.Clamp(request.Capacity ?? 1, 1, 4),
             string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
+            kind,
             ct);
 
         return await MapLessonAsync(session, null, includeAssignment: true, ct);
@@ -429,6 +438,9 @@ public sealed class PracticalTrainingService
         {
             throw new DomainException("La hora de fin debe ser posterior al inicio.", 400, "invalid_time_range");
         }
+
+        var kind = PracticalSessionKinds.Normalize(request.Kind);
+        EnsureExamDuration(kind, start, end);
 
         var capacity = Math.Clamp(request.Capacity ?? 1, 1, 4);
         var notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
@@ -487,6 +499,7 @@ public sealed class PracticalTrainingService
                     request.VehicleId,
                     capacity,
                     notes,
+                    kind,
                     ct);
                 created++;
             }
@@ -867,6 +880,22 @@ public sealed class PracticalTrainingService
             .FirstOrDefaultAsync(x => x.Id == lessonId && x.SchoolUserId == schoolUserId, ct)
             ?? throw new NotFoundException("Clase no encontrada.", "lesson_not_found");
 
+    private static void EnsureExamDuration(string kind, TimeOnly start, TimeOnly end)
+    {
+        if (!PracticalSessionKinds.IsExam(kind))
+        {
+            return;
+        }
+
+        if (GetLessonDurationHours(start, end) != 1m)
+        {
+            throw new DomainException(
+                "El examen de manejo solo se agenda de 1 hora.",
+                400,
+                "exam_duration_one_hour");
+        }
+    }
+
     private async Task<PracticalLessonSession> CreateLessonInternalAsync(
         int schoolUserId,
         DateOnly sessionDate,
@@ -876,6 +905,7 @@ public sealed class PracticalTrainingService
         int vehicleId,
         int capacity,
         string? notes,
+        string kind,
         CancellationToken ct)
     {
         var vehicle = await _db.Set<PracticalVehicle>()
@@ -888,6 +918,9 @@ public sealed class PracticalTrainingService
         {
             throw new DomainException("El instructor no pertenece a la escuela.", 400, "invalid_instructor");
         }
+
+        var normalizedKind = PracticalSessionKinds.Normalize(kind);
+        EnsureExamDuration(normalizedKind, start, end);
 
         await EnsureNoScheduleConflictAsync(
             schoolUserId,
@@ -918,6 +951,7 @@ public sealed class PracticalTrainingService
             InstructorUserId = instructorUserId,
             VehicleId = vehicle.Id,
             Capacity = Math.Clamp(capacity, 1, 4),
+            Kind = normalizedKind,
             Notes = notes,
             Status = PracticalLessonStatuses.Scheduled,
             CreatedAt = now,
@@ -1021,6 +1055,7 @@ public sealed class PracticalTrainingService
             .Include(x => x.LessonSession)
             .Where(x => x.StudentUserId == studentUserId
                 && x.LessonSession!.SchoolUserId == schoolUserId
+                && !PracticalSessionKinds.IsExam(x.LessonSession.Kind)
                 && PracticalReservationStatuses.OccupiesSeatStatuses.Contains(x.Status))
             .OrderBy(x => x.LessonSession!.SessionDate)
             .ThenBy(x => x.LessonSession!.StartTime)
@@ -1059,6 +1094,7 @@ public sealed class PracticalTrainingService
             .Include(x => x.LessonSession)
             .Where(x => x.StudentUserId == reservation.StudentUserId
                 && x.LessonSession!.SchoolUserId == schoolUserId
+                && !PracticalSessionKinds.IsExam(x.LessonSession.Kind)
                 && PracticalReservationStatuses.OccupiesSeatStatuses.Contains(x.Status))
             .OrderBy(x => x.LessonSession!.SessionDate)
             .ThenBy(x => x.LessonSession!.StartTime)
@@ -1068,7 +1104,9 @@ public sealed class PracticalTrainingService
         var lessonNumber = ordered.IndexOf(reservation.Id) + 1;
         if (lessonNumber <= 0)
         {
-            lessonNumber = progress.NextNumber;
+            lessonNumber = PracticalSessionKinds.IsExam(reservation.LessonSession?.Kind)
+                ? 0
+                : progress.NextNumber;
         }
 
         return new PracticalLessonAssignmentDto(
@@ -1154,7 +1192,8 @@ public sealed class PracticalTrainingService
             bookingState,
             bookingMessage,
             myReservationId,
-            assignment);
+            assignment,
+            PracticalSessionKinds.Normalize(session.Kind));
     }
 
     private static DateOnly StartOfWeek(DateOnly date)

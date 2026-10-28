@@ -77,7 +77,7 @@
                 @let status = boardStatus(lesson);
                 <tr [attr.data-status]="status">
                   <td class="time">
-                    {{ lessonWindow(lesson) }}
+                    {{ kindLabel(lesson) }} · {{ lessonWindow(lesson) }}
                   </td>
                   <td>
                     <strong>{{ lesson.vehicleLabel }}</strong>

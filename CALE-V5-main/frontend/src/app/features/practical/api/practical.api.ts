@@ -20,6 +20,8 @@ export interface PracticalLessonAssignmentDto {
   reservationStatus: string;
 }
 
+export type PracticalSessionKind = 'Lesson' | 'Exam';
+
 export interface PracticalLessonSessionDto {
   id: number;
   sessionDate: string;
@@ -38,6 +40,8 @@ export interface PracticalLessonSessionDto {
   bookingMessage?: string | null;
   myReservationId?: number | null;
   assignment?: PracticalLessonAssignmentDto | null;
+  /** Lesson (default) or Exam (always 1h). */
+  kind?: PracticalSessionKind | string | null;
 }
 
 export interface PracticalSchedulingStudentDto {
@@ -153,6 +157,14 @@ export function lessonDurationHours(lesson: PracticalLessonSessionDto): number {
   return Math.max(0, (endExclusive - startMinutes) / 60);
 }
 
+export function isPracticalExam(lesson: Pick<PracticalLessonSessionDto, 'kind'> | null | undefined): boolean {
+  return (lesson?.kind ?? 'Lesson').toLowerCase() === 'exam';
+}
+
+export function practicalKindLabel(kind?: string | null): string {
+  return (kind ?? 'Lesson').toLowerCase() === 'exam' ? 'Examen de manejo' : 'Clase de manejo';
+}
+
 /** Wall-clock range for UI: 14:00 – 16:00 (even if stored end is 15:59). */
 export function formatLessonWindow(lesson: Pick<PracticalLessonSessionDto, 'startTime' | 'endTime'>): string {
   const start = lesson.startTime.slice(0, 5);
@@ -221,6 +233,7 @@ export class PracticalApi {
     instructorUserId: number;
     vehicleId: number;
     studentUserId: number;
+    kind?: PracticalSessionKind;
   }) {
     return this.http.post<PracticalLessonSessionDto>(`${this.schoolBase}/lessons/quick-assign`, body);
   }
@@ -241,6 +254,7 @@ export class PracticalApi {
     vehicleId: number;
     capacity?: number;
     notes?: string | null;
+    kind?: PracticalSessionKind;
   }) {
     return this.http.post<PracticalLessonSessionDto>(`${this.schoolBase}/lessons`, body);
   }
@@ -255,6 +269,7 @@ export class PracticalApi {
     vehicleId: number;
     capacity?: number;
     notes?: string | null;
+    kind?: PracticalSessionKind;
   }) {
     return this.http.post<{
       created: number;

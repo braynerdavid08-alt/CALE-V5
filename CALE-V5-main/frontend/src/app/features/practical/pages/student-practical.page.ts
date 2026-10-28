@@ -8,7 +8,9 @@ import {
   PracticalApi,
   PracticalLessonSessionDto,
   PracticalStudentDashboardDto,
-  formatLessonWindow
+  formatLessonWindow,
+  isPracticalExam,
+  practicalKindLabel
 } from '../api/practical.api';
 
 @Component({
@@ -80,6 +82,14 @@ export class StudentPracticalPage implements OnInit {
 
   lessonWindow(session: PracticalLessonSessionDto): string {
     return formatLessonWindow(session);
+  }
+
+  kindLabel(session: PracticalLessonSessionDto): string {
+    return practicalKindLabel(session.kind);
+  }
+
+  isExam(session: PracticalLessonSessionDto): boolean {
+    return isPracticalExam(session);
   }
 
   reserve(session: PracticalLessonSessionDto): void {

@@ -34,6 +34,19 @@ public static class PracticalLessonStatuses
     public const string Cancelled = "Cancelled";
 }
 
+/// <summary>Lesson = práctica formativa; Exam = examen práctico de manejo (siempre 1 h).</summary>
+public static class PracticalSessionKinds
+{
+    public const string Lesson = "Lesson";
+    public const string Exam = "Exam";
+
+    public static string Normalize(string? value) =>
+        string.Equals(value, Exam, StringComparison.OrdinalIgnoreCase) ? Exam : Lesson;
+
+    public static bool IsExam(string? value) =>
+        string.Equals(Normalize(value), Exam, StringComparison.Ordinal);
+}
+
 public static class PracticalScheduleLimits
 {
     public const int MaxDailyInstructorHours = 8;

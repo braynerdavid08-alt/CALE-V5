@@ -56,7 +56,7 @@
     @if (dash.nextLesson; as next) {
       <article class="card highlight">
         <h2>Próxima clase de manejo</h2>
-        <p class="when">{{ next.sessionDate }} · {{ lessonWindow(next) }}</p>
+        <p class="when">{{ kindLabel(next) }} · {{ next.sessionDate }} · {{ lessonWindow(next) }}</p>
         <p class="meta">{{ next.instructorName }} · {{ next.vehicleLabel }}</p>
       </article>
     }
@@ -92,7 +92,7 @@
         @for (session of filteredLessons(); track session.id) {
           <li class="slot">
             <div>
-              <p class="title">{{ session.sessionDate }} · {{ lessonWindow(session) }}</p>
+              <p class="title">{{ kindLabel(session) }} · {{ session.sessionDate }} · {{ lessonWindow(session) }}</p>
               <p class="meta">{{ session.vehicleLabel }} · {{ session.bookingMessage }}</p>
             </div>
             <button

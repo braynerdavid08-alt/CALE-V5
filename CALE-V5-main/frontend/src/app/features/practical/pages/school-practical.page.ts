@@ -15,12 +15,15 @@ import {
   PracticalDurationHours,
   PracticalLessonSessionDto,
   PracticalSchedulingStudentDto,
+  PracticalSessionKind,
   PracticalVehicleDto,
   TimeSlot,
   buildPracticalSlot,
   formatLessonWindow,
+  isPracticalExam,
   lessonCoversStart,
-  lessonDurationHours
+  lessonDurationHours,
+  practicalKindLabel
 } from '../api/practical.api';
 
 interface MemberRow {
@@ -55,11 +58,17 @@ export class SchoolPracticalPage implements OnInit {
 
   readonly maxDailyHours = PRACTICAL_MAX_DAILY_HOURS;
   readonly dayLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  readonly kindChoices: { value: PracticalSessionKind; label: string }[] = [
+    { value: 'Lesson', label: 'Clase de manejo' },
+    { value: 'Exam', label: 'Examen de manejo' }
+  ];
   readonly durationChoices: { value: PracticalDurationHours; label: string }[] = [
     { value: 1, label: '1 hora' },
     { value: 2, label: '2 horas' }
   ];
 
+  /** Lesson (1h/2h) or Exam (always 1h). */
+  readonly sessionKind = signal<PracticalSessionKind>('Lesson');
   /** Selected class length for grid publish/assign and fixed panel. */
   readonly durationHours = signal<PracticalDurationHours>(2);
 
@@ -268,12 +277,30 @@ export class SchoolPracticalPage implements OnInit {
       .reduce((sum, l) => sum + lessonDurationHours(l), 0);
   }
 
+  setSessionKind(kind: PracticalSessionKind): void {
+    this.sessionKind.set(kind);
+    if (kind === 'Exam') {
+      this.setDurationHours(1);
+    }
+  }
+
   setDurationHours(hours: PracticalDurationHours): void {
+    if (this.sessionKind() === 'Exam' && hours !== 1) {
+      hours = 1;
+    }
     this.durationHours.set(hours);
     const options = this.startHourOptions();
     if (!options.some((s) => s.start === this.fixedSlotStart) && options[0]) {
       this.fixedSlotStart = options[0].start;
     }
+  }
+
+  kindLabel(lesson?: PracticalLessonSessionDto | null): string {
+    return practicalKindLabel(lesson?.kind ?? this.sessionKind());
+  }
+
+  isExam(lesson?: PracticalLessonSessionDto | null): boolean {
+    return lesson ? isPracticalExam(lesson) : this.sessionKind() === 'Exam';
   }
 
   /** True when this hour row can start a new empty slot with the selected duration. */
@@ -386,12 +413,15 @@ export class SchoolPracticalPage implements OnInit {
           endTime: slot.end,
           instructorUserId: instructor,
           vehicleId: vehicle,
-          capacity: 1
+          capacity: 1,
+          kind: this.sessionKind()
         })
         .subscribe({
           next: () => {
             this.saving.set(false);
-            this.notice.set('Cupo publicado. La escuela puede asignar o el estudiante agendar.');
+            this.notice.set(
+              `${this.kindLabel()} publicado. La escuela puede asignar o el estudiante agendar.`
+            );
             this.loadWeek();
           },
           error: (err) => {
@@ -422,12 +452,13 @@ export class SchoolPracticalPage implements OnInit {
         endTime: slot.end,
         instructorUserId: instructor,
         vehicleId: vehicle,
-        capacity: 1
+        capacity: 1,
+        kind: this.sessionKind()
       })
       .subscribe({
         next: (res) => {
           this.saving.set(false);
-          const parts = [`${res.created} cupos publicados`];
+          const parts = [`${res.created} ${this.kindLabel().toLowerCase()}(s) publicados`];
           if (res.skippedExisting) {
             parts.push(`${res.skippedExisting} ya existían`);
           }
@@ -465,7 +496,8 @@ export class SchoolPracticalPage implements OnInit {
         endTime: slot.end,
         instructorUserId: instructor,
         vehicleId: vehicle,
-        capacity: 1
+        capacity: 1,
+        kind: this.sessionKind()
       })
       .subscribe({
         next: () => {
@@ -586,7 +618,8 @@ export class SchoolPracticalPage implements OnInit {
       endTime: cell.slot.end,
       instructorUserId: instructor,
       vehicleId: vehicle,
-      studentUserId: student.studentUserId
+      studentUserId: student.studentUserId,
+      kind: this.sessionKind()
     }).subscribe({
       next: () => {
         this.saving.set(false);
