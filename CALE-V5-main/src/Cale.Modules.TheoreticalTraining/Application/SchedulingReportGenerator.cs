@@ -372,8 +372,11 @@ public sealed class SchedulingReportGenerator
 
         var lastRow = Math.Max(1, row - 1);
         // Filter only header + contiguous data is awkward with blank separators; skip AutoFilter.
+        var used = sheet.Range(1, 1, lastRow, headers.Length);
+        used.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        used.Style.Alignment.Vertical = XLAlignmentVerticalValues.Top;
+        used.Style.Alignment.WrapText = true;
         sheet.Columns().AdjustToContents(1, 55);
-        sheet.Row(1).Style.Alignment.WrapText = true;
     }
 
     private static void WriteSessionCells(
