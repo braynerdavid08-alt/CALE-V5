@@ -96,23 +96,35 @@ import { UiIconComponent } from '../ui/ui-icon.component';
         <h2 id="pwa-guide-title">{{ guideTitle() }}</h2>
         @if (guideKind() === 'ios') {
           <p class="lead">
-            En iPhone y iPad la instalación es manual. Sigue estos pasos en Safari
-            (o el navegador que uses):
+            En iPhone y iPad debes usar <strong>Safari</strong> (no Chrome ni otro navegador).
+            La instalación es manual:
           </p>
           <ol class="steps">
             <li>
-              Toca el botón <strong>Compartir</strong>
-              <span class="inline-ico" aria-hidden="true"><ui-icon name="share" /></span>
-              (cuadrado con flecha hacia arriba).
+              Abre esta página en <strong>Safari</strong>.
             </li>
-            <li>Elige <strong>Añadir a pantalla de inicio</strong> (o “Agregar a inicio”).</li>
+            <li>
+              Toca <strong>Compartir</strong>
+              <span class="inline-ico" aria-hidden="true"><ui-icon name="share" /></span>
+              (cuadrado con flecha hacia arriba, abajo en la barra).
+            </li>
+            <li>
+              En la lista, <strong>desplázate hacia abajo</strong> hasta
+              <strong>Añadir a pantalla de inicio</strong>
+              (también puede decir “Agregar a inicio”).
+            </li>
             <li>
               Si aparece <strong>Abrir como app web</strong>, déjala <strong>activada</strong>.
             </li>
             <li>Pulsa <strong>Añadir</strong>.</li>
           </ol>
+          <p class="hint warn">
+            No uses “Solicitar versión de escritorio”: solo recarga la página y no instala nada.
+          </p>
           <p class="hint">
             Luego abre {{ brand.name }} desde el ícono nuevo en tu pantalla de inicio.
+            Si no ves “Añadir a pantalla de inicio”, toca <strong>Editar acciones…</strong>
+            al final de la hoja de compartir y actívala.
           </p>
         } @else {
           <p class="lead">
@@ -270,6 +282,13 @@ import { UiIconComponent } from '../ui/ui-icon.component';
       color: var(--color-text-secondary);
       font-size: 0.85rem;
       line-height: 1.45;
+    }
+    .hint.warn {
+      color: var(--color-text);
+      background: color-mix(in srgb, var(--color-warning, #e6a700) 18%, var(--color-surface));
+      border: 1px solid color-mix(in srgb, var(--color-warning, #e6a700) 40%, var(--color-border));
+      border-radius: 10px;
+      padding: 0.55rem 0.7rem;
     }
     .dialog-actions {
       display: flex;
