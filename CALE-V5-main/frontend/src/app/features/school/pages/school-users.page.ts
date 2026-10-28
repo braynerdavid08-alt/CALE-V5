@@ -436,6 +436,9 @@ export class SchoolUsersPage implements OnInit {
   }
 
   acceptJoin(req: SchoolJoinRequestDto): void {
+    if (this.decidingId() != null) {
+      return;
+    }
     this.decidingId.set(req.id);
     this.error.set(null);
     this.ok.set(null);
@@ -456,6 +459,9 @@ export class SchoolUsersPage implements OnInit {
   }
 
   rejectJoin(req: SchoolJoinRequestDto): void {
+    if (this.decidingId() != null) {
+      return;
+    }
     const reason = window.prompt('Motivo del rechazo (opcional):') ?? undefined;
     if (reason === undefined) {
       return;

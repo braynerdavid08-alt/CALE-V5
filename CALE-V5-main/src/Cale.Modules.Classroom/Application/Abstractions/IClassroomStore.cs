@@ -17,6 +17,22 @@ public interface IClassroomStore
     Task<IReadOnlyList<GroupMember>> ListMembersAsync(int groupId, CancellationToken ct);
     Task<IReadOnlyList<GroupMember>> ListMembershipsAsync(int userId, CancellationToken ct);
     Task AddMemberAsync(GroupMember member, CancellationToken ct);
+    /// <summary>Idempotent join/reactivate under a short transaction (safe under double-click).</summary>
+    Task EnsureActiveMemberAsync(int groupId, int userId, DateTime utcNow, CancellationToken ct);
+    Task<int> CountActiveMembersAsync(int groupId, CancellationToken ct);
+    Task<IReadOnlyDictionary<int, int>> CountActiveMembersByGroupsAsync(
+        IReadOnlyCollection<int> groupIds,
+        CancellationToken ct);
+    Task<IReadOnlyList<Announcement>> ListAnnouncementsForGroupsAsync(
+        IReadOnlyCollection<int> groupIds,
+        CancellationToken ct);
+    Task<IReadOnlyList<GroupActivity>> ListActivitiesForGroupsAsync(
+        IReadOnlyCollection<int> groupIds,
+        CancellationToken ct);
+    Task<IReadOnlyDictionary<int, ActivitySubmission>> ListSubmissionsByActivitiesAsync(
+        int userId,
+        IReadOnlyCollection<int> activityIds,
+        CancellationToken ct);
 
     Task<IReadOnlyList<Announcement>> ListAnnouncementsAsync(
         int groupId,

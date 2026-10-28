@@ -146,6 +146,7 @@ public static class WebApplicationExtensions
             await UserCreatorSchemaGuard.EnsureAsync(db, bootLogger);
             await RefreshTokenSchemaGuard.EnsureAsync(db, bootLogger);
             await SchoolJoinRequestSchemaGuard.EnsureAsync(db, bootLogger);
+            await GroupMemberSchemaGuard.EnsureAsync(db, bootLogger);
             await SchoolApprovalSchemaGuard.EnsureAsync(db, bootLogger);
             await CommercialSchemaGuard.EnsureAsync(db, bootLogger);
             await PracticalSessionKindSchemaGuard.EnsureAsync(db, bootLogger);

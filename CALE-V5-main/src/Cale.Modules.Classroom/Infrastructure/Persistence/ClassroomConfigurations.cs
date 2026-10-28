@@ -31,6 +31,7 @@ public sealed class GroupMemberConfiguration : IEntityTypeConfiguration<GroupMem
         builder.Property(x => x.UserId).HasColumnName("UsuarioId");
         builder.Property(x => x.Status).HasColumnName("Estado");
         builder.Property(x => x.CreatedAt).HasColumnName("CreadoEn");
+        builder.HasIndex(x => new { x.GroupId, x.UserId }).IsUnique();
     }
 }
 

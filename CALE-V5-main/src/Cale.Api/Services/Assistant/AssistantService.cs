@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -70,6 +71,8 @@ public sealed class AssistantService
         "Ya usaste todos tus mensajes del asistente por hoy. Si tu escuela necesita más, contacta al administrador de Luz Verde para revisar una ampliación. Mañana se restablece la cuota.";
     private static readonly TimeSpan ActionLifetime = TimeSpan.FromMinutes(15);
     private static readonly string[] DayNames = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+    /// <summary>Claims an action id so double-confirm cannot execute the write twice.</summary>
+    private static readonly ConcurrentDictionary<string, byte> ConfirmClaims = new();
 
     private readonly IAssistantLlm _llm;
     private readonly IAssistantToolbox _toolbox;
@@ -425,25 +428,43 @@ public sealed class AssistantService
     {
         EnsureEnabled(user);
         var key = ActionKey(actionId);
-        if (!_cache.TryGetValue(key, out PendingAction? action) || action is null || action.UserId != user.UserId)
+        if (!ConfirmClaims.TryAdd(key, 0))
         {
-            return new AssistantActionResult(false, "Esa acción ya no está disponible. Pídela de nuevo al asistente.");
+            return new AssistantActionResult(
+                false,
+                "Esa confirmación ya se está procesando. Espera un momento.");
         }
 
-        _cache.Remove(key);
         try
         {
-            var args = JsonNode.Parse(action.ArgsJson) as JsonObject ?? new JsonObject();
-            var message = await _toolbox.ExecuteAsync(user, action.Tool, args, ct);
-            return new AssistantActionResult(true, message);
+            if (!_cache.TryGetValue(key, out PendingAction? action)
+                || action is null
+                || action.UserId != user.UserId)
+            {
+                return new AssistantActionResult(
+                    false,
+                    "Esa acción ya no está disponible. Pídela de nuevo al asistente.");
+            }
+
+            _cache.Remove(key);
+            try
+            {
+                var args = JsonNode.Parse(action.ArgsJson) as JsonObject ?? new JsonObject();
+                var message = await _toolbox.ExecuteAsync(user, action.Tool, args, ct);
+                return new AssistantActionResult(true, message);
+            }
+            catch (DomainException ex)
+            {
+                return new AssistantActionResult(false, $"No se pudo: {ex.Message}");
+            }
+            catch (AssistantToolException ex)
+            {
+                return new AssistantActionResult(false, $"No se pudo: {ex.Message}");
+            }
         }
-        catch (DomainException ex)
+        finally
         {
-            return new AssistantActionResult(false, $"No se pudo: {ex.Message}");
-        }
-        catch (AssistantToolException ex)
-        {
-            return new AssistantActionResult(false, $"No se pudo: {ex.Message}");
+            ConfirmClaims.TryRemove(key, out _);
         }
     }
 

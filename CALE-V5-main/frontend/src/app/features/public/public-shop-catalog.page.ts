@@ -47,6 +47,16 @@ const PAGE_SIZE = 12;
             <p class="sub">{{ filtered().length }} resultado{{ filtered().length === 1 ? '' : 's' }}</p>
           </div>
           <div class="head-actions">
+            <button
+              type="button"
+              class="fav-toggle"
+              [class.on]="favoritesOnly"
+              (click)="toggleFavoritesOnly()"
+              [attr.aria-pressed]="favoritesOnly"
+              [attr.aria-label]="favoritesOnly ? 'Ver todo el catálogo' : 'Ver solo favoritos'">
+              ♥
+              <span>Favoritos{{ fav.count() ? ' (' + fav.count() + ')' : '' }}</span>
+            </button>
             <label class="sort">
               Ordenar
               <select [(ngModel)]="sort" (ngModelChange)="onSort($event)" name="sort">
@@ -257,6 +267,26 @@ const PAGE_SIZE = 12;
       flex-wrap: wrap;
       gap: 0.55rem;
       align-items: end;
+    }
+    .fav-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      min-height: 2.5rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .fav-toggle.on {
+      border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
+      background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+      color: var(--color-primary);
     }
     .sort {
       display: grid;
@@ -554,6 +584,11 @@ export class PublicShopCatalogPage implements OnInit {
     return (this.shop()?.products ?? []).some(
       (p) => (p.productType || '').trim().toLowerCase() === name.toLowerCase()
     );
+  }
+
+  toggleFavoritesOnly(): void {
+    this.favoritesOnly = !this.favoritesOnly;
+    this.page.set(1);
   }
 
   onQuery(v: string): void {

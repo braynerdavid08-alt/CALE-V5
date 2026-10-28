@@ -76,8 +76,17 @@ interface MaterialRow {
           <p>{{ item.description }}</p>
           <p class="meta">{{ item.status }}</p>
           @if (item.status === 'Available' || item.status === 'Expired') {
-            <textarea [(ngModel)]="drafts[item.id]" [name]="'a'+item.id"></textarea>
-            <ui-button type="button" (click)="submit(item.id)">Entregar</ui-button>
+            <textarea
+              [(ngModel)]="drafts[item.id]"
+              [name]="'a'+item.id"
+              [disabled]="submittingId() === item.id"></textarea>
+            <ui-button
+              type="button"
+              [loading]="submittingId() === item.id"
+              [disabled]="submittingId() != null"
+              (click)="submit(item.id)">
+              Entregar
+            </ui-button>
           }
           @if (item.myScore != null) {
             <p>Nota: {{ item.myScore }} · {{ item.teacherComment }}</p>
@@ -103,11 +112,16 @@ export class StudentGroupPage implements OnInit {
   readonly announcements = signal<AnnouncementDto[]>([]);
   readonly materials = signal<MaterialRow[]>([]);
   readonly activities = signal<ActivityDto[]>([]);
+  readonly submittingId = signal<number | null>(null);
   drafts: Record<number, string> = {};
   groupId = 0;
 
   ngOnInit(): void {
     this.groupId = Number(this.route.snapshot.paramMap.get('id'));
+    this.reload();
+  }
+
+  reload(): void {
     this.api.groups().subscribe({
       next: (items) =>
         this.group.set(items.find((g) => g.id === this.groupId) ?? null)
@@ -127,10 +141,22 @@ export class StudentGroupPage implements OnInit {
   }
 
   submit(activityId: number): void {
+    if (this.submittingId() != null) {
+      return;
+    }
     const text = this.drafts[activityId] ?? '';
+    this.submittingId.set(activityId);
+    this.error.set(null);
     this.api.submit(activityId, text).subscribe({
-      next: () => this.ngOnInit(),
-      error: (err) => this.error.set(mapApiError(err))
+      next: () => {
+        this.submittingId.set(null);
+        delete this.drafts[activityId];
+        this.reload();
+      },
+      error: (err) => {
+        this.submittingId.set(null);
+        this.error.set(mapApiError(err));
+      }
     });
   }
 }

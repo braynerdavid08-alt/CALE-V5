@@ -189,51 +189,73 @@ public sealed class ClassroomQueryHandler
     {
         var groups = await StudentGroups(userId, ct);
         var joinedIds = groups.Select(g => g.Id).ToHashSet();
+        var groupIds = groups.Select(g => g.Id).ToList();
+        var memberCounts = await _store.CountActiveMembersByGroupsAsync(groupIds, ct);
         var groupDtos = new List<GroupDto>();
-        var announcements = new List<AnnouncementDto>();
-        var pending = new List<ActivityDto>();
         foreach (var group in groups)
         {
-            groupDtos.Add(await MapGroup(group, ct));
-            var avisos = await _store.ListAnnouncementsAsync(group.Id, ct);
-            foreach (var aviso in avisos.Where(x => x.IsActive).Take(5))
-            {
-                var author = await _users.GetNameAsync(aviso.AuthorId, ct) ?? "";
-                announcements.Add(new AnnouncementDto(
-                    aviso.Id,
-                    aviso.Title,
-                    aviso.Body,
-                    aviso.AuthorId,
-                    author,
-                    aviso.CreatedAt));
-            }
+            groupDtos.Add(await MapGroup(
+                group,
+                ct,
+                memberCounts.TryGetValue(group.Id, out var count) ? count : 0));
+        }
 
-            var activities = await _store.ListActivitiesAsync(group.Id, ct);
-            foreach (var activity in activities.Where(x => x.IsActive))
+        var announcements = new List<AnnouncementDto>();
+        var avisos = (await _store.ListAnnouncementsForGroupsAsync(groupIds, ct))
+            .GroupBy(x => x.GroupId)
+            .SelectMany(g => g.Take(5))
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(8)
+            .ToList();
+        var authorIds = avisos.Select(x => x.AuthorId).Distinct().ToList();
+        var authorNames = await _users.GetNamesAsync(authorIds, ct);
+        foreach (var aviso in avisos)
+        {
+            announcements.Add(new AnnouncementDto(
+                aviso.Id,
+                aviso.Title,
+                aviso.Body,
+                aviso.AuthorId,
+                authorNames.TryGetValue(aviso.AuthorId, out var author) ? author : "",
+                aviso.CreatedAt));
+        }
+
+        var activities = await _store.ListActivitiesForGroupsAsync(groupIds, ct);
+        var submissions = await _store.ListSubmissionsByActivitiesAsync(
+            userId,
+            activities.Select(a => a.Id).ToList(),
+            ct);
+        var pending = new List<ActivityDto>();
+        foreach (var activity in activities)
+        {
+            submissions.TryGetValue(activity.Id, out var submission);
+            var dto = MapActivity(activity, submission);
+            if (dto.Status is "Available" or "Pending" or "Expired")
             {
-                var submission = await _store.FindSubmissionAsync(activity.Id, userId, ct);
-                var dto = MapActivity(activity, submission);
-                if (dto.Status is "Available" or "Pending" or "Expired")
-                {
-                    pending.Add(dto);
-                }
+                pending.Add(dto);
             }
         }
 
+        var availableGroups = (await SchoolActiveGroupsAsync(userId, ct))
+            .Where(g => !joinedIds.Contains(g.Id))
+            .ToList();
+        var availableCounts = await _store.CountActiveMembersByGroupsAsync(
+            availableGroups.Select(g => g.Id).ToList(),
+            ct);
         var available = new List<GroupDto>();
-        foreach (var group in await SchoolActiveGroupsAsync(userId, ct))
+        foreach (var group in availableGroups)
         {
-            if (!joinedIds.Contains(group.Id))
-            {
-                available.Add(await MapGroup(group, ct));
-            }
+            available.Add(await MapGroup(
+                group,
+                ct,
+                availableCounts.TryGetValue(group.Id, out var count) ? count : 0));
         }
 
         return new StudentDashboardDto(
             name,
             groupDtos,
             pending,
-            announcements.OrderByDescending(x => x.CreatedAt).Take(8).ToList(),
+            announcements,
             await _notifications.CountUnreadAsync(userId, ct),
             await _attempts.BestPercentAsync(userId, ct),
             available);
@@ -391,12 +413,16 @@ public sealed class ClassroomQueryHandler
         }
     }
 
-    private async Task<GroupDto> MapGroup(Group group, CancellationToken ct)
+    private async Task<GroupDto> MapGroup(
+        Group group,
+        CancellationToken ct,
+        int? memberCount = null)
     {
         var teacher = group.TeacherId is null
             ? null
             : await _users.GetNameAsync(group.TeacherId.Value, ct);
-        var members = await _store.ListMembersAsync(group.Id, ct);
+        var count = memberCount
+            ?? await _store.CountActiveMembersAsync(group.Id, ct);
         return new GroupDto(
             group.Id,
             group.Name,
@@ -406,7 +432,7 @@ public sealed class ClassroomQueryHandler
             group.Description,
             group.StartsOn,
             group.IsActive,
-            members.Count(x => x.IsActive));
+            count);
     }
 
     private ActivityDto MapActivity(GroupActivity item, ActivitySubmission? submission) =>

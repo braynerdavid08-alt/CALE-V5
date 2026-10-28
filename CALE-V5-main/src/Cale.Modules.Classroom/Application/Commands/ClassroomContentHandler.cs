@@ -5,6 +5,7 @@ using Cale.BuildingBlocks.Domain.Time;
 using Cale.Modules.Classroom.Application.Abstractions;
 using Cale.Modules.Classroom.Application.DTOs;
 using Cale.Modules.Classroom.Domain;
+using Microsoft.EntityFrameworkCore;
 
 namespace Cale.Modules.Classroom.Application.Commands;
 
@@ -128,9 +129,8 @@ public sealed class ClassroomContentHandler
 
         if (await _store.FindSubmissionAsync(activityId, userId, ct) is not null)
         {
-            throw new ConflictException(
-                "You already submitted this activity.",
-                "submission_exists");
+            // Idempotent: a double-click must not create a second submission or notify twice.
+            return;
         }
 
         var submission = ActivitySubmission.Deliver(
@@ -139,8 +139,21 @@ public sealed class ClassroomContentHandler
             request.Text,
             request.FileUrl,
             _clock.UtcNow);
-        await _store.AddSubmissionAsync(submission, ct);
-        await _store.SaveChangesAsync(ct);
+        try
+        {
+            await _store.AddSubmissionAsync(submission, ct);
+            await _store.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            // Unique (ActivityId, UserId) won the race — treat as already submitted.
+            if (await _store.FindSubmissionAsync(activityId, userId, ct) is not null)
+            {
+                return;
+            }
+
+            throw;
+        }
 
         var group = await _store.GetGroupAsync(activity.GroupId, ct);
         if (group?.TeacherId is { } teacherId)

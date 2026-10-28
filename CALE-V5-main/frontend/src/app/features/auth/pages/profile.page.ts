@@ -221,6 +221,9 @@ export class ProfilePage implements OnInit {
   }
 
   requestJoin(): void {
+    if (this.joining()) {
+      return;
+    }
     if (this.joinForm.invalid) {
       this.joinForm.markAllAsTouched();
       return;
@@ -254,18 +257,30 @@ export class ProfilePage implements OnInit {
   }
 
   cancelJoin(id: number): void {
+    if (this.decidingId() != null) {
+      return;
+    }
+    this.decidingId.set(id);
+    this.error.set(null);
     this.http.post(`${env.apiUrl}/api/me/school-membership/requests/${id}/cancel`, {}).subscribe({
       next: () => {
+        this.decidingId.set(null);
         this.joinRequests.update((rows) =>
           rows.map((r) => (r.id === id ? { ...r, status: 'Cancelled' } : r))
         );
         this.success.set('Solicitud cancelada.');
       },
-      error: (err) => this.error.set(mapApiError(err))
+      error: (err) => {
+        this.decidingId.set(null);
+        this.error.set(mapApiError(err));
+      }
     });
   }
 
   acceptInvite(inv: SchoolJoinRequestDto): void {
+    if (this.decidingId() != null) {
+      return;
+    }
     this.decidingId.set(inv.id);
     this.error.set(null);
     this.success.set(null);
@@ -286,6 +301,9 @@ export class ProfilePage implements OnInit {
   }
 
   rejectInvite(inv: SchoolJoinRequestDto): void {
+    if (this.decidingId() != null) {
+      return;
+    }
     this.decidingId.set(inv.id);
     this.error.set(null);
     this.success.set(null);

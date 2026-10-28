@@ -89,20 +89,7 @@ public sealed class GroupCommandHandler
         }
 
         await EnsureStudentCanJoinSchoolGroupAsync(userId, group, ct);
-
-        var member = await _store.FindMemberAsync(group.Id, userId, ct);
-        if (member is null)
-        {
-            await _store.AddMemberAsync(
-                GroupMember.Join(group.Id, userId, _clock.UtcNow),
-                ct);
-        }
-        else if (!member.IsActive)
-        {
-            member.Reactivate();
-        }
-
-        await _store.SaveChangesAsync(ct);
+        await _store.EnsureActiveMemberAsync(group.Id, userId, _clock.UtcNow, ct);
         return await Map(group, ct);
     }
 

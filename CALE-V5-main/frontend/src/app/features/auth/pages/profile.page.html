@@ -329,7 +329,14 @@
                     {{ req.direction === 'Invite' ? 'Invitación' : 'Solicitud' }} · {{ req.createdAt | date:'short' }}
                   </div>
                   @if (req.status === 'Pending' && req.direction === 'Request') {
-                    <ui-button type="button" variant="ghost" (click)="cancelJoin(req.id)">Cancelar</ui-button>
+                    <ui-button
+                      type="button"
+                      variant="ghost"
+                      [loading]="decidingId() === req.id"
+                      [disabled]="decidingId() != null"
+                      (click)="cancelJoin(req.id)">
+                      Cancelar
+                    </ui-button>
                   }
                   @if (req.rejectionReason) {
                     <div class="muted">Motivo: {{ req.rejectionReason }}</div>

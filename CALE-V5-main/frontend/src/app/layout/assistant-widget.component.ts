@@ -895,6 +895,9 @@ export class AssistantWidgetComponent implements OnInit, OnDestroy {
   }
 
   confirm(a: AssistantPendingAction): void {
+    if (this.busy()) {
+      return;
+    }
     this.busy.set(true);
     this.error.set(null);
     this.api.confirm(a.id).subscribe({
@@ -912,6 +915,13 @@ export class AssistantWidgetComponent implements OnInit, OnDestroy {
   }
 
   discard(a: AssistantPendingAction): void {
+    if (this.busy()) {
+      return;
+    }
+    const pending = this.action();
+    if (!pending || pending.id !== a.id) {
+      return;
+    }
     this.action.set(null);
     this.api.discard(a.id).subscribe({ error: () => undefined });
     this.messages.update((list) => [...list, { role: 'assistant', content: 'Listo, no hice ningún cambio.' }]);

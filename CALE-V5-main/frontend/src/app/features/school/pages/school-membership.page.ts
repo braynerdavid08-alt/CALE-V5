@@ -515,6 +515,9 @@ export class SchoolMembershipPage implements OnInit {
   }
 
   requestSelected(): void {
+    if (this.busy()) {
+      return;
+    }
     const code = this.selectedPlan() ?? this.profile()?.planCode;
     if (!code) {
       this.error.set('Selecciona un plan primero.');
@@ -539,6 +542,9 @@ export class SchoolMembershipPage implements OnInit {
   }
 
   onFile(event: Event): void {
+    if (this.busy()) {
+      return;
+    }
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
@@ -575,6 +581,9 @@ export class SchoolMembershipPage implements OnInit {
   }
 
   submitProof(): void {
+    if (this.busy()) {
+      return;
+    }
     const url = this.proofUrl();
     if (!url) {
       this.error.set('Sube el archivo del comprobante primero.');
@@ -609,6 +618,9 @@ export class SchoolMembershipPage implements OnInit {
   }
 
   cancelRequest(): void {
+    if (this.busy()) {
+      return;
+    }
     this.busy.set(true);
     this.error.set(null);
     this.success.set(null);
@@ -659,6 +671,9 @@ export class SchoolMembershipPage implements OnInit {
   }
 
   saveBilling(): void {
+    if (this.busy()) {
+      return;
+    }
     if (this.billingForm.invalid) {
       this.billingForm.markAllAsTouched();
       return;

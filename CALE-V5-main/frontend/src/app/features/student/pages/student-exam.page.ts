@@ -125,6 +125,9 @@ export class StudentExamPage implements OnInit {
   }
 
   book(): void {
+    if (this.booking()) {
+      return;
+    }
     const slot = this.picked();
     if (!slot) return;
     this.booking.set(true);
@@ -153,6 +156,9 @@ export class StudentExamPage implements OnInit {
   }
 
   doCancel(): void {
+    if (this.cancelling()) {
+      return;
+    }
     const b = this.myBooking();
     this.confirmCancel.set(false);
     if (!b) return;

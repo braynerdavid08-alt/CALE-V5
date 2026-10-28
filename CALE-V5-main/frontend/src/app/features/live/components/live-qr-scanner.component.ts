@@ -55,6 +55,8 @@ export class LiveQrScannerComponent implements OnInit, OnDestroy {
 
   private scanner: Html5Qrcode | null = null;
   private active = false;
+  /** Prevents multi-frame emits of the same QR before the camera stops. */
+  private emitted = false;
 
   ngOnInit(): void {
     void this.start();
@@ -68,6 +70,7 @@ export class LiveQrScannerComponent implements OnInit, OnDestroy {
     if (this.active) {
       return;
     }
+    this.emitted = false;
     this.error.set(null);
     const elementId = this.readerRef.nativeElement.id || 'live-qr-reader';
     this.scanner = new Html5Qrcode(elementId);
@@ -101,10 +104,14 @@ export class LiveQrScannerComponent implements OnInit, OnDestroy {
   }
 
   private onDecoded(raw: string): void {
+    if (this.emitted) {
+      return;
+    }
     const code = parseLiveJoinCode(raw);
     if (!code) {
       return;
     }
+    this.emitted = true;
     this.codeScanned.emit(code);
     void this.stop();
   }

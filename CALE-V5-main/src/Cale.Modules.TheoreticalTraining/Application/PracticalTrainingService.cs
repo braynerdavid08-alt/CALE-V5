@@ -789,12 +789,33 @@ public sealed class PracticalTrainingService
                 "lesson_full");
         }
 
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        if (_db.Database.IsNpgsql())
+        {
+            await _db.Database.ExecuteSqlRawAsync(
+                "SELECT pg_advisory_xact_lock(@p0)",
+                new object[] { lessonId },
+                ct);
+        }
+
+        var reservedUnderLock = await _db.Set<PracticalLessonReservation>()
+            .CountAsync(x => x.LessonSessionId == lessonId
+                && PracticalReservationStatuses.ActiveStatuses.Contains(x.Status), ct);
+        if (reservedUnderLock >= PracticalScheduleLimits.SeatsPerSlot)
+        {
+            throw new DomainException(
+                "Este horario ya tiene un estudiante. Solo se permite 1 persona por clase o examen de manejo.",
+                400,
+                "lesson_full");
+        }
+
         var existing = await _db.Set<PracticalLessonReservation>()
             .FirstOrDefaultAsync(x => x.LessonSessionId == lessonId
                 && x.StudentUserId == studentUserId
                 && PracticalReservationStatuses.ActiveStatuses.Contains(x.Status), ct);
         if (existing is not null)
         {
+            await tx.CommitAsync(ct);
             return await MapLessonAsync(session, studentUserId, includeAssignment: false, ct);
         }
 
@@ -809,6 +830,7 @@ public sealed class PracticalTrainingService
             UpdatedAt = now
         }, ct);
         await _db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
         return await MapLessonAsync(session, studentUserId, includeAssignment: false, ct);
     }
 

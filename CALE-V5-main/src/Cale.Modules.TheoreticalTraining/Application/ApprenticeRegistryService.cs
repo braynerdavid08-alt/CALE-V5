@@ -302,6 +302,21 @@ public sealed class ApprenticeRegistryService
         var receipt = Truncate(request.ReceiptNumber, 32);
         var notes = Truncate(request.Notes, 256);
 
+        // Soft idempotency: same receipt + amount for the student must not double-count.
+        if (!string.IsNullOrWhiteSpace(receipt))
+        {
+            var duplicate = await _db.Set<ApprenticePaymentAbono>().AnyAsync(
+                x => x.SchoolUserId == schoolUserId
+                    && x.StudentUserId == studentUserId
+                    && x.ReceiptNumber == receipt
+                    && x.Amount == request.Amount,
+                ct);
+            if (duplicate)
+            {
+                return await BuildCarteraAsync(schoolUserId, studentUserId, profile, ct);
+            }
+        }
+
         await _db.Set<ApprenticePaymentAbono>().AddAsync(new ApprenticePaymentAbono
         {
             SchoolUserId = schoolUserId,

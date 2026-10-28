@@ -181,6 +181,9 @@ export class LiveJoinPage implements OnInit {
   }
 
   joinWithCode(code: string): void {
+    if (this.loading()) {
+      return;
+    }
     if (!code || code.length < 4) {
       this.error.set('Código inválido.');
       return;
