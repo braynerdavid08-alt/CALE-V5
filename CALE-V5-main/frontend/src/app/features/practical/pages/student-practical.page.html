@@ -1,8 +1,11 @@
 <section class="page">
   <header class="hero page-banner">
-    <p class="eyebrow">Mi proceso</p>
+    <p class="eyebrow">Mi formación</p>
     <h1>Clases de manejo</h1>
-    <p class="lead">Elige el instructor con quien quieres practicar y reserva un horario disponible.</p>
+    <p class="lead">
+      Reserva clases con tu instructor. Cuando completes todas menos una, podrás agendar el examen de manejo
+      (también desde el Asistente de Luz Verde).
+    </p>
   </header>
 
   <nav class="process-switch" aria-label="Cambiar tipo de formación">
@@ -12,7 +15,7 @@
     </a>
     <span class="current" aria-current="page">
       <strong>Manejo</strong>
-      <span>Clases prácticas</span>
+      <span>Clases y examen práctico</span>
     </span>
   </nav>
 
@@ -44,9 +47,27 @@
           {{ dash.eligibility.practicalAuthorized ? '☑' : '☐' }}
           Autorización de escuela para manejo
         </li>
+        <li [class.done]="(dash.completedLessons ?? 0) >= practiceRequired()">
+          {{ (dash.completedLessons ?? 0) >= practiceRequired() ? '☑' : '☐' }}
+          Clases de manejo: {{ dash.completedLessons ?? 0 }} / {{ practiceRequired() }}
+          <small class="req-note">(programa {{ dash.requiredLessons }} h; la última es el examen)</small>
+        </li>
+        <li [class.done]="dash.practicalExamAttended || dash.practicalExamScheduled || dash.canBookPracticalExam">
+          {{ dash.practicalExamAttended ? '☑' : dash.practicalExamScheduled ? '☑' : dash.canBookPracticalExam ? '☑' : '☐' }}
+          Examen de manejo
+          @if (dash.practicalExamAttended) { · presentado }
+          @else if (dash.practicalExamScheduled) { · ya agendado }
+          @else if (dash.canBookPracticalExam) { · listo para agendar }
+          @else { · pendiente }
+        </li>
       </ul>
-      @if (dash.eligibility.canBookPractical) {
+      @if (dash.canBookPracticalExam) {
+        <p class="ok">✅ Ya puedes agendar tu examen de manejo (1 hora).</p>
+      } @else if (dash.eligibility.canBookPractical) {
         <p class="ok">✅ Ya puedes reservar clases de manejo.</p>
+        @if (dash.practicalExamBlockReason) {
+          <p class="blocked">{{ dash.practicalExamBlockReason }}</p>
+        }
       } @else if (dash.eligibility.blockReason) {
         <p class="blocked">{{ dash.eligibility.blockReason }}</p>
       }
@@ -55,7 +76,7 @@
 
     @if (dash.nextLesson; as next) {
       <article class="card highlight">
-        <h2>Próxima clase de manejo</h2>
+        <h2>Próximo cupo</h2>
         <p class="when">{{ kindLabel(next) }} · {{ next.sessionDate }} · {{ lessonWindow(next) }}</p>
         <p class="meta">{{ next.instructorName }} · {{ next.vehicleLabel }}</p>
       </article>
@@ -84,33 +105,51 @@
         }
       </div>
 
+      <div class="slot-filters" role="group" aria-label="Filtrar horarios">
+        <button type="button" [class.on]="slotFilter() === 'all'" (click)="setSlotFilter('all')">Todos</button>
+        <button type="button" [class.on]="slotFilter() === 'lesson'" (click)="setSlotFilter('lesson')">Clases</button>
+        <button type="button" [class.on]="slotFilter() === 'exam'" (click)="setSlotFilter('exam')">Examen</button>
+      </div>
+
       <h3>Horarios con {{ selectedInstructorName() }}</h3>
       @if (actionLoading()) {
         <p class="inline-loading">Actualizando reservas…</p>
       }
       <ul class="list">
         @for (session of filteredLessons(); track session.id) {
-          <li class="slot">
+          <li class="slot" [class.exam-slot]="isExam(session)">
             <div>
               <p class="title">{{ kindLabel(session) }} · {{ session.sessionDate }} · {{ lessonWindow(session) }}</p>
               <p class="meta">{{ session.vehicleLabel }} · {{ session.bookingMessage }}</p>
+              @if (!canReserve(session) && session.bookingState !== 'reserved' && reserveBlockedReason(session); as reason) {
+                <p class="meta warn">{{ reason }}</p>
+              }
             </div>
             <button
               type="button"
               class="btn"
               [class.reserve]="canReserve(session)"
               [class.reserved]="session.bookingState === 'reserved'"
-              [class.blocked]="!dash.eligibility.canBookPractical && session.bookingState !== 'reserved'"
+              [class.blocked]="!canReserve(session) && session.bookingState !== 'reserved'"
               [disabled]="actionLoading() || (!canReserve(session) && session.bookingState !== 'reserved')"
               (click)="canReserve(session) ? reserve(session) : (session.bookingState === 'reserved' ? cancel(session) : null)">
               @if (session.bookingState === 'reserved') { Reservada }
-              @else if (!dash.eligibility.canBookPractical) { Bloqueado }
               @else if (session.bookingState === 'full') { Sin cupos }
-              @else { Reservar }
+              @else if (isExam(session) && canReserve(session)) { Agendar examen }
+              @else if (canReserve(session)) { Reservar }
+              @else { Bloqueado }
             </button>
           </li>
         } @empty {
-          <li class="empty">Este instructor no tiene horarios disponibles por ahora.</li>
+          <li class="empty">
+            @if (slotFilter() === 'exam') {
+              No hay cupos de examen publicados con este instructor.
+            } @else if (slotFilter() === 'lesson') {
+              No hay clases publicadas con este instructor.
+            } @else {
+              Este instructor no tiene horarios disponibles por ahora.
+            }
+          </li>
         }
       </ul>
     }

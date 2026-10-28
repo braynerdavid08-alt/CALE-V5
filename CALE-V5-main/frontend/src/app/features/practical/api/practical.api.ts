@@ -53,6 +53,8 @@ export interface PracticalSchedulingStudentDto {
   nextLessonNumber: number;
   isEligible: boolean;
   blockReason?: string | null;
+  practiceRequiredLessons?: number;
+  canBookExam?: boolean;
 }
 
 export interface PracticalStudentDashboardDto {
@@ -63,6 +65,11 @@ export interface PracticalStudentDashboardDto {
   availableInstructors: PracticalInstructorOptionDto[];
   completedLessons?: number;
   requiredLessons?: number;
+  practiceRequiredLessons?: number;
+  canBookPracticalExam?: boolean;
+  practicalExamBlockReason?: string | null;
+  practicalExamScheduled?: boolean;
+  practicalExamAttended?: boolean;
 }
 
 export interface PracticalInstructorOptionDto {
