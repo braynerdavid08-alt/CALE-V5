@@ -117,8 +117,10 @@ const HIDDEN_PATHS = [
                 <p class="bubble me">{{ m.content }}</p>
               } @else {
                 <div class="bot-block">
-                  @if (m.content) {
+                  @if (m.content && !m.examAvailability) {
                     <div class="bubble bot md" [innerHTML]="asHtml(m.content)"></div>
+                  } @else if (m.content && m.examAvailability && tipBesideCard(m.content)) {
+                    <div class="bubble bot md tip" [innerHTML]="asHtml(m.content)"></div>
                   }
                   @if (m.examAvailability; as card) {
                     <div class="exam-card" [attr.data-msg]="$index">
@@ -131,6 +133,9 @@ const HIDDEN_PATHS = [
                       }
                       @if (card.blockReason) {
                         <p class="exam-warn">{{ card.blockReason }}</p>
+                      }
+                      @if (card.selectable && card.days.length) {
+                        <p class="exam-hint">Toca un horario para preparar la reserva. Aún no se agenda hasta que confirmes.</p>
                       }
                       @if (!card.days.length) {
                         <p class="exam-empty">{{ emptySlotsLabel(card.type) }}</p>
@@ -685,6 +690,14 @@ export class AssistantWidgetComponent implements OnInit, OnDestroy {
   /** Escape-first Markdown → trusted HTML for bot bubbles only. */
   asHtml(content: string): SafeHtml {
     return this.sanitizer.bypassSecurityTrustHtml(renderAssistantMarkdown(content));
+  }
+
+  /** Short tip beside a schedule card; hide long dumps that repeat the card. */
+  tipBesideCard(content: string): boolean {
+    const t = content.trim();
+    if (!t || t.length > 280) return false;
+    if (t.includes('|') || /cupo|Rango consultado|Toca un horario/i.test(t)) return false;
+    return true;
   }
 
   ngOnInit(): void {

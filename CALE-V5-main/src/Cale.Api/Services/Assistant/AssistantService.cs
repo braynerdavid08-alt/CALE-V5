@@ -333,53 +333,31 @@ public sealed class AssistantService
         }
     }
 
+    /// <summary>
+    /// When a structured schedule card is shown, skip the plain-text dump (title, range, slots).
+    /// Only keep a short LLM tip that adds something the card does not already say.
+    /// </summary>
     private static string ScheduleCardReply(AssistantExamAvailabilityUi ui, string? llmHint = null)
     {
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine(ui.Title + ".");
-        if (!string.IsNullOrWhiteSpace(ui.DateRangeFrom) && !string.IsNullOrWhiteSpace(ui.DateRangeTo))
+        if (string.IsNullOrWhiteSpace(llmHint))
         {
-            sb.AppendLine($"Rango consultado: {ui.DateRangeFrom} a {ui.DateRangeTo}.");
+            return string.Empty;
         }
 
-        if (!string.IsNullOrWhiteSpace(ui.BlockReason))
+        var hint = llmHint.Trim();
+        if (hint.Length >= 280
+            || hint.Contains('|')
+            || hint.Contains("cupo", StringComparison.OrdinalIgnoreCase)
+            || hint.Contains("Rango consultado", StringComparison.OrdinalIgnoreCase)
+            || (!string.IsNullOrWhiteSpace(ui.Title)
+                && hint.Contains(ui.Title, StringComparison.OrdinalIgnoreCase))
+            || hint.Contains("Toca un horario", StringComparison.OrdinalIgnoreCase)
+            || hint.Contains("Los horarios aparecen", StringComparison.OrdinalIgnoreCase))
         {
-            sb.AppendLine(ui.BlockReason);
+            return string.Empty;
         }
 
-        if (!string.IsNullOrWhiteSpace(ui.MyBookingSummary))
-        {
-            sb.AppendLine(ui.MyBookingSummary);
-        }
-
-        if (ui.Days.Count == 0)
-        {
-            sb.AppendLine(
-                ui.Type switch
-                {
-                    "theory_week" => "No hay clases teóricas publicadas en ese rango.",
-                    "practical_slots" => "No hay cupos de manejo publicados.",
-                    _ => "No hay cupos libres en ese rango."
-                });
-        }
-        else
-        {
-            sb.AppendLine(
-                ui.Selectable
-                    ? "Toca un horario para preparar la reserva (aún no se agenda hasta que confirmes)."
-                    : "Los horarios aparecen en las tarjetas de abajo.");
-        }
-
-        if (!string.IsNullOrWhiteSpace(llmHint)
-            && llmHint.Length < 280
-            && !llmHint.Contains('|')
-            && llmHint.IndexOf("cupo", StringComparison.OrdinalIgnoreCase) < 0)
-        {
-            sb.AppendLine();
-            sb.Append(llmHint.Trim());
-        }
-
-        return sb.ToString().Trim();
+        return hint;
     }
 
     private sealed record QuickQuestion(string Tool, Func<JsonObject> Args);
