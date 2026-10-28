@@ -115,7 +115,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
   }
 
   if (role === 'School') {
-    // Maps to existing routes only. No monthly agenda / practical-exam modules yet.
+    // Maps to existing routes only. Practical exam slots live inside /school/practical.
     const formacion = 'Formación y programación';
     const seguimiento = 'Seguimiento académico';
     const administracion = 'Administración';

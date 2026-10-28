@@ -180,6 +180,8 @@ public sealed class PracticalLessonSession
     public int VehicleId { get; set; }
     public int Capacity { get; set; } = 1;
     public string Status { get; set; } = PracticalLessonStatuses.Scheduled;
+    /// <summary><see cref="PracticalSessionKinds.Lesson"/> or <see cref="PracticalSessionKinds.Exam"/>.</summary>
+    public string Kind { get; set; } = PracticalSessionKinds.Lesson;
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

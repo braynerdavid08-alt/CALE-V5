@@ -298,7 +298,8 @@ public sealed record PracticalLessonSessionDto(
     string? BookingState,
     string? BookingMessage,
     int? MyReservationId,
-    PracticalLessonAssignmentDto? Assignment = null);
+    PracticalLessonAssignmentDto? Assignment = null,
+    string Kind = "Lesson");
 
 public sealed record PracticalSchedulingStudentDto(
     int StudentUserId,
@@ -316,7 +317,8 @@ public sealed record QuickAssignPracticalRequest(
     string EndTime,
     int InstructorUserId,
     int VehicleId,
-    int StudentUserId);
+    int StudentUserId,
+    string? Kind = null);
 
 public sealed record DuplicatePracticalWeekRequest(
     DateOnly WeekStart,
@@ -330,11 +332,13 @@ public sealed record CreatePracticalLessonRequest(
     int InstructorUserId,
     int VehicleId,
     int? Capacity,
-    string? Notes);
+    string? Notes,
+    string? Kind = null);
 
 /// <summary>
 /// Publishes empty practical slots (no student) on each selected weekday between FromDate and ToDate.
 /// DaysOfWeek uses .NET values: 0=Sunday … 6=Saturday. Sundays are always skipped.
+/// Kind: Lesson (default) or Exam (always 1 hour).
 /// </summary>
 public sealed record BulkCreatePracticalLessonsRequest(
     DateOnly FromDate,
@@ -345,7 +349,8 @@ public sealed record BulkCreatePracticalLessonsRequest(
     int InstructorUserId,
     int VehicleId,
     int? Capacity,
-    string? Notes);
+    string? Notes,
+    string? Kind = null);
 
 public sealed record BulkCreatePracticalLessonsResult(
     int Created,

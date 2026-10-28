@@ -10,7 +10,9 @@ import {
   PracticalApi,
   PracticalLessonSessionDto,
   PracticalVehicleDto,
-  formatLessonWindow
+  formatLessonWindow,
+  isPracticalExam,
+  practicalKindLabel
 } from '../../practical/api/practical.api';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
@@ -187,6 +189,14 @@ export class SchoolPracticalFleetPage implements OnInit {
 
   lessonWindow(lesson: PracticalLessonSessionDto): string {
     return formatLessonWindow(lesson);
+  }
+
+  kindLabel(lesson: PracticalLessonSessionDto): string {
+    return practicalKindLabel(lesson.kind);
+  }
+
+  isExam(lesson: PracticalLessonSessionDto): boolean {
+    return isPracticalExam(lesson);
   }
 
   mark(lesson: PracticalLessonSessionDto, status: 'Present' | 'Absent'): void {

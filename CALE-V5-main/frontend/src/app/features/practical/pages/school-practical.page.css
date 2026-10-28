@@ -147,6 +147,16 @@
   align-items: flex-start;
   cursor: default;
 }
+.cell.open.exam,
+.cell.assigned.exam {
+  border-color: #b45309;
+  background: #fffbeb;
+}
+.cell.assigned.exam .cat { color: #b45309; }
+.create-mode button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 .cell.cont {
   min-height: 42px;
   border-style: solid;

@@ -2,7 +2,7 @@
   <ui-page-header
     eyebrow="Escuela"
     title="Clases de manejo"
-    subtitle="Publica cupos fijos del instructor y luego asigna estudiantes, o deja que ellos agenden desde su usuario." />
+    subtitle="Publica clases o exámenes de manejo (el examen solo de 1 hora). Luego asigna o deja que el estudiante agende." />
 
   <ui-error [message]="error()" />
 
@@ -36,6 +36,19 @@
           }
         </select>
       </label>
+      <div class="filter duration-filter" role="group" aria-label="Tipo de cupo">
+        <span>Tipo</span>
+        <div class="create-mode duration-mode">
+          @for (k of kindChoices; track k.value) {
+            <button
+              type="button"
+              [class.on]="sessionKind() === k.value"
+              (click)="setSessionKind(k.value)">
+              {{ k.label }}
+            </button>
+          }
+        </div>
+      </div>
       <div class="filter duration-filter" role="group" aria-label="Duración de la clase">
         <span>Duración</span>
         <div class="create-mode duration-mode">
@@ -43,6 +56,7 @@
             <button
               type="button"
               [class.on]="durationHours() === d.value"
+              [disabled]="sessionKind() === 'Exam' && d.value !== 1"
               (click)="setDurationHours(d.value)">
               {{ d.label }}
             </button>
@@ -71,9 +85,20 @@
     <section class="school-card fixed-hours-card">
       <h2>Crear horarios fijos</h2>
       <p class="tip">
-        Publica cupos vacíos del instructor y vehículo seleccionados. Después puedes asignar un estudiante
-        o dejar que el estudiante reserve desde su usuario.
+        Publica cupos vacíos del instructor y vehículo seleccionados (clase o examen de manejo).
+        Después puedes asignar un estudiante o dejar que reserve desde su usuario.
       </p>
+
+      <div class="create-mode" role="group" aria-label="Tipo de cupo">
+        @for (k of kindChoices; track k.value) {
+          <button
+            type="button"
+            [class.on]="sessionKind() === k.value"
+            (click)="setSessionKind(k.value)">
+            {{ k.label }}
+          </button>
+        }
+      </div>
 
       <div class="create-mode" role="group" aria-label="Cómo publicar">
         <button type="button" [class.on]="createMode === 'one'" (click)="setCreateMode('one')">Un día</button>
@@ -123,17 +148,21 @@
           </select>
         </label>
         <p class="tip fixed-tip">
-          Se guarda hasta el minuto :59 de la última hora (ej. 2 h desde las 14:00 → interno 14:00–15:59,
-          visible 14:00–16:00) para no ocupar las 16:00.
+          @if (sessionKind() === 'Exam') {
+            El examen de manejo siempre dura 1 hora (ej. 14:00–15:00 visible, interno 14:00–14:59).
+          } @else {
+            Se guarda hasta el minuto :59 de la última hora (ej. 2 h desde las 14:00 → interno 14:00–15:59,
+            visible 14:00–16:00) para no ocupar las 16:00.
+          }
         </p>
       </div>
 
       <div class="fixed-actions">
         <ui-button type="button" [loading]="saving()" (click)="publishFixedHours()">
           @if (createMode === 'range') {
-            Publicar rango
+            Publicar {{ sessionKind() === 'Exam' ? 'exámenes' : 'clases' }}
           } @else {
-            Publicar cupo
+            Publicar {{ sessionKind() === 'Exam' ? 'examen' : 'cupo' }}
           }
         </ui-button>
       </div>
@@ -187,9 +216,14 @@
             <div class="mobile-slot-body">
               @if (lessonAt(mobileDay(), slot); as lesson) {
                 @if (lesson.assignment; as a) {
-                  <div class="mobile-assigned" [class.done]="a.reservationStatus === 'Attended'">
+                  <div class="mobile-assigned" [class.done]="a.reservationStatus === 'Attended'" [class.exam]="isExam(lesson)">
                     <strong>{{ a.studentName }}</strong>
-                    <span>{{ lessonWindow(lesson) }} · {{ a.licenseCategory }} · {{ a.lessonNumber }}/{{ a.lessonsRequired }}</span>
+                    <span>
+                      {{ kindLabel(lesson) }} · {{ lessonWindow(lesson) }}
+                      @if (!isExam(lesson)) {
+                        · {{ a.licenseCategory }} · {{ a.lessonNumber }}/{{ a.lessonsRequired }}
+                      }
+                    </span>
                     <div class="cell-actions">
                       @if (a.reservationStatus === 'Reserved') {
                         <button type="button" (click)="markLessonPresent(lesson)">Presente</button>
@@ -198,8 +232,8 @@
                     </div>
                   </div>
                 } @else {
-                  <div class="mobile-open">
-                    <strong>Cupo libre</strong>
+                  <div class="mobile-open" [class.exam]="isExam(lesson)">
+                    <strong>{{ kindLabel(lesson) }} libre</strong>
                     <span>{{ lessonWindow(lesson) }} · listo para asignar o agendar</span>
                     <div class="cell-actions">
                       <button type="button" (click)="openPicker(mobileDay(), slot)">Asignar</button>
@@ -245,10 +279,15 @@
                 <td>
                   @if (lessonAt(i, slot); as lesson) {
                     @if (lesson.assignment; as a) {
-                      <div class="cell assigned" [class.done]="a.reservationStatus === 'Attended'">
-                        <span class="cat">{{ a.licenseCategory }}</span>
+                      <div class="cell assigned" [class.done]="a.reservationStatus === 'Attended'" [class.exam]="isExam(lesson)">
+                        <span class="cat">{{ isExam(lesson) ? 'Examen' : a.licenseCategory }}</span>
                         <strong>{{ a.studentName }}</strong>
-                        <small>{{ lessonWindow(lesson) }} · {{ a.lessonNumber }}/{{ a.lessonsRequired }}</small>
+                        <small>
+                          {{ lessonWindow(lesson) }}
+                          @if (!isExam(lesson)) {
+                            · {{ a.lessonNumber }}/{{ a.lessonsRequired }}
+                          }
+                        </small>
                         <div class="cell-actions">
                           @if (a.reservationStatus === 'Reserved') {
                             <button type="button" (click)="markLessonPresent(lesson)">Presente</button>
@@ -257,8 +296,8 @@
                         </div>
                       </div>
                     } @else {
-                      <div class="cell open">
-                        <strong>Cupo libre</strong>
+                      <div class="cell open" [class.exam]="isExam(lesson)">
+                        <strong>{{ isExam(lesson) ? 'Examen libre' : 'Cupo libre' }}</strong>
                         <small>{{ lessonWindow(lesson) }}</small>
                         <div class="cell-actions">
                           <button type="button" (click)="openPicker(i, slot)">Asignar</button>

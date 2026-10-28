@@ -128,6 +128,7 @@ public sealed class PracticalLessonSessionConfiguration : IEntityTypeConfigurati
         builder.ToTable("PracticalLessonSessions");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Status).HasMaxLength(32).IsRequired();
+        builder.Property(x => x.Kind).HasMaxLength(16).IsRequired().HasDefaultValue(PracticalSessionKinds.Lesson);
         builder.HasIndex(x => new { x.SchoolUserId, x.SessionDate });
         builder.HasOne(x => x.Vehicle).WithMany().HasForeignKey(x => x.VehicleId);
     }
