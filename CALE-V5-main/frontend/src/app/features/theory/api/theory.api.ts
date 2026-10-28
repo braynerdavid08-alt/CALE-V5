@@ -294,6 +294,23 @@ export class TheoryApi {
     return this.http.post<TheoryClassSessionDto>(`${this.schoolBase}/sessions`, body);
   }
 
+  bulkCreateSessions(body: {
+    fromDate: string;
+    toDate: string;
+    daysOfWeek: number[];
+    startTime: string;
+    endTime: string;
+    topicId: number;
+    classroomId: number;
+    capacity?: number;
+    notes?: string;
+  }) {
+    return this.http.post<{ created: number; skippedExisting: number; skippedInvalidDay: number }>(
+      `${this.schoolBase}/sessions/bulk`,
+      body
+    );
+  }
+
   updateSession(
     id: number,
     body: {

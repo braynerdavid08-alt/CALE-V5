@@ -113,6 +113,27 @@ public sealed record CreateTheoryClassRequest(
     int? InstructorUserId,
     string? Notes);
 
+/// <summary>
+/// Creates the same class slot on each selected weekday between FromDate and ToDate (inclusive).
+/// DaysOfWeek uses .NET values: 0=Sunday … 6=Saturday.
+/// </summary>
+public sealed record BulkCreateTheoryClassesRequest(
+    DateOnly FromDate,
+    DateOnly ToDate,
+    IReadOnlyList<int> DaysOfWeek,
+    string StartTime,
+    string EndTime,
+    int TopicId,
+    int ClassroomId,
+    int? Capacity,
+    int? InstructorUserId,
+    string? Notes);
+
+public sealed record BulkCreateTheoryClassesResult(
+    int Created,
+    int SkippedExisting,
+    int SkippedInvalidDay);
+
 public sealed record UpdateTheoryClassRequest(
     DateOnly SessionDate,
     string StartTime,

@@ -118,8 +118,42 @@
           <h2>Editar clase #{{ editId }}</h2>
         } @else {
           <h2>Crear clase teórica</h2>
+          <div class="create-mode" role="group" aria-label="Cómo publicar">
+            <button type="button" [class.on]="createMode === 'one'" (click)="setCreateMode('one')">Una clase</button>
+            <button type="button" [class.on]="createMode === 'range'" (click)="setCreateMode('range')">Mes o año</button>
+          </div>
         }
-        <label>Fecha <input type="date" [(ngModel)]="createForm.sessionDate" /></label>
+
+        @if (notice()) {
+          <p class="form-notice" role="status">{{ notice() }}</p>
+        }
+
+        @if (!editingSessionId() && createMode === 'range') {
+          <div class="bulk-quick">
+            <button type="button" class="link-btn" (click)="applyBulkMonth()">Mes visible</button>
+            <button type="button" class="link-btn" (click)="applyBulkYear()">Resto del año</button>
+          </div>
+          <label>Desde <input type="date" [(ngModel)]="bulkFrom" /></label>
+          <label>Hasta <input type="date" [(ngModel)]="bulkTo" /></label>
+          <div class="bulk-days" role="group" aria-label="Días de la semana">
+            <span class="bulk-days-label">Repetir</span>
+            <div class="day-pills">
+              @for (d of bulkDayChoices; track d.value) {
+                <button
+                  type="button"
+                  class="day-pill"
+                  [attr.aria-pressed]="isBulkDayOn(d.value)"
+                  [disabled]="!isDayAllowed(d.value === 0 ? 6 : d.value - 1)"
+                  (click)="toggleBulkDay(d.value, !isBulkDayOn(d.value))">
+                  {{ d.label }}
+                </button>
+              }
+            </div>
+          </div>
+        } @else {
+          <label>Fecha <input type="date" [(ngModel)]="createForm.sessionDate" /></label>
+        }
+
         <label>Inicio <input type="time" [(ngModel)]="createForm.startTime" /></label>
         <label>Fin <input type="time" [(ngModel)]="createForm.endTime" /></label>
         <label>Tema
@@ -139,14 +173,26 @@
         <label>Cupo (opcional) <input type="number" min="0" [(ngModel)]="createForm.capacity" /></label>
         <label>Observaciones <textarea rows="2" [(ngModel)]="createForm.notes"></textarea></label>
         <div class="form-actions">
-          <ui-button type="button" (click)="saveSession()">
-            {{ editingSessionId() ? 'Guardar cambios' : 'Publicar clase' }}
+          <ui-button type="button" (click)="saveSession()" [loading]="saving()">
+            @if (editingSessionId()) {
+              Guardar cambios
+            } @else if (createMode === 'range') {
+              Publicar rango
+            } @else {
+              Publicar clase
+            }
           </ui-button>
           @if (editingSessionId()) {
             <button type="button" class="link-btn" (click)="resetSessionForm()">Nueva clase</button>
             <button type="button" class="link-btn danger" (click)="cancelEditingSession()">Eliminar clase</button>
           }
         </div>
+        @if (!editingSessionId() && createMode === 'range') {
+          <p class="muted tip">
+            Crea la misma hora (tema y aula) en todos los días elegidos del rango.
+            Si ya existe una clase a esa hora en el aula, se omite.
+          </p>
+        }
       </aside>
     </div>
   } @else if (tab() === 'attendance') {

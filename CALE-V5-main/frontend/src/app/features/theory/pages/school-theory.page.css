@@ -74,6 +74,64 @@
 }
 .month-item small { display: block; color: var(--color-text-secondary); font-size: var(--text-xs); }
 .form-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.create-mode {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+}
+.create-mode button {
+  flex: 1;
+  min-height: 2.35rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+.create-mode button.on {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+.bulk-quick { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.bulk-days { display: grid; gap: 0.4rem; }
+.bulk-days-label { font-size: var(--text-sm); font-weight: 600; }
+.day-pills { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.day-pill {
+  min-width: 2.6rem;
+  min-height: 2.35rem;
+  padding: 0 0.55rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+.day-pill[aria-pressed='true'] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+.day-pill:disabled { opacity: 0.4; cursor: not-allowed; }
+.form-notice {
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--color-success) 35%, var(--color-border));
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+.form-card .tip { margin: 0; font-size: var(--text-xs); line-height: 1.4; }
 .link-btn.danger { color: #b91c1c; }
 .form-card { border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1rem; background: var(--color-surface); display: grid; gap: 0.5rem; }
 .form-card label { display: grid; gap: 0.25rem; font-size: var(--text-sm); }
