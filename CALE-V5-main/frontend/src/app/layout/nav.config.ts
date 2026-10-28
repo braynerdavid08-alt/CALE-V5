@@ -19,6 +19,10 @@ export interface NavItem {
   children?: NavChild[];
   /** Hide when student is not linked to a school. */
   requiresSchool?: boolean;
+  /** Optional discrete section title shown above this item (school nav groups). */
+  section?: string;
+  /** Slight visual emphasis without changing brand colors (e.g. Agenda). */
+  emphasize?: boolean;
 }
 
 export interface NavOptions {
@@ -112,20 +116,49 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
 
   if (role === 'School') {
     // Flat menu with everyday words: school owners are often older and less used to apps.
+    // Order: Inicio → formación → seguimiento → administración → complementarias.
+    const formacion = 'Formación y programación';
+    const seguimiento = 'Seguimiento académico';
+    const administracion = 'Administración';
+    const otras = 'Otras opciones';
     return [
       { label: 'Inicio', path: '/school', icon: 'home', exact: true },
-      { label: 'Agenda de la semana', path: '/school/agenda', icon: 'calendar', exact: true },
-      { label: 'Estudiantes', path: '/school/apprentices', icon: 'graduate', exact: true },
-      { label: 'Asistencia de hoy', path: '/school/attendance', icon: 'list', exact: true },
-      { label: 'Clases teóricas', path: '/school/training', icon: 'clock', exact: true },
-      { label: 'Exámenes', path: '/school/theory-exams', icon: 'exam', exact: true },
-      { label: 'Clases de manejo', path: '/school/practical', icon: 'play', exact: true },
-      { label: 'Resultados', path: '/school/results', icon: 'chart', exact: true },
-      { label: 'Instructores y usuarios', path: '/school/users', icon: 'instructor', exact: true },
-      ...(free ? [] : [{ label: 'Pagos y membresía', path: '/school/membership', icon: 'card', exact: true }]),
+      {
+        label: 'Agenda de la semana',
+        path: '/school/agenda',
+        icon: 'calendar',
+        exact: true,
+        section: formacion,
+        emphasize: true
+      },
+      { label: 'Clases teóricas', path: '/school/training', icon: 'clock', exact: true, section: formacion },
+      { label: 'Exámenes', path: '/school/theory-exams', icon: 'exam', exact: true, section: formacion },
+      { label: 'Clases de manejo', path: '/school/practical', icon: 'play', exact: true, section: formacion },
+      { label: 'Estudiantes', path: '/school/apprentices', icon: 'graduate', exact: true, section: seguimiento },
+      { label: 'Asistencia de hoy', path: '/school/attendance', icon: 'list', exact: true, section: seguimiento },
+      { label: 'Resultados', path: '/school/results', icon: 'chart', exact: true, section: seguimiento },
+      {
+        label: 'Instructores y usuarios',
+        path: '/school/users',
+        icon: 'instructor',
+        exact: true,
+        section: administracion
+      },
+      ...(free
+        ? []
+        : [
+            {
+              label: 'Pagos y membresía',
+              path: '/school/membership',
+              icon: 'card',
+              exact: true,
+              section: administracion
+            }
+          ]),
       {
         label: 'Más opciones',
         icon: 'grid',
+        section: otras,
         children: [
           { label: 'Horarios de examen', path: '/school/theory-exams/schedule', exact: true },
           { label: 'Examen en curso', path: '/school/exam-control', exact: true },
@@ -135,10 +168,10 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
           { label: 'Ver bancos de preguntas', path: '/school/banks', exact: true }
         ]
       },
-      REQUESTS_ITEM,
-      PQR_ITEM,
-      SHOP_SCHOOL_ITEM,
-      ...(free ? [DONATE_ITEM] : [])
+      { ...PQR_ITEM, section: otras },
+      { ...SHOP_SCHOOL_ITEM, section: otras },
+      { ...REQUESTS_ITEM, section: otras },
+      ...(free ? [{ ...DONATE_ITEM, section: otras }] : [])
     ];
   }
 
