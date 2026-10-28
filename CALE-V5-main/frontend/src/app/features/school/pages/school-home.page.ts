@@ -109,9 +109,9 @@ export class SchoolHomePage implements OnInit {
 
   readonly secondaryActions: EasyAction[] = [
     { emoji: '🗓️', label: 'Agenda semanal', hint: 'Consulta de la semana', path: '/school/agenda' },
-    { emoji: '📝', label: 'Exámenes teóricos', hint: 'Cupos y citas', path: '/school/theory-exams' },
+    { emoji: '📝', label: 'Programación de exámenes teóricos', hint: 'Cupos y citas de la semana', path: '/school/theory-exams' },
     { emoji: '🚗', label: 'Clases de manejo', hint: 'Programar prácticas', path: '/school/practical' },
-    { emoji: '⏰', label: 'Horarios de examen', hint: 'Plantilla semanal', path: '/school/theory-exams/schedule' },
+    { emoji: '⏰', label: 'Programar examen teórico', hint: 'Días, horas y cupos recurrentes', path: '/school/theory-exams/schedule' },
     { emoji: '📊', label: 'Resultados', hint: 'Notas y progreso', path: '/school/results' },
     { emoji: '👥', label: 'Instructores y usuarios', hint: 'Invitar y gestionar', path: '/school/users' },
     { emoji: '📥', label: 'Importar Excel', hint: 'Expedientes y exámenes', path: '/school/import' }

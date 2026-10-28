@@ -9,6 +9,7 @@ import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
 import { UiSheetComponent } from '../../../shared/ui/ui-sheet.component';
 import { DAY_NAMES, WEEK_ORDER, hhmm, time12 } from '../../../shared/utils/wall-clock';
 import { ExamScheduleApi, ExamTemplateDto } from '../api/exam-schedule.api';
+import { SchoolTheoryExamsNavComponent } from '../components/school-theory-exams-nav.component';
 import { plural } from '../utils/exam-labels';
 
 interface DaySection {
@@ -34,7 +35,15 @@ const TYPICAL: { time: string; days: number[] }[] = [
 @Component({
   selector: 'app-school-exam-schedule-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, UiDialogComponent, UiErrorComponent, UiLoadingComponent, UiSheetComponent],
+  imports: [
+    FormsModule,
+    RouterLink,
+    SchoolTheoryExamsNavComponent,
+    UiDialogComponent,
+    UiErrorComponent,
+    UiLoadingComponent,
+    UiSheetComponent
+  ],
   templateUrl: './school-exam-schedule.page.html',
   styleUrls: ['../../../shared/styles/easy-schedule.css', './school-exam-schedule.page.css']
 })

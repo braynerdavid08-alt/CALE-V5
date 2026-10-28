@@ -13,7 +13,7 @@
     </label>
     <ui-button type="button" variant="secondary" (click)="goToday()">Hoy</ui-button>
     <ui-button type="button" variant="ghost" (click)="reload()" [disabled]="loading()">Actualizar</ui-button>
-    <ui-button routerLink="/school/theory-exams" type="button" variant="ghost">Calendario</ui-button>
+    <ui-button routerLink="/school/theory-exams" type="button" variant="ghost">Programación</ui-button>
     <ui-button routerLink="/school/training" type="button" variant="ghost">Autorizar</ui-button>
   </div>
 
@@ -58,7 +58,7 @@
         <p class="muted empty">
           @if (!b.rows.length) {
             No hay citas este día.
-            <a routerLink="/school/theory-exams">Agenda en el calendario</a>.
+            <a routerLink="/school/theory-exams">Programación de exámenes teóricos</a>.
           } @else {
             No hay filas en este filtro.
             <button type="button" class="linkish" (click)="setFilter('all')">Ver todas</button>
