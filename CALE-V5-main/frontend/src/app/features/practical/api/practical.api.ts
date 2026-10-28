@@ -178,6 +178,24 @@ export class PracticalApi {
     return this.http.post<PracticalLessonSessionDto>(`${this.schoolBase}/lessons`, body);
   }
 
+  bulkCreateLessons(body: {
+    fromDate: string;
+    toDate: string;
+    daysOfWeek: number[];
+    startTime: string;
+    endTime: string;
+    instructorUserId: number;
+    vehicleId: number;
+    capacity?: number;
+    notes?: string | null;
+  }) {
+    return this.http.post<{
+      created: number;
+      skippedExisting: number;
+      skippedConflictOrInvalid: number;
+    }>(`${this.schoolBase}/lessons/bulk`, body);
+  }
+
   cancelLesson(id: number) {
     return this.http.post(`${this.schoolBase}/lessons/${id}/cancel`, {});
   }

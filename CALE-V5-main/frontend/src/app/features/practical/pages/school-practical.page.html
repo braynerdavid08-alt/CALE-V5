@@ -2,7 +2,7 @@
   <ui-page-header
     eyebrow="Escuela"
     title="Clases de manejo"
-    subtitle="Programa clases de manejo. Solo aparecen estudiantes autorizados para práctica." />
+    subtitle="Publica cupos fijos del instructor y luego asigna estudiantes, o deja que ellos agenden desde su usuario." />
 
   <ui-error [message]="error()" />
 
@@ -39,6 +39,9 @@
       <ui-button type="button" variant="secondary" [loading]="saving()" (click)="duplicateWeek()">
         Copiar semana anterior
       </ui-button>
+      <button type="button" class="link-btn" (click)="toggleFixedPanel()">
+        {{ showFixedPanel() ? 'Ocultar horarios fijos' : 'Crear horarios fijos' }}
+      </button>
       <button type="button" class="link-btn" (click)="showVehicles.set(!showVehicles())">
         {{ showVehicles() ? 'Ocultar vehículos' : 'Gestionar vehículos' }}
       </button>
@@ -50,6 +53,75 @@
       </p>
     }
   </section>
+
+  @if (showFixedPanel()) {
+    <section class="school-card fixed-hours-card">
+      <h2>Crear horarios fijos</h2>
+      <p class="tip">
+        Publica cupos vacíos del instructor y vehículo seleccionados. Después puedes asignar un estudiante
+        o dejar que el estudiante reserve desde su usuario.
+      </p>
+
+      <div class="create-mode" role="group" aria-label="Cómo publicar">
+        <button type="button" [class.on]="createMode === 'one'" (click)="setCreateMode('one')">Un día</button>
+        <button type="button" [class.on]="createMode === 'range'" (click)="setCreateMode('range')">Mes o año</button>
+      </div>
+
+      @if (notice()) {
+        <p class="form-notice" role="status">{{ notice() }}</p>
+      }
+
+      @if (createMode === 'range') {
+        <div class="bulk-quick">
+          <button type="button" class="link-btn" (click)="applyBulkMonth()">Mes de la semana</button>
+          <button type="button" class="link-btn" (click)="applyBulkYear()">Resto del año</button>
+        </div>
+        <div class="fixed-fields">
+          <label>Desde <input type="date" [(ngModel)]="bulkFrom" name="bulkFrom" /></label>
+          <label>Hasta <input type="date" [(ngModel)]="bulkTo" name="bulkTo" /></label>
+        </div>
+        <div class="bulk-days" role="group" aria-label="Días de la semana">
+          <span class="bulk-days-label">Repetir</span>
+          <div class="day-pills">
+            @for (d of bulkDayChoices; track d.value) {
+              <button
+                type="button"
+                class="day-pill"
+                [attr.aria-pressed]="isBulkDayOn(d.value)"
+                (click)="toggleBulkDay(d.value, !isBulkDayOn(d.value))">
+                {{ d.label }}
+              </button>
+            }
+          </div>
+        </div>
+      } @else {
+        <div class="fixed-fields">
+          <label>Fecha <input type="date" [(ngModel)]="fixedDate" name="fixedDate" /></label>
+        </div>
+      }
+
+      <div class="fixed-fields">
+        <label>
+          Bloque horario
+          <select [(ngModel)]="fixedSlotStart" name="fixedSlot">
+            @for (slot of timeSlots; track slot.start) {
+              <option [ngValue]="slot.start">{{ slot.label }}</option>
+            }
+          </select>
+        </label>
+      </div>
+
+      <div class="fixed-actions">
+        <ui-button type="button" [loading]="saving()" (click)="publishFixedHours()">
+          @if (createMode === 'range') {
+            Publicar rango
+          } @else {
+            Publicar cupo
+          }
+        </ui-button>
+      </div>
+    </section>
+  }
 
   @if (showVehicles()) {
     <section class="school-card vehicles-card">
@@ -108,17 +180,25 @@
                       <button type="button" class="danger" (click)="unassignLesson(lesson)">Quitar</button>
                     </div>
                   </div>
-                } @else if (canAssignSlot(mobileDay(), slot)) {
-                  <button type="button" class="mobile-assign" (click)="openPicker(mobileDay(), slot)">
-                    Asignar estudiante
-                  </button>
                 } @else {
-                  <span class="mobile-limit">Límite {{ maxDailyHours }}h</span>
+                  <div class="mobile-open">
+                    <strong>Cupo libre</strong>
+                    <span>Listo para asignar o que el estudiante agende</span>
+                    <div class="cell-actions">
+                      <button type="button" (click)="openPicker(mobileDay(), slot)">Asignar</button>
+                      <button type="button" class="danger" (click)="cancelOpenLesson(lesson)">Quitar cupo</button>
+                    </div>
+                  </div>
                 }
-              } @else if (canAssignSlot(mobileDay(), slot)) {
-                <button type="button" class="mobile-assign" (click)="openPicker(mobileDay(), slot)">
-                  Asignar estudiante
-                </button>
+              } @else if (canPublishSlot(mobileDay(), slot)) {
+                <div class="mobile-empty-actions">
+                  <button type="button" class="mobile-assign ghost" (click)="publishEmptySlot(mobileDay(), slot)">
+                    Publicar cupo
+                  </button>
+                  <button type="button" class="mobile-assign" (click)="openPicker(mobileDay(), slot)">
+                    + Asignar
+                  </button>
+                </div>
               } @else {
                 <span class="mobile-limit">Límite {{ maxDailyHours }}h</span>
               }
@@ -158,18 +238,24 @@
                         </div>
                       </div>
                     } @else {
-                      @if (canAssignSlot(i, slot)) {
-                        <button type="button" class="cell empty" (click)="openPicker(i, slot)">+ Asignar</button>
-                      } @else {
-                        <span class="cell limit" title="Máximo {{ maxDailyHours }} horas por día">Límite {{ maxDailyHours }}h</span>
-                      }
+                      <div class="cell open">
+                        <strong>Cupo libre</strong>
+                        <small>Asignar o agendar</small>
+                        <div class="cell-actions">
+                          <button type="button" (click)="openPicker(i, slot)">Asignar</button>
+                          <button type="button" class="danger" (click)="cancelOpenLesson(lesson)">Quitar</button>
+                        </div>
+                      </div>
                     }
-                  } @else {
-                    @if (canAssignSlot(i, slot)) {
+                  } @else if (canPublishSlot(i, slot)) {
+                    <div class="cell-stack">
+                      <button type="button" class="cell empty ghost" (click)="publishEmptySlot(i, slot)">
+                        Publicar cupo
+                      </button>
                       <button type="button" class="cell empty" (click)="openPicker(i, slot)">+ Asignar</button>
-                    } @else {
-                      <span class="cell limit" title="Máximo {{ maxDailyHours }} horas por día">Límite {{ maxDailyHours }}h</span>
-                    }
+                    </div>
+                  } @else {
+                    <span class="cell limit" title="Máximo {{ maxDailyHours }} horas por día">Límite {{ maxDailyHours }}h</span>
                   }
                 </td>
               }
@@ -180,8 +266,9 @@
     </div>
 
     <p class="muted hint">
-      Clic en una celda vacía → elige estudiante. Máximo {{ maxDailyHours }} horas de manejo por instructor y día.
-      La asistencia del día está en Operación de hoy → Manejo.
+      Publica cupos fijos (día, mes o año) o usa la grilla: <strong>Publicar cupo</strong> deja el horario libre
+      para que el estudiante agende; <strong>+ Asignar</strong> elige el estudiante desde la escuela.
+      Máximo {{ maxDailyHours }} horas por instructor y día. Asistencia del día: Operación de hoy → Manejo.
     </p>
   }
 }
