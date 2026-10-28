@@ -2,7 +2,7 @@
   <ui-page-header
     eyebrow="Escuela"
     title="Clases teóricas"
-    subtitle="Horarios, estudiantes, asistencia, temas y aulas de tu escuela." />
+    subtitle="Horarios, estudiantes, temas y aulas. La asistencia del día está en Asistencia." />
 
   <ui-error [message]="error()" />
 
@@ -18,15 +18,14 @@
   <nav class="school-tabs" aria-label="Secciones de clases teóricas">
     <button type="button" [class.on]="tab() === 'schedule'" (click)="setTab('schedule')">Horario</button>
     <button type="button" [class.on]="tab() === 'students'" (click)="setTab('students')">Estudiantes</button>
-    <button type="button" [class.on]="tab() === 'attendance'" (click)="setTab('attendance')">Asistencia</button>
-    <a class="tab-link" routerLink="/school/attendance">Hoy (tablero)</a>
+    <a class="tab-link" routerLink="/school/attendance">Asistencia</a>
     <a class="tab-link" routerLink="/school/exam-control">Sala de examen</a>
     <button type="button" [class.on]="tab() === 'topics'" (click)="setTab('topics')">Temas</button>
     <button type="button" [class.on]="tab() === 'classrooms'" (click)="setTab('classrooms')">Aulas</button>
     <button type="button" [class.on]="tab() === 'settings'" (click)="setTab('settings')">Ajustes</button>
   </nav>
 
-  @if (loading() && tab() !== 'attendance') {
+  @if (loading()) {
     <ui-loading />
   } @else if (tab() === 'schedule') {
     <div class="schedule-nav">
@@ -195,76 +194,6 @@
         }
       </aside>
     </div>
-  } @else if (tab() === 'attendance') {
-    @if (attendanceLoading()) {
-      <ui-loading />
-    } @else {
-      <div class="attendance-layout">
-        <aside class="form-card">
-          <h2>Clases con reservas</h2>
-          @if (!attendanceSessions().length) {
-            <p class="muted">No hay clases con estudiantes reservados en las próximas fechas.</p>
-          } @else {
-            <ul class="session-pick">
-              @for (s of attendanceSessions(); track s.id) {
-                <li>
-                  <button
-                    type="button"
-                    class="session-pick-btn"
-                    [class.on]="selectedAttendanceSessionId() === s.id"
-                    (click)="selectAttendanceSession(s.id)"
-                  >
-                    {{ formatSessionLabel(s) }}
-                    <small>{{ s.reservedCount }} reservas</small>
-                  </button>
-                </li>
-              }
-            </ul>
-          }
-        </aside>
-
-        <div class="form-card">
-          @if (selectedAttendanceSessionId(); as sessionId) {
-            <div class="attendance-head">
-              <h2>Lista de asistencia</h2>
-              <ui-button type="button" (click)="markAllPresent()">Marcar todos presentes</ui-button>
-            </div>
-            @if (!attendanceRows().length) {
-              <p class="muted">Sin reservas activas para esta clase.</p>
-            } @else {
-              <table class="attendance-table">
-                <thead>
-                  <tr>
-                    <th>Estudiante</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (row of attendanceRows(); track row.studentUserId) {
-                    <tr>
-                      <td>{{ row.studentName }}</td>
-                      <td>
-                        <span class="status-pill" [attr.data-status]="row.status">
-                          {{ attendanceStatusLabel(row.status) }}
-                        </span>
-                      </td>
-                      <td class="actions">
-                        <button type="button" (click)="markStudentAttendance(row.studentUserId, 'Present')">Presente</button>
-                        <button type="button" (click)="markStudentAttendance(row.studentUserId, 'Late')">Tarde</button>
-                        <button type="button" (click)="markStudentAttendance(row.studentUserId, 'Absent')">Ausente</button>
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            }
-          } @else {
-            <p class="muted">Selecciona una clase para registrar asistencia.</p>
-          }
-        </div>
-      </div>
-    }
   } @else if (tab() === 'students') {
     <div class="form-card">
       <h2>Autorización de estudiantes</h2>
