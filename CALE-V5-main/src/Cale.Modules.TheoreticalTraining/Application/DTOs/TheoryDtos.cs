@@ -309,7 +309,9 @@ public sealed record PracticalSchedulingStudentDto(
     int RequiredLessons,
     int NextLessonNumber,
     bool IsEligible,
-    string? BlockReason);
+    string? BlockReason,
+    int PracticeRequiredLessons = 0,
+    bool CanBookExam = false);
 
 public sealed record QuickAssignPracticalRequest(
     DateOnly SessionDate,
@@ -364,7 +366,12 @@ public sealed record PracticalStudentDashboardDto(
     IReadOnlyList<PracticalLessonSessionDto> AvailableLessons,
     IReadOnlyList<PracticalInstructorOptionDto> AvailableInstructors,
     int CompletedLessons = 0,
-    int RequiredLessons = 0);
+    int RequiredLessons = 0,
+    int PracticeRequiredLessons = 0,
+    bool CanBookPracticalExam = false,
+    string? PracticalExamBlockReason = null,
+    bool PracticalExamScheduled = false,
+    bool PracticalExamAttended = false);
 
 public sealed record PracticalInstructorOptionDto(
     int InstructorUserId,

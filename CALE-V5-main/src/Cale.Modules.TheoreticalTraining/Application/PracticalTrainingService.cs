@@ -154,7 +154,9 @@ public sealed class PracticalTrainingService
                 progress.Required,
                 progress.NextNumber,
                 eligibility.CanBookPractical,
-                eligibility.BlockReason));
+                eligibility.BlockReason,
+                progress.PracticeRequired,
+                progress.CanBookExam && eligibility.CanBookPractical));
         }
 
         return result.OrderBy(x => x.StudentName).ToList();
@@ -213,6 +215,19 @@ public sealed class PracticalTrainingService
                 && x.VehicleId == request.VehicleId
                 && x.Status != PracticalLessonStatuses.Cancelled, ct);
 
+        var assignKind = session is null
+            ? kind
+            : PracticalSessionKinds.Normalize(session.Kind);
+        if (PracticalSessionKinds.IsExam(assignKind))
+        {
+            await EnsureStudentCanTakeExamAsync(
+                schoolUserId,
+                request.StudentUserId,
+                enrollment.LicenseCategories,
+                enrollment.PracticalAuthorized,
+                ct);
+        }
+
         var now = _clock.UtcNow;
         if (session is null)
         {
@@ -225,7 +240,7 @@ public sealed class PracticalTrainingService
                 request.VehicleId,
                 capacity: PracticalScheduleLimits.SeatsPerSlot,
                 notes: null,
-                kind,
+                assignKind,
                 ct);
         }
         else
@@ -267,7 +282,7 @@ public sealed class PracticalTrainingService
         if (studentConflict)
         {
             throw new DomainException(
-                "El estudiante ya tiene una clase ese día.",
+                "El estudiante ya tiene una clase o examen ese día.",
                 400,
                 "student_day_taken");
         }
@@ -606,6 +621,37 @@ public sealed class PracticalTrainingService
             availableDtos.Add(await MapLessonAsync(s, studentUserId, includeAssignment: false, ct));
         }
 
+        var enrollment = await _db.Set<SchoolStudentEnrollment>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                x => x.SchoolUserId == schoolUserId && x.StudentUserId == studentUserId,
+                ct);
+        var progress = await GetStudentLessonProgressAsync(
+            schoolUserId,
+            studentUserId,
+            enrollment?.LicenseCategories,
+            ct);
+        var canBookExam = eligibility.CanBookPractical && progress.CanBookExam;
+
+        availableDtos = availableDtos
+            .Select(dto =>
+            {
+                if (!PracticalSessionKinds.IsExam(dto.Kind)
+                    || dto.BookingState is not "can_reserve"
+                    || canBookExam)
+                {
+                    return dto;
+                }
+
+                return dto with
+                {
+                    BookingState = "blocked",
+                    BookingMessage = progress.ExamBlockReason
+                        ?? "Aún no puedes agendar el examen de manejo."
+                };
+            })
+            .ToList();
+
         var instructorOptions = availableDtos
             .Where(x => x.BookingState is "can_reserve" or "reserved")
             .GroupBy(x => x.InstructorUserId)
@@ -616,25 +662,19 @@ public sealed class PracticalTrainingService
             .OrderBy(x => x.InstructorName)
             .ToList();
 
-        var enrollment = await _db.Set<SchoolStudentEnrollment>()
-            .AsNoTracking()
-            .FirstOrDefaultAsync(
-                x => x.SchoolUserId == schoolUserId && x.StudentUserId == studentUserId,
-                ct);
-        var (completedLessons, requiredLessons, _) = await GetStudentLessonProgressAsync(
-            schoolUserId,
-            studentUserId,
-            enrollment?.LicenseCategories,
-            ct);
-
         return new PracticalStudentDashboardDto(
             eligibility,
             nextDto,
             upcomingDtos,
             availableDtos,
             instructorOptions,
-            completedLessons,
-            requiredLessons);
+            progress.Completed,
+            progress.Required,
+            progress.PracticeRequired,
+            canBookExam,
+            canBookExam ? null : progress.ExamBlockReason,
+            progress.ExamScheduled,
+            progress.ExamAttended);
     }
 
     public async Task<ApprenticePracticalSummaryDto> GetApprenticePracticalSummaryAsync(
@@ -644,7 +684,7 @@ public sealed class PracticalTrainingService
     {
         var enrollment = await _db.Set<SchoolStudentEnrollment>()
             .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId && x.StudentUserId == studentUserId, ct);
-        var (completed, required, _) = await GetStudentLessonProgressAsync(
+        var progress = await GetStudentLessonProgressAsync(
             schoolUserId,
             studentUserId,
             enrollment?.LicenseCategories,
@@ -672,8 +712,8 @@ public sealed class PracticalTrainingService
             .FirstOrDefault();
 
         return new ApprenticePracticalSummaryDto(
-            completed,
-            required,
+            progress.Completed,
+            progress.Required,
             scheduled,
             next?.LessonSession?.SessionDate.ToString("yyyy-MM-dd"),
             next?.LessonSession?.StartTime.ToString("HH:mm"));
@@ -708,6 +748,21 @@ public sealed class PracticalTrainingService
             throw new DomainException("Esta clase no está disponible.", 400, "lesson_unavailable");
         }
 
+        if (PracticalSessionKinds.IsExam(session.Kind))
+        {
+            var enrollment = await _db.Set<SchoolStudentEnrollment>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    x => x.SchoolUserId == schoolUserId && x.StudentUserId == studentUserId,
+                    ct);
+            await EnsureStudentCanTakeExamAsync(
+                schoolUserId,
+                studentUserId,
+                enrollment?.LicenseCategories,
+                enrollment?.PracticalAuthorized == true,
+                ct);
+        }
+
         var studentConflict = await _db.Set<PracticalLessonReservation>()
             .Include(x => x.LessonSession)
             .AnyAsync(x => x.StudentUserId == studentUserId
@@ -717,7 +772,7 @@ public sealed class PracticalTrainingService
         if (studentConflict)
         {
             throw new DomainException(
-                "Ya tienes una clase de manejo programada ese día.",
+                "Ya tienes una clase o examen de manejo programado ese día.",
                 400,
                 "student_day_taken");
         }
@@ -1048,14 +1103,26 @@ public sealed class PracticalTrainingService
         return (decimal)(minutes / 60.0);
     }
 
-    private async Task<(int Completed, int Required, int NextNumber)> GetStudentLessonProgressAsync(
+    private sealed record PracticalProgress(
+        int Completed,
+        int Required,
+        int PracticeRequired,
+        int NextNumber,
+        bool CanBookExam,
+        bool ExamScheduled,
+        bool ExamAttended,
+        string? ExamBlockReason);
+
+    private async Task<PracticalProgress> GetStudentLessonProgressAsync(
         int schoolUserId,
         int studentUserId,
         string? licenseCategories,
         CancellationToken ct)
     {
         var required = PracticalLessonRequirements.GetRequired(licenseCategories);
-        var reservations = await _db.Set<PracticalLessonReservation>()
+        var practiceRequired = PracticalLessonRequirements.GetPracticeRequired(licenseCategories);
+
+        var practiceReservations = await _db.Set<PracticalLessonReservation>()
             .Include(x => x.LessonSession)
             .Where(x => x.StudentUserId == studentUserId
                 && x.LessonSession!.SchoolUserId == schoolUserId
@@ -1065,9 +1132,84 @@ public sealed class PracticalTrainingService
             .ThenBy(x => x.LessonSession!.StartTime)
             .ToListAsync(ct);
 
-        var completed = reservations.Count(x => x.Status == PracticalReservationStatuses.Attended);
-        var nextNumber = Math.Min(required, reservations.Count + 1);
-        return (completed, required, nextNumber);
+        var completed = practiceReservations.Count(x => x.Status == PracticalReservationStatuses.Attended);
+        var nextNumber = Math.Min(practiceRequired, Math.Max(completed + 1, 1));
+
+        var examReservations = await _db.Set<PracticalLessonReservation>()
+            .Include(x => x.LessonSession)
+            .Where(x => x.StudentUserId == studentUserId
+                && x.LessonSession!.SchoolUserId == schoolUserId
+                && PracticalSessionKinds.IsExam(x.LessonSession.Kind)
+                && PracticalReservationStatuses.OccupiesSeatStatuses.Contains(x.Status))
+            .ToListAsync(ct);
+
+        var examAttended = examReservations.Any(x => x.Status == PracticalReservationStatuses.Attended);
+        var today = ColombiaTime.TodayInColombia();
+        var examScheduled = examReservations.Any(x =>
+            x.Status == PracticalReservationStatuses.Reserved
+            && x.LessonSession is not null
+            && x.LessonSession.SessionDate >= today);
+
+        string? examBlock = null;
+        var canBookExam = false;
+        if (completed < practiceRequired)
+        {
+            examBlock =
+                $"Debes completar {practiceRequired} clases de manejo antes del examen (vas {completed}/{practiceRequired}). La última hora del programa es el examen.";
+        }
+        else if (examAttended)
+        {
+            examBlock = "Ya presentaste el examen de manejo.";
+        }
+        else if (examScheduled)
+        {
+            examBlock = "Ya tienes un examen de manejo agendado.";
+            canBookExam = false;
+        }
+        else
+        {
+            canBookExam = true;
+        }
+
+        return new PracticalProgress(
+            completed,
+            required,
+            practiceRequired,
+            nextNumber,
+            canBookExam,
+            examScheduled,
+            examAttended,
+            examBlock);
+    }
+
+    private async Task EnsureStudentCanTakeExamAsync(
+        int schoolUserId,
+        int studentUserId,
+        string? licenseCategories,
+        bool practicalAuthorized,
+        CancellationToken ct)
+    {
+        if (!practicalAuthorized)
+        {
+            throw new DomainException(
+                "El estudiante no está autorizado para clases de manejo.",
+                400,
+                "practical_not_authorized");
+        }
+
+        var progress = await GetStudentLessonProgressAsync(
+            schoolUserId,
+            studentUserId,
+            licenseCategories,
+            ct);
+        if (!progress.CanBookExam)
+        {
+            throw new DomainException(
+                progress.ExamBlockReason
+                    ?? "Aún no puedes agendar el examen de manejo.",
+                400,
+                "practical_exam_not_eligible");
+        }
     }
 
     private async Task<PracticalLessonAssignmentDto?> BuildAssignmentAsync(
@@ -1118,7 +1260,7 @@ public sealed class PracticalTrainingService
             user?.Name ?? $"Estudiante {reservation.StudentUserId}",
             PracticalLessonRequirements.PrimaryCategory(enrollment?.LicenseCategories),
             lessonNumber,
-            progress.Required,
+            progress.PracticeRequired,
             reservation.Id,
             reservation.Status);
     }

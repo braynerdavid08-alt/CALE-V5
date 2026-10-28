@@ -339,9 +339,12 @@
   <div class="modal-backdrop" (click)="closePicker()">
     <div class="modal card" (click)="$event.stopPropagation()">
       <header class="modal-head">
-        <h2>Asignar estudiante</h2>
+        <h2>{{ cell.kind === 'Exam' ? 'Asignar examen de manejo' : 'Asignar estudiante' }}</h2>
         <p class="muted">
           {{ dayLabels[cell.dayIndex] }} {{ cell.sessionDate }} · {{ cell.slot.label }}
+          @if (cell.kind === 'Exam') {
+            · solo quienes completaron N−1 clases
+          }
         </p>
         <button type="button" class="close-btn" (click)="closePicker()">×</button>
       </header>
@@ -370,7 +373,13 @@
             </button>
           </li>
         } @empty {
-          <li class="muted">No hay estudiantes autorizados.</li>
+          <li class="muted">
+            @if (cell.kind === 'Exam') {
+              Ningún estudiante está listo para el examen (faltan clases formativas).
+            } @else {
+              No hay estudiantes autorizados.
+            }
+          </li>
         }
       </ul>
     </div>

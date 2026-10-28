@@ -37,6 +37,7 @@ interface PickerCell {
   dayIndex: number;
   slot: TimeSlot;
   sessionDate: string;
+  kind: PracticalSessionKind;
 }
 
 @Component({
@@ -129,7 +130,11 @@ export class SchoolPracticalPage implements OnInit {
 
   readonly filteredStudents = computed(() => {
     const q = this.studentSearch().trim().toLowerCase();
-    const rows = this.students();
+    const picker = this.picker();
+    let rows = this.students();
+    if (picker?.kind === 'Exam') {
+      rows = rows.filter((s) => !!s.canBookExam);
+    }
     if (!q) {
       return rows;
     }
@@ -584,6 +589,11 @@ export class SchoolPracticalPage implements OnInit {
     if (existing?.assignment) {
       return;
     }
+    const kind: PracticalSessionKind = existing
+      ? isPracticalExam(existing)
+        ? 'Exam'
+        : 'Lesson'
+      : this.sessionKind();
     const activeSlot = existing
       ? buildPracticalSlot(
           parseInt(existing.startTime, 10),
@@ -594,7 +604,8 @@ export class SchoolPracticalPage implements OnInit {
     this.picker.set({
       dayIndex,
       slot: activeSlot,
-      sessionDate: this.dayDate(dayIndex)
+      sessionDate: this.dayDate(dayIndex),
+      kind
     });
   }
 
@@ -612,6 +623,13 @@ export class SchoolPracticalPage implements OnInit {
 
     this.saving.set(true);
     this.error.set(null);
+    if (cell.kind === 'Exam' && !student.canBookExam) {
+      this.error.set(
+        'El estudiante aún no completó las clases formativas para el examen (debe llevar N−1 horas).'
+      );
+      return;
+    }
+
     this.api.quickAssign({
       sessionDate: cell.sessionDate,
       startTime: cell.slot.start,
@@ -619,7 +637,7 @@ export class SchoolPracticalPage implements OnInit {
       instructorUserId: instructor,
       vehicleId: vehicle,
       studentUserId: student.studentUserId,
-      kind: this.sessionKind()
+      kind: cell.kind
     }).subscribe({
       next: () => {
         this.saving.set(false);
@@ -726,7 +744,12 @@ export class SchoolPracticalPage implements OnInit {
   }
 
   studentProgressLabel(student: PracticalSchedulingStudentDto): string {
-    return `${student.nextLessonNumber}/${student.requiredLessons}`;
+    const practice =
+      student.practiceRequiredLessons && student.practiceRequiredLessons > 0
+        ? student.practiceRequiredLessons
+        : Math.max(0, student.requiredLessons - 1);
+    const examReady = student.canBookExam ? ' · listo examen' : '';
+    return `${student.completedLessons}/${practice}${examReady}`;
   }
 
   private startOfWeek(date: Date): string {

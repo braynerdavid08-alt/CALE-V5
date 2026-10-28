@@ -99,11 +99,13 @@ public sealed class AssistantToolbox : IAssistantToolbox
             P("hora", "string", "Hora HH:mm tal como aparece en los cupos.", true)),
         Write("cancelar_examen", "Prepara la cancelación de la cita de examen teórico.",
             P("cita_id", "integer", "cita_id de la cita actual.", true)),
-        Read("clases_manejo", "Clases de manejo: si puede reservar, clases disponibles y reservas actuales."),
-        Write("reservar_clase_manejo", "Prepara la reserva de una clase de manejo disponible.",
-            P("clase_id", "integer", "clase_id de la lista de clases de manejo.", true)),
-        Write("cancelar_reserva_manejo", "Prepara la cancelación de una clase de manejo reservada.",
-            P("reserva_id", "integer", "reserva_id de la clase de manejo.", true))
+        Read("clases_manejo", "Clases y examen de manejo: progreso (N-1 clases + examen), cupos y si ya puede agendar el examen."),
+        Write("reservar_clase_manejo", "Prepara la reserva de una clase de manejo (no examen).",
+            P("clase_id", "integer", "clase_id de tipo Clase en la lista de clases_manejo.", true)),
+        Write("reservar_examen_manejo", "Prepara la reserva del examen de manejo (última hora del programa). Solo si ya completó todas las clases menos una.",
+            P("clase_id", "integer", "clase_id de tipo Examen en la lista de clases_manejo.", true)),
+        Write("cancelar_reserva_manejo", "Prepara la cancelación de una clase o examen de manejo reservado.",
+            P("reserva_id", "integer", "reserva_id de la clase o examen de manejo.", true))
     ];
 
     private static readonly AssistantToolDefinition[] SchoolTools =
@@ -136,6 +138,12 @@ public sealed class AssistantToolbox : IAssistantToolbox
             P("fecha", "string", "Fecha AAAA-MM-DD (no domingos).", true),
             P("hora_inicio", "string", "HH:mm", true),
             P("hora_fin", "string", "HH:mm", true),
+            P("instructor_id", "integer", "instructor_id de opciones_manejo.", true),
+            P("vehiculo_id", "integer", "vehiculo_id de opciones_manejo.", true)),
+        Write("asignar_examen_manejo", "Prepara asignar el examen de manejo (1 h) a un estudiante que ya completó N-1 clases.",
+            P("estudiante_id", "integer", "estudiante_id listo para examen de manejo.", true),
+            P("fecha", "string", "Fecha AAAA-MM-DD (no domingos).", true),
+            P("hora_inicio", "string", "HH:mm inicio (duración 1 h).", true),
             P("instructor_id", "integer", "instructor_id de opciones_manejo.", true),
             P("vehiculo_id", "integer", "vehiculo_id de opciones_manejo.", true))
     ];
@@ -308,25 +316,51 @@ public sealed class AssistantToolbox : IAssistantToolbox
     {
         var d = await _practical.GetStudentDashboardAsync(user.UserId, ct);
         var sb = new StringBuilder();
-        sb.AppendLine($"Puede reservar clases de manejo: {YesNo(d.Eligibility.CanBookPractical)}. Clases completadas: {d.CompletedLessons}/{d.RequiredLessons}.");
+        var practiceReq = d.PracticeRequiredLessons > 0 ? d.PracticeRequiredLessons : Math.Max(0, d.RequiredLessons - 1);
+        sb.AppendLine(
+            $"Progreso manejo: {d.CompletedLessons}/{practiceReq} clases formativas (programa {d.RequiredLessons} h; la última es el examen).");
+        sb.AppendLine($"Puede reservar clases: {YesNo(d.Eligibility.CanBookPractical)}. Puede agendar examen de manejo: {YesNo(d.CanBookPracticalExam)}.");
         if (!d.Eligibility.CanBookPractical && !string.IsNullOrWhiteSpace(d.Eligibility.BlockReason))
         {
-            sb.AppendLine($"Motivo: {d.Eligibility.BlockReason}");
+            sb.AppendLine($"Motivo clases: {d.Eligibility.BlockReason}");
+        }
+
+        if (!d.CanBookPracticalExam && !string.IsNullOrWhiteSpace(d.PracticalExamBlockReason))
+        {
+            sb.AppendLine($"Motivo examen: {d.PracticalExamBlockReason}");
+        }
+
+        if (d.PracticalExamScheduled)
+        {
+            sb.AppendLine("Ya tienes un examen de manejo agendado.");
+        }
+
+        if (d.PracticalExamAttended)
+        {
+            sb.AppendLine("Ya presentaste el examen de manejo.");
         }
 
         foreach (var r in d.UpcomingReservations.Take(10))
         {
-            sb.AppendLine($"Reservada reserva_id={r.MyReservationId}: {r.SessionDate} {r.StartTime}-{r.EndTime}, instructor {r.InstructorName}, vehículo {r.VehicleLabel}.");
+            var kind = string.Equals(r.Kind, "Exam", StringComparison.OrdinalIgnoreCase) ? "Examen" : "Clase";
+            sb.AppendLine($"Reservada reserva_id={r.MyReservationId}: {kind} {r.SessionDate} {r.StartTime}-{r.EndTime}, instructor {r.InstructorName}, vehículo {r.VehicleLabel}.");
         }
 
-        if (d.AvailableLessons.Count == 0)
+        var lessons = d.AvailableLessons.Where(l => !string.Equals(l.Kind, "Exam", StringComparison.OrdinalIgnoreCase)).Take(20).ToList();
+        var exams = d.AvailableLessons.Where(l => string.Equals(l.Kind, "Exam", StringComparison.OrdinalIgnoreCase)).Take(20).ToList();
+        if (lessons.Count == 0 && exams.Count == 0)
         {
-            sb.AppendLine("No hay clases de manejo disponibles para reservar.");
+            sb.AppendLine("No hay cupos de manejo publicados.");
         }
 
-        foreach (var l in d.AvailableLessons.Take(30))
+        foreach (var l in lessons)
         {
-            sb.AppendLine($"clase_id={l.Id} | {DayIso(l.SessionDate)} {l.StartTime}-{l.EndTime} | instructor {l.InstructorName} | vehículo {l.VehicleLabel} | cupos {l.AvailableSeats}");
+            sb.AppendLine($"clase_id={l.Id} | Clase | {DayIso(l.SessionDate)} {l.StartTime}-{l.EndTime} | instructor {l.InstructorName} | vehículo {l.VehicleLabel} | {l.BookingState}");
+        }
+
+        foreach (var l in exams)
+        {
+            sb.AppendLine($"clase_id={l.Id} | Examen | {DayIso(l.SessionDate)} {l.StartTime}-{l.EndTime} | instructor {l.InstructorName} | vehículo {l.VehicleLabel} | {l.BookingState}");
         }
 
         return sb.ToString();
@@ -503,7 +537,11 @@ public sealed class AssistantToolbox : IAssistantToolbox
         sb.AppendLine("Estudiantes autorizados para manejo:");
         foreach (var s in students.Take(MaxLines))
         {
-            sb.AppendLine($"estudiante_id={s.StudentUserId} | {s.StudentName} | clases {s.CompletedLessons}/{s.RequiredLessons} | puede reservar {YesNo(s.IsEligible)}{(s.BlockReason is null ? "" : " | " + s.BlockReason)}");
+            var practiceReq = s.PracticeRequiredLessons > 0
+                ? s.PracticeRequiredLessons
+                : Math.Max(0, s.RequiredLessons - 1);
+            sb.AppendLine(
+                $"estudiante_id={s.StudentUserId} | {s.StudentName} | clases {s.CompletedLessons}/{practiceReq} (programa {s.RequiredLessons}h) | clase {YesNo(s.IsEligible)} | examen {YesNo(s.CanBookExam)}{(s.BlockReason is null ? "" : " | " + s.BlockReason)}");
         }
 
         return sb.ToString();
@@ -536,12 +574,30 @@ public sealed class AssistantToolbox : IAssistantToolbox
             case "reservar_clase_manejo":
             {
                 var l = await PracticalLessonAsync(user, ReqInt(args, "clase_id"), ct);
+                if (PracticalSessionKinds.IsExam(l.Kind))
+                {
+                    throw new AssistantToolException(
+                        "Ese cupo es un examen de manejo. Usa reservar_examen_manejo.");
+                }
+
                 return $"Reservar clase de manejo: {Day(l.SessionDate)} de {Time(l.StartTime)} a {Time(l.EndTime)}, vehículo {l.Vehicle?.Label ?? "—"}.";
+            }
+            case "reservar_examen_manejo":
+            {
+                var l = await PracticalLessonAsync(user, ReqInt(args, "clase_id"), ct);
+                if (!PracticalSessionKinds.IsExam(l.Kind))
+                {
+                    throw new AssistantToolException(
+                        "Ese cupo no es un examen de manejo. Usa reservar_clase_manejo o consulta clases_manejo.");
+                }
+
+                return $"Reservar examen de manejo: {Day(l.SessionDate)} de {Time(l.StartTime)} a {Time(l.EndTime)}, vehículo {l.Vehicle?.Label ?? "—"}.";
             }
             case "cancelar_reserva_manejo":
             {
                 var r = await PracticalReservationAsync(user, ReqInt(args, "reserva_id"), ct);
-                return $"Cancelar tu clase de manejo del {Day(r.LessonSession!.SessionDate)} a las {Time(r.LessonSession.StartTime)}.";
+                var kind = PracticalSessionKinds.IsExam(r.LessonSession?.Kind) ? "examen" : "clase";
+                return $"Cancelar tu {kind} de manejo del {Day(r.LessonSession!.SessionDate)} a las {Time(r.LessonSession.StartTime)}.";
             }
             case "autorizar_examen":
             {
@@ -572,6 +628,18 @@ public sealed class AssistantToolbox : IAssistantToolbox
                     ?? throw new AssistantToolException("Ese vehículo no existe en la escuela.");
                 var instructorName = await SchoolStaffNameAsync(user, ReqInt(args, "instructor_id"), ct);
                 return $"Asignar clase de manejo a {name}: {Day(ReqDate(args, "fecha"))} de {ReqTime(args, "hora_inicio")} a {ReqTime(args, "hora_fin")}, con {instructorName} en {vehicle.Label}.";
+            }
+            case "asignar_examen_manejo":
+            {
+                var school = SchoolOf(user);
+                var name = await SchoolStudentNameAsync(user, ReqInt(args, "estudiante_id"), ct);
+                var vehicleId = ReqInt(args, "vehiculo_id");
+                var vehicle = await _db.Set<PracticalVehicle>().AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == vehicleId && x.SchoolUserId == school, ct)
+                    ?? throw new AssistantToolException("Ese vehículo no existe en la escuela.");
+                var instructorName = await SchoolStaffNameAsync(user, ReqInt(args, "instructor_id"), ct);
+                var start = ReqTime(args, "hora_inicio");
+                return $"Asignar examen de manejo (1 h) a {name}: {Day(ReqDate(args, "fecha"))} desde {start}, con {instructorName} en {vehicle.Label}.";
             }
             default:
                 throw new AssistantToolException($"Herramienta desconocida: {tool}.");
@@ -606,12 +674,33 @@ public sealed class AssistantToolbox : IAssistantToolbox
                 return "Listo. Cancelamos tu cita de examen teórico.";
             case "reservar_clase_manejo":
             {
-                var l = await _practical.ReserveAsync(user.UserId, ReqInt(args, "clase_id"), ct);
+                var lessonId = ReqInt(args, "clase_id");
+                var existing = await PracticalLessonAsync(user, lessonId, ct);
+                if (PracticalSessionKinds.IsExam(existing.Kind))
+                {
+                    throw new AssistantToolException(
+                        "Ese cupo es un examen de manejo. Usa reservar_examen_manejo.");
+                }
+
+                var l = await _practical.ReserveAsync(user.UserId, lessonId, ct);
                 return $"Listo. Quedó reservada tu clase de manejo el {DayIso(l.SessionDate)} a las {l.StartTime} con {l.InstructorName}.";
+            }
+            case "reservar_examen_manejo":
+            {
+                var lessonId = ReqInt(args, "clase_id");
+                var existing = await PracticalLessonAsync(user, lessonId, ct);
+                if (!PracticalSessionKinds.IsExam(existing.Kind))
+                {
+                    throw new AssistantToolException(
+                        "Ese cupo no es un examen de manejo. Usa reservar_clase_manejo.");
+                }
+
+                var l = await _practical.ReserveAsync(user.UserId, lessonId, ct);
+                return $"Listo. Quedó agendado tu examen de manejo el {DayIso(l.SessionDate)} a las {l.StartTime} con {l.InstructorName}.";
             }
             case "cancelar_reserva_manejo":
                 await _practical.CancelReservationAsync(user.UserId, ReqInt(args, "reserva_id"), ct);
-                return "Listo. Cancelamos tu clase de manejo.";
+                return "Listo. Cancelamos tu reserva de manejo.";
             case "autorizar_examen":
             case "autorizar_manejo":
             {
@@ -663,9 +752,36 @@ public sealed class AssistantToolbox : IAssistantToolbox
                         ReqTime(args, "hora_fin"),
                         ReqInt(args, "instructor_id"),
                         ReqInt(args, "vehiculo_id"),
-                        studentId),
+                        studentId,
+                        PracticalSessionKinds.Lesson),
                     ct);
                 return $"Listo. Clase de manejo de {name} asignada el {Day(date)} de {lesson.StartTime} a {lesson.EndTime}.";
+            }
+            case "asignar_examen_manejo":
+            {
+                var school = SchoolOf(user);
+                var studentId = ReqInt(args, "estudiante_id");
+                var name = await SchoolStudentNameAsync(user, studentId, ct);
+                var date = ReqDate(args, "fecha");
+                var start = ReqTime(args, "hora_inicio");
+                if (!TimeOnly.TryParse(start, out var startTime))
+                {
+                    throw new AssistantToolException("hora_inicio inválida. Usa HH:mm.");
+                }
+
+                var endTime = startTime.Add(TimeSpan.FromHours(1)).AddMinutes(-1);
+                var lesson = await _practical.QuickAssignAsync(
+                    school,
+                    new QuickAssignPracticalRequest(
+                        date,
+                        startTime.ToString("HH:mm"),
+                        endTime.ToString("HH:mm"),
+                        ReqInt(args, "instructor_id"),
+                        ReqInt(args, "vehiculo_id"),
+                        studentId,
+                        PracticalSessionKinds.Exam),
+                    ct);
+                return $"Listo. Examen de manejo de {name} asignado el {Day(date)} de {lesson.StartTime} a {lesson.EndTime}.";
             }
             default:
                 throw new AssistantToolException($"Herramienta desconocida: {tool}.");

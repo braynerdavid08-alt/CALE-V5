@@ -54,12 +54,16 @@ public static class PracticalScheduleLimits
     public const int SeatsPerSlot = 1;
 }
 
-/// <summary>Clases prácticas requeridas por categoría (Colombia CEA).</summary>
+/// <summary>
+/// Horas totales del programa de manejo por categoría (Colombia CEA).
+/// La última hora es el examen práctico; las demás son clases formativas.
+/// A2=15 (14 clases + examen), B1=20 (19+examen), C1=25 (24+examen).
+/// </summary>
 public static class PracticalLessonRequirements
 {
     public const int A2 = 15;
     public const int B1 = 20;
-    public const int C1 = 30;
+    public const int C1 = 25;
 
     public static int GetRequired(string? licenseCategories)
     {
@@ -90,6 +94,10 @@ public static class PracticalLessonRequirements
 
         return B1;
     }
+
+    /// <summary>Clases formativas antes del examen (= total − 1).</summary>
+    public static int GetPracticeRequired(string? licenseCategories) =>
+        Math.Max(0, GetRequired(licenseCategories) - 1);
 
     public static string PrimaryCategory(string? licenseCategories)
     {

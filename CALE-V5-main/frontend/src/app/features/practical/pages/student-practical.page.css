@@ -1,4 +1,36 @@
 .page { display: grid; gap: 1rem; }
+.req-note {
+  display: block;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+}
+.slot-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.slot-filters button {
+  min-height: 2.35rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.slot-filters button.on {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+  color: var(--color-primary);
+}
+.slot.exam-slot {
+  border-color: #b45309;
+  background: #fffbeb;
+}
+.meta.warn { color: #b45309; }
 .hero .eyebrow { color: var(--color-primary); font-weight: 800; text-transform: uppercase; font-size: var(--text-xs); }
 .lead { color: var(--color-text-secondary); }
 .process-switch {

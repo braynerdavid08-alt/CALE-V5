@@ -13,6 +13,8 @@ import {
   practicalKindLabel
 } from '../api/practical.api';
 
+type SlotFilter = 'all' | 'lesson' | 'exam';
+
 @Component({
   selector: 'app-student-practical-page',
   standalone: true,
@@ -28,14 +30,38 @@ export class StudentPracticalPage implements OnInit {
   readonly error = signal<string | null>(null);
   readonly dashboard = signal<PracticalStudentDashboardDto | null>(null);
   readonly selectedInstructorId = signal(0);
+  readonly slotFilter = signal<SlotFilter>('all');
+
+  readonly practiceRequired = computed(() => {
+    const dash = this.dashboard();
+    if (!dash) {
+      return 0;
+    }
+    if (dash.practiceRequiredLessons && dash.practiceRequiredLessons > 0) {
+      return dash.practiceRequiredLessons;
+    }
+    return Math.max(0, (dash.requiredLessons ?? 0) - 1);
+  });
 
   readonly filteredLessons = computed(() => {
     const dash = this.dashboard();
     const instructorId = this.selectedInstructorId();
+    const filter = this.slotFilter();
     if (!dash || !instructorId) {
       return [];
     }
-    return dash.availableLessons.filter((l) => l.instructorUserId === instructorId);
+    return dash.availableLessons.filter((l) => {
+      if (l.instructorUserId !== instructorId) {
+        return false;
+      }
+      if (filter === 'lesson') {
+        return !isPracticalExam(l);
+      }
+      if (filter === 'exam') {
+        return isPracticalExam(l);
+      }
+      return true;
+    });
   });
 
   readonly selectedInstructorName = computed(() => {
@@ -62,6 +88,9 @@ export class StudentPracticalPage implements OnInit {
         } else if (!current || !instructors.some((i) => i.instructorUserId === current)) {
           this.selectedInstructorId.set(instructors[0].instructorUserId);
         }
+        if (d.canBookPracticalExam && this.slotFilter() === 'all') {
+          this.slotFilter.set('exam');
+        }
         this.loading.set(false);
       },
       error: (err) => {
@@ -75,9 +104,33 @@ export class StudentPracticalPage implements OnInit {
     this.selectedInstructorId.set(instructorUserId);
   }
 
+  setSlotFilter(filter: SlotFilter): void {
+    this.slotFilter.set(filter);
+  }
+
   canReserve(session: PracticalLessonSessionDto): boolean {
-    const elig = this.dashboard()?.eligibility;
-    return !!elig?.canBookPractical && session.bookingState === 'can_reserve';
+    const dash = this.dashboard();
+    const elig = dash?.eligibility;
+    if (!elig?.canBookPractical || session.bookingState !== 'can_reserve') {
+      return false;
+    }
+    if (isPracticalExam(session)) {
+      return !!dash?.canBookPracticalExam;
+    }
+    return true;
+  }
+
+  reserveBlockedReason(session: PracticalLessonSessionDto): string | null {
+    if (session.bookingState === 'reserved' || session.bookingState === 'full') {
+      return null;
+    }
+    if (isPracticalExam(session) && !this.dashboard()?.canBookPracticalExam) {
+      return this.dashboard()?.practicalExamBlockReason ?? 'Aún no puedes agendar el examen.';
+    }
+    if (!this.dashboard()?.eligibility.canBookPractical) {
+      return this.dashboard()?.eligibility.blockReason ?? 'Aún no puedes reservar.';
+    }
+    return session.bookingMessage ?? null;
   }
 
   lessonWindow(session: PracticalLessonSessionDto): string {
