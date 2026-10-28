@@ -23,6 +23,10 @@
         <input type="checkbox" [(ngModel)]="onlyBalance" (change)="reload()" />
         Solo con saldo
       </label>
+      <label class="check">
+        <input type="checkbox" [(ngModel)]="onlyPendingEnrollment" (change)="reload()" />
+        Solo sin enrolar
+      </label>
     </div>
     <div class="action-row">
       <ui-button routerLink="/school/import" type="button" variant="secondary">Importar Excel</ui-button>
@@ -47,7 +51,21 @@
   @if (loading()) {
     <ui-loading />
   } @else {
-    @if (!error() && rows().length === 0) {
+    @if (!error() && rows().length === 0 && (onlyPendingEnrollment || onlyBalance || search.trim())) {
+      <section class="empty-guide school-card" role="status">
+        <h2>Ningún estudiante coincide con el filtro</h2>
+        <p class="muted">
+          @if (onlyPendingEnrollment) {
+            No hay estudiantes pendientes de enrolar con estos criterios.
+          } @else if (onlyBalance) {
+            No hay estudiantes con saldo pendiente con estos criterios.
+          } @else {
+            Prueba otro nombre, cédula o celular.
+          }
+        </p>
+        <ui-button type="button" variant="secondary" (click)="clearFilters()">Ver todos los estudiantes</ui-button>
+      </section>
+    } @else if (!error() && rows().length === 0) {
       <section class="empty-guide school-card" role="status">
         <h2>Aún no hay estudiantes en tu escuela</h2>
         <p>
@@ -75,9 +93,13 @@
     } @else {
       <section class="school-card list-card">
         <header class="list-head">
-          <p class="school-card-title">{{ rows().length }} estudiantes registrados</p>
+          <p class="school-card-title">{{ listTitle() }}</p>
           <p class="muted">
-            Toca un estudiante para ver y editar sus datos.
+            @if (onlyPendingEnrollment) {
+              Marca «Enrolado en la escuela» en el expediente de cada uno.
+            } @else {
+              Toca un estudiante para ver y editar sus datos.
+            }
             @if (totalPages() > 1) {
               Viendo {{ pageFrom() }} a {{ pageTo() }}.
             }

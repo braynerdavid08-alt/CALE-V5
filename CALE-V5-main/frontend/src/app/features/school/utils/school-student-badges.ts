@@ -50,6 +50,8 @@ export function buildStudentBadges(row: StudentBadgeInput): SchoolBadge[] {
 
   if (row.isEnrolled) {
     badges.push({ label: 'Enrolado', tone: 'ok' });
+  } else if (row.isEnrolled === false) {
+    badges.push({ label: 'Sin enrolar', tone: 'warn' });
   }
 
   if (row.runtRegistered) {

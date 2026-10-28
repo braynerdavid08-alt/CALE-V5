@@ -154,6 +154,7 @@ export class SchoolHomePage implements OnInit {
           : `${o.pendingEnrollmentCount} estudiantes están pendientes de enrolar`,
         action: 'Ver',
         link: '/school/apprentices',
+        query: { pendingEnrollment: true },
         tone: 'info'
       });
     }

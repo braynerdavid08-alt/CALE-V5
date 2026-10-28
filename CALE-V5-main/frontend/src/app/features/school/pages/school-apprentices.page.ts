@@ -65,6 +65,7 @@ export class SchoolApprenticesPage implements OnInit {
 
   search = '';
   onlyBalance = false;
+  onlyPendingEnrollment = false;
 
   readonly licenseCategoryOptions = [
     { value: 'A2', label: 'A2' },
@@ -77,6 +78,7 @@ export class SchoolApprenticesPage implements OnInit {
   ngOnInit(): void {
     this.route.queryParamMap.subscribe((params) => {
       this.onlyBalance = params.get('withBalance') === 'true';
+      this.onlyPendingEnrollment = params.get('pendingEnrollment') === 'true';
       const focusId = Number(params.get('focus') || 0);
       this.reload(focusId > 0 ? focusId : undefined);
     });
@@ -85,7 +87,14 @@ export class SchoolApprenticesPage implements OnInit {
   reload(focusStudentUserId?: number): void {
     this.loading.set(true);
     this.error.set(null);
-    this.api.list(this.search || undefined, undefined, this.onlyBalance || undefined).subscribe({
+    this.api
+      .list(
+        this.search || undefined,
+        undefined,
+        this.onlyBalance || undefined,
+        this.onlyPendingEnrollment || undefined
+      )
+      .subscribe({
       next: (rows) => {
         this.rows.set(rows);
         this.progressByStudent.set({});
@@ -104,6 +113,28 @@ export class SchoolApprenticesPage implements OnInit {
         this.error.set(mapApiError(err));
       }
     });
+  }
+
+  listTitle(): string {
+    if (this.onlyPendingEnrollment && this.onlyBalance) {
+      return `${this.rows().length} sin enrolar y con saldo`;
+    }
+    if (this.onlyPendingEnrollment) {
+      return this.rows().length === 1
+        ? '1 estudiante pendiente de enrolar'
+        : `${this.rows().length} estudiantes pendientes de enrolar`;
+    }
+    if (this.onlyBalance) {
+      return `${this.rows().length} estudiantes con saldo`;
+    }
+    return `${this.rows().length} estudiantes registrados`;
+  }
+
+  clearFilters(): void {
+    this.search = '';
+    this.onlyBalance = false;
+    this.onlyPendingEnrollment = false;
+    this.reload();
   }
 
   goToPage(index: number): void {

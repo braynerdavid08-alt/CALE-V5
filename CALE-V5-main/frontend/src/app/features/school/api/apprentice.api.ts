@@ -228,11 +228,12 @@ export class ApprenticeApi {
   private readonly http = inject(HttpClient);
   private readonly base = `${env.apiUrl}/api/school`;
 
-  list(search?: string, month?: string, withBalance?: boolean) {
+  list(search?: string, month?: string, withBalance?: boolean, pendingEnrollment?: boolean) {
     let params = new HttpParams();
     if (search) params = params.set('search', search);
     if (month) params = params.set('month', month);
     if (withBalance) params = params.set('withBalance', 'true');
+    if (pendingEnrollment) params = params.set('pendingEnrollment', 'true');
     return this.http.get<ApprenticeDto[]>(`${this.base}/apprentices`, { params });
   }
 
