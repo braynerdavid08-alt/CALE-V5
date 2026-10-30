@@ -20,13 +20,18 @@ public sealed record SignImageReport(
     IReadOnlyList<string> MissingCodes);
 
 /// <summary>
-/// Real sign pictures come from the instructors' sign exams ("Examen Señales …"):
-/// each question image is paired with a catalog sign through its correct answer.
+/// Real sign pictures come from sign exams ("Examen Señales …"), same discovery rules as
+/// Señal relámpago: name contains "señal", admin-owned exams or questions in official banks.
+/// Each question image is paired with a catalog sign through its correct answer.
 /// Requests for the generic /signals/{code}.svg drawings are redirected to those pictures.
 /// </summary>
 public sealed partial class SignImageOverrides
 {
-    private static readonly TimeSpan Ttl = TimeSpan.FromMinutes(10);
+    /// <summary>Short so admin edits and new exam photos show up quickly in the editor tray.</summary>
+    private static readonly TimeSpan Ttl = TimeSpan.FromMinutes(2);
+
+    /// <summary>Same fragments as <c>PlayService</c> Señal relámpago exam discovery.</summary>
+    private static readonly string[] ExamKeywords = ["señal", "senal"];
 
     private readonly IServiceScopeFactory _scopes;
     private readonly PlayContent _content;
@@ -103,31 +108,69 @@ public sealed partial class SignImageOverrides
             .Where(u => Roles.Normalize(u.Role) == Roles.Admin)
             .Select(u => u.Id)
             .ToHashSet();
+        var officialBanks = (await db.Set<Bank>().AsNoTracking()
+                .Where(b => b.IsActive && b.CreatedById == null)
+                .Select(b => b.Id)
+                .ToListAsync(ct))
+            .ToHashSet();
+
         var exams = (await db.Set<Exam>().AsNoTracking()
                 .Where(e => e.IsActive)
-                .Select(e => new { e.Id, e.Name, e.CreatedById })
+                .Select(e => new { e.Id, e.Name, e.CreatedById, e.BankId })
                 .ToListAsync(ct))
-            .Where(e => admins.Contains(e.CreatedById) && $" {Fold(e.Name)} ".Contains(" SENAL", StringComparison.Ordinal))
+            .Where(e => ExamKeywords.Any(k => e.Name.Contains(k, StringComparison.OrdinalIgnoreCase)))
+            .OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
+        if (exams.Count == 0)
+        {
+            return new SignImageReport([], [], [], signs.Select(s => s.Code).ToList());
+        }
+
         var examIds = exams.Select(e => e.Id).ToList();
         var links = await db.Set<ExamQuestion>().AsNoTracking()
             .Where(l => examIds.Contains(l.ExamId))
             .Select(l => new { l.ExamId, l.QuestionId })
             .ToListAsync(ct);
-        var questionIds = links.Select(l => l.QuestionId).Distinct().ToList();
+        var listed = links
+            .GroupBy(l => l.ExamId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.QuestionId).ToHashSet());
+        var pickedIds = links.Select(l => l.QuestionId).Distinct().ToList();
+        var bankFallbackIds = exams
+            .Where(e => e.BankId is not null && !listed.ContainsKey(e.Id))
+            .Select(e => e.BankId!.Value)
+            .Distinct()
+            .ToList();
+
         var questions = await db.Set<Question>().AsNoTracking()
             .Include(q => q.Options)
-            .Where(q => questionIds.Contains(q.Id) && q.IsActive)
+            .Where(q => q.IsActive && (pickedIds.Contains(q.Id) || bankFallbackIds.Contains(q.BankId)))
             .ToListAsync(ct);
 
         var matched = new Dictionary<string, SignImageMatch>(StringComparer.OrdinalIgnoreCase);
         var unmatched = new List<SignImageUnmatched>();
+        var usedExamNames = new List<string>();
+
         foreach (var exam in exams)
         {
+            var adminOwned = admins.Contains(exam.CreatedById);
+            IEnumerable<Question> own = listed.TryGetValue(exam.Id, out var set)
+                ? questions.Where(q => set.Contains(q.Id))
+                : exam.BankId is int bankId
+                    ? questions.Where(q => q.BankId == bankId)
+                    : [];
+            var allowed = (adminOwned ? own : own.Where(q => officialBanks.Contains(q.BankId))).ToList();
+            if (allowed.Count == 0)
+            {
+                continue;
+            }
+
+            usedExamNames.Add(exam.Name);
             var family = FamilyPrefix(exam.Name);
-            var candidates = signs.Where(s => family is null || s.Code.StartsWith(family, StringComparison.OrdinalIgnoreCase)).ToList();
-            var ids = links.Where(l => l.ExamId == exam.Id).Select(l => l.QuestionId).ToHashSet();
-            foreach (var q in questions.Where(q => ids.Contains(q.Id)))
+            var candidates = signs
+                .Where(s => family is null || s.Code.StartsWith(family, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            foreach (var q in allowed)
             {
                 var correct = q.Options.FirstOrDefault(o => o.IsCorrect);
                 if (correct is null)
@@ -159,7 +202,7 @@ public sealed partial class SignImageOverrides
 
         var missing = signs.Select(s => s.Code).Where(c => !matched.ContainsKey(c)).ToList();
         return new SignImageReport(
-            exams.Select(e => e.Name).ToList(),
+            usedExamNames,
             matched.Values.OrderBy(m => m.Code, StringComparer.Ordinal).ToList(),
             unmatched,
             missing);
@@ -174,7 +217,16 @@ public sealed partial class SignImageOverrides
             return [];
         }
 
+        // "Señal de PARE", "La señal …", etc.
+        text = StripSignLeadIn(text);
+
         var code = CodePattern().Match(text);
+        if (!code.Success)
+        {
+            // SR01 / SP25A without separator after Fold still works via \s?; also try glued form.
+            code = GluedCodePattern().Match(text.Replace(" ", "", StringComparison.Ordinal));
+        }
+
         if (code.Success)
         {
             var wanted = CodeKey($"{code.Groups[1].Value} {code.Groups[2].Value}");
@@ -211,6 +263,14 @@ public sealed partial class SignImageOverrides
         return best.Count > 0 && (best.Count == 1 || best[0].Score > best[1].Score)
             ? [best[0].Sign]
             : [];
+    }
+
+    private static string StripSignLeadIn(string folded)
+    {
+        var t = folded;
+        // LA SENAL DE X / SENAL DE X / SENAL X
+        t = LeadInPattern().Replace(t, "").Trim();
+        return t.Length > 0 ? t : folded;
     }
 
     private static bool IsUsableImage([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] string? url) =>
@@ -281,6 +341,12 @@ public sealed partial class SignImageOverrides
 
     [GeneratedRegex(@"\b(SR|SP|SI)\s?(\d{1,2}[A-Z]?)\b")]
     private static partial Regex CodePattern();
+
+    [GeneratedRegex(@"^(SR|SP|SI)(\d{1,2}[A-Z]?)$")]
+    private static partial Regex GluedCodePattern();
+
+    [GeneratedRegex(@"^(?:LA\s+)?SENAL(?:ES)?(?:\s+DE)?\s+")]
+    private static partial Regex LeadInPattern();
 
     [GeneratedRegex(@"^(SR|SP|SI)\s?(\d{1,2})\s?([A-Z]?)$")]
     private static partial Regex CodeKeyPattern();

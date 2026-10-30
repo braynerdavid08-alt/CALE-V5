@@ -1,6 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { mapApiError } from '../../../core/http/map-api-error';
+import { resolveMediaUrl } from '../../../core/media/resolve-media-url';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
@@ -53,6 +54,28 @@ import { PlayApi, SignImageReport, SignsReport } from '../../play/api/play.api';
     .empty { text-align: center; padding: 1.25rem; color: var(--color-text-secondary); border: 1px dashed var(--color-border); border-radius: 1rem; }
     .actions { display: flex; justify-content: flex-end; margin-bottom: 0.75rem; }
     .thumb { width: 3.5rem; height: 3.5rem; object-fit: contain; border-radius: 0.5rem; background: #fff; flex: none; }
+    .match-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+      gap: 0.55rem;
+      margin: 0.75rem 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    .match-grid li {
+      display: grid;
+      gap: 0.25rem;
+      justify-items: center;
+      padding: 0.55rem 0.4rem;
+      border-radius: 0.75rem;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      text-align: center;
+    }
+    .match-grid img { width: 4.25rem; height: 4.25rem; object-fit: contain; background: #fff; border-radius: 0.4rem; }
+    .match-grid strong { font-size: var(--text-xs); }
+    .match-grid span { font-size: 0.7rem; color: var(--color-text-secondary); }
+    .stat.bad strong { color: #b91c1c; }
     @media (max-width: 640px) {
       .stats { grid-template-columns: 1fr 1fr; }
       .stats .stat:first-child { grid-column: 1 / -1; }
@@ -126,21 +149,44 @@ import { PlayApi, SignImageReport, SignsReport } from '../../play/api/play.api';
       }
     }
 
-    <h2>Imágenes en cursos y bancos</h2>
-    <p class="hint">Las señales de los cursos y de los bancos usan las imágenes de tus exámenes de señales (creados por el administrador). Cada imagen se asigna a la señal cuyo nombre coincide con la respuesta correcta.</p>
+    <h2>Fotos reales del catálogo (editor y cursos)</h2>
+    <p class="hint">
+      Las miniaturas oficiales salen de los mismos exámenes de señales que Señal relámpago
+      (nombre con “señal”, del administrador o preguntas en bancos oficiales).
+      La respuesta correcta debe ser el <strong>nombre oficial</strong> o el código (p. ej. SR-01).
+      Pulsa Actualizar para forzar un recálculo inmediato.
+    </p>
     @if (images(); as im) {
       <div class="stats">
-        <div class="stat good"><strong>{{ im.matched.length }}</strong><span>señales con tu imagen</span></div>
+        <div class="stat good"><strong>{{ im.matched.length }}</strong><span>señales con foto real ({{ coveragePercent() }}%)</span></div>
         <div class="stat" [class.warn]="im.unmatched.length > 0"><strong>{{ im.unmatched.length }}</strong><span>preguntas sin señal asignada</span></div>
-        <div class="stat"><strong>{{ im.missingCodes.length }}</strong><span>señales aún con dibujo genérico</span></div>
+        <div class="stat" [class.bad]="im.missingCodes.length > 0" [class.warn]="im.missingCodes.length > 0">
+          <strong>{{ im.missingCodes.length }}</strong><span>aún con dibujo genérico</span>
+        </div>
       </div>
       <p class="meta">Exámenes usados: {{ im.exams.length ? im.exams.join(', ') : 'ninguno' }}</p>
+      @if (im.matched.length) {
+        <h2>Muestra de fotos emparejadas</h2>
+        <ul class="match-grid">
+          @for (m of matchedPreview(); track m.code) {
+            <li>
+              <img [src]="media(m.imageUrl)" [alt]="m.name" loading="lazy" />
+              <strong>{{ m.code }}</strong>
+              <span>{{ m.name }}</span>
+            </li>
+          }
+        </ul>
+        @if (im.matched.length > matchedPreview().length) {
+          <p class="meta">Mostrando {{ matchedPreview().length }} de {{ im.matched.length }}. El resto ya alimenta el editor.</p>
+        }
+      }
       @if (im.unmatched.length) {
-        <p class="hint">Estas respuestas no coinciden con ningún nombre del catálogo. Escribe el nombre oficial de la señal (por ejemplo «Fin de la prohibición de adelantar») o su código (por ejemplo «SR-26A»).</p>
+        <h2>Preguntas con foto sin asignar</h2>
+        <p class="hint">Edita la respuesta correcta al nombre del catálogo o al código (p. ej. «Pare» o «SR-01»).</p>
         <ul class="list">
           @for (u of im.unmatched; track u.questionId) {
             <li class="row">
-              <img class="thumb" [src]="u.imageUrl" alt="" loading="lazy" />
+              <img class="thumb" [src]="media(u.imageUrl)" alt="" loading="lazy" />
               <div class="row-main">
                 <p class="row-title">{{ u.answer }}</p>
                 <span class="meta">#{{ u.questionId }} · {{ u.examName }}</span>
@@ -151,7 +197,8 @@ import { PlayApi, SignImageReport, SignsReport } from '../../play/api/play.api';
         </ul>
       }
       @if (im.missingCodes.length) {
-        <p class="meta" style="margin-top: 0.8rem">Sin imagen: {{ im.missingCodes.join(', ') }}</p>
+        <h2>Códigos sin foto</h2>
+        <p class="meta">{{ im.missingCodes.join(', ') }}</p>
       }
     }
   `
@@ -159,6 +206,7 @@ import { PlayApi, SignImageReport, SignsReport } from '../../play/api/play.api';
 export class AdminSignsGamePage implements OnInit {
   private readonly api = inject(PlayApi);
 
+  readonly media = resolveMediaUrl;
   readonly report = signal<SignsReport | null>(null);
   readonly images = signal<SignImageReport | null>(null);
   readonly loading = signal(false);
@@ -167,6 +215,15 @@ export class AdminSignsGamePage implements OnInit {
   readonly visibleIssues = computed(() => {
     const issues = this.report()?.issues ?? [];
     return this.showAll() ? issues : issues.slice(0, 30);
+  });
+  readonly matchedPreview = computed(() => (this.images()?.matched ?? []).slice(0, 24));
+  readonly coveragePercent = computed(() => {
+    const im = this.images();
+    if (!im) {
+      return 0;
+    }
+    const total = im.matched.length + im.missingCodes.length;
+    return total > 0 ? Math.round((im.matched.length / total) * 100) : 0;
   });
 
   ngOnInit(): void {
