@@ -629,7 +629,7 @@ export const routes: Routes = [
       {
         path: 'teacher/presentations/:id/present',
         canActivate: [roleGuard],
-        data: { roles: ['Teacher', 'Admin'] },
+        data: { roles: ['Teacher', 'School', 'Admin'] },
         loadComponent: () =>
           import('./features/teacher/presentations/presentation-present.page')
             .then((m) => m.PresentationPresentPage)
@@ -637,7 +637,7 @@ export const routes: Routes = [
       {
         path: 'teacher/presentations/:id/edit',
         canActivate: [roleGuard],
-        data: { roles: ['Teacher', 'Admin'] },
+        data: { roles: ['Teacher', 'School', 'Admin'] },
         loadComponent: () =>
           import('./features/teacher/presentations/presentation-editor.page')
             .then((m) => m.PresentationEditorPage)
@@ -646,7 +646,7 @@ export const routes: Routes = [
         path: 'teacher/presentations',
         pathMatch: 'full',
         canActivate: [roleGuard],
-        data: { roles: ['Teacher', 'Admin'] },
+        data: { roles: ['Teacher', 'School', 'Admin'] },
         loadComponent: () =>
           import('./features/teacher/presentations/presentation-list.page')
             .then((m) => m.PresentationListPage)

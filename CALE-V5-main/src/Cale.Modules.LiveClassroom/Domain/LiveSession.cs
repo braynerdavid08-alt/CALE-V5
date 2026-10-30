@@ -26,6 +26,8 @@ public sealed class LiveSession
     public int BankId { get; private set; }
     public string ConfigJson { get; private set; } = "{}";
     public int CurrentQuestionIndex { get; private set; } = -1;
+    /// <summary>Current linked presentation slide (0-based). Survives API restarts.</summary>
+    public int CurrentSlideIndex { get; private set; }
     public bool RevealCorrect { get; private set; }
     public DateTime? QuestionOpenedAt { get; private set; }
     public DateTime? QuestionClosesAt { get; private set; }
@@ -121,6 +123,8 @@ public sealed class LiveSession
     public bool IsCloseProcessed => QuestionClosedAt is not null;
 
     public void SetReveal(bool reveal) => RevealCorrect = reveal;
+
+    public void SetSlideIndex(int index) => CurrentSlideIndex = Math.Max(0, index);
 
     public void End(DateTime utcNow)
     {

@@ -12,10 +12,26 @@ import {
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DecimalPipe, NgStyle } from '@angular/common';
+import {
+  Observable,
+  catchError,
+  finalize,
+  firstValueFrom,
+  map,
+  of,
+  shareReplay
+} from 'rxjs';
 import { resolveMediaUrl } from '../../../core/media/resolve-media-url';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { BRAND } from '../../../core/brand';
 import { PresentationApi } from './presentation.api';
+import {
+  OFFICE_EXPORT_LIMITS,
+  OFFICE_IMPORT_LIMITS,
+  downloadBlob,
+  openPresentationPrintPdf,
+  renderSlideToPngBlob
+} from './presentation-export-client';
 import {
   EditorSlide,
   ImageCrop,
@@ -43,15 +59,18 @@ import {
   newClientId,
   normalizeImageCrop,
   scaleElementsFromLegacy,
+  serializeBackground,
   shapeClipPath,
   summarizePresentationSlides,
   unlockImportedPhotoSlide
 } from './presentation.models';
 import { buildSlideFromTemplate, reassignElementIds } from './presentation-slide-templates';
 import {
-  TRAFFIC_SIGN_OPTIONS,
-  buildTrafficSignElements
-} from './presentation-traffic-signs';
+  VIAL_CATEGORY_LABELS,
+  VIAL_RESOURCE_OPTIONS,
+  VialResourceCategory,
+  buildVialResourceElements
+} from './presentation-vial-resources';
 import { SlidePreviewComponent } from './slide-preview.component';
 
 type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'offline' | 'error';
@@ -76,6 +95,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   @ViewChild('canvasHost') canvasHost?: ElementRef<HTMLElement>;
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
   @ViewChild('videoInput') videoInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('questionImageInput') questionImageInput?: ElementRef<HTMLInputElement>;
 
   private readonly api = inject(PresentationApi);
   private readonly route = inject(ActivatedRoute);
@@ -106,9 +126,15 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   readonly editingText = signal(false);
   readonly showImageModal = signal(false);
   readonly showExportMenu = signal(false);
+  readonly showShortcuts = signal(false);
+  readonly exportingPng = signal(false);
+  readonly cropEditing = signal(false);
   readonly toolbarMenu = signal<'shapes' | 'insert' | 'align' | 'arrange' | null>(null);
   readonly propsTab = signal<'slide' | 'element' | 'layers' | 'deck'>('slide');
   readonly propsDrawerOpen = signal(false);
+  readonly officeExportLimits = OFFICE_EXPORT_LIMITS;
+  readonly officeImportLimits = OFFICE_IMPORT_LIMITS;
+  private layerDragFrom: string | null = null;
   readonly imageUrlInput = signal('');
   readonly imageUploading = signal(false);
   readonly imageModalReplace = signal(false);
@@ -117,11 +143,28 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   readonly canUndo = signal(false);
   readonly canRedo = signal(false);
   readonly showSignPicker = signal(false);
+  readonly resourcesTrayOpen = signal(true);
+  readonly vialCategoryFilter = signal<VialResourceCategory | 'all'>('all');
   readonly snapEnabled = signal(true);
   readonly snapGuideX = signal<number | null>(null);
   readonly snapGuideY = signal<number | null>(null);
   readonly importBanner = signal<PresentationDeckSummary | null>(null);
-  readonly trafficSigns = TRAFFIC_SIGN_OPTIONS;
+  readonly vialResources = VIAL_RESOURCE_OPTIONS;
+  readonly vialCategoryLabels = VIAL_CATEGORY_LABELS;
+  readonly vialCategories: VialResourceCategory[] = [
+    'reglamentacion',
+    'prevencion',
+    'informacion',
+    'actores',
+    'escena'
+  ];
+  readonly filteredVialResources = computed(() => {
+    const cat = this.vialCategoryFilter();
+    if (cat === 'all') {
+      return this.vialResources;
+    }
+    return this.vialResources.filter((r) => r.category === cat);
+  });
   private elementClipboard: SlideElement[] = [];
 
   @ViewChild('bgImageInput') bgImageInput?: ElementRef<HTMLInputElement>;
@@ -173,9 +216,49 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     return 'Guardado';
   });
 
+  readonly propsHeading = computed(() => {
+    switch (this.propsTab()) {
+      case 'element':
+        return this.selectedCount() > 1
+          ? `${this.selectedCount()} objetos`
+          : this.selected()
+            ? this.elementTypeLabel(this.selected()!.type)
+            : 'Objeto';
+      case 'layers':
+        return 'Orden de capas';
+      case 'deck':
+        return 'Presentación';
+      default:
+        return 'Esta diapositiva';
+    }
+  });
+
+  readonly propsHint = computed(() => {
+    switch (this.propsTab()) {
+      case 'element':
+        return this.selected()
+          ? 'Ajusta tamaño, color y contenido del objeto marcado en el lienzo.'
+          : 'Haz clic en un texto, imagen o forma del lienzo para editarlo aquí.';
+      case 'layers':
+        return 'Arriba = delante. Toca un ítem para seleccionarlo en el lienzo.';
+      case 'deck':
+        return 'Datos generales de toda la presentación (no de una sola diapositiva).';
+      default:
+        return 'Fondo, nombre y guion de la diapositiva que estás viendo.';
+    }
+  });
+
+  readonly selectedText = computed(() => {
+    const sel = this.selected();
+    return sel?.type === 'text' && this.selectedCount() === 1 ? sel : null;
+  });
+
   private autosaveTimer?: ReturnType<typeof setTimeout>;
   private labelTimer?: ReturnType<typeof setInterval>;
   private fitZoomTimer?: ReturnType<typeof setTimeout>;
+  private saveInFlight: Observable<boolean> | null = null;
+  private lastTextTapAt = 0;
+  private lastTextTapId: string | null = null;
   private drag:
     | {
         id: string;
@@ -293,8 +376,24 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     this.showSignPicker.set(false);
   }
 
+  toggleResourcesTray(): void {
+    this.resourcesTrayOpen.update((v) => !v);
+  }
+
+  setVialCategoryFilter(cat: VialResourceCategory | 'all'): void {
+    this.vialCategoryFilter.set(cat);
+  }
+
+  vialCategoryLabel(cat: VialResourceCategory): string {
+    return this.vialCategoryLabels[cat];
+  }
+
   insertTrafficSign(key: string): void {
-    const built = scaleElementsFromLegacy(buildTrafficSignElements(key, 180, 120));
+    this.insertVialResource(key, { closePicker: true });
+  }
+
+  insertVialResource(key: string, opts?: { closePicker?: boolean }): void {
+    const built = scaleElementsFromLegacy(buildVialResourceElements(key, 180, 120));
     if (!built.length) {
       return;
     }
@@ -304,7 +403,9 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       this.pushElement({ ...built[i], z: baseZ + i });
     }
     this.setSelectedId(built[0].id);
-    this.closeSignPicker();
+    if (opts?.closePicker) {
+      this.closeSignPicker();
+    }
     this.markDirty();
   }
 
@@ -331,6 +432,12 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   closeFloatingMenus(): void {
     this.toolbarMenu.set(null);
     this.showExportMenu.set(false);
+  }
+
+  toggleShortcuts(ev?: Event): void {
+    ev?.stopPropagation();
+    this.closeFloatingMenus();
+    this.showShortcuts.update((v) => !v);
   }
 
   toggleExportMenu(ev?: Event): void {
@@ -390,21 +497,64 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     x: number,
     y: number,
     w: number,
-    h: number
+    h: number,
+    excludeIds: string[] = []
   ): { x: number; y: number; w: number; h: number } {
-    let nx = this.snapCoord(x);
-    let ny = this.snapCoord(y);
-    const threshold = 8;
-    const elCx = x + w / 2;
-    const elCy = y + h / 2;
-    if (Math.abs(elCx - SLIDE_W / 2) < threshold) {
-      nx = Math.round(SLIDE_W / 2 - w / 2);
+    let nx = this.snapEnabled() ? this.snapCoord(x) : Math.round(x);
+    let ny = this.snapEnabled() ? this.snapCoord(y) : Math.round(y);
+    let guideX: number | null = null;
+    let guideY: number | null = null;
+    if (!this.snapEnabled()) {
+      this.snapGuideX.set(null);
+      this.snapGuideY.set(null);
+      return this.clampBoxToCanvas(nx, ny, w, h);
     }
-    if (Math.abs(elCy - SLIDE_H / 2) < threshold) {
-      ny = Math.round(SLIDE_H / 2 - h / 2);
+
+    const threshold = 10;
+    const trySnapAxis = (
+      movingEdges: number[],
+      targetEdges: number[],
+      apply: (delta: number, target: number) => void
+    ): boolean => {
+      for (const m of movingEdges) {
+        for (const t of targetEdges) {
+          if (Math.abs(m - t) <= threshold) {
+            apply(t - m, t);
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+
+    const mx = [x, x + w / 2, x + w];
+    const my = [y, y + h / 2, y + h];
+    trySnapAxis(mx, [0, SLIDE_W / 2, SLIDE_W], (delta, target) => {
+      nx = Math.round(x + delta);
+      guideX = Math.round(target);
+    });
+    trySnapAxis(my, [0, SLIDE_H / 2, SLIDE_H], (delta, target) => {
+      ny = Math.round(y + delta);
+      guideY = Math.round(target);
+    });
+
+    const others =
+      this.activeSlide()?.elements.filter(
+        (e) => !e.hidden && !excludeIds.includes(e.id)
+      ) ?? [];
+    for (const o of others) {
+      trySnapAxis(mx, [o.x, o.x + o.w / 2, o.x + o.w], (delta, target) => {
+        nx = Math.round(x + delta);
+        guideX = Math.round(target);
+      });
+      trySnapAxis(my, [o.y, o.y + o.h / 2, o.y + o.h], (delta, target) => {
+        ny = Math.round(y + delta);
+        guideY = Math.round(target);
+      });
     }
-    this.snapGuideX.set(Math.abs(elCx - SLIDE_W / 2) < threshold ? Math.round(SLIDE_W / 2) : null);
-    this.snapGuideY.set(Math.abs(elCy - SLIDE_H / 2) < threshold ? Math.round(SLIDE_H / 2) : null);
+
+    this.snapGuideX.set(guideX);
+    this.snapGuideY.set(guideY);
     return this.clampBoxToCanvas(nx, ny, w, h);
   }
 
@@ -483,6 +633,10 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   @HostListener('window:keydown', ['$event'])
   onKey(ev: KeyboardEvent): void {
     if (ev.key === 'Escape') {
+      if (this.showShortcuts()) {
+        this.showShortcuts.set(false);
+        return;
+      }
       if (this.toolbarMenu() || this.showExportMenu()) {
         this.closeFloatingMenus();
         return;
@@ -553,7 +707,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     }
     if (meta && ev.key.toLowerCase() === 's') {
       ev.preventDefault();
-      this.saveNow();
+      this.saveNow(false).subscribe();
       return;
     }
     if (meta && ev.key.toLowerCase() === 'g') {
@@ -650,7 +804,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (this.autosaveTimer) {
       clearTimeout(this.autosaveTimer);
     }
-    this.autosaveTimer = setTimeout(() => this.saveNow(true), 1400);
+    this.autosaveTimer = setTimeout(() => this.saveNow(true).subscribe(), 1400);
   }
 
   private cloneSnapshot(): EditorSnapshot {
@@ -720,11 +874,28 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     return null;
   }
 
-  saveNow(auto = false): void {
+  /** Persist to server. Returns whether the latest content is safely stored. */
+  saveNow(auto = false): Observable<boolean> {
     const id = this.presentationId();
-    if (!id || this.saveState() === 'saving') {
-      return;
+    if (!id) {
+      return of(false);
     }
+    if (this.saveInFlight) {
+      return this.saveInFlight;
+    }
+    const state = this.saveState();
+    if (auto && state !== 'dirty' && state !== 'offline' && state !== 'error') {
+      return of(true);
+    }
+    if (!auto && (state === 'saved' || state === 'idle')) {
+      return of(true);
+    }
+
+    if (this.autosaveTimer) {
+      clearTimeout(this.autosaveTimer);
+      this.autosaveTimer = undefined;
+    }
+
     this.saveState.set('saving');
     const payload = {
       title: this.title().trim() || 'Sin título',
@@ -736,12 +907,13 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
         id: s.id ?? null,
         title: s.title,
         notes: s.notes || null,
-        backgroundJson: JSON.stringify(s.background),
+        backgroundJson: serializeBackground(s),
         elementsJson: JSON.stringify(s.elements)
       }))
     };
-    this.api.saveDocument(id, payload).subscribe({
-      next: (detail) => {
+
+    this.saveInFlight = this.api.saveDocument(id, payload).pipe(
+      map((detail) => {
         this.slides.set(dtoToEditorSlides(detail));
         this.saveState.set('saved');
         this.lastSavedAt.set(Date.now());
@@ -749,8 +921,9 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
         if (!auto) {
           this.error.set(null);
         }
-      },
-      error: (err) => {
+        return true;
+      }),
+      catchError((err) => {
         this.persistLocalDraft();
         if (!navigator.onLine) {
           this.saveState.set('offline');
@@ -758,14 +931,39 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
           this.saveState.set('error');
           this.error.set(mapApiError(err));
         }
-      }
-    });
+        return of(false);
+      }),
+      finalize(() => {
+        this.saveInFlight = null;
+      }),
+      shareReplay(1)
+    );
+    return this.saveInFlight;
+  }
+
+  private async flushSave(actionLabel: string): Promise<boolean> {
+    if (this.editingText()) {
+      this.finishTextEdit();
+    }
+    // Finish any autosave in flight, then force one more pass with the latest canvas.
+    if (this.saveInFlight) {
+      await firstValueFrom(this.saveInFlight);
+    }
+    this.saveState.set('dirty');
+    const ok = await firstValueFrom(this.saveNow(false));
+    if (!ok) {
+      this.error.set(
+        this.error() || `No se pudo guardar. Revisa la conexión e inténtalo de nuevo antes de ${actionLabel}.`
+      );
+    }
+    return ok;
   }
 
   selectSlide(i: number): void {
     this.activeIndex.set(i);
     this.setSelectedId(null);
     this.editingText.set(false);
+    this.cropEditing.set(false);
   }
 
   addSlide(templateKey?: string): void {
@@ -887,6 +1085,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   clearSelection(): void {
     this.selectedIds.set([]);
     this.editingText.set(false);
+    this.cropEditing.set(false);
   }
 
   isSelected(id: string): boolean {
@@ -955,6 +1154,11 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     return [...(this.activeSlide()?.elements ?? [])].sort((a, b) => b.z - a.z);
   }
 
+  /** Visible on the canvas (hidden layers stay in the Capas panel only). */
+  canvasElements(slide: EditorSlide): SlideElement[] {
+    return slide.elements.filter((e) => !e.hidden);
+  }
+
   layerLabel(el: SlideElement): string {
     if (el.type === 'text') {
       const text = ((el.props as TextProps).text ?? '').replace(/\s+/g, ' ').trim();
@@ -969,6 +1173,70 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       question: 'Pregunta'
     };
     return labels[el.type] ?? el.type;
+  }
+
+  toggleElementHidden(id: string, ev?: Event): void {
+    ev?.stopPropagation();
+    this.pushHistory();
+    this.patchElement(id, (el) => ({ ...el, hidden: !el.hidden }));
+    if (this.selectedIds().includes(id)) {
+      this.selectedIds.update((ids) => ids.filter((x) => x !== id));
+      this.editingText.set(false);
+    }
+    this.markDirty();
+  }
+
+  /** Capas: al elegir un objeto oculto, se muestra de nuevo para poder editarlo. */
+  revealAndSelect(id: string, ev: Event): void {
+    ev.stopPropagation();
+    const el = this.activeSlide()?.elements.find((e) => e.id === id);
+    if (el?.hidden) {
+      this.pushHistory();
+      this.patchElement(id, (e) => ({ ...e, hidden: false }));
+      this.markDirty();
+    }
+    this.selectElement(id, ev);
+    this.setPropsTab('element');
+  }
+
+  toggleElementLocked(id: string, ev?: Event): void {
+    ev?.stopPropagation();
+    this.pushHistory();
+    this.patchElement(id, (el) => ({ ...el, locked: !el.locked }));
+    this.markDirty();
+  }
+
+  onLayerDragStart(ev: DragEvent, id: string): void {
+    this.layerDragFrom = id;
+    ev.dataTransfer?.setData('text/plain', id);
+    ev.dataTransfer!.effectAllowed = 'move';
+  }
+
+  onLayerDrop(ev: DragEvent, targetId: string): void {
+    ev.preventDefault();
+    const fromId = this.layerDragFrom || ev.dataTransfer?.getData('text/plain');
+    this.layerDragFrom = null;
+    if (!fromId || fromId === targetId) {
+      return;
+    }
+    const ordered = this.layerItems();
+    const from = ordered.findIndex((e) => e.id === fromId);
+    const to = ordered.findIndex((e) => e.id === targetId);
+    if (from < 0 || to < 0) {
+      return;
+    }
+    this.pushHistory();
+    const next = [...ordered];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    // Front of list = highest z
+    const maxZ = next.length;
+    const zById = new Map(next.map((e, i) => [e.id, maxZ - i]));
+    this.updateActive((s) => ({
+      ...s,
+      elements: s.elements.map((e) => ({ ...e, z: zById.get(e.id) ?? e.z }))
+    }));
+    this.markDirty();
   }
 
   convertSelectedImageToBackground(): void {
@@ -1007,7 +1275,21 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
 
     ev.preventDefault();
     ev.stopPropagation();
-    // Igual que imagen: un clic selecciona (marco + asas). Doble clic edita letras.
+
+    // Touch / stylus: second tap within 450ms opens text edit (no reliable dblclick).
+    if (el.type === 'text' && (ev.pointerType === 'touch' || ev.pointerType === 'pen')) {
+      const now = Date.now();
+      if (this.lastTextTapId === el.id && now - this.lastTextTapAt < 450) {
+        this.lastTextTapAt = 0;
+        this.lastTextTapId = null;
+        this.startEditText(el.id, ev);
+        return;
+      }
+      this.lastTextTapAt = now;
+      this.lastTextTapId = el.id;
+    }
+
+    // Mouse: one click selects (frame + handles). Double-click edits letters.
     this.editingText.set(false);
     this.selectElement(el.id, ev);
     this.startDrag(ev, el.id, 'move');
@@ -1223,11 +1505,57 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
           text: current.text?.trim() ? current.text : next.text,
           explanation: current.explanation,
           topic: current.topic,
-          autoOpen: current.autoOpen
+          autoOpen: current.autoOpen,
+          imageUrl: current.imageUrl ?? null
         }
       };
     });
     this.markDirty();
+  }
+
+  triggerQuestionImage(): void {
+    this.questionImageInput?.nativeElement.click();
+  }
+
+  onQuestionImageSelected(ev: Event): void {
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) {
+      return;
+    }
+    if (file.size > PRESENTATION_MEDIA_MAX_BYTES) {
+      this.error.set('La imagen debe pesar 100 MB o menos.');
+      return;
+    }
+    if (!this.isImageFile(file)) {
+      this.error.set('Elige una imagen jpg, png, gif o webp.');
+      return;
+    }
+    this.imageUploading.set(true);
+    this.api.upload(file).subscribe({
+      next: (res) => {
+        this.imageUploading.set(false);
+        this.updateQuestionProp('imageUrl', res.url);
+      },
+      error: (err) => {
+        this.imageUploading.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  setQuestionImageFromUrl(raw: string): void {
+    const src = this.normalizeImageSrc(raw);
+    if (!src) {
+      this.error.set('URL inválida. Usa https://... o /uploads/...');
+      return;
+    }
+    this.updateQuestionProp('imageUrl', src);
+  }
+
+  clearQuestionImage(): void {
+    this.updateQuestionProp('imageUrl', null);
   }
 
   triggerImage(): void {
@@ -1675,7 +2003,6 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     }
     ev.preventDefault();
     ev.stopPropagation();
-    this.pushHistory();
     const slide = this.activeSlide();
     const el = slide?.elements.find((e) => e.id === id);
     if (!el || !slide) {
@@ -1684,10 +2011,20 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (!this.selectedIds().includes(id)) {
       this.selectElement(id, ev);
     }
+    if (el.locked) {
+      return;
+    }
+    this.pushHistory();
     const moveIds =
       mode === 'move'
-        ? (this.selectedIds().length ? this.selectedIds() : [id])
+        ? (this.selectedIds().length ? this.selectedIds() : [id]).filter((mid) => {
+            const item = slide.elements.find((e) => e.id === mid);
+            return !!item && !item.locked;
+          })
         : [id];
+    if (!moveIds.length) {
+      return;
+    }
     const origins: Record<string, { x: number; y: number; w: number; h: number }> = {};
     for (const mid of moveIds) {
       const item = slide.elements.find((e) => e.id === mid);
@@ -1730,7 +2067,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
           if (!orig || !ids.includes(el.id)) {
             return el;
           }
-          const pos = this.snapBox(orig.x + dx, orig.y + dy, orig.w, orig.h);
+          const pos = this.snapBox(orig.x + dx, orig.y + dy, orig.w, orig.h, ids);
           return { ...el, x: pos.x, y: pos.y, w: pos.w, h: pos.h };
         })
       }));
@@ -1948,6 +2285,138 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     this.markDirty();
   }
 
+  /** Even spacing between 3+ selected objects. */
+  distribute(axis: 'horizontal' | 'vertical'): void {
+    const ids = this.selectedIds();
+    const slide = this.activeSlide();
+    if (ids.length < 3 || !slide) {
+      return;
+    }
+    const selected = ids
+      .map((id) => slide.elements.find((e) => e.id === id))
+      .filter((e): e is SlideElement => !!e && !e.locked);
+    if (selected.length < 3) {
+      return;
+    }
+    this.pushHistory();
+    const sorted =
+      axis === 'horizontal'
+        ? [...selected].sort((a, b) => a.x - b.x)
+        : [...selected].sort((a, b) => a.y - b.y);
+    const first = sorted[0];
+    const last = sorted[sorted.length - 1];
+    const totalSpan =
+      axis === 'horizontal' ? last.x + last.w - first.x : last.y + last.h - first.y;
+    const sizes = sorted.reduce((sum, e) => sum + (axis === 'horizontal' ? e.w : e.h), 0);
+    const gap = (totalSpan - sizes) / (sorted.length - 1);
+    let cursor = axis === 'horizontal' ? first.x : first.y;
+    const pos = new Map<string, { x: number; y: number }>();
+    for (const el of sorted) {
+      if (axis === 'horizontal') {
+        pos.set(el.id, { x: Math.round(cursor), y: el.y });
+        cursor += el.w + gap;
+      } else {
+        pos.set(el.id, { x: el.x, y: Math.round(cursor) });
+        cursor += el.h + gap;
+      }
+    }
+    this.updateActive((s) => ({
+      ...s,
+      elements: s.elements.map((el) => {
+        const p = pos.get(el.id);
+        return p ? { ...el, x: p.x, y: p.y } : el;
+      })
+    }));
+    this.markDirty();
+  }
+
+  toggleSlideHidden(): void {
+    const slide = this.activeSlide();
+    if (!slide || this.slides().length <= 1) {
+      return;
+    }
+    const visibleCount = this.slides().filter((s) => !s.hidden).length;
+    if (!slide.hidden && visibleCount <= 1) {
+      this.error.set('Debe quedar al menos una diapositiva visible.');
+      return;
+    }
+    this.pushHistory();
+    this.updateActive((s) => ({ ...s, hidden: !s.hidden }));
+    this.markDirty();
+  }
+
+  toggleCropEditing(): void {
+    const sel = this.selected();
+    if (!sel || sel.type !== 'image') {
+      this.cropEditing.set(false);
+      return;
+    }
+    this.cropEditing.update((v) => !v);
+  }
+
+  applyCropPreset(kind: 'center80' | 'top' | 'left' | 'reset'): void {
+    if (kind === 'reset') {
+      this.resetImageCrop();
+      return;
+    }
+    if (kind === 'center80') {
+      this.updateImageProp('crop', { x: 0.1, y: 0.1, w: 0.8, h: 0.8 });
+      return;
+    }
+    if (kind === 'top') {
+      this.updateImageProp('crop', { x: 0, y: 0, w: 1, h: 0.55 });
+      return;
+    }
+    this.updateImageProp('crop', { x: 0, y: 0, w: 0.55, h: 1 });
+  }
+
+  onCropHandlePointerDown(ev: PointerEvent, edge: 'l' | 'r' | 't' | 'b'): void {
+    ev.preventDefault();
+    ev.stopPropagation();
+    const sel = this.selected();
+    if (!sel || sel.type !== 'image') {
+      return;
+    }
+    this.pushHistory();
+    const id = sel.id;
+    const start = normalizeImageCrop((sel.props as ImageProps).crop);
+    const startX = ev.clientX;
+    const startY = ev.clientY;
+    const z = this.zoom() || 1;
+    const boxW = Math.max(sel.w, 1);
+    const boxH = Math.max(sel.h, 1);
+    const onMove = (moveEv: PointerEvent) => {
+      const dx = (moveEv.clientX - startX) / z / boxW;
+      const dy = (moveEv.clientY - startY) / z / boxH;
+      let next = { ...start };
+      if (edge === 'l') {
+        const x = Math.min(start.x + start.w - 0.1, Math.max(0, start.x + dx));
+        next = { ...next, x, w: start.w - (x - start.x) };
+      } else if (edge === 'r') {
+        next = { ...next, w: Math.min(1 - start.x, Math.max(0.1, start.w + dx)) };
+      } else if (edge === 't') {
+        const y = Math.min(start.y + start.h - 0.1, Math.max(0, start.y + dy));
+        next = { ...next, y, h: start.h - (y - start.y) };
+      } else {
+        next = { ...next, h: Math.min(1 - start.y, Math.max(0.1, start.h + dy)) };
+      }
+      const crop = normalizeImageCrop(next);
+      this.patchElement(id, (el) => {
+        if (el.type !== 'image') {
+          return el;
+        }
+        return { ...el, props: { ...(el.props as ImageProps), crop } };
+      });
+      this.markDirty();
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+
   updateTextProp<K extends keyof TextProps>(key: K, value: TextProps[K]): void {
     const id = this.selectedId();
     if (!id) {
@@ -2125,6 +2594,15 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     this.updateTextProp(prop, !props[prop]);
   }
 
+  bumpFontSize(delta: number): void {
+    const sel = this.selectedText();
+    if (!sel) {
+      return;
+    }
+    const size = (sel.props as TextProps).fontSize || 20;
+    this.updateTextProp('fontSize', Math.max(10, Math.min(120, size + delta)));
+  }
+
   updateDescription(value: string): void {
     this.description.set(value);
     this.markDirty();
@@ -2140,14 +2618,18 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     this.markDirty();
   }
 
-  present(): void {
-    this.saveNow();
+  async present(): Promise<void> {
+    if (!(await this.flushSave('presentar'))) {
+      return;
+    }
     this.skipUnload = true;
     void this.router.navigate(['/teacher/presentations', this.presentationId(), 'present']);
   }
 
-  presentLive(): void {
-    this.saveNow();
+  async presentLive(): Promise<void> {
+    if (!(await this.flushSave('abrir en vivo'))) {
+      return;
+    }
     this.skipUnload = true;
     void this.router.navigate(['/teacher/live'], {
       queryParams: {
@@ -2158,22 +2640,56 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     });
   }
 
-  exportDeck(format: 'xlsx' | 'docx' | 'pptx'): void {
+  async exportDeck(format: 'xlsx' | 'docx' | 'pptx'): Promise<void> {
     const id = this.presentationId();
     if (!id) return;
-    this.saveNow();
+    this.closeFloatingMenus();
+    if (!(await this.flushSave('exportar'))) {
+      return;
+    }
     this.api.exportFile(id, format).subscribe({
       next: (blob) => {
         const name = (this.title().trim() || 'presentacion').replace(/[<>:"/\\|?*]+/g, '-');
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${name}.${format}`;
-        a.click();
-        URL.revokeObjectURL(url);
+        downloadBlob(blob, `${name}.${format}`);
       },
       error: (err) => this.error.set(mapApiError(err))
     });
+  }
+
+  async exportPdfPrint(): Promise<void> {
+    this.closeFloatingMenus();
+    if (!(await this.flushSave('exportar PDF'))) {
+      return;
+    }
+    try {
+      openPresentationPrintPdf(
+        this.title().trim() || 'Presentación',
+        this.slides().filter((s) => !s.hidden)
+      );
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'No se pudo abrir la impresión a PDF.');
+    }
+  }
+
+  async exportActiveSlidePng(): Promise<void> {
+    const slide = this.activeSlide();
+    if (!slide || this.exportingPng()) {
+      return;
+    }
+    this.closeFloatingMenus();
+    if (!(await this.flushSave('exportar PNG'))) {
+      return;
+    }
+    this.exportingPng.set(true);
+    try {
+      const blob = await renderSlideToPngBlob(slide);
+      const name = (this.title().trim() || 'diapositiva').replace(/[<>:"/\\|?*]+/g, '-');
+      downloadBlob(blob, `${name}-diapositiva-${this.activeIndex() + 1}.png`);
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'No se pudo generar el PNG.');
+    } finally {
+      this.exportingPng.set(false);
+    }
   }
 
   bgStyle(slide: EditorSlide): Record<string, string> {

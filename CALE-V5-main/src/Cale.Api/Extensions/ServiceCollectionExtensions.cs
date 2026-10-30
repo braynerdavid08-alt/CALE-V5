@@ -329,6 +329,9 @@ public static class ServiceCollectionExtensions
                 "TeacherOrAdmin",
                 p => p.RequireRole(Roles.Teacher, Roles.Admin));
             options.AddPolicy(
+                "PresentationEditor",
+                p => p.RequireRole(Roles.Teacher, Roles.School, Roles.Admin));
+            options.AddPolicy(
                 "StudentOnly",
                 p => p.RequireRole(Roles.Student));
         });

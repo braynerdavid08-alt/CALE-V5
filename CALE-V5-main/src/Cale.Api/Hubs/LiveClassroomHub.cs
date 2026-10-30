@@ -108,7 +108,7 @@ public sealed class LiveClassroomHub : Hub
             await Groups.RemoveFromGroupAsync(previousConnectionId, GroupName(sessionId));
             await Clients.Client(previousConnectionId).SendAsync(ReplacedByAnotherTabEvent, Context.ConnectionAborted);
         }
-        var slideIndex = _presentationSlides.GetSlideIndex(sessionId);
+        var slideIndex = await _presentationSlides.GetSlideIndexAsync(sessionId, Context.ConnectionAborted);
         await Clients.Caller.SendAsync(
             "PresentationSlideChanged",
             new { slideIndex },
@@ -138,7 +138,7 @@ public sealed class LiveClassroomHub : Hub
             slideIndex = 0;
         }
 
-        _presentationSlides.SetSlideIndex(sessionId, slideIndex);
+        await _presentationSlides.SetSlideIndexAsync(sessionId, slideIndex, Context.ConnectionAborted);
 
         var broadcaster = Context.GetHttpContext()?.RequestServices
             .GetRequiredService<ILiveSessionBroadcaster>();

@@ -130,7 +130,15 @@ internal static class PptxSlideIO
             presentationPart.Presentation.SlideMasterIdList = new P.SlideMasterIdList(
                 new P.SlideMasterId { Id = 2147483648U, RelationshipId = masterRelId });
 
-            var ordered = detail.Slides.OrderBy(s => s.Position).ToList();
+            var ordered = detail.Slides
+                .OrderBy(s => s.Position)
+                .Where(s => !IsSlideHidden(s.BackgroundJson))
+                .ToList();
+            if (ordered.Count == 0)
+            {
+                ordered = detail.Slides.OrderBy(s => s.Position).Take(1).ToList();
+            }
+
             uint slideId = 256;
             foreach (var slide in ordered)
             {
@@ -184,6 +192,12 @@ internal static class PptxSlideIO
         {
             foreach (var el in elements)
             {
+                if (el.TryGetProperty("hidden", out var hiddenProp)
+                    && hiddenProp.ValueKind == JsonValueKind.True)
+                {
+                    continue;
+                }
+
                 if (!el.TryGetProperty("type", out var typeProp))
                 {
                     continue;
@@ -224,6 +238,9 @@ internal static class PptxSlideIO
                         break;
                     case "video" when resolveImageBytes is not null:
                         AppendVideoPlaceholder(shapeTree, el, resolveImageBytes, ref z);
+                        break;
+                    case "question" when el.TryGetProperty("props", out var questionProps):
+                        AppendQuestionAsText(shapeTree, el, questionProps, ref z);
                         break;
                 }
             }
@@ -393,8 +410,62 @@ internal static class PptxSlideIO
 
         tree.Append(shape);
 
-        var label = hasMedia ? "▶ Video (Luz Verde)" : "▶ Video no disponible";
-        AppendTextShape(tree, label, x + 16, y + h / 2 - 20, w - 32, 40, 22, true, ref shapeId);
+        var label = hasMedia
+            ? $"▶ Video (en Luz Verde) — {src}"
+            : "▶ Video (archivo no disponible al exportar)";
+        AppendTextShape(tree, label, x + 16, y + Math.Max(8, h / 2 - 36), w - 32, Math.Min(h - 16, 80), 16, true, ref shapeId);
+    }
+
+    private static void AppendQuestionAsText(
+        OpenXmlCompositeElement tree,
+        JsonElement el,
+        JsonElement props,
+        ref uint shapeId)
+    {
+        var text = props.TryGetProperty("text", out var t) ? t.GetString() ?? "" : "";
+        var kind = props.TryGetProperty("kind", out var k) ? k.GetString() ?? "mcq" : "mcq";
+        var correct = props.TryGetProperty("correctIndex", out var ci) && ci.ValueKind == JsonValueKind.Number
+            ? ci.GetInt32()
+            : 0;
+        var lines = new List<string>
+        {
+            kind.Equals("vf", StringComparison.OrdinalIgnoreCase) ? "Pregunta V/F (Luz Verde)" : "Pregunta A–D (Luz Verde)",
+            text.Trim()
+        };
+        if (props.TryGetProperty("options", out var opts) && opts.ValueKind == JsonValueKind.Array)
+        {
+            var i = 0;
+            foreach (var opt in opts.EnumerateArray())
+            {
+                var letter = (char)('A' + i);
+                var body = opt.GetString() ?? "";
+                var mark = i == correct ? " ✓" : "";
+                lines.Add($"{letter}. {body}{mark}");
+                i++;
+            }
+        }
+
+        if (props.TryGetProperty("explanation", out var expl))
+        {
+            var explanation = expl.GetString();
+            if (!string.IsNullOrWhiteSpace(explanation))
+            {
+                lines.Add($"Explicación: {explanation.Trim()}");
+            }
+        }
+
+        AppendTextShape(
+            tree,
+            string.Join("  |  ", lines.Where(l => !string.IsNullOrWhiteSpace(l))),
+            GetInt(el, "x", 64),
+            GetInt(el, "y", 48),
+            GetInt(el, "w", 700),
+            GetInt(el, "h", 280),
+            18,
+            false,
+            ref shapeId,
+            "#0B1F33",
+            GetInt(el, "rotation", 0));
     }
 
     private static void AppendFilledShape(OpenXmlCompositeElement tree, JsonElement el, ref uint shapeId)
@@ -655,6 +726,25 @@ internal static class PptxSlideIO
         catch
         {
             return [];
+        }
+    }
+
+    private static bool IsSlideHidden(string? backgroundJson)
+    {
+        if (string.IsNullOrWhiteSpace(backgroundJson))
+        {
+            return false;
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(backgroundJson);
+            return doc.RootElement.TryGetProperty("slideHidden", out var flag)
+                && flag.ValueKind == JsonValueKind.True;
+        }
+        catch
+        {
+            return false;
         }
     }
 

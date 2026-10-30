@@ -126,6 +126,14 @@
   border-radius: 999px;
   padding: 6px 14px;
 }
+.el-question .q-support {
+  max-width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  border-radius: 12px;
+  align-self: center;
+  background: rgba(0, 0, 0, 0.25);
+}
 .el-question .q-text {
   margin: 0;
   font-size: 42px;
@@ -177,6 +185,55 @@
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.06em;
+}
+
+.join-code-pill {
+  margin-left: 0.45rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(43, 176, 237, 0.25);
+  color: #b8e6fa;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.join-qr-chip {
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 14px;
+  background: rgba(12, 22, 34, 0.9);
+  color: #fff;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+  pointer-events: auto;
+}
+
+.join-qr-chip .join-code {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.join-qr-chip img {
+  display: block;
+  border-radius: 8px;
+  background: #fff;
+  padding: 0.3rem;
+}
+
+.join-qr-chip .join-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  color: #9fb3c8;
+  text-align: center;
 }
 
 .el-line {

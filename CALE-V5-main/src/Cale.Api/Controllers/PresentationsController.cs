@@ -16,7 +16,7 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace Cale.Api.Controllers;
 
 [ApiController]
-[Authorize(Policy = "TeacherOrAdmin")]
+[Authorize(Policy = "PresentationEditor")]
 [Route("api/presentations")]
 public sealed class PresentationsController : ControllerBase
 {

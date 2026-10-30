@@ -57,6 +57,9 @@
           @if (el.type === 'question') {
             <div class="el-question">
               <div class="q-badge">{{ questionProps(el).kind === 'vf' ? 'V/F' : 'A–D' }}</div>
+              @if (questionProps(el).imageUrl) {
+                <img class="q-support" [src]="media(questionProps(el).imageUrl!)" alt="" />
+              }
               <p class="q-text">{{ questionProps(el).text }}</p>
               <ul class="q-opts">
                 @for (opt of questionProps(el).options; track $index; let i = $index) {

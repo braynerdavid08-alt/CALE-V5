@@ -27,7 +27,7 @@ export interface NavItem {
 
 export interface NavOptions {
   hasSchool?: boolean;
-  /** App gratis: oculta planes/membresía y muestra donaciones. */
+  /** Pilot FreeForAll: hide school membership and show donations instead. */
   freeAccess?: boolean;
 }
 
@@ -62,7 +62,7 @@ export function navChildActive(url: string, child: NavChild): boolean {
 
 /** Role navigation — ordered by daily workflow. */
 export function navForRole(role?: string, options?: NavOptions): NavItem[] {
-  const free = options?.freeAccess !== false;
+  const free = options?.freeAccess === true;
   if (role === 'Admin') {
     return [
       { label: 'Inicio', path: '/admin', icon: 'home', exact: true },
@@ -181,6 +181,13 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
         label: 'Instructores y usuarios',
         path: '/school/users',
         icon: 'instructor',
+        exact: true,
+        section: administracion
+      },
+      {
+        label: 'Presentaciones',
+        path: '/teacher/presentations',
+        icon: 'exam',
         exact: true,
         section: administracion
       },

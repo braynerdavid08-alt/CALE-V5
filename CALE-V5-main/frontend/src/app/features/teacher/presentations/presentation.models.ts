@@ -9,6 +9,8 @@ export interface SlideBackground {
   color: string;
   color2?: string;
   imageUrl?: string;
+  /** Persisted inside background JSON (no DB migration). */
+  slideHidden?: boolean;
 }
 
 export interface TextProps {
@@ -20,6 +22,8 @@ export interface TextProps {
   fontFamily: string;
   italic?: boolean;
   underline?: boolean;
+  /** Multiplier over fontSize (default 1.25). */
+  lineHeight?: number;
 }
 
 export interface ImageCrop {
@@ -66,6 +70,8 @@ export interface QuestionProps {
   explanation?: string | null;
   topic?: string | null;
   autoOpen?: boolean;
+  /** Optional support image shown above the stem (upload or URL). */
+  imageUrl?: string | null;
 }
 
 export interface SlideElement {
@@ -79,6 +85,10 @@ export interface SlideElement {
   z: number;
   /** Canvas group (not classroom GroupId). Shared id = same group. */
   groupId?: string | null;
+  /** Hidden from canvas and present mode; kept in document. */
+  hidden?: boolean;
+  /** Locked: selectable, but not moved/resized/rotated from the canvas. */
+  locked?: boolean;
   props: TextProps | ImageProps | VideoProps | ShapeProps | LineProps | QuestionProps;
 }
 
@@ -89,6 +99,8 @@ export interface EditorSlide {
   notes: string;
   background: SlideBackground;
   elements: SlideElement[];
+  /** Skipped while presenting / exporting (stored as background.slideHidden). */
+  hidden?: boolean;
 }
 
 export interface PresentationListItem {
@@ -158,8 +170,11 @@ export const TEMPLATE_OPTIONS: { key: string; label: string }[] = [
   { key: 'cover', label: 'Portada Luz Verde' },
   { key: 'title-content', label: 'Título + contenido' },
   { key: 'signal', label: 'Señal de tránsito' },
+  { key: 'intersection', label: 'Intersección / prioridad' },
   { key: 'case', label: 'Caso práctico' },
+  { key: 'risk', label: 'Escena de riesgo' },
   { key: 'quiz', label: 'Evaluación rápida' },
+  { key: 'quiz-live', label: 'Pregunta en vivo (A–D)' },
   { key: 'compare', label: 'Comparación' },
   { key: 'summary', label: 'Resumen' },
   { key: 'closing', label: 'Cierre de clase' }
@@ -176,11 +191,28 @@ export function parseBackground(json: string): SlideBackground {
       type: v.type || 'solid',
       color: v.color || '#ffffff',
       color2: v.color2,
-      imageUrl: v.imageUrl
+      imageUrl: v.imageUrl,
+      slideHidden: v.slideHidden === true ? true : undefined
     };
   } catch {
     return { type: 'solid', color: '#ffffff' };
   }
+}
+
+/** Persist background + optional slideHidden without a DB column. */
+export function serializeBackground(slide: EditorSlide): string {
+  const { type, color, color2, imageUrl } = slide.background;
+  const payload: SlideBackground = { type, color };
+  if (color2) {
+    payload.color2 = color2;
+  }
+  if (imageUrl) {
+    payload.imageUrl = imageUrl;
+  }
+  if (slide.hidden) {
+    payload.slideHidden = true;
+  }
+  return JSON.stringify(payload);
 }
 
 export function parseElements(json: string): SlideElement[] {
@@ -291,16 +323,20 @@ export function dtoToEditorSlides(detail: PresentationDetail): EditorSlide[] {
   return detail.slides
     .slice()
     .sort((a, b) => a.position - b.position)
-    .map((s) =>
-      unlockImportedPhotoSlide({
+    .map((s) => {
+      const background = parseBackground(s.backgroundJson);
+      const hidden = background.slideHidden === true;
+      const { slideHidden: _omit, ...cleanBg } = background;
+      return unlockImportedPhotoSlide({
         clientId: newClientId('slide'),
         id: s.id,
         title: s.title,
         notes: s.notes || '',
-        background: parseBackground(s.backgroundJson),
-        elements: parseElements(s.elementsJson)
-      })
-    );
+        background: cleanBg,
+        elements: parseElements(s.elementsJson),
+        hidden
+      });
+    });
 }
 
 export const DEFAULT_IMAGE_CROP: ImageCrop = { x: 0, y: 0, w: 1, h: 1 };
@@ -426,7 +462,8 @@ export function defaultQuestionProps(kind: SlideQuestionKind = 'mcq'): QuestionP
       kind: 'vf',
       explanation: null,
       topic: 'Diapositiva',
-      autoOpen: true
+      autoOpen: true,
+      imageUrl: null
     };
   }
   return {
@@ -436,7 +473,8 @@ export function defaultQuestionProps(kind: SlideQuestionKind = 'mcq'): QuestionP
     kind: 'mcq',
     explanation: null,
     topic: 'Diapositiva',
-    autoOpen: true
+    autoOpen: true,
+    imageUrl: null
   };
 }
 
@@ -446,7 +484,7 @@ export function findAutoOpenQuestion(slide: EditorSlide | null | undefined): Sli
   }
   return (
     slide.elements.find((el) => {
-      if (el.type !== 'question') {
+      if (el.hidden || el.type !== 'question') {
         return false;
       }
       const props = el.props as QuestionProps;

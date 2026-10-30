@@ -109,7 +109,7 @@ public sealed class LiveSessionHandler
             throw new NotFoundException("Esta sala no tiene presentación vinculada.", "presentation_not_linked");
         }
 
-        return (presentationId.Value, _presentationSlides.GetSlideIndex(sessionId));
+        return (presentationId.Value, await _presentationSlides.GetSlideIndexAsync(sessionId, ct));
     }
 
     public async Task<LiveLobbyDto> GetParticipantViewAsync(
@@ -506,6 +506,7 @@ public sealed class LiveSessionHandler
 
         var count = await _store.CountAnswersAsync(sessionQuestionId, ct);
         var connected = session.Participants.Count(p => p.IsConnected);
+        var tallies = await BuildOptionTalliesAsync(sessionQuestionId, snap, ct);
         await _broadcast.AnswerReceivedAsync(
             session.Id,
             new
@@ -516,7 +517,8 @@ public sealed class LiveSessionHandler
                 participantCount = Math.Max(connected, session.Participants.Count),
                 participationPercent = session.Participants.Count == 0
                     ? 0
-                    : (int)Math.Round(100.0 * count / session.Participants.Count)
+                    : (int)Math.Round(100.0 * count / session.Participants.Count),
+                optionTallies = tallies
             },
             ct);
 
@@ -1233,6 +1235,9 @@ public sealed class LiveSessionHandler
             }
         }
 
+        var snap = DeserializeSnapshot(current.SnapshotJson);
+        var tallies = BuildOptionTalliesFromAnswers(snap, answers);
+
         return new LiveAnswerRosterDto(
             current.Id,
             session.CurrentQuestionIndex,
@@ -1242,7 +1247,8 @@ public sealed class LiveSessionHandler
             unanswered.Count,
             correct,
             incorrect,
-            unanswered);
+            unanswered,
+            tallies);
     }
 
     private async Task BroadcastRankingAsync(LiveSession session, CancellationToken ct)
@@ -1899,6 +1905,34 @@ public sealed class LiveSessionHandler
             c.BankQuestionQuotas.Count > 0 ? c.BankQuestionQuotas : null,
             c.DifficultyFilters.Count > 0 ? c.DifficultyFilters : null,
             c.PresentationId);
+
+    private async Task<IReadOnlyList<LiveOptionTallyDto>> BuildOptionTalliesAsync(
+        int sessionQuestionId,
+        QuestionSnapshot snap,
+        CancellationToken ct)
+    {
+        var answers = await _store.ListAnswersForQuestionAsync(sessionQuestionId, ct);
+        return BuildOptionTalliesFromAnswers(snap, answers);
+    }
+
+    private static IReadOnlyList<LiveOptionTallyDto> BuildOptionTalliesFromAnswers(
+        QuestionSnapshot snap,
+        IReadOnlyList<LiveAnswer> answers)
+    {
+        var total = answers.Count;
+        var byOption = answers
+            .GroupBy(a => a.OptionId)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        return snap.Options
+            .Select(o =>
+            {
+                var count = byOption.GetValueOrDefault(o.Id);
+                var percent = total == 0 ? 0 : (int)Math.Round(100.0 * count / total);
+                return new LiveOptionTallyDto(o.Id, count, percent);
+            })
+            .ToList();
+    }
 
     private static QuestionSnapshot DeserializeSnapshot(string json) =>
         JsonSerializer.Deserialize<QuestionSnapshot>(json, JsonOpts)

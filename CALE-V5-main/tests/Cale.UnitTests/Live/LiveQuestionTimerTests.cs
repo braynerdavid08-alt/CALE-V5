@@ -232,9 +232,18 @@ public sealed class LiveQuestionTimerTests : IDisposable
         Unused<ICatalogAccessGuard>(),
         Unused<IUserLookup>(),
         RecordingProxy<ILiveSessionBroadcaster>.Create(_broadcasts),
-        new LivePresentationSlideState(),
+        new NullPresentationSlideState(),
         _clock,
         new LiveQuestionTimerSignal());
+
+    private sealed class NullPresentationSlideState : ILivePresentationSlideState
+    {
+        public Task SetSlideIndexAsync(int sessionId, int slideIndex, CancellationToken ct = default) =>
+            Task.CompletedTask;
+
+        public Task<int> GetSlideIndexAsync(int sessionId, CancellationToken ct = default) =>
+            Task.FromResult(0);
+    }
 
     private CaleDbContext NewDb() => new(
         new DbContextOptionsBuilder<CaleDbContext>()

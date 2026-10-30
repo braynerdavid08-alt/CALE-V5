@@ -39,6 +39,12 @@ public sealed record LiveOptionDto(
     string? ImageUrl,
     bool? IsCorrect);
 
+/// <summary>Anonymous per-option vote counts for live aggregation on the host.</summary>
+public sealed record LiveOptionTallyDto(
+    int OptionId,
+    int Count,
+    int Percent);
+
 public sealed record LiveQuestionPayloadDto(
     int SessionQuestionId,
     int QuestionId,
@@ -91,7 +97,8 @@ public sealed record LiveAnswerRosterDto(
     int UnansweredCount,
     IReadOnlyList<LiveAnswerRosterEntryDto> Correct,
     IReadOnlyList<LiveAnswerRosterEntryDto> Incorrect,
-    IReadOnlyList<LiveAnswerRosterEntryDto> Unanswered);
+    IReadOnlyList<LiveAnswerRosterEntryDto> Unanswered,
+    IReadOnlyList<LiveOptionTallyDto>? OptionTallies = null);
 
 public sealed record LiveLobbyDto(
     int SessionId,

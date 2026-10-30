@@ -6,9 +6,9 @@ using Microsoft.Extensions.Logging;
 namespace Cale.Modules.LiveClassroom.Infrastructure.Persistence;
 
 /// <summary>
-/// Idempotent "LiveSessions"."QuestionClosedAt" column (production runs with EF migrations off).
-/// Existing rows get NULL, so each stale expired question is closed once by the timer and then
-/// never selected again.
+/// Idempotent LiveSessions columns (production runs with EF migrations off).
+/// QuestionClosedAt: NULL on existing rows so each stale expired question closes once.
+/// CurrentSlideIndex: presentation follow index survives API restarts.
 /// </summary>
 public static class LiveSessionSchemaGuard
 {
@@ -27,6 +27,8 @@ public static class LiveSessionSchemaGuard
                     """
                     ALTER TABLE IF EXISTS "LiveSessions"
                     ADD COLUMN IF NOT EXISTS "QuestionClosedAt" timestamp with time zone NULL;
+                    ALTER TABLE IF EXISTS "LiveSessions"
+                    ADD COLUMN IF NOT EXISTS "CurrentSlideIndex" integer NOT NULL DEFAULT 0;
                     """,
                     ct);
             }
@@ -37,6 +39,10 @@ public static class LiveSessionSchemaGuard
                     IF OBJECT_ID(N'dbo.LiveSessions', N'U') IS NOT NULL
                        AND COL_LENGTH(N'dbo.LiveSessions', N'QuestionClosedAt') IS NULL
                         ALTER TABLE dbo.LiveSessions ADD QuestionClosedAt datetime2 NULL;
+                    IF OBJECT_ID(N'dbo.LiveSessions', N'U') IS NOT NULL
+                       AND COL_LENGTH(N'dbo.LiveSessions', N'CurrentSlideIndex') IS NULL
+                        ALTER TABLE dbo.LiveSessions ADD CurrentSlideIndex int NOT NULL
+                            CONSTRAINT DF_LiveSessions_CurrentSlideIndex DEFAULT(0);
                     """,
                     ct);
             }
@@ -51,11 +57,18 @@ public static class LiveSessionSchemaGuard
                 {
                     await db.Database.ExecuteSqlRawAsync("""ALTER TABLE "LiveSessions" ADD COLUMN "QuestionClosedAt" TEXT NULL;""", ct);
                 }
+
+                if (await ScalarAsync(db, "SELECT COUNT(*) FROM pragma_table_info('LiveSessions') WHERE name = 'CurrentSlideIndex';", ct) == 0)
+                {
+                    await db.Database.ExecuteSqlRawAsync(
+                        """ALTER TABLE "LiveSessions" ADD COLUMN "CurrentSlideIndex" INTEGER NOT NULL DEFAULT 0;""",
+                        ct);
+                }
             }
         }
         catch (Exception ex)
         {
-            logger?.LogWarning(ex, "LiveSessionSchemaGuard failed; the live question timer may not work.");
+            logger?.LogWarning(ex, "LiveSessionSchemaGuard failed; live timer or slide sync may not work.");
         }
     }
 

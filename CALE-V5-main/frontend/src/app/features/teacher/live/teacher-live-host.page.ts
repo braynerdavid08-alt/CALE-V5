@@ -69,6 +69,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   readonly connectionNotice = signal<string | null>(null);
   readonly secondsLeft = signal<number | null>(null);
   readonly answersReceived = signal(0);
+  readonly optionTallies = signal<Record<number, { count: number; percent: number }>>({});
   readonly answerRoster = signal<LiveAnswerRosterDto | null>(null);
   /** Host-only roster: always includes who got it right/wrong. */
   readonly hostAnswerRoster = signal<LiveAnswerRosterDto | null>(null);
@@ -268,8 +269,9 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   }
 
   openPresentClicker(): void {
+    const lobby = this.lobby();
     const presentationId = this.linkedPresentationId();
-    const sessionId = this.lobby()?.sessionId;
+    const sessionId = lobby?.sessionId;
     if (!presentationId || !sessionId) {
       return;
     }
@@ -277,11 +279,34 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
       this.router.createUrlTree(['/teacher/presentations', presentationId, 'present'], {
         queryParams: {
           liveSessionId: sessionId,
-          slide: this.presentationSlide()
+          slide: this.presentationSlide(),
+          joinCode: lobby.joinCode,
+          joinUrl: lobby.joinUrl
         }
       })
     );
     window.open(url, '_blank', 'noopener');
+  }
+
+  optionTallyCount(optionId: number): number {
+    return this.optionTallies()[optionId]?.count ?? 0;
+  }
+
+  optionTallyPercent(optionId: number): number {
+    return this.optionTallies()[optionId]?.percent ?? 0;
+  }
+
+  private applyOptionTallies(
+    tallies: { optionId: number; count: number; percent: number }[] | null | undefined
+  ): void {
+    if (!tallies?.length) {
+      return;
+    }
+    const map: Record<number, { count: number; percent: number }> = {};
+    for (const t of tallies) {
+      map[t.optionId] = { count: t.count, percent: t.percent };
+    }
+    this.optionTallies.set(map);
   }
 
   /** Stable iframe URL — never include slide index (that reloads and flickers). */
@@ -750,6 +775,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
         });
       }
       this.answersReceived.set(0);
+      this.optionTallies.set({});
       this.answerRoster.set(null);
       this.hostAnswerRoster.set(null);
       this.roundRanking.set(false);
@@ -766,10 +792,17 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
       }
       this.secondsLeft.set(0);
     });
-    this.hub.on('AnswerReceived', (payload: { answersReceived: number }) => {
-      this.answersReceived.set(payload.answersReceived ?? 0);
-      this.maybeRefreshMidAnalytics();
-    });
+    this.hub.on(
+      'AnswerReceived',
+      (payload: {
+        answersReceived: number;
+        optionTallies?: { optionId: number; count: number; percent: number }[];
+      }) => {
+        this.answersReceived.set(payload.answersReceived ?? 0);
+        this.applyOptionTallies(payload.optionTallies);
+        this.maybeRefreshMidAnalytics();
+      }
+    );
     this.hub.on('RevealUpdated', (payload: LiveQuestionPayloadDto) => {
       const current = this.lobby();
       if (!current) {
@@ -798,9 +831,11 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     });
     this.hub.on('AnswerRosterUpdated', (payload: LiveAnswerRosterDto) => {
       this.answerRoster.set(payload ?? null);
+      this.applyOptionTallies(payload?.optionTallies);
     });
     this.hub.on('HostAnswerRosterUpdated', (payload: LiveAnswerRosterDto) => {
       this.hostAnswerRoster.set(payload ?? null);
+      this.applyOptionTallies(payload?.optionTallies);
     });
     this.hub.on('RankingUpdated', (payload: LiveRankingDto) => this.ranking.set(payload));
     this.hub.on('DoubtsUpdated', (payload: LiveDoubtDto[]) => this.doubts.set(payload ?? []));

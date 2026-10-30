@@ -23,6 +23,14 @@
     </header>
 
     <div class="layout" [class.playing]="!!l.currentQuestion && l.status !== 'Lobby'" [class.projector]="projectorMode()">
+      @if (projectorMode()) {
+        <div class="projector-join" aria-label="Código para unirse">
+          <p class="code">{{ l.joinCode }}</p>
+          @if (qrUrl()) {
+            <img class="qr-mini" [src]="qrUrl()" [alt]="'QR ' + l.joinCode" width="120" height="120" />
+          }
+        </div>
+      }
       @if (!projectorMode()) {
       <aside class="lobby-panel">
         <div class="code-block">
@@ -308,6 +316,13 @@
                     @if (opt.text) {
                       <span class="option-text">{{ opt.text }}</span>
                     }
+                    <div class="tally-track" aria-hidden="true">
+                      <div class="tally-fill" [style.width.%]="optionTallyPercent(opt.id)"></div>
+                    </div>
+                    <span class="tally-label">
+                      {{ optionTallyCount(opt.id) }}
+                      · {{ optionTallyPercent(opt.id) }}%
+                    </span>
                   </span>
                 </li>
               }

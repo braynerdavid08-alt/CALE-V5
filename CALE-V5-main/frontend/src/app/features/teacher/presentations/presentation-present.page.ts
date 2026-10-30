@@ -66,6 +66,10 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
   readonly slideScale = signal(1);
   readonly liveSessionId = signal<number | null>(null);
   readonly embedMode = signal(false);
+  readonly joinCode = signal<string | null>(null);
+  readonly joinUrl = signal<string | null>(null);
+  readonly qrDataUrl = signal('');
+  readonly showJoinQr = signal(true);
 
   readonly current = computed(() => this.slides()[this.index()] ?? null);
   readonly currentNotes = computed(() => this.current()?.notes?.trim() ?? '');
@@ -84,11 +88,22 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
     this.embedMode.set(this.route.snapshot.queryParamMap.get('embed') === '1');
     const slide = Number(this.route.snapshot.queryParamMap.get('slide') ?? 0);
     const liveId = Number(this.route.snapshot.queryParamMap.get('liveSessionId') ?? 0);
+    const joinCode = this.route.snapshot.queryParamMap.get('joinCode');
+    const joinUrl = this.route.snapshot.queryParamMap.get('joinUrl');
     if (!Number.isNaN(slide) && slide >= 0) {
       this.index.set(slide);
     }
     if (liveId > 0) {
       this.liveSessionId.set(liveId);
+    }
+    if (joinCode?.trim()) {
+      this.joinCode.set(joinCode.trim().toUpperCase());
+    }
+    if (joinUrl?.trim()) {
+      this.joinUrl.set(joinUrl.trim());
+      void this.liveApi.buildQrDataUrl(joinUrl.trim()).then((url) => this.qrDataUrl.set(url));
+    } else if (liveId > 0) {
+      this.loadLiveJoinInfo(liveId);
     }
     if (this.embedMode()) {
       this.showChrome.set(false);
@@ -98,7 +113,12 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
     this.api.get(id).subscribe({
       next: (detail) => {
         this.title.set(detail.title);
-        this.slides.set(dtoToEditorSlides(detail));
+        const slides = dtoToEditorSlides(detail);
+        this.slides.set(slides);
+        if (slides[this.index()]?.hidden) {
+          const firstVisible = slides.findIndex((s) => !s.hidden);
+          this.index.set(firstVisible >= 0 ? firstVisible : 0);
+        }
         this.loading.set(false);
         this.applyPendingEmbedSlide();
         if (this.embedMode()) {
@@ -175,18 +195,32 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
   }
 
   next(): void {
-    const max = this.slides().length - 1;
-    if (this.index() < max) {
-      this.index.update((i) => i + 1);
+    const next = this.findVisibleIndex(this.index() + 1, 1);
+    if (next !== this.index()) {
+      this.index.set(next);
       this.onSlideSettled();
     }
   }
 
   prev(): void {
-    if (this.index() > 0) {
-      this.index.update((i) => Math.max(0, i - 1));
+    const prev = this.findVisibleIndex(this.index() - 1, -1);
+    if (prev !== this.index()) {
+      this.index.set(prev);
       this.onSlideSettled();
     }
+  }
+
+  /** Skip slides marked hidden in the editor. */
+  private findVisibleIndex(from: number, step: 1 | -1): number {
+    const slides = this.slides();
+    let i = from;
+    while (i >= 0 && i < slides.length) {
+      if (!slides[i].hidden) {
+        return i;
+      }
+      i += step;
+    }
+    return this.index();
   }
 
   toggleNotes(ev?: Event): void {
@@ -336,6 +370,24 @@ export class PresentationPresentPage implements OnInit, OnDestroy {
       this.pendingEmbedSlide = null;
       this.updateSlideScale();
     }
+  }
+
+  toggleJoinQr(ev?: Event): void {
+    ev?.stopPropagation();
+    this.showJoinQr.update((v) => !v);
+  }
+
+  private loadLiveJoinInfo(sessionId: number): void {
+    this.liveApi.getHost(sessionId).subscribe({
+      next: (lobby) => {
+        this.joinCode.set(lobby.joinCode);
+        this.joinUrl.set(lobby.joinUrl);
+        void this.liveApi.buildQrDataUrl(lobby.joinUrl).then((url) => this.qrDataUrl.set(url));
+      },
+      error: () => {
+        /* optional UX; slide sync still works */
+      }
+    });
   }
 
   private connectLiveHub(): void {

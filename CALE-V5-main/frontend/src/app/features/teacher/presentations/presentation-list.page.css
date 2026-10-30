@@ -184,6 +184,15 @@
   font-size: 0.85rem;
 }
 
+.import-limits {
+  margin-top: 0.65rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, transparent);
+  line-height: 1.45;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

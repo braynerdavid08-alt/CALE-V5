@@ -79,6 +79,12 @@ export interface LiveAnswerRosterEntryDto {
   optionId?: number | null;
 }
 
+export interface LiveOptionTallyDto {
+  optionId: number;
+  count: number;
+  percent: number;
+}
+
 export interface LiveAnswerRosterDto {
   sessionQuestionId: number;
   questionIndex: number;
@@ -89,6 +95,7 @@ export interface LiveAnswerRosterDto {
   correct: LiveAnswerRosterEntryDto[];
   incorrect: LiveAnswerRosterEntryDto[];
   unanswered: LiveAnswerRosterEntryDto[];
+  optionTallies?: LiveOptionTallyDto[] | null;
 }
 
 export interface LiveLobbyDto {

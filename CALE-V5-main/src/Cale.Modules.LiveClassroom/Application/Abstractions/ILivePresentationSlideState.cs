@@ -2,6 +2,6 @@ namespace Cale.Modules.LiveClassroom.Application.Abstractions;
 
 public interface ILivePresentationSlideState
 {
-    void SetSlideIndex(int sessionId, int slideIndex);
-    int GetSlideIndex(int sessionId);
+    Task SetSlideIndexAsync(int sessionId, int slideIndex, CancellationToken ct = default);
+    Task<int> GetSlideIndexAsync(int sessionId, CancellationToken ct = default);
 }
