@@ -294,11 +294,21 @@
   border: 1px solid var(--color-border);
 }
 
-.sign-row img {
+.sign-row img,
+.sign-missing {
   width: 3.4rem;
   height: 3.4rem;
   object-fit: contain;
   flex: none;
+}
+
+.sign-missing {
+  display: grid;
+  place-items: center;
+  border-radius: 0.4rem;
+  background: var(--color-surface-raised, #1a2736);
+  color: var(--color-text-secondary);
+  font-weight: 700;
 }
 
 .sign-fields {

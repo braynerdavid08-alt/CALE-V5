@@ -211,7 +211,11 @@
                   <div class="sign-rows">
                     @for (s of asSigns(block).items; track s.code; let si = $index) {
                       <div class="sign-row">
-                        <img [src]="url('/signals/' + s.code + '.svg')" [alt]="s.name" />
+                        @if (signThumb(s); as src) {
+                          <img [src]="url(src)" [alt]="s.name" />
+                        } @else {
+                          <div class="sign-missing" title="Sin foto del examen oficial">?</div>
+                        }
                         <div class="sign-fields">
                           <input [(ngModel)]="s.name" maxlength="400" aria-label="Nombre de la señal" />
                           <input [(ngModel)]="s.note" maxlength="400" placeholder="Nota corta: qué debe hacer el conductor" aria-label="Nota" />

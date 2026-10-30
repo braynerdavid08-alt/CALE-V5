@@ -16,6 +16,7 @@ import {
   QuizBlock,
   QuizCheckResult,
   ScenarioBlock,
+  SignItem,
   SignsBlock,
   TextBlock,
   TrueFalseBlock
@@ -124,6 +125,11 @@ export class LessonBlocksComponent implements OnChanges {
   asText(b: LessonBlock): TextBlock { return b as TextBlock; }
   asMedia(b: LessonBlock): MediaBlock { return b as MediaBlock; }
   asSigns(b: LessonBlock): SignsBlock { return b as SignsBlock; }
+  /** Solo foto del banco de exámenes; nunca /signals/*.svg. */
+  signPhoto(s: SignItem): string | null {
+    const u = (s.imageUrl || '').trim();
+    return u && !u.includes('/signals/') ? u : null;
+  }
   asQuiz(b: LessonBlock): QuizBlock { return b as QuizBlock; }
   asCards(b: LessonBlock): FlipcardsBlock { return b as FlipcardsBlock; }
   asMatch(b: LessonBlock): MatchBlock { return b as MatchBlock; }

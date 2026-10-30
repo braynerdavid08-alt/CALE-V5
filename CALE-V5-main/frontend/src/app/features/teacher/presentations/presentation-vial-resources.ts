@@ -1,6 +1,6 @@
 import { newClientId, SlideElement } from './presentation.models';
 
-/** Catalog entry from `/api/courses/signs` (senales-catalog.json). */
+/** Entry from `/api/courses/signs` — bank built from the three template sign exams. */
 export interface CatalogSignRef {
   code: string;
   family: string;

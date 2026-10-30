@@ -336,8 +336,21 @@ export class ManageCoursePage implements OnInit {
   addSigns(block: SignsBlock): void {
     this.openPicker((s) => {
       if (block.items.length >= 24 || block.items.some((x) => x.code === s.code)) return;
-      block.items.push({ code: s.code, name: this.niceName(s.name), note: '' });
+      const imageUrl = s.imageUrl?.includes('/signals/') ? null : s.imageUrl;
+      if (!imageUrl) return;
+      block.items.push({ code: s.code, name: this.niceName(s.name), note: '', imageUrl });
     }, true);
+  }
+
+  /** Foto real del banco de exámenes; nunca dibujo /signals/*.svg. */
+  signThumb(s: { code: string; imageUrl?: string | null }): string {
+    const stored = (s.imageUrl || '').trim();
+    if (stored && !stored.includes('/signals/')) {
+      return stored;
+    }
+    const hit = this.signs().find((c) => c.code === s.code);
+    const fromBank = (hit?.imageUrl || '').trim();
+    return fromBank && !fromBank.includes('/signals/') ? fromBank : '';
   }
 
   addOption(q: QuizBlock): void {

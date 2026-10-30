@@ -8,7 +8,7 @@ import { Badge } from '../../play/api/play.api';
 export interface TextBlock { type: 'text'; title?: string | null; body: string; }
 export interface TipBlock { type: 'tip'; body: string; }
 export interface MediaBlock { type: 'image' | 'video' | 'audio'; url: string; caption?: string | null; }
-export interface SignItem { code: string; name: string; note?: string | null; }
+export interface SignItem { code: string; name: string; note?: string | null; imageUrl?: string | null; }
 export interface SignsBlock { type: 'signs'; title?: string | null; items: SignItem[]; }
 export interface QuizBlock {
   type: 'quiz';

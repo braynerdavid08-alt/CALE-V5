@@ -43,7 +43,9 @@
         <div class="signs">
           @for (s of asSigns(block).items; track s.code) {
             <article class="sign">
-              <img [src]="url('/signals/' + s.code + '.svg')" [alt]="s.name" loading="lazy" />
+              @if (signPhoto(s); as src) {
+                <img [src]="url(src)" [alt]="s.name" loading="lazy" />
+              }
               <div>
                 <strong>{{ s.name }}</strong>
                 <small class="code">{{ s.code }}</small>
