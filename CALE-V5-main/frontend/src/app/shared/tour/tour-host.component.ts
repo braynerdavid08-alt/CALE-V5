@@ -24,7 +24,8 @@ interface HoleRect {
   height: number;
 }
 
-const TARGET_TIMEOUT_MS = 2500;
+const TARGET_TIMEOUT_MS = 1600;
+const SETTLE_MS = 80;
 const PAD = 8;
 
 @Component({
@@ -60,8 +61,8 @@ const PAD = 8;
             <app-tour-mascot pose="explain" size="md" />
             <h2>¡Hola! Soy {{ tour.mascotName }}</h2>
             <p>
-              Soy el asistente de Luz Verde. Te muestro lo esencial en
-              {{ tour.stepCount }} pasos. Esta guía se guarda en este dispositivo para tu cuenta.
+              Te muestro lo esencial en {{ tour.stepCount }} pasos cortos.
+              Se guarda en este dispositivo para tu cuenta.
             </p>
             <div class="actions">
               <ui-button type="button" (click)="tour.beginTour()">Empezar guía</ui-button>
@@ -100,8 +101,7 @@ const PAD = 8;
             <app-tour-mascot pose="celebrate" size="md" />
             <h2>¡Listo!</h2>
             <p>
-              Ya conoces cursos, aula en vivo, clases y cómo hablar conmigo.
-              Puedes repetir esta guía desde Preferencias.
+              Ya conoces lo esencial. Puedes repetir esta guía desde Preferencias.
             </p>
             <div class="actions">
               <ui-button type="button" (click)="finish()">Ir a mi panel</ui-button>
@@ -310,9 +310,8 @@ export class TourHostComponent implements OnDestroy {
       return;
     }
 
-    el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
-    // Allow layout to settle after scroll.
-    await new Promise((r) => setTimeout(r, 180));
+    el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
+    await new Promise((r) => setTimeout(r, SETTLE_MS));
     if (token !== this.waitToken) return;
 
     this.measureElement(el);

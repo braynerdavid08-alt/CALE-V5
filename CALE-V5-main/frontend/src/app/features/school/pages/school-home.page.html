@@ -36,31 +36,77 @@
   @if (loading()) {
     <ui-loading />
   } @else {
+    @if (showReportReminder()) {
+      <section class="easy-panel easy-report-nudge" role="status">
+        <h2>Reporte de programación de hoy</h2>
+        <p class="easy-text">
+          Descarga el Excel del día para tu equipo. También puedes hacerlo desde la primera tarjeta de operación.
+        </p>
+        <div class="easy-nudge-actions">
+          <ui-button type="button" [loading]="downloadingReport()" (click)="downloadReportToday()">
+            Descargar Excel de hoy
+          </ui-button>
+          <button type="button" class="easy-more" (click)="dismissReportReminder()">Ahora no</button>
+          <a class="easy-more" routerLink="/school/reports">Más opciones</a>
+        </div>
+      </section>
+    }
+
     <section class="easy-ops-section" aria-labelledby="ops-main-title">
       <h2 id="ops-main-title" class="easy-title">Operación de la escuela</h2>
       <nav class="easy-ops-grid" aria-label="Operación de la escuela">
         @for (card of operationCards(); track card.key) {
-          <a
-            class="easy-op-card"
-            [routerLink]="card.path"
-            [queryParams]="card.query || null">
-            <span class="easy-op-top">
-              <span class="easy-emoji" aria-hidden="true">{{ card.emoji }}</span>
-              <span class="easy-op-arrow" aria-hidden="true">→</span>
-            </span>
-            <strong class="easy-op-label">{{ card.label }}</strong>
-            @if (card.metrics.length) {
-              <div class="easy-op-metrics">
-                @for (m of card.metrics; track m.label) {
-                  <p class="easy-op-metric">
-                    <span class="easy-op-value">{{ m.value }}</span>
-                    <span class="easy-op-metric-label">{{ m.label }}</span>
-                  </p>
+          @if (card.downloadToday) {
+            <div class="easy-op-card-wrap">
+              <button
+                type="button"
+                class="easy-op-card easy-op-card--btn"
+                [disabled]="downloadingReport()"
+                (click)="downloadReportToday()">
+                <span class="easy-op-top">
+                  <span class="easy-emoji" aria-hidden="true">{{ card.emoji }}</span>
+                  <span class="easy-op-arrow" aria-hidden="true">↓</span>
+                </span>
+                <strong class="easy-op-label">
+                  {{ downloadingReport() ? 'Generando…' : card.label }}
+                </strong>
+                @if (card.metrics.length) {
+                  <div class="easy-op-metrics">
+                    @for (m of card.metrics; track m.label) {
+                      <p class="easy-op-metric">
+                        <span class="easy-op-value">{{ m.value }}</span>
+                        <span class="easy-op-metric-label">{{ m.label }}</span>
+                      </p>
+                    }
+                  </div>
                 }
-              </div>
-            }
-            <small class="easy-op-hint">{{ card.hint }}</small>
-          </a>
+                <small class="easy-op-hint">{{ card.hint }}</small>
+              </button>
+              <a class="easy-op-more" routerLink="/school/reports">Opciones del reporte →</a>
+            </div>
+          } @else {
+            <a
+              class="easy-op-card"
+              [routerLink]="card.path"
+              [queryParams]="card.query || null">
+              <span class="easy-op-top">
+                <span class="easy-emoji" aria-hidden="true">{{ card.emoji }}</span>
+                <span class="easy-op-arrow" aria-hidden="true">→</span>
+              </span>
+              <strong class="easy-op-label">{{ card.label }}</strong>
+              @if (card.metrics.length) {
+                <div class="easy-op-metrics">
+                  @for (m of card.metrics; track m.label) {
+                    <p class="easy-op-metric">
+                      <span class="easy-op-value">{{ m.value }}</span>
+                      <span class="easy-op-metric-label">{{ m.label }}</span>
+                    </p>
+                  }
+                </div>
+              }
+              <small class="easy-op-hint">{{ card.hint }}</small>
+            </a>
+          }
         }
       </nav>
     </section>
@@ -75,7 +121,17 @@
             <li [class]="'easy-todo ' + t.tone">
               <span class="easy-todo-emoji" aria-hidden="true">{{ t.emoji }}</span>
               <span class="easy-todo-text">{{ t.text }}</span>
-              <a class="easy-todo-btn" [routerLink]="t.link" [queryParams]="t.query || null">{{ t.action }}</a>
+              @if (t.key === 'report-today') {
+                <button
+                  type="button"
+                  class="easy-todo-btn"
+                  [disabled]="downloadingReport()"
+                  (click)="downloadReportToday()">
+                  {{ downloadingReport() ? 'Generando…' : t.action }}
+                </button>
+              } @else {
+                <a class="easy-todo-btn" [routerLink]="t.link" [queryParams]="t.query || null">{{ t.action }}</a>
+              }
             </li>
           }
         </ul>

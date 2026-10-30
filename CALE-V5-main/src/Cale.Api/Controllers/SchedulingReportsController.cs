@@ -55,7 +55,9 @@ public sealed class SchedulingReportsController : ControllerBase
     }
 
     [HttpPost("generate/today")]
-    public async Task<IActionResult> GenerateToday(CancellationToken ct)
+    public async Task<IActionResult> GenerateToday(
+        [FromQuery] bool onlyWithEnrollments = false,
+        CancellationToken ct = default)
     {
         if (!_options.CanManualDownload)
         {
@@ -70,7 +72,8 @@ public sealed class SchedulingReportsController : ControllerBase
             SchoolId,
             today,
             SchedulingReportTypes.ManualToday,
-            ct);
+            ct,
+            onlyWithEnrollments);
         return File(
             file.Bytes,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -78,7 +81,9 @@ public sealed class SchedulingReportsController : ControllerBase
     }
 
     [HttpPost("generate/tomorrow")]
-    public async Task<IActionResult> GenerateTomorrow(CancellationToken ct)
+    public async Task<IActionResult> GenerateTomorrow(
+        [FromQuery] bool onlyWithEnrollments = false,
+        CancellationToken ct = default)
     {
         if (!_options.CanManualDownload)
         {
@@ -93,7 +98,8 @@ public sealed class SchedulingReportsController : ControllerBase
             SchoolId,
             tomorrow,
             SchedulingReportTypes.ManualTomorrow,
-            ct);
+            ct,
+            onlyWithEnrollments);
         return File(
             file.Bytes,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

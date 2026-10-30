@@ -66,6 +66,40 @@
   text-decoration: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
+.easy-op-card-wrap {
+  display: grid;
+  gap: 0.35rem;
+}
+.easy-op-card--btn {
+  font: inherit;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+.easy-op-card--btn:disabled {
+  opacity: 0.75;
+  cursor: wait;
+}
+.easy-op-more {
+  font-size: 0.82rem;
+  color: var(--color-primary);
+  text-decoration: none;
+  padding-inline: 0.2rem;
+}
+.easy-op-more:hover {
+  text-decoration: underline;
+}
+.easy-report-nudge {
+  border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+}
+.easy-nudge-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+  margin-top: 0.75rem;
+}
 .easy-op-card:hover,
 .easy-op-card:focus-visible {
   border-color: var(--color-primary);

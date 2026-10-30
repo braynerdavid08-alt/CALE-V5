@@ -49,6 +49,10 @@ interface SchedulingReportsStatus {
         <p class="sr-panel__hint">
           Genera el Excel de la programación del día (hora Colombia). No envía mensajes.
         </p>
+        <label class="sr-check">
+          <input type="checkbox" [checked]="onlyWithEnrollments()" (change)="onlyWithEnrollments.set($any($event.target).checked)" />
+          Solo clases con estudiantes inscritos
+        </label>
         <div class="sr-actions">
           <button
             type="button"
@@ -134,6 +138,14 @@ interface SchedulingReportsStatus {
       color: color-mix(in srgb, currentColor 72%, transparent);
       line-height: 1.4;
     }
+    .sr-check {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0 0 0.85rem;
+      font-size: 0.92rem;
+      cursor: pointer;
+    }
     .sr-actions {
       display: flex;
       flex-wrap: wrap;
@@ -183,6 +195,7 @@ export class SchoolSchedulingReportsPage implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly downloading = signal<'today' | 'tomorrow' | null>(null);
+  readonly onlyWithEnrollments = signal(false);
 
   ngOnInit(): void {
     this.http
@@ -213,18 +226,31 @@ export class SchoolSchedulingReportsPage implements OnInit {
     }
     this.downloading.set(kind);
     this.error.set(null);
+    const q = this.onlyWithEnrollments() ? '?onlyWithEnrollments=true' : '';
     this.http
-      .post(`${env.apiUrl}/api/school/scheduling-reports/${path}`, {}, { responseType: 'blob' })
+      .post(`${env.apiUrl}/api/school/scheduling-reports/${path}${q}`, {}, { responseType: 'blob' })
       .subscribe({
         next: (blob) => {
           this.downloading.set(null);
+          try {
+            const d = new Date();
+            const key = [
+              d.getFullYear(),
+              `${d.getMonth() + 1}`.padStart(2, '0'),
+              `${d.getDate()}`.padStart(2, '0')
+            ].join('-');
+            localStorage.setItem(`cale.school.reportDownloaded.${key}`, '1');
+          } catch {
+            /* ignore */
+          }
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
+          const suffix = this.onlyWithEnrollments() ? '-inscritos' : '';
           a.download =
             kind === 'today'
-              ? `programacion-hoy.xlsx`
-              : `programacion-manana.xlsx`;
+              ? `programacion-hoy${suffix}.xlsx`
+              : `programacion-manana${suffix}.xlsx`;
           a.click();
           URL.revokeObjectURL(url);
         },

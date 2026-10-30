@@ -67,16 +67,25 @@ const HIDDEN_PATHS = [
   standalone: true,
   imports: [FormsModule],
   template: `
-    @if (enabled() && !routeHidden() && !hiddenForToday()) {
+    @if ((enabled() || connecting()) && !routeHidden() && !hiddenForToday()) {
       @if (!open()) {
         <button
           type="button"
           class="fab"
+          [class.fab-connecting]="connecting()"
           data-tour="student-kazu"
+          [disabled]="connecting()"
           (click)="toggle()"
-          [attr.aria-label]="'Abrir a ' + mascotName">
-          <img class="fab-avatar" src="/mascot/kuzu-explain-128.gif" [alt]="''" width="40" height="40" decoding="async" />
-          <span class="fab-label">{{ mascotName }}</span>
+          [attr.aria-label]="connecting() ? ('Conectando a ' + mascotName) : ('Abrir a ' + mascotName)"
+          [attr.title]="connecting() ? 'Conectando…' : mascotName">
+          <img
+            class="fab-avatar"
+            [src]="connecting() ? '/mascot/kuzu-explain-static.gif' : '/mascot/kuzu-explain-128.gif'"
+            [alt]="''"
+            width="40"
+            height="40"
+            decoding="async" />
+          <span class="fab-label">{{ connecting() ? '…' : mascotName }}</span>
         </button>
       } @else {
         <button type="button" class="backdrop" (click)="close()" [attr.aria-label]="'Cerrar a ' + mascotName"></button>
@@ -268,7 +277,16 @@ const HIDDEN_PATHS = [
       opacity: 0.96;
       overflow: hidden;
     }
-    .fab:hover, .fab:focus-visible { opacity: 1; transform: translateY(-1px); }
+    .fab:hover:not(:disabled), .fab:focus-visible:not(:disabled) { opacity: 1; transform: translateY(-1px); }
+    .fab:disabled { cursor: wait; }
+    .fab-connecting {
+      opacity: 0.78;
+      animation: fab-pulse 1.1s ease-in-out infinite;
+    }
+    @keyframes fab-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+    }
     .fab-avatar {
       width: 100%;
       height: 100%;
@@ -671,6 +689,8 @@ export class AssistantWidgetComponent implements OnInit, OnDestroy {
 
   readonly brand = BRAND;
   readonly mascotName = MASCOT_NAME;
+  /** True until /status responds — FAB visible so tour/UI don't wait on a blank corner. */
+  readonly connecting = signal(true);
   readonly enabled = signal(false);
   readonly open = signal(false);
   readonly busy = signal(false);
@@ -715,12 +735,16 @@ export class AssistantWidgetComponent implements OnInit, OnDestroy {
 
     this.api.status().subscribe({
       next: (s) => {
+        this.connecting.set(false);
         this.enabled.set(s.enabled);
         this.remaining.set(s.remainingToday);
         this.nearLimit.set(!!s.nearLimit);
         this.atLimit.set(!!s.atLimit || s.remainingToday <= 0);
       },
-      error: () => this.enabled.set(false)
+      error: () => {
+        this.connecting.set(false);
+        this.enabled.set(false);
+      }
     });
   }
 
@@ -729,6 +753,9 @@ export class AssistantWidgetComponent implements OnInit, OnDestroy {
   }
 
   toggle(): void {
+    if (this.connecting() || !this.enabled()) {
+      return;
+    }
     this.open.update((v) => !v);
     this.scrollSoon();
   }

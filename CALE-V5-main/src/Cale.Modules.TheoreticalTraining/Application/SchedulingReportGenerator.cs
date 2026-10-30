@@ -44,11 +44,22 @@ public sealed class SchedulingReportGenerator
         int schoolUserId,
         DateOnly targetDate,
         string reportType,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool onlyWithEnrollments = false)
     {
         var agenda = await _agenda.GetAsync(schoolUserId, targetDate, targetDate, ct);
-        var bytes = BuildWorkbook(targetDate, agenda.Items);
-        var fileName = $"programacion-{targetDate:yyyy-MM-dd}.xlsx";
+        IReadOnlyList<AgendaItemDto> items = agenda.Items;
+        if (onlyWithEnrollments)
+        {
+            items = agenda.Items
+                .Where(x => x.Occupied > 0 || x.Students.Count > 0)
+                .ToList();
+        }
+
+        var bytes = BuildWorkbook(targetDate, items);
+        var fileName = onlyWithEnrollments
+            ? $"programacion-inscritos-{targetDate:yyyy-MM-dd}.xlsx"
+            : $"programacion-{targetDate:yyyy-MM-dd}.xlsx";
 
         var run = new SchedulingReportRun
         {

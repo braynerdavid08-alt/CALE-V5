@@ -183,6 +183,28 @@ public sealed class SchedulingReportsTests
     }
 
     [Fact]
+    public void Generator_only_with_enrollments_skips_empty_slots()
+    {
+        var student = new AgendaStudentDto(9, "Ana Pérez", "Reserved", "1", "300", DateTime.UtcNow);
+        var withPeople = new AgendaItemDto(
+            "theory", 1, "2026-10-28", "08:00", "09:59", "Normas", "Luis", "Scheduled", 20, 1, 19, [student]);
+        var empty = new AgendaItemDto(
+            "theory", 2, "2026-10-28", "10:00", "11:59", "Señales", "Luis", "Scheduled", 20, 0, 20, []);
+        var filtered = new[] { withPeople, empty }
+            .Where(x => x.Occupied > 0 || x.Students.Count > 0)
+            .ToList();
+
+        var bytes = SchedulingReportGenerator.BuildWorkbook(new DateOnly(2026, 10, 28), filtered);
+        using var ms = new MemoryStream(bytes);
+        using var wb = new ClosedXML.Excel.XLWorkbook(ms);
+        var sheet = wb.Worksheet("Teoría");
+        Assert.Equal("Ana Pérez", sheet.Cell(2, 11).GetString());
+        Assert.Equal("08:00", sheet.Cell(2, 2).GetString());
+        // No second theory block for the empty 10:00 slot.
+        Assert.True(string.IsNullOrWhiteSpace(sheet.Cell(4, 2).GetString()));
+    }
+
+    [Fact]
     public void Generator_empty_day_still_produces_file()
     {
         var bytes = SchedulingReportGenerator.BuildWorkbook(new DateOnly(2026, 10, 28), []);

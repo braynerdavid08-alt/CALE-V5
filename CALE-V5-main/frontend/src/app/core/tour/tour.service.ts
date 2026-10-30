@@ -9,8 +9,8 @@ import {
   TourStep
 } from './tour.types';
 
-/** v2: redesigned steps (cursos, vivo, clases/biblioteca, Kazu). */
-const KEY_PREFIX = 'luzverde.tour.student.v2.';
+/** v3: compact 4-step tour (faster on mobile / iPhone). */
+const KEY_PREFIX = 'luzverde.tour.student.v3.';
 
 @Injectable({ providedIn: 'root' })
 export class TourService {

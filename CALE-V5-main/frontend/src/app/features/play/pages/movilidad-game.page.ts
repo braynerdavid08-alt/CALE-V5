@@ -9,7 +9,7 @@ import { PlayFxService } from '../play-fx.service';
 
 const RESULT_TYPE = 'luzverde.movilidad.result';
 /** Cache-bust so deploys and CSP/static fixes do not leave a blank iframe. */
-const GAME_URL = '/games/movilidad/index.html?v=8';
+const GAME_URL = '/games/movilidad/index.html?v=9';
 
 interface MovilidadMessage {
   type?: string;
@@ -61,14 +61,34 @@ interface MovilidadMessage {
       border: 1px solid var(--color-border);
       background: var(--color-surface);
       overflow: hidden;
-      min-height: min(78vh, 720px);
+      /* Tall enough on iPhone so control rows are not clipped by the iframe. */
+      min-height: min(88dvh, 860px);
     }
     .game-frame {
       display: block;
       width: 100%;
-      height: min(78vh, 720px);
+      height: min(88dvh, 860px);
       border: 0;
       background: #eef2f7;
+    }
+    @media (max-width: 640px) {
+      :host {
+        display: block;
+      }
+      .play-page.wide {
+        gap: 0.45rem;
+        padding-bottom: 0.5rem;
+      }
+      .hint,
+      ui-button {
+        display: none;
+      }
+      .frame-wrap,
+      .game-frame {
+        min-height: calc(100dvh - 5.5rem);
+        height: calc(100dvh - 5.5rem);
+        border-radius: 12px;
+      }
     }
     .hint {
       margin: 0;

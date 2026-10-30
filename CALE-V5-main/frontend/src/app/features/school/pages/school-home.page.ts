@@ -52,6 +52,8 @@ interface OpCard {
   path: string;
   query?: Record<string, string | boolean>;
   metrics: OpMetric[];
+  /** When set, primary click downloads today's report instead of navigating. */
+  downloadToday?: boolean;
 }
 
 interface TodoItem {
@@ -93,6 +95,8 @@ export class SchoolHomePage implements OnInit {
   readonly ops = signal<SchoolOperationsDashboard | null>(null);
   readonly showAllTodos = signal(false);
   readonly exporting = signal(false);
+  readonly downloadingReport = signal(false);
+  readonly reportReminderDismissed = signal(this.readReportReminderDismissed());
 
   /**
    * Secondary tools only — never repeat the Operación de la escuela cards.
@@ -157,9 +161,10 @@ export class SchoolHomePage implements OnInit {
         key: 'reports',
         emoji: '📑',
         label: 'Reporte del día',
-        hint: 'Descargar Excel de la programación de hoy',
+        hint: 'Toca para descargar el Excel de hoy',
         path: '/school/reports',
-        metrics: [{ value: 'Excel', label: 'descarga manual' }]
+        metrics: [{ value: 'Excel', label: 'descarga rápida' }],
+        downloadToday: true
       },
       {
         key: 'students',
@@ -236,10 +241,25 @@ export class SchoolHomePage implements OnInit {
     ];
   });
 
+  readonly showReportReminder = computed(() => {
+    if (this.reportReminderDismissed()) return false;
+    return !this.hasDownloadedReportToday();
+  });
+
   readonly todos = computed<TodoItem[]>(() => {
     const o = this.ops();
     if (!o) return [];
     const items: TodoItem[] = [];
+    if (this.showReportReminder()) {
+      items.push({
+        key: 'report-today',
+        emoji: '📑',
+        text: 'Aún no descargas el reporte de programación de hoy',
+        action: 'Descargar',
+        link: '/school/reports',
+        tone: 'info'
+      });
+    }
     for (const row of o.topBalanceDue) {
       items.push({
         key: `bal-${row.studentUserId}`,
@@ -403,11 +423,79 @@ export class SchoolHomePage implements OnInit {
     }).format(value);
   }
 
+  downloadReportToday(): void {
+    if (this.downloadingReport()) {
+      return;
+    }
+    this.downloadingReport.set(true);
+    this.error.set(null);
+    this.http
+      .post(`${env.apiUrl}/api/school/scheduling-reports/generate/today`, {}, { responseType: 'blob' })
+      .subscribe({
+        next: (blob) => {
+          this.downloadingReport.set(false);
+          this.markReportDownloadedToday();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `programacion-hoy.xlsx`;
+          a.click();
+          URL.revokeObjectURL(url);
+        },
+        error: (err) => {
+          this.downloadingReport.set(false);
+          this.error.set(mapApiError(err));
+        }
+      });
+  }
+
+  dismissReportReminder(): void {
+    try {
+      localStorage.setItem(this.reportReminderKey(), 'dismissed');
+    } catch {
+      /* ignore */
+    }
+    this.reportReminderDismissed.set(true);
+  }
+
   private todayKey(): string {
     const d = new Date();
     const y = d.getFullYear();
     const m = `${d.getMonth() + 1}`.padStart(2, '0');
     const day = `${d.getDate()}`.padStart(2, '0');
     return `${y}-${m}-${day}`;
+  }
+
+  private reportDownloadedKey(): string {
+    return `cale.school.reportDownloaded.${this.todayKey()}`;
+  }
+
+  private reportReminderKey(): string {
+    return `cale.school.reportReminderDismissed.${this.todayKey()}`;
+  }
+
+  private hasDownloadedReportToday(): boolean {
+    try {
+      return localStorage.getItem(this.reportDownloadedKey()) === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  private readReportReminderDismissed(): boolean {
+    try {
+      return localStorage.getItem(this.reportReminderKey()) === 'dismissed';
+    } catch {
+      return false;
+    }
+  }
+
+  private markReportDownloadedToday(): void {
+    try {
+      localStorage.setItem(this.reportDownloadedKey(), '1');
+    } catch {
+      /* ignore */
+    }
+    this.reportReminderDismissed.set(true);
   }
 }
