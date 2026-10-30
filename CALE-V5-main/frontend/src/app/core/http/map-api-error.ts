@@ -277,6 +277,12 @@ function withSupportCode(message: string, error: unknown): string {
 
 export function mapApiError(error: unknown): string {
   if (!(error instanceof HttpErrorResponse)) {
+    const name = error && typeof error === 'object' && 'name' in error
+      ? String((error as { name?: string }).name)
+      : '';
+    if (name === 'TimeoutError') {
+      return 'Kazu tardó demasiado en responder. Cierra el chat, espera unos segundos e intenta con una pregunta más corta o una consulta rápida.';
+    }
     return withSupportCode('Ocurrió un error. Inténtalo de nuevo.', error);
   }
 

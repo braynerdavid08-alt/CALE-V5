@@ -61,6 +61,13 @@ public sealed class AssistantLlmClient : IAssistantLlm
             body["tool_choice"] = "auto";
         }
 
+        // Gemini 3.x Flash thinks by default (medium); without this, multi-tool chats hang on "Pensando…".
+        if (_options.LooksLikeGeminiEndpoint
+            && !string.IsNullOrWhiteSpace(_options.ReasoningEffort))
+        {
+            body["reasoning_effort"] = _options.ReasoningEffort.Trim().ToLowerInvariant();
+        }
+
         var payload = body.ToJsonString();
         var payloadBytes = Encoding.UTF8.GetByteCount(payload);
         var response = await SendAsync(payload, payloadBytes, ct);

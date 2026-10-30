@@ -1,6 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
+import { Observable, timeout } from 'rxjs';
 import { env } from '../config/env';
+
+/** Chat can run several Gemini tool rounds; fail before the UI sticks on “Pensando…”. */
+const CHAT_TIMEOUT_MS = 90_000;
 
 export interface AssistantExamSlotUi {
   time: string;
@@ -86,13 +90,17 @@ export class AssistantApi {
     return this.http.get<AssistantStatus>(`${this.base}/status`);
   }
 
-  chat(messages: AssistantMessage[]) {
+  chat(messages: AssistantMessage[]): Observable<AssistantChatResult> {
     const payload = messages.map(({ role, content }) => ({ role, content }));
-    return this.http.post<AssistantChatResult>(`${this.base}/chat`, { messages: payload });
+    return this.http
+      .post<AssistantChatResult>(`${this.base}/chat`, { messages: payload })
+      .pipe(timeout({ first: CHAT_TIMEOUT_MS }));
   }
 
-  quick(key: string) {
-    return this.http.get<AssistantChatResult>(`${this.base}/quick/${encodeURIComponent(key)}`);
+  quick(key: string): Observable<AssistantChatResult> {
+    return this.http
+      .get<AssistantChatResult>(`${this.base}/quick/${encodeURIComponent(key)}`)
+      .pipe(timeout({ first: CHAT_TIMEOUT_MS }));
   }
 
   confirm(actionId: string) {

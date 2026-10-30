@@ -39,7 +39,13 @@ public sealed class AssistantOptions
 
     public int MaxToolRounds { get; set; } = 4;
     public int MaxOutputTokens { get; set; } = 600;
-    public int TimeoutSeconds { get; set; } = 40;
+    public int TimeoutSeconds { get; set; } = 55;
+
+    /// <summary>
+    /// OpenAI-compat <c>reasoning_effort</c> for Gemini thinking models (low/medium/high).
+    /// Keep <c>low</c> for chat latency; 3.x Flash cannot fully disable thinking.
+    /// </summary>
+    public string ReasoningEffort { get; set; } = "low";
 
     public bool IsConfigured => Enabled && !string.IsNullOrWhiteSpace(ApiKey);
 
