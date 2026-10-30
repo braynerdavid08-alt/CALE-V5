@@ -207,6 +207,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<Cale.Api.Services.AuthCookieService>();
         services.Configure<Cale.Api.Services.Assistant.AssistantOptions>(
             config.GetSection(Cale.Api.Services.Assistant.AssistantOptions.Section));
+        services.PostConfigure<Cale.Api.Services.Assistant.AssistantOptions>(o => o.NormalizeProviderPairing());
         services.AddHttpClient<Cale.Api.Services.Assistant.IAssistantLlm, Cale.Api.Services.Assistant.AssistantLlmClient>();
         services.AddScoped<Cale.Api.Services.Assistant.IAssistantToolbox, Cale.Api.Services.Assistant.AssistantToolbox>();
         services.AddScoped<Cale.Api.Services.Assistant.IAssistantUsageStore, Cale.Api.Services.Assistant.AssistantUsageStore>();
