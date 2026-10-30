@@ -58,7 +58,6 @@ import {
   imageSrc,
   newClientId,
   normalizeImageCrop,
-  scaleElementsFromLegacy,
   serializeBackground,
   shapeClipPath,
   summarizePresentationSlides,
@@ -66,11 +65,14 @@ import {
 } from './presentation.models';
 import { buildSlideFromTemplate, reassignElementIds } from './presentation-slide-templates';
 import {
-  VIAL_CATEGORY_LABELS,
-  VIAL_RESOURCE_OPTIONS,
-  VialResourceCategory,
-  buildVialResourceElements
+  CatalogSignRef,
+  SIGN_FAMILY_FILTERS,
+  SignFamilyFilter,
+  buildCatalogSignImageElement,
+  filterCatalogSigns,
+  signFamilyShortLabel
 } from './presentation-vial-resources';
+import { PlayApi } from '../../play/api/play.api';
 import { SlidePreviewComponent } from './slide-preview.component';
 
 type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'offline' | 'error';
@@ -98,6 +100,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   @ViewChild('questionImageInput') questionImageInput?: ElementRef<HTMLInputElement>;
 
   private readonly api = inject(PresentationApi);
+  private readonly playApi = inject(PlayApi);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -144,27 +147,17 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   readonly canRedo = signal(false);
   readonly showSignPicker = signal(false);
   readonly resourcesTrayOpen = signal(true);
-  readonly vialCategoryFilter = signal<VialResourceCategory | 'all'>('all');
+  readonly catalogSigns = signal<CatalogSignRef[]>([]);
+  readonly vialFamilyFilter = signal<SignFamilyFilter>('all');
+  readonly vialSearch = signal('');
   readonly snapEnabled = signal(true);
   readonly snapGuideX = signal<number | null>(null);
   readonly snapGuideY = signal<number | null>(null);
   readonly importBanner = signal<PresentationDeckSummary | null>(null);
-  readonly vialResources = VIAL_RESOURCE_OPTIONS;
-  readonly vialCategoryLabels = VIAL_CATEGORY_LABELS;
-  readonly vialCategories: VialResourceCategory[] = [
-    'reglamentacion',
-    'prevencion',
-    'informacion',
-    'actores',
-    'escena'
-  ];
-  readonly filteredVialResources = computed(() => {
-    const cat = this.vialCategoryFilter();
-    if (cat === 'all') {
-      return this.vialResources;
-    }
-    return this.vialResources.filter((r) => r.category === cat);
-  });
+  readonly signFamilyFilters = SIGN_FAMILY_FILTERS;
+  readonly filteredCatalogSigns = computed(() =>
+    filterCatalogSigns(this.catalogSigns(), this.vialFamilyFilter(), this.vialSearch())
+  );
   private elementClipboard: SlideElement[] = [];
 
   @ViewChild('bgImageInput') bgImageInput?: ElementRef<HTMLInputElement>;
@@ -307,11 +300,19 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
         this.loading.set(false);
       }
     });
+    this.loadCatalogSigns();
     this.labelTimer = setInterval(() => {
       if (this.saveState() === 'saved') {
         this.lastSavedAt.update((v) => v);
       }
     }, 1000);
+  }
+
+  private loadCatalogSigns(): void {
+    this.playApi.signs().subscribe({
+      next: (signs) => this.catalogSigns.set(signs ?? []),
+      error: () => this.catalogSigns.set([])
+    });
   }
 
   ngOnDestroy(): void {
@@ -369,6 +370,9 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   }
 
   openSignPicker(): void {
+    if (!this.catalogSigns().length) {
+      this.loadCatalogSigns();
+    }
     this.showSignPicker.set(true);
   }
 
@@ -380,29 +384,20 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     this.resourcesTrayOpen.update((v) => !v);
   }
 
-  setVialCategoryFilter(cat: VialResourceCategory | 'all'): void {
-    this.vialCategoryFilter.set(cat);
+  setVialFamilyFilter(cat: SignFamilyFilter): void {
+    this.vialFamilyFilter.set(cat);
   }
 
-  vialCategoryLabel(cat: VialResourceCategory): string {
-    return this.vialCategoryLabels[cat];
+  signFamilyLabel(family: string): string {
+    return signFamilyShortLabel(family);
   }
 
-  insertTrafficSign(key: string): void {
-    this.insertVialResource(key, { closePicker: true });
-  }
-
-  insertVialResource(key: string, opts?: { closePicker?: boolean }): void {
-    const built = scaleElementsFromLegacy(buildVialResourceElements(key, 180, 120));
-    if (!built.length) {
-      return;
-    }
+  insertCatalogSign(sign: CatalogSignRef, opts?: { closePicker?: boolean }): void {
+    const el = buildCatalogSignImageElement(sign);
+    el.z = this.nextZ();
     this.pushHistory();
-    const baseZ = this.nextZ();
-    for (let i = 0; i < built.length; i++) {
-      this.pushElement({ ...built[i], z: baseZ + i });
-    }
-    this.setSelectedId(built[0].id);
+    this.pushElement(el);
+    this.setSelectedId(el.id);
     if (opts?.closePicker) {
       this.closeSignPicker();
     }

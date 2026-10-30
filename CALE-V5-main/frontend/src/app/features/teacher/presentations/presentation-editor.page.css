@@ -1363,7 +1363,7 @@
   border-top: 1px solid #243447;
   background: #101820;
   padding: 0.45rem 0.65rem 0.55rem;
-  max-height: 168px;
+  max-height: 196px;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -1404,6 +1404,22 @@
   color: #e8eef4;
 }
 
+.vial-search {
+  width: min(180px, 40vw);
+  border: 1px solid #2c4258;
+  border-radius: 8px;
+  background: #1a2736;
+  color: #e8eef4;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.78rem;
+}
+
+.vial-search.modal-search {
+  width: 100%;
+  margin-top: 0.5rem;
+  box-sizing: border-box;
+}
+
 .vial-tray-close {
   border: none;
   background: transparent;
@@ -1427,7 +1443,8 @@
   flex: 0 0 auto;
 }
 
-.vial-tray-grid button {
+.vial-tray-grid button,
+.sign-grid button {
   min-width: 118px;
   text-align: left;
   padding: 0.4rem 0.55rem;
@@ -1436,10 +1453,36 @@
   background: #1a2736;
   color: #e8eef4;
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
 }
 
-.vial-tray-grid button:hover {
+.vial-tray-grid button:hover,
+.sign-grid button:hover {
   border-color: #2bb0ed;
+}
+
+.vial-thumb {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  align-self: center;
+  background: #fff;
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.sign-grid .vial-thumb {
+  width: 72px;
+  height: 72px;
+}
+
+.vial-empty {
+  color: #9fb3c8;
+  font-size: 0.8rem;
+  padding: 0.5rem 0.25rem;
+  list-style: none;
 }
 
 .modal-cats {

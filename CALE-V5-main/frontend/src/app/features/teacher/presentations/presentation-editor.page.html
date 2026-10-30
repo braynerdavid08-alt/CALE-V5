@@ -1075,34 +1075,43 @@
       @if (resourcesTrayOpen()) {
         <div class="vial-tray" aria-label="Recursos viales">
           <div class="vial-tray-head">
-            <strong>Recursos viales</strong>
+            <strong>Señales oficiales</strong>
             <div class="vial-cats">
-              <button
-                type="button"
-                [class.on]="vialCategoryFilter() === 'all'"
-                (click)="setVialCategoryFilter('all')">
-                Todos
-              </button>
-              @for (cat of vialCategories; track cat) {
+              @for (f of signFamilyFilters; track f.key) {
                 <button
                   type="button"
-                  [class.on]="vialCategoryFilter() === cat"
-                  (click)="setVialCategoryFilter(cat)">
-                  {{ vialCategoryLabel(cat) }}
+                  [class.on]="vialFamilyFilter() === f.key"
+                  (click)="setVialFamilyFilter(f.key)">
+                  {{ f.label }}
                 </button>
               }
             </div>
+            <input
+              class="vial-search"
+              type="search"
+              placeholder="Buscar (pare, SR-01…)"
+              [ngModel]="vialSearch()"
+              (ngModelChange)="vialSearch.set($event)"
+              aria-label="Buscar señal" />
             <button type="button" class="vial-tray-close" (click)="toggleResourcesTray()" title="Ocultar bandeja">
               ✕
             </button>
           </div>
           <ul class="vial-tray-grid">
-            @for (item of filteredVialResources(); track item.key) {
+            @for (sign of filteredCatalogSigns(); track sign.code) {
               <li>
-                <button type="button" (click)="insertVialResource(item.key)" [title]="item.hint || item.label">
-                  <span class="sign-label">{{ item.label }}</span>
-                  <span class="sign-cat">{{ vialCategoryLabel(item.category) }}</span>
+                <button
+                  type="button"
+                  (click)="insertCatalogSign(sign)"
+                  [title]="sign.code + ' · ' + sign.name">
+                  <img class="vial-thumb" [src]="media(sign.imageUrl)" [alt]="sign.name" loading="lazy" />
+                  <span class="sign-label">{{ sign.name }}</span>
+                  <span class="sign-cat">{{ sign.code }} · {{ signFamilyLabel(sign.family) }}</span>
                 </button>
+              </li>
+            } @empty {
+              <li class="vial-empty">
+                {{ catalogSigns().length ? 'Sin coincidencias.' : 'Cargando catálogo de señales…' }}
               </li>
             }
           </ul>
@@ -1182,31 +1191,37 @@
     @if (showSignPicker()) {
       <div class="img-modal-overlay" (click)="closeSignPicker()">
         <div class="img-modal sign-modal" (click)="$event.stopPropagation()">
-          <h3>Biblioteca vial</h3>
-          <p class="meta hint">Señales, actores y escenas como formas editables para armar la clase.</p>
+          <h3>Biblioteca de señales</h3>
+          <p class="meta hint">Catálogo oficial (194 señales). Al insertar se usa la imagen real del manual.</p>
           <div class="vial-cats modal-cats">
-            <button
-              type="button"
-              [class.on]="vialCategoryFilter() === 'all'"
-              (click)="setVialCategoryFilter('all')">
-              Todos
-            </button>
-            @for (cat of vialCategories; track cat) {
+            @for (f of signFamilyFilters; track f.key) {
               <button
                 type="button"
-                [class.on]="vialCategoryFilter() === cat"
-                (click)="setVialCategoryFilter(cat)">
-                {{ vialCategoryLabel(cat) }}
+                [class.on]="vialFamilyFilter() === f.key"
+                (click)="setVialFamilyFilter(f.key)">
+                {{ f.label }}
               </button>
             }
           </div>
+          <input
+            class="vial-search modal-search"
+            type="search"
+            placeholder="Buscar por nombre o código…"
+            [ngModel]="vialSearch()"
+            (ngModelChange)="vialSearch.set($event)"
+            aria-label="Buscar señal" />
           <ul class="sign-grid">
-            @for (sign of filteredVialResources(); track sign.key) {
+            @for (sign of filteredCatalogSigns(); track sign.code) {
               <li>
-                <button type="button" (click)="insertTrafficSign(sign.key)">
-                  <span class="sign-label">{{ sign.label }}</span>
-                  <span class="sign-cat">{{ vialCategoryLabel(sign.category) }}</span>
+                <button type="button" (click)="insertCatalogSign(sign, { closePicker: true })">
+                  <img class="vial-thumb" [src]="media(sign.imageUrl)" [alt]="sign.name" loading="lazy" />
+                  <span class="sign-label">{{ sign.name }}</span>
+                  <span class="sign-cat">{{ sign.code }} · {{ signFamilyLabel(sign.family) }}</span>
                 </button>
+              </li>
+            } @empty {
+              <li class="vial-empty">
+                {{ catalogSigns().length ? 'Sin coincidencias.' : 'Cargando catálogo…' }}
               </li>
             }
           </ul>
