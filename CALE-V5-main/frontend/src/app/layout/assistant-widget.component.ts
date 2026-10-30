@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router } from '@angular/router';
-import { filter, Subscription } from 'rxjs';
+import { Subscription, catchError, filter, finalize, of, timeout } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import {
   AssistantApi,
@@ -67,17 +67,18 @@ const HIDDEN_PATHS = [
   standalone: true,
   imports: [FormsModule],
   template: `
-    @if ((enabled() || connecting()) && !routeHidden() && !hiddenForToday()) {
+    @if ((enabled() || connecting() || statusFailed()) && !routeHidden() && !hiddenForToday()) {
       @if (!open()) {
         <button
           type="button"
           class="fab"
           [class.fab-connecting]="connecting()"
+          [class.fab-retry]="statusFailed() && !connecting()"
           data-tour="student-kazu"
           [disabled]="connecting()"
           (click)="toggle()"
-          [attr.aria-label]="connecting() ? ('Conectando a ' + mascotName) : ('Abrir a ' + mascotName)"
-          [attr.title]="connecting() ? 'Conectando…' : mascotName">
+          [attr.aria-label]="fabAria()"
+          [attr.title]="fabTitle()">
           <img
             class="fab-avatar"
             [src]="connecting() ? '/mascot/kuzu-explain-static.gif' : '/mascot/kuzu-explain-128.gif'"
@@ -282,6 +283,10 @@ const HIDDEN_PATHS = [
     .fab-connecting {
       opacity: 0.78;
       animation: fab-pulse 1.1s ease-in-out infinite;
+    }
+    .fab-retry {
+      opacity: 0.88;
+      border-color: color-mix(in srgb, #f59e0b 55%, #fff);
     }
     @keyframes fab-pulse {
       0%, 100% { transform: scale(1); }
@@ -691,6 +696,8 @@ export class AssistantWidgetComponent implements OnInit, OnDestroy {
   readonly mascotName = MASCOT_NAME;
   /** True until /status responds — FAB visible so tour/UI don't wait on a blank corner. */
   readonly connecting = signal(true);
+  /** Status request failed or timed out — FAB stays visible so the user can retry. */
+  readonly statusFailed = signal(false);
   readonly enabled = signal(false);
   readonly open = signal(false);
   readonly busy = signal(false);
@@ -733,27 +740,64 @@ export class AssistantWidgetComponent implements OnInit, OnDestroy {
         }
       });
 
-    this.api.status().subscribe({
-      next: (s) => {
-        this.connecting.set(false);
-        this.enabled.set(s.enabled);
-        this.remaining.set(s.remainingToday);
-        this.nearLimit.set(!!s.nearLimit);
-        this.atLimit.set(!!s.atLimit || s.remainingToday <= 0);
-      },
-      error: () => {
-        this.connecting.set(false);
-        this.enabled.set(false);
-      }
-    });
+    this.refreshStatus();
   }
 
   ngOnDestroy(): void {
     this.navSub?.unsubscribe();
   }
 
+  fabAria(): string {
+    if (this.connecting()) return `Conectando a ${this.mascotName}`;
+    if (this.statusFailed()) return `Reintentar conexión con ${this.mascotName}`;
+    return `Abrir a ${this.mascotName}`;
+  }
+
+  fabTitle(): string {
+    if (this.connecting()) return 'Conectando…';
+    if (this.statusFailed()) return 'Toca para reintentar';
+    return this.mascotName;
+  }
+
+  /** Load /api/assistant/status; never leave the FAB stuck on “conectando”. */
+  refreshStatus(): void {
+    this.connecting.set(true);
+    this.statusFailed.set(false);
+    this.api
+      .status()
+      .pipe(
+        // Slow networks / cold starts must not block the button forever.
+        timeout({ first: 12_000 }),
+        catchError(() => {
+          this.enabled.set(false);
+          this.statusFailed.set(true);
+          return of(null);
+        }),
+        finalize(() => this.connecting.set(false))
+      )
+      .subscribe((s) => {
+        if (!s) {
+          return;
+        }
+        this.statusFailed.set(false);
+        this.enabled.set(s.enabled);
+        this.remaining.set(s.remainingToday);
+        this.nearLimit.set(!!s.nearLimit);
+        this.atLimit.set(!!s.atLimit || s.remainingToday <= 0);
+        // Configured=false (no API key) → hide FAB; that is intentional, not a retry case.
+        if (!s.enabled) {
+          this.statusFailed.set(false);
+        }
+      });
+  }
+
   toggle(): void {
-    if (this.connecting() || !this.enabled()) {
+    if (this.connecting()) {
+      return;
+    }
+    if (!this.enabled()) {
+      // Retry if status failed or was still warming up.
+      this.refreshStatus();
       return;
     }
     this.open.update((v) => !v);
