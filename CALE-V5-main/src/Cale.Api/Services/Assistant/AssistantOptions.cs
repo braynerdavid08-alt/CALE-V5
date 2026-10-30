@@ -8,16 +8,20 @@ namespace Cale.Api.Services.Assistant;
 /// <remarks>
 /// Gemini (Render típico):
 /// <c>Assistant__Endpoint=https://generativelanguage.googleapis.com/v1beta/openai/chat/completions</c>
-/// <c>Assistant__Model=gemini-2.5-flash</c>
+/// <c>Assistant__Model=gemini-2.5-flash-lite</c> (rápido; evita que el chat se quede en “Pensando…”)
 /// <c>Assistant__ApiKey=...</c>
 /// No uses <c>openai/gpt-4o-mini</c> con Gemini: responde 404 generateContent.
+/// Evita <c>gemini-3.8-flash</c> en chat con herramientas: piensa demasiado y parece colgado.
 /// </remarks>
 public sealed class AssistantOptions
 {
     public const string Section = "Assistant";
 
-    /// <summary>Stable Gemini Flash for the OpenAI-compatible Gemini endpoint.</summary>
-    public const string DefaultGeminiModel = "gemini-2.5-flash";
+    /// <summary>Fast Gemini for chat + tools (OpenAI-compatible endpoint).</summary>
+    public const string DefaultGeminiModel = "gemini-2.5-flash-lite";
+
+    /// <summary>When true, heavy Gemini 3.x Flash ids are remapped to <see cref="DefaultGeminiModel"/>.</summary>
+    public bool PreferFastChat { get; set; } = true;
 
     public bool Enabled { get; set; } = true;
     public string Endpoint { get; set; } = "https://models.github.ai/inference/chat/completions";
@@ -80,5 +84,20 @@ public sealed class AssistantOptions
         {
             Model = DefaultGeminiModel;
         }
+
+        // 3.x Flash “thinking” makes multi-tool school/student chats hang on mobile.
+        if (PreferFastChat && IsHeavyThinkingGemini(Model))
+        {
+            Model = DefaultGeminiModel;
+            // Flash-Lite accepts "none"; keeps chat usable.
+            ReasoningEffort = "none";
+        }
     }
+
+    private static bool IsHeavyThinkingGemini(string model) =>
+        model.Equals("gemini-3.8-flash", StringComparison.OrdinalIgnoreCase)
+        || model.Equals("gemini-3.6-flash", StringComparison.OrdinalIgnoreCase)
+        || model.Equals("gemini-3.7-flash", StringComparison.OrdinalIgnoreCase)
+        || model.Equals("gemini-3-flash", StringComparison.OrdinalIgnoreCase)
+        || model.Equals("gemini-3-flash-preview", StringComparison.OrdinalIgnoreCase);
 }

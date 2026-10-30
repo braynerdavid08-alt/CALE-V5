@@ -20,12 +20,29 @@ public sealed class AssistantOptionsNormalizeTests
     }
 
     [Fact]
-    public void Gemini_endpoint_keeps_explicit_gemini_model()
+    public void PreferFastChat_remaps_heavy_gemini_3_flash()
     {
         var o = new AssistantOptions
         {
             Endpoint = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-            Model = "gemini-3.8-flash"
+            Model = "gemini-3.8-flash",
+            PreferFastChat = true
+        };
+
+        o.NormalizeProviderPairing();
+
+        Assert.Equal(AssistantOptions.DefaultGeminiModel, o.Model);
+        Assert.Equal("none", o.ReasoningEffort);
+    }
+
+    [Fact]
+    public void PreferFastChat_off_keeps_gemini_3_flash()
+    {
+        var o = new AssistantOptions
+        {
+            Endpoint = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+            Model = "gemini-3.8-flash",
+            PreferFastChat = false
         };
 
         o.NormalizeProviderPairing();

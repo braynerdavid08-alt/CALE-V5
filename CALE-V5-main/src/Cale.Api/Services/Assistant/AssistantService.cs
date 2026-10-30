@@ -135,6 +135,16 @@ public sealed class AssistantService
             throw new DomainException("Escribe tu pregunta.", 400, "assistant_empty");
         }
 
+        var lastUser = turns[^1].Content.Trim();
+        var remainingPeek = await RemainingAsync(user, ct);
+
+        // Instant guidance: no Gemini call — answers that would otherwise hang on "Pensando…".
+        var instant = TryInstantGuidance(user, lastUser);
+        if (instant is not null)
+        {
+            return new AssistantChatResult(instant, null, remainingPeek);
+        }
+
         var reserved = await _usage.TryReserveMessageAsync(
             user.UserId,
             user.SchoolUserId,
@@ -155,9 +165,12 @@ public sealed class AssistantService
         var tools = BuildTools(user.Role);
         AssistantPendingActionDto? pending = null;
         AssistantExamAvailabilityUi? examUi = null;
+        using var chatCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        chatCts.CancelAfter(TimeSpan.FromSeconds(Math.Clamp(_options.TimeoutSeconds * 2, 40, 90)));
+        var llmCt = chatCts.Token;
         try
         {
-            for (var round = 0; round <= _options.MaxToolRounds; round++)
+            for (var round = 0; round <= Math.Min(_options.MaxToolRounds, 3); round++)
             {
                 var requestOk = await _usage.TryReserveProviderRequestAsync(
                     user.UserId,
@@ -175,8 +188,8 @@ public sealed class AssistantService
                         await RemainingAsync(user, ct));
                 }
 
-                var lastRound = round == _options.MaxToolRounds;
-                var reply = await _llm.CompleteAsync(messages, lastRound ? new JsonArray() : tools, ct);
+                var lastRound = round == Math.Min(_options.MaxToolRounds, 3);
+                var reply = await _llm.CompleteAsync(messages, lastRound ? new JsonArray() : tools, llmCt);
                 if (reply.ToolCalls.Count == 0)
                 {
                     var text = string.IsNullOrWhiteSpace(reply.Content)
@@ -194,7 +207,7 @@ public sealed class AssistantService
                 messages.Add(AssistantToolCallMessage(reply));
                 foreach (var call in reply.ToolCalls)
                 {
-                    var (result, action, ui) = await RunToolAsync(user, call, pending is not null, ct);
+                    var (result, action, ui) = await RunToolAsync(user, call, pending is not null, llmCt);
                     pending ??= action;
                     examUi ??= ui;
                     messages.Add(new JsonObject
@@ -205,6 +218,15 @@ public sealed class AssistantService
                     });
                 }
             }
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            await _usage.ReleaseMessageAsync(user.UserId, user.SchoolUserId, "provider_timeout", ct);
+            return new AssistantChatResult(
+                SlowChatFallback(user, pending),
+                pending,
+                await RemainingAsync(user, ct),
+                examUi);
         }
         catch (AssistantProviderException ex)
         {
@@ -563,9 +585,127 @@ public sealed class AssistantService
             - Cuando la herramienta ya traiga un listado legible, resume o reescribe en el mismo estilo (títulos + viñetas). No copies dumps técnicos. Si dice que hay más resultados, menciona el total y ofrece el listado completo; usa completo=true solo si el usuario pide todos.
             - Para reservar, cancelar, agendar, asignar o autorizar usa la herramienta correspondiente: eso solo PREPARA la acción y el usuario debe tocar "Confirmar". Nunca digas que ya quedó hecho.
             - Si algo no se puede (sin cupo, saldo pendiente, falta autorización), explica el motivo que da la herramienta y qué puede hacer.
-            - Si faltan datos (fecha, hora, qué clase), pregunta antes de preparar la acción.
-            - Solo ayudas con temas de la escuela y de la app. Si no puedes resolver algo, sugiere hablar con la escuela.
+            - Si faltan datos (fecha, hora, qué clase, nombre del estudiante), pregunta UNA cosa concreta antes de preparar la acción. No encadenes muchas herramientas si faltan datos.
+            - Escuela: las clases teóricas se crean/editan en Operación → Teoría/Agenda (no desde el chat). Desde el chat sí puedes consultar agenda/cupos y preparar examen teórico o manejo de un estudiante (con confirmar).
+            - Estudiante: para agendar teoría/examen/manejo usa las herramientas y muestra tarjetas; el usuario confirma en el botón.
+            - Solo ayudas con temas de la escuela y de la app. Si no puedes resolver algo, indica la pantalla exacta de la app.
             """;
+    }
+
+    /// <summary>
+    /// Fast path without the LLM: greetings and incomplete school scheduling asks.
+    /// Keeps the chat useful when Gemini is slow or the user asks for something the tools cannot finish alone.
+    /// </summary>
+    public static string? TryInstantGuidance(AssistantUser user, string text)
+    {
+        var t = text.Trim();
+        if (t.Length == 0)
+        {
+            return null;
+        }
+
+        var lower = t.ToLowerInvariant();
+        if (IsSimpleGreeting(lower))
+        {
+            return user.Role == Roles.School
+                ? "¡Hola! Soy Kazu. Puedo resumir estudiantes, ver la agenda, cupos de examen o preparar el examen/manejo de un estudiante (tú confirmas). También tienes consultas rápidas abajo.\n\n¿Qué necesitas?"
+                : "¡Hola! Soy Kazu. Puedo ayudarte con horas, clases, cupos de examen y reservas (siempre te pediré confirmar). Toca una consulta rápida o escríbeme.";
+        }
+
+        if (user.Role != Roles.School)
+        {
+            return null;
+        }
+
+        var wantsSchedule = ContainsAny(lower, "agendar", "agenda", "programar", "reservar", "asignar", "cupo");
+        var wantsTheory = ContainsAny(lower, "teor", "teoría", "teoria");
+        var wantsExam = ContainsAny(lower, "examen");
+        var wantsManejo = ContainsAny(lower, "manejo", "practica", "práctica");
+        if (!wantsSchedule && !wantsTheory && !wantsExam && !wantsManejo)
+        {
+            return null;
+        }
+
+        // Without a student name, Gemini often loops on tools and hangs on mobile.
+        if (!LooksLikeHasStudentName(t))
+        {
+            var parts = new List<string>
+            {
+                "Para avanzar necesito el **nombre del estudiante** (como aparece en el expediente)."
+            };
+            if (wantsTheory)
+            {
+                parts.Add("Las **clases teóricas** se programan en **Operación → Teoría / Agenda** (crear la clase y cupos). Desde el chat no creo esas clases.");
+            }
+
+            if (wantsExam)
+            {
+                parts.Add("El **examen teórico** de un estudiante sí lo puedo preparar aquí: dime el nombre y el día/hora del cupo (o pide primero los cupos libres).");
+            }
+
+            if (wantsManejo)
+            {
+                parts.Add("Para **manejo**, dime el estudiante y te ayudo a preparar la asignación (instructor, vehículo y hora); tú confirmas.");
+            }
+
+            parts.Add("Ejemplo: «Agenda el examen teórico de Ana Pérez el lunes a las 9:00».");
+            return string.Join("\n\n", parts);
+        }
+
+        if (wantsTheory && !wantsExam && !wantsManejo)
+        {
+            return "Las **clases teóricas** se gestionan en **Operación → Teoría / Agenda**. Ahí creas o editas la clase del día.\n\nSi lo que quieres es el **examen teórico** o una clase de **manejo** de ese estudiante, escríbemelo con fecha y hora y lo preparo para que confirmes.";
+        }
+
+        return null;
+    }
+
+    private static string SlowChatFallback(AssistantUser user, AssistantPendingActionDto? pending)
+    {
+        if (pending is not null)
+        {
+            return $"La consulta tardó demasiado, pero hay una acción lista: **{pending.Title}**. Confirma abajo si aplica, o intenta de nuevo con un mensaje más corto.";
+        }
+
+        return user.Role == Roles.School
+            ? "Eso tardó demasiado. Prueba una **consulta rápida** o escribe algo más concreto, por ejemplo: «cupos de examen de esta semana» o «agenda el examen de [nombre] el lunes a las 9:00». Las clases teóricas se programan en Operación → Teoría."
+            : "Eso tardó demasiado. Prueba una **consulta rápida** (horas, clases, cupos) o escribe una sola cosa: «cupos de examen» o «clases de la semana».";
+    }
+
+    private static bool IsSimpleGreeting(string lower)
+    {
+        if (lower.Length > 48)
+        {
+            return false;
+        }
+
+        return Regex.IsMatch(
+            lower,
+            @"^(hola|holi|buenas|buenos d[ií]as|buenas tardes|buenas noches|hey|hi|hello)(\s|,|!|\.|kazu|luz)?\s*$",
+            RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+    }
+
+    private static bool ContainsAny(string lower, params string[] needles) =>
+        needles.Any(n => lower.Contains(n, StringComparison.Ordinal));
+
+    /// <summary>Heuristic: message already names a person (not just "estudiante").</summary>
+    private static bool LooksLikeHasStudentName(string text)
+    {
+        if (Regex.IsMatch(text, @"\b(de|del|para)\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]{2,}", RegexOptions.CultureInvariant))
+        {
+            return true;
+        }
+
+        // "estudiante Ana" / "alumno Carlos Pérez"
+        if (Regex.IsMatch(
+                text,
+                @"\b(estudiante|alumno|alumna)\s+[A-ZÁÉÍÓÚÑa-záéíóúñ]{3,}",
+                RegexOptions.CultureInvariant | RegexOptions.IgnoreCase))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private void EnsureEnabled(AssistantUser user)

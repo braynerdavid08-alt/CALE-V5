@@ -61,11 +61,20 @@ public sealed class AssistantLlmClient : IAssistantLlm
             body["tool_choice"] = "auto";
         }
 
-        // Gemini 3.x Flash thinks by default (medium); without this, multi-tool chats hang on "Pensando…".
+        // Gemini thinking models: keep effort low/none so tool chats finish on mobile.
         if (_options.LooksLikeGeminiEndpoint
             && !string.IsNullOrWhiteSpace(_options.ReasoningEffort))
         {
-            body["reasoning_effort"] = _options.ReasoningEffort.Trim().ToLowerInvariant();
+            var effort = _options.ReasoningEffort.Trim().ToLowerInvariant();
+            // 2.5 Flash-Lite accepts "none"; 3.x Flash rejects "none"/"minimal" → use "low".
+            if (effort is "none" or "minimal"
+                && _options.Model.Contains("gemini-3", StringComparison.OrdinalIgnoreCase)
+                && !_options.Model.Contains("lite", StringComparison.OrdinalIgnoreCase))
+            {
+                effort = "low";
+            }
+
+            body["reasoning_effort"] = effort;
         }
 
         var payload = body.ToJsonString();
