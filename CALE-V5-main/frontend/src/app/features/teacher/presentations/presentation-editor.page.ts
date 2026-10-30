@@ -150,6 +150,17 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   readonly catalogSigns = signal<CatalogSignRef[]>([]);
   readonly vialFamilyFilter = signal<SignFamilyFilter>('all');
   readonly vialSearch = signal('');
+  /** Resizable chrome (px); persisted locally. */
+  readonly slidesPanelW = signal(220);
+  readonly propsPanelW = signal(320);
+  readonly trayH = signal(148);
+  private panelResize: {
+    kind: 'slides' | 'props' | 'tray';
+    startX: number;
+    startY: number;
+    startW: number;
+    startH: number;
+  } | null = null;
   readonly snapEnabled = signal(true);
   readonly snapGuideX = signal<number | null>(null);
   readonly snapGuideY = signal<number | null>(null);
@@ -301,6 +312,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       }
     });
     this.loadCatalogSigns();
+    this.restorePanelLayout();
     this.labelTimer = setInterval(() => {
       if (this.saveState() === 'saved') {
         this.lastSavedAt.update((v) => v);
@@ -382,6 +394,69 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
 
   toggleResourcesTray(): void {
     this.resourcesTrayOpen.update((v) => !v);
+    this.persistPanelLayout();
+  }
+
+  startPanelResize(kind: 'slides' | 'props' | 'tray', ev: PointerEvent): void {
+    ev.preventDefault();
+    ev.stopPropagation();
+    this.panelResize = {
+      kind,
+      startX: ev.clientX,
+      startY: ev.clientY,
+      startW: kind === 'props' ? this.propsPanelW() : this.slidesPanelW(),
+      startH: this.trayH()
+    };
+    (ev.currentTarget as HTMLElement).setPointerCapture?.(ev.pointerId);
+  }
+
+  private restorePanelLayout(): void {
+    try {
+      const raw = localStorage.getItem('cale-pres-editor-layout');
+      if (!raw) {
+        return;
+      }
+      const parsed = JSON.parse(raw) as {
+        slides?: number;
+        props?: number;
+        tray?: number;
+        trayOpen?: boolean;
+      };
+      if (parsed.slides) {
+        this.slidesPanelW.set(this.clamp(parsed.slides, 160, 420));
+      }
+      if (parsed.props) {
+        this.propsPanelW.set(this.clamp(parsed.props, 260, 520));
+      }
+      if (parsed.tray) {
+        this.trayH.set(this.clamp(parsed.tray, 96, 320));
+      }
+      if (typeof parsed.trayOpen === 'boolean') {
+        this.resourcesTrayOpen.set(parsed.trayOpen);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private persistPanelLayout(): void {
+    try {
+      localStorage.setItem(
+        'cale-pres-editor-layout',
+        JSON.stringify({
+          slides: this.slidesPanelW(),
+          props: this.propsPanelW(),
+          tray: this.trayH(),
+          trayOpen: this.resourcesTrayOpen()
+        })
+      );
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private clamp(n: number, min: number, max: number): number {
+    return Math.min(max, Math.max(min, Math.round(n)));
   }
 
   setVialFamilyFilter(cat: SignFamilyFilter): void {
@@ -2047,6 +2122,18 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   }
 
   onPointerMove(ev: PointerEvent): void {
+    if (this.panelResize) {
+      const dx = ev.clientX - this.panelResize.startX;
+      const dy = ev.clientY - this.panelResize.startY;
+      if (this.panelResize.kind === 'slides') {
+        this.slidesPanelW.set(this.clamp(this.panelResize.startW + dx, 160, 420));
+      } else if (this.panelResize.kind === 'props') {
+        this.propsPanelW.set(this.clamp(this.panelResize.startW - dx, 260, 520));
+      } else {
+        this.trayH.set(this.clamp(this.panelResize.startH - dy, 96, 320));
+      }
+      return;
+    }
     if (!this.drag) {
       return;
     }
@@ -2124,6 +2211,11 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   }
 
   endDrag(): void {
+    if (this.panelResize) {
+      this.panelResize = null;
+      this.persistPanelLayout();
+      return;
+    }
     if (this.drag) {
       this.drag = null;
       this.clearSnapGuides();

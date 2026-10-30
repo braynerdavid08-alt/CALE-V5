@@ -237,7 +237,10 @@
       </div>
     }
 
-    <div class="ed-body">
+    <div
+      class="ed-body"
+      [style.--ed-slides-w.px]="slidesPanelW()"
+      [style.--ed-props-w.px]="propsPanelW()">
       <aside class="ed-slides">
         <div class="slides-head">
           <span>Diapositivas</span>
@@ -280,6 +283,11 @@
           <button type="button" (click)="deleteSlide()" [disabled]="slides().length <= 1">Eliminar</button>
         </div>
       </aside>
+
+      <div
+        class="ed-resize ed-resize-x"
+        title="Arrastra para cambiar el ancho del panel"
+        (pointerdown)="startPanelResize('slides', $event)"></div>
 
       <main class="ed-canvas-wrap" #canvasHost>
         @if (activeSlide(); as slide) {
@@ -470,6 +478,11 @@
           </div>
         }
       </main>
+
+      <div
+        class="ed-resize ed-resize-x"
+        title="Arrastra para cambiar el ancho del panel"
+        (pointerdown)="startPanelResize('props', $event)"></div>
 
       <aside class="ed-props" [class.drawer-open]="propsDrawerOpen()">
         <div class="props-drawer-scrim" (click)="closePropsDrawer()"></div>
@@ -1073,7 +1086,11 @@
 
     <footer class="ed-bottom">
       @if (resourcesTrayOpen()) {
-        <div class="vial-tray" aria-label="Recursos viales">
+        <div
+          class="ed-resize ed-resize-y"
+          title="Arrastra para cambiar la altura de la bandeja"
+          (pointerdown)="startPanelResize('tray', $event)"></div>
+        <div class="vial-tray" [style.height.px]="trayH()" aria-label="Recursos viales">
           <div class="vial-tray-head">
             <strong>Señales oficiales</strong>
             <div class="vial-cats">
