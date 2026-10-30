@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="320" height="360" viewBox="0 0 320 360" role="img" aria-label="TELÉFONO">
-  <rect width="320" height="360" fill="#f5f5f5"/>
-  <rect x="40" y="60" width="240" height="180" rx="18" fill="#1565c0" stroke="#0d47a1" stroke-width="8"/>
-  <text x="160" y="140.0" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#ffffff">TELÉFONO</text>
-  <text x="160" y="340" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#616161">SI-19</text>
+  <rect width="320" height="360" fill="#f3f5f7"/>
+  
+  <rect x="36" y="48" width="248" height="204" rx="14" fill="#1565c0" stroke="#0d47a1" stroke-width="6"/>
+  <text x="160" y="150" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="800" fill="#ffffff">TELÉFONO</text>
+
+  <text x="160" y="348" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#546e7a">SI-19</text>
 </svg>

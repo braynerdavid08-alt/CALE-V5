@@ -1,7 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="320" height="360" viewBox="0 0 320 360" role="img" aria-label="INICIACIÓN DE SEPARADOR (DOS SENTIDOS)">
-  <rect width="320" height="360" fill="#f5f5f5"/>
+  <rect width="320" height="360" fill="#f3f5f7"/>
+  
   <polygon points="160,28 292,160 160,292 28,160" fill="#ffeb3b" stroke="#212121" stroke-width="10"/>
-  <text x="160" y="123.0" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#212121">INICIACIÓN DE</text><text x="160" y="145.0" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#212121">SEPARADOR (DOS</text><text x="160" y="167.0" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#212121">SENTIDOS)</text>
-  <text x="160" y="340" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#616161">SP-55</text>
+  
+  
+  <g transform="translate(125,150) scale(0.65)">
+    <polygon points="0,-70 -32,-18 -12,-18 -12,70 12,70 12,-18 32,-18" fill="#212121"/>
+  </g>
+
+  <g transform="translate(195,150) scale(0.65)">
+    <polygon points="0,70 -32,18 -12,18 -12,-70 12,-70 12,18 32,18" fill="#212121"/>
+  </g>
+
+
+  <text x="160" y="348" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#546e7a">SP-55</text>
 </svg>

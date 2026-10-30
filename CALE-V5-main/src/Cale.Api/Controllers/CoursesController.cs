@@ -105,7 +105,7 @@ public sealed class CoursesController : ControllerBase
         Ok(await _courses.ProgressReportAsync(await ActorAsync(ct), id, ct));
 
     [HttpGet("signs")]
-    public IReadOnlyList<SignDto> Signs() => _play.GetSigns();
+    public Task<IReadOnlyList<SignDto>> Signs(CancellationToken ct) => _play.GetSignsAsync(ct);
 
     [HttpPost("upload")]
     [EnableRateLimiting(RateLimitPolicies.Uploads)]

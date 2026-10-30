@@ -1,4 +1,5 @@
 import {
+  AfterViewInit,
   Component,
   ElementRef,
   HostListener,
@@ -93,7 +94,7 @@ interface EditorSnapshot {
   templateUrl: './presentation-editor.page.html',
   styleUrl: './presentation-editor.page.css'
 })
-export class PresentationEditorPage implements OnInit, OnDestroy {
+export class PresentationEditorPage implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('canvasHost') canvasHost?: ElementRef<HTMLElement>;
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
   @ViewChild('videoInput') videoInput?: ElementRef<HTMLInputElement>;
@@ -260,6 +261,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   private autosaveTimer?: ReturnType<typeof setTimeout>;
   private labelTimer?: ReturnType<typeof setInterval>;
   private fitZoomTimer?: ReturnType<typeof setTimeout>;
+  private canvasResizeObserver?: ResizeObserver;
   private saveInFlight: Observable<boolean> | null = null;
   private lastTextTapAt = 0;
   private lastTextTapId: string | null = null;
@@ -305,6 +307,8 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
         this.tryRestoreLocalDraft(id);
         this.maybeShowImportBanner();
         this.scheduleFitZoom();
+        // El host del lienzo aparece al salir de loading.
+        setTimeout(() => this.bindCanvasResizeObserver(), 0);
       },
       error: (err) => {
         this.error.set(mapApiError(err));
@@ -318,6 +322,24 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
         this.lastSavedAt.update((v) => v);
       }
     }, 1000);
+  }
+
+  ngAfterViewInit(): void {
+    this.bindCanvasResizeObserver();
+  }
+
+  private bindCanvasResizeObserver(): void {
+    const host = this.canvasHost?.nativeElement;
+    if (!host || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    this.canvasResizeObserver?.disconnect();
+    this.canvasResizeObserver = new ResizeObserver(() => {
+      if (this.autoFitZoom() && !this.loading()) {
+        this.scheduleFitZoom();
+      }
+    });
+    this.canvasResizeObserver.observe(host);
   }
 
   private loadCatalogSigns(): void {
@@ -337,6 +359,8 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (this.fitZoomTimer) {
       clearTimeout(this.fitZoomTimer);
     }
+    this.canvasResizeObserver?.disconnect();
+    this.canvasResizeObserver = undefined;
   }
 
   @HostListener('window:resize')
@@ -395,6 +419,9 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
   toggleResourcesTray(): void {
     this.resourcesTrayOpen.update((v) => !v);
     this.persistPanelLayout();
+    // El lienzo pierde/gana alto: reajustar zoom al layout nuevo.
+    this.scheduleFitZoom();
+    setTimeout(() => this.scheduleFitZoom(), 120);
   }
 
   startPanelResize(kind: 'slides' | 'props' | 'tray', ev: PointerEvent): void {
@@ -429,7 +456,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
         this.propsPanelW.set(this.clamp(parsed.props, 260, 520));
       }
       if (parsed.tray) {
-        this.trayH.set(this.clamp(parsed.tray, 96, 320));
+        this.trayH.set(this.clamp(parsed.tray, 96, 280));
       }
       if (typeof parsed.trayOpen === 'boolean') {
         this.resourcesTrayOpen.set(parsed.trayOpen);
@@ -2130,7 +2157,10 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
       } else if (this.panelResize.kind === 'props') {
         this.propsPanelW.set(this.clamp(this.panelResize.startW - dx, 260, 520));
       } else {
-        this.trayH.set(this.clamp(this.panelResize.startH - dy, 96, 320));
+        this.trayH.set(this.clamp(this.panelResize.startH - dy, 96, 280));
+      }
+      if (this.autoFitZoom()) {
+        this.scheduleFitZoom();
       }
       return;
     }
@@ -2214,6 +2244,7 @@ export class PresentationEditorPage implements OnInit, OnDestroy {
     if (this.panelResize) {
       this.panelResize = null;
       this.persistPanelLayout();
+      this.scheduleFitZoom();
       return;
     }
     if (this.drag) {

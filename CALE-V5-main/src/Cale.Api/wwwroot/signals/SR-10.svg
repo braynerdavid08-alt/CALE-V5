@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="320" height="360" viewBox="0 0 320 360" role="img" aria-label="PROHIBIDO GIRAR EN “U”">
-  <rect width="320" height="360" fill="#f5f5f5"/>
-  <circle cx="160" cy="150" r="110" fill="#ffffff" stroke="#c62828" stroke-width="14"/>
-  <text x="160" y="129.0" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#c62828">PROHIBIDO GIRAR EN</text><text x="160" y="151.0" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#c62828">“U”</text>
-  <text x="160" y="340" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#616161">SR-10</text>
+  <rect width="320" height="360" fill="#f3f5f7"/>
+  
+  <circle cx="160" cy="150" r="112" fill="#ffffff" stroke="#c62828" stroke-width="16"/>
+  
+  <path d="M120 210 V110 A40 40 0 0 1 200 110 V150" fill="none" stroke="#212121" stroke-width="18" stroke-linecap="round"/>
+  <polygon points="200,150 230,150 200,190" fill="#212121"/>
+
+  <line x1="78" y1="230" x2="242" y2="70" stroke="#c62828" stroke-width="18" stroke-linecap="round"/>
+
+  <text x="160" y="348" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#546e7a">SR-10</text>
 </svg>

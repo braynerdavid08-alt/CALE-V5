@@ -1,7 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="320" height="360" viewBox="0 0 320 360" role="img" aria-label="PROHIBIDA CIRCULACIÓN DE BICICLETAS Y MOTOCICLOS">
-  <rect width="320" height="360" fill="#f5f5f5"/>
-  <circle cx="160" cy="150" r="110" fill="#ffffff" stroke="#c62828" stroke-width="14"/>
-  <text x="160" y="107.0" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#c62828">PROHIBIDA</text><text x="160" y="129.0" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#c62828">CIRCULACIÓN DE</text><text x="160" y="151.0" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#c62828">BICICLETAS Y</text><text x="160" y="173.0" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#c62828">MOTOCICLOS</text>
-  <text x="160" y="340" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#616161">SR-22</text>
+  <rect width="320" height="360" fill="#f3f5f7"/>
+  
+  <circle cx="160" cy="150" r="112" fill="#ffffff" stroke="#c62828" stroke-width="16"/>
+  
+  <g transform="translate(160,155)" fill="none" stroke="#212121" stroke-width="8" stroke-linecap="round">
+    <circle cx="-40" cy="10" r="28"/>
+    <circle cx="40" cy="10" r="28"/>
+    <path d="M-40 10 L0 -10 L40 10 M0 -10 L0 -36 L22 -36"/>
+  </g>
+
+  <line x1="78" y1="230" x2="242" y2="70" stroke="#c62828" stroke-width="18" stroke-linecap="round"/>
+
+  <text x="160" y="348" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#546e7a">SR-22</text>
 </svg>

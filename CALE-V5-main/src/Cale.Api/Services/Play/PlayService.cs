@@ -29,6 +29,7 @@ public sealed partial class PlayService
     private readonly IClock _clock;
     private readonly INotificationPublisher _notifications;
     private readonly PlayContent _content;
+    private readonly SignImageOverrides _signImages;
     private readonly IMemoryCache _cache;
 
     public PlayService(
@@ -36,12 +37,14 @@ public sealed partial class PlayService
         IClock clock,
         INotificationPublisher notifications,
         PlayContent content,
+        SignImageOverrides signImages,
         IMemoryCache cache)
     {
         _db = db;
         _clock = clock;
         _notifications = notifications;
         _content = content;
+        _signImages = signImages;
         _cache = cache;
     }
 
@@ -573,7 +576,40 @@ public sealed partial class PlayService
 
     // ───────────────────────── Signs game ─────────────────────────
 
-    public IReadOnlyList<SignDto> GetSigns() => _content.Signs;
+    /// <summary>
+    /// Catalog signs with real exam photos when available (otherwise the /signals/{code}.svg drawing).
+    /// </summary>
+    public async Task<IReadOnlyList<SignDto>> GetSignsAsync(CancellationToken ct = default)
+    {
+        var catalog = _content.Signs;
+        if (catalog.Count == 0)
+        {
+            return catalog;
+        }
+
+        // Bust CDN/browser cache after SVG redraws (schematic shapes, not photos).
+        const string SvgCacheBust = "v=shape2";
+        var list = new List<SignDto>(catalog.Count);
+        foreach (var sign in catalog)
+        {
+            var real = await _signImages.ImageForAsync(sign.Code, ct);
+            if (!string.IsNullOrWhiteSpace(real))
+            {
+                list.Add(sign with { ImageUrl = real });
+                continue;
+            }
+
+            var url = sign.ImageUrl;
+            if (url.Contains("/signals/", StringComparison.OrdinalIgnoreCase) && !url.Contains('?'))
+            {
+                url = $"{url}?{SvgCacheBust}";
+            }
+
+            list.Add(url == sign.ImageUrl ? sign : sign with { ImageUrl = url });
+        }
+
+        return list;
+    }
 
     public async Task<GameSavedDto> SaveSignsResultAsync(
         int userId,

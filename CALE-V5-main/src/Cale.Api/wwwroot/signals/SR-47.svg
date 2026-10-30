@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="320" height="360" viewBox="0 0 320 360" role="img" aria-label="NO BLOQUEAR INTERSECCIÓN">
-  <rect width="320" height="360" fill="#f5f5f5"/>
-  <circle cx="160" cy="150" r="110" fill="#ffffff" stroke="#c62828" stroke-width="14"/>
-  <text x="160" y="129.0" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#c62828">NO BLOQUEAR</text><text x="160" y="151.0" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#c62828">INTERSECCIÓN</text>
-  <text x="160" y="340" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#616161">SR-47</text>
+  <rect width="320" height="360" fill="#f3f5f7"/>
+  
+  <polygon points="160,28 292,160 160,292 28,160" fill="#ffeb3b" stroke="#212121" stroke-width="10"/>
+  
+  <rect x="148" y="70" width="24" height="160" rx="4" fill="#212121"/>
+  <rect x="80" y="138" width="160" height="24" rx="4" fill="#212121"/>
+
+
+  <text x="160" y="348" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#546e7a">SR-47</text>
 </svg>

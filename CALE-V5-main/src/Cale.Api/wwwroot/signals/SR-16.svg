@@ -1,7 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="320" height="360" viewBox="0 0 320 360" role="img" aria-label="PROHIBIDA CIRCULACIÓN DE VEHÍCULOS AUTOMOTORES">
-  <rect width="320" height="360" fill="#f5f5f5"/>
-  <circle cx="160" cy="150" r="110" fill="#ffffff" stroke="#c62828" stroke-width="14"/>
-  <text x="160" y="107.0" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#c62828">PROHIBIDA</text><text x="160" y="129.0" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#c62828">CIRCULACIÓN DE</text><text x="160" y="151.0" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#c62828">VEHÍCULOS</text><text x="160" y="173.0" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#c62828">AUTOMOTORES</text>
-  <text x="160" y="340" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#616161">SR-16</text>
+  <rect width="320" height="360" fill="#f3f5f7"/>
+  
+  <circle cx="160" cy="150" r="112" fill="#ffffff" stroke="#c62828" stroke-width="16"/>
+  
+  <g transform="translate(160,150)">
+    <rect x="-46" y="-18" width="92" height="36" rx="8" fill="#212121"/>
+    <rect x="-30" y="-34" width="60" height="22" rx="6" fill="#212121"/>
+    <circle cx="-28" cy="22" r="10" fill="#212121"/>
+    <circle cx="28" cy="22" r="10" fill="#212121"/>
+  </g>
+
+  <line x1="78" y1="230" x2="242" y2="70" stroke="#c62828" stroke-width="18" stroke-linecap="round"/>
+
+  <text x="160" y="348" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#546e7a">SR-16</text>
 </svg>

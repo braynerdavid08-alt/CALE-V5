@@ -496,6 +496,8 @@
   display: grid;
   place-items: center;
   padding: 1.5rem;
+  min-width: 0;
+  min-height: 0;
   background:
     radial-gradient(circle at 20% 20%, rgba(43, 176, 237, 0.08), transparent 40%),
     #0a1118;
@@ -1342,7 +1344,8 @@
   background: #121c28;
   border-top: 1px solid #243447;
   font-size: 0.85rem;
-  max-height: min(42vh, 360px);
+  /* Deja siempre espacio al lienzo: la bandeja no puede comerse el stage. */
+  max-height: min(32vh, 300px);
   min-height: 0;
   overflow: hidden;
   flex-shrink: 0;
@@ -1426,13 +1429,14 @@
   padding: 0.45rem 0.65rem 0.55rem;
   height: 148px;
   min-height: 96px;
-  max-height: 320px;
+  max-height: min(28vh, 280px);
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
   min-width: 0;
   overflow: hidden;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .vial-tray-head {

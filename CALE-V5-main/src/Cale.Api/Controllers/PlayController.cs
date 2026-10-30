@@ -51,7 +51,7 @@ public sealed class PlayController : ControllerBase
         _play.GetAchievementsAsync(UserId, ct);
 
     [HttpGet("signs")]
-    public IReadOnlyList<SignDto> Signs() => _play.GetSigns();
+    public Task<IReadOnlyList<SignDto>> Signs(CancellationToken ct) => _play.GetSignsAsync(ct);
 
     [HttpGet("signs/questions")]
     public Task<IReadOnlyList<PlayQuestionDto>> SignsQuestions(CancellationToken ct) =>

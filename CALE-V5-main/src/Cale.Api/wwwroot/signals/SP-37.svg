@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="320" height="360" viewBox="0 0 320 360" role="img" aria-label="TÚNEL">
-  <rect width="320" height="360" fill="#f5f5f5"/>
+  <rect width="320" height="360" fill="#f3f5f7"/>
+  
   <polygon points="160,28 292,160 160,292 28,160" fill="#ffeb3b" stroke="#212121" stroke-width="10"/>
-  <text x="160" y="145.0" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#212121">TÚNEL</text>
-  <text x="160" y="340" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#616161">SP-37</text>
+  <path d="M70 220 V120 A90 90 0 0 1 250 120 V220" fill="none" stroke="#212121" stroke-width="14"/>
+
+  <text x="160" y="348" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#546e7a">SP-37</text>
 </svg>
