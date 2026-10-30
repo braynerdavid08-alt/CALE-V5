@@ -8,7 +8,7 @@ namespace Cale.Api.Services.Assistant;
 /// <remarks>
 /// Gemini (Render típico):
 /// <c>Assistant__Endpoint=https://generativelanguage.googleapis.com/v1beta/openai/chat/completions</c>
-/// <c>Assistant__Model=gemini-2.5-flash-lite</c> (rápido; evita que el chat se quede en “Pensando…”)
+/// <c>Assistant__Model=gemini-3.5-flash-lite</c> (rápido; evita que el chat se quede en “Pensando…”)
 /// <c>Assistant__ApiKey=...</c>
 /// No uses <c>openai/gpt-4o-mini</c> con Gemini: responde 404 generateContent.
 /// Evita <c>gemini-3.8-flash</c> en chat con herramientas: piensa demasiado y parece colgado.
@@ -18,7 +18,7 @@ public sealed class AssistantOptions
     public const string Section = "Assistant";
 
     /// <summary>Fast Gemini for chat + tools (OpenAI-compatible endpoint).</summary>
-    public const string DefaultGeminiModel = "gemini-2.5-flash-lite";
+    public const string DefaultGeminiModel = "gemini-3.5-flash-lite";
 
     /// <summary>When true, heavy Gemini 3.x Flash ids are remapped to <see cref="DefaultGeminiModel"/>.</summary>
     public bool PreferFastChat { get; set; } = true;
@@ -99,5 +99,10 @@ public sealed class AssistantOptions
         || model.Equals("gemini-3.6-flash", StringComparison.OrdinalIgnoreCase)
         || model.Equals("gemini-3.7-flash", StringComparison.OrdinalIgnoreCase)
         || model.Equals("gemini-3-flash", StringComparison.OrdinalIgnoreCase)
-        || model.Equals("gemini-3-flash-preview", StringComparison.OrdinalIgnoreCase);
+        || model.Equals("gemini-3-flash-preview", StringComparison.OrdinalIgnoreCase)
+        // Retired for many new Google AI Studio keys — remap to DefaultGeminiModel.
+        || model.Equals("gemini-2.5-flash-lite", StringComparison.OrdinalIgnoreCase)
+        || model.Equals("gemini-2.5-flash", StringComparison.OrdinalIgnoreCase)
+        || model.Equals("gemini-2.0-flash-lite", StringComparison.OrdinalIgnoreCase)
+        || model.Equals("gemini-2.0-flash", StringComparison.OrdinalIgnoreCase);
 }
