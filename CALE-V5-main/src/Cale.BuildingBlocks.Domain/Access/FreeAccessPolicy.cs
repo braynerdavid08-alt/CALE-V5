@@ -1,13 +1,14 @@
 namespace Cale.BuildingBlocks.Domain.Access;
 
 /// <summary>
-/// Free-for-all mode (config <c>Access:FreeForAll</c>, default true): every registered
-/// user gets full product access with or without a school, and seat caps are lifted.
-/// Plan/membership data is kept so the paid model can be switched back on.
+/// Pilot override (config <c>Access:FreeForAll</c>, default false).
+/// When enabled, schools operate without a paid membership and seat caps are lifted.
+/// Product model: students practice free; schools pay; instructors access via their school.
+/// Keep plan/membership data so production can require membership without a data migration.
 /// </summary>
 public static class FreeAccessPolicy
 {
     public const string ConfigKey = "Access:FreeForAll";
 
-    public static bool Enabled { get; set; } = true;
+    public static bool Enabled { get; set; } = false;
 }

@@ -45,7 +45,7 @@ if (useEphemeralDataProtection)
 Cale.BuildingBlocks.Domain.Access.FreeAccessPolicy.Enabled =
     builder.Configuration.GetValue(
         Cale.BuildingBlocks.Domain.Access.FreeAccessPolicy.ConfigKey,
-        true);
+        false);
 
 builder.AddCaleServices();
 

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Luz Verde — One-pager comercial</title>
+  <style>
+    :root {
+      --green: #1b7a4e;
+      --green-soft: #e8f5e9;
+      --ink: #122018;
+      --muted: #4a5c52;
+      --line: #c8ddd0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      font-size: 11.5pt;
+      line-height: 1.35;
+      background: #f4f6f5;
+    }
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 12px auto;
+      padding: 14mm 14mm 12mm;
+      background: #fff;
+      box-shadow: 0 8px 28px rgb(0 0 0 / 0.12);
+    }
+    header {
+      display: grid;
+      gap: 0.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 3px solid var(--green);
+      margin-bottom: 0.9rem;
+    }
+    .brand {
+      color: var(--green);
+      font-size: 1.85rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+    .tag {
+      margin: 0;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    h2 {
+      margin: 0.85rem 0 0.4rem;
+      font-size: 0.95rem;
+      color: var(--green);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    p { margin: 0.35rem 0; }
+    .lead { font-size: 1.05rem; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+      margin-top: 0.35rem;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 0.35rem 0.45rem;
+      vertical-align: top;
+      text-align: left;
+    }
+    th { background: var(--green-soft); color: var(--green); }
+    ul { margin: 0.25rem 0 0.4rem; padding-left: 1.15rem; }
+    li { margin: 0.15rem 0; }
+    .packs td:first-child { font-weight: 700; white-space: nowrap; }
+    .foot {
+      margin-top: 0.9rem;
+      padding-top: 0.55rem;
+      border-top: 1px solid var(--line);
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .cta {
+      margin-top: 0.7rem;
+      padding: 0.55rem 0.7rem;
+      background: var(--green-soft);
+      border-left: 4px solid var(--green);
+      font-weight: 600;
+    }
+    @media print {
+      body { background: #fff; }
+      .page { margin: 0; box-shadow: none; width: auto; min-height: auto; }
+      .noprint { display: none !important; }
+    }
+    .noprint {
+      max-width: 210mm;
+      margin: 10px auto 0;
+      padding: 0 8px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <p class="noprint">Para PDF: en el navegador use <b>Imprimir → Guardar como PDF</b> (márgenes mínimos).</p>
+  <article class="page">
+    <header>
+      <h1 class="brand">Luz Verde</h1>
+      <p class="tag">Formación que impulsa tu camino. · Plataforma para escuelas de conducción (CEA)</p>
+    </header>
+
+    <p class="lead">
+      Una sola plataforma para <b>operar la escuela</b>, <b>formar al aprendiz</b> y
+      <b>dictar clase con el instructor</b>: agenda, expedientes, simulacro del examen teórico,
+      aula en vivo y asistente Kazu.
+    </p>
+
+    <h2>Lo que recibe su CEA</h2>
+    <table>
+      <thead>
+        <tr><th>Escuela</th><th>Aprendiz</th><th>Instructor</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Expedientes y cartera de abonos<br/>Agenda semanal + reporte Excel del día<br/>Teoría, manejo y cupos de examen<br/>Operación / asistencia del día<br/>Importar y exportar Excel</td>
+          <td>Simulacro del examen teórico<br/>Cursos virtuales y biblioteca jurídica<br/>Agendar teoría / examen / manejo<br/>Retos, ranking y logros<br/>Asistente Kazu + app instalable</td>
+          <td>Aula en vivo (código / QR)<br/>Presentaciones y grupos<br/>100 Estudiantes Dijeron<br/>Informes de resultados</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Paquetes</h2>
+    <table class="packs">
+      <tbody>
+        <tr><td>A · Operación</td><td>Agenda, expedientes, cartera, teoría, manejo, exámenes, asistencia, Excel, usuarios</td></tr>
+        <tr><td>B · Formación</td><td>Simulador, cursos, biblioteca, retos, agenda del estudiante, Kazu</td></tr>
+        <tr><td>C · Aula digital</td><td>Vivo, presentaciones, grupos, GameShow, informes</td></tr>
+        <tr><td>Completo</td><td>A + B + C</td></tr>
+      </tbody>
+    </table>
+    <p><b>Referencia de precio:</b> mensual $500.000 COP · anual $5.000.000 COP (confirmar vigencia y condiciones del piloto).</p>
+
+    <h2>Por qué conviene</h2>
+    <ul>
+      <li>Menos información perdida entre Excel, papel y WhatsApp.</li>
+      <li>Visibilidad del día y de la semana para su equipo.</li>
+      <li>El aprendiz practica como en el examen real.</li>
+      <li>El instructor tiene herramientas de clase, no solo un PDF.</li>
+      <li>Reporte del día descargable, listo para compartir.</li>
+    </ul>
+
+    <div class="cta">
+      Cómo empezar: demo de 20–25 min (mostrar Excel del día + aprendiz + instructor) → piloto → plan.
+      Contacto: correo y teléfono de la página Contacto en Luz Verde.
+    </div>
+
+    <p class="foot">
+      One-pager comercial · Octubre 2026. Detalle en CATALOGO_PRODUCTO_LUZ_VERDE.md.
+      Términos legales definitivos, pagos electrónicos y reembolsos sujetos a revisión jurídica.
+    </p>
+  </article>
+</body>
+</html>

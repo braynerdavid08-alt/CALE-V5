@@ -175,10 +175,11 @@
     @if (profile(); as p) {
       @if (free()) {
         <section class="easy-panel donate-panel easy-soft">
-          <h2>Luz Verde es gratis para tu escuela</h2>
+          <h2>Modo piloto activo</h2>
           <p class="easy-text">
-            Agrega instructores y estudiantes sin planes ni pagos.
-            Si Luz Verde le sirve a tu escuela, puedes apoyarlo con una donación por Nequi.
+            Tu escuela opera sin cobro por ahora. En el modelo definitivo las escuelas pagan membresía
+            (estudiantes practican gratis; instructores entran con el plan de la escuela).
+            Si Luz Verde te sirve, puedes apoyarlo con una donación por Nequi.
           </p>
           <ui-button routerLink="/donaciones" type="button" variant="secondary">Apoyar Luz Verde</ui-button>
         </section>
@@ -190,6 +191,9 @@
             @if (p.membershipEndsAt) {
               · vence {{ p.membershipEndsAt | date:'mediumDate' }}
             }
+          </p>
+          <p class="easy-text">
+            Con el plan activo tu CEA opera y otorga acceso a sus instructores. Los estudiantes practican gratis.
           </p>
           <ui-button routerLink="/school/membership" type="button" variant="secondary">Ver mi plan</ui-button>
         </section>

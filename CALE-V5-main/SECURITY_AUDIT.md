@@ -65,10 +65,11 @@ Leyenda de estado: ✅ corregido en este cambio · ⚠️ mitigado parcialmente 
 - **Solución:** cada petición autenticada a `/api` comprueba en BD que el usuario existe, está activo y conserva el rol del token (401 `session_revoked`). Al desactivar, borrar, cambiar rol, contraseña o correo se revocan todos los refresh tokens. Se registra auditoría (`Audit: admin X ...`).
 
 ### H8 — Autorregistro como Instructor o Escuela con acceso inmediato ⏳ (decisión de negocio)
-- **Archivos:** `RegisterTeacherHandler.cs`, `RegisterSchoolHandler.cs`, `BuildingBlocks.Domain/Access/FreeAccessPolicy.cs` (`Access:FreeForAll`, por defecto `true`).
+- **Archivos:** `RegisterTeacherHandler.cs`, `RegisterSchoolHandler.cs`, `BuildingBlocks.Domain/Access/FreeAccessPolicy.cs` (`Access:FreeForAll`, default código `false`).
 - **Endpoints:** `POST /api/auth/register-teacher`, `POST /api/auth/register-school`.
-- **Riesgo:** con el modo gratuito activo, cualquiera crea una cuenta de instructor/escuela y obtiene acceso al banco oficial (lectura de catálogo) y a herramientas de exportación.
-- **Solución propuesta:** aprobación manual por Admin de nuevas escuelas/instructores, o `Access__FreeForAll=false` en Render cuando termine el piloto. No se cambió porque altera el modelo comercial.
+- **Modelo:** estudiantes practican gratis; escuelas pagan; instructores vía plan del CEA. `FreeForAll=true` solo override piloto.
+- **Riesgo residual:** si Render aún tiene `Access__FreeForAll=true`, escuelas/instructores operan sin membresía.
+- **Pendiente en Render:** cortesía/planes a escuelas actuales y apagar `Access__FreeForAll` (sin desplegar hasta que lo indiques).
 
 ---
 

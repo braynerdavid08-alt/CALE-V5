@@ -61,7 +61,9 @@ export class TeacherHomePage implements OnInit {
   readonly schoolLine = computed(() => {
     const school = this.data()?.school;
     if (!school) {
-      return this.session.freeAccess() ? 'Instructor independiente · Luz Verde gratis' : 'Sin escuela asignada';
+      return this.session.freeAccess()
+        ? 'Instructor independiente · modo piloto'
+        : 'Sin escuela asignada — pide que te vinculen';
     }
     const place = [school.city, school.department].filter(Boolean).join(', ');
     return place ? `${school.legalName} · ${place}` : school.legalName;

@@ -10,7 +10,7 @@ Complementa `SECURITY_AUDIT.md`. Describe **qué se cambió, dónde y cómo oper
 | `Security__Csp__Mode` | `enforce` (por defecto) · `report-only` · `off` | Interruptor de emergencia: si la CSP bloquea algo legítimo, pon `report-only` sin redesplegar código. |
 | `RateLimiting__GlobalPerIpPerMinute` | `3000` por defecto | Techo de peticiones `/api` por IP. Alto porque un salón entero comparte la IP del colegio. |
 | `Uploads__DefaultMaxBodyMegabytes` | `30` por defecto | Tamaño máximo de cuerpo para endpoints sin límite propio. |
-| `Access__FreeForAll` | Hoy `true` | Decisión pendiente (H8): ponerlo en `false` al terminar el piloto. |
+| `Access__FreeForAll` | Código default `false`; Render puede seguir en `true` | Apagar en Render tras cortesía/planes (estudiantes gratis; escuelas pagan). |
 
 Generar una clave segura (PowerShell):
 

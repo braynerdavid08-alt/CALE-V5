@@ -6,7 +6,7 @@ Completar estos puntos evita contradicciones entre el documento, el contrato y e
 
 ## Comercial
 
-1. **Fecha de apagar `Access:FreeForAll`** en producción (hoy el piloto puede seguir en acceso abierto).
+1. **Fecha de apagar `Access:FreeForAll` en Render** (código ya default `false`; Render puede seguir con env `true` hasta otorgar cortesía/planes). Modelo: estudiante gratis · escuela paga · instructor vía escuela.
 2. **Cupos** de estudiantes e instructores incluidos en cada plan (hoy el catálogo no fija un tope comercial anunciable).
 3. **¿El precio incluye impuestos?** Pendiente de confirmación comercial y contable.
 4. **Medio de recaudo** (transferencia + confirmación admin vs futuro proveedor de pagos).

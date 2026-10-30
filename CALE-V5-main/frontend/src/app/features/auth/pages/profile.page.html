@@ -261,7 +261,7 @@
         </p>
         <div class="meta">
           @if (session.freeAccess()) {
-            <ui-badge tone="success">Luz Verde gratis</ui-badge>
+            <ui-badge tone="success">Modo piloto</ui-badge>
           } @else {
             <ui-badge [tone]="statusTone(school.subscriptionStatus)">
               {{ statusLabel(school.subscriptionStatus) }}
@@ -283,8 +283,12 @@
       } @else if (role() === 'Teacher' || role() === 'Student') {
         <p class="muted">
           Todavía no estás vinculado a una escuela.
-          @if (session.freeAccess()) {
-            No hace falta: puedes usar todo Luz Verde gratis por tu cuenta.
+          @if (role() === 'Student') {
+            Puedes practicar el simulacro y los cursos gratis; para clases y agenda de un CEA, vincula tu escuela.
+          } @else if (session.freeAccess()) {
+            Estás en modo piloto. En el modelo definitivo tu acceso lo otorga el plan de la escuela.
+          } @else {
+            Para bancos, aula y herramientas del CEA necesitas que tu escuela te vincule con membresía activa.
           }
         </p>
         @if (pendingInvites().length) {

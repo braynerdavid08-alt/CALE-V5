@@ -17,14 +17,14 @@
       @if (free()) {
         <span class="foot-icon" aria-hidden="true">💚</span>
         <span>
-          <strong>100% gratis</strong>
-          Registra tu escuela y empieza hoy mismo. Sin planes, sin pagos y sin límite de instructores ni estudiantes.
+          <strong>Modo piloto</strong>
+          Acceso temporal sin cobro para tu escuela. Los estudiantes siempre practican gratis; el cobro a CEA se activa al salir del piloto.
         </span>
       } @else {
         <span class="foot-icon" aria-hidden="true">🧾</span>
         <span>
-          <strong>¿Cómo se activa?</strong>
-          Registra la escuela, elige un plan, paga y sube el comprobante. Un administrador activa tu membresía.
+          <strong>Escuela con membresía</strong>
+          Los estudiantes practican gratis. Tu CEA elige un plan, paga y sube el comprobante; con el plan activo otorgas acceso a tus instructores.
         </span>
       }
     </div>
@@ -34,9 +34,9 @@
     <p class="eyebrow">Cuenta de escuela</p>
     <h2>Registrar mi escuela</h2>
     @if (free()) {
-      <p class="lead">Completa los datos de tu escuela. Usar Luz Verde es gratis.</p>
+      <p class="lead">Completa los datos de tu escuela. Estás en modo piloto (sin cobro aún).</p>
     } @else {
-      <p class="lead">Los datos fiscales son obligatorios para emitir la factura a nombre de la escuela.</p>
+      <p class="lead">Los datos fiscales son obligatorios. Elige un plan para operar e incluir a tus instructores.</p>
     }
     <ui-error [message]="auth.error() || plansError()" />
 
@@ -145,12 +145,12 @@
       <a class="signup-option" routerLink="/register">
         <span class="opt-icon" aria-hidden="true">🎓</span>
         <span class="opt-title">Estudiante</span>
-        <span class="opt-desc">Prepárate para el examen</span>
+        <span class="opt-desc">Práctica gratis para el examen</span>
       </a>
       <a class="signup-option" routerLink="/register-teacher">
         <span class="opt-icon" aria-hidden="true">🧑‍🏫</span>
         <span class="opt-title">Instructor</span>
-        <span class="opt-desc">Guía a tus grupos</span>
+        <span class="opt-desc">Acceso vía tu escuela</span>
       </a>
     </div>
   </div>

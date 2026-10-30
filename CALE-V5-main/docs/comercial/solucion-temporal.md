@@ -1,7 +1,17 @@
 # Solución temporal comercial — Luz Verde (CEA)
 
-**Fecha:** 22–23 de octubre de 2026  
-**Estado:** implementada en código (piloto). No sustituye pasarela ni facturación electrónica.
+**Fecha:** 22–23 de octubre 2026 (actualizado 30 oct 2026)  
+**Estado:** implementada en código. No sustituye pasarela ni facturación electrónica.
+
+## Modelo de producto (alineado)
+
+| Quién | Acceso |
+|--------|--------|
+| **Estudiante** | Gratis (simulacro, práctica, cursos públicos / B2C). |
+| **Escuela (CEA)** | Paga membresía (Mensual **$500.000** / Anual **$5.000.000** COP por defecto). |
+| **Instructor** | Accede porque la **escuela** tiene plan (o cortesía) activo. |
+
+`Access:FreeForAll` es solo un **override de piloto**: si está en `true`, las escuelas operan sin exigir membresía. El default del producto es **`false`**.
 
 ## Qué resuelve
 
@@ -26,10 +36,12 @@ Permite ofrecer suscripciones B2B a escuelas con:
 `CanOperateProduct` / `SchoolMembershipGuard`:
 
 1. Si la escuela está pendiente de aprobación → bloqueo.
-2. Si `Access:FreeForAll=true` → acceso (modo piloto actual por defecto).
+2. Si `Access:FreeForAll=true` → acceso de escuela/instructor sin membresía (piloto).
 3. Si no: acceso con membresía Active vigente **o** cortesía vigente.
 
-Al desplegar, **FreeForAll sigue en true** hasta que el administrador lo apague en configuración. Antes de apagarlo, otorgue cortesía o active planes a las escuelas actuales.
+Los **estudiantes** pueden practicar simulacros aunque `FreeForAll=false` y aunque no estén vinculados a una escuela.
+
+En `appsettings.json` / Production el default es `Access:FreeForAll=false`. Development local puede dejarlo en `true` para no bloquear demos. **Render no se cambia hasta que se otorgue cortesía o plan a las escuelas actuales** y se quite/actualice `Access__FreeForAll` en el entorno.
 
 ## Endpoints principales
 
@@ -55,17 +67,14 @@ Al desplegar, **FreeForAll sigue en true** hasta que el administrador lo apague 
 
 ## Configuración relevante
 
-- `Access:FreeForAll` — acceso abierto global.
+- `Access:FreeForAll` — override piloto (default producto: `false`).
 - `Assistant:DailyMessagesPerUser` (default 20) — cuota diaria por estudiante/usuario.
 - `Assistant:DailyRequestsPerUser|School|Budget` — topes de llamadas al proveedor.
 - Tabla `CommercialPlans` — precios/límites editables (seed: Monthly 500000, Annual 5000000, Semestral legacy inactivo).
 
-## Decisiones pendientes antes del lanzamiento comercial
+## Antes de apagar el piloto en Render
 
-1. Fecha de apagar `FreeForAll` en producción.
-2. Cupos concretos de estudiantes/instructores (hoy ilimitados por defecto).
-3. Canal y horario de soporte.
-4. Responsable legal, NIT, términos definitivos (sistema legal aplazado).
-5. Medio de recaudo real y política de reembolsos.
-6. Si/cuando se implementará overage de IA cobrable (hoy solo corte + contacto).
-7. Unificar materiales de venta con precios del catálogo vivo.
+1. Otorgar cortesía o activar plan a cada escuela en uso.
+2. Confirmar que el registro de escuela muestra planes ($500.000 / $5.000.000).
+3. Poner `Access__FreeForAll=false` (o eliminar la variable si el appsettings Production ya trae `false`).
+4. Verificar: estudiante sin escuela sigue practicando; escuela sin plan no opera; instructor sin escuela vinculada con plan no usa catálogo.

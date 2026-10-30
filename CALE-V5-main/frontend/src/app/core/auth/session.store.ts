@@ -23,8 +23,11 @@ export class SessionStore {
   readonly isAuthenticated = computed(() => !!this.user());
   readonly hasCatalogAccess = computed(() => this.catalogAccess());
   readonly hasSimulacroAccess = computed(() => this.simulacroAccess());
-  /** Modo gratuito activo (por defecto sí hasta que el servidor diga lo contrario). */
-  readonly freeAccess = computed(() => this.user()?.freeAccess !== false);
+  /**
+   * Pilot override from the API (`Access:FreeForAll`).
+   * When false (product default): schools/instructors need membership; students still practice free.
+   */
+  readonly freeAccess = computed(() => this.user()?.freeAccess === true);
 
   private readonly catalogAccess = computed(() => {
     const user = this.user();
@@ -45,13 +48,14 @@ export class SessionStore {
     if (!user) {
       return false;
     }
-    if (user.role === 'Admin' || this.freeAccess()) {
+    // Students always practice free.
+    if (user.role === 'Admin' || user.role === 'Student' || this.freeAccess()) {
       return true;
     }
     if (user.role === 'School') {
       return !!user.isMembershipActive;
     }
-    if (user.role === 'Teacher' || user.role === 'Student') {
+    if (user.role === 'Teacher') {
       return !!user.schoolId && !!user.isMembershipActive;
     }
     return false;

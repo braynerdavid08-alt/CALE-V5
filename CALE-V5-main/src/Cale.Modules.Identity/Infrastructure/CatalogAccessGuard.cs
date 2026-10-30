@@ -73,7 +73,13 @@ public sealed class CatalogAccessGuard : ICatalogAccessGuard
             return;
         }
 
-        if (role is Roles.Teacher or Roles.Student)
+        // Students always practice free (official banks / simulacros), with or without a school.
+        if (role == Roles.Student)
+        {
+            return;
+        }
+
+        if (role == Roles.Teacher)
         {
             await EnsureLinkedSchoolMembershipActiveAsync(
                 userId,
