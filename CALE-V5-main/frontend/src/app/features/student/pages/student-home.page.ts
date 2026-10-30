@@ -70,8 +70,13 @@ export class StudentHomePage implements OnInit {
           this.fx.play('badge');
           this.fx.confetti(90);
         }
+        // Tour highlights “práctica de hoy” / juegos; wait until those cards exist.
+        this.scheduleTourStart();
       },
-      error: () => this.summary.set(null)
+      error: () => {
+        this.summary.set(null);
+        this.scheduleTourStart();
+      }
     });
     // Re-sync school from /me so after the CEA accepts the join request the banner disappears.
     this.session.refreshMe().subscribe({
@@ -79,15 +84,19 @@ export class StudentHomePage implements OnInit {
         if (this.session.user()?.schoolId) {
           this.loadTheory();
         }
-        queueMicrotask(() => this.tour.maybeAutoStart());
+        this.scheduleTourStart();
       },
       error: () => {
         if (this.session.user()?.schoolId) {
           this.loadTheory();
         }
-        queueMicrotask(() => this.tour.maybeAutoStart());
+        this.scheduleTourStart();
       }
     });
+  }
+
+  private scheduleTourStart(): void {
+    queueMicrotask(() => this.tour.maybeAutoStart());
   }
 
   private loadTheory(): void {
@@ -192,6 +201,10 @@ export class StudentHomePage implements OnInit {
         return 'student-classes';
       case 'biblioteca-juridica':
         return 'student-library';
+      case 'progress':
+        return 'student-progress';
+      case 'exam':
+        return 'student-exam';
       default:
         return null;
     }

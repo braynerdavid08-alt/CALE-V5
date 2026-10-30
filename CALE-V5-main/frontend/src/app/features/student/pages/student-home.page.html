@@ -73,7 +73,7 @@
   </header>
 
   <section class="priority" aria-label="Tienda y apoyo">
-    <a class="priority-card shop" routerLink="/tienda">
+    <a class="priority-card shop" routerLink="/tienda" data-tour="student-shop">
       <span class="priority-icon" aria-hidden="true"><ui-icon name="image" size="lg" /></span>
       <span class="priority-copy">
         <strong>Tienda Luz Verde</strong>
@@ -105,7 +105,12 @@
   @if (summary(); as s) {
     <h2 class="section-title">Tu práctica de hoy</h2>
     <section class="today" aria-label="Tu práctica de hoy">
-      <a class="today-card" data-tone="amber" routerLink="/student/play/daily" [class.done]="s.dailyCompleted">
+      <a
+        class="today-card"
+        data-tone="amber"
+        data-tour="student-daily-card"
+        routerLink="/student/play/daily"
+        [class.done]="s.dailyCompleted">
         <span class="today-head">
           <span class="today-icon" aria-hidden="true">{{ s.dailyCompleted ? '✅' : '🎯' }}</span>
           <span class="today-kicker">Reto diario</span>
@@ -121,7 +126,7 @@
         <span class="today-cta">{{ s.dailyCompleted ? 'Ver resultado' : 'Jugar ahora' }} →</span>
       </a>
 
-      <a class="today-card" data-tone="rose" routerLink="/student/play/mistakes">
+      <a class="today-card" data-tone="rose" routerLink="/student/play/mistakes" data-tour="student-mistakes">
         <span class="today-head">
           <span class="today-icon" aria-hidden="true">🔁</span>
           <span class="today-kicker">Repaso de errores</span>
@@ -135,7 +140,7 @@
         <span class="today-cta">Repasar →</span>
       </a>
 
-      <a class="today-card" data-tone="sky" routerLink="/student/play/ranking">
+      <a class="today-card" data-tone="sky" routerLink="/student/play/ranking" data-tour="student-ranking">
         <span class="today-head">
           <span class="today-icon" aria-hidden="true">🏁</span>
           <span class="today-kicker">Ranking (2 años)</span>
@@ -148,7 +153,7 @@
       </a>
     </section>
 
-    <section class="games" aria-label="Juegos">
+    <section class="games" aria-label="Juegos" data-tour="student-games">
       <div class="games-head">
         <h2 class="section-title">Juega y aprende</h2>
         <span class="new-tag">Nuevo</span>

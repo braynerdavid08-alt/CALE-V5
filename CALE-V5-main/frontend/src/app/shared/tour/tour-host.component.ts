@@ -24,8 +24,8 @@ interface HoleRect {
   height: number;
 }
 
-const TARGET_TIMEOUT_MS = 1600;
-const SETTLE_MS = 80;
+const TARGET_TIMEOUT_MS = 2200;
+const SETTLE_MS = 100;
 const PAD = 8;
 
 @Component({
@@ -61,8 +61,8 @@ const PAD = 8;
             <app-tour-mascot pose="explain" size="md" />
             <h2>¡Hola! Soy {{ tour.mascotName }}</h2>
             <p>
-              Te muestro lo esencial en {{ tour.stepCount }} pasos cortos.
-              Se guarda en este dispositivo para tu cuenta.
+              Te recorro las funciones de tu panel en {{ tour.stepCount }} pasos.
+              Puedes omitir cuando quieras; la guía se guarda en este dispositivo.
             </p>
             <div class="actions">
               <ui-button type="button" (click)="tour.beginTour()">Empezar guía</ui-button>
@@ -101,7 +101,8 @@ const PAD = 8;
             <app-tour-mascot pose="celebrate" size="md" />
             <h2>¡Listo!</h2>
             <p>
-              Ya conoces lo esencial. Puedes repetir esta guía desde Preferencias.
+              Ya viste práctica, tienda, cursos, aula, progreso, examen y cómo hablar conmigo.
+              Puedes repetir la guía desde Preferencias.
             </p>
             <div class="actions">
               <ui-button type="button" (click)="finish()">Ir a mi panel</ui-button>
