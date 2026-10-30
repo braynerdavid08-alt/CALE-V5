@@ -149,12 +149,14 @@ import { PlayApi, SignImageReport, SignsReport } from '../../play/api/play.api';
       }
     }
 
-    <h2>Fotos reales del catálogo (editor y cursos)</h2>
+    <h2>Banco oficial de señales (editor y cursos)</h2>
     <p class="hint">
-      Las miniaturas oficiales salen de los mismos exámenes de señales que Señal relámpago
-      (nombre con “señal”, del administrador o preguntas en bancos oficiales).
-      La respuesta correcta debe ser el <strong>nombre oficial</strong> o el código (p. ej. SR-01).
-      Pulsa Actualizar para forzar un recálculo inmediato.
+      Se arma solo con las fotos y nombres de
+      <strong>Examen Señales Reglamentarias</strong>,
+      <strong>Examen Señales Preventivas</strong> y
+      <strong>Examen Señales Informativas</strong>.
+      Sin esos exámenes (o sin imágenes), la bandeja vial del editor no aparece.
+      Pulsa Actualizar para recalcular.
     </p>
     @if (images(); as im) {
       <div class="stats">

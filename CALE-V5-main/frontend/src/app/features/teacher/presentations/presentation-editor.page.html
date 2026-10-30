@@ -89,10 +89,12 @@
           @if (toolbarMenu() === 'insert') {
             <div class="tb-dropdown" (click)="$event.stopPropagation()">
               <button type="button" (click)="addLogo(); closeFloatingMenus()">Logo Luz Verde</button>
-              <button type="button" (click)="openSignPicker(); closeFloatingMenus()">Biblioteca vial</button>
-              <button type="button" (click)="toggleResourcesTray(); closeFloatingMenus()">
-                {{ resourcesTrayOpen() ? 'Ocultar bandeja vial' : 'Mostrar bandeja vial' }}
-              </button>
+              @if (hasOfficialSignBank()) {
+                <button type="button" (click)="openSignPicker(); closeFloatingMenus()">Biblioteca vial</button>
+                <button type="button" (click)="toggleResourcesTray(); closeFloatingMenus()">
+                  {{ resourcesTrayOpen() ? 'Ocultar bandeja vial' : 'Mostrar bandeja vial' }}
+                </button>
+              }
               <button type="button" (click)="addQuestion('mcq'); closeFloatingMenus()">Pregunta A–D</button>
               <button type="button" (click)="addQuestion('vf'); closeFloatingMenus()">Verdadero / Falso</button>
             </div>
@@ -1085,12 +1087,12 @@
     </div>
 
     <footer class="ed-bottom">
-      @if (resourcesTrayOpen()) {
+      @if (resourcesTrayOpen() && hasOfficialSignBank()) {
         <div
           class="ed-resize ed-resize-y"
           title="Arrastra para cambiar la altura de la bandeja"
           (pointerdown)="startPanelResize('tray', $event)"></div>
-        <div class="vial-tray" [style.height.px]="trayH()" aria-label="Recursos viales">
+        <div class="vial-tray" [style.height.px]="trayH()" aria-label="Señales oficiales">
           <div class="vial-tray-head">
             <strong>Señales oficiales</strong>
             <div class="vial-cats">
@@ -1154,9 +1156,11 @@
           <span>{{ (zoom() * 100) | number: '1.0-0' }}%</span>
           <button type="button" (click)="setZoom(zoom() + 0.1)">+</button>
           <button type="button" (click)="fitZoom()">Ajustar</button>
-          <button type="button" [class.on]="resourcesTrayOpen()" (click)="toggleResourcesTray()">
-            Recursos
-          </button>
+          @if (hasOfficialSignBank()) {
+            <button type="button" [class.on]="resourcesTrayOpen()" (click)="toggleResourcesTray()">
+              Señales
+            </button>
+          }
         </div>
         <div class="nav">
           <button type="button" [disabled]="activeIndex() === 0" (click)="selectSlide(activeIndex() - 1)">

@@ -47,13 +47,17 @@ export function filterCatalogSigns(
   });
 }
 
-/** Inserts the official catalog image (SVG path; middleware may redirect to real photo). */
+/** Inserts a photo from the official exam-based sign bank (never a schematic SVG). */
 export function buildCatalogSignImageElement(
   sign: CatalogSignRef,
   x = 780,
   y = 300,
   size = 360
 ): SlideElement {
+  const src = (sign.imageUrl || '').trim();
+  if (!src || src.includes('/signals/')) {
+    throw new Error('Señal sin foto real del examen.');
+  }
   return {
     id: newClientId('el'),
     type: 'image',
@@ -64,7 +68,7 @@ export function buildCatalogSignImageElement(
     rotation: 0,
     z: 1,
     props: {
-      src: sign.imageUrl || `/signals/${sign.code}.svg`,
+      src,
       opacity: 1,
       objectFit: 'contain'
     }

@@ -577,39 +577,11 @@ public sealed partial class PlayService
     // ───────────────────────── Signs game ─────────────────────────
 
     /// <summary>
-    /// Catalog signs with real exam photos when available (otherwise the /signals/{code}.svg drawing).
+    /// Official sign bank from the three template exams (Reglamentarias / Preventivas / Informativas).
+    /// Only real photos — never schematic /signals/*.svg drawings.
     /// </summary>
-    public async Task<IReadOnlyList<SignDto>> GetSignsAsync(CancellationToken ct = default)
-    {
-        var catalog = _content.Signs;
-        if (catalog.Count == 0)
-        {
-            return catalog;
-        }
-
-        // Bust CDN/browser cache after SVG redraws (schematic shapes, not photos).
-        const string SvgCacheBust = "v=shape2";
-        var list = new List<SignDto>(catalog.Count);
-        foreach (var sign in catalog)
-        {
-            var real = await _signImages.ImageForAsync(sign.Code, ct);
-            if (!string.IsNullOrWhiteSpace(real))
-            {
-                list.Add(sign with { ImageUrl = real });
-                continue;
-            }
-
-            var url = sign.ImageUrl;
-            if (url.Contains("/signals/", StringComparison.OrdinalIgnoreCase) && !url.Contains('?'))
-            {
-                url = $"{url}?{SvgCacheBust}";
-            }
-
-            list.Add(url == sign.ImageUrl ? sign : sign with { ImageUrl = url });
-        }
-
-        return list;
-    }
+    public Task<IReadOnlyList<SignDto>> GetSignsAsync(CancellationToken ct = default) =>
+        _signImages.BankAsync(ct);
 
     public async Task<GameSavedDto> SaveSignsResultAsync(
         int userId,

@@ -11,46 +11,23 @@ namespace Cale.UnitTests;
 
 public sealed class SignImageOverridesTests
 {
-    private static readonly SignDto[] Signs =
+    private static readonly SignDto[] Catalog =
     [
         new("SR-01", "Señales reglamentarias", "Pare", "/signals/SR-01.svg"),
         new("SR-26", "Señales reglamentarias", "No adelantar", "/signals/SR-26.svg"),
-        new("SR-26A", "Señales reglamentarias", "Fin de la prohibición de adelantar", "/signals/SR-26A.svg"),
-        new("SR-28", "Señales reglamentarias", "Prohibido parquear", "/signals/SR-28.svg"),
-        new("SP-01", "Señales preventivas", "Curva cerrada a la izquierda", "/signals/SP-01.svg"),
         new("SP-02", "Señales preventivas", "Curva cerrada a la derecha", "/signals/SP-02.svg"),
-        new("SR-03", "Señales reglamentarias", "Dirección obligada o siga de frente", "/signals/SR-03.svg")
+        new("SI-01", "Señales informativas", "Hospital", "/signals/SI-01.svg")
     ];
 
     private static string? One(string answer) =>
-        SignImageOverrides.Match(answer, Signs) is [var sign] ? sign.Code : null;
+        SignImageOverrides.Match(answer, Catalog) is [var sign] ? sign.Code : null;
 
     [Theory]
     [InlineData("PARE", "SR-01")]
-    [InlineData("  Pare. ", "SR-01")]
-    [InlineData("Señal de PARE", "SR-01")]
-    [InlineData("La señal de Pare", "SR-01")]
-    [InlineData("STOP", "SR-01")]
-    [InlineData("FIN DE LA PROHIBICIÓN DE ADELANTAR", "SR-26A")]
-    [InlineData("Fin de la prohibicion de adelantar", "SR-26A")]
-    [InlineData("SR-26: prohibido adelantar", "SR-26")]
-    [InlineData("PROHIBIDO ADELANTAR", "SR-26")]
-    [InlineData("PROHIBIDO ESTACIONAR", "SR-28")]
-    [InlineData("SIGA DE FRENTE", "SR-03")]
-    [InlineData("SR 1", "SR-01")]
-    [InlineData("SR01", "SR-01")]
-    [InlineData("¿Cuál de estas imágenes es la señal de curva cerrada a la derecha?", "SP-02")]
-    [InlineData("Curva cerrada izquierda", "SP-01")]
-    public void Matches_answers_to_catalog_signs(string answer, string code) =>
+    [InlineData("SR-26", "SR-26")]
+    [InlineData("Curva cerrada a la derecha", "SP-02")]
+    public void Matches_answers_to_catalog_codes(string answer, string code) =>
         Assert.Equal(code, One(answer));
-
-    [Theory]
-    [InlineData("Examen Señales SR", true)]
-    [InlineData("Reglamentarias oficiales", true)]
-    [InlineData("Preventivas 2024", true)]
-    [InlineData("Examen teoría general", false)]
-    public void Detects_sign_exam_names(string name, bool expected) =>
-        Assert.Equal(expected, SignImageOverrides.IsSignExamName(name));
 
     private sealed class SignsModelKey : IModelCacheKeyFactory
     {
@@ -58,7 +35,7 @@ public sealed class SignImageOverridesTests
     }
 
     [Fact]
-    public async Task Build_uses_admin_exams_admin_banks_and_official_bank_questions()
+    public async Task Bank_is_built_only_from_the_three_template_exams_with_real_photos()
     {
         var now = new DateTime(2026, 10, 3, 12, 0, 0, DateTimeKind.Utc);
         await using var db = new CaleDbContext(
@@ -68,34 +45,28 @@ public sealed class SignImageOverridesTests
                 .Options,
             new MappingAssemblies(typeof(UserConfiguration).Assembly, typeof(QuestionOptionConfiguration).Assembly));
         var admin = User.CreateAdmin("Admin", "admin@test.co", "x", now);
-        var school = User.RegisterSchool("Escuela", "e@test.co", "x", now);
-        var official = Bank.Create("Señales oficiales", null, now);
-        var schoolBank = Bank.Create("Banco escuela", null, now, school.Id);
+        var bank = Bank.Create("Señales", null, now);
         var block = Block.Create("Señales");
-        db.AddRange(admin, school, official, schoolBank, block);
+        db.AddRange(admin, bank, block);
         await db.SaveChangesAsync();
 
-        Question Ask(int bankId, int authorId, string image, string answer) => Question.Create(
-            bankId, block.Id, authorId, "¿Cómo se llama esta señal?",
+        Question Ask(string image, string answer) => Question.Create(
+            bank.Id, block.Id, admin.Id, "¿Cómo se llama esta señal?",
             "Seleccion multiple", null, image, null,
             [QuestionOption.Create("Otra", false, null), QuestionOption.Create(answer, true, null)], now);
 
-        var pare = Ask(official.Id, admin.Id, "/api/media/aaaa", "PARE");
-        var unknown = Ask(official.Id, admin.Id, "/api/media/bbbb", "Semáforo peatonal");
-        var curve = Ask(official.Id, admin.Id, "/api/media/cccc", "Curva cerrada a la derecha");
-        var schoolOfficialQ = Ask(official.Id, school.Id, "/api/media/eeee", "SR-26");
-        var schoolPrivate = Ask(schoolBank.Id, school.Id, "/api/media/ffff", "PARE");
-        // In the official bank but not linked to any exam — second pass must still map it.
-        var orphanInBank = Ask(official.Id, admin.Id, "/api/media/gggg", "PROHIBIDO ESTACIONAR");
-        db.AddRange(pare, unknown, curve, schoolOfficialQ, schoolPrivate, orphanInBank);
+        var pare = Ask("/api/media/pare", "PARE");
+        var curve = Ask("/api/media/curve", "Curva cerrada a la derecha");
+        var hospital = Ask("/api/media/hosp", "Hospital");
+        var noImage = Ask("", "PARE");
+        var other = Ask("/api/media/other", "Algo raro");
+        db.AddRange(pare, curve, hospital, noImage, other);
 
-        var sr = Exam.Create("Examen Señales SR", null, official.Id, 2, 10, 1, false, admin.Id, null, null, now);
-        var sp = Exam.Create("Examen Señales Preventivas", null, official.Id, 1, 10, 1, false, admin.Id, null, null, now);
-        var schoolOfficialExam = Exam.Create(
-            "Examen señales reglamentarias escuela", null, official.Id, 1, 10, 1, false, school.Id, null, null, now);
-        var schoolPrivateExam = Exam.Create(
-            "Examen señales interno", null, schoolBank.Id, 1, 10, 1, false, school.Id, null, null, now);
-        db.AddRange(sr, sp, schoolOfficialExam, schoolPrivateExam);
+        var sr = Exam.Create("Examen Señales Reglamentarias", null, bank.Id, 2, 10, 1, false, admin.Id, null, null, now);
+        var sp = Exam.Create("Examen Señales Preventivas", null, bank.Id, 1, 10, 1, false, admin.Id, null, null, now);
+        var si = Exam.Create("Examen Señales Informativas", null, bank.Id, 1, 10, 1, false, admin.Id, null, null, now);
+        var noise = Exam.Create("Examen teoría general", null, bank.Id, 1, 10, 1, false, admin.Id, null, null, now);
+        db.AddRange(sr, sp, si, noise);
         await db.SaveChangesAsync();
 
         void Link(Exam exam, Question question)
@@ -107,32 +78,25 @@ public sealed class SignImageOverridesTests
         }
 
         Link(sr, pare);
-        Link(sr, unknown);
+        Link(sr, noImage);
         Link(sp, curve);
-        Link(schoolOfficialExam, schoolOfficialQ);
-        Link(schoolPrivateExam, schoolPrivate);
+        Link(si, hospital);
+        Link(noise, other);
         await db.SaveChangesAsync();
 
-        var report = await SignImageOverrides.BuildAsync(db, Signs, default);
+        var (bankSigns, report) = await SignImageOverrides.BuildBankAsync(db, Catalog, default);
 
-        Assert.Contains(report.Exams, n => n.Contains("SR", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(3, report.Exams.Count);
+        Assert.Contains(report.Exams, n => n.Contains("Reglamentarias", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(report.Exams, n => n.Contains("Preventivas", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(report.Exams, n => n.Contains("escuela", StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain(report.Exams, n => n.Contains("interno", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(report.Exams, n => n.Contains("Informativas", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(report.Exams, n => n.Contains("teoría", StringComparison.OrdinalIgnoreCase));
 
-        Assert.Equal("/api/media/aaaa", Assert.Single(report.Matched, m => m.Code == "SR-01").ImageUrl);
-        Assert.Equal("/api/media/cccc", Assert.Single(report.Matched, m => m.Code == "SP-02").ImageUrl);
-        Assert.Equal("/api/media/eeee", Assert.Single(report.Matched, m => m.Code == "SR-26").ImageUrl);
-        Assert.Equal("/api/media/gggg", Assert.Single(report.Matched, m => m.Code == "SR-28").ImageUrl);
-        Assert.DoesNotContain(report.Matched, m => m.ImageUrl == "/api/media/ffff");
-        Assert.Equal(unknown.Id, Assert.Single(report.Unmatched).QuestionId);
-        Assert.Contains("SR-26A", report.MissingCodes);
+        Assert.Equal(3, bankSigns.Count);
+        Assert.All(bankSigns, s => Assert.DoesNotContain("/signals/", s.ImageUrl, StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(bankSigns, s => s.Code == "SR-01" && s.ImageUrl == "/api/media/pare" && s.Name == "Pare");
+        Assert.Contains(bankSigns, s => s.Code == "SP-02" && s.ImageUrl == "/api/media/curve");
+        Assert.Contains(bankSigns, s => s.Family == "Señales informativas" && s.ImageUrl == "/api/media/hosp");
+        Assert.DoesNotContain(bankSigns, s => s.ImageUrl == "/api/media/other");
     }
-
-    [Theory]
-    [InlineData("")]
-    [InlineData("Semáforo peatonal")]
-    [InlineData("Curva cerrada")]
-    public void Does_not_guess_when_the_answer_is_unknown_or_ambiguous(string answer) =>
-        Assert.Null(One(answer));
 }

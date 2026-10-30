@@ -20,46 +20,21 @@ public sealed record SignImageReport(
     IReadOnlyList<string> MissingCodes);
 
 /// <summary>
-/// Real sign pictures come from sign exams in the database (same pool as Señal relámpago),
-/// plus questions in banks owned by the platform/admin. Each photo is paired to a catalog
-/// code via the correct answer (name or code). Schematic /signals/{code}.svg is only a fallback.
+/// Official sign bank built from the three template exams in the database:
+/// «Examen Señales Reglamentarias», «Examen Señales Preventivas», «Examen Señales Informativas».
+/// Each question with a real photo becomes a catalog entry (name = correct answer, image = question photo).
+/// No schematic /signals/*.svg drawings are exposed as the bank.
 /// </summary>
 public sealed partial class SignImageOverrides
 {
     private static readonly TimeSpan Ttl = TimeSpan.FromMinutes(2);
-
-    private static readonly string[] ExamKeywords = ["señal", "senal"];
-
-    /// <summary>Common exam wording → catalog folded name (after <see cref="Fold"/>).</summary>
-    private static readonly Dictionary<string, string> AnswerAliases = new(StringComparer.Ordinal)
-    {
-        ["PROHIBIDO ADELANTAR"] = "NO ADELANTAR",
-        ["PROHIBICION DE ADELANTAR"] = "NO ADELANTAR",
-        ["PROHIBIDO ESTACIONAR"] = "PROHIBIDO PARQUEAR",
-        ["NO ESTACIONAR"] = "PROHIBIDO PARQUEAR",
-        ["PROHIBIDO ESTACIONARSE"] = "PROHIBIDO PARQUEAR",
-        ["ALTO"] = "PARE",
-        ["STOP"] = "PARE",
-        ["CEDA EL PASO"] = "CEDA EL PASO",
-        ["YIELD"] = "CEDA EL PASO",
-        ["SIGA DE FRENTE"] = "DIRECCION OBLIGADA O SIGA DE FRENTE",
-        ["DIRECCION OBLIGATORIA"] = "DIRECCION OBLIGADA O SIGA DE FRENTE",
-        ["DIRECCION OBLIGADA"] = "DIRECCION OBLIGADA O SIGA DE FRENTE",
-        ["GIRO EN U"] = "GIRO EN U SOLAMENTE",
-        ["PROHIBIDO GIRO EN U"] = "PROHIBIDO GIRAR EN U",
-        ["PROHIBIDO GIRAR EN U"] = "PROHIBIDO GIRAR EN U",
-        ["NO GIRAR EN U"] = "PROHIBIDO GIRAR EN U",
-        ["NO GIRAR A LA IZQUIERDA"] = "PROHIBIDO GIRAR A LA IZQUIERDA",
-        ["NO GIRAR A LA DERECHA"] = "PROHIBIDO GIRAR A LA DERECHA",
-        ["VELOCIDAD MAXIMA"] = "VELOCIDAD MAXIMA PERMITIDA",
-        ["VELOCIDAD MINIMA"] = "VELOCIDAD MINIMA PERMITIDA",
-    };
 
     private readonly IServiceScopeFactory _scopes;
     private readonly PlayContent _content;
     private readonly ILogger<SignImageOverrides> _logger;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private SignImageReport? _report;
+    private IReadOnlyList<SignDto> _bank = [];
     private Dictionary<string, string> _byCode = new(StringComparer.OrdinalIgnoreCase);
     private DateTime _loadedAt = DateTime.MinValue;
 
@@ -68,6 +43,12 @@ public sealed partial class SignImageOverrides
         _scopes = scopes;
         _content = content;
         _logger = logger;
+    }
+
+    public async Task<IReadOnlyList<SignDto>> BankAsync(CancellationToken ct)
+    {
+        await EnsureFreshAsync(false, ct);
+        return _bank;
     }
 
     public async Task<string?> ImageForAsync(string code, CancellationToken ct)
@@ -101,16 +82,21 @@ public sealed partial class SignImageOverrides
             {
                 using var scope = _scopes.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<CaleDbContext>();
-                var report = await BuildAsync(db, _content.Signs, ct);
-                _byCode = report.Matched.ToDictionary(m => m.Code, m => m.ImageUrl, StringComparer.OrdinalIgnoreCase);
-                _report = report;
+                var built = await BuildBankAsync(db, _content.Signs, ct);
+                _bank = built.Bank;
+                _byCode = built.Bank
+                    .GroupBy(s => s.Code, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(g => g.Key, g => g.First().ImageUrl, StringComparer.OrdinalIgnoreCase);
+                _report = built.Report;
                 _logger.LogInformation(
-                    "Sign images: {Matched} matched, {Unmatched} unmatched questions, {Missing} signs without picture.",
-                    report.Matched.Count, report.Unmatched.Count, report.MissingCodes.Count);
+                    "Sign bank from template exams: {Count} signs ({Exams}). Unmatched image questions: {Unmatched}.",
+                    _bank.Count, string.Join(", ", _report.Exams), _report.Unmatched.Count);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                _logger.LogWarning(ex, "Could not load sign images from the sign exams.");
+                _logger.LogWarning(ex, "Could not build the official sign bank from template exams.");
+                _bank = [];
+                _byCode = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 _report ??= new SignImageReport([], [], [], []);
             }
 
@@ -122,7 +108,10 @@ public sealed partial class SignImageOverrides
         }
     }
 
-    public static async Task<SignImageReport> BuildAsync(CaleDbContext db, IReadOnlyList<SignDto> signs, CancellationToken ct)
+    public static async Task<(IReadOnlyList<SignDto> Bank, SignImageReport Report)> BuildBankAsync(
+        CaleDbContext db,
+        IReadOnlyList<SignDto> catalog,
+        CancellationToken ct)
     {
         var admins = (await db.Set<User>().AsNoTracking()
                 .Select(u => new { u.Id, u.Role })
@@ -131,7 +120,6 @@ public sealed partial class SignImageOverrides
             .Select(u => u.Id)
             .ToHashSet();
 
-        // Platform banks (null owner) + banks created by an admin account.
         var trustedBanks = (await db.Set<Bank>().AsNoTracking()
                 .Where(b => b.IsActive)
                 .Select(b => new { b.Id, b.CreatedById })
@@ -144,176 +132,198 @@ public sealed partial class SignImageOverrides
                 .Where(e => e.IsActive)
                 .Select(e => new { e.Id, e.Name, e.CreatedById, e.BankId })
                 .ToListAsync(ct))
-            .Where(e => IsSignExamName(e.Name))
-            .OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(e => (Exam: e, Family: TemplateFamily(e.Name)))
+            .Where(x => x.Family is not null)
+            .OrderBy(x => x.Family, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(x => x.Exam.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        var matched = new Dictionary<string, SignImageMatch>(StringComparer.OrdinalIgnoreCase);
+        if (exams.Count == 0)
+        {
+            return ([], new SignImageReport([], [], [], catalog.Select(s => s.Code).ToList()));
+        }
+
+        var examIds = exams.Select(x => x.Exam.Id).ToList();
+        var links = await db.Set<ExamQuestion>().AsNoTracking()
+            .Where(l => examIds.Contains(l.ExamId))
+            .Select(l => new { l.ExamId, l.QuestionId })
+            .ToListAsync(ct);
+        var listed = links
+            .GroupBy(l => l.ExamId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.QuestionId).ToHashSet());
+        var pickedIds = links.Select(l => l.QuestionId).Distinct().ToList();
+        var bankFallbackIds = exams
+            .Where(x => x.Exam.BankId is not null && !listed.ContainsKey(x.Exam.Id))
+            .Select(x => x.Exam.BankId!.Value)
+            .Distinct()
+            .ToList();
+
+        var questions = await db.Set<Question>().AsNoTracking()
+            .Include(q => q.Options)
+            .Where(q => q.IsActive && (pickedIds.Contains(q.Id) || bankFallbackIds.Contains(q.BankId)))
+            .ToListAsync(ct);
+
+        var bank = new List<SignDto>();
+        var matched = new List<SignImageMatch>();
         var unmatched = new List<SignImageUnmatched>();
-        var usedExamNames = new List<string>();
-        var seenQuestionIds = new HashSet<int>();
+        var usedExams = new List<string>();
+        var usedCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var usedImages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        if (exams.Count > 0)
+        foreach (var (exam, family) in exams)
         {
-            var examIds = exams.Select(e => e.Id).ToList();
-            var links = await db.Set<ExamQuestion>().AsNoTracking()
-                .Where(l => examIds.Contains(l.ExamId))
-                .Select(l => new { l.ExamId, l.QuestionId })
-                .ToListAsync(ct);
-            var listed = links
-                .GroupBy(l => l.ExamId)
-                .ToDictionary(g => g.Key, g => g.Select(x => x.QuestionId).ToHashSet());
-            var pickedIds = links.Select(l => l.QuestionId).Distinct().ToList();
-            var bankFallbackIds = exams
-                .Where(e => e.BankId is not null && !listed.ContainsKey(e.Id))
-                .Select(e => e.BankId!.Value)
-                .Distinct()
-                .ToList();
-
-            var questions = await db.Set<Question>().AsNoTracking()
-                .Include(q => q.Options)
-                .Where(q => q.IsActive && (pickedIds.Contains(q.Id) || bankFallbackIds.Contains(q.BankId)))
-                .ToListAsync(ct);
-
-            foreach (var exam in exams)
+            var adminOwned = admins.Contains(exam.CreatedById);
+            IEnumerable<Question> own = listed.TryGetValue(exam.Id, out var set)
+                ? questions.Where(q => set.Contains(q.Id))
+                : exam.BankId is int bankId
+                    ? questions.Where(q => q.BankId == bankId)
+                    : [];
+            var allowed = (adminOwned ? own : own.Where(q => trustedBanks.Contains(q.BankId))).ToList();
+            if (allowed.Count == 0)
             {
-                var adminOwned = admins.Contains(exam.CreatedById);
-                IEnumerable<Question> own = listed.TryGetValue(exam.Id, out var set)
-                    ? questions.Where(q => set.Contains(q.Id))
-                    : exam.BankId is int bankId
-                        ? questions.Where(q => q.BankId == bankId)
-                        : [];
-                var allowed = (adminOwned ? own : own.Where(q => trustedBanks.Contains(q.BankId))).ToList();
-                if (allowed.Count == 0)
+                continue;
+            }
+
+            usedExams.Add(exam.Name);
+
+            foreach (var q in allowed.OrderBy(q => q.Id))
+            {
+                var correct = q.Options.FirstOrDefault(o => o.IsCorrect);
+                if (correct is null)
                 {
                     continue;
                 }
 
-                usedExamNames.Add(exam.Name);
-                var family = FamilyPrefix(exam.Name);
-                var familyCandidates = signs
-                    .Where(s => family is null || s.Code.StartsWith(family, StringComparison.OrdinalIgnoreCase))
-                    .ToList();
-
-                foreach (var q in allowed)
-                {
-                    seenQuestionIds.Add(q.Id);
-                    TryConsumeQuestion(q, exam.Name, familyCandidates, signs, matched, unmatched);
-                }
-            }
-        }
-
-        // Second pass: imaged questions in trusted banks not already consumed from a sign exam
-        // (covers bank content that was never linked into an exam named "señal").
-        if (trustedBanks.Count > 0)
-        {
-            var trustedList = trustedBanks.ToList();
-            var bankQuestions = await db.Set<Question>().AsNoTracking()
-                .Include(q => q.Options)
-                .Where(q => q.IsActive && trustedList.Contains(q.BankId))
-                .ToListAsync(ct);
-
-            var bankLabel = "Bancos oficiales / admin";
-            var usedBankPass = false;
-            foreach (var q in bankQuestions)
-            {
-                if (seenQuestionIds.Contains(q.Id))
+                var (image, answer) = !string.IsNullOrWhiteSpace(q.ImageUrl)
+                    ? (q.ImageUrl!, correct.Text)
+                    : (correct.ImageUrl ?? "", q.Text);
+                if (!IsUsableImage(image))
                 {
                     continue;
                 }
 
-                var before = matched.Count;
-                var localUnmatched = new List<SignImageUnmatched>();
-                TryConsumeQuestion(q, bankLabel, signs, signs, matched, localUnmatched);
-                if (matched.Count > before)
+                var name = CleanSignName(answer);
+                if (name.Length < 2)
                 {
-                    usedBankPass = true;
+                    unmatched.Add(new SignImageUnmatched(q.Id, exam.Name, answer, image));
+                    continue;
                 }
-            }
 
-            if (usedBankPass && !usedExamNames.Contains(bankLabel, StringComparer.Ordinal))
-            {
-                usedExamNames.Add(bankLabel);
+                var nameKey = Fold(name);
+                if (!usedImages.Add(image) || !usedNames.Add(nameKey))
+                {
+                    continue; // same photo or same label already in the bank
+                }
+
+                var code = AssignCode(answer, name, family!, catalog, usedCodes, q.Id);
+                bank.Add(new SignDto(code, family!, name, image));
+                matched.Add(new SignImageMatch(code, name, image, q.Id, answer));
             }
         }
 
-        var missing = signs.Select(s => s.Code).Where(c => !matched.ContainsKey(c)).ToList();
-        return new SignImageReport(
-            usedExamNames,
-            matched.Values.OrderBy(m => m.Code, StringComparer.Ordinal).ToList(),
+        var missing = catalog.Select(s => s.Code).Where(c => !usedCodes.Contains(c)).ToList();
+        var report = new SignImageReport(
+            usedExams,
+            matched.OrderBy(m => m.Code, StringComparer.Ordinal).ToList(),
             unmatched,
             missing);
+        return (bank, report);
     }
 
-    private static void TryConsumeQuestion(
-        Question q,
-        string examName,
-        IReadOnlyList<SignDto> preferred,
-        IReadOnlyList<SignDto> allSigns,
-        Dictionary<string, SignImageMatch> matched,
-        List<SignImageUnmatched> unmatched)
+    /// <summary>Kept for unit tests and optional code assignment against the JSON catalog.</summary>
+    public static async Task<SignImageReport> BuildAsync(
+        CaleDbContext db,
+        IReadOnlyList<SignDto> signs,
+        CancellationToken ct)
     {
-        var correct = q.Options.FirstOrDefault(o => o.IsCorrect);
-        if (correct is null)
-        {
-            return;
-        }
-
-        var (image, answer) = !string.IsNullOrWhiteSpace(q.ImageUrl)
-            ? (q.ImageUrl!, correct.Text)
-            : (correct.ImageUrl ?? "", q.Text);
-        if (!IsUsableImage(image))
-        {
-            return;
-        }
-
-        var codes = Match(answer, preferred);
-        if (codes.Count == 0 && !ReferenceEquals(preferred, allSigns))
-        {
-            codes = Match(answer, allSigns);
-        }
-
-        if (codes.Count == 0 && !string.IsNullOrWhiteSpace(q.Text) && !string.Equals(q.Text, answer, StringComparison.Ordinal))
-        {
-            codes = Match(q.Text, preferred);
-            if (codes.Count == 0 && !ReferenceEquals(preferred, allSigns))
-            {
-                codes = Match(q.Text, allSigns);
-            }
-        }
-
-        if (codes.Count == 0)
-        {
-            unmatched.Add(new SignImageUnmatched(q.Id, examName, answer, image));
-            return;
-        }
-
-        foreach (var sign in codes)
-        {
-            matched.TryAdd(sign.Code, new SignImageMatch(sign.Code, sign.Name, image, q.Id, answer));
-        }
+        var (_, report) = await BuildBankAsync(db, signs, ct);
+        return report;
     }
 
-    public static bool IsSignExamName(string name)
+    private static string AssignCode(
+        string answer,
+        string name,
+        string family,
+        IReadOnlyList<SignDto> catalog,
+        HashSet<string> usedCodes,
+        int questionId)
     {
-        if (string.IsNullOrWhiteSpace(name))
+        var familyCandidates = catalog
+            .Where(s => s.Family.Equals(family, StringComparison.OrdinalIgnoreCase)
+                || (family.Contains("reglament", StringComparison.OrdinalIgnoreCase) && s.Code.StartsWith("SR", StringComparison.OrdinalIgnoreCase))
+                || (family.Contains("prevent", StringComparison.OrdinalIgnoreCase) && s.Code.StartsWith("SP", StringComparison.OrdinalIgnoreCase))
+                || (family.Contains("informat", StringComparison.OrdinalIgnoreCase) && s.Code.StartsWith("SI", StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+        var pool = familyCandidates.Count > 0 ? familyCandidates : catalog;
+        var hit = Match(answer, pool);
+        if (hit.Count == 0)
         {
-            return false;
+            hit = Match(name, pool);
         }
 
-        if (ExamKeywords.Any(k => name.Contains(k, StringComparison.OrdinalIgnoreCase)))
+        if (hit.Count == 1 && !usedCodes.Contains(hit[0].Code))
         {
-            return true;
+            usedCodes.Add(hit[0].Code);
+            return hit[0].Code;
         }
 
-        var folded = $" {Fold(name)} ";
-        return folded.Contains(" REGLAMENT", StringComparison.Ordinal)
-            || folded.Contains(" PREVENT", StringComparison.Ordinal)
-            || folded.Contains(" INFORMAT", StringComparison.Ordinal)
-            || Regex.IsMatch(folded, @"\b(SR|SP|SI)\b");
+        var prefix = family.Contains("prevent", StringComparison.OrdinalIgnoreCase) ? "SP"
+            : family.Contains("informat", StringComparison.OrdinalIgnoreCase) ? "SI"
+            : "SR";
+        var fallback = $"{prefix}-Q{questionId}";
+        usedCodes.Add(fallback);
+        return fallback;
     }
 
-    /// <summary>Signs the answer names: by code ("SR-01"), by exact name, or by the longest name the text contains.</summary>
+    private static string? TemplateFamily(string examName)
+    {
+        var folded = Fold(examName);
+        if (folded.Length == 0 || !folded.Contains("SENAL", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        if (folded.Contains("REGLAMENT", StringComparison.Ordinal))
+        {
+            return "Señales reglamentarias";
+        }
+
+        if (folded.Contains("PREVENT", StringComparison.Ordinal))
+        {
+            return "Señales preventivas";
+        }
+
+        if (folded.Contains("INFORMAT", StringComparison.Ordinal))
+        {
+            return "Señales informativas";
+        }
+
+        return null;
+    }
+
+    private static string CleanSignName(string answer)
+    {
+        var raw = (answer ?? "").Trim().TrimEnd('.', ':', ';');
+        if (raw.StartsWith("Señal de ", StringComparison.OrdinalIgnoreCase))
+        {
+            raw = raw["Señal de ".Length..].Trim();
+        }
+        else if (raw.StartsWith("Senal de ", StringComparison.OrdinalIgnoreCase))
+        {
+            raw = raw["Senal de ".Length..].Trim();
+        }
+
+        if (raw.Length == 0)
+        {
+            return "";
+        }
+
+        var culture = CultureInfo.GetCultureInfo("es-CO");
+        var lower = raw.ToLower(culture);
+        return char.ToUpper(lower[0], culture) + lower[1..];
+    }
+
     public static IReadOnlyList<SignDto> Match(string answer, IReadOnlyList<SignDto> candidates)
     {
         var text = Fold(answer);
@@ -322,10 +332,10 @@ public sealed partial class SignImageOverrides
             return [];
         }
 
-        text = StripSignLeadIn(text);
-        if (AnswerAliases.TryGetValue(text, out var alias))
+        text = LeadInPattern().Replace(text, "").Trim();
+        if (text.Length == 0)
         {
-            text = alias;
+            text = Fold(answer);
         }
 
         var code = CodePattern().Match(text);
@@ -361,15 +371,13 @@ public sealed partial class SignImageOverrides
             return contained.Where(x => x.Name.Length == longest).Select(x => x.Sign).ToList();
         }
 
-        // Answer is a shortened official name (all answer words appear in the catalog name).
-        var answerWords = Words(text);
-        if (answerWords.Count >= 2)
+        var words = Words(text);
+        if (words.Count >= 2)
         {
             var subsets = candidates
                 .Select(s => (Sign: s, Name: Fold(s.Name), Words: Words(Fold(s.Name))))
-                .Where(x => answerWords.All(x.Words.Contains))
+                .Where(x => words.All(x.Words.Contains))
                 .OrderBy(x => x.Words.Count)
-                .ThenByDescending(x => x.Name.Length)
                 .ToList();
             if (subsets.Count == 1
                 || (subsets.Count > 1 && subsets[0].Words.Count < subsets[1].Words.Count))
@@ -379,7 +387,7 @@ public sealed partial class SignImageOverrides
         }
 
         var best = candidates
-            .Select(s => (Sign: s, Score: Similarity(answerWords, Words(Fold(s.Name)))))
+            .Select(s => (Sign: s, Score: Similarity(words, Words(Fold(s.Name)))))
             .Where(x => x.Score >= 0.72)
             .OrderByDescending(x => x.Score)
             .ToList();
@@ -388,36 +396,12 @@ public sealed partial class SignImageOverrides
             : [];
     }
 
-    private static string StripSignLeadIn(string folded)
-    {
-        var t = LeadInPattern().Replace(folded, "").Trim();
-        return t.Length > 0 ? t : folded;
-    }
-
     private static bool IsUsableImage([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] string? url) =>
         !string.IsNullOrWhiteSpace(url)
         && !url.StartsWith("/signals/", StringComparison.OrdinalIgnoreCase)
         && ((url.StartsWith('/') && !url.StartsWith("//", StringComparison.Ordinal))
             || url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
             || url.StartsWith("http://", StringComparison.OrdinalIgnoreCase));
-
-    private static string? FamilyPrefix(string examName)
-    {
-        var name = $" {Fold(examName)} ";
-        if (name.Contains("PREVENT", StringComparison.Ordinal) || name.Contains(" SP ", StringComparison.Ordinal))
-        {
-            return "SP";
-        }
-
-        if (name.Contains("REGLAMENT", StringComparison.Ordinal) || name.Contains(" SR ", StringComparison.Ordinal))
-        {
-            return "SR";
-        }
-
-        return name.Contains("INFORMAT", StringComparison.Ordinal) || name.Contains(" SI ", StringComparison.Ordinal)
-            ? "SI"
-            : null;
-    }
 
     private static string CodeKey(string folded)
     {

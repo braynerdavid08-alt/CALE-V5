@@ -147,7 +147,7 @@ export class PresentationEditorPage implements OnInit, AfterViewInit, OnDestroy 
   readonly canUndo = signal(false);
   readonly canRedo = signal(false);
   readonly showSignPicker = signal(false);
-  readonly resourcesTrayOpen = signal(true);
+  readonly resourcesTrayOpen = signal(false);
   readonly catalogSigns = signal<CatalogSignRef[]>([]);
   readonly vialFamilyFilter = signal<SignFamilyFilter>('all');
   readonly vialSearch = signal('');
@@ -344,8 +344,20 @@ export class PresentationEditorPage implements OnInit, AfterViewInit, OnDestroy 
 
   private loadCatalogSigns(): void {
     this.playApi.signs().subscribe({
-      next: (signs) => this.catalogSigns.set(signs ?? []),
-      error: () => this.catalogSigns.set([])
+      next: (signs) => {
+        // Solo fotos reales de los 3 exámenes plantilla (nunca /signals/*.svg).
+        const real = (signs ?? []).filter(
+          (s) => !!s.imageUrl && !s.imageUrl.includes('/signals/')
+        );
+        this.catalogSigns.set(real);
+        if (!real.length) {
+          this.resourcesTrayOpen.set(false);
+        }
+      },
+      error: () => {
+        this.catalogSigns.set([]);
+        this.resourcesTrayOpen.set(false);
+      }
     });
   }
 
@@ -495,15 +507,23 @@ export class PresentationEditorPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   insertCatalogSign(sign: CatalogSignRef, opts?: { closePicker?: boolean }): void {
-    const el = buildCatalogSignImageElement(sign);
-    el.z = this.nextZ();
-    this.pushHistory();
-    this.pushElement(el);
-    this.setSelectedId(el.id);
-    if (opts?.closePicker) {
-      this.closeSignPicker();
+    try {
+      const el = buildCatalogSignImageElement(sign);
+      el.z = this.nextZ();
+      this.pushHistory();
+      this.pushElement(el);
+      this.setSelectedId(el.id);
+      if (opts?.closePicker) {
+        this.closeSignPicker();
+      }
+      this.markDirty();
+    } catch {
+      this.error.set('Esa señal no tiene foto del examen oficial.');
     }
-    this.markDirty();
+  }
+
+  hasOfficialSignBank(): boolean {
+    return this.catalogSigns().length > 0;
   }
 
   updateRotation(degrees: number): void {
