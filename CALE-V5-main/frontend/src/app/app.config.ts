@@ -33,7 +33,47 @@ export function registerPwaServiceWorker(): void {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
     return;
   }
+
+  // When a new SW takes control, reload once so the desktop app is not stuck on old JS.
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing) {
+      return;
+    }
+    refreshing = true;
+    window.location.reload();
+  });
+
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+    navigator.serviceWorker
+      .register('/sw.js', { updateViaCache: 'none' })
+      .then((reg) => {
+        const poke = (): void => {
+          void reg.update();
+        };
+        // Installed PWAs often stay open; check for deploys when the user returns.
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') {
+            poke();
+          }
+        });
+        window.addEventListener('focus', poke);
+        // Fallback poll (desktop app may sit on one route for a long time).
+        window.setInterval(poke, 5 * 60 * 1000);
+
+        reg.addEventListener('updatefound', () => {
+          const installing = reg.installing;
+          if (!installing) {
+            return;
+          }
+          installing.addEventListener('statechange', () => {
+            if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+              // New version downloaded; activate immediately (sw.js already skipWaiting).
+              installing.postMessage({ type: 'SKIP_WAITING' });
+            }
+          });
+        });
+      })
+      .catch(() => undefined);
   });
 }
