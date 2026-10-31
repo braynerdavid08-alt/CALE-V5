@@ -8,24 +8,130 @@
 
 .host { max-width: 1200px; margin: 0 auto; }
 .host.projector-mode { max-width: none; }
+
+/* Full-bleed projector covers the app shell (sidebar + topbar). */
 .host.projector-view {
-  min-height: 100vh;
-  padding: 1rem;
-  background: #0b1f33;
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  max-width: none;
+  width: 100%;
+  height: 100%;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  background: #07111c;
+  overflow: auto;
 }
+.host.projector-view .layout,
 .host.projector-view .projector-stage,
 .host.projector-view .stage {
   border: none;
   background: transparent;
   padding: 0;
-  min-height: 100vh;
+  margin: 0;
+  min-height: 100dvh;
+  max-width: none;
+  width: 100%;
+  display: block;
 }
-.host.projector-view .projection-panel {
-  background: #ffffff;
-  min-height: 85vh;
+.host.projector-view .projection-panel.cinema {
+  margin: 0;
+  min-height: 100dvh;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: radial-gradient(ellipse at top, #102036 0%, #07111c 55%, #050b12 100%);
+  color: #f4f7fb;
+  padding: clamp(1.5rem, 4vw, 3.5rem) clamp(1.25rem, 5vw, 4.5rem);
   display: flex;
   flex-direction: column;
   justify-content: center;
+  gap: clamp(1rem, 2.5vh, 2rem);
+}
+.host.projector-view .question-head { color: #8fb4d6; }
+.host.projector-view .q-progress {
+  font-size: clamp(1rem, 2vw, 1.35rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0;
+}
+.host.projector-view .timer {
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  color: #7dd3fc;
+}
+.host.projector-view .q-text {
+  font-size: clamp(1.85rem, 4.6vw, 3.4rem);
+  line-height: 1.25;
+  color: #ffffff;
+  max-width: 22ch;
+  margin: 0;
+  font-weight: 800;
+}
+.host.projector-view .options {
+  margin: 0;
+  gap: clamp(0.85rem, 1.8vw, 1.35rem);
+}
+.host.projector-view .options.grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.host.projector-view .option-card {
+  padding: clamp(1rem, 2vw, 1.6rem) clamp(1.1rem, 2.2vw, 1.75rem);
+  border-width: 2px;
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f8fbff;
+  font-size: clamp(1.15rem, 2.4vw, 1.75rem);
+  backdrop-filter: blur(6px);
+}
+.host.projector-view .option-letter {
+  width: clamp(2.4rem, 4vw, 3.2rem);
+  height: clamp(2.4rem, 4vw, 3.2rem);
+  font-size: clamp(1.1rem, 2vw, 1.45rem);
+  background: #1d9a55;
+  color: #fff;
+}
+.host.projector-view .option-text { color: #f8fbff; }
+.host.projector-view .cinema-hint {
+  margin: 0.5rem 0 0;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.host.projector-view .projector-join {
+  background: rgba(8, 16, 28, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.host.projector-view .waiting {
+  color: #e8eef7;
+  min-height: 100dvh;
+  display: grid;
+  place-content: center;
+  gap: 0.75rem;
+}
+.host.projector-view .waiting h2 { color: #fff; font-size: clamp(1.8rem, 4vw, 2.8rem); }
+
+.clicker-dock {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0 0 0.85rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 14px;
+  background: #0f2a1a;
+  color: #e8fff1;
+  border: 1px solid #1b8f4a;
+}
+.clicker-dock p { margin: 0; flex: 1; font-size: 0.92rem; }
+.clicker-dock .clicker-go {
+  min-width: 8.5rem;
+  font-size: 1.05rem;
+  padding: 0.55rem 1.1rem;
 }
 .proj-toolbar {
   display: flex;
@@ -126,6 +232,12 @@
   list-style: none;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
+.options.grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (max-width: 720px) {
+  .options.grid-2 { grid-template-columns: 1fr; }
+}
 .option-card {
   display: flex;
   align-items: flex-start;
@@ -219,25 +331,43 @@
   color: #ffffff;
 }
 
-.roster {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 0.75rem;
+.host-roster {
   margin: 1rem 0 0;
+  padding: 1rem 1.1rem 1.15rem;
+  border-radius: 16px;
+  border: 2px solid #1b8f4a;
+  background: linear-gradient(180deg, #f3fbf6 0%, #ffffff 40%);
+  box-shadow: 0 10px 28px rgba(27, 143, 74, 0.12);
   text-align: left;
 }
-.host-roster {
-  margin-top: 0.25rem;
-  padding-top: 0.25rem;
+.roster-head {
+  margin: 0 0 0.85rem;
 }
-.host-roster .roster-col ul {
-  max-height: 220px;
+.roster-head h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #0d1410;
+}
+.roster-head p {
+  margin: 0.25rem 0 0;
+  color: #3d6b50;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.roster-cols {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+@media (max-width: 860px) {
+  .roster-cols { grid-template-columns: 1fr; }
 }
 .roster-col {
   border: 1px solid #d7e0ea;
   border-radius: 12px;
   padding: 0.75rem;
   background: #f8fbff;
+  min-height: 9rem;
 }
 .roster-col h3 {
   margin: 0 0 0.5rem;
@@ -249,13 +379,15 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  max-height: 160px;
+  max-height: 240px;
   overflow: auto;
 }
 .roster-col li {
-  padding: 0.25rem 0;
-  font-size: 0.92rem;
+  padding: 0.35rem 0;
+  font-size: 1rem;
+  font-weight: 600;
   border-bottom: 1px solid #e8eef5;
+  color: #0d1410;
 }
 .roster-col .picked {
   font-weight: 800;
@@ -264,7 +396,7 @@
 }
 .roster-col.bad .picked { color: #b71c1c; }
 .roster-col.ok .picked { color: #1b5e20; }
-.roster-col .empty { color: #7a8b9c; font-style: italic; border: 0; }
+.roster-col .empty { color: #7a8b9c; font-style: italic; border: 0; font-weight: 500; }
 .roster-col.ok { border-color: #a5d6a7; background: #f1faf3; }
 .roster-col.ok h3 { color: #1b5e20; }
 .roster-col.bad { border-color: #ef9a9a; background: #fff5f5; }

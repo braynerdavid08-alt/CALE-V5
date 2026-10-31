@@ -1,12 +1,23 @@
-<section class="host" [class.projector-mode]="projectorMode()" [class.projector-view]="projectorView()">
+<section
+  class="host"
+  [class.projector-mode]="projectorMode()"
+  [class.projector-view]="projectorView()"
+  [class.clicker-on]="clickerEnabled()">
   <ui-error [message]="error()" />
   @if (connectionNotice(); as notice) {
     <p class="conn-banner" role="status">{{ notice }}</p>
   }
-  @if (clickerHint()) {
-    <p class="conn-banner" role="status">
-      Clicker activo: → / Espacio / Enter = siguiente pregunta (o iniciar en el lobby).
-    </p>
+  @if (clickerEnabled() && !projectorView()) {
+    <div class="clicker-dock" role="region" aria-label="Clicker">
+      <p>
+        <strong>Clicker ON</strong>
+        · → / Espacio / Enter / N
+      </p>
+      <button type="button" class="btn primary clicker-go" (click)="advanceWithClicker()" [disabled]="loading()">
+        {{ lobby()?.status === 'Lobby' ? 'Iniciar' : 'Siguiente' }}
+      </button>
+      <button type="button" class="btn ghost" (click)="toggleClicker()">Apagar</button>
+    </div>
   }
   @if (lobby(); as l) {
     @if (!projectorView()) {
@@ -24,10 +35,15 @@
         }
       </div>
       <div class="top-actions">
-        @if (isHostMonitored() || linkedPresentationId()) {
-          <button type="button" class="btn ghost" (click)="openQuestionProjector()">Proyector</button>
-          <button type="button" class="btn ghost" (click)="enableClicker()">Clicker</button>
-        }
+        <button type="button" class="btn primary" (click)="openQuestionProjector()">Proyector</button>
+        <button
+          type="button"
+          class="btn"
+          [class.primary]="clickerEnabled()"
+          [class.ghost]="!clickerEnabled()"
+          (click)="toggleClicker()">
+          {{ clickerEnabled() ? 'Clicker ON' : 'Clicker' }}
+        </button>
         <a routerLink="/teacher/live" class="back">Volver</a>
       </div>
     </header>
@@ -295,9 +311,12 @@
             </div>
           </div>
         } @else {
-          <section class="projection-panel" aria-label="Proyección de la pregunta">
+          <section
+            class="projection-panel"
+            [class.cinema]="projectorView()"
+            aria-label="Proyección de la pregunta">
             <div class="question-head">
-              <p>
+              <p class="q-progress">
                 Pregunta {{ l.currentQuestion.index + 1 }} / {{ l.currentQuestion.total }}
                 @if (l.currentQuestion.isSurprise) {
                   <span class="surprise-tag">Sorpresa</span>
@@ -314,7 +333,7 @@
             @if (l.currentQuestion.imageUrl) {
               <img class="q-img" [src]="l.currentQuestion.imageUrl" alt="" />
             }
-            <ul class="options">
+            <ul class="options" [class.grid-2]="(l.currentQuestion.options?.length ?? 0) === 4">
               @for (opt of l.currentQuestion.options; track opt.id; let i = $index) {
                 <li
                   class="option-card"
@@ -343,14 +362,24 @@
             @if (!projectorView() && l.currentQuestion.explanation && l.revealCorrect) {
               <p class="explain">{{ l.currentQuestion.explanation }}</p>
             }
+            @if (projectorView()) {
+              <p class="cinema-hint">→ / Espacio / Enter · siguiente</p>
+            }
           </section>
 
           @if (!projectorView()) {
-          @if (hostAnswerRoster(); as roster) {
-            @if (roster.sessionQuestionId === l.currentQuestion.sessionQuestionId) {
-              <div class="roster host-roster" aria-label="Quién respondió">
+          @if (liveRoster(); as roster) {
+              <div class="roster host-roster" aria-label="Respuestas de tus estudiantes">
+                <header class="roster-head">
+                  <h2>Respuestas de tus estudiantes</h2>
+                  <p>
+                    {{ answersReceived() }} / {{ l.participantCount }} respondieron ·
+                    se actualiza solo, sin tocar nada
+                  </p>
+                </header>
+                <div class="roster-cols">
                 <div class="roster-col ok">
-                  <h3>Respondieron bien ({{ roster.correctCount }})</h3>
+                  <h3>Bien ({{ roster.correctCount }})</h3>
                   <ul>
                     @for (row of roster.correct; track row.participantId) {
                       <li>
@@ -365,7 +394,7 @@
                   </ul>
                 </div>
                 <div class="roster-col bad">
-                  <h3>Respondieron mal ({{ roster.incorrectCount }})</h3>
+                  <h3>Mal ({{ roster.incorrectCount }})</h3>
                   <ul>
                     @for (row of roster.incorrect; track row.participantId) {
                       <li>
@@ -380,25 +409,29 @@
                   </ul>
                 </div>
                 <div class="roster-col mute">
-                  <h3>Sin respuesta ({{ roster.unansweredCount }})</h3>
+                  <h3>Sin responder ({{ roster.unansweredCount }})</h3>
                   <ul>
                     @for (row of roster.unanswered; track row.participantId) {
                       <li>{{ row.displayName }}</li>
                     } @empty {
-                      <li class="empty">Todos respondieron</li>
+                      <li class="empty">{{ l.participantCount === 0 ? 'Aún no hay estudiantes en sala' : 'Todos ya respondieron' }}</li>
                     }
                   </ul>
                 </div>
+                </div>
               </div>
-            }
           }
 
           <div class="actions wrap primary-actions">
             <div class="proj-toolbar">
-              <button type="button" class="btn ghost" (click)="openQuestionProjector()">Proyector</button>
-              <button type="button" class="btn ghost" (click)="enableClicker()">Clicker</button>
-              <button type="button" class="btn ghost" (click)="toggleProjectorMode()">
-                {{ projectorMode() ? 'Salir proyector' : 'Pantalla limpia' }}
+              <button type="button" class="btn primary" (click)="openQuestionProjector()">Proyector</button>
+              <button
+                type="button"
+                class="btn"
+                [class.primary]="clickerEnabled()"
+                [class.ghost]="!clickerEnabled()"
+                (click)="toggleClicker()">
+                {{ clickerEnabled() ? 'Clicker ON' : 'Clicker' }}
               </button>
             </div>
             @if (l.status === 'Running') {
@@ -414,7 +447,6 @@
             } @else {
               <ui-button type="button" (click)="control('next')">Siguiente pregunta</ui-button>
             }
-            <ui-button type="button" variant="ghost" (click)="control('reveal')">Mostrar respuesta</ui-button>
             <ui-button type="button" variant="danger" (click)="control('end')">Terminar clase</ui-button>
             <button type="button" class="linkish" (click)="showMoreControls.set(!showMoreControls())">
               {{ showMoreControls() ? 'Menos opciones' : 'Más opciones' }}
@@ -423,6 +455,9 @@
 
           @if (showMoreControls()) {
             <div class="actions wrap secondary-actions">
+              <ui-button type="button" variant="ghost" (click)="control('reveal')">
+                Resaltar clave (solo tú)
+              </ui-button>
               <ui-button type="button" variant="ghost" (click)="control('close')">Cerrar pregunta</ui-button>
               <ui-button type="button" variant="ghost" (click)="control('surprise')">Pregunta sorpresa</ui-button>
               <ui-button type="button" variant="ghost" (click)="toggleQuick()">Pregunta rápida</ui-button>

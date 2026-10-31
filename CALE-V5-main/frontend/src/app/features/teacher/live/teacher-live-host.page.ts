@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -89,7 +89,8 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   readonly projectorMode = signal(false);
   /** Dedicated projection window (?view=projector) — only the question. */
   readonly projectorView = signal(false);
-  readonly clickerHint = signal(false);
+  /** Keyboard + on-screen next control stays on until toggled off. */
+  readonly clickerEnabled = signal(false);
   readonly presFullscreen = signal(false);
   readonly showMoreControls = signal(false);
   readonly presentationEmbedSrc = signal<SafeResourceUrl | null>(null);
@@ -104,11 +105,50 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     }
   };
 
+  /** Always-on host view of who answered (never waits for “Mostrar respuesta”). */
+  readonly liveRoster = computed((): LiveAnswerRosterDto | null => {
+    const l = this.lobby();
+    const q = l?.currentQuestion;
+    if (!l || !q || l.status === 'Lobby' || l.status === 'Ended') {
+      return null;
+    }
+    const host = this.hostAnswerRoster();
+    if (host && host.sessionQuestionId === q.sessionQuestionId) {
+      return host;
+    }
+    const unanswered = (l.participants ?? []).map((p) => ({
+      participantId: p.id,
+      displayName: p.displayName,
+      answered: false,
+      isCorrect: null as boolean | null,
+      optionId: null as number | null
+    }));
+    return {
+      sessionQuestionId: q.sessionQuestionId,
+      questionIndex: q.index,
+      revealCorrectness: true,
+      correctCount: 0,
+      incorrectCount: 0,
+      unansweredCount: unanswered.length,
+      correct: [],
+      incorrect: [],
+      unanswered,
+      optionTallies: null
+    };
+  });
+
   ngOnInit(): void {
     window.addEventListener('message', this.onEmbedReady);
-    this.projectorView.set(this.route.snapshot.queryParamMap.get('view') === 'projector');
+    const view = this.route.snapshot.queryParamMap.get('view');
+    this.projectorView.set(view === 'projector');
     if (this.projectorView()) {
       this.projectorMode.set(true);
+      this.clickerEnabled.set(true);
+      document.body.classList.add('cale-live-projector');
+      document.body.style.overflow = 'hidden';
+    }
+    if (view === 'clicker') {
+      this.clickerEnabled.set(true);
     }
     this.teacherApi.banks(true, false).subscribe({
       next: (banks) => {
@@ -144,43 +184,48 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
 
   @HostListener('window:keydown', ['$event'])
   onClickerKey(ev: KeyboardEvent): void {
-    if (this.projectorView()) {
+    if (!this.clickerEnabled() && !this.projectorView()) {
       return;
     }
     const t = ev.target as HTMLElement | null;
-    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) {
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable || t.tagName === 'SELECT')) {
       return;
     }
     const key = ev.key;
-    if (key !== 'ArrowRight' && key !== 'ArrowLeft' && key !== ' ' && key !== 'PageDown' && key !== 'PageUp' && key !== 'Enter') {
+    if (key !== 'ArrowRight' && key !== ' ' && key !== 'PageDown' && key !== 'Enter' && key !== 'n' && key !== 'N') {
       return;
     }
     const l = this.lobby();
-    if (!l || l.status === 'Ended') {
+    if (!l || l.status === 'Ended' || this.loading()) {
       return;
     }
     ev.preventDefault();
-    if (l.status === 'Lobby') {
-      if (key === 'ArrowRight' || key === ' ' || key === 'PageDown' || key === 'Enter') {
-        this.control('start');
-      }
-      return;
-    }
-    if (!l.currentQuestion) {
-      return;
-    }
-    if (key === 'ArrowRight' || key === ' ' || key === 'PageDown' || key === 'Enter') {
-      this.control('next');
-    }
+    this.advanceWithClicker();
   }
 
   ngOnDestroy(): void {
+    document.body.classList.remove('cale-live-projector');
+    document.body.style.overflow = '';
     window.removeEventListener('message', this.onEmbedReady);
     if (this.timerId) {
       clearInterval(this.timerId);
     }
     void this.exitPresFullscreen();
     void this.hub?.stop();
+  }
+
+  advanceWithClicker(): void {
+    const l = this.lobby();
+    if (!l || l.status === 'Ended' || this.loading()) {
+      return;
+    }
+    if (l.status === 'Lobby') {
+      this.control('start');
+      return;
+    }
+    if (l.currentQuestion) {
+      this.control('next');
+    }
   }
 
   @HostListener('document:fullscreenchange')
@@ -731,7 +776,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     this.projectorMode.update((v) => !v);
   }
 
-  /** Opens a clean window with only the question for the classroom display. */
+  /** Opens a clean fullscreen window with only the question for the classroom display. */
   openQuestionProjector(): void {
     const id = this.lobby()?.sessionId;
     if (!id) {
@@ -742,12 +787,18 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
         queryParams: { view: 'projector' }
       })
     );
-    window.open(url, 'cale-live-projector', 'noopener,noreferrer');
+    const w = Math.min(screen.availWidth, 1600);
+    const h = Math.min(screen.availHeight, 1000);
+    window.open(
+      url,
+      'cale-live-projector',
+      `noopener,noreferrer,width=${w},height=${h},left=0,top=0`
+    );
   }
 
-  enableClicker(): void {
-    this.clickerHint.set(true);
-    window.setTimeout(() => this.clickerHint.set(false), 5000);
+  /** Toggle on-screen clicker + keyboard (→ / Espacio / Enter / N). */
+  toggleClicker(): void {
+    this.clickerEnabled.update((v) => !v);
   }
 
   private syncTimer(q: LiveQuestionPayloadDto | null): void {
