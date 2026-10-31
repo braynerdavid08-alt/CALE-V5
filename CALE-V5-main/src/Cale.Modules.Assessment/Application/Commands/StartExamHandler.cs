@@ -442,8 +442,9 @@ public sealed class StartExamHandler
         }
 
         var groupIds = (await _groups.GetActiveGroupIdsAsync(userId, ct)).ToHashSet();
-        var officialExamId =
-            await _trainingEligibility.GetSchoolOfficialTheoryExamIdAsync(userId, ct);
+        var schoolOfficialExamId = groupIds.Count > 0
+            ? await _trainingEligibility.GetSchoolOfficialTheoryExamIdAsync(userId, ct)
+            : null;
         var exams = new List<Exam>();
         foreach (var examId in examIds)
         {
@@ -457,30 +458,46 @@ public sealed class StartExamHandler
             }
 
             var links = await _catalog.ListExamGroupsAsync(exam.Id, ct);
-            var assignedNow = links.Any(link =>
-                groupIds.Contains(link.GroupId)
-                && (link.StartsAt is null || link.StartsAt <= now)
-                && (link.EndsAt is null || link.EndsAt >= now));
-            if (officialExamId == exam.Id)
+            if (groupIds.Count == 0)
             {
-                throw new ForbiddenException(
-                    "El examen teórico oficial de tu escuela no se puede usar en un simulacro personalizado.",
-                    "official_exam_not_mixable");
-            }
+                // Estudiante independiente: solo bancos oficiales no asignados a grupos escolares.
+                if (links.Count > 0)
+                {
+                    throw new ForbiddenException(
+                        "Ese examen es de una escuela. Vincula tu cuenta a un grupo para usarlo.",
+                        "exam_not_assigned");
+                }
 
-            // A single-attempt exam is graded; mixing it would allow unlimited reviews of its key.
-            if (exam.AllowedAttempts <= 1)
-            {
-                throw new ForbiddenException(
-                    "Los exámenes de un solo intento no se pueden usar en un simulacro personalizado.",
-                    "single_attempt_exam_not_mixable");
-            }
+                if (exam.BankId is not int bankId)
+                {
+                    throw new ForbiddenException(
+                        "Ese examen no está disponible para práctica libre.",
+                        "exam_not_assigned");
+                }
 
-            if (!assignedNow)
+                var bank = await _catalog.GetBankAsync(bankId, ct);
+                if (bank is null || bank.CreatedById is not null || !bank.IsActive)
+                {
+                    throw new ForbiddenException(
+                        "Sin escuela solo puedes mezclar exámenes oficiales de Luz Verde.",
+                        "exam_not_assigned");
+                }
+            }
+            else
             {
-                throw new ForbiddenException(
-                    "Uno de los exámenes seleccionados no está asignado a tu grupo.",
-                    "exam_not_assigned");
+                // Con grupo: exámenes asignados al grupo, o el teórico oficial de la escuela.
+                // mixed_practice no consume intentos formales del examen.
+                var assignedNow = links.Any(link =>
+                    groupIds.Contains(link.GroupId)
+                    && (link.StartsAt is null || link.StartsAt <= now)
+                    && (link.EndsAt is null || link.EndsAt >= now));
+                var isSchoolOfficial = schoolOfficialExamId == exam.Id;
+                if (!assignedNow && !isSchoolOfficial)
+                {
+                    throw new ForbiddenException(
+                        "Uno de los exámenes seleccionados no está asignado a tu grupo.",
+                        "exam_not_assigned");
+                }
             }
 
             exams.Add(exam);

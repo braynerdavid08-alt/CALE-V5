@@ -142,12 +142,9 @@ export class SimulatorPage implements OnInit, OnDestroy {
     return this.banks().find((b) => b.id === id) ?? null;
   });
 
+  /** Con escuela/grupo: todos los publicados asignados. Sin vínculo: solo oficiales de plataforma. */
   readonly mixableExams = computed(() =>
-    this.exams().filter(
-      (exam) =>
-        exam.allowedAttempts > 1
-        && exam.canMixInPractice !== false
-    )
+    this.exams().filter((exam) => exam.canMixInPractice !== false)
   );
 
   readonly mixedAvailableCount = computed(() =>

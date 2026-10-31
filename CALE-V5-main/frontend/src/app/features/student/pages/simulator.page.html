@@ -130,14 +130,20 @@
       <ui-badge tone="primary">Siempre aleatorio</ui-badge>
     </div>
     <p class="muted intro">
-      Mezcla uno o varios exámenes y elige cuántas preguntas responder.
-      No consume los intentos de los exámenes oficiales.
+      @if (independent()) {
+        Sin escuela ves solo exámenes oficiales de Luz Verde. Elige cuántas preguntas responder.
+      } @else {
+        Mezcla los exámenes publicados de tu grupo y elige cuántas preguntas responder.
+        Esta práctica no consume los intentos formales del examen.
+      }
     </p>
 
     @if (!mixableExams().length) {
       <ui-empty
         title="No hay exámenes para mezclar"
-        message="El examen teórico oficial y los de un solo intento no se mezclan. Cuando tu instructor publique otro examen de práctica (varios intentos), aparecerá aquí. Mientras tanto usa el simulacro oficial CALE." />
+        message="{{ independent()
+          ? 'Aún no hay exámenes oficiales publicados para práctica libre. Usa el simulacro oficial CALE o los bancos de práctica.'
+          : 'Cuando tu escuela asigne exámenes a tu grupo, aparecerán aquí para armar tu simulacro.' }}" />
     } @else {
       <h3 class="section-label">1. Exámenes para mezclar</h3>
       <div class="mix-exam-grid">

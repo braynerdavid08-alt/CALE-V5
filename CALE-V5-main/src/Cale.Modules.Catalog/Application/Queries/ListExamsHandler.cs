@@ -38,21 +38,48 @@ public sealed class ListExamsHandler
         CancellationToken ct)
     {
         var exams = await _store.ListPublishedExamsAsync(ct);
-        var links = await _store.ListExamGroupsForGroupsAsync(
-            groupIds.Count == 0 ? [-1] : groupIds,
-            ct);
-        var linkedExamIds = links.Select(x => x.ExamId).ToHashSet();
         var allLinks = await _store.ListAllExamGroupExamIdsAsync(ct);
+
+        // Sin escuela/grupo: solo exámenes de bancos oficiales (CreatedById null) no asignados a grupos.
+        if (groupIds.Count == 0)
+        {
+            var independent = new List<ExamDto>();
+            foreach (var exam in exams)
+            {
+                if (!IsOpen(exam, utcNow))
+                {
+                    continue;
+                }
+
+                if (allLinks.Contains(exam.Id))
+                {
+                    continue;
+                }
+
+                if (exam.BankId is not int bankId)
+                {
+                    continue;
+                }
+
+                var bank = await _store.GetBankAsync(bankId, ct);
+                if (bank is null || bank.CreatedById is not null || !bank.IsActive)
+                {
+                    continue;
+                }
+
+                independent.Add(Map(exam, canMixInPractice: true));
+            }
+
+            return independent;
+        }
+
+        var links = await _store.ListExamGroupsForGroupsAsync(groupIds, ct);
+        var linkedExamIds = links.Select(x => x.ExamId).ToHashSet();
 
         return exams
             .Where(exam =>
             {
-                if (exam.StartsAt is not null && utcNow < exam.StartsAt)
-                {
-                    return false;
-                }
-
-                if (exam.EndsAt is not null && utcNow > exam.EndsAt)
+                if (!IsOpen(exam, utcNow))
                 {
                     return false;
                 }
@@ -65,17 +92,30 @@ public sealed class ListExamsHandler
                 var hasAnyAssignment = allLinks.Contains(exam.Id);
                 if (!hasAnyAssignment)
                 {
-                    // Unassigned published exams are not public to all students.
+                    // Unassigned published exams are not public to school students.
                     return false;
                 }
 
                 return linkedExamIds.Contains(exam.Id);
             })
-            .Select(exam => Map(
-                exam,
-                canMixInPractice: exam.AllowedAttempts > 1
-                    && officialTheoryExamId != exam.Id))
+            // Con grupo: todos los asignados se pueden mezclar en simulacro personalizado.
+            .Select(exam => Map(exam, canMixInPractice: true))
             .ToList();
+    }
+
+    private static bool IsOpen(Exam exam, DateTime utcNow)
+    {
+        if (exam.StartsAt is not null && utcNow < exam.StartsAt)
+        {
+            return false;
+        }
+
+        if (exam.EndsAt is not null && utcNow > exam.EndsAt)
+        {
+            return false;
+        }
+
+        return true;
     }
 
     private static ExamDto Map(Exam exam, bool canMixInPractice = true) => new(
