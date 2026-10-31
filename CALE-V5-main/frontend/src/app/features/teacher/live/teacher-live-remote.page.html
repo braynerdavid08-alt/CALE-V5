@@ -24,98 +24,100 @@
       <ui-button type="submit" [loading]="loading()">Abrir control</ui-button>
       <a routerLink="/teacher/live" class="back">Volver al aula</a>
     </form>
-  } @else if (lobby(); as l) {
-    <header class="top">
-      <div>
-        <p class="eyebrow">Control remoto</p>
-        <h1>{{ l.title }}</h1>
-        <p class="meta">
-          {{ l.status }}
-          · {{ l.connectedCount }} conectados
-          · {{ l.answersReceived }} respuestas
-        </p>
-      </div>
-    </header>
+  } @else {
+    @if (lobby(); as l) {
+      <header class="top">
+        <div>
+          <p class="eyebrow">Control remoto</p>
+          <h1>{{ l.title }}</h1>
+          <p class="meta">
+            {{ l.status }}
+            · {{ l.connectedCount }} conectados
+            · {{ l.answersReceived }} respuestas
+          </p>
+        </div>
+      </header>
 
-    @if (l.status === 'Ended') {
-      <div class="panel end">
-        <h2>Clase terminada</h2>
-        <a routerLink="/teacher/live">Nueva sala</a>
-      </div>
-    } @else {
-      <div class="panel q">
-        @if (l.currentQuestion; as q) {
-          <p class="progress">Pregunta {{ q.index + 1 }} / {{ q.total }}</p>
-          <h2>{{ q.text }}</h2>
-        } @else {
-          <h2>Sala lista</h2>
-          <p>Proyecta en el PC. Cuando quieras, inicia desde aquí.</p>
+      @if (l.status === 'Ended') {
+        <div class="panel end">
+          <h2>Clase terminada</h2>
+          <a routerLink="/teacher/live">Nueva sala</a>
+        </div>
+      } @else {
+        <div class="panel q">
+          @if (l.currentQuestion; as q) {
+            <p class="progress">Pregunta {{ q.index + 1 }} / {{ q.total }}</p>
+            <h2>{{ q.text }}</h2>
+          } @else {
+            <h2>Sala lista</h2>
+            <p>Proyecta en el PC. Cuando quieras, inicia desde aquí.</p>
+          }
+        </div>
+
+        @if (liveRoster(); as roster) {
+          <div class="roster">
+            <div class="col ok">
+              <h3>Bien {{ roster.correctCount }}</h3>
+              <ul>
+                @for (row of roster.correct; track row.participantId) {
+                  <li>
+                    {{ row.displayName }}
+                    @if (optionLetter(row.optionId); as letter) {
+                      <span> · {{ letter }}</span>
+                    }
+                  </li>
+                } @empty {
+                  <li class="empty">—</li>
+                }
+              </ul>
+            </div>
+            <div class="col bad">
+              <h3>Mal {{ roster.incorrectCount }}</h3>
+              <ul>
+                @for (row of roster.incorrect; track row.participantId) {
+                  <li>
+                    {{ row.displayName }}
+                    @if (optionLetter(row.optionId); as letter) {
+                      <span> · {{ letter }}</span>
+                    }
+                  </li>
+                } @empty {
+                  <li class="empty">—</li>
+                }
+              </ul>
+            </div>
+            <div class="col mute">
+              <h3>Sin {{ roster.unansweredCount }}</h3>
+              <ul>
+                @for (row of roster.unanswered; track row.participantId) {
+                  <li>{{ row.displayName }}</li>
+                } @empty {
+                  <li class="empty">—</li>
+                }
+              </ul>
+            </div>
+          </div>
         }
-      </div>
 
-      @if (liveRoster(); as roster) {
-        <div class="roster">
-          <div class="col ok">
-            <h3>Bien {{ roster.correctCount }}</h3>
-            <ul>
-              @for (row of roster.correct; track row.participantId) {
-                <li>
-                  {{ row.displayName }}
-                  @if (optionLetter(row.optionId); as letter) {
-                    <span> · {{ letter }}</span>
-                  }
-                </li>
-              } @empty {
-                <li class="empty">—</li>
-              }
-            </ul>
-          </div>
-          <div class="col bad">
-            <h3>Mal {{ roster.incorrectCount }}</h3>
-            <ul>
-              @for (row of roster.incorrect; track row.participantId) {
-                <li>
-                  {{ row.displayName }}
-                  @if (optionLetter(row.optionId); as letter) {
-                    <span> · {{ letter }}</span>
-                  }
-                </li>
-              } @empty {
-                <li class="empty">—</li>
-              }
-            </ul>
-          </div>
-          <div class="col mute">
-            <h3>Sin {{ roster.unansweredCount }}</h3>
-            <ul>
-              @for (row of roster.unanswered; track row.participantId) {
-                <li>{{ row.displayName }}</li>
-              } @empty {
-                <li class="empty">—</li>
-              }
-            </ul>
-          </div>
+        <div class="pad">
+          <button
+            type="button"
+            class="go"
+            [disabled]="loading()"
+            (click)="advance()">
+            {{ l.status === 'Lobby' ? 'Iniciar clase' : 'Siguiente pregunta' }}
+          </button>
+          @if (l.status === 'Running' || l.status === 'Paused') {
+            <button type="button" class="sec" [disabled]="loading()" (click)="pauseOrResume()">
+              {{ l.status === 'Paused' ? 'Reanudar' : 'Pausar' }}
+            </button>
+            <button type="button" class="danger" [disabled]="loading()" (click)="endClass()">
+              Terminar clase
+            </button>
+          }
+          <p class="hint">También: → / Espacio / Enter</p>
         </div>
       }
-
-      <div class="pad">
-        <button
-          type="button"
-          class="go"
-          [disabled]="loading()"
-          (click)="advance()">
-          {{ l.status === 'Lobby' ? 'Iniciar clase' : 'Siguiente pregunta' }}
-        </button>
-        @if (l.status === 'Running' || l.status === 'Paused') {
-          <button type="button" class="sec" [disabled]="loading()" (click)="pauseOrResume()">
-            {{ l.status === 'Paused' ? 'Reanudar' : 'Pausar' }}
-          </button>
-          <button type="button" class="danger" [disabled]="loading()" (click)="endClass()">
-            Terminar clase
-          </button>
-        }
-        <p class="hint">También: → / Espacio / Enter</p>
-      </div>
     }
   }
 </section>

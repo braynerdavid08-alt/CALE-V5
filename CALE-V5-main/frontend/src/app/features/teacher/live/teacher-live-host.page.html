@@ -356,7 +356,7 @@
             @if (l.currentQuestion.imageUrl) {
               <img class="q-img" [src]="l.currentQuestion.imageUrl" alt="" />
             }
-            <ul class="options" [class.grid-2]="(l.currentQuestion.options?.length ?? 0) === 4">
+            <ul class="options" [class.grid-2]="(l.currentQuestion.options.length ?? 0) === 4">
               @for (opt of l.currentQuestion.options; track opt.id; let i = $index) {
                 <li
                   class="option-card"

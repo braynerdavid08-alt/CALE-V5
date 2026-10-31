@@ -280,7 +280,7 @@
         <div class="slides-foot">
           <button type="button" (click)="duplicateSlide()">Duplicar</button>
           <button type="button" (click)="toggleSlideHidden()" [disabled]="slides().length <= 1">
-            {{ activeSlide()?.hidden ? 'Mostrar' : 'Ocultar' }}
+            {{ activeSlide().hidden ? 'Mostrar' : 'Ocultar' }}
           </button>
           <button type="button" (click)="deleteSlide()" [disabled]="slides().length <= 1">Eliminar</button>
         </div>
