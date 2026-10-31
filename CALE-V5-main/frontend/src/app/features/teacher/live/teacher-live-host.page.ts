@@ -879,7 +879,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     });
     this.hub.onreconnected(() => {
       this.connectionNotice.set('Conexión restablecida.');
-      void this.hub!.invoke('JoinAsHost', sessionId).finally(() => {
+      void this.api.ensureJoinedAsHost(this.hub!, sessionId).finally(() => {
         window.setTimeout(() => {
           if (this.connectionNotice() === 'Conexión restablecida.') {
             this.connectionNotice.set(null);
@@ -999,7 +999,11 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
         this.loadAnalytics(current.sessionId);
       }
     });
-    void this.hub.start().then(() => this.hub!.invoke('JoinAsHost', sessionId));
+    void this.api.ensureJoinedAsHost(this.hub, sessionId).catch((err) => {
+      this.connectionNotice.set(
+        err?.message || 'No se pudo unir el proyector en vivo. Recarga o vuelve a iniciar sesión.'
+      );
+    });
   }
 
   participationPercent(): number {

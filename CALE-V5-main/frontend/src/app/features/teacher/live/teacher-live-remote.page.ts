@@ -245,6 +245,10 @@ export class TeacherLiveRemotePage implements OnInit, OnDestroy {
         this.applyLobby({ ...current, status: 'Ended' });
       }
     });
-    void this.hub.start().then(() => this.hub!.invoke('JoinAsHost', sessionId));
+    void this.api.ensureJoinedAsHost(this.hub, sessionId).catch((err) => {
+      this.error.set(
+        err?.message || 'No se pudo conectar el control. Usa la misma cuenta de instructor del PC.'
+      );
+    });
   }
 }

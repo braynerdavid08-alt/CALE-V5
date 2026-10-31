@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { HubConnection, HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
+import { firstValueFrom } from 'rxjs';
 import { env } from '../../../core/config/env';
 import { buildQrDataUrl as buildQrDataUrlCore } from '../../../core/qr/build-qr-data-url';
 import { SessionStore } from '../../../core/auth/session.store';
@@ -332,17 +333,35 @@ export class LiveApi {
     return `${root}/hubs/live`;
   }
 
-  buildHub(asHost: boolean): HubConnection {
-    const token = this.session.token();
+  buildHub(_asHost: boolean): HubConnection {
     const url = this.hubUrl();
-    const options = token
-      ? { accessTokenFactory: () => token, withCredentials: true }
-      : { withCredentials: true };
+    // Always send cookies; only attach bearer when we actually have one (cookie-auth
+    // sessions keep token=null). Never capture a stale token at build time.
     const builder = new HubConnectionBuilder()
-      .withUrl(url, options)
+      .withUrl(url, {
+        withCredentials: true,
+        accessTokenFactory: () => this.session.token() ?? ''
+      })
       .withAutomaticReconnect()
       .configureLogging(LogLevel.Warning);
     return builder.build();
+  }
+
+  /** Start hub (if needed) and join host group; renew session once on auth denial. */
+  async ensureJoinedAsHost(hub: HubConnection, sessionId: number): Promise<void> {
+    if (hub.state === 'Disconnected') {
+      await hub.start();
+    }
+    try {
+      await hub.invoke('JoinAsHost', sessionId);
+    } catch {
+      try {
+        await firstValueFrom(this.session.refreshSession());
+      } catch {
+        /* keep going — cookie may already be valid */
+      }
+      await hub.invoke('JoinAsHost', sessionId);
+    }
   }
 
   qrImageUrl(joinUrl: string): string {

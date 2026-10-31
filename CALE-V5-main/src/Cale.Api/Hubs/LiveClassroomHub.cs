@@ -54,9 +54,14 @@ public sealed class LiveClassroomHub : Hub
         var session = await _sessions.GetByIdAsync(sessionId, Context.ConnectionAborted)
             ?? throw new HubException("Sesión no encontrada.");
 
-        var isAdmin = Context.User?.IsInRole(Roles.Admin) == true;
-        if (!isAdmin && session.HostUserId != userId)
+        if (!CanControlAsHost(session, userId))
         {
+            _logger.LogWarning(
+                "JoinAsHost denied session {SessionId}: caller {UserId} host {HostUserId} role {Role}",
+                sessionId,
+                userId,
+                session.HostUserId,
+                TryGetRole());
             throw new HubException("Solo el anfitrión puede controlar esta sesión.");
         }
 
@@ -127,8 +132,7 @@ public sealed class LiveClassroomHub : Hub
         var session = await _sessions.GetByIdAsync(sessionId, Context.ConnectionAborted)
             ?? throw new HubException("Sesión no encontrada.");
 
-        var isAdmin = Context.User?.IsInRole(Roles.Admin) == true;
-        if (!isAdmin && session.HostUserId != userId)
+        if (!CanControlAsHost(session, userId))
         {
             throw new HubException("Solo el anfitrión puede controlar la presentación.");
         }
@@ -183,9 +187,22 @@ public sealed class LiveClassroomHub : Hub
 
     private int? TryGetUserId()
     {
-        var value = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+        var value = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? Context.User?.FindFirstValue("sub")
+            ?? Context.User?.FindFirstValue("nameid");
         return int.TryParse(value, out var id) ? id : null;
     }
+
+    private string TryGetRole() =>
+        Roles.Normalize(
+            Context.User?.FindFirstValue(ClaimTypes.Role)
+            ?? Context.User?.FindFirstValue("role"));
+
+    /// <summary>Same rules as HTTP EnsureHost: session host or Admin.</summary>
+    private bool CanControlAsHost(LiveSession session, int userId) =>
+        session.HostUserId == userId
+        || TryGetRole() == Roles.Admin
+        || Context.User?.IsInRole(Roles.Admin) == true;
 }
 
 public sealed class LiveSessionBroadcaster : Cale.Modules.LiveClassroom.Application.Abstractions.ILiveSessionBroadcaster
