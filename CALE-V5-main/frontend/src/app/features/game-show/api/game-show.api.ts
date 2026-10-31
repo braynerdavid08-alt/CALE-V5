@@ -1,8 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { HubConnection, HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
+import { firstValueFrom } from 'rxjs';
 import { env } from '../../../core/config/env';
 import { SessionStore } from '../../../core/auth/session.store';
+import { AuthApi } from '../../auth/api/auth.api';
 
 export interface GameShowAnswerInput {
   text: string;
@@ -347,7 +349,9 @@ const LAST_GAME_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 export class GameShowApi {
   private readonly http = inject(HttpClient);
   private readonly session = inject(SessionStore);
+  private readonly authApi = inject(AuthApi);
   private readonly base = env.apiUrl;
+  private hubAccessToken: string | null = null;
 
   create(body: CreateGameShowBody) {
     return this.http.post<GameShowLobbyDto>(`${this.base}/api/game-show`, body);
@@ -605,7 +609,8 @@ export class GameShowApi {
     const url = `${this.base || ''}/hubs/game-show`;
     return new HubConnectionBuilder()
       .withUrl(url, {
-        accessTokenFactory: () => this.session.token() || ''
+        withCredentials: true,
+        accessTokenFactory: () => this.resolveHubAccessToken()
       })
       // Never give up: phones lock, switch networks and Render restarts on deploy.
       .withAutomaticReconnect({
@@ -613,5 +618,43 @@ export class GameShowApi {
       })
       .configureLogging(LogLevel.Warning)
       .build();
+  }
+
+  async ensureJoinedAsHost(hub: HubConnection, sessionId: number): Promise<void> {
+    this.hubAccessToken = null;
+    if (hub.state === 'Disconnected') {
+      await hub.start();
+    }
+    try {
+      await hub.invoke('JoinAsHost', sessionId);
+    } catch {
+      this.hubAccessToken = null;
+      try {
+        await firstValueFrom(this.session.refreshSession());
+      } catch {
+        /* cookie may already be valid */
+      }
+      if (hub.state === 'Disconnected') {
+        await hub.start();
+      }
+      await hub.invoke('JoinAsHost', sessionId);
+    }
+  }
+
+  private async resolveHubAccessToken(): Promise<string> {
+    const bearer = this.session.token();
+    if (bearer) {
+      return bearer;
+    }
+    if (this.hubAccessToken) {
+      return this.hubAccessToken;
+    }
+    try {
+      const res = await firstValueFrom(this.authApi.hubAccess());
+      this.hubAccessToken = res.token || null;
+      return this.hubAccessToken ?? '';
+    } catch {
+      return '';
+    }
   }
 }

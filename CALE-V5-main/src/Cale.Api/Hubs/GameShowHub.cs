@@ -1,10 +1,12 @@
 using System.Security.Claims;
+using Cale.Api.Extensions;
 using Cale.Api.Services.Live;
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Time;
 using Cale.Modules.GameShow.Application;
 using Cale.Modules.GameShow.Application.Abstractions;
 using Cale.Modules.GameShow.Application.DTOs;
+using Cale.Modules.GameShow.Domain;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 
@@ -103,9 +105,14 @@ public sealed class GameShowHub : Hub
                 ?? throw new HubException("Debes iniciar sesión.");
             var session = await _store.GetByIdAsync(sessionId, Context.ConnectionAborted)
                 ?? throw new HubException("Partida no encontrada.");
-            var isAdmin = Context.User?.IsInRole(Roles.Admin) == true;
-            if (!isAdmin && session.HostUserId != userId)
+            if (!CanControlAsHost(session, userId))
             {
+                _logger.LogWarning(
+                    "GameShow JoinAsHost denied session {SessionId}: caller {UserId} host {HostUserId} role {Role}",
+                    sessionId,
+                    userId,
+                    session.HostUserId,
+                    Context.User is null ? "?" : CurrentUser.GetRole(Context.User));
                 throw new HubException("Solo el anfitrión puede controlar esta partida.");
             }
 
@@ -148,9 +155,27 @@ public sealed class GameShowHub : Hub
 
     private int? TryGetUserId()
     {
-        var value = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-        return int.TryParse(value, out var id) ? id : null;
+        if (Context.User?.Identity?.IsAuthenticated != true)
+        {
+            return null;
+        }
+
+        try
+        {
+            return CurrentUser.GetId(Context.User);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            var value = Context.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? Context.User.FindFirstValue("sub")
+                ?? Context.User.FindFirstValue("nameid");
+            return int.TryParse(value, out var id) ? id : null;
+        }
     }
+
+    private bool CanControlAsHost(GameShowSession session, int userId) =>
+        session.HostUserId == userId
+        || (Context.User is not null && CurrentUser.IsAdmin(Context.User));
 }
 
 public sealed class GameShowBroadcaster : IGameShowBroadcaster

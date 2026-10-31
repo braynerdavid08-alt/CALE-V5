@@ -684,10 +684,11 @@ export class GameShowHostPage implements OnInit, OnDestroy {
     this.hub.onreconnecting(() => this.connection.set('Reconectando…'));
     this.hub.onreconnected(() => {
       this.connection.set(null);
-      void this.hub?.invoke('JoinAsHost', this.sessionId);
-      this.reload();
+      void this.api.ensureJoinedAsHost(this.hub!, this.sessionId).then(() => this.reload());
     });
     this.hub.onclose(() => this.connection.set('Conexión perdida. Recarga la página.'));
-    void this.hub.start().then(() => this.hub!.invoke('JoinAsHost', this.sessionId));
+    void this.api.ensureJoinedAsHost(this.hub, this.sessionId).catch(() => {
+      this.connection.set('No se pudo unir como anfitrión. Recarga o vuelve a iniciar sesión.');
+    });
   }
 }
