@@ -250,9 +250,27 @@
 }
 
 .code { font-size: clamp(2rem, 6vw, 3.2rem); font-weight: 900; letter-spacing: 0.12em; margin: 0.35rem 0; color: #0d1410; }
+.code.remote { color: #0b6e4f; font-size: clamp(1.6rem, 4.5vw, 2.4rem); }
 .label { color: #5a6f82; font-size: var(--text-sm); margin: 0; }
 .qr { display: block; margin: 0.75rem auto; border-radius: 12px; background: #fff; padding: 0.5rem; }
 .join-url { font-size: var(--text-xs); color: #5a6f82; word-break: break-all; }
+.remote-block {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed #c5d6e8;
+}
+.remote-inline-hint {
+  margin: 0.5rem 0 0.75rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #5a6f82;
+}
+.remote-inline-hint a { color: #0b6e4f; font-weight: 700; }
+.remote-open-btn,
+.remote-qr-btn {
+  width: 100%;
+  margin-top: 0.35rem;
+}
 .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin: 1rem 0; }
 .stats div { text-align: center; padding: 0.5rem; border-radius: var(--radius-md); background: #f0f4f8; color: #0d1410; }
 .stats span { display: block; font-size: 1.4rem; font-weight: 800; }

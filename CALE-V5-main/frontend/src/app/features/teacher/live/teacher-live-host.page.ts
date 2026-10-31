@@ -288,7 +288,24 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
       return;
     }
 
-    void this.api.buildQrDataUrl(joinUrl).then((url) => this.qrDataUrl.set(url));
+    void this.api.buildQrDataUrl(this.toAbsoluteAppUrl(joinUrl)).then((url) => this.qrDataUrl.set(url));
+  }
+
+  /** Absolute URL so phone camera QR scanners open the right site. */
+  absoluteRemoteUrl(): string {
+    return this.toAbsoluteAppUrl(this.lobby()?.remoteUrl ?? '');
+  }
+
+  private toAbsoluteAppUrl(pathOrUrl: string): string {
+    const raw = (pathOrUrl || '').trim();
+    if (!raw) {
+      return '';
+    }
+    if (/^https?:\/\//i.test(raw)) {
+      return raw;
+    }
+    const origin = typeof location !== 'undefined' ? location.origin : '';
+    return `${origin}${raw.startsWith('/') ? '' : '/'}${raw}`;
   }
 
   showRanking(): boolean {
@@ -743,9 +760,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     const safe = lobby.revealCorrect ? lobby : sanitizeLiveLobby(lobby);
     this.lobby.set(safe);
     this.refreshQr(safe.joinUrl);
-    if (this.showRemoteSheet()) {
-      void this.refreshRemoteQr();
-    }
+    void this.refreshRemoteQr();
     this.answersReceived.set(lobby.answersReceived);
     if (lobby.ranking) {
       this.ranking.set(lobby.ranking);
@@ -816,7 +831,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   }
 
   private async refreshRemoteQr(): Promise<void> {
-    const url = this.lobby()?.remoteUrl;
+    const url = this.absoluteRemoteUrl();
     if (!url) {
       this.remoteQrDataUrl.set('');
       return;

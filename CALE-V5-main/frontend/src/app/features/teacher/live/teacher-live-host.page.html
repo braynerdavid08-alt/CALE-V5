@@ -36,7 +36,7 @@
       </div>
       <div class="top-actions">
         <button type="button" class="btn primary" (click)="openQuestionProjector()">Proyector</button>
-        <button type="button" class="btn ghost" (click)="openRemoteSheet()">Celular</button>
+        <button type="button" class="btn ghost" (click)="openRemoteSheet()">QR control celular</button>
         <button
           type="button"
           class="btn"
@@ -67,7 +67,11 @@
           <p class="remote-code-label">O escribe en el celular</p>
           <p class="remote-code">{{ l.remoteCode || '—' }}</p>
           <p class="remote-url">{{ l.remoteUrl }}</p>
-          <p class="remote-hint">Ruta: Aula en vivo → código C… · o abre el enlace del QR</p>
+          <p class="remote-hint">
+            En el celular: inicia sesión como instructor →
+            <a routerLink="/teacher/live/remote">Aula en vivo → Control celular</a>
+            → escribe el código de arriba.
+          </p>
         </div>
       </div>
     }
@@ -84,10 +88,30 @@
       @if (!projectorMode()) {
       <aside class="lobby-panel">
         <div class="code-block">
-          <p class="label">Código de sala</p>
+          <p class="label">Código para estudiantes</p>
           <p class="code">{{ l.joinCode }}</p>
           <img class="qr" [src]="qrUrl()" [alt]="'QR ' + l.joinCode" width="220" height="220" />
           <p class="join-url">{{ l.joinUrl }}</p>
+        </div>
+        <div class="code-block remote-block">
+          <p class="label">Control en tu celular (instructor)</p>
+          <p class="code remote">{{ l.remoteCode || '—' }}</p>
+          @if (remoteQrDataUrl(); as remoteQr) {
+            <img class="qr" [src]="remoteQr" alt="QR control instructor" width="180" height="180" />
+          } @else {
+            <button type="button" class="btn ghost remote-qr-btn" (click)="openRemoteSheet()">
+              Mostrar QR grande
+            </button>
+          }
+          <p class="join-url">{{ absoluteRemoteUrl() }}</p>
+          <p class="remote-inline-hint">
+            Escanea el QR o, en el celular, abre
+            <a routerLink="/teacher/live/remote">Control celular</a>
+            y escribe el código <strong>C…</strong> (no es el de los alumnos).
+          </p>
+          <button type="button" class="btn primary remote-open-btn" (click)="openRemoteSheet()">
+            Ampliar QR / código
+          </button>
         </div>
         <div class="stats">
           <div><span>{{ l.participantCount }}</span><small>en sala</small></div>
@@ -448,7 +472,7 @@
           <div class="actions wrap primary-actions">
             <div class="proj-toolbar">
               <button type="button" class="btn primary" (click)="openQuestionProjector()">Proyector</button>
-              <button type="button" class="btn ghost" (click)="openRemoteSheet()">Celular</button>
+              <button type="button" class="btn ghost" (click)="openRemoteSheet()">QR control celular</button>
               <button
                 type="button"
                 class="btn"

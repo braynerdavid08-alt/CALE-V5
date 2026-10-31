@@ -17,6 +17,20 @@
   padding: 1rem 1.1rem;
   background: var(--color-surface);
 }
+.help-card.remote-entry {
+  border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
+}
+.help-card.remote-entry p {
+  margin: 0 0 0.65rem;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+.remote-link {
+  font-weight: 800;
+  color: var(--color-primary);
+}
 .help-card h2 { margin: 0 0 0.5rem; font-size: 1rem; }
 .help-card ul {
   margin: 0;

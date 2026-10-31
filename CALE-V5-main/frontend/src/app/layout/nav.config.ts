@@ -227,6 +227,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
         icon: 'exam',
         children: [
           { label: 'Aula en vivo', path: '/teacher/live', exact: true },
+          { label: 'Control celular', path: '/teacher/live/remote', exact: true },
           { label: '100 Estudiantes Dijeron', path: '/teacher/game-show', exact: true },
           { label: 'Presentaciones', path: '/teacher/presentations', exact: true },
           { label: 'Grupos', path: '/teacher/groups', exact: true }
