@@ -91,7 +91,12 @@ public sealed record ExamDto(
     bool IsActive,
     int CreatedById,
     DateTime? StartsAt,
-    DateTime? EndsAt);
+    DateTime? EndsAt,
+    /// <summary>
+    /// False for the school's official theory exam and single-attempt exams
+    /// (they must not be used in mixed practice simulacros).
+    /// </summary>
+    bool CanMixInPractice = true);
 
 public sealed record SaveExamRequest(
     string Name,

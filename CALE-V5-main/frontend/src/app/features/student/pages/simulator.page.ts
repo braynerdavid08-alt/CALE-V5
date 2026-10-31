@@ -143,7 +143,11 @@ export class SimulatorPage implements OnInit, OnDestroy {
   });
 
   readonly mixableExams = computed(() =>
-    this.exams().filter((exam) => exam.allowedAttempts > 1)
+    this.exams().filter(
+      (exam) =>
+        exam.allowedAttempts > 1
+        && exam.canMixInPractice !== false
+    )
   );
 
   readonly mixedAvailableCount = computed(() =>

@@ -22,6 +22,8 @@ export interface ExamDto {
   published: boolean;
   startsAt?: string | null;
   endsAt?: string | null;
+  /** False for official theory / single-attempt exams (cannot mix in custom practice). */
+  canMixInPractice?: boolean;
 }
 
 export interface TakeOptionDto {

@@ -71,11 +71,14 @@ public sealed class ListExamsHandler
 
                 return linkedExamIds.Contains(exam.Id);
             })
-            .Select(Map)
+            .Select(exam => Map(
+                exam,
+                canMixInPractice: exam.AllowedAttempts > 1
+                    && officialTheoryExamId != exam.Id))
             .ToList();
     }
 
-    private static ExamDto Map(Exam exam) => new(
+    private static ExamDto Map(Exam exam, bool canMixInPractice = true) => new(
         exam.Id,
         exam.Name,
         exam.Description,
@@ -88,5 +91,6 @@ public sealed class ListExamsHandler
         exam.IsActive,
         exam.CreatedById,
         exam.StartsAt,
-        exam.EndsAt);
+        exam.EndsAt,
+        canMixInPractice);
 }
