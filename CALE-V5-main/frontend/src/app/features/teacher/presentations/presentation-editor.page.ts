@@ -422,7 +422,12 @@ export class PresentationEditorPage implements OnInit, AfterViewInit, OnDestroy 
       return false;
     }
     const tag = el.tagName;
-    return tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable;
+    return (
+      tag === 'INPUT' ||
+      tag === 'TEXTAREA' ||
+      tag === 'SELECT' ||
+      el.isContentEditable
+    );
   }
 
   openSignPicker(): void {
@@ -756,6 +761,9 @@ export class PresentationEditorPage implements OnInit, AfterViewInit, OnDestroy 
 
   @HostListener('window:keydown', ['$event'])
   onKey(ev: KeyboardEvent): void {
+    const meta = ev.ctrlKey || ev.metaKey;
+    const typing = this.isTypingTarget(ev.target);
+
     if (ev.key === 'Escape') {
       if (this.showShortcuts()) {
         this.showShortcuts.set(false);
@@ -782,6 +790,16 @@ export class PresentationEditorPage implements OnInit, AfterViewInit, OnDestroy 
       }
       return;
     }
+
+    // En inputs/selects del chrome: solo Guardar; el resto deja el comportamiento nativo.
+    if (typing) {
+      if (meta && ev.key.toLowerCase() === 's') {
+        ev.preventDefault();
+        this.saveNow(false).subscribe();
+      }
+      return;
+    }
+
     if (this.editingText()) {
       return;
     }
@@ -793,7 +811,6 @@ export class PresentationEditorPage implements OnInit, AfterViewInit, OnDestroy 
       }
       return;
     }
-    const meta = ev.ctrlKey || ev.metaKey;
     if (meta && ev.key.toLowerCase() === 'c' && this.selectedId()) {
       ev.preventDefault();
       this.copySelectedElement();
