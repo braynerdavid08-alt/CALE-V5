@@ -276,20 +276,23 @@ public static class ServiceCollectionExtensions
                 {
                     OnMessageReceived = context =>
                     {
-                        var accessToken = context.Request.Query["access_token"];
                         var path = context.HttpContext.Request.Path;
-                        if (!string.IsNullOrEmpty(accessToken)
-                            && path.StartsWithSegments("/hubs"))
-                        {
-                            context.Token = accessToken;
-                        }
-                        else if (string.IsNullOrEmpty(context.Token)
-                            && context.Request.Cookies.TryGetValue(
+                        // Cookie is source of truth for browser sessions. Prefer it over a
+                        // stale access_token query that SignalR may still send.
+                        if (context.Request.Cookies.TryGetValue(
                                 AuthCookieNames.Access,
                                 out var cookieToken)
                             && !string.IsNullOrWhiteSpace(cookieToken))
                         {
                             context.Token = cookieToken;
+                        }
+                        else if (path.StartsWithSegments("/hubs"))
+                        {
+                            var accessToken = context.Request.Query["access_token"];
+                            if (!string.IsNullOrEmpty(accessToken))
+                            {
+                                context.Token = accessToken;
+                            }
                         }
 
                         return Task.CompletedTask;

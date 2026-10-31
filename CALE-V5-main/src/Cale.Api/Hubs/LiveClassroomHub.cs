@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Cale.Api.Extensions;
 using Cale.Api.Services.Live;
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Domain.Time;
@@ -187,22 +188,31 @@ public sealed class LiveClassroomHub : Hub
 
     private int? TryGetUserId()
     {
-        var value = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? Context.User?.FindFirstValue("sub")
-            ?? Context.User?.FindFirstValue("nameid");
-        return int.TryParse(value, out var id) ? id : null;
+        if (Context.User?.Identity?.IsAuthenticated != true)
+        {
+            return null;
+        }
+
+        try
+        {
+            return CurrentUser.GetId(Context.User);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            var value = Context.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? Context.User.FindFirstValue("sub")
+                ?? Context.User.FindFirstValue("nameid");
+            return int.TryParse(value, out var id) ? id : null;
+        }
     }
 
     private string TryGetRole() =>
-        Roles.Normalize(
-            Context.User?.FindFirstValue(ClaimTypes.Role)
-            ?? Context.User?.FindFirstValue("role"));
+        Context.User is null ? Roles.Student : CurrentUser.GetRole(Context.User);
 
     /// <summary>Same rules as HTTP EnsureHost: session host or Admin.</summary>
     private bool CanControlAsHost(LiveSession session, int userId) =>
         session.HostUserId == userId
-        || TryGetRole() == Roles.Admin
-        || Context.User?.IsInRole(Roles.Admin) == true;
+        || (Context.User is not null && CurrentUser.IsAdmin(Context.User));
 }
 
 public sealed class LiveSessionBroadcaster : Cale.Modules.LiveClassroom.Application.Abstractions.ILiveSessionBroadcaster

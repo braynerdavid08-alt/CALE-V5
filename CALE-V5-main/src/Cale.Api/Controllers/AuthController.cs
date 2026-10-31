@@ -222,6 +222,23 @@ public sealed class AuthController : ControllerBase
     public IActionResult AccessMode() =>
         Ok(new { freeAccess = Cale.BuildingBlocks.Domain.Access.FreeAccessPolicy.Enabled });
 
+    /// <summary>
+    /// Returns the current access JWT for SignalR (WebSockets cannot always send HttpOnly cookies).
+    /// Same identity as cookie auth; do not persist in localStorage.
+    /// </summary>
+    [HttpGet("hub-access")]
+    [Authorize]
+    public ActionResult<object> HubAccess()
+    {
+        if (!Request.Cookies.TryGetValue(AuthCookieNames.Access, out var token)
+            || string.IsNullOrWhiteSpace(token))
+        {
+            return Unauthorized();
+        }
+
+        return Ok(new { token });
+    }
+
     [HttpGet("me")]
     [Authorize]
     public async Task<ActionResult<MeResponse>> Me(CancellationToken ct) =>

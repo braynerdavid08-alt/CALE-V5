@@ -114,6 +114,11 @@ export class AuthApi {
     return this.http.post<AuthResponse>(`${this.base}/refresh`, {}, { withCredentials: true });
   }
 
+  /** Short-lived copy of the HttpOnly access cookie for SignalR WebSockets. */
+  hubAccess() {
+    return this.http.get<{ token: string }>(`${this.base}/hub-access`, { withCredentials: true });
+  }
+
   logout() {
     return this.http.post<void>(`${this.base}/logout`, {}, { withCredentials: true });
   }

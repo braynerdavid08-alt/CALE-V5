@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { env } from '../../../core/config/env';
 import { buildQrDataUrl as buildQrDataUrlCore } from '../../../core/qr/build-qr-data-url';
 import { SessionStore } from '../../../core/auth/session.store';
+import { AuthApi } from '../../auth/api/auth.api';
 
 export interface LiveSessionConfigDto {
   questionCount: number;
@@ -226,7 +227,10 @@ export interface LiveRematchResponse {
 export class LiveApi {
   private readonly http = inject(HttpClient);
   private readonly session = inject(SessionStore);
+  private readonly authApi = inject(AuthApi);
   private readonly base = `${env.apiUrl}/api/live`;
+  /** In-memory only; refreshed for each SignalR handshake (cookie-auth sessions). */
+  private hubAccessToken: string | null = null;
 
   create(body: {
     title?: string;
@@ -335,12 +339,11 @@ export class LiveApi {
 
   buildHub(_asHost: boolean): HubConnection {
     const url = this.hubUrl();
-    // Always send cookies; only attach bearer when we actually have one (cookie-auth
-    // sessions keep token=null). Never capture a stale token at build time.
+    // Cookies + access_token from /auth/hub-access (cookie sessions) or session.token().
     const builder = new HubConnectionBuilder()
       .withUrl(url, {
         withCredentials: true,
-        accessTokenFactory: () => this.session.token() ?? ''
+        accessTokenFactory: () => this.resolveHubAccessToken()
       })
       .withAutomaticReconnect()
       .configureLogging(LogLevel.Warning);
@@ -349,18 +352,40 @@ export class LiveApi {
 
   /** Start hub (if needed) and join host group; renew session once on auth denial. */
   async ensureJoinedAsHost(hub: HubConnection, sessionId: number): Promise<void> {
+    this.hubAccessToken = null;
     if (hub.state === 'Disconnected') {
       await hub.start();
     }
     try {
       await hub.invoke('JoinAsHost', sessionId);
     } catch {
+      this.hubAccessToken = null;
       try {
         await firstValueFrom(this.session.refreshSession());
       } catch {
         /* keep going — cookie may already be valid */
       }
+      if (hub.state === 'Disconnected') {
+        await hub.start();
+      }
       await hub.invoke('JoinAsHost', sessionId);
+    }
+  }
+
+  private async resolveHubAccessToken(): Promise<string> {
+    const bearer = this.session.token();
+    if (bearer) {
+      return bearer;
+    }
+    if (this.hubAccessToken) {
+      return this.hubAccessToken;
+    }
+    try {
+      const res = await firstValueFrom(this.authApi.hubAccess());
+      this.hubAccessToken = res.token || null;
+      return this.hubAccessToken ?? '';
+    } catch {
+      return '';
     }
   }
 
