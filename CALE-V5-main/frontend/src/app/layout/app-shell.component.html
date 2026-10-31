@@ -114,31 +114,6 @@
           }
         </div>
 
-        @if (!mustChangePassword) {
-          <nav class="topbar-links" aria-label="Accesos rápidos">
-            @if (isStudentShell) {
-              <a class="top-chip" routerLink="/student/cursos" title="Cursos virtuales">
-                <ui-icon name="book" />
-                <span>Cursos</span>
-              </a>
-              <a class="top-chip top-chip-wide" routerLink="/student/normas-transito" title="Biblioteca Jurídica">
-                <ui-icon name="book" />
-                <span>Biblioteca</span>
-              </a>
-            }
-            @if (role !== 'Admin') {
-              <a class="top-chip top-chip-shop" routerLink="/tienda" title="Tienda y descuentos">
-                <ui-icon name="image" />
-                <span>Tienda</span>
-              </a>
-              <a class="top-chip top-chip-donate" routerLink="/donaciones" title="Apoyar Luz Verde">
-                <ui-icon name="heart" />
-                <span>Donar</span>
-              </a>
-            }
-          </nav>
-        }
-
         <span class="spacer" aria-hidden="true"></span>
         <ui-motivation class="top-motivation" [role]="role" />
         <span class="spacer" aria-hidden="true"></span>
