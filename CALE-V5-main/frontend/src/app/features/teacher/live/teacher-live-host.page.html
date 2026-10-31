@@ -193,7 +193,7 @@
             <div class="actions wrap">
               @if (l.status === 'Lobby') {
                 <ui-button type="button" [loading]="loading()" (click)="control('start')">
-                  {{ linkedPresentationId() && l.questionCount === 0 ? 'Iniciar clase (diapositivas)' : 'Iniciar actividad' }}
+                  {{ linkedPresentationId() && !(l.config.questionCount > 0) ? 'Iniciar clase (diapositivas)' : 'Iniciar actividad' }}
                 </ui-button>
               }
               <ui-button type="button" variant="secondary" (click)="toggleQuick()">Pregunta rápida</ui-button>

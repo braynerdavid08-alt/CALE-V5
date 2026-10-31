@@ -53,6 +53,7 @@ export class TeacherLiveHubPage implements OnInit {
   readonly presetName = signal('');
   readonly presentations = signal<PresentationListItem[]>([]);
   readonly selectedPresentationId = signal<number | null>(null);
+  private presentationsLoaded = false;
   private pendingAutoCreate = false;
 
   readonly form = this.fb.nonNullable.group({
@@ -153,6 +154,8 @@ export class TeacherLiveHubPage implements OnInit {
 
   constructor() {
     effect(() => {
+      // Do not persist presentationId in the draft: a leftover deck made the
+      // select look like "Sin diapositivas" while still linking slides on create.
       const draft: LiveHubDraft = {
         ...this.form.getRawValue(),
         distributionMode: this.distributionMode(),
@@ -160,7 +163,7 @@ export class TeacherLiveHubPage implements OnInit {
         selectedThemesByBank: this.selectedThemesByBank(),
         bankQuotas: this.bankQuotas(),
         selectedDifficulties: this.selectedDifficulties(),
-        presentationId: this.selectedPresentationId()
+        presentationId: null
       };
       saveLiveHubDraft(draft);
     });
@@ -171,8 +174,20 @@ export class TeacherLiveHubPage implements OnInit {
     this.applyPresentationQuery();
     this.loadBanks();
     this.presentationApi.list().subscribe({
-      next: (items) => this.presentations.set(items),
-      error: () => this.presentations.set([])
+      next: (items) => {
+        this.presentations.set(items);
+        this.presentationsLoaded = true;
+        const selected = this.selectedPresentationId();
+        if (selected != null && !items.some((p) => p.id === selected)) {
+          this.selectedPresentationId.set(null);
+        }
+        this.tryAutoCreate();
+      },
+      error: () => {
+        this.presentations.set([]);
+        this.presentationsLoaded = true;
+        this.tryAutoCreate();
+      }
     });
     this.authApi.me().subscribe({
       next: (dto) => {
@@ -467,13 +482,14 @@ export class TeacherLiveHubPage implements OnInit {
         bankTopicFilters,
         bankQuestionQuotas,
         difficultyFilters: difficulties.length ? difficulties : undefined,
-        presentationId: this.selectedPresentationId() ?? undefined
+        presentationId: this.resolvedPresentationId()
       }
     }).subscribe({
       next: (lobby) => {
         this.loading.set(false);
+        const deckId = this.resolvedPresentationId();
         void this.router.navigate(['/teacher/live', lobby.sessionId, 'host'], {
-          queryParams: this.selectedPresentationId() ? { openDeck: 1 } : undefined
+          queryParams: deckId ? { openDeck: 1 } : undefined
         });
       },
       error: (err) => {
@@ -501,7 +517,30 @@ export class TeacherLiveHubPage implements OnInit {
     this.selectedThemesByBank.set(draft.selectedThemesByBank ?? {});
     this.bankQuotas.set(draft.bankQuotas ?? {});
     this.selectedDifficulties.set(draft.selectedDifficulties ?? []);
-    this.selectedPresentationId.set(draft.presentationId ?? null);
+    // Never restore a deck from the draft — only presets / ?presentationId= apply one.
+    this.selectedPresentationId.set(null);
+  }
+
+  /** Selected deck id, or null when the teacher chose “Sin diapositivas”. */
+  private resolvedPresentationId(): number | null {
+    const id = this.selectedPresentationId();
+    if (id == null || id <= 0) {
+      return null;
+    }
+    const items = this.presentations();
+    // List still loading (e.g. autoCreate from /presentations): trust the selection.
+    if (!this.presentationsLoaded || items.length === 0) {
+      return id;
+    }
+    return items.some((p) => p.id === id) ? id : null;
+  }
+
+  private tryAutoCreate(): void {
+    if (!this.pendingAutoCreate || !this.banksLoaded() || !this.presentationsLoaded) {
+      return;
+    }
+    this.pendingAutoCreate = false;
+    this.create();
   }
 
   private buildDraft(): LiveHubDraft {
@@ -512,7 +551,7 @@ export class TeacherLiveHubPage implements OnInit {
       selectedThemesByBank: this.selectedThemesByBank(),
       bankQuotas: this.bankQuotas(),
       selectedDifficulties: this.selectedDifficulties(),
-      presentationId: this.selectedPresentationId()
+      presentationId: this.resolvedPresentationId()
     };
   }
 
@@ -532,19 +571,13 @@ export class TeacherLiveHubPage implements OnInit {
           this.selectedBankIds.set(kept);
           this.syncQuotasForSelection(kept);
         }
-        if (this.pendingAutoCreate) {
-          this.pendingAutoCreate = false;
-          this.create();
-        }
+        this.tryAutoCreate();
       },
       error: () => {
         this.banks.set([]);
         this.banksLoaded.set(true);
         this.selectedBankIds.set([]);
-        if (this.pendingAutoCreate) {
-          this.pendingAutoCreate = false;
-          this.create();
-        }
+        this.tryAutoCreate();
       }
     });
   }

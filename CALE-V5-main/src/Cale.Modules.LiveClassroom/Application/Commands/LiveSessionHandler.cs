@@ -276,7 +276,8 @@ public sealed class LiveSessionHandler
                 await EnsureQuestionsPreparedAsync(session, config, ct);
                 if (session.Questions.Count == 0)
                 {
-                    if (config.PresentationId is not > 0)
+                    // Slides-only lobby: presentation linked and the host asked for 0 bank questions.
+                    if (config.PresentationId is not > 0 || config.QuestionCount > 0)
                     {
                         throw new DomainException(
                             "No hay preguntas en el banco con esos filtros.",
@@ -1040,7 +1041,8 @@ public sealed class LiveSessionHandler
 
         if (list.Count == 0)
         {
-            if (config.PresentationId is > 0)
+            // Allow empty pool only for presentation-only rooms (questionCount == 0).
+            if (config.PresentationId is > 0 && take == 0)
             {
                 return;
             }
@@ -1054,11 +1056,6 @@ public sealed class LiveSessionHandler
         list = PickQuestions(list, config, take);
         if (list.Count < take)
         {
-            if (config.PresentationId is > 0 && list.Count == 0)
-            {
-                return;
-            }
-
             throw new DomainException(
                 $"Hay {list.Count} preguntas con esos bancos/temas; necesitas al menos {take}.",
                 400,

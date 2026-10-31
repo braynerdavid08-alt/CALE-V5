@@ -150,9 +150,9 @@
       <label class="field">
         Diapositivas (opcional)
         <select [value]="selectedPresentationId() ?? ''" (change)="onPresentationChange($event)">
-          <option value="">Sin diapositivas</option>
+          <option value="" [selected]="selectedPresentationId() == null">Sin diapositivas</option>
           @for (p of presentations(); track p.id) {
-            <option [value]="p.id">{{ p.title }}</option>
+            <option [value]="p.id" [selected]="selectedPresentationId() === p.id">{{ p.title }}</option>
           }
         </select>
       </label>
