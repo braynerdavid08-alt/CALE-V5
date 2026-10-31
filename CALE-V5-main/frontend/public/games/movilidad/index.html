@@ -27,7 +27,7 @@ kbd{display:inline-block;min-width:20px;padding:1px 6px;border:1px solid var(--m
 #car svg{width:42px;height:28px;display:block;overflow:visible}
 #car.boom{font-size:28px;line-height:28px;width:auto;height:auto}
 #obs{position:absolute;top:10px;font-size:30px}
-.ctrls{margin-top:8px}.ctrls .g{margin-top:6px}
+.ctrls{margin-top:8px;touch-action:none;-webkit-user-select:none;user-select:none}.ctrls .g{margin-top:6px;touch-action:none}
 [class~=hud] .pill{font-size:12.5px;padding:3px 9px}.tb{width:100%;border-collapse:collapse;font-size:13px}.tb td,.tb th{padding:5px 6px;border-bottom:1px solid var(--bd);text-align:left}.chip{display:inline-block;margin:2px;padding:2px 9px;border-radius:12px;background:#16a34a22;font-size:13px}input.nm{width:100%;font-size:16px;padding:8px;border-radius:10px;border:1px solid var(--bd);background:var(--c);color:var(--t);box-sizing:border-box}
 input[type=range],select{width:100%;font-size:16px;margin:6px 0;padding:6px;border-radius:8px}
 html{height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:manipulation}body{min-height:100%;overscroll-behavior:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
@@ -110,7 +110,7 @@ const togglePause=()=>pause(!paused),toggleMute=()=>{MUTE=!MUTE;const b=$('#mb')
 document.addEventListener('keydown',e=>{if((e.key=='p'||e.key=='P'||e.key=='Escape')&&LOOPING){e.preventDefault();togglePause()}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&LOOPING&&!paused)pause(true)});
 const LVS={normal:{n:'Normal',lv:5,maxV:140,tg:[9,24],hg:[60,130],soft:false,tol:33,rain:.45,ambT:2.5,sh:2.2}};
-function condStart(){au();stop();A.innerHTML=hdr('🚗 Conductor responsable')+`<div class=card><b>🎮 Controles</b><p style="margin:6px 0">${kk('↑')}/${kk('W')} acelerar · ${kk('↓')}/${kk('S')} frenar · ${kk('Espacio')} freno de mano · ${kk('←')}${kk('→')} carril<br>${kk('Q')}${kk('E')} direccionales · ${kk('L')} luces · ${kk('C')}/${kk('X')} contestar/rechazar · ${kk('P')} pausa<br>La velocidad se mantiene sola al soltar el acelerador; para bajarla usa el freno.</p><small style="color:var(--m)">En el celular usa los botones de la pantalla.</small></div><div class=card><b>🛣️ En la ruta encontrarás</b><p style="margin:6px 0">Peatones, semáforos e intersecciones · animales en la vía · vehículos varados · niebla · zonas escolares con fotomultas · ambulancias · lluvia y noche · huecos y resaltos · motos y frenazos · llamadas que distraen.</p></div>`+'<button class="b p" onclick="cond()" style="font-size:18px;padding:14px">▶ Comenzar</button>';window.onkeydown=e=>{if(e.key=='Enter'){e.preventDefault();cond()}}}
+function condStart(){au();stop();A.innerHTML=hdr('🚗 Conductor responsable')+`<div class=card><b>🎮 Controles</b><p style="margin:6px 0">${kk('↑')}/${kk('W')} acelerar · ${kk('↓')}/${kk('S')} frenar · ${kk('Espacio')} freno de mano · ${kk('←')}${kk('→')} carril<br>${kk('Q')}${kk('E')} direccionales · ${kk('L')} luces · ${kk('C')}/${kk('X')} contestar/rechazar · ${kk('P')} pausa<br>La velocidad se mantiene sola al soltar el acelerador; para bajarla usa el freno.</p><small style="color:var(--m)">En el celular puedes mantener Acelerar/Frenar con un dedo y con otro tocar carril o direccional.</small></div><div class=card><b>🛣️ En la ruta encontrarás</b><p style="margin:6px 0">Peatones, semáforos e intersecciones · animales en la vía · vehículos varados · niebla · zonas escolares con fotomultas · ambulancias · lluvia y noche · huecos y resaltos · motos y frenazos · llamadas que distraen.</p></div>`+'<button class="b p" onclick="cond()" style="font-size:18px;padding:14px">▶ Comenzar</button>';window.onkeydown=e=>{if(e.key=='Enter'){e.preventDefault();cond()}}}
 const RCM={police:'Chocaste con una patrulla de policía que tenía luz verde.',moto:'Chocaste con una moto que tenía luz verde.',bike:'Chocaste con una bicicleta que tenía luz verde.',car:'Chocaste con un carro que tenía luz verde.'};
 const kk=(k)=>`<kbd>${k}</kbd>`;
 
@@ -129,10 +129,18 @@ const fl=k=>{fails[k]=(fails[k]||0)+1},bad=(k,m,fk)=>{inf[k]=(inf[k]||0)+1;pts-=
 const L=d=>{if(air)return;const n=Math.max(0,Math.min(2,ln+d));if(n==ln)return;seen.add('signal');if(on('signal')&&!(sig==d&&T-sigT>=1)&&T-sigW>2){sigW=T;bad('Cambio de carril sin direccional','Antes de cambiar de carril activa la direccional (Q izquierda / E derecha) y espera.','signal')}ln=n;sig=0};
 const HB=a=>{if(a&&!hb&&v>30&&!air){hbN++;fl('hb');seen.add('hb');pts-=50;ms=`🅿️ Freno de mano a ${v|0} km/h: dañas la transmisión (${hbN}/3).`;mt=3.5;SFX.skid();if(hbN>=3&&!hbAt)hbAt=T+.9}hb=a};
 const SG=d=>{sig=sig==d?0:d;sigT=T;SFX.click()},LT=()=>{lights=!lights;SFX.click()},PH=a=>{if(!ph2||ph2.s)return;if(a){ph2.s=1;ph2.t=0;bad('Uso del celular al conducir','Contestar o leer el celular al manejar te distrae: el carro se desvía.','phone')}else{ph2=null;SFX.ok();pts+=50;ms='✅ Rechazaste: lo correcto es no usar el celular al conducir.';mt=3}};
-$('#bl').onclick=()=>L(-1);$('#br').onclick=()=>L(1);$('#bq').onclick=()=>SG(-1);$('#be').onclick=()=>SG(1);$('#bli').onclick=()=>LT();
-$('#bc').onclick=()=>PH(1);$('#bx').onclick=()=>PH(0);
+/* Multitouch: acelerar + direccional/carril a la vez (PC teclado ya lo permite). */
+const tap=(id,fn)=>{const b=$(id);if(!b)return;b.onclick=null;const go=e=>{e.preventDefault();e.stopPropagation();fn()};b.addEventListener('pointerdown',go,{passive:false});b.addEventListener('click',e=>e.preventDefault())};
+tap('#bl',()=>L(-1));tap('#br',()=>L(1));tap('#bq',()=>SG(-1));tap('#be',()=>SG(1));tap('#bli',()=>LT());
+tap('#bc',()=>PH(1));tap('#bx',()=>PH(0));
 $('#cv').onpointerdown=e=>{if(!ph2||ph2.s)return;const B=$('#cv').getBoundingClientRect(),x=(e.clientX-B.left)*360/B.width,y=(e.clientY-B.top)*480/B.height;if(y>205&&y<260){if(x>40&&x<180)PH(1);else if(x>180&&x<320)PH(0)}};
-const hold=(id,fn)=>{const b=$(id);b.onpointerdown=e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(_){ }fn(1)};b.onpointerup=b.onpointerleave=b.onpointercancel=()=>fn(0)};hold('#bg',x=>g=x);hold('#bf',x=>f=x);hold('#bh',x=>HB(x));
+const hold=(id,fn)=>{const b=$(id);if(!b)return;const down=new Set();const sync=()=>fn(down.size?1:0);
+b.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;e.preventDefault();e.stopPropagation();down.add(e.pointerId);try{b.setPointerCapture(e.pointerId)}catch(_){}sync()},{passive:false});
+const up=e=>{if(!down.has(e.pointerId))return;down.delete(e.pointerId);try{b.releasePointerCapture(e.pointerId)}catch(_){}sync()};
+b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);
+/* No usar pointerleave: al tocar otro botón el dedo “sale” y soltaba el acelerador en celular. */
+};
+hold('#bg',x=>g=x);hold('#bf',x=>f=x);hold('#bh',x=>HB(x));
 window.onkeydown=e=>{const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();if(e.repeat)return;
 if(k=='arrowup'||k=='w')g=1;if(k=='arrowdown'||k=='s')f=1;if(k==' ')HB(1);if(k=='arrowleft'||k=='a')L(-1);if(k=='arrowright'||k=='d')L(1);if(k=='q')SG(-1);if(k=='e')SG(1);if(k=='l')LT();if(k=='c')PH(1);if(k=='x')PH(0)};
 window.onkeyup=e=>{const k=e.key.toLowerCase();if(k=='arrowup'||k=='w')g=0;if(k=='arrowdown'||k=='s')f=0;if(k==' ')HB(0)};
