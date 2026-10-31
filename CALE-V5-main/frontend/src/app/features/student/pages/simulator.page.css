@@ -466,6 +466,16 @@ ui-card.official-card {
   background: var(--color-primary-soft);
 }
 
+.options.locked {
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.saving-hint {
+  margin: 0.65rem 0 0;
+  font-size: 0.85rem;
+}
+
 .exam-actions {
   justify-content: space-between;
 }
