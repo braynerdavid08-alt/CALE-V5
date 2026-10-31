@@ -468,14 +468,14 @@ public sealed class StartExamHandler
                         "exam_not_assigned");
                 }
 
-                if (exam.BankId is not int bankId)
+                if (exam.BankId is not int mixBankId)
                 {
                     throw new ForbiddenException(
                         "Ese examen no está disponible para práctica libre.",
                         "exam_not_assigned");
                 }
 
-                var bank = await _catalog.GetBankAsync(bankId, ct);
+                var bank = await _catalog.GetBankAsync(mixBankId, ct);
                 if (bank is null || bank.CreatedById is not null || !bank.IsActive)
                 {
                     throw new ForbiddenException(

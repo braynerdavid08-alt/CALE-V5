@@ -68,7 +68,18 @@ public static class PlaySchemaGuard
             "ShowInRanking" boolean NOT NULL,
             "UpdatedAt" timestamp with time zone NOT NULL
         );
+        """,
         """
+        CREATE TABLE IF NOT EXISTS "RankingPosicion" (
+            "ScopeKey" varchar(80) NOT NULL,
+            "UserId" integer NOT NULL,
+            "Position" integer NOT NULL,
+            "Xp" integer NOT NULL,
+            "HeldSinceUtc" timestamp with time zone NOT NULL,
+            PRIMARY KEY ("ScopeKey", "UserId")
+        );
+        """,
+        """CREATE INDEX IF NOT EXISTS "IX_RankingPosicion_ScopeKey" ON "RankingPosicion" ("ScopeKey");"""
     ];
 
     private static readonly string[] SqliteStatements =
@@ -127,7 +138,18 @@ public static class PlaySchemaGuard
             "ShowInRanking" INTEGER NOT NULL,
             "UpdatedAt" TEXT NOT NULL
         );
+        """,
         """
+        CREATE TABLE IF NOT EXISTS "RankingPosicion" (
+            "ScopeKey" TEXT NOT NULL,
+            "UserId" INTEGER NOT NULL,
+            "Position" INTEGER NOT NULL,
+            "Xp" INTEGER NOT NULL,
+            "HeldSinceUtc" TEXT NOT NULL,
+            PRIMARY KEY ("ScopeKey", "UserId")
+        );
+        """,
+        """CREATE INDEX IF NOT EXISTS "IX_RankingPosicion_ScopeKey" ON "RankingPosicion" ("ScopeKey");"""
     ];
 
     public static async Task EnsureAsync(

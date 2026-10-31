@@ -157,6 +157,8 @@ export interface RankingEntry {
   displayName: string;
   xp: number;
   isMe: boolean;
+  photoUrl?: string | null;
+  positionHeldSinceUtc?: string | null;
 }
 
 export interface RankingScope {

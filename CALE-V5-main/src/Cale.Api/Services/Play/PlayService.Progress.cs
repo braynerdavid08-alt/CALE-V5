@@ -230,12 +230,13 @@ public sealed partial class PlayService
         var periodEnd = ColombiaTime.TodayInColombia();
         var periodStart = periodEnd.AddYears(-RankingYears);
 
-        var boardKey = resolved switch
+        var holdScopeKey = resolved switch
         {
-            "school" => $"play:board:school:{me.SchoolId}:2y:{periodStart:yyyyMMdd}",
-            "group" => $"play:board:group:{selectedGroup?.Id}:2y:{periodStart:yyyyMMdd}",
-            _ => $"play:board:global:2y:{periodStart:yyyyMMdd}"
+            "school" => $"school:{me.SchoolId}",
+            "group" => $"group:{selectedGroup?.Id}",
+            _ => "global"
         };
+        var boardKey = $"play:board:{holdScopeKey}:2y:{periodStart:yyyyMMdd}";
         if (!_cache.TryGetValue(boardKey, out List<BoardRow>? cachedBoard) || cachedBoard is null)
         {
             cachedBoard = await LoadBoardAsync(resolved, me.SchoolId, selectedGroup?.Id, periodStart, periodEnd, ct);
@@ -245,9 +246,10 @@ public sealed partial class PlayService
         var myXp = (await ComputePeriodXpAsync([userId], periodStart, periodEnd, ct)).GetValueOrDefault(userId);
         var students = cachedBoard
             .Where(s => s.Id != userId)
-            .Append(new BoardRow(userId, me.Name, myXp))
+            .Append(new BoardRow(userId, me.Name, myXp, me.PhotoUrl))
             .ToList();
         var xp = students.ToDictionary(s => s.Id, s => s.Xp);
+        var photos = students.ToDictionary(s => s.Id, s => s.PhotoUrl);
 
         var hidden = await _db.Set<PlayerProfile>().AsNoTracking()
             .Where(p => !p.ShowInRanking)
@@ -257,14 +259,25 @@ public sealed partial class PlayService
 
         var board = students
             .Where(s => !hidden.Contains(s.Id))
-            .Select(s => new { s.Id, s.Name, Xp = xp.GetValueOrDefault(s.Id) })
+            .Select(s => new { s.Id, s.Name, Xp = xp.GetValueOrDefault(s.Id), PhotoUrl = photos.GetValueOrDefault(s.Id) })
             .Where(s => s.Xp > 0 || s.Id == userId)
             .OrderByDescending(s => s.Xp)
             .ThenBy(s => s.Name)
             .ToList();
 
-        var entries = board
-            .Select((s, i) => new RankingEntryDto(i + 1, s.Id, PublicName(s.Name), s.Xp, s.Id == userId))
+        var ranked = board
+            .Select((s, i) => (Position: i + 1, s.Id, s.Name, s.Xp, s.PhotoUrl, IsMe: s.Id == userId))
+            .ToList();
+        var heldSince = await SyncRankingHoldsAsync(holdScopeKey, ranked, ct);
+        var entries = ranked
+            .Select(s => new RankingEntryDto(
+                s.Position,
+                s.Id,
+                PublicName(s.Name),
+                s.Xp,
+                s.IsMe,
+                s.PhotoUrl,
+                heldSince.GetValueOrDefault(s.Id)))
             .ToList();
         var mine = entries.FirstOrDefault(e => e.IsMe);
 
@@ -312,18 +325,87 @@ public sealed partial class PlayService
         }
 
         var students = (await query
-                .Select(u => new { u.Id, u.Name, u.Role })
+                .Select(u => new { u.Id, u.Name, u.Role, u.PhotoUrl })
                 .ToListAsync(ct))
             .Where(u => Roles.Normalize(u.Role) == Roles.Student)
             .ToList();
         var xp = await ComputePeriodXpAsync(students.Select(s => s.Id).ToList(), periodStart, periodEnd, ct);
         return students
-            .Select(s => new BoardRow(s.Id, s.Name, xp.GetValueOrDefault(s.Id)))
+            .Select(s => new BoardRow(s.Id, s.Name, xp.GetValueOrDefault(s.Id), s.PhotoUrl))
             .Where(s => s.Xp > 0)
             .ToList();
     }
 
-    private sealed record BoardRow(int Id, string Name, int Xp);
+    private sealed record BoardRow(int Id, string Name, int Xp, string? PhotoUrl);
+
+    /// <summary>
+    /// Persists when each student entered their current rank slot for this scope.
+    /// Same position → keep HeldSince; position change → reset to now.
+    /// </summary>
+    private async Task<Dictionary<int, DateTime>> SyncRankingHoldsAsync(
+        string scopeKey,
+        IReadOnlyList<(int Position, int Id, string Name, int Xp, string? PhotoUrl, bool IsMe)> ranked,
+        CancellationToken ct)
+    {
+        var now = _clock.UtcNow;
+        var ids = ranked.Select(r => r.Id).ToList();
+        var existing = await _db.Set<RankingPositionHold>()
+            .Where(h => h.ScopeKey == scopeKey && ids.Contains(h.UserId))
+            .ToListAsync(ct);
+        var byUser = existing.ToDictionary(h => h.UserId);
+        var result = new Dictionary<int, DateTime>();
+
+        foreach (var row in ranked)
+        {
+            if (byUser.TryGetValue(row.Id, out var hold))
+            {
+                if (hold.Position == row.Position)
+                {
+                    hold.Xp = row.Xp;
+                    result[row.Id] = hold.HeldSinceUtc;
+                }
+                else
+                {
+                    hold.Position = row.Position;
+                    hold.Xp = row.Xp;
+                    hold.HeldSinceUtc = now;
+                    result[row.Id] = now;
+                }
+            }
+            else
+            {
+                _db.Set<RankingPositionHold>().Add(new RankingPositionHold
+                {
+                    ScopeKey = scopeKey,
+                    UserId = row.Id,
+                    Position = row.Position,
+                    Xp = row.Xp,
+                    HeldSinceUtc = now
+                });
+                result[row.Id] = now;
+            }
+        }
+
+        // Drop stale holds for users no longer on this board (keeps table small).
+        var stale = await _db.Set<RankingPositionHold>()
+            .Where(h => h.ScopeKey == scopeKey && !ids.Contains(h.UserId))
+            .ToListAsync(ct);
+        if (stale.Count > 0)
+        {
+            _db.Set<RankingPositionHold>().RemoveRange(stale);
+        }
+
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            // Ranking must still render if hold table is missing mid-deploy.
+        }
+
+        return result;
+    }
 
     public async Task SetRankingVisibilityAsync(int userId, bool show, CancellationToken ct)
     {

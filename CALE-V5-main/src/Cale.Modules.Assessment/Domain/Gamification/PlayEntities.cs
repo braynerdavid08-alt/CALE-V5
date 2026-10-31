@@ -55,6 +55,16 @@ public sealed class PlayerProfile
     public DateTime UpdatedAt { get; set; }
 }
 
+/// <summary>Tracks how long a student has held a ranking position within a scope.</summary>
+public sealed class RankingPositionHold
+{
+    public string ScopeKey { get; set; } = "";
+    public int UserId { get; set; }
+    public int Position { get; set; }
+    public int Xp { get; set; }
+    public DateTime HeldSinceUtc { get; set; }
+}
+
 public static class GameKinds
 {
     public const string Signs = "signs";

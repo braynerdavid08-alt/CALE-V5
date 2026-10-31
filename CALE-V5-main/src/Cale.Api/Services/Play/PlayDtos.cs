@@ -137,7 +137,14 @@ public sealed record GameSavedDto(
     bool IsRecord,
     IReadOnlyList<BadgeDto> NewBadges);
 
-public sealed record RankingEntryDto(int Position, int UserId, string DisplayName, int Xp, bool IsMe);
+public sealed record RankingEntryDto(
+    int Position,
+    int UserId,
+    string DisplayName,
+    int Xp,
+    bool IsMe,
+    string? PhotoUrl = null,
+    DateTime? PositionHeldSinceUtc = null);
 
 public sealed record RankingScopeDto(string Scope, string Label, int? GroupId);
 

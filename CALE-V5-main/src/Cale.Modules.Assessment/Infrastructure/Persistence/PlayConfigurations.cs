@@ -59,3 +59,14 @@ public sealed class PlayerProfileConfiguration : IEntityTypeConfiguration<Player
         builder.Property(x => x.UserId).ValueGeneratedNever();
     }
 }
+
+public sealed class RankingPositionHoldConfiguration : IEntityTypeConfiguration<RankingPositionHold>
+{
+    public void Configure(EntityTypeBuilder<RankingPositionHold> builder)
+    {
+        builder.ToTable("RankingPosicion");
+        builder.HasKey(x => new { x.ScopeKey, x.UserId });
+        builder.Property(x => x.ScopeKey).HasMaxLength(80).IsRequired();
+        builder.HasIndex(x => x.ScopeKey);
+    }
+}
