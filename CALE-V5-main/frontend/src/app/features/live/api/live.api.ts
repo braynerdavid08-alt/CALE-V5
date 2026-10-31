@@ -116,6 +116,15 @@ export interface LiveLobbyDto {
   answersReceived: number;
   joinUrl: string;
   ranking?: LiveRankingDto | null;
+  /** Teacher phone remote (not the student join code). */
+  remoteCode?: string | null;
+  remoteUrl?: string | null;
+}
+
+export interface ResolveRemoteCodeResponse {
+  sessionId: number;
+  title: string;
+  remoteCode: string;
 }
 
 export interface LivePresentationSlideDto {
@@ -246,6 +255,12 @@ export class LiveApi {
 
   resolveJoin(code: string) {
     return this.http.get<ResolveJoinCodeResponse>(`${this.base}/sessions/resolve`, {
+      params: { code }
+    });
+  }
+
+  resolveRemote(code: string) {
+    return this.http.get<ResolveRemoteCodeResponse>(`${this.base}/sessions/remote-resolve`, {
       params: { code }
     });
   }

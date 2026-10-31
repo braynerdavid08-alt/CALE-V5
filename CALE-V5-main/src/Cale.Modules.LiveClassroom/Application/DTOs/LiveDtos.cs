@@ -117,7 +117,14 @@ public sealed record LiveLobbyDto(
     LiveQuestionPayloadDto? CurrentQuestion,
     int AnswersReceived,
     string JoinUrl,
-    LiveRankingDto? Ranking = null);
+    LiveRankingDto? Ranking = null,
+    string? RemoteCode = null,
+    string? RemoteUrl = null);
+
+public sealed record ResolveRemoteCodeResponse(
+    int SessionId,
+    string Title,
+    string RemoteCode);
 
 public sealed record JoinLiveSessionResponse(
     int SessionId,

@@ -72,6 +72,20 @@ public sealed class LiveController : ControllerBase
             PublicBaseUrl(),
             ct));
 
+    /// <summary>
+    /// Resolve the teacher phone-remote code (distinct from the student join code).
+    /// </summary>
+    [HttpGet("sessions/remote-resolve")]
+    [Authorize(Policy = "TeacherOrAdmin")]
+    public async Task<ActionResult<ResolveRemoteCodeResponse>> ResolveRemote(
+        [FromQuery] string code,
+        CancellationToken ct) =>
+        Ok(await _handler.ResolveRemoteCodeAsync(
+            code,
+            CurrentUser.GetId(User),
+            CurrentUser.IsAdmin(User),
+            ct));
+
     [HttpGet("sessions/{id:int}/play")]
     [Authorize]
     public async Task<ActionResult<LiveLobbyDto>> GetPlay(

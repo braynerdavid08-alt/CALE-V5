@@ -91,6 +91,8 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   readonly projectorView = signal(false);
   /** Keyboard + on-screen next control stays on until toggled off. */
   readonly clickerEnabled = signal(false);
+  readonly showRemoteSheet = signal(false);
+  readonly remoteQrDataUrl = signal('');
   readonly presFullscreen = signal(false);
   readonly showMoreControls = signal(false);
   readonly presentationEmbedSrc = signal<SafeResourceUrl | null>(null);
@@ -741,6 +743,9 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     const safe = lobby.revealCorrect ? lobby : sanitizeLiveLobby(lobby);
     this.lobby.set(safe);
     this.refreshQr(safe.joinUrl);
+    if (this.showRemoteSheet()) {
+      void this.refreshRemoteQr();
+    }
     this.answersReceived.set(lobby.answersReceived);
     if (lobby.ranking) {
       this.ranking.set(lobby.ranking);
@@ -799,6 +804,28 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   /** Toggle on-screen clicker + keyboard (→ / Espacio / Enter / N). */
   toggleClicker(): void {
     this.clickerEnabled.update((v) => !v);
+  }
+
+  openRemoteSheet(): void {
+    this.showRemoteSheet.set(true);
+    void this.refreshRemoteQr();
+  }
+
+  closeRemoteSheet(): void {
+    this.showRemoteSheet.set(false);
+  }
+
+  private async refreshRemoteQr(): Promise<void> {
+    const url = this.lobby()?.remoteUrl;
+    if (!url) {
+      this.remoteQrDataUrl.set('');
+      return;
+    }
+    try {
+      this.remoteQrDataUrl.set(await this.api.buildQrDataUrl(url));
+    } catch {
+      this.remoteQrDataUrl.set('');
+    }
   }
 
   private syncTimer(q: LiveQuestionPayloadDto | null): void {

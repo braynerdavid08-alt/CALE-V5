@@ -1,0 +1,203 @@
+:host {
+  display: block;
+}
+
+.remote {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: #07111c;
+  color: #f4f7fb;
+  overflow: auto;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
+    max(1.25rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.boot {
+  margin: auto;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #9ec9e8;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6ecf8e;
+}
+
+.entry,
+.top,
+.panel,
+.roster,
+.pad {
+  width: min(28rem, 100%);
+  margin-inline: auto;
+}
+
+.entry {
+  margin-top: 10vh;
+  display: grid;
+  gap: 0.85rem;
+}
+.entry h1,
+.top h1 {
+  margin: 0.15rem 0;
+  font-size: 1.55rem;
+}
+.lead {
+  margin: 0;
+  color: #9db4c9;
+  line-height: 1.45;
+}
+.entry label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+.entry input {
+  font: inherit;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 2px solid #2a4a66;
+  background: #0d1a28;
+  color: #fff;
+}
+.back {
+  color: #8ec8ff;
+  font-weight: 700;
+  text-align: center;
+}
+
+.meta {
+  margin: 0.25rem 0 0;
+  color: #9db4c9;
+  font-size: 0.92rem;
+}
+
+.panel {
+  padding: 1rem 1.1rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.panel .progress {
+  margin: 0 0 0.45rem;
+  color: #8fb4d6;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.8rem;
+}
+.panel h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.35;
+}
+.panel p {
+  margin: 0.4rem 0 0;
+  color: #9db4c9;
+}
+
+.roster {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+.roster .col {
+  border-radius: 12px;
+  padding: 0.55rem 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  min-height: 5.5rem;
+}
+.roster h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.roster ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 7rem;
+  overflow: auto;
+}
+.roster li {
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.15rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.roster .empty {
+  color: #7a8b9c;
+  font-weight: 500;
+  border: 0;
+}
+.col.ok h3 { color: #7ddea0; }
+.col.bad h3 { color: #ff9b9b; }
+.col.mute h3 { color: #9db4c9; }
+
+.pad {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+.go,
+.sec,
+.danger {
+  font: inherit;
+  font-weight: 800;
+  font-size: 1.2rem;
+  border: 0;
+  border-radius: 16px;
+  padding: 1rem 1.1rem;
+  cursor: pointer;
+}
+.go {
+  background: #1b8f4a;
+  color: #fff;
+  min-height: 3.6rem;
+}
+.go:disabled,
+.sec:disabled,
+.danger:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.sec {
+  background: #1a2f44;
+  color: #e8eef7;
+  border: 1px solid #34506a;
+}
+.danger {
+  background: #7f1d1d;
+  color: #fff;
+}
+.hint {
+  margin: 0.15rem 0 0;
+  text-align: center;
+  color: #6f879c;
+  font-size: 0.85rem;
+}
+
+.end {
+  text-align: center;
+  margin-top: 15vh;
+}
+.end a {
+  color: #8ec8ff;
+  font-weight: 700;
+}

@@ -63,6 +63,7 @@ public sealed class LiveSessionHandler
         config.BankIds = bankIds.ToList();
 
         var code = await GenerateUniqueCodeAsync(ct);
+        var remoteCode = await GenerateUniqueRemoteCodeAsync(ct);
         var session = LiveSession.Create(
             hostUserId,
             request.Title ?? "Aula en Vivo",
@@ -70,12 +71,18 @@ public sealed class LiveSessionHandler
             request.Mode,
             bankIds[0],
             JsonSerializer.Serialize(config, JsonOpts),
-            _clock.UtcNow);
+            _clock.UtcNow,
+            remoteCode);
 
         await _store.AddAsync(session, ct);
         await _store.SaveChangesAsync(ct);
 
-        return await ToLobbyAsync(session, publicBaseUrl, includeCorrect: session.RevealCorrect, ct);
+        return await ToLobbyAsync(
+            session,
+            publicBaseUrl,
+            includeCorrect: session.RevealCorrect,
+            ct,
+            forHost: true);
     }
 
     public async Task<LiveLobbyDto> GetHostAsync(
@@ -87,7 +94,40 @@ public sealed class LiveSessionHandler
     {
         var session = await RequireSessionAsync(sessionId, ct);
         EnsureHost(session, hostUserId, isAdmin);
-        return await ToLobbyAsync(session, publicBaseUrl, includeCorrect: session.RevealCorrect, ct);
+        await EnsureRemoteCodeAsync(session, ct);
+        return await ToLobbyAsync(
+            session,
+            publicBaseUrl,
+            includeCorrect: session.RevealCorrect,
+            ct,
+            forHost: true);
+    }
+
+    /// <summary>
+    /// Resolves the teacher phone-remote code. Only the session host (or admin) may use it.
+    /// </summary>
+    public async Task<ResolveRemoteCodeResponse> ResolveRemoteCodeAsync(
+        string code,
+        int userId,
+        bool isAdmin,
+        CancellationToken ct)
+    {
+        var normalized = (code ?? "").Trim().ToUpperInvariant();
+        if (normalized.Length < 4)
+        {
+            throw new DomainException("Código de control inválido.", 400, "invalid_remote_code");
+        }
+
+        var session = await _store.GetByRemoteCodeAsync(normalized, ct)
+            ?? throw new NotFoundException("No hay una sala activa con ese código de control.", "remote_not_found");
+
+        EnsureHost(session, userId, isAdmin);
+        if (session.Status == LiveSessionStatuses.Ended)
+        {
+            throw new DomainException("Esa clase ya terminó.", 400, "session_ended");
+        }
+
+        return new ResolveRemoteCodeResponse(session.Id, session.Title, session.RemoteCode);
     }
 
     public async Task<(int PresentationId, int SlideIndex)> ResolveLinkedPresentationAsync(
@@ -369,7 +409,12 @@ public sealed class LiveSessionHandler
                 throw new DomainException("Acción no válida.", 400, "invalid_action");
         }
 
-        return await ToLobbyAsync(session, publicBaseUrl, includeCorrect: session.RevealCorrect, ct);
+        return await ToLobbyAsync(
+            session,
+            publicBaseUrl,
+            includeCorrect: session.RevealCorrect,
+            ct,
+            forHost: true);
     }
 
     /// <summary>
@@ -782,6 +827,7 @@ public sealed class LiveSessionHandler
         }
 
         var code = await GenerateUniqueCodeAsync(ct);
+        var remoteCode = await GenerateUniqueRemoteCodeAsync(ct);
         var rematch = LiveSession.Create(
             session.HostUserId,
             $"{session.Title} (revancha)",
@@ -789,7 +835,8 @@ public sealed class LiveSessionHandler
             session.Mode,
             session.BankId,
             session.ConfigJson,
-            _clock.UtcNow);
+            _clock.UtcNow,
+            remoteCode);
 
         await _store.AddAsync(rematch, ct);
         await _store.SaveChangesAsync(ct);
@@ -805,7 +852,12 @@ public sealed class LiveSessionHandler
             },
             ct);
 
-        var lobby = await ToLobbyAsync(rematch, publicBaseUrl, includeCorrect: rematch.RevealCorrect, ct);
+        var lobby = await ToLobbyAsync(
+            rematch,
+            publicBaseUrl,
+            includeCorrect: rematch.RevealCorrect,
+            ct,
+            forHost: true);
         return new LiveRematchResponse(rematch.Id, rematch.JoinCode, joinUrl, lobby);
     }
 
@@ -1289,7 +1341,8 @@ public sealed class LiveSessionHandler
         string publicBaseUrl,
         bool includeCorrect,
         CancellationToken ct,
-        int? myParticipantId = null)
+        int? myParticipantId = null,
+        bool forHost = false)
     {
         var config = ReadConfig(session);
         var participants = session.Participants
@@ -1309,6 +1362,14 @@ public sealed class LiveSessionHandler
         }
 
         var joinUrl = BuildJoinUrl(publicBaseUrl, session.JoinCode);
+        string? remoteCode = null;
+        string? remoteUrl = null;
+        if (forHost && !string.IsNullOrWhiteSpace(session.RemoteCode))
+        {
+            remoteCode = session.RemoteCode;
+            remoteUrl = BuildRemoteUrl(publicBaseUrl, session.RemoteCode);
+        }
+
         LiveRankingDto? ranking = null;
         if (ShouldIncludeRanking(session, config))
         {
@@ -1332,7 +1393,9 @@ public sealed class LiveSessionHandler
             current,
             answers,
             joinUrl,
-            ranking);
+            ranking,
+            remoteCode,
+            remoteUrl);
     }
 
     private async Task<LiveRankingDto> BuildRankingAsync(
@@ -1490,6 +1553,45 @@ public sealed class LiveSessionHandler
         string.IsNullOrWhiteSpace(publicBaseUrl)
             ? $"/live/join/{joinCode}"
             : $"{publicBaseUrl.TrimEnd('/')}/live/join/{joinCode}";
+
+    private static string BuildRemoteUrl(string publicBaseUrl, string remoteCode) =>
+        string.IsNullOrWhiteSpace(publicBaseUrl)
+            ? $"/teacher/live/remote/{remoteCode}"
+            : $"{publicBaseUrl.TrimEnd('/')}/teacher/live/remote/{remoteCode}";
+
+    private async Task EnsureRemoteCodeAsync(LiveSession session, CancellationToken ct)
+    {
+        if (!string.IsNullOrWhiteSpace(session.RemoteCode))
+        {
+            return;
+        }
+
+        var code = await GenerateUniqueRemoteCodeAsync(ct);
+        session.SetRemoteCode(code);
+        await _store.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Teacher remote codes start with C so they never look like student join codes.</summary>
+    private async Task<string> GenerateUniqueRemoteCodeAsync(CancellationToken ct)
+    {
+        const string alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        for (var attempt = 0; attempt < 40; attempt++)
+        {
+            var chars = new char[5];
+            for (var i = 0; i < chars.Length; i++)
+            {
+                chars[i] = alphabet[Random.Shared.Next(alphabet.Length)];
+            }
+
+            var code = "C" + new string(chars);
+            if (!await _store.RemoteCodeExistsAsync(code, ct))
+            {
+                return code;
+            }
+        }
+
+        throw new DomainException("No se pudo generar código de control.", 500, "remote_code_failed");
+    }
 
     private async Task<IReadOnlyList<int>> ResolveBankIdsAsync(
         CreateLiveSessionRequest request,

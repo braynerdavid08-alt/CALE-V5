@@ -36,6 +36,7 @@
       </div>
       <div class="top-actions">
         <button type="button" class="btn primary" (click)="openQuestionProjector()">Proyector</button>
+        <button type="button" class="btn ghost" (click)="openRemoteSheet()">Celular</button>
         <button
           type="button"
           class="btn"
@@ -47,6 +48,28 @@
         <a routerLink="/teacher/live" class="back">Volver</a>
       </div>
     </header>
+    }
+
+    @if (showRemoteSheet() && !projectorView()) {
+      <div class="remote-sheet" role="dialog" aria-label="Control desde el celular">
+        <div class="remote-card">
+          <button type="button" class="remote-close" (click)="closeRemoteSheet()" aria-label="Cerrar">×</button>
+          <p class="eyebrow">Control en el celular</p>
+          <h2>Escanea este QR</h2>
+          <p class="remote-lead">
+            Entra con tu cuenta de instructor. Este código <strong>no</strong> es el de los estudiantes.
+          </p>
+          @if (remoteQrDataUrl(); as qr) {
+            <img class="remote-qr" [src]="qr" alt="QR control remoto" width="220" height="220" />
+          } @else {
+            <p class="muted">Generando QR…</p>
+          }
+          <p class="remote-code-label">O escribe en el celular</p>
+          <p class="remote-code">{{ l.remoteCode || '—' }}</p>
+          <p class="remote-url">{{ l.remoteUrl }}</p>
+          <p class="remote-hint">Ruta: Aula en vivo → código C… · o abre el enlace del QR</p>
+        </div>
+      </div>
     }
 
     <div class="layout" [class.playing]="!!l.currentQuestion && l.status !== 'Lobby'" [class.projector]="projectorMode()">
@@ -425,6 +448,7 @@
           <div class="actions wrap primary-actions">
             <div class="proj-toolbar">
               <button type="button" class="btn primary" (click)="openQuestionProjector()">Proyector</button>
+              <button type="button" class="btn ghost" (click)="openRemoteSheet()">Celular</button>
               <button
                 type="button"
                 class="btn"

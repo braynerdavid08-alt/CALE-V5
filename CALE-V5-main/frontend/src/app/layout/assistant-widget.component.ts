@@ -58,6 +58,7 @@ const HIDDEN_PATHS = [
   /^\/student\/evaluations/,
   /^\/student\/cursos\/leccion\//,
   /^\/teacher\/live\//,
+  /^\/teacher\/live\/remote/,
   /^\/teacher\/presentations\/[^/]+\/present/,
   /^\/teacher\/game-show\//
 ];

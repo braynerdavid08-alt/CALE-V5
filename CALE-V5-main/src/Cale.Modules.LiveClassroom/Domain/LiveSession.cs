@@ -21,6 +21,8 @@ public sealed class LiveSession
     public int HostUserId { get; private set; }
     public string Title { get; private set; } = "";
     public string JoinCode { get; private set; } = "";
+    /// <summary>Short code for the teacher phone remote (never the student join code).</summary>
+    public string RemoteCode { get; private set; } = "";
     public string Status { get; private set; } = LiveSessionStatuses.Lobby;
     public string Mode { get; private set; } = LiveSessionModes.Exam;
     public int BankId { get; private set; }
@@ -54,19 +56,31 @@ public sealed class LiveSession
         string mode,
         int bankId,
         string configJson,
-        DateTime utcNow)
+        DateTime utcNow,
+        string? remoteCode = null)
     {
         return new LiveSession
         {
             HostUserId = hostUserId,
             Title = string.IsNullOrWhiteSpace(title) ? "Aula en Vivo" : title.Trim(),
             JoinCode = joinCode.Trim().ToUpperInvariant(),
+            RemoteCode = string.IsNullOrWhiteSpace(remoteCode)
+                ? ""
+                : remoteCode.Trim().ToUpperInvariant(),
             Status = LiveSessionStatuses.Lobby,
             Mode = NormalizeMode(mode),
             BankId = bankId,
             ConfigJson = string.IsNullOrWhiteSpace(configJson) ? "{}" : configJson,
             CreatedAt = utcNow
         };
+    }
+
+    public void SetRemoteCode(string code)
+    {
+        if (string.IsNullOrWhiteSpace(RemoteCode) && !string.IsNullOrWhiteSpace(code))
+        {
+            RemoteCode = code.Trim().ToUpperInvariant();
+        }
     }
 
     public void AddParticipant(LiveParticipant participant) =>

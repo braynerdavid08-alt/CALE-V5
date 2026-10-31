@@ -12,10 +12,12 @@ public sealed class LiveSessionConfiguration : IEntityTypeConfiguration<LiveSess
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Title).HasMaxLength(200).IsRequired();
         builder.Property(x => x.JoinCode).HasMaxLength(12).IsRequired();
+        builder.Property(x => x.RemoteCode).HasMaxLength(12).IsRequired().HasDefaultValue("");
         builder.Property(x => x.Status).HasMaxLength(32).IsRequired();
         builder.Property(x => x.Mode).HasMaxLength(32).IsRequired();
         builder.Property(x => x.ConfigJson).HasMaxLength(4000).IsRequired();
         builder.HasIndex(x => x.JoinCode).IsUnique();
+        builder.HasIndex(x => x.RemoteCode);
         builder.HasIndex(x => x.HostUserId);
         builder.HasMany(x => x.Participants)
             .WithOne()

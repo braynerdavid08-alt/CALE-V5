@@ -28,8 +28,20 @@ public sealed class LiveSessionStore : ILiveSessionStore
             .Include(x => x.Questions)
             .FirstOrDefaultAsync(x => x.JoinCode == code, ct);
 
+    public Task<LiveSession?> GetByRemoteCodeAsync(string code, CancellationToken ct = default) =>
+        _db.Set<LiveSession>()
+            .AsSplitQuery()
+            .Include(x => x.Participants)
+            .Include(x => x.Questions)
+            .FirstOrDefaultAsync(
+                x => x.RemoteCode == code && x.Status != LiveSessionStatuses.Ended,
+                ct);
+
     public Task<bool> JoinCodeExistsAsync(string code, CancellationToken ct = default) =>
-        _db.Set<LiveSession>().AnyAsync(x => x.JoinCode == code, ct);
+        _db.Set<LiveSession>().AnyAsync(x => x.JoinCode == code || x.RemoteCode == code, ct);
+
+    public Task<bool> RemoteCodeExistsAsync(string code, CancellationToken ct = default) =>
+        _db.Set<LiveSession>().AnyAsync(x => x.RemoteCode == code || x.JoinCode == code, ct);
 
     public Task<LiveParticipant?> GetParticipantByTokenAsync(
         Guid token,

@@ -7,7 +7,9 @@ public interface ILiveSessionStore
     Task AddAsync(LiveSession session, CancellationToken ct = default);
     Task<LiveSession?> GetByIdAsync(int id, CancellationToken ct = default);
     Task<LiveSession?> GetByJoinCodeAsync(string code, CancellationToken ct = default);
+    Task<LiveSession?> GetByRemoteCodeAsync(string code, CancellationToken ct = default);
     Task<bool> JoinCodeExistsAsync(string code, CancellationToken ct = default);
+    Task<bool> RemoteCodeExistsAsync(string code, CancellationToken ct = default);
     Task<LiveParticipant?> GetParticipantByTokenAsync(Guid token, CancellationToken ct = default);
     Task<LiveAnswer?> FindAnswerAsync(int sessionQuestionId, int participantId, CancellationToken ct = default);
     Task AddAnswerAsync(LiveAnswer answer, CancellationToken ct = default);

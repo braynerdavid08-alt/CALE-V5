@@ -753,6 +753,23 @@ export const routes: Routes = [
             .then((m) => m.TeacherLiveHubPage)
       },
       {
+        path: 'teacher/live/remote',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: staffRoles },
+        loadComponent: () =>
+          import('./features/teacher/live/teacher-live-remote.page')
+            .then((m) => m.TeacherLiveRemotePage)
+      },
+      {
+        path: 'teacher/live/remote/:code',
+        canActivate: [roleGuard],
+        data: { roles: staffRoles },
+        loadComponent: () =>
+          import('./features/teacher/live/teacher-live-remote.page')
+            .then((m) => m.TeacherLiveRemotePage)
+      },
+      {
         path: 'teacher/live/:sessionId/host',
         canActivate: [roleGuard],
         data: { roles: staffRoles },
