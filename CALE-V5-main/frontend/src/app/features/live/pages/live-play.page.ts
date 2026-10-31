@@ -637,7 +637,7 @@ export class LivePlayPage implements OnInit, OnDestroy {
     }
     if (lobby.status === 'Lobby' || lobby.status === 'Ended' || !lobby.currentQuestion) {
       this.roundRanking.set(false);
-    } else if (lobby.currentQuestion.closesAt) {
+    } else if (lobby.currentQuestion.closesAt && (lobby.config?.questionCount ?? 0) <= 0) {
       const closesAt = Date.parse(lobby.currentQuestion.closesAt);
       if (Number.isFinite(closesAt) && closesAt <= Date.now()) {
         this.roundRanking.set(true);
@@ -673,7 +673,9 @@ export class LivePlayPage implements OnInit, OnDestroy {
       }
       const synced = computeSecondsLeft(q, this.lobby()?.config?.secondsPerQuestion);
       const left = synced ?? Math.max(0, Math.ceil((this.localDeadlineMs - Date.now()) / 1000));
-      this.secondsLeft.set(left);
+      const hostMonitored = (this.lobby()?.config?.questionCount ?? 0) > 0;
+      // Suggested time only — bank rooms stay open until the host advances.
+      this.secondsLeft.set(hostMonitored && left === 0 ? null : left);
     };
     tick();
     this.timerId = setInterval(tick, 250);

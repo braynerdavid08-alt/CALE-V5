@@ -234,13 +234,7 @@
             Confirmar respuesta
           </ui-button>
         } @else {
-          <p class="sent">
-            Respuesta enviada.
-            @if (lastPoints() !== null) {
-              +{{ lastPoints() }} pts
-            }
-            Espera la siguiente pregunta.
-          </p>
+          <p class="sent">Respuesta enviada. Espera la siguiente pregunta.</p>
         }
         @if (myRosterResult(); as mine) {
           <p class="result" [attr.data-result]="mine">
@@ -259,9 +253,6 @@
               <p><strong>{{ roster.correctCount }}</strong> bien · <strong>{{ roster.incorrectCount }}</strong> mal · <strong>{{ roster.unansweredCount }}</strong> sin respuesta</p>
             </div>
           }
-        }
-        @if (l.currentQuestion.explanation && l.revealCorrect) {
-          <p class="explain">{{ l.currentQuestion.explanation }}</p>
         }
       </div>
     }

@@ -8,6 +8,46 @@
 
 .host { max-width: 1200px; margin: 0 auto; }
 .host.projector-mode { max-width: none; }
+.host.projector-view {
+  min-height: 100vh;
+  padding: 1rem;
+  background: #0b1f33;
+}
+.host.projector-view .projector-stage,
+.host.projector-view .stage {
+  border: none;
+  background: transparent;
+  padding: 0;
+  min-height: 100vh;
+}
+.host.projector-view .projection-panel {
+  background: #ffffff;
+  min-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.proj-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  width: 100%;
+  margin-bottom: 0.25rem;
+}
+.btn {
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid #c5d6e8;
+  background: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  color: #0d1410;
+}
+.btn.ghost { background: #f7fbff; }
+.btn.primary { background: #1b8f4a; border-color: #1b8f4a; color: #fff; }
+.btn:hover { background: #e8f4fc; }
+.btn.primary:hover { background: #157a3e; }
 
 .eyebrow { color: #1565c0; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; font-size: var(--text-xs); margin: 0; }
 .conn-banner {

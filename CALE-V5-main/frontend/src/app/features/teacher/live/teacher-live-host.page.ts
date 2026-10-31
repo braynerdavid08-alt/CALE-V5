@@ -87,6 +87,9 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   readonly presentationSlide = signal(0);
   readonly showPresentation = signal(false);
   readonly projectorMode = signal(false);
+  /** Dedicated projection window (?view=projector) — only the question. */
+  readonly projectorView = signal(false);
+  readonly clickerHint = signal(false);
   readonly presFullscreen = signal(false);
   readonly showMoreControls = signal(false);
   readonly presentationEmbedSrc = signal<SafeResourceUrl | null>(null);
@@ -103,6 +106,10 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     window.addEventListener('message', this.onEmbedReady);
+    this.projectorView.set(this.route.snapshot.queryParamMap.get('view') === 'projector');
+    if (this.projectorView()) {
+      this.projectorMode.set(true);
+    }
     this.teacherApi.banks(true, false).subscribe({
       next: (banks) => {
         const map: Record<number, string> = {};
@@ -133,6 +140,38 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
         this.showPresentation.set(true);
       }
     });
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  onClickerKey(ev: KeyboardEvent): void {
+    if (this.projectorView()) {
+      return;
+    }
+    const t = ev.target as HTMLElement | null;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) {
+      return;
+    }
+    const key = ev.key;
+    if (key !== 'ArrowRight' && key !== 'ArrowLeft' && key !== ' ' && key !== 'PageDown' && key !== 'PageUp' && key !== 'Enter') {
+      return;
+    }
+    const l = this.lobby();
+    if (!l || l.status === 'Ended') {
+      return;
+    }
+    ev.preventDefault();
+    if (l.status === 'Lobby') {
+      if (key === 'ArrowRight' || key === ' ' || key === 'PageDown' || key === 'Enter') {
+        this.control('start');
+      }
+      return;
+    }
+    if (!l.currentQuestion) {
+      return;
+    }
+    if (key === 'ArrowRight' || key === ' ' || key === 'PageDown' || key === 'Enter') {
+      this.control('next');
+    }
   }
 
   ngOnDestroy(): void {
@@ -211,6 +250,11 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
       return false;
     }
     return !!(l.config?.showRanking || l.mode === 'Competitive' || l.status === 'Ended');
+  }
+
+  /** Bank-driven rooms: host advances; timer is display-only. */
+  isHostMonitored(): boolean {
+    return (this.lobby()?.config?.questionCount ?? 0) > 0;
   }
 
   configSummaryLines(): string[] {
@@ -681,7 +725,29 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   }
 
   toggleProjectorMode(): void {
+    if (this.projectorView()) {
+      return;
+    }
     this.projectorMode.update((v) => !v);
+  }
+
+  /** Opens a clean window with only the question for the classroom display. */
+  openQuestionProjector(): void {
+    const id = this.lobby()?.sessionId;
+    if (!id) {
+      return;
+    }
+    const url = this.router.serializeUrl(
+      this.router.createUrlTree(['/teacher/live', id, 'host'], {
+        queryParams: { view: 'projector' }
+      })
+    );
+    window.open(url, 'cale-live-projector', 'noopener,noreferrer');
+  }
+
+  enableClicker(): void {
+    this.clickerHint.set(true);
+    window.setTimeout(() => this.clickerHint.set(false), 5000);
   }
 
   private syncTimer(q: LiveQuestionPayloadDto | null): void {
@@ -704,6 +770,7 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
       const synced = computeSecondsLeft(q, this.lobby()?.config?.secondsPerQuestion);
       const startLeft = synced ?? maxSecs;
       this.localDeadlineMs = Date.now() + startLeft * 1000;
+      this.autoCloseSent = false;
     }
 
     const tick = () => {
@@ -713,8 +780,9 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
 
       const synced = computeSecondsLeft(q, this.lobby()?.config?.secondsPerQuestion);
       const left = synced ?? Math.max(0, Math.ceil((this.localDeadlineMs - Date.now()) / 1000));
-      this.secondsLeft.set(left);
-      if (left === 0 && !this.autoCloseSent) {
+      // Soft guide only: hide the clock after the suggested time; question stays open.
+      this.secondsLeft.set(this.isHostMonitored() && left === 0 ? null : left);
+      if (left === 0 && !this.autoCloseSent && !this.isHostMonitored()) {
         this.autoCloseSent = true;
         if (this.lobby()?.status === 'Running') {
           this.control('close');

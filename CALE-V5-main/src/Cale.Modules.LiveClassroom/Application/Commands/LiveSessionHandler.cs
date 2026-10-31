@@ -126,8 +126,10 @@ public sealed class LiveSessionHandler
             throw new ForbiddenException("Participant not in session.", "invalid_participant");
         }
 
+        var config = ReadConfig(session);
         var includeCorrect = session.RevealCorrect
-            && session.Mode is not LiveSessionModes.Exam;
+            && session.Mode is not LiveSessionModes.Exam
+            && !KeepOpenUntilHost(config);
         return await ToLobbyAsync(
             session,
             publicBaseUrl,
@@ -523,11 +525,15 @@ public sealed class LiveSessionHandler
             },
             ct);
 
+        // Host monitors who picked what while the question stays open.
+        await BroadcastAnswerRosterAsync(session, ct);
         await BroadcastRankingAsync(session, ct);
 
-        // When every connected student has answered, close like the timer hit 0.
+        // Bank rooms stay open for the host; only timed quick/slide questions auto-close.
         var closeNow = _clock.UtcNow;
-        if (session.IsQuestionOpen(closeNow) && connected > 0)
+        if (!KeepOpenUntilHost(config)
+            && session.IsQuestionOpen(closeNow)
+            && connected > 0)
         {
             var answers = await _store.ListAnswersForQuestionAsync(sessionQuestionId, ct);
             var answeredIds = answers.Select(a => a.ParticipantId).ToHashSet();
@@ -538,6 +544,12 @@ public sealed class LiveSessionHandler
             {
                 await CloseQuestionInternalAsync(session, config, closeNow, ct);
             }
+        }
+
+        // Students never learn the key from the answer ACK in host-monitored rooms.
+        if (KeepOpenUntilHost(config) || session.Mode is LiveSessionModes.Exam)
+        {
+            return new { ok = true, points = (int?)null, isCorrect = (bool?)null };
         }
 
         return new
@@ -1103,15 +1115,22 @@ public sealed class LiveSessionHandler
         await _store.SaveChangesAsync(ct);
     }
 
+    /// <summary>
+    /// Bank-driven rooms stay open until the host advances so they can monitor
+    /// who answered what. The client may still show a soft countdown from OpensAt.
+    /// </summary>
+    private static bool KeepOpenUntilHost(LiveSessionConfig config) =>
+        config.QuestionCount > 0;
+
     private static void OpenAt(
         LiveSession session,
         int index,
         LiveSessionConfig config,
         DateTime now)
     {
-        var closes = config.SecondsPerQuestion > 0
-            ? now.AddSeconds(config.SecondsPerQuestion)
-            : (DateTime?)null;
+        var closes = KeepOpenUntilHost(config) || config.SecondsPerQuestion <= 0
+            ? (DateTime?)null
+            : now.AddSeconds(config.SecondsPerQuestion);
         session.OpenQuestion(index, now, closes);
     }
 
@@ -1140,15 +1159,13 @@ public sealed class LiveSessionHandler
 
     private async Task BroadcastRevealAsync(LiveSession session, CancellationToken ct)
     {
-        // Host always needs keys when RevealCorrect; students in Exam never get them.
-        if (session.Mode is LiveSessionModes.Exam)
+        var config = ReadConfig(session);
+        // Host sees keys via HTTP; students in bank/exam rooms never get the answer key.
+        if (session.Mode is LiveSessionModes.Exam || KeepOpenUntilHost(config))
         {
-            var hostPayload = BuildCurrentQuestion(session, includeCorrect: session.RevealCorrect);
             var studentPayload = BuildCurrentQuestion(session, includeCorrect: false);
             await _broadcast.RevealUpdatedAsync(session.Id, studentPayload!, ct);
-            // Lobby refresh without keys for students; host keeps HTTP response from control.
             await BroadcastLobbyAsync(session, ct);
-            _ = hostPayload;
             return;
         }
 
@@ -1193,7 +1210,9 @@ public sealed class LiveSessionHandler
         var byParticipant = answers.ToDictionary(a => a.ParticipantId);
         var config = ReadConfig(session);
         var revealCorrectness = forceRevealForHost
-            || (session.RevealCorrect && session.Mode is not LiveSessionModes.Exam);
+            || (session.RevealCorrect
+                && session.Mode is not LiveSessionModes.Exam
+                && !KeepOpenUntilHost(config));
 
         var correct = new List<LiveAnswerRosterEntryDto>();
         var incorrect = new List<LiveAnswerRosterEntryDto>();

@@ -1,9 +1,15 @@
-<section class="host" [class.projector-mode]="projectorMode()">
+<section class="host" [class.projector-mode]="projectorMode()" [class.projector-view]="projectorView()">
   <ui-error [message]="error()" />
   @if (connectionNotice(); as notice) {
     <p class="conn-banner" role="status">{{ notice }}</p>
   }
+  @if (clickerHint()) {
+    <p class="conn-banner" role="status">
+      Clicker activo: → / Espacio / Enter = siguiente pregunta (o iniciar en el lobby).
+    </p>
+  }
   @if (lobby(); as l) {
+    @if (!projectorView()) {
     <header class="top">
       <div>
         <p class="eyebrow">AULA EN VIVO</p>
@@ -18,9 +24,14 @@
         }
       </div>
       <div class="top-actions">
+        @if (isHostMonitored() || linkedPresentationId()) {
+          <button type="button" class="btn ghost" (click)="openQuestionProjector()">Proyector</button>
+          <button type="button" class="btn ghost" (click)="enableClicker()">Clicker</button>
+        }
         <a routerLink="/teacher/live" class="back">Volver</a>
       </div>
     </header>
+    }
 
     <div class="layout" [class.playing]="!!l.currentQuestion && l.status !== 'Lobby'" [class.projector]="projectorMode()">
       @if (projectorMode()) {
@@ -307,7 +318,7 @@
               @for (opt of l.currentQuestion.options; track opt.id; let i = $index) {
                 <li
                   class="option-card"
-                  [class.revealed-correct]="l.revealCorrect && opt.isCorrect === true">
+                  [class.revealed-correct]="!projectorView() && l.revealCorrect && opt.isCorrect === true">
                   <span class="option-letter">{{ optionLetter(i) }}</span>
                   <span class="option-body">
                     @if (opt.imageUrl) {
@@ -316,22 +327,25 @@
                     @if (opt.text) {
                       <span class="option-text">{{ opt.text }}</span>
                     }
-                    <div class="tally-track" aria-hidden="true">
-                      <div class="tally-fill" [style.width.%]="optionTallyPercent(opt.id)"></div>
-                    </div>
-                    <span class="tally-label">
-                      {{ optionTallyCount(opt.id) }}
-                      · {{ optionTallyPercent(opt.id) }}%
-                    </span>
+                    @if (!projectorView()) {
+                      <div class="tally-track" aria-hidden="true">
+                        <div class="tally-fill" [style.width.%]="optionTallyPercent(opt.id)"></div>
+                      </div>
+                      <span class="tally-label">
+                        {{ optionTallyCount(opt.id) }}
+                        · {{ optionTallyPercent(opt.id) }}%
+                      </span>
+                    }
                   </span>
                 </li>
               }
             </ul>
-            @if (l.currentQuestion.explanation && l.revealCorrect) {
+            @if (!projectorView() && l.currentQuestion.explanation && l.revealCorrect) {
               <p class="explain">{{ l.currentQuestion.explanation }}</p>
             }
           </section>
 
+          @if (!projectorView()) {
           @if (hostAnswerRoster(); as roster) {
             @if (roster.sessionQuestionId === l.currentQuestion.sessionQuestionId) {
               <div class="roster host-roster" aria-label="Quién respondió">
@@ -380,13 +394,22 @@
           }
 
           <div class="actions wrap primary-actions">
+            <div class="proj-toolbar">
+              <button type="button" class="btn ghost" (click)="openQuestionProjector()">Proyector</button>
+              <button type="button" class="btn ghost" (click)="enableClicker()">Clicker</button>
+              <button type="button" class="btn ghost" (click)="toggleProjectorMode()">
+                {{ projectorMode() ? 'Salir proyector' : 'Pantalla limpia' }}
+              </button>
+            </div>
             @if (l.status === 'Running') {
               <ui-button type="button" variant="ghost" (click)="control('pause')">Pausar</ui-button>
             }
             @if (l.status === 'Paused') {
               <ui-button type="button" (click)="control('resume')">Reanudar</ui-button>
             }
-            @if (showRanking()) {
+            @if (isHostMonitored()) {
+              <ui-button type="button" (click)="control('next')">Siguiente pregunta</ui-button>
+            } @else if (showRanking()) {
               <ui-button type="button" (click)="control('close')">Cerrar y ver top</ui-button>
             } @else {
               <ui-button type="button" (click)="control('next')">Siguiente pregunta</ui-button>
@@ -467,6 +490,7 @@
                 <ui-button type="button" variant="ghost" (click)="toggleQuick()">Cerrar</ui-button>
               </div>
             </form>
+          }
           }
         }
       </main>

@@ -477,7 +477,8 @@ export class TeacherLiveHubPage implements OnInit {
         shuffleOptions: v.shuffleOptions,
         showRanking: v.mode === 'Competitive',
         anonymousNames: false,
-        feedbackTiming: v.mode === 'Exam' ? 'end' : 'immediate',
+        // Host reveals manually; students never get auto correct/incorrect mid-question.
+        feedbackTiming: 'end',
         bankIds,
         bankTopicFilters,
         bankQuestionQuotas,
