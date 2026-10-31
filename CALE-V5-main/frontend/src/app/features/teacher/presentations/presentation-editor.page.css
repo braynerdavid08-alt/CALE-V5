@@ -637,6 +637,7 @@
 
 .ed-canvas-wrap {
   overflow: auto;
+  scrollbar-gutter: stable;
   display: grid;
   place-items: center;
   padding: 1.5rem;

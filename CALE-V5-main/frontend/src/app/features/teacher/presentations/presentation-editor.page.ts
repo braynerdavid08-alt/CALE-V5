@@ -261,6 +261,7 @@ export class PresentationEditorPage implements OnInit, AfterViewInit, OnDestroy 
   private autosaveTimer?: ReturnType<typeof setTimeout>;
   private labelTimer?: ReturnType<typeof setInterval>;
   private fitZoomTimer?: ReturnType<typeof setTimeout>;
+  private fitZoomIgnoreUntil = 0;
   private canvasResizeObserver?: ResizeObserver;
   private saveInFlight: Observable<boolean> | null = null;
   private lastTextTapAt = 0;
@@ -335,6 +336,13 @@ export class PresentationEditorPage implements OnInit, AfterViewInit, OnDestroy 
     }
     this.canvasResizeObserver?.disconnect();
     this.canvasResizeObserver = new ResizeObserver(() => {
+      // Ignorar el eco del propio fitZoom (cambio de shell → scrollbar ↔ clientSize).
+      if (Date.now() < this.fitZoomIgnoreUntil) {
+        return;
+      }
+      if (this.panelResize) {
+        return;
+      }
       if (this.autoFitZoom() && !this.loading()) {
         this.scheduleFitZoom();
       }
@@ -431,9 +439,8 @@ export class PresentationEditorPage implements OnInit, AfterViewInit, OnDestroy 
   toggleResourcesTray(): void {
     this.resourcesTrayOpen.update((v) => !v);
     this.persistPanelLayout();
-    // El lienzo pierde/gana alto: reajustar zoom al layout nuevo.
+    // El lienzo pierde/gana alto: un solo reajuste tras el layout.
     this.scheduleFitZoom();
-    setTimeout(() => this.scheduleFitZoom(), 120);
   }
 
   startPanelResize(kind: 'slides' | 'props' | 'tray', ev: PointerEvent): void {
@@ -886,9 +893,8 @@ export class PresentationEditorPage implements OnInit, AfterViewInit, OnDestroy 
     if (this.fitZoomTimer) {
       clearTimeout(this.fitZoomTimer);
     }
-    // Esperar a que Angular pinte el canvas (#canvasHost) tras quitar el loading.
-    this.fitZoomTimer = setTimeout(() => this.fitZoom(), 50);
-    setTimeout(() => this.fitZoom(), 200);
+    // Un solo debounce: dos timers peleaban y amplificaban el temblor.
+    this.fitZoomTimer = setTimeout(() => this.fitZoom(), 80);
   }
 
   fitZoom(): void {
@@ -899,15 +905,33 @@ export class PresentationEditorPage implements OnInit, AfterViewInit, OnDestroy 
         (window.innerWidth - 420) / SLIDE_W,
         (window.innerHeight - 220) / SLIDE_H
       );
-      this.zoom.set(Math.max(0.12, Math.min(1, approx || 0.35)));
+      this.applyFitZoom(approx || 0.35);
       return;
     }
-    const pad = 32;
-    const zx = (host.clientWidth - pad) / SLIDE_W;
-    const zy = (host.clientHeight - pad) / SLIDE_H;
-    this.zoom.set(Math.max(0.12, Math.min(1, Math.min(zx, zy))));
+    const cs = getComputedStyle(host);
+    const padX =
+      (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+    const padY =
+      (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+    // Margen extra para no rozar el borde y evitar que aparezca/desaparezca el scrollbar.
+    const gutter = 16;
+    const availW = Math.max(40, host.clientWidth - padX - gutter);
+    const availH = Math.max(40, host.clientHeight - padY - gutter);
+    const next = Math.min(availW / SLIDE_W, availH / SLIDE_H);
+    this.applyFitZoom(next);
     host.scrollTop = 0;
     host.scrollLeft = 0;
+  }
+
+  /** Aplica zoom de ajuste con histéresis para cortar bucles de ResizeObserver. */
+  private applyFitZoom(raw: number): void {
+    const next = Math.round(Math.max(0.12, Math.min(1, raw)) * 1000) / 1000;
+    const prev = this.zoom();
+    if (Math.abs(next - prev) < 0.008) {
+      return;
+    }
+    this.fitZoomIgnoreUntil = Date.now() + 180;
+    this.zoom.set(next);
   }
 
   setZoom(v: number): void {
@@ -2179,9 +2203,7 @@ export class PresentationEditorPage implements OnInit, AfterViewInit, OnDestroy 
       } else {
         this.trayH.set(this.clamp(this.panelResize.startH - dy, 96, 280));
       }
-      if (this.autoFitZoom()) {
-        this.scheduleFitZoom();
-      }
+      // No reajustar zoom en cada pointermove: provoca temblor. Se hace en endDrag.
       return;
     }
     if (!this.drag) {
