@@ -108,7 +108,11 @@ export class TeacherLiveRemotePage implements OnInit, OnDestroy {
   }
 
   submitCode(): void {
-    const code = this.entryCode().trim().toUpperCase();
+    let code = this.entryCode().trim().toUpperCase().replace(/\s+/g, '');
+    if (code && !code.startsWith('C')) {
+      code = `C${code}`;
+    }
+    this.entryCode.set(code);
     if (code.length < 4) {
       this.error.set('Escribe el código de control (empieza con C).');
       return;

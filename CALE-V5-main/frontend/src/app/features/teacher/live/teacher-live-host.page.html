@@ -66,10 +66,18 @@
           }
           <p class="remote-code-label">O escribe en el celular</p>
           <p class="remote-code">{{ l.remoteCode || '—' }}</p>
-          <p class="remote-url">{{ l.remoteUrl }}</p>
+          <div class="remote-copy-row">
+            <button type="button" class="btn ghost" (click)="copyRemoteCode()" [disabled]="!l.remoteCode">
+              {{ copyNotice() === 'code' ? 'Código copiado' : 'Copiar código' }}
+            </button>
+            <button type="button" class="btn ghost" (click)="copyRemoteLink()" [disabled]="!absoluteRemoteUrl()">
+              {{ copyNotice() === 'link' ? 'Enlace copiado' : 'Copiar enlace' }}
+            </button>
+          </div>
+          <p class="remote-url">{{ absoluteRemoteUrl() }}</p>
           <p class="remote-hint">
             En el celular: inicia sesión como instructor →
-            <a routerLink="/teacher/live/remote">Aula en vivo → Control celular</a>
+            <a routerLink="/teacher/live/remote">Control celular</a>
             → escribe el código de arriba.
           </p>
         </div>
@@ -96,6 +104,14 @@
         <div class="code-block remote-block">
           <p class="label">Control en tu celular (instructor)</p>
           <p class="code remote">{{ l.remoteCode || '—' }}</p>
+          <div class="remote-copy-row">
+            <button type="button" class="btn ghost" (click)="copyRemoteCode()" [disabled]="!l.remoteCode">
+              {{ copyNotice() === 'code' ? 'Código copiado' : 'Copiar código' }}
+            </button>
+            <button type="button" class="btn ghost" (click)="copyRemoteLink()" [disabled]="!absoluteRemoteUrl()">
+              {{ copyNotice() === 'link' ? 'Enlace copiado' : 'Copiar enlace' }}
+            </button>
+          </div>
           @if (remoteQrDataUrl(); as remoteQr) {
             <img class="qr" [src]="remoteQr" alt="QR control instructor" width="180" height="180" />
           } @else {

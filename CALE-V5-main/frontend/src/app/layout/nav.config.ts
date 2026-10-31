@@ -87,6 +87,8 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
           { label: 'Exámenes', path: '/admin/exams', exact: true },
           { label: 'Cursos / Clases', path: '/admin/courses', exact: true },
           { label: 'Cursos virtuales', path: '/admin/cursos-virtuales' },
+          { label: 'Aula en vivo', path: '/teacher/live', exact: true },
+          { label: 'Control celular', path: '/teacher/live/remote', exact: true },
           { label: 'Solicitudes de usuarios', path: '/admin/requests', exact: true, badge: 'pendingRequests' },
           { label: 'Señal relámpago', path: '/admin/signs-game', exact: true }
         ]

@@ -93,6 +93,9 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
   readonly clickerEnabled = signal(false);
   readonly showRemoteSheet = signal(false);
   readonly remoteQrDataUrl = signal('');
+  /** Brief UI feedback after copying remote code/link. */
+  readonly copyNotice = signal<'code' | 'link' | null>(null);
+  private copyNoticeTimer: ReturnType<typeof setTimeout> | null = null;
   readonly presFullscreen = signal(false);
   readonly showMoreControls = signal(false);
   readonly presentationEmbedSrc = signal<SafeResourceUrl | null>(null);
@@ -211,6 +214,9 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     window.removeEventListener('message', this.onEmbedReady);
     if (this.timerId) {
       clearInterval(this.timerId);
+    }
+    if (this.copyNoticeTimer) {
+      clearTimeout(this.copyNoticeTimer);
     }
     void this.exitPresFullscreen();
     void this.hub?.stop();
@@ -828,6 +834,47 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
 
   closeRemoteSheet(): void {
     this.showRemoteSheet.set(false);
+  }
+
+  copyRemoteCode(): void {
+    const code = this.lobby()?.remoteCode?.trim();
+    if (!code) {
+      return;
+    }
+    void this.copyText(code, 'code');
+  }
+
+  copyRemoteLink(): void {
+    const url = this.absoluteRemoteUrl();
+    if (!url) {
+      return;
+    }
+    void this.copyText(url, 'link');
+  }
+
+  private async copyText(text: string, kind: 'code' | 'link'): Promise<void> {
+    try {
+      if (navigator.clipboard?.writeText && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      this.copyNotice.set(kind);
+      if (this.copyNoticeTimer) {
+        clearTimeout(this.copyNoticeTimer);
+      }
+      this.copyNoticeTimer = setTimeout(() => this.copyNotice.set(null), 2000);
+    } catch {
+      this.error.set('No se pudo copiar. Selecciona el texto manualmente.');
+    }
   }
 
   private async refreshRemoteQr(): Promise<void> {
