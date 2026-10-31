@@ -2,7 +2,6 @@ import { Component, computed, HostListener, inject, OnDestroy, OnInit, signal } 
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { firstValueFrom, Subscription } from 'rxjs';
 import { SessionStore } from '../../../core/auth/session.store';
 import { resolveMediaUrl } from '../../../core/media/resolve-media-url';
 import { mapApiError } from '../../../core/http/map-api-error';
@@ -119,9 +118,6 @@ export class SimulatorPage implements OnInit, OnDestroy {
   readonly answeredCount = signal(0);
   readonly resumed = signal(false);
   readonly finishing = signal(false);
-  readonly starting = signal(false);
-  /** Bloquea opciones / navegación mientras se guarda la respuesta (evita 2 acciones a la vez en PC). */
-  readonly savingAnswer = signal(false);
   readonly sharing = signal(false);
   readonly shareMsg = signal<string | null>(null);
   /** Simulacro oficial CALE: 28 de conocimiento + 12 de actitudes, aprueba con 80 % en cada parte. */
@@ -129,17 +125,9 @@ export class SimulatorPage implements OnInit, OnDestroy {
   readonly isStudent = computed(() => this.sessionStore.user()?.role === 'Student');
   /** Sin escuela (app gratis): practica con los bancos oficiales. */
   readonly independent = computed(() => !this.sessionStore.user()?.schoolId);
-  /** Bloqueo duro (inicio/cierre). Guardar respuesta no impide cambiar opción; sí espera antes de avanzar. */
-  readonly takeLocked = computed(() => this.finishing() || this.starting());
   private readonly fx = inject(PlayFxService);
 
   private timer: ReturnType<typeof setInterval> | null = null;
-  private answerSub: Subscription | null = null;
-  private pendingAnswer: {
-    attemptId: number;
-    questionId: number;
-    optionId: number;
-  } | null = null;
   private readonly answers: Record<number, number> = {};
 
   readonly bankId = signal<number | null>(null);
@@ -176,9 +164,6 @@ export class SimulatorPage implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.clearTimer();
-    this.answerSub?.unsubscribe();
-    this.answerSub = null;
-    this.pendingAnswer = null;
   }
 
   @HostListener('window:beforeunload', ['$event'])
@@ -341,42 +326,16 @@ export class SimulatorPage implements OnInit, OnDestroy {
   }
 
   answer(optionId: number): void {
-    if (this.finishing() || this.starting()) {
-      return;
-    }
+    this.selected.set(optionId);
     const attemptId = this.session()?.attemptId;
     const question = this.question();
     if (!attemptId || !question) {
       return;
     }
-    this.selected.set(optionId);
     this.answers[question.id] = optionId;
     this.answeredCount.set(Object.keys(this.answers).length);
-    this.pendingAnswer = { attemptId, questionId: question.id, optionId };
-    this.savingAnswer.set(true);
-    this.answerSub?.unsubscribe();
-    this.answerSub = this.api.answer(attemptId, question.id, optionId).subscribe({
-      next: () => {
-        if (
-          this.pendingAnswer?.attemptId === attemptId
-          && this.pendingAnswer.questionId === question.id
-          && this.pendingAnswer.optionId === optionId
-        ) {
-          this.pendingAnswer = null;
-          this.savingAnswer.set(false);
-        }
-      },
-      error: (err) => {
-        if (
-          this.pendingAnswer?.attemptId === attemptId
-          && this.pendingAnswer.questionId === question.id
-          && this.pendingAnswer.optionId === optionId
-        ) {
-          this.pendingAnswer = null;
-          this.savingAnswer.set(false);
-        }
-        this.error.set(mapApiError(err));
-      }
+    this.api.answer(attemptId, question.id, optionId).subscribe({
+      error: (err) => this.error.set(mapApiError(err))
     });
   }
 
@@ -395,44 +354,24 @@ export class SimulatorPage implements OnInit, OnDestroy {
   }
 
   prev(): void {
-    if (this.current() === 0 || this.takeLocked()) {
+    if (this.current() === 0) {
       return;
     }
-    void this.afterAnswerSaved(() => {
-      if (this.current() === 0 || this.takeLocked()) {
-        return;
-      }
-      this.current.set(this.current() - 1);
-      this.restoreSelected();
-    });
+    this.current.set(this.current() - 1);
+    this.restoreSelected();
   }
 
   next(): void {
-    if (this.takeLocked()) {
+    const total = this.session()?.questions.length ?? 0;
+    if (this.current() + 1 < total) {
+      this.current.set(this.current() + 1);
+      this.restoreSelected();
       return;
     }
-    void this.afterAnswerSaved(() => {
-      if (this.takeLocked()) {
-        return;
-      }
-      const total = this.session()?.questions.length ?? 0;
-      if (this.current() + 1 < total) {
-        this.current.set(this.current() + 1);
-        this.restoreSelected();
-        return;
-      }
-      this.runFinish();
-    });
+    this.finish();
   }
 
   finish(): void {
-    if (this.takeLocked()) {
-      return;
-    }
-    void this.afterAnswerSaved(() => this.runFinish());
-  }
-
-  private runFinish(): void {
     const attemptId = this.session()?.attemptId;
     if (!attemptId || this.finishing()) {
       return;
@@ -463,29 +402,6 @@ export class SimulatorPage implements OnInit, OnDestroy {
         this.error.set(mapApiError(err));
       }
     });
-  }
-
-  /** Espera a que la respuesta en curso se guarde antes de navegar o finalizar. */
-  private async afterAnswerSaved(action: () => void): Promise<void> {
-    const pending = this.pendingAnswer;
-    if (!pending) {
-      action();
-      return;
-    }
-    this.answerSub?.unsubscribe();
-    this.answerSub = null;
-    this.savingAnswer.set(true);
-    try {
-      await firstValueFrom(
-        this.api.answer(pending.attemptId, pending.questionId, pending.optionId)
-      );
-      this.pendingAnswer = null;
-      this.savingAnswer.set(false);
-      action();
-    } catch (err) {
-      this.savingAnswer.set(false);
-      this.error.set(mapApiError(err));
-    }
   }
 
   askAbort(): void {
@@ -576,14 +492,9 @@ export class SimulatorPage implements OnInit, OnDestroy {
     mode: string;
     timeMinutes: number;
   }): void {
-    if (this.starting()) {
-      return;
-    }
     this.error.set(null);
-    this.starting.set(true);
     this.api.start(body).subscribe({
       next: (session) => {
-        this.starting.set(false);
         this.official.set(body.mode === 'official');
         this.session.set(session);
         this.current.set(0);
@@ -596,18 +507,11 @@ export class SimulatorPage implements OnInit, OnDestroy {
         this.answeredCount.set(Object.keys(this.answers).length);
         this.resumed.set(!!session.resumed);
         this.finishing.set(false);
-        this.savingAnswer.set(false);
-        this.pendingAnswer = null;
-        this.answerSub?.unsubscribe();
-        this.answerSub = null;
         this.step.set('take');
         this.restoreSelected();
         this.startTimer(session.expiresAt);
       },
-      error: (err) => {
-        this.starting.set(false);
-        this.error.set(mapApiError(err));
-      }
+      error: (err) => this.error.set(mapApiError(err))
     });
   }
 

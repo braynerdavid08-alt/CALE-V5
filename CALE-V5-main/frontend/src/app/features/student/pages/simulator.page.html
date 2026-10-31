@@ -289,7 +289,7 @@
         @if (q.imageUrl) {
           <img class="q-img" [src]="media(q.imageUrl)" alt="Imagen de la pregunta" />
         }
-        <ul class="options" [class.locked]="takeLocked()">
+        <ul class="options">
           @for (opt of q.options; track opt.id; let i = $index) {
             <li>
               <label [class.picked]="selected() === opt.id">
@@ -297,7 +297,6 @@
                   type="radio"
                   name="option"
                   [checked]="selected() === opt.id"
-                  [disabled]="takeLocked()"
                   (change)="answer(opt.id)" />
                 <span class="opt-letter">{{ 'ABCD'[i] || (i + 1) }}</span>
                 <span class="opt-body">
@@ -312,31 +311,15 @@
             </li>
           }
         </ul>
-        @if (savingAnswer()) {
-          <p class="muted saving-hint">Guardando respuesta…</p>
-        }
       </ui-card>
       <div class="row exam-actions">
-        <ui-button
-          type="button"
-          variant="secondary"
-          [disabled]="current() === 0 || takeLocked() || savingAnswer()"
-          (click)="prev()">
+        <ui-button type="button" variant="secondary" [disabled]="current() === 0" (click)="prev()">
           Anterior
         </ui-button>
-        <ui-button
-          type="button"
-          [disabled]="takeLocked() || savingAnswer()"
-          (click)="next()">
-          {{
-            savingAnswer()
-              ? 'Guardando…'
-              : current() + 1 === session()?.questions?.length
-                ? 'Finalizar intento'
-                : 'Siguiente'
-          }}
+        <ui-button type="button" (click)="next()">
+          {{ current() + 1 === session()?.questions?.length ? 'Finalizar intento' : 'Siguiente' }}
         </ui-button>
-        <ui-button variant="ghost" type="button" [disabled]="finishing()" (click)="askAbort()">Salir</ui-button>
+        <ui-button variant="ghost" type="button" (click)="askAbort()">Salir</ui-button>
       </div>
     </section>
   }
