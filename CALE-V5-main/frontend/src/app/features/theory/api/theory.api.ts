@@ -320,6 +320,7 @@ export class TheoryApi {
       topicId: number;
       classroomId: number;
       capacity?: number;
+      instructorUserId?: number | null;
       notes?: string;
     }
   ) {
@@ -403,6 +404,35 @@ export class TheoryApi {
     );
   }
 
+  rescheduleReservation(reservationId: number, newSessionId: number) {
+    return this.http.post<TheoryClassSessionDto>(
+      `${this.studentBase}/reservations/${reservationId}/reschedule`,
+      { newSessionId }
+    );
+  }
+
+  joinWaitlist(sessionId: number) {
+    return this.http.post<ScheduleWaitlistEntryDto>(
+      `${this.studentBase}/sessions/${sessionId}/waitlist`,
+      {}
+    );
+  }
+
+  myWaitlist() {
+    return this.http.get<ScheduleWaitlistEntryDto[]>(`${this.studentBase}/waitlist`);
+  }
+
+  confirmWaitlist(waitlistId: number) {
+    return this.http.post<TheoryClassSessionDto>(
+      `${this.studentBase}/waitlist/${waitlistId}/confirm`,
+      {}
+    );
+  }
+
+  leaveWaitlist(waitlistId: number) {
+    return this.http.delete<void>(`${this.studentBase}/waitlist/${waitlistId}`);
+  }
+
   cancelReservation(reservationId: number) {
     return this.http.delete<void>(`${this.studentBase}/reservations/${reservationId}`);
   }
@@ -410,6 +440,18 @@ export class TheoryApi {
   checkIn() {
     return this.http.post<void>(`${this.studentBase}/check-in`, {});
   }
+}
+
+export interface ScheduleWaitlistEntryDto {
+  id: number;
+  kind: string;
+  targetId: number;
+  position: number;
+  status: string;
+  offeredAt?: string | null;
+  offerExpiresAt?: string | null;
+  targetDate?: string | null;
+  targetStartTime?: string | null;
 }
 
 export function theoryBookingLabel(state?: string | null, message?: string | null): string {
@@ -432,9 +474,9 @@ export function theoryBookingLabel(state?: string | null, message?: string | nul
     case 'not_authorized':
       return 'Sin autorización';
     case 'full':
-      return 'Sin cupos';
+      return 'Entrar a lista de espera';
     case 'reserved':
-      return 'Reservada';
+      return 'Cancelar reserva';
     case 'started':
       return 'Clase iniciada';
     case 'cancelled':

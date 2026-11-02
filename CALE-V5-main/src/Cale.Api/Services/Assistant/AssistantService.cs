@@ -41,11 +41,29 @@ public sealed record AssistantExamAvailabilityUi(
 
 public sealed record AssistantPrepareSessionRequest(int SessionId, string Tool);
 
+public sealed record AssistantQuizOptionUi(int Id, string Label, string Text);
+
+public sealed record AssistantQuizUi(
+    string Source,
+    string Title,
+    int QuestionId,
+    string QuestionText,
+    string? ImageUrl,
+    string? Topic,
+    IReadOnlyList<AssistantQuizOptionUi> Options,
+    bool Answered = false,
+    bool? Correct = null,
+    string? Explanation = null,
+    int? CorrectOptionId = null);
+
+public sealed record AssistantQuizAnswerRequest(int QuestionId, int OptionId, string Source);
+
 public sealed record AssistantChatResult(
     string Reply,
     AssistantPendingActionDto? Action,
     int RemainingToday,
-    AssistantExamAvailabilityUi? ExamAvailability = null);
+    AssistantExamAvailabilityUi? ExamAvailability = null,
+    AssistantQuizUi? Quiz = null);
 
 public sealed record AssistantActionResult(bool Ok, string Message);
 
@@ -145,6 +163,13 @@ public sealed class AssistantService
             return new AssistantChatResult(instant, null, remainingPeek);
         }
 
+        // Bot-first: known intents → same Quick tools (0 LLM, no daily message spend).
+        var quickKey = TryMapIntentToQuickKey(user.Role, lastUser);
+        if (quickKey is not null)
+        {
+            return await QuickAsync(user, quickKey, ct);
+        }
+
         var reserved = await _usage.TryReserveMessageAsync(
             user.UserId,
             user.SchoolUserId,
@@ -165,6 +190,7 @@ public sealed class AssistantService
         var tools = BuildTools(user.Role);
         AssistantPendingActionDto? pending = null;
         AssistantExamAvailabilityUi? examUi = null;
+        AssistantQuizUi? quizUi = null;
         using var chatCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         chatCts.CancelAfter(TimeSpan.FromSeconds(Math.Clamp(_options.TimeoutSeconds * 2, 40, 90)));
         var llmCt = chatCts.Token;
@@ -201,15 +227,16 @@ public sealed class AssistantService
                     }
 
                     await _usage.CommitMessageAsync(user.UserId, user.SchoolUserId, ct);
-                    return new AssistantChatResult(text, pending, await RemainingAsync(user, ct), examUi);
+                    return new AssistantChatResult(text, pending, await RemainingAsync(user, ct), examUi, quizUi);
                 }
 
                 messages.Add(AssistantToolCallMessage(reply));
                 foreach (var call in reply.ToolCalls)
                 {
-                    var (result, action, ui) = await RunToolAsync(user, call, pending is not null, llmCt);
+                    var (result, action, ui, quiz) = await RunToolAsync(user, call, pending is not null, llmCt);
                     pending ??= action;
                     examUi ??= ui;
+                    quizUi ??= quiz;
                     messages.Add(new JsonObject
                     {
                         ["role"] = "tool",
@@ -226,12 +253,13 @@ public sealed class AssistantService
                 SlowChatFallback(user, pending),
                 pending,
                 await RemainingAsync(user, ct),
-                examUi);
+                examUi,
+                quizUi);
         }
         catch (AssistantProviderException ex)
         {
             await _usage.ReleaseMessageAsync(user.UserId, user.SchoolUserId, "provider_error", ct);
-            return new AssistantChatResult(ex.Message, pending, await RemainingAsync(user, ct), examUi);
+            return new AssistantChatResult(ex.Message, pending, await RemainingAsync(user, ct), examUi, quizUi);
         }
         catch (Exception ex) when (ex is not DomainException and not OperationCanceledException)
         {
@@ -245,7 +273,8 @@ public sealed class AssistantService
             "No pude terminar esa consulta. Intenta preguntarlo más corto.",
             pending,
             await RemainingAsync(user, ct),
-            examUi);
+            examUi,
+            quizUi);
     }
 
     /// <summary>
@@ -262,7 +291,7 @@ public sealed class AssistantService
 
         try
         {
-            var (text, examUi) = await _toolbox.ReadWithUiAsync(user, quick.Tool, quick.Args(), ct);
+            var (text, examUi, quizUi) = await _toolbox.ReadWithUiAsync(user, quick.Tool, quick.Args(), ct);
             if (examUi is not null)
             {
                 return new AssistantChatResult(
@@ -272,14 +301,49 @@ public sealed class AssistantService
                     examUi);
             }
 
+            if (quizUi is not null)
+            {
+                return new AssistantChatResult(
+                    text,
+                    null,
+                    await RemainingAsync(user, ct),
+                    Quiz: quizUi);
+            }
+
             var reply = FinalizeReply(text);
-            if (!reply.Contains("Si quieres", StringComparison.OrdinalIgnoreCase)
+            if (quick.Tool is not "practicar" and not "que_estudiar"
+                && !reply.Contains("Si quieres", StringComparison.OrdinalIgnoreCase)
                 && !reply.Contains("listado completo", StringComparison.OrdinalIgnoreCase))
             {
                 reply += "\n\nSi quieres reservar, cancelar o ver el listado completo, escríbeme.";
             }
 
             return new AssistantChatResult(reply, null, await RemainingAsync(user, ct));
+        }
+        catch (Exception ex) when (ex is DomainException or AssistantToolException)
+        {
+            return new AssistantChatResult(ex.Message, null, await RemainingAsync(user, ct));
+        }
+    }
+
+    /// <summary>Student answers a practice question from the chat quiz card (0 LLM).</summary>
+    public async Task<AssistantChatResult> AnswerQuizAsync(
+        AssistantUser user,
+        int questionId,
+        int optionId,
+        string source,
+        CancellationToken ct)
+    {
+        EnsureEnabled(user);
+        if (user.Role != Roles.Student)
+        {
+            throw new DomainException("Solo los estudiantes pueden practicar desde el chat.", 403);
+        }
+
+        try
+        {
+            var (text, next) = await _toolbox.AnswerPracticeAsync(user, questionId, optionId, source, ct);
+            return new AssistantChatResult(text, null, await RemainingAsync(user, ct), Quiz: next);
         }
         catch (Exception ex) when (ex is DomainException or AssistantToolException)
         {
@@ -387,14 +451,120 @@ public sealed class AssistantService
     private static readonly Dictionary<(string Role, string Key), QuickQuestion> QuickQuestions = new()
     {
         [(Roles.Student, "progreso")] = new("mi_progreso", () => new JsonObject()),
+        [(Roles.Student, "siguiente_paso")] = new("mi_siguiente_paso", () => new JsonObject()),
+        [(Roles.Student, "que_estudiar")] = new("que_estudiar", () => new JsonObject()),
+        [(Roles.Student, "practicar")] = new("practicar", () => new JsonObject()),
         [(Roles.Student, "clases_teoricas")] = new("clases_teoricas", () => new JsonObject()),
         [(Roles.Student, "cupos_examen")] = new("cupos_examen", () => new JsonObject()),
         [(Roles.Student, "clases_manejo")] = new("clases_manejo", () => new JsonObject()),
         [(Roles.School, "resumen")] = new("resumen_escuela", () => new JsonObject()),
         [(Roles.School, "listos_examen")] = new("progreso_estudiantes", () => new JsonObject { ["filtro"] = "listos_examen" }),
         [(Roles.School, "agenda")] = new("agenda_escuela", () => new JsonObject()),
+        [(Roles.School, "alertas")] = new("alertas_operativas", () => new JsonObject()),
         [(Roles.School, "con_saldo")] = new("progreso_estudiantes", () => new JsonObject { ["filtro"] = "con_saldo" })
     };
+
+    /// <summary>
+    /// Maps free-text intents to Quick tools (0 LLM) when the ask is clearly a known lookup.
+    /// </summary>
+    public static string? TryMapIntentToQuickKey(string role, string text)
+    {
+        var lower = text.Trim().ToLowerInvariant();
+        if (lower.Length is < 4 or > 120)
+        {
+            return null;
+        }
+
+        if (role == Roles.Student)
+        {
+            if (ContainsAny(lower, "siguiente paso", "qué me falta", "que me falta", "qué debo hacer", "que debo hacer", "mi formación", "mi formacion", "en qué voy", "en que voy"))
+            {
+                return "siguiente_paso";
+            }
+
+            if (ContainsAny(
+                    lower,
+                    "practicar",
+                    "hazme una pregunta",
+                    "hazme preguntas",
+                    "pregunta de práctica",
+                    "pregunta de practica",
+                    "reto del día",
+                    "reto del dia",
+                    "repasar ahora"))
+            {
+                return "practicar";
+            }
+
+            if (ContainsAny(
+                    lower,
+                    "qué estudiar",
+                    "que estudiar",
+                    "debo estudiar",
+                    "estudiar para",
+                    "qué repasar",
+                    "que repasar",
+                    "repasar errores",
+                    "temas débiles",
+                    "temas debiles",
+                    "mi preparación",
+                    "mi preparacion",
+                    "qué practicar",
+                    "que practicar"))
+            {
+                return "que_estudiar";
+            }
+
+            if (ContainsAny(lower, "cuántas horas", "cuantas horas", "me faltan", "mi progreso", "horas de teoría", "horas de teoria"))
+            {
+                return "progreso";
+            }
+
+            if (ContainsAny(lower, "clases teóricas", "clases teoricas", "teoría de la semana", "teoria de la semana"))
+            {
+                return "clases_teoricas";
+            }
+
+            if (ContainsAny(lower, "cupos de examen", "cupo de examen", "examen teórico", "examen teorico"))
+            {
+                return "cupos_examen";
+            }
+
+            if (ContainsAny(lower, "clases de manejo", "cupos de manejo", "práctica", "practica"))
+            {
+                return "clases_manejo";
+            }
+        }
+        else if (role == Roles.School)
+        {
+            if (ContainsAny(lower, "alerta", "cupos frente", "demanda", "estancad", "sin cita", "sin reserva"))
+            {
+                return "alertas";
+            }
+
+            if (ContainsAny(lower, "listos para el examen", "listos examen", "habilitados examen"))
+            {
+                return "listos_examen";
+            }
+
+            if (ContainsAny(lower, "cómo van", "como van", "resumen", "mis estudiantes"))
+            {
+                return "resumen";
+            }
+
+            if (ContainsAny(lower, "agenda de esta", "agenda semanal", "qué tengo programado", "que tengo programado"))
+            {
+                return "agenda";
+            }
+
+            if (ContainsAny(lower, "saldo pendiente", "con saldo"))
+            {
+                return "con_saldo";
+            }
+        }
+
+        return null;
+    }
 
     /// <summary>
     /// Hide internal ids from people. Tool text may still carry (clase_id=…) for the model.
@@ -477,7 +647,7 @@ public sealed class AssistantService
         }
     }
 
-    private async Task<(string Result, AssistantPendingActionDto? Action, AssistantExamAvailabilityUi? ExamUi)> RunToolAsync(
+    private async Task<(string Result, AssistantPendingActionDto? Action, AssistantExamAvailabilityUi? ExamUi, AssistantQuizUi? Quiz)> RunToolAsync(
         AssistantUser user,
         LlmToolCall call,
         bool alreadyPending,
@@ -486,7 +656,7 @@ public sealed class AssistantService
         var def = _toolbox.ToolsFor(user.Role).FirstOrDefault(x => x.Name == call.Name);
         if (def is null)
         {
-            return ($"ERROR: la herramienta {call.Name} no existe.", null, null);
+            return ($"ERROR: la herramienta {call.Name} no existe.", null, null, null);
         }
 
         JsonObject args;
@@ -497,20 +667,20 @@ public sealed class AssistantService
         }
         catch (JsonException)
         {
-            return ("ERROR: argumentos inválidos.", null, null);
+            return ("ERROR: argumentos inválidos.", null, null, null);
         }
 
         try
         {
             if (!def.RequiresConfirmation)
             {
-                var (text, ui) = await _toolbox.ReadWithUiAsync(user, call.Name, args, ct);
-                return (Truncate(text), null, ui);
+                var (text, ui, quiz) = await _toolbox.ReadWithUiAsync(user, call.Name, args, ct);
+                return (Truncate(text), null, ui, quiz);
             }
 
             if (alreadyPending)
             {
-                return ("NO PREPARADA: solo se puede preparar una acción a la vez. Pide que confirme la primera.", null, null);
+                return ("NO PREPARADA: solo se puede preparar una acción a la vez. Pide que confirme la primera.", null, null, null);
             }
 
             var title = await _toolbox.DescribeAsync(user, call.Name, args, ct);
@@ -522,20 +692,21 @@ public sealed class AssistantService
             return (
                 $"PREPARADA (aún NO está hecha): \"{title}\". El usuario ve un botón para confirmar. Pídele que revise y confirme; no digas que ya quedó hecha.",
                 new AssistantPendingActionDto(id, title),
+                null,
                 null);
         }
         catch (AssistantToolException ex)
         {
-            return ($"ERROR: {ex.Message}", null, null);
+            return ($"ERROR: {ex.Message}", null, null, null);
         }
         catch (DomainException ex)
         {
-            return ($"NO SE PUEDE: {ex.Message}", null, null);
+            return ($"NO SE PUEDE: {ex.Message}", null, null, null);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Assistant tool {Tool} failed for user {UserId}", call.Name, user.UserId);
-            return ("ERROR: no se pudo consultar ese dato ahora.", null, null);
+            return ("ERROR: no se pudo consultar ese dato ahora.", null, null, null);
         }
     }
 

@@ -22,7 +22,7 @@ import {
   StudentExamSlotDto
 } from '../api/student-exam.api';
 
-type SheetState = 'confirm' | 'success' | 'full';
+type SheetState = 'confirm' | 'reschedule' | 'success' | 'full' | 'waitlist_ok';
 
 @Component({
   selector: 'app-student-exam-page',
@@ -44,7 +44,9 @@ export class StudentExamPage implements OnInit {
   readonly sheetState = signal<SheetState>('confirm');
   readonly sheetError = signal<string | null>(null);
   readonly booking = signal(false);
+  readonly waitlisting = signal(false);
   readonly booked = signal<StudentExamBookingDto | null>(null);
+  readonly waitlistPosition = signal<number | null>(null);
 
   readonly confirmCancel = signal(false);
   readonly cancelling = signal(false);
@@ -59,8 +61,16 @@ export class StudentExamPage implements OnInit {
     return b && b.status !== 'Cancelled' ? b : null;
   });
 
-  /** Booking buttons only when the school allows it and there is no active booking. */
-  readonly canPick = computed(() => !!this.data()?.canBook && !this.myBooking());
+  /** New booking when eligible and free; or move existing booking while cancel window is open. */
+  readonly canPick = computed(() => {
+    const d = this.data();
+    if (!d) return false;
+    const mine = this.myBooking();
+    if (mine) return !!mine.canCancel;
+    return !!d.canBook;
+  });
+
+  readonly isReschedule = computed(() => !!this.myBooking()?.canCancel);
 
   readonly days = computed(() =>
     (this.data()?.days ?? [])
@@ -113,11 +123,20 @@ export class StudentExamPage implements OnInit {
   }
 
   pick(slot: StudentExamSlotDto): void {
-    if (!this.canPick() || this.isFull(slot)) return;
-    this.sheetState.set('confirm');
+    if (!this.canPick()) return;
+    const mine = this.myBooking();
+    if (mine && mine.date.slice(0, 10) === slot.date.slice(0, 10) && hhmm(mine.time) === hhmm(slot.time)) {
+      return;
+    }
     this.sheetError.set(null);
     this.booked.set(null);
+    this.waitlistPosition.set(null);
     this.picked.set(slot);
+    if (this.isFull(slot)) {
+      this.sheetState.set('full');
+      return;
+    }
+    this.sheetState.set(this.isReschedule() ? 'reschedule' : 'confirm');
   }
 
   closeSheet(): void {
@@ -144,6 +163,60 @@ export class StudentExamPage implements OnInit {
         if (apiErrorCode(err) === 'exam_slot_full') {
           this.sheetState.set('full');
         }
+        this.sheetError.set(mapApiError(err));
+        this.load();
+      }
+    });
+  }
+
+  reschedule(): void {
+    if (this.booking()) {
+      return;
+    }
+    const slot = this.picked();
+    const mine = this.myBooking();
+    if (!slot || !mine) return;
+    this.booking.set(true);
+    this.sheetError.set(null);
+    this.api.reschedule(mine.id, slot.date.slice(0, 10), slot.time).subscribe({
+      next: (b) => {
+        this.booking.set(false);
+        this.booked.set(b);
+        this.sheetState.set('success');
+        this.notice.set('Listo. Reprogramaste tu examen.');
+        this.load();
+      },
+      error: (err) => {
+        this.booking.set(false);
+        if (apiErrorCode(err) === 'exam_slot_full') {
+          this.sheetState.set('full');
+        }
+        this.sheetError.set(mapApiError(err));
+        this.load();
+      }
+    });
+  }
+
+  joinWaitlist(): void {
+    if (this.waitlisting()) {
+      return;
+    }
+    const slot = this.picked();
+    if (!slot || !this.canPick()) return;
+    this.waitlisting.set(true);
+    this.sheetError.set(null);
+    this.api.joinWaitlist(slot.date.slice(0, 10), slot.time).subscribe({
+      next: (w) => {
+        this.waitlisting.set(false);
+        this.waitlistPosition.set(w.position);
+        this.sheetState.set('waitlist_ok');
+        this.notice.set(
+          `Quedaste en lista de espera (puesto ${w.position}). Te avisamos si se libera un cupo.`
+        );
+        this.load();
+      },
+      error: (err) => {
+        this.waitlisting.set(false);
         this.sheetError.set(mapApiError(err));
         this.load();
       }

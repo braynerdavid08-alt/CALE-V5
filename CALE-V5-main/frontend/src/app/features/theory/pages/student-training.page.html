@@ -17,6 +17,14 @@
   </nav>
 
   <ui-error [message]="error()" />
+  @if (notice()) {
+    <p class="notice-ok" role="status">
+      {{ notice() }}
+      @if (rescheduleFromId()) {
+        <button type="button" class="notice-cancel" (click)="cancelRescheduleMode()">Cancelar cambio</button>
+      }
+    </p>
+  }
 
   @if (loading()) {
     <ui-loading />
@@ -201,16 +209,29 @@
                   <p class="time">{{ session.startTime }} – {{ session.endTime }}</p>
                   <p class="title">{{ session.topicName }}</p>
                   <p class="meta">{{ session.classroomName }} · {{ session.reservedCount }}/{{ session.capacity }}</p>
-                  <button
-                    type="button"
-                    class="btn"
-                    [class.reserve]="canReserve(session)"
-                    [class.reserved]="session.bookingState === 'reserved'"
-                    [class.blocked]="session.bookingState === 'day_taken' || session.bookingState === 'day_limit' || session.bookingState === 'minutes_limit' || session.bookingState === 'locked'"
-                    [disabled]="actionLoading() || (!canReserve(session) && session.bookingState !== 'reserved')"
-                    (click)="canReserve(session) ? reserve(session) : (session.bookingState === 'reserved' ? cancel(session) : null)">
-                    {{ bookingLabel(session.bookingState, session.bookingMessage) }}
-                  </button>
+                  @if (session.bookingState === 'reserved') {
+                    <div class="btn-row">
+                      <button type="button" class="btn reserved" [disabled]="actionLoading()" (click)="cancel(session)">
+                        Cancelar reserva
+                      </button>
+                      <button type="button" class="btn reserve" [disabled]="actionLoading()" (click)="startReschedule(session)">
+                        Cambiar horario
+                      </button>
+                    </div>
+                  } @else {
+                    <button
+                      type="button"
+                      class="btn"
+                      [class.reserve]="canReserve(session) || canJoinWaitlist(session)"
+                      [class.blocked]="session.bookingState === 'day_taken' || session.bookingState === 'day_limit' || session.bookingState === 'minutes_limit' || session.bookingState === 'locked'"
+                      [disabled]="actionLoading() || (!canReserve(session) && !canJoinWaitlist(session))"
+                      (click)="onSessionAction(session)">
+                      @if (canReserve(session) && rescheduleFromId()) { Mover aquí }
+                      @else {
+                        {{ bookingLabel(session.bookingState, canJoinWaitlist(session) ? null : session.bookingMessage) }}
+                      }
+                    </button>
+                  }
                 </div>
               } @empty {
                 <p class="empty-day">Sin clases</p>
@@ -226,16 +247,29 @@
                 <p class="title">{{ session.topicName }}</p>
                 <p class="meta">{{ session.sessionDate }} · {{ session.startTime }} – {{ session.endTime }} · {{ session.classroomName }}</p>
               </div>
-              <button
-                type="button"
-                class="btn"
-                [class.reserve]="canReserve(session)"
-                [class.reserved]="session.bookingState === 'reserved'"
-                [class.blocked]="session.bookingState === 'day_taken' || session.bookingState === 'day_limit' || session.bookingState === 'minutes_limit' || session.bookingState === 'locked'"
-                [disabled]="actionLoading() || (!canReserve(session) && session.bookingState !== 'reserved')"
-                (click)="canReserve(session) ? reserve(session) : (session.bookingState === 'reserved' ? cancel(session) : null)">
-                {{ bookingLabel(session.bookingState, session.bookingMessage) }}
-              </button>
+              @if (session.bookingState === 'reserved') {
+                <div class="btn-row">
+                  <button type="button" class="btn reserved" [disabled]="actionLoading()" (click)="cancel(session)">
+                    Cancelar reserva
+                  </button>
+                  <button type="button" class="btn reserve" [disabled]="actionLoading()" (click)="startReschedule(session)">
+                    Cambiar horario
+                  </button>
+                </div>
+              } @else {
+                <button
+                  type="button"
+                  class="btn"
+                  [class.reserve]="canReserve(session) || canJoinWaitlist(session)"
+                  [class.blocked]="session.bookingState === 'day_taken' || session.bookingState === 'day_limit' || session.bookingState === 'minutes_limit' || session.bookingState === 'locked'"
+                  [disabled]="actionLoading() || (!canReserve(session) && !canJoinWaitlist(session))"
+                  (click)="onSessionAction(session)">
+                  @if (canReserve(session) && rescheduleFromId()) { Mover aquí }
+                  @else {
+                    {{ bookingLabel(session.bookingState, canJoinWaitlist(session) ? null : session.bookingMessage) }}
+                  }
+                </button>
+              }
             </li>
           }
         </ul>

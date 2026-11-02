@@ -3,7 +3,7 @@ import { RouterLink } from '@angular/router';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
-import { mapApiError } from '../../../core/http/map-api-error';
+import { apiErrorCode, mapApiError } from '../../../core/http/map-api-error';
 import {
   PracticalApi,
   PracticalLessonSessionDto,
@@ -28,6 +28,8 @@ export class StudentPracticalPage implements OnInit {
   readonly loading = signal(true);
   readonly actionLoading = signal(false);
   readonly error = signal<string | null>(null);
+  readonly notice = signal<string | null>(null);
+  readonly rescheduleFromId = signal<number | null>(null);
   readonly dashboard = signal<PracticalStudentDashboardDto | null>(null);
   readonly selectedInstructorId = signal(0);
   readonly slotFilter = signal<SlotFilter>('all');
@@ -120,6 +122,20 @@ export class StudentPracticalPage implements OnInit {
     return true;
   }
 
+  canJoinWaitlist(session: PracticalLessonSessionDto): boolean {
+    if (session.bookingState !== 'full') {
+      return false;
+    }
+    const dash = this.dashboard();
+    if (!dash?.eligibility.canBookPractical) {
+      return false;
+    }
+    if (isPracticalExam(session)) {
+      return !!dash.canBookPracticalExam;
+    }
+    return true;
+  }
+
   reserveBlockedReason(session: PracticalLessonSessionDto): string | null {
     if (session.bookingState === 'reserved' || session.bookingState === 'full') {
       return null;
@@ -131,6 +147,52 @@ export class StudentPracticalPage implements OnInit {
       return this.dashboard()?.eligibility.blockReason ?? 'Aún no puedes reservar.';
     }
     return session.bookingMessage ?? null;
+  }
+
+  onSessionAction(session: PracticalLessonSessionDto): void {
+    if (this.canReserve(session)) {
+      const fromId = this.rescheduleFromId();
+      if (fromId) {
+        this.rescheduleTo(session, fromId);
+        return;
+      }
+      this.reserve(session);
+      return;
+    }
+    if (this.canJoinWaitlist(session)) {
+      this.joinWaitlist(session);
+    }
+  }
+
+  startReschedule(session: PracticalLessonSessionDto): void {
+    if (!session.myReservationId) {
+      return;
+    }
+    this.rescheduleFromId.set(session.myReservationId);
+    this.notice.set('Elige el nuevo horario. Tu cupo actual se mantiene hasta confirmar el cambio.');
+    this.error.set(null);
+  }
+
+  cancelRescheduleMode(): void {
+    this.rescheduleFromId.set(null);
+    this.notice.set(null);
+  }
+
+  rescheduleTo(session: PracticalLessonSessionDto, reservationId: number): void {
+    this.actionLoading.set(true);
+    this.error.set(null);
+    this.api.rescheduleReservation(reservationId, session.id).subscribe({
+      next: () => {
+        this.actionLoading.set(false);
+        this.rescheduleFromId.set(null);
+        this.notice.set('Listo. Reprogramaste tu clase de manejo.');
+        this.reload();
+      },
+      error: (err) => {
+        this.actionLoading.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
   }
 
   lessonWindow(session: PracticalLessonSessionDto): string {
@@ -150,9 +212,34 @@ export class StudentPracticalPage implements OnInit {
       return;
     }
     this.actionLoading.set(true);
+    this.error.set(null);
+    this.notice.set(null);
     this.api.reserve(session.id).subscribe({
       next: () => {
         this.actionLoading.set(false);
+        this.reload();
+      },
+      error: (err) => {
+        this.actionLoading.set(false);
+        if (apiErrorCode(err) === 'lesson_full') {
+          this.joinWaitlist(session);
+          return;
+        }
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  joinWaitlist(session: PracticalLessonSessionDto): void {
+    this.actionLoading.set(true);
+    this.error.set(null);
+    this.notice.set(null);
+    this.api.joinWaitlist(session.id).subscribe({
+      next: (w) => {
+        this.actionLoading.set(false);
+        this.notice.set(
+          `Quedaste en lista de espera (puesto ${w.position}). Te avisamos si se libera un cupo; confírmalo en Mi formación.`
+        );
         this.reload();
       },
       error: (err) => {
@@ -167,6 +254,8 @@ export class StudentPracticalPage implements OnInit {
       return;
     }
     this.actionLoading.set(true);
+    this.error.set(null);
+    this.notice.set(null);
     this.api.cancelReservation(session.myReservationId).subscribe({
       next: () => {
         this.actionLoading.set(false);

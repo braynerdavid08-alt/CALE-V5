@@ -33,10 +33,31 @@ export interface AssistantExamAvailabilityUi {
   days: AssistantExamDayUi[];
 }
 
+export interface AssistantQuizOptionUi {
+  id: number;
+  label: string;
+  text: string;
+}
+
+export interface AssistantQuizUi {
+  source: 'mistakes' | 'daily' | string;
+  title: string;
+  questionId: number;
+  questionText: string;
+  imageUrl?: string | null;
+  topic?: string | null;
+  options: AssistantQuizOptionUi[];
+  answered?: boolean;
+  correct?: boolean | null;
+  explanation?: string | null;
+  correctOptionId?: number | null;
+}
+
 export interface AssistantMessage {
   role: 'user' | 'assistant';
   content: string;
   examAvailability?: AssistantExamAvailabilityUi | null;
+  quiz?: AssistantQuizUi | null;
   /** How many day cards are visible (expandable). */
   daysVisible?: number;
 }
@@ -51,6 +72,7 @@ export interface AssistantChatResult {
   action: AssistantPendingAction | null;
   remainingToday: number;
   examAvailability?: AssistantExamAvailabilityUi | null;
+  quiz?: AssistantQuizUi | null;
 }
 
 export interface AssistantActionResult {
@@ -118,6 +140,13 @@ export class AssistantApi {
       sessionId,
       tool
     });
+  }
+
+  /** Answer a practice quiz option (mistakes / daily). */
+  answerQuiz(questionId: number, optionId: number, source: string) {
+    return this.http
+      .post<AssistantChatResult>(`${this.base}/quiz/answer`, { questionId, optionId, source })
+      .pipe(timeout({ first: CHAT_TIMEOUT_MS }));
   }
 
   discard(actionId: string) {

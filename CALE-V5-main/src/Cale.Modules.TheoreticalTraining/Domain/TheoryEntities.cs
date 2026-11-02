@@ -275,3 +275,29 @@ public sealed class TheoryExamAppointment
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
+
+/// <summary>
+/// Ordered waitlist for a full theory session / practical lesson / exam slot.
+/// Offers never auto-book: the student must confirm while eligible.
+/// </summary>
+public sealed class ScheduleWaitlistEntry
+{
+    public int Id { get; set; }
+    public int SchoolUserId { get; set; }
+    /// <summary><see cref="ScheduleWaitlistKinds"/>.</summary>
+    public string Kind { get; set; } = ScheduleWaitlistKinds.TheorySession;
+    /// <summary>Theory session id or practical lesson id. For theory exams use 0 + date/time.</summary>
+    public int TargetId { get; set; }
+    /// <summary>Exam slot date when <see cref="Kind"/> is theory exam.</summary>
+    public DateOnly? TargetDate { get; set; }
+    /// <summary>Exam slot time when <see cref="Kind"/> is theory exam.</summary>
+    public TimeOnly? TargetTime { get; set; }
+    public int StudentUserId { get; set; }
+    public int Position { get; set; }
+    /// <summary><see cref="ScheduleWaitlistStatuses"/>.</summary>
+    public string Status { get; set; } = ScheduleWaitlistStatuses.Waiting;
+    public DateTime? OfferedAt { get; set; }
+    public DateTime? OfferExpiresAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}

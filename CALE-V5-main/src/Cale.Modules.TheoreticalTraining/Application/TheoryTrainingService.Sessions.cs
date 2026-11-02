@@ -543,5 +543,134 @@ public sealed partial class TheoryTrainingService
         reservation.CancelledAt = _clock.UtcNow;
         reservation.UpdatedAt = _clock.UtcNow;
         await _db.SaveChangesAsync(ct);
+
+        await OfferNextTheoryWaitlistAsync(session.SchoolUserId, session.Id, session, ct);
+    }
+
+    /// <summary>
+    /// Moves an active theory reservation to another session in one transaction.
+    /// New seat is secured before the old one is marked <see cref="TheoryReservationStatuses.Rescheduled"/>.
+    /// </summary>
+    public async Task<TheoryClassSessionDto> RescheduleReservationAsync(
+        int studentUserId,
+        int reservationId,
+        int newSessionId,
+        CancellationToken ct)
+    {
+        var oldReservation = await _db.Set<TheoryClassReservation>()
+            .Include(x => x.ClassSession)
+            .FirstOrDefaultAsync(x => x.Id == reservationId && x.StudentUserId == studentUserId, ct)
+            ?? throw new NotFoundException("Reserva no encontrada.", "reservation_not_found");
+
+        if (!TheoryReservationStatuses.ActiveStatuses.Contains(oldReservation.Status))
+        {
+            throw new DomainException("Esta reserva ya no está activa.", 400, "reservation_inactive");
+        }
+
+        var oldSession = oldReservation.ClassSession
+            ?? throw new DomainException("Clase no encontrada.", 404, "session_not_found");
+        if (oldSession.Id == newSessionId)
+        {
+            throw new DomainException("Elige un horario distinto al actual.", 400, "same_session");
+        }
+
+        var settings = await GetOrCreateSettingsAsync(oldSession.SchoolUserId, ct);
+        var startUtc = ColombiaTime.ToUtc(oldSession.SessionDate, oldSession.StartTime);
+        var minCancel = TimeSpan.FromHours(settings.MinCancelHours);
+        if (_clock.UtcNow > startUtc - minCancel)
+        {
+            throw new DomainException(
+                $"No puedes reprogramar esta clase con menos de {settings.MinCancelHours} hora(s) de anticipación.",
+                400,
+                "cancel_too_late");
+        }
+
+        var schoolUserId = oldSession.SchoolUserId;
+        await EnsureStudentCanReserveAsync(studentUserId, schoolUserId, ct);
+        var newSession = await RequireSessionAsync(schoolUserId, newSessionId, ct);
+        ValidateReservationWindow(newSession);
+        var enrollment = await GetEnrollmentAsync(schoolUserId, studentUserId, ct);
+        ValidateStudentSessionAccess(enrollment, newSession);
+        var policy = TheoryBookingPolicy.From(settings);
+        await ValidateNoScheduleConflictAsync(
+            studentUserId, newSession, enrollment, oldReservation.Id, policy, ct);
+
+        // Lock lower id first to avoid deadlocks when two reschedules cross.
+        var firstLock = Math.Min(oldSession.Id, newSessionId);
+        var secondLock = Math.Max(oldSession.Id, newSessionId);
+
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        try
+        {
+            await AcquireSessionLockAsync(firstLock, ct);
+            if (secondLock != firstLock)
+            {
+                await AcquireSessionLockAsync(secondLock, ct);
+            }
+
+            var occupied = await CountOccupiedSeatsAsync(newSessionId, ct);
+            if (occupied >= newSession.Capacity)
+            {
+                throw new DomainException(
+                    "El nuevo horario ya no tiene cupo. Tu reserva original se mantiene.",
+                    409,
+                    "class_full");
+            }
+
+            var alreadyOnNew = await _db.Set<TheoryClassReservation>()
+                .AnyAsync(x => x.ClassSessionId == newSessionId
+                    && x.StudentUserId == studentUserId
+                    && TheoryReservationStatuses.ActiveStatuses.Contains(x.Status), ct);
+            if (alreadyOnNew)
+            {
+                throw new DomainException("Ya tienes ese horario reservado.", 400, "already_reserved");
+            }
+
+            var now = _clock.UtcNow;
+            var created = new TheoryClassReservation
+            {
+                ClassSessionId = newSessionId,
+                StudentUserId = studentUserId,
+                Status = TheoryReservationStatuses.Reserved,
+                ReservedAt = now,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+            await _db.Set<TheoryClassReservation>().AddAsync(created, ct);
+
+            oldReservation.Status = TheoryReservationStatuses.Rescheduled;
+            oldReservation.CancelledAt = now;
+            oldReservation.CancellationReason = $"Rescheduled to session {newSessionId}";
+            oldReservation.UpdatedAt = now;
+
+            await _db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+
+            await _notifications.NotifyUserAsync(
+                studentUserId,
+                "Clase reprogramada",
+                $"Moviste tu clase al {newSession.SessionDate:dd/MM/yyyy} a las {newSession.StartTime:HH:mm}.",
+                NotificationTypes.TheoryClass,
+                null,
+                "theory_reschedule",
+                created.Id,
+                ct);
+
+            await OfferNextTheoryWaitlistAsync(schoolUserId, oldSession.Id, oldSession, ct);
+
+            var weekStart = StartOfWeek(newSession.SessionDate);
+            var studentCtx = await BuildStudentScheduleContextAsync(
+                studentUserId,
+                schoolUserId,
+                weekStart,
+                weekStart.AddDays(6),
+                ct);
+            return await MapSessionAsync(newSessionId, studentUserId, ct, studentCtx);
+        }
+        catch
+        {
+            await tx.RollbackAsync(ct);
+            throw;
+        }
     }
 }

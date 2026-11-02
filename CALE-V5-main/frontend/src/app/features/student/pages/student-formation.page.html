@@ -1,0 +1,130 @@
+<section class="formation">
+  <header class="hero">
+    <p class="eyebrow">Mi formación</p>
+    <h1>Tu camino en la escuela</h1>
+    <p class="lead">
+      Aquí ves en qué etapa estás, qué te falta y qué puedes agendar. Los requisitos los confirma el sistema de tu CEA.
+    </p>
+  </header>
+
+  <ui-error [message]="error()" />
+
+  @if (loading()) {
+    <ui-loading label="Cargando tu formación…" />
+  } @else {
+    @if (status(); as s) {
+      <app-next-step-banner />
+
+      <div class="next-card">
+        <p class="label">Etapa actual</p>
+        <h2>{{ s.currentStageLabel }}</h2>
+        @if (s.nextRecommendedAction) {
+          <p class="next-action">{{ s.nextRecommendedAction }}</p>
+        }
+        @if (s.nextRecommendedPath) {
+          <a class="cta" [routerLink]="s.nextRecommendedPath">Continuar</a>
+        }
+        @if (s.balanceDue > 0) {
+          <p class="balance">Saldo pendiente con la escuela. Ponte al día para agendar sin bloqueos.</p>
+        }
+      </div>
+
+      @if (s.upcoming.length) {
+        <section class="upcoming">
+          <h2>Próximas actividades</h2>
+          <ul>
+            @for (u of s.upcoming; track u.kind + u.date + u.startTime) {
+              <li>
+                <a [routerLink]="u.path">
+                  <strong>{{ u.title }}</strong>
+                  <span>{{ u.date }} · {{ u.startTime }}{{ u.endTime ? '–' + u.endTime : '' }}</span>
+                </a>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      @if (waitlist().length) {
+        <section class="upcoming waitlist">
+          <h2>Lista de espera</h2>
+          <ul>
+            @for (w of waitlist(); track w.id) {
+              <li>
+                <div>
+                  <strong>
+                    @if (w.status === 'Offered') {
+                      Cupo disponible — confirma
+                    } @else {
+                      En espera (puesto {{ w.position }})
+                    }
+                    ·
+                    @switch (w.kind) {
+                      @case ('practical_lesson') { Manejo }
+                      @case ('theory_exam') { Examen teórico }
+                      @default { Teoría }
+                    }
+                  </strong>
+                  <span>
+                    {{ w.targetDate || 'Clase' }}
+                    @if (w.targetStartTime) {
+                      · {{ w.targetStartTime }}
+                    }
+                  </span>
+                </div>
+                <div class="waitlist-actions">
+                  @if (w.status === 'Offered') {
+                    <button
+                      type="button"
+                      class="stage-cta"
+                      [disabled]="waitlistBusy() === w.id"
+                      (click)="confirmWaitlist(w)">
+                      Confirmar cupo
+                    </button>
+                  }
+                  <button
+                    type="button"
+                    class="linkish"
+                    [disabled]="waitlistBusy() === w.id"
+                    (click)="leaveWaitlist(w)">
+                    Salir
+                  </button>
+                </div>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      <ol class="stages">
+        @for (stage of s.stages; track stage.id) {
+          <li class="stage" [attr.data-tone]="tone(stage.status)">
+            <div class="stage-top">
+              <h3>{{ stage.title }}</h3>
+              <span class="badge">{{ statusLabel(stage.status) }}</span>
+            </div>
+            @if (stage.detail) {
+              <p class="detail">{{ stage.detail }}</p>
+            }
+            @if (stage.blockReason) {
+              <p class="block">{{ stage.blockReason }}</p>
+            }
+            @if (showCta(stage)) {
+              <a class="stage-cta" [routerLink]="stage.ctaPath!">
+                {{ stage.ctaLabel || 'Agendar' }}
+              </a>
+            }
+          </li>
+        }
+      </ol>
+
+      <p class="foot">
+        Detalle por módulo:
+        <a routerLink="/student/training">Teoría</a> ·
+        <a routerLink="/student/exam">Examen teórico</a> ·
+        <a routerLink="/student/practical">Manejo</a> ·
+        <a routerLink="/student/progress">Checklist</a>
+      </p>
+    }
+  }
+</section>

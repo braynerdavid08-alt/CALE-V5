@@ -99,6 +99,17 @@ public sealed class AssistantController : ControllerBase
             request.Tool ?? "",
             ct));
 
+    /// <summary>Student answers a practice quiz option in chat (mistakes or daily; 0 LLM).</summary>
+    [HttpPost("quiz/answer")]
+    [EnableRateLimiting(RateLimitPolicies.Assistant)]
+    public async Task<IActionResult> AnswerQuiz(AssistantQuizAnswerRequest request, CancellationToken ct) =>
+        Ok(await _assistant.AnswerQuizAsync(
+            await CurrentAsync(ct),
+            request.QuestionId,
+            request.OptionId,
+            request.Source ?? "",
+            ct));
+
     [HttpPost("actions/{id}/discard")]
     public async Task<IActionResult> Discard(string id, CancellationToken ct)
     {

@@ -94,11 +94,16 @@ public sealed class SchoolHoursAgendaController : ControllerBase
 {
     private readonly StudentHoursService _hours;
     private readonly SchoolAgendaService _agenda;
+    private readonly SchoolOpsAlertService _opsAlerts;
 
-    public SchoolHoursAgendaController(StudentHoursService hours, SchoolAgendaService agenda)
+    public SchoolHoursAgendaController(
+        StudentHoursService hours,
+        SchoolAgendaService agenda,
+        SchoolOpsAlertService opsAlerts)
     {
         _hours = hours;
         _agenda = agenda;
+        _opsAlerts = opsAlerts;
     }
 
     private int SchoolId => CurrentUser.GetId(User);
@@ -117,6 +122,31 @@ public sealed class SchoolHoursAgendaController : ControllerBase
     [HttpGet("agenda")]
     public async Task<IActionResult> Agenda([FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken ct) =>
         Ok(await _agenda.GetAsync(SchoolId, from, to, ct));
+
+    /// <summary>Rule-based operational alerts (no LLM).</summary>
+    [HttpGet("ops-alerts")]
+    public async Task<IActionResult> OpsAlerts(CancellationToken ct) =>
+        Ok(await _opsAlerts.GetAlertsAsync(SchoolId, ct));
+}
+
+/// <summary>Read-only assigned theory/practical sessions for the authenticated instructor.</summary>
+[ApiController]
+[Authorize(Policy = "TeacherOrAdmin")]
+[Route("api/teacher")]
+public sealed class TeacherAgendaController : ControllerBase
+{
+    private readonly SchoolAgendaService _agenda;
+
+    public TeacherAgendaController(SchoolAgendaService agenda) => _agenda = agenda;
+
+    private int InstructorId => CurrentUser.GetId(User);
+
+    [HttpGet("agenda")]
+    public async Task<IActionResult> Agenda(
+        [FromQuery] DateOnly? from,
+        [FromQuery] DateOnly? to,
+        CancellationToken ct) =>
+        Ok(await _agenda.GetForInstructorAsync(InstructorId, from, to, ct));
 }
 
 /// <summary>Theory-exam self-booking for the authenticated student (school resolved from the account).</summary>
@@ -141,6 +171,21 @@ public sealed class StudentExamBookingController : ControllerBase
     [HttpPost("book")]
     public async Task<IActionResult> Book(StudentBookExamRequest request, CancellationToken ct) =>
         Ok(await _service.BookAsStudentAsync(StudentId, request, ct));
+
+    [HttpPost("{id:int}/reschedule")]
+    public async Task<IActionResult> Reschedule(
+        int id,
+        StudentRescheduleExamRequest request,
+        CancellationToken ct) =>
+        Ok(await _service.RescheduleAsStudentAsync(StudentId, id, request, ct));
+
+    [HttpPost("waitlist")]
+    public async Task<IActionResult> JoinWaitlist(StudentBookExamRequest request, CancellationToken ct) =>
+        Ok(await _service.JoinExamWaitlistAsync(StudentId, request, ct));
+
+    [HttpPost("waitlist/{id:int}/confirm")]
+    public async Task<IActionResult> ConfirmWaitlist(int id, CancellationToken ct) =>
+        Ok(await _service.ConfirmExamWaitlistOfferAsync(StudentId, id, ct));
 
     [HttpGet("mine")]
     public async Task<IActionResult> Mine(CancellationToken ct) =>

@@ -18,7 +18,8 @@ public sealed partial class TheoryExamScheduleService
         string? Notes,
         int ActorUserId,
         bool ByStudent,
-        bool GrowCapacityIfNeeded);
+        bool GrowCapacityIfNeeded,
+        int? ReplaceBookingId = null);
 
     public async Task<ExamSlotDto> BookAsSchoolAsync(
         int schoolUserId,
@@ -181,16 +182,18 @@ public sealed partial class TheoryExamScheduleService
             return booking;
         }
 
+        var oldDate = booking.ExamDate;
+        var oldTime = booking.SlotTime;
         var moved = await BookCoreAsync(new BookingRequest(
             schoolUserId, date, time, studentUserId, label, notes, actorUserId,
-            ByStudent: false, GrowCapacityIfNeeded: false), ct);
-        MarkCancelled(booking, actorUserId);
+            ByStudent: false, GrowCapacityIfNeeded: false, ReplaceBookingId: booking.Id), ct);
         SchoolAudit.Add(_db, _clock.UtcNow, schoolUserId, actorUserId, SchoolAuditAreas.ExamBooking,
             "booking_moved",
-            $"Cita movida de {D(booking.ExamDate)} {T(booking.SlotTime)} a {D(date)} {T(time)}.",
+            $"Cita movida de {D(oldDate)} {T(oldTime)} a {D(date)} {T(time)}.",
             entityType: "exam_booking", entityId: moved.Id, studentUserId: studentUserId,
-            oldValue: $"{D(booking.ExamDate)} {T(booking.SlotTime)}", newValue: $"{D(date)} {T(time)}");
+            oldValue: $"{D(oldDate)} {T(oldTime)}", newValue: $"{D(date)} {T(time)}");
         await _db.SaveChangesAsync(ct);
+        await OfferNextExamWaitlistAsync(schoolUserId, oldDate, oldTime, ct);
         return moved;
     }
 
@@ -302,11 +305,24 @@ public sealed partial class TheoryExamScheduleService
                     UpdatedAt = now
                 };
                 _db.Set<TheoryExamAppointment>().Add(booking);
+
+                if (request.ReplaceBookingId is int replaceId)
+                {
+                    var old = await _db.Set<TheoryExamAppointment>()
+                        .FirstOrDefaultAsync(x => x.Id == replaceId
+                            && x.SchoolUserId == request.SchoolUserId
+                            && x.Status != TheoryExamBookingStatuses.Cancelled, ct)
+                        ?? throw new NotFoundException("Cita original no encontrada.", "booking_not_found");
+                    MarkCancelled(old, request.ActorUserId);
+                }
+
                 await _db.SaveChangesAsync(ct);
 
                 SchoolAudit.Add(_db, now, request.SchoolUserId, request.ActorUserId, SchoolAuditAreas.ExamBooking,
-                    "booking_created",
-                    (request.ByStudent ? "El estudiante agendó" : "La escuela agendó")
+                    request.ReplaceBookingId is null ? "booking_created" : "booking_rescheduled",
+                    (request.ReplaceBookingId is null
+                        ? (request.ByStudent ? "El estudiante agendó" : "La escuela agendó")
+                        : (request.ByStudent ? "El estudiante reprogramó" : "La escuela reprogramó"))
                         + $" examen para el {D(request.Date)} {T(request.Time)} (cupo {seat} de {capacity}).",
                     entityType: "exam_booking", entityId: booking.Id, studentUserId: request.StudentUserId,
                     newValue: TheoryExamBookingStatuses.Active);

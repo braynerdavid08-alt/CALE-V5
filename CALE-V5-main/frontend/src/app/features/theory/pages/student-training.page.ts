@@ -4,7 +4,7 @@ import { RouterLink } from '@angular/router';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
-import { mapApiError } from '../../../core/http/map-api-error';
+import { apiErrorCode, mapApiError } from '../../../core/http/map-api-error';
 import {
   TheoryApi,
   TheoryClassSessionDto,
@@ -30,6 +30,9 @@ export class StudentTrainingPage implements OnInit {
   readonly schedule = signal<TheoryWeekScheduleDto | null>(null);
   readonly view = signal<'week' | 'list'>('week');
   readonly actionLoading = signal(false);
+  readonly notice = signal<string | null>(null);
+  /** When set, the next free slot click moves this reservation. */
+  readonly rescheduleFromId = signal<number | null>(null);
   readonly weekStart = signal(this.startOfWeekIso(new Date()));
 
   readonly bookingLabel = theoryBookingLabel;
@@ -139,14 +142,89 @@ export class StudentTrainingPage implements OnInit {
     return session.bookingState === 'can_reserve';
   }
 
+  canJoinWaitlist(session: TheoryClassSessionDto): boolean {
+    return session.bookingState === 'full';
+  }
+
+  onSessionAction(session: TheoryClassSessionDto): void {
+    if (this.canReserve(session)) {
+      const fromId = this.rescheduleFromId();
+      if (fromId) {
+        this.rescheduleTo(session, fromId);
+        return;
+      }
+      this.reserve(session);
+      return;
+    }
+    if (this.canJoinWaitlist(session)) {
+      this.joinWaitlist(session);
+    }
+  }
+
+  startReschedule(session: TheoryClassSessionDto): void {
+    if (!session.myReservationId) {
+      return;
+    }
+    this.rescheduleFromId.set(session.myReservationId);
+    this.notice.set('Elige el nuevo horario en la lista. Tu cupo actual se mantiene hasta confirmar el cambio.');
+    this.error.set(null);
+  }
+
+  cancelRescheduleMode(): void {
+    this.rescheduleFromId.set(null);
+    this.notice.set(null);
+  }
+
+  rescheduleTo(session: TheoryClassSessionDto, reservationId: number): void {
+    this.actionLoading.set(true);
+    this.error.set(null);
+    this.api.rescheduleReservation(reservationId, session.id).subscribe({
+      next: () => {
+        this.actionLoading.set(false);
+        this.rescheduleFromId.set(null);
+        this.notice.set('Listo. Reprogramaste tu clase teórica.');
+        this.refreshSchedule();
+      },
+      error: (err) => {
+        this.actionLoading.set(false);
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
   reserve(session: TheoryClassSessionDto): void {
     if (!this.canReserve(session)) {
       return;
     }
     this.actionLoading.set(true);
+    this.error.set(null);
+    this.notice.set(null);
     this.api.reserve(session.id).subscribe({
       next: () => {
         this.actionLoading.set(false);
+        this.refreshSchedule();
+      },
+      error: (err) => {
+        this.actionLoading.set(false);
+        if (apiErrorCode(err) === 'class_full') {
+          this.joinWaitlist(session);
+          return;
+        }
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  joinWaitlist(session: TheoryClassSessionDto): void {
+    this.actionLoading.set(true);
+    this.error.set(null);
+    this.notice.set(null);
+    this.api.joinWaitlist(session.id).subscribe({
+      next: (w) => {
+        this.actionLoading.set(false);
+        this.notice.set(
+          `Quedaste en lista de espera (puesto ${w.position}). Te avisamos si se libera un cupo; confírmalo en Mi formación.`
+        );
         this.refreshSchedule();
       },
       error: (err) => {
@@ -161,6 +239,8 @@ export class StudentTrainingPage implements OnInit {
       return;
     }
     this.actionLoading.set(true);
+    this.error.set(null);
+    this.notice.set(null);
     this.api.cancelReservation(session.myReservationId).subscribe({
       next: () => {
         this.actionLoading.set(false);

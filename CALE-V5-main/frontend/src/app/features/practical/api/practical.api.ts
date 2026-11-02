@@ -285,6 +285,21 @@ export class PracticalApi {
     }>(`${this.schoolBase}/lessons/bulk`, body);
   }
 
+  updateLesson(
+    id: number,
+    body: {
+      sessionDate: string;
+      startTime: string;
+      endTime: string;
+      instructorUserId: number;
+      vehicleId: number;
+      notes?: string | null;
+      kind?: PracticalSessionKind | string | null;
+    }
+  ) {
+    return this.http.put<PracticalLessonSessionDto>(`${this.schoolBase}/lessons/${id}`, body);
+  }
+
   cancelLesson(id: number) {
     return this.http.post(`${this.schoolBase}/lessons/${id}/cancel`, {});
   }
@@ -325,5 +340,26 @@ export class PracticalApi {
 
   cancelReservation(reservationId: number) {
     return this.http.delete(`${this.studentBase}/reservations/${reservationId}`);
+  }
+
+  rescheduleReservation(reservationId: number, newLessonId: number) {
+    return this.http.post<PracticalLessonSessionDto>(
+      `${this.studentBase}/reservations/${reservationId}/reschedule`,
+      { newLessonId }
+    );
+  }
+
+  joinWaitlist(lessonId: number) {
+    return this.http.post<{ id: number; position: number; status: string }>(
+      `${this.studentBase}/lessons/${lessonId}/waitlist`,
+      {}
+    );
+  }
+
+  confirmWaitlist(waitlistId: number) {
+    return this.http.post<PracticalLessonSessionDto>(
+      `${this.studentBase}/waitlist/${waitlistId}/confirm`,
+      {}
+    );
   }
 }

@@ -49,8 +49,8 @@ public sealed class AssistantServiceTests
         var llm = new ScriptedLlm(new LlmReply("Hola", []));
         var service = Create(llm, new FakeToolbox(), o => o.DailyMessagesPerUser = 1);
 
-        var first = await service.ChatAsync(Student, [new("user", "Hola")], default);
-        var second = await service.ChatAsync(Student, [new("user", "Hola otra vez")], default);
+        var first = await service.ChatAsync(Student, [new("user", "Explícame la señal de ceda el paso")], default);
+        var second = await service.ChatAsync(Student, [new("user", "Ahora la de pare")], default);
 
         Assert.Equal("Hola", first.Reply);
         Assert.Equal(0, second.RemainingToday);
@@ -71,13 +71,21 @@ public sealed class AssistantServiceTests
     [Fact]
     public void Students_and_schools_get_separate_tools()
     {
-        var toolbox = new AssistantToolbox(null!, null!, null!, null!, null!, null!, null!);
+        var toolbox = new AssistantToolbox(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!);
         var student = toolbox.ToolsFor(Roles.Student).Select(t => t.Name).ToList();
         var school = toolbox.ToolsFor(Roles.School).Select(t => t.Name).ToList();
 
         Assert.Contains("reservar_clase_teorica", student);
+        Assert.Contains("mi_siguiente_paso", student);
+        Assert.Contains("reprogramar_clase_teorica", student);
+        Assert.Contains("lista_espera_teoria", student);
+        Assert.Contains("reprogramar_examen", student);
+        Assert.Contains("lista_espera_examen", student);
+        Assert.Contains("reprogramar_clase_manejo", student);
+        Assert.Contains("lista_espera_manejo", student);
         Assert.DoesNotContain("autorizar_examen", student);
         Assert.Contains("autorizar_manejo", school);
+        Assert.Contains("alertas_operativas", school);
         Assert.DoesNotContain("reservar_clase_manejo", school);
         Assert.Empty(toolbox.ToolsFor(Roles.Admin));
     }
@@ -109,7 +117,10 @@ public sealed class AssistantServiceTests
         var llm = new ScriptedLlm(AssistantLlmClient.Parse(json), new LlmReply("Te faltan 10 horas.", []));
         var service = Create(llm, new FakeToolbox());
 
-        var result = await service.ChatAsync(Student, [new("user", "¿Cuántas horas me faltan?")], default);
+        var result = await service.ChatAsync(
+            Student,
+            [new("user", "Necesito que el modelo revise mi expediente con detalle pedagógico")],
+            default);
 
         Assert.Equal("Te faltan 10 horas.", result.Reply);
         var echoed = llm.LastMessages!
@@ -311,9 +322,17 @@ public sealed class AssistantServiceTests
         public Task<string> ReadAsync(AssistantUser user, string tool, JsonObject args, CancellationToken ct) =>
             Task.FromResult("Horas 10/20");
 
-        public Task<(string Text, AssistantExamAvailabilityUi? ExamAvailability)> ReadWithUiAsync(
+        public Task<(string Text, AssistantExamAvailabilityUi? ExamAvailability, AssistantQuizUi? Quiz)> ReadWithUiAsync(
             AssistantUser user, string tool, JsonObject args, CancellationToken ct) =>
-            Task.FromResult<(string, AssistantExamAvailabilityUi?)>(("Horas 10/20", null));
+            Task.FromResult<(string, AssistantExamAvailabilityUi?, AssistantQuizUi?)>(("Horas 10/20", null, null));
+
+        public Task<(string Text, AssistantQuizUi? NextQuiz)> AnswerPracticeAsync(
+            AssistantUser user,
+            int questionId,
+            int optionId,
+            string source,
+            CancellationToken ct) =>
+            Task.FromResult<(string, AssistantQuizUi?)>(("ok", null));
 
         public Task<string> DescribeAsync(AssistantUser user, string tool, JsonObject args, CancellationToken ct) =>
             Task.FromResult($"Reservar clase {args["clase_id"]}");

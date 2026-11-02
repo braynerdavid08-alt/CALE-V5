@@ -180,7 +180,7 @@ export class SchoolHomePage implements OnInit {
         key: 'program',
         emoji: '📅',
         label: 'Programación',
-        hint: 'Clases teóricas, exámenes y manejo',
+        hint: 'Agenda central, alertas de cupos y demanda',
         path: '/school/agenda',
         metrics: [
           ...(examsWeek != null

@@ -17,7 +17,8 @@ import {
   AssistantExamAvailabilityUi,
   AssistantExamDayUi,
   AssistantMessage,
-  AssistantPendingAction
+  AssistantPendingAction,
+  AssistantQuizUi
 } from '../core/assistant/assistant.api';
 import { renderAssistantMarkdown } from '../core/assistant/assistant-markdown';
 import { BRAND } from '../core/brand';
@@ -32,6 +33,9 @@ interface QuickQuestion {
 /** Answered from the database without the AI, so they don't spend messages. */
 const QUICK: Record<string, QuickQuestion[]> = {
   Student: [
+    { key: 'siguiente_paso', label: '¿Cuál es mi siguiente paso?' },
+    { key: 'practicar', label: 'Practicar una pregunta' },
+    { key: 'que_estudiar', label: '¿Qué debo estudiar?' },
     { key: 'progreso', label: '¿Cuántas horas me faltan?' },
     { key: 'clases_teoricas', label: 'Clases teóricas de la semana' },
     { key: 'cupos_examen', label: 'Cupos para el examen' },
@@ -39,6 +43,7 @@ const QUICK: Record<string, QuickQuestion[]> = {
   ],
   School: [
     { key: 'resumen', label: '¿Cómo van mis estudiantes?' },
+    { key: 'alertas', label: 'Alertas de operación' },
     { key: 'listos_examen', label: 'Listos para el examen' },
     { key: 'agenda', label: 'Agenda de esta semana' },
     { key: 'con_saldo', label: 'Con saldo pendiente' }
@@ -128,10 +133,37 @@ const HIDDEN_PATHS = [
                 <p class="bubble me">{{ m.content }}</p>
               } @else {
                 <div class="bot-block">
-                  @if (m.content && !m.examAvailability) {
+                  @if (m.content && !m.examAvailability && !m.quiz) {
                     <div class="bubble bot md" [innerHTML]="asHtml(m.content)"></div>
-                  } @else if (m.content && m.examAvailability && tipBesideCard(m.content)) {
+                  } @else if (m.content && (m.examAvailability || m.quiz) && tipBesideCard(m.content)) {
                     <div class="bubble bot md tip" [innerHTML]="asHtml(m.content)"></div>
+                  }
+                  @if (m.quiz; as quiz) {
+                    <div class="quiz-card" [attr.data-answered]="quiz.answered ? '1' : null">
+                      <div class="quiz-head">
+                        <strong>{{ quiz.title }}</strong>
+                        @if (quiz.topic) {
+                          <span class="quiz-topic">{{ quiz.topic }}</span>
+                        }
+                      </div>
+                      <p class="quiz-q">{{ quiz.questionText }}</p>
+                      @if (quiz.imageUrl) {
+                        <img class="quiz-img" [src]="quiz.imageUrl" alt="" />
+                      }
+                      <div class="quiz-opts" role="list">
+                        @for (opt of quiz.options; track opt.id) {
+                          <button
+                            type="button"
+                            class="quiz-opt"
+                            role="listitem"
+                            [disabled]="busy() || !!quiz.answered"
+                            (click)="answerQuiz(quiz, opt.id)">
+                            <span class="quiz-letter">{{ opt.label }}</span>
+                            <span>{{ opt.text }}</span>
+                          </button>
+                        }
+                      </div>
+                    </div>
                   }
                   @if (m.examAvailability; as card) {
                     <div class="exam-card" [attr.data-msg]="$index">
@@ -439,6 +471,68 @@ const HIDDEN_PATHS = [
     .me { align-self: flex-end; background: color-mix(in srgb, var(--color-primary) 22%, transparent); }
     .typing { opacity: 0.75; font-style: italic; }
     .err { align-self: stretch; max-width: none; color: var(--color-danger, #f87171); border: 1px solid currentColor; }
+
+    .quiz-card {
+      align-self: stretch;
+      display: grid;
+      gap: 0.55rem;
+      padding: 0.7rem;
+      border-radius: 0.85rem;
+      border: 1px solid var(--color-border);
+      background: var(--color-background);
+      min-width: 0;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    .quiz-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.4rem;
+    }
+    .quiz-topic {
+      font-size: 0.78rem;
+      color: var(--color-text-secondary);
+    }
+    .quiz-q {
+      margin: 0;
+      font-weight: 700;
+      line-height: 1.35;
+      font-size: 0.95rem;
+    }
+    .quiz-img {
+      width: 100%;
+      max-height: 10rem;
+      object-fit: contain;
+      border-radius: 0.5rem;
+      background: color-mix(in srgb, var(--color-border) 30%, transparent);
+    }
+    .quiz-opts { display: grid; gap: 0.4rem; }
+    .quiz-opt {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.55rem;
+      align-items: start;
+      text-align: left;
+      font: inherit;
+      padding: 0.55rem 0.65rem;
+      border-radius: 0.7rem;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      color: var(--color-text);
+      cursor: pointer;
+    }
+    .quiz-opt:hover:not(:disabled),
+    .quiz-opt:focus-visible:not(:disabled) {
+      border-color: var(--color-primary);
+    }
+    .quiz-opt:disabled { opacity: 0.72; cursor: default; }
+    .quiz-letter {
+      font-weight: 800;
+      color: var(--color-primary);
+      min-width: 1.1rem;
+    }
+    .quiz-card[data-answered='1'] .quiz-opt { pointer-events: none; }
 
     .exam-card {
       align-self: stretch;
@@ -960,7 +1054,7 @@ export class AssistantWidgetComponent implements OnInit, OnDestroy {
     this.api.chat(this.messages().slice(-10)).subscribe({
       next: (r) => {
         this.busy.set(false);
-        this.pushAssistant(r.reply, r.examAvailability ?? null);
+        this.pushAssistant(r.reply, r.examAvailability ?? null, r.quiz ?? null);
         this.action.set(r.action);
         this.remaining.set(r.remainingToday);
         this.scrollSoon();
@@ -982,7 +1076,7 @@ export class AssistantWidgetComponent implements OnInit, OnDestroy {
     this.api.quick(q.key).subscribe({
       next: (r) => {
         this.busy.set(false);
-        this.pushAssistant(r.reply, r.examAvailability ?? null);
+        this.pushAssistant(r.reply, r.examAvailability ?? null, r.quiz ?? null);
         this.remaining.set(r.remainingToday);
         this.scrollSoon();
       },
@@ -1028,13 +1122,49 @@ export class AssistantWidgetComponent implements OnInit, OnDestroy {
     this.scrollSoon();
   }
 
-  private pushAssistant(content: string, exam: AssistantExamAvailabilityUi | null): void {
+  answerQuiz(quiz: AssistantQuizUi, optionId: number): void {
+    if (this.busy() || quiz.answered) return;
+    this.error.set(null);
+    this.busy.set(true);
+    this.messages.update((list) => {
+      const opt = quiz.options.find((o) => o.id === optionId);
+      const label = opt ? `${opt.label}) ${opt.text}` : 'Opción';
+      return [...list, { role: 'user', content: label }];
+    });
+    this.api.answerQuiz(quiz.questionId, optionId, quiz.source).subscribe({
+      next: (r) => {
+        this.busy.set(false);
+        this.messages.update((list) =>
+          list.map((m) =>
+            m.quiz?.questionId === quiz.questionId && !m.quiz.answered
+              ? { ...m, quiz: { ...m.quiz, answered: true } }
+              : m
+          )
+        );
+        this.pushAssistant(r.reply, r.examAvailability ?? null, r.quiz ?? null);
+        this.remaining.set(r.remainingToday);
+        this.scrollSoon();
+      },
+      error: (err) => {
+        this.busy.set(false);
+        this.error.set(mapApiError(err));
+        this.scrollSoon();
+      }
+    });
+  }
+
+  private pushAssistant(
+    content: string,
+    exam: AssistantExamAvailabilityUi | null,
+    quiz: AssistantQuizUi | null = null
+  ): void {
     this.messages.update((list) => [
       ...list,
       {
         role: 'assistant',
         content,
         examAvailability: exam,
+        quiz,
         daysVisible: exam ? INITIAL_DAYS : undefined
       }
     ]);

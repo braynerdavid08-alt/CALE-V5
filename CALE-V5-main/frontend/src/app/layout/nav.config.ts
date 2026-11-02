@@ -224,6 +224,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
   if (role === 'Teacher') {
     return [
       { label: 'Inicio', path: '/teacher', icon: 'home', exact: true },
+      { label: 'Mis asignaciones', path: '/teacher/agenda', icon: 'calendar', exact: true, emphasize: true },
       {
         label: 'Clase',
         icon: 'exam',
@@ -268,6 +269,7 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
     { label: 'Mis logros', path: '/student/play/achievements', icon: 'star', exact: true },
     { label: 'Biblioteca Jurídica', path: '/student/normas-transito', icon: 'book' },
     { label: 'Mis Clases', path: '/student/classes', icon: 'book', exact: true },
+    { label: 'Mi formación', path: '/student/formacion', icon: 'chart', exact: true, requiresSchool: true },
     { label: 'Teoría', path: '/student/training', icon: 'exam', exact: true, requiresSchool: true },
     { label: 'Agendar examen', path: '/student/exam', icon: 'calendar', exact: true, requiresSchool: true },
     { label: 'Clases de manejo', path: '/student/practical', icon: 'exam', exact: true, requiresSchool: true },

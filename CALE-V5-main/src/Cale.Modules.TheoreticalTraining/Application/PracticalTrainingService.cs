@@ -1,5 +1,6 @@
 using Cale.BuildingBlocks.Domain.Abstractions;
 using Cale.BuildingBlocks.Domain.Auth;
+using Cale.BuildingBlocks.Domain.Engagement;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Time;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
@@ -17,6 +18,7 @@ public sealed class PracticalTrainingService
     private readonly TheoryTrainingService _theory;
     private readonly ITrainingEligibilityService _eligibility;
     private readonly ISchoolMembershipGuard _membership;
+    private readonly INotificationPublisher _notifications;
     private readonly IClock _clock;
 
     public PracticalTrainingService(
@@ -25,6 +27,7 @@ public sealed class PracticalTrainingService
         TheoryTrainingService theory,
         ITrainingEligibilityService eligibility,
         ISchoolMembershipGuard membership,
+        INotificationPublisher notifications,
         IClock clock)
     {
         _db = db;
@@ -32,6 +35,7 @@ public sealed class PracticalTrainingService
         _theory = theory;
         _eligibility = eligibility;
         _membership = membership;
+        _notifications = notifications;
         _clock = clock;
     }
 
@@ -256,6 +260,15 @@ public sealed class PracticalTrainingService
                 ct);
         }
 
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        if (_db.Database.IsNpgsql())
+        {
+            await _db.Database.ExecuteSqlRawAsync(
+                "SELECT pg_advisory_xact_lock(@p0)",
+                new object[] { session.Id },
+                ct);
+        }
+
         var existingReservation = await _db.Set<PracticalLessonReservation>()
             .FirstOrDefaultAsync(x => x.LessonSessionId == session.Id
                 && PracticalReservationStatuses.OccupiesSeatStatuses.Contains(x.Status), ct);
@@ -264,6 +277,7 @@ public sealed class PracticalTrainingService
         {
             if (existingReservation.StudentUserId == request.StudentUserId)
             {
+                await tx.CommitAsync(ct);
                 return await MapLessonAsync(session, null, includeAssignment: true, ct);
             }
 
@@ -297,6 +311,17 @@ public sealed class PracticalTrainingService
             UpdatedAt = now
         }, ct);
         await _db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+
+        await _notifications.NotifyUserAsync(
+            request.StudentUserId,
+            "Clase de manejo asignada",
+            $"Tu escuela te asignó un cupo el {session.SessionDate:dd/MM/yyyy} a las {session.StartTime:HH:mm}.",
+            NotificationTypes.TheoryClass,
+            null,
+            "practical_assign",
+            session.Id,
+            ct);
 
         return await MapLessonAsync(session, null, includeAssignment: true, ct);
     }
@@ -418,6 +443,86 @@ public sealed class PracticalTrainingService
             kind,
             ct);
 
+        return await MapLessonAsync(session, null, includeAssignment: true, ct);
+    }
+
+    public async Task<PracticalLessonSessionDto> UpdateLessonAsync(
+        int schoolUserId,
+        int lessonId,
+        UpdatePracticalLessonRequest request,
+        CancellationToken ct)
+    {
+        await _membership.EnsureActiveAsync(schoolUserId, ct);
+        var session = await RequireLessonAsync(schoolUserId, lessonId, ct);
+
+        if (session.Status == PracticalLessonStatuses.Cancelled)
+        {
+            throw new DomainException("Este cupo está cancelado.", 400, "lesson_cancelled");
+        }
+
+        var startUtc = ColombiaTime.ToUtc(session.SessionDate, session.StartTime);
+        if (_clock.UtcNow >= startUtc)
+        {
+            throw new DomainException(
+                "No puedes editar un cupo que ya comenzó.",
+                400,
+                "lesson_already_started");
+        }
+
+        if (request.SessionDate.DayOfWeek == DayOfWeek.Sunday)
+        {
+            throw new DomainException("No se programan clases los domingos.", 400, "sunday_disabled");
+        }
+
+        var start = ParseTime(request.StartTime);
+        var end = ParseTime(request.EndTime);
+        if (end <= start)
+        {
+            throw new DomainException("La hora de fin debe ser posterior al inicio.", 400, "invalid_time_range");
+        }
+
+        var kind = PracticalSessionKinds.Normalize(request.Kind ?? session.Kind);
+        EnsureExamDuration(kind, start, end);
+
+        var vehicle = await _db.Set<PracticalVehicle>()
+            .FirstOrDefaultAsync(x => x.Id == request.VehicleId && x.SchoolUserId == schoolUserId && x.IsActive, ct)
+            ?? throw new DomainException("Vehículo no válido.", 400, "invalid_vehicle");
+        var instructor = await _users.GetByIdAsync(request.InstructorUserId, ct)
+            ?? throw new DomainException("Instructor no válido.", 400, "invalid_instructor");
+        if (instructor.SchoolId != schoolUserId || instructor.Role != Roles.Teacher)
+        {
+            throw new DomainException("El instructor no pertenece a la escuela.", 400, "invalid_instructor");
+        }
+
+        await EnsureNoScheduleConflictAsync(
+            schoolUserId,
+            request.SessionDate,
+            start,
+            end,
+            request.InstructorUserId,
+            request.VehicleId,
+            excludeLessonId: session.Id,
+            ct);
+
+        await EnsureInstructorDailyHourLimitAsync(
+            schoolUserId,
+            request.SessionDate,
+            start,
+            end,
+            request.InstructorUserId,
+            excludeLessonId: session.Id,
+            ct);
+
+        session.SessionDate = request.SessionDate;
+        session.StartTime = start;
+        session.EndTime = end;
+        session.InstructorUserId = request.InstructorUserId;
+        session.VehicleId = vehicle.Id;
+        session.Kind = kind;
+        session.Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
+        session.UpdatedAt = _clock.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
         return await MapLessonAsync(session, null, includeAssignment: true, ct);
     }
 
@@ -831,12 +936,25 @@ public sealed class PracticalTrainingService
         }, ct);
         await _db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
+
+        var kindLabel = PracticalSessionKinds.IsExam(session.Kind) ? "examen de manejo" : "clase de manejo";
+        await _notifications.NotifyUserAsync(
+            studentUserId,
+            "Cupo de manejo reservado",
+            $"Reservaste tu {kindLabel} del {session.SessionDate:dd/MM/yyyy} a las {session.StartTime:HH:mm}. Abre Mi formación o Clases de manejo.",
+            NotificationTypes.TheoryClass,
+            null,
+            "practical_reservation",
+            lessonId,
+            ct);
+
         return await MapLessonAsync(session, studentUserId, includeAssignment: false, ct);
     }
 
     public async Task CancelReservationAsync(int studentUserId, int reservationId, CancellationToken ct)
     {
         var reservation = await _db.Set<PracticalLessonReservation>()
+            .Include(x => x.LessonSession)
             .FirstOrDefaultAsync(x => x.Id == reservationId && x.StudentUserId == studentUserId, ct)
             ?? throw new NotFoundException("Reserva no encontrada.", "reservation_not_found");
 
@@ -845,11 +963,449 @@ public sealed class PracticalTrainingService
             return;
         }
 
+        var session = reservation.LessonSession
+            ?? throw new NotFoundException("Clase no encontrada.", "lesson_not_found");
+        var settings = await _db.Set<TheoryTrainingSettings>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.SchoolUserId == session.SchoolUserId, ct);
+        var minCancelHours = settings?.MinCancelHours ?? 2;
+        if (minCancelHours > 0)
+        {
+            var startUtc = ColombiaTime.ToUtc(session.SessionDate, session.StartTime);
+            if (_clock.UtcNow > startUtc.AddHours(-minCancelHours))
+            {
+                throw new DomainException(
+                    $"No puedes cancelar esta clase con menos de {minCancelHours} hora(s) de anticipación.",
+                    400,
+                    "cancel_too_late");
+            }
+        }
+
         reservation.Status = PracticalReservationStatuses.CancelledByStudent;
         reservation.CancelledAt = _clock.UtcNow;
         reservation.UpdatedAt = _clock.UtcNow;
         await _db.SaveChangesAsync(ct);
+
+        await _notifications.NotifyUserAsync(
+            studentUserId,
+            "Reserva de manejo cancelada",
+            $"Cancelaste el cupo del {session.SessionDate:dd/MM/yyyy} a las {session.StartTime:HH:mm}.",
+            NotificationTypes.TheoryClass,
+            null,
+            "practical_cancel",
+            reservation.Id,
+            ct);
+
+        await OfferNextPracticalWaitlistAsync(session.SchoolUserId, session.Id, session, ct);
     }
+
+    /// <summary>
+    /// Moves an active practical reservation to another lesson atomically.
+    /// If the new seat cannot be taken, the original reservation stays active.
+    /// </summary>
+    public async Task<PracticalLessonSessionDto> RescheduleReservationAsync(
+        int studentUserId,
+        int reservationId,
+        int newLessonId,
+        CancellationToken ct)
+    {
+        var oldReservation = await _db.Set<PracticalLessonReservation>()
+            .Include(x => x.LessonSession)
+            .FirstOrDefaultAsync(x => x.Id == reservationId && x.StudentUserId == studentUserId, ct)
+            ?? throw new NotFoundException("Reserva no encontrada.", "reservation_not_found");
+
+        if (!PracticalReservationStatuses.ActiveStatuses.Contains(oldReservation.Status))
+        {
+            throw new DomainException("Esta reserva ya no está activa.", 400, "reservation_inactive");
+        }
+
+        var oldSession = oldReservation.LessonSession
+            ?? throw new NotFoundException("Clase no encontrada.", "lesson_not_found");
+        if (oldSession.Id == newLessonId)
+        {
+            throw new DomainException("Elige un horario distinto al actual.", 400, "same_lesson");
+        }
+
+        var (schoolUserId, _) = await _theory.ResolveStudentSchoolPublicAsync(studentUserId, ct);
+        if (oldSession.SchoolUserId != schoolUserId)
+        {
+            throw new ForbiddenException("Esta reserva no pertenece a tu escuela.", "school_mismatch");
+        }
+
+        var settings = await _db.Set<TheoryTrainingSettings>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.SchoolUserId == schoolUserId, ct);
+        var minCancelHours = settings?.MinCancelHours ?? 2;
+        if (minCancelHours > 0)
+        {
+            var startUtc = ColombiaTime.ToUtc(oldSession.SessionDate, oldSession.StartTime);
+            if (_clock.UtcNow > startUtc.AddHours(-minCancelHours))
+            {
+                throw new DomainException(
+                    $"No puedes reprogramar esta clase con menos de {minCancelHours} hora(s) de anticipación.",
+                    400,
+                    "cancel_too_late");
+            }
+        }
+
+        await _membership.EnsureActiveAsync(schoolUserId, ct);
+        await _eligibility.EnsureStudentCanBookAsync(schoolUserId, studentUserId, ct);
+        await _eligibility.EnsureNoBalanceDueAsync(schoolUserId, studentUserId, ct);
+
+        var pe = await _theory.GetPracticalEligibilityAsync(schoolUserId, studentUserId, ct);
+        if (!pe.CanBookPractical)
+        {
+            throw new DomainException(
+                pe.BlockReason ?? "Aún no cumples los requisitos para clases de manejo.",
+                400,
+                "practical_not_eligible");
+        }
+
+        var newSession = await _db.Set<PracticalLessonSession>()
+            .Include(x => x.Vehicle)
+            .FirstOrDefaultAsync(x => x.Id == newLessonId && x.SchoolUserId == schoolUserId, ct)
+            ?? throw new NotFoundException("Clase no encontrada.", "lesson_not_found");
+
+        if (newSession.Status != PracticalLessonStatuses.Scheduled)
+        {
+            throw new DomainException("Esta clase no está disponible.", 400, "lesson_unavailable");
+        }
+
+        if (PracticalSessionKinds.IsExam(newSession.Kind))
+        {
+            var enrollment = await _db.Set<SchoolStudentEnrollment>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    x => x.SchoolUserId == schoolUserId && x.StudentUserId == studentUserId,
+                    ct);
+            await EnsureStudentCanTakeExamAsync(
+                schoolUserId,
+                studentUserId,
+                enrollment?.LicenseCategories,
+                enrollment?.PracticalAuthorized == true,
+                ct);
+        }
+
+        if (oldSession.SessionDate != newSession.SessionDate)
+        {
+            var studentConflict = await _db.Set<PracticalLessonReservation>()
+                .Include(x => x.LessonSession)
+                .AnyAsync(x => x.StudentUserId == studentUserId
+                    && x.Id != reservationId
+                    && x.LessonSession!.SchoolUserId == schoolUserId
+                    && x.LessonSession.SessionDate == newSession.SessionDate
+                    && PracticalReservationStatuses.OccupiesSeatStatuses.Contains(x.Status), ct);
+            if (studentConflict)
+            {
+                throw new DomainException(
+                    "Ya tienes una clase o examen de manejo programado ese día.",
+                    400,
+                    "student_day_taken");
+            }
+        }
+
+        var firstLock = Math.Min(oldSession.Id, newLessonId);
+        var secondLock = Math.Max(oldSession.Id, newLessonId);
+
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        if (_db.Database.IsNpgsql())
+        {
+            await _db.Database.ExecuteSqlRawAsync(
+                "SELECT pg_advisory_xact_lock(@p0)",
+                new object[] { firstLock },
+                ct);
+            if (secondLock != firstLock)
+            {
+                await _db.Database.ExecuteSqlRawAsync(
+                    "SELECT pg_advisory_xact_lock(@p0)",
+                    new object[] { secondLock },
+                    ct);
+            }
+        }
+
+        var reservedUnderLock = await _db.Set<PracticalLessonReservation>()
+            .CountAsync(x => x.LessonSessionId == newLessonId
+                && PracticalReservationStatuses.ActiveStatuses.Contains(x.Status), ct);
+        if (reservedUnderLock >= PracticalScheduleLimits.SeatsPerSlot)
+        {
+            throw new DomainException(
+                "El nuevo horario ya no tiene cupo. Tu reserva original se mantiene.",
+                409,
+                "lesson_full");
+        }
+
+        var now = _clock.UtcNow;
+        await _db.Set<PracticalLessonReservation>().AddAsync(new PracticalLessonReservation
+        {
+            LessonSessionId = newLessonId,
+            StudentUserId = studentUserId,
+            Status = PracticalReservationStatuses.Reserved,
+            ReservedAt = now,
+            CreatedAt = now,
+            UpdatedAt = now
+        }, ct);
+
+        oldReservation.Status = PracticalReservationStatuses.Rescheduled;
+        oldReservation.CancelledAt = now;
+        oldReservation.UpdatedAt = now;
+
+        await _db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+
+        var kindLabel = PracticalSessionKinds.IsExam(newSession.Kind) ? "examen de manejo" : "clase de manejo";
+        await _notifications.NotifyUserAsync(
+            studentUserId,
+            "Manejo reprogramado",
+            $"Moviste tu {kindLabel} al {newSession.SessionDate:dd/MM/yyyy} a las {newSession.StartTime:HH:mm}.",
+            NotificationTypes.TheoryClass,
+            null,
+            "practical_reschedule",
+            newLessonId,
+            ct);
+
+        await OfferNextPracticalWaitlistAsync(schoolUserId, oldSession.Id, oldSession, ct);
+
+        return await MapLessonAsync(newSession, studentUserId, includeAssignment: false, ct);
+    }
+
+    public async Task<ScheduleWaitlistEntryDto> JoinPracticalWaitlistAsync(
+        int studentUserId,
+        int lessonId,
+        CancellationToken ct)
+    {
+        var (schoolUserId, _) = await _theory.ResolveStudentSchoolPublicAsync(studentUserId, ct);
+        await _membership.EnsureActiveAsync(schoolUserId, ct);
+        await _eligibility.EnsureStudentCanBookAsync(schoolUserId, studentUserId, ct);
+        await _eligibility.EnsureNoBalanceDueAsync(schoolUserId, studentUserId, ct);
+
+        var pe = await _theory.GetPracticalEligibilityAsync(schoolUserId, studentUserId, ct);
+        if (!pe.CanBookPractical)
+        {
+            throw new DomainException(
+                pe.BlockReason ?? "Aún no cumples los requisitos para clases de manejo.",
+                400,
+                "practical_not_eligible");
+        }
+
+        var session = await _db.Set<PracticalLessonSession>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == lessonId && x.SchoolUserId == schoolUserId, ct)
+            ?? throw new NotFoundException("Clase no encontrada.", "lesson_not_found");
+
+        if (session.Status != PracticalLessonStatuses.Scheduled)
+        {
+            throw new DomainException("Esta clase no está disponible.", 400, "lesson_unavailable");
+        }
+
+        var reserved = await _db.Set<PracticalLessonReservation>()
+            .CountAsync(x => x.LessonSessionId == lessonId
+                && PracticalReservationStatuses.ActiveStatuses.Contains(x.Status), ct);
+        if (reserved < PracticalScheduleLimits.SeatsPerSlot)
+        {
+            throw new DomainException(
+                "Todavía hay cupo en este horario. Resérvalo directamente.",
+                400,
+                "lesson_has_seats");
+        }
+
+        var existingQueue = await _db.Set<ScheduleWaitlistEntry>()
+            .FirstOrDefaultAsync(x => x.Kind == ScheduleWaitlistKinds.PracticalLesson
+                && x.TargetId == lessonId
+                && x.StudentUserId == studentUserId
+                && ScheduleWaitlistStatuses.QueueStatuses.Contains(x.Status), ct);
+        if (existingQueue is not null)
+        {
+            return MapPracticalWaitlist(existingQueue, session);
+        }
+
+        var maxPos = await _db.Set<ScheduleWaitlistEntry>()
+            .Where(x => x.Kind == ScheduleWaitlistKinds.PracticalLesson
+                && x.TargetId == lessonId
+                && ScheduleWaitlistStatuses.QueueStatuses.Contains(x.Status))
+            .Select(x => (int?)x.Position)
+            .MaxAsync(ct) ?? 0;
+
+        var now = _clock.UtcNow;
+        var entry = new ScheduleWaitlistEntry
+        {
+            SchoolUserId = schoolUserId,
+            Kind = ScheduleWaitlistKinds.PracticalLesson,
+            TargetId = lessonId,
+            StudentUserId = studentUserId,
+            Position = maxPos + 1,
+            Status = ScheduleWaitlistStatuses.Waiting,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+        await _db.Set<ScheduleWaitlistEntry>().AddAsync(entry, ct);
+        await _db.SaveChangesAsync(ct);
+        return MapPracticalWaitlist(entry, session);
+    }
+
+    public async Task<PracticalLessonSessionDto> ConfirmPracticalWaitlistOfferAsync(
+        int studentUserId,
+        int waitlistId,
+        CancellationToken ct)
+    {
+        var entry = await _db.Set<ScheduleWaitlistEntry>()
+            .FirstOrDefaultAsync(x => x.Id == waitlistId
+                && x.StudentUserId == studentUserId
+                && x.Kind == ScheduleWaitlistKinds.PracticalLesson, ct)
+            ?? throw new NotFoundException("Oferta no encontrada.", "waitlist_not_found");
+
+        if (entry.Status != ScheduleWaitlistStatuses.Offered)
+        {
+            throw new DomainException("No hay una oferta activa para confirmar.", 400, "waitlist_not_offered");
+        }
+
+        if (entry.OfferExpiresAt is { } exp && _clock.UtcNow > exp)
+        {
+            entry.Status = ScheduleWaitlistStatuses.Expired;
+            entry.UpdatedAt = _clock.UtcNow;
+            await _db.SaveChangesAsync(ct);
+            var session = await _db.Set<PracticalLessonSession>()
+                .FirstOrDefaultAsync(x => x.Id == entry.TargetId, ct);
+            if (session is not null)
+            {
+                await OfferNextPracticalWaitlistAsync(entry.SchoolUserId, entry.TargetId, session, ct);
+            }
+
+            throw new DomainException(
+                "La oferta expiró. Si aún hay cupo, el siguiente en la lista será notificado.",
+                400,
+                "waitlist_offer_expired");
+        }
+
+        try
+        {
+            var dto = await ReserveAsync(studentUserId, entry.TargetId, ct);
+            entry.Status = ScheduleWaitlistStatuses.Confirmed;
+            entry.UpdatedAt = _clock.UtcNow;
+            await _db.SaveChangesAsync(ct);
+            return dto;
+        }
+        catch (DomainException)
+        {
+            entry.Status = ScheduleWaitlistStatuses.Expired;
+            entry.UpdatedAt = _clock.UtcNow;
+            await _db.SaveChangesAsync(ct);
+            var session = await _db.Set<PracticalLessonSession>()
+                .FirstOrDefaultAsync(x => x.Id == entry.TargetId, ct);
+            if (session is not null)
+            {
+                await OfferNextPracticalWaitlistAsync(entry.SchoolUserId, entry.TargetId, session, ct);
+            }
+
+            throw;
+        }
+    }
+
+    private async Task OfferNextPracticalWaitlistAsync(
+        int schoolUserId,
+        int lessonId,
+        PracticalLessonSession session,
+        CancellationToken ct)
+    {
+        try
+        {
+            var now = _clock.UtcNow;
+            var stale = await _db.Set<ScheduleWaitlistEntry>()
+                .Where(x => x.Kind == ScheduleWaitlistKinds.PracticalLesson
+                    && x.TargetId == lessonId
+                    && x.Status == ScheduleWaitlistStatuses.Offered
+                    && x.OfferExpiresAt != null
+                    && x.OfferExpiresAt < now)
+                .ToListAsync(ct);
+            foreach (var s in stale)
+            {
+                s.Status = ScheduleWaitlistStatuses.Expired;
+                s.UpdatedAt = now;
+            }
+
+            var reserved = await _db.Set<PracticalLessonReservation>()
+                .CountAsync(x => x.LessonSessionId == lessonId
+                    && PracticalReservationStatuses.ActiveStatuses.Contains(x.Status), ct);
+            if (reserved >= PracticalScheduleLimits.SeatsPerSlot)
+            {
+                if (stale.Count > 0)
+                {
+                    await _db.SaveChangesAsync(ct);
+                }
+
+                return;
+            }
+
+            var hasOpenOffer = await _db.Set<ScheduleWaitlistEntry>()
+                .AnyAsync(x => x.Kind == ScheduleWaitlistKinds.PracticalLesson
+                    && x.TargetId == lessonId
+                    && x.Status == ScheduleWaitlistStatuses.Offered
+                    && (x.OfferExpiresAt == null || x.OfferExpiresAt >= now), ct);
+            if (hasOpenOffer)
+            {
+                if (stale.Count > 0)
+                {
+                    await _db.SaveChangesAsync(ct);
+                }
+
+                return;
+            }
+
+            var next = await _db.Set<ScheduleWaitlistEntry>()
+                .Where(x => x.Kind == ScheduleWaitlistKinds.PracticalLesson
+                    && x.TargetId == lessonId
+                    && x.Status == ScheduleWaitlistStatuses.Waiting)
+                .OrderBy(x => x.Position)
+                .ThenBy(x => x.Id)
+                .FirstOrDefaultAsync(ct);
+            if (next is null)
+            {
+                if (stale.Count > 0)
+                {
+                    await _db.SaveChangesAsync(ct);
+                }
+
+                return;
+            }
+
+            next.Status = ScheduleWaitlistStatuses.Offered;
+            next.OfferedAt = now;
+            next.OfferExpiresAt = now.Add(TimeSpan.FromHours(2));
+            next.UpdatedAt = now;
+            await _db.SaveChangesAsync(ct);
+
+            var kindLabel = PracticalSessionKinds.IsExam(session.Kind) ? "examen de manejo" : "clase de manejo";
+            await _notifications.NotifyUsersAsync(
+                [next.StudentUserId],
+                new NotificationDraft(
+                    $"Cupo liberado: {kindLabel}",
+                    $"Hay un cupo el {session.SessionDate:dd/MM/yyyy} a las {session.StartTime:HH:mm}. Confirma en Mi formación en las próximas 2 horas.",
+                    NotificationTypes.Reminder,
+                    RelatedEntity: "practical_waitlist_offer",
+                    RelatedId: next.Id,
+                    Link: "/student/formacion",
+                    Priority: NotificationPriorities.High,
+                    DedupeKey: $"practical-waitlist-offer:{next.Id}"),
+                ct);
+        }
+        catch
+        {
+            /* best effort */
+        }
+    }
+
+    private static ScheduleWaitlistEntryDto MapPracticalWaitlist(
+        ScheduleWaitlistEntry entry,
+        PracticalLessonSession session) =>
+        new(
+            entry.Id,
+            entry.Kind,
+            entry.TargetId,
+            entry.Position,
+            entry.Status,
+            entry.OfferedAt?.ToString("O"),
+            entry.OfferExpiresAt?.ToString("O"),
+            session.SessionDate.ToString("yyyy-MM-dd"),
+            session.StartTime.ToString("HH:mm"));
 
     public async Task<IReadOnlyList<PracticalLessonSessionDto>> ListAttendanceLessonsAsync(
         int schoolUserId,

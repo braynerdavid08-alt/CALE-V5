@@ -29,6 +29,9 @@ public static class DependencyInjection
         services.AddScoped<StudentHoursService>();
         services.AddScoped<SchoolAuditService>();
         services.AddScoped<SchoolAgendaService>();
+        services.AddScoped<StudentFormationFacade>();
+        services.AddScoped<SchoolOpsAlertService>();
+        services.AddScoped<FormationOpsBotRunner>();
         services.AddScoped<ApprenticeRegistryService>();
         services.AddScoped<SchoolExcelImportService>();
         services.AddScoped<SchoolExcelExportService>();
@@ -39,6 +42,9 @@ public static class DependencyInjection
         services.AddSingleton<IWhatsAppCloudSender, DisabledWhatsAppCloudSender>();
         services.AddSingleton<SchoolExcelImportPreviewCache>();
         services.AddHostedService<TheoryReminderService>();
+        services.AddHostedService<FormationNudgeBot>();
+        services.AddHostedService<PracticalReminderBot>();
+        services.AddHostedService<SchoolOpsAlertBot>();
         // Intentionally no AddHostedService for Daily*Report while EnableDaily*Job is false.
         return services;
     }

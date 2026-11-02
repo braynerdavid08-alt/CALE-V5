@@ -61,6 +61,8 @@ public sealed record CancelExamBookingRequest(string? Reason);
 
 public sealed record StudentBookExamRequest(DateOnly Date, string Time);
 
+public sealed record StudentRescheduleExamRequest(DateOnly Date, string Time);
+
 public sealed record StudentExamSlotDto(string Date, string Time, int Available, string Status);
 
 public sealed record StudentExamDayDto(string Date, IReadOnlyList<StudentExamSlotDto> Slots);
@@ -137,6 +139,16 @@ public sealed record AgendaItemDto(
     int Capacity,
     int Occupied,
     int Available,
-    IReadOnlyList<AgendaStudentDto> Students);
+    IReadOnlyList<AgendaStudentDto> Students,
+    /// <summary>Theory: topic id for in-agenda edit.</summary>
+    int? TopicId = null,
+    /// <summary>Theory: classroom id for in-agenda edit.</summary>
+    int? ClassroomId = null,
+    /// <summary>Theory/practical: instructor user id.</summary>
+    int? InstructorUserId = null,
+    /// <summary>Practical: vehicle id.</summary>
+    int? VehicleId = null,
+    /// <summary>Practical: Lesson or Exam.</summary>
+    string? SessionKind = null);
 
 public sealed record SchoolAgendaDto(string From, string To, IReadOnlyList<AgendaItemDto> Items);

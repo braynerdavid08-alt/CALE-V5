@@ -450,6 +450,15 @@ export const routes: Routes = [
             .then((m) => m.StudentEvaluationsPage)
       },
       {
+        path: 'student/formacion',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['Student'] },
+        loadComponent: () =>
+          import('./features/student/pages/student-formation.page')
+            .then((m) => m.StudentFormationPage)
+      },
+      {
         path: 'student/progress',
         pathMatch: 'full',
         canActivate: [roleGuard],
@@ -461,7 +470,7 @@ export const routes: Routes = [
       {
         path: 'student/certificates',
         pathMatch: 'full',
-        redirectTo: 'student/progress'
+        redirectTo: 'student/formacion'
       },
       {
         path: 'student/group/:id',
@@ -734,6 +743,14 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/teacher/pages/teacher-home.page')
             .then((m) => m.TeacherHomePage)
+      },
+      {
+        path: 'teacher/agenda',
+        canActivate: [roleGuard],
+        data: { roles: ['Teacher'] },
+        loadComponent: () =>
+          import('./features/teacher/pages/teacher-agenda.page')
+            .then((m) => m.TeacherAgendaPage)
       },
       {
         path: 'teacher/clases-particulares',

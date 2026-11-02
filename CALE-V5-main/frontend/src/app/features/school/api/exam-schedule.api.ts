@@ -163,6 +163,11 @@ export interface AgendaItemDto {
   occupied: number;
   available: number;
   students: AgendaStudentDto[];
+  topicId?: number | null;
+  classroomId?: number | null;
+  instructorUserId?: number | null;
+  vehicleId?: number | null;
+  sessionKind?: string | null;
 }
 
 export interface SchoolAgendaDto {
@@ -246,4 +251,24 @@ export class ExamScheduleApi {
     if (to) params = params.set('to', to);
     return this.http.get<SchoolAgendaDto>(`${this.school}/agenda`, { params });
   }
+
+  getOpsAlerts() {
+    return this.http.get<SchoolOpsAlertSummaryDto>(`${this.school}/ops-alerts`);
+  }
+}
+
+export interface SchoolOpsAlertDto {
+  code: string;
+  priority: string;
+  title: string;
+  detail: string;
+  recommendedAction?: string | null;
+  actionPath?: string | null;
+  countA?: number | null;
+  countB?: number | null;
+}
+
+export interface SchoolOpsAlertSummaryDto {
+  generatedAt: string;
+  alerts: SchoolOpsAlertDto[];
 }

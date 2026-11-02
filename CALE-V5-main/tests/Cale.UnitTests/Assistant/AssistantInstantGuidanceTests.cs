@@ -39,4 +39,37 @@ public sealed class AssistantInstantGuidanceTests
 
         Assert.Null(reply);
     }
+
+    [Fact]
+    public void Intent_router_maps_student_next_step_without_llm()
+    {
+        Assert.Equal(
+            "siguiente_paso",
+            AssistantService.TryMapIntentToQuickKey(Roles.Student, "¿Cuál es mi siguiente paso?"));
+        Assert.Equal(
+            "progreso",
+            AssistantService.TryMapIntentToQuickKey(Roles.Student, "cuántas horas me faltan"));
+        Assert.Equal(
+            "que_estudiar",
+            AssistantService.TryMapIntentToQuickKey(Roles.Student, "qué debo estudiar para el examen"));
+        Assert.Equal(
+            "practicar",
+            AssistantService.TryMapIntentToQuickKey(Roles.Student, "hazme una pregunta"));
+    }
+
+    [Fact]
+    public void Intent_router_maps_school_ops_alerts()
+    {
+        Assert.Equal(
+            "alertas",
+            AssistantService.TryMapIntentToQuickKey(Roles.School, "¿Qué alertas de demanda tengo?"));
+    }
+
+    [Fact]
+    public void Intent_router_ignores_open_questions()
+    {
+        Assert.Null(AssistantService.TryMapIntentToQuickKey(
+            Roles.Student,
+            "Explícame la diferencia entre una señal reglamentaria y una preventiva en una curva"));
+    }
 }

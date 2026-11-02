@@ -10,7 +10,7 @@ namespace Cale.Modules.TheoreticalTraining.Application;
 /// <summary>Read-only weekly agenda of a school: theory classes, driving lessons and theory exams.</summary>
 public sealed class SchoolAgendaService
 {
-    private const int MaxRangeDays = 31;
+    private const int MaxRangeDays = 42;
 
     private readonly CaleDbContext _db;
     private readonly TheoryExamScheduleService _exams;
@@ -54,6 +54,39 @@ public sealed class SchoolAgendaService
                 .ToList());
     }
 
+    /// <summary>Read-only agenda for an instructor: theory and practical sessions assigned to them.</summary>
+    public async Task<SchoolAgendaDto> GetForInstructorAsync(
+        int instructorUserId,
+        DateOnly? from,
+        DateOnly? to,
+        CancellationToken ct)
+    {
+        var start = from ?? MondayOf(ColombiaTime.TodayInColombia());
+        var end = to ?? start.AddDays(6);
+        if (end < start)
+        {
+            end = start;
+        }
+
+        if (end.DayNumber - start.DayNumber > MaxRangeDays)
+        {
+            end = start.AddDays(MaxRangeDays);
+        }
+
+        var items = new List<AgendaItemDto>();
+        items.AddRange(await TheoryItemsForInstructorAsync(instructorUserId, start, end, ct));
+        items.AddRange(await PracticalItemsForInstructorAsync(instructorUserId, start, end, ct));
+
+        return new SchoolAgendaDto(
+            D(start),
+            D(end),
+            items
+                .OrderBy(x => x.Date, StringComparer.Ordinal)
+                .ThenBy(x => x.StartTime, StringComparer.Ordinal)
+                .ThenBy(x => x.Kind, StringComparer.Ordinal)
+                .ToList());
+    }
+
     private async Task<IReadOnlyList<AgendaItemDto>> TheoryItemsAsync(
         int schoolUserId,
         DateOnly start,
@@ -66,7 +99,8 @@ public sealed class SchoolAgendaService
             .Include(x => x.Classroom)
             .Where(x => x.SchoolUserId == schoolUserId
                 && x.SessionDate >= start
-                && x.SessionDate <= end)
+                && x.SessionDate <= end
+                && x.Status != TheoryClassStatuses.Cancelled)
             .ToListAsync(ct);
         if (sessions.Count == 0)
         {
@@ -113,7 +147,10 @@ public sealed class SchoolAgendaService
                 seats.Count,
                 Math.Max(0, s.Capacity - seats.Count),
                 seats.Select(r => ToAgendaStudent(r.StudentUserId, names, profiles, r.Status, r.ReservedAt))
-                    .ToList());
+                    .ToList(),
+                TopicId: s.TopicId,
+                ClassroomId: s.ClassroomId,
+                InstructorUserId: s.InstructorUserId);
         }).ToList();
     }
 
@@ -170,8 +207,150 @@ public sealed class SchoolAgendaService
                 seats.Count,
                 Math.Max(0, l.Capacity - seats.Count),
                 seats.Select(r => ToAgendaStudent(r.StudentUserId, names, profiles, r.Status, r.ReservedAt))
-                    .ToList());
+                    .ToList(),
+                InstructorUserId: l.InstructorUserId,
+                VehicleId: l.VehicleId,
+                SessionKind: l.Kind);
         }).ToList();
+    }
+
+    private async Task<IReadOnlyList<AgendaItemDto>> TheoryItemsForInstructorAsync(
+        int instructorUserId,
+        DateOnly start,
+        DateOnly end,
+        CancellationToken ct)
+    {
+        var sessions = await _db.Set<TheoryClassSession>()
+            .AsNoTracking()
+            .Include(x => x.Topic)
+            .Include(x => x.Classroom)
+            .Where(x => x.InstructorUserId == instructorUserId
+                && x.SessionDate >= start
+                && x.SessionDate <= end
+                && x.Status != TheoryClassStatuses.Cancelled)
+            .ToListAsync(ct);
+        if (sessions.Count == 0)
+        {
+            return [];
+        }
+
+        var ids = sessions.Select(x => x.Id).ToList();
+        var reservations = await _db.Set<TheoryClassReservation>()
+            .AsNoTracking()
+            .Where(x => ids.Contains(x.ClassSessionId)
+                && TheoryReservationStatuses.OccupiesSeatStatuses.Contains(x.Status))
+            .ToListAsync(ct);
+        var names = await NamesAsync(
+            reservations.Select(x => x.StudentUserId).Append(instructorUserId),
+            ct);
+
+        var bySchool = sessions.GroupBy(x => x.SchoolUserId);
+        var result = new List<AgendaItemDto>();
+        foreach (var group in bySchool)
+        {
+            var schoolId = group.Key;
+            var profiles = await ProfilesAsync(schoolId, reservations.Select(x => x.StudentUserId), ct);
+            foreach (var s in group)
+            {
+                var seats = reservations.Where(r => r.ClassSessionId == s.Id).ToList();
+                var title = s.Topic?.Name ?? "Clase teórica";
+                if (s.Classroom is not null)
+                {
+                    title += $" · {s.Classroom.Name}";
+                }
+
+                var instructor = names.TryGetValue(instructorUserId, out var instructorName)
+                    && !string.IsNullOrWhiteSpace(instructorName)
+                        ? instructorName
+                        : null;
+
+                result.Add(new AgendaItemDto(
+                    "theory",
+                    s.Id,
+                    D(s.SessionDate),
+                    T(s.StartTime),
+                    T(s.EndTime),
+                    title,
+                    instructor,
+                    s.Status,
+                    s.Capacity,
+                    seats.Count,
+                    Math.Max(0, s.Capacity - seats.Count),
+                    seats.Select(r => ToAgendaStudent(r.StudentUserId, names, profiles, r.Status, r.ReservedAt))
+                        .ToList(),
+                    TopicId: s.TopicId,
+                    ClassroomId: s.ClassroomId,
+                    InstructorUserId: s.InstructorUserId));
+            }
+        }
+
+        return result;
+    }
+
+    private async Task<IReadOnlyList<AgendaItemDto>> PracticalItemsForInstructorAsync(
+        int instructorUserId,
+        DateOnly start,
+        DateOnly end,
+        CancellationToken ct)
+    {
+        var lessons = await _db.Set<PracticalLessonSession>()
+            .AsNoTracking()
+            .Include(x => x.Vehicle)
+            .Where(x => x.InstructorUserId == instructorUserId
+                && x.SessionDate >= start
+                && x.SessionDate <= end
+                && x.Status != PracticalLessonStatuses.Cancelled)
+            .ToListAsync(ct);
+        if (lessons.Count == 0)
+        {
+            return [];
+        }
+
+        var ids = lessons.Select(x => x.Id).ToList();
+        var reservations = await _db.Set<PracticalLessonReservation>()
+            .AsNoTracking()
+            .Where(x => ids.Contains(x.LessonSessionId)
+                && PracticalReservationStatuses.OccupiesSeatStatuses.Contains(x.Status))
+            .ToListAsync(ct);
+        var names = await NamesAsync(
+            reservations.Select(x => x.StudentUserId).Append(instructorUserId),
+            ct);
+
+        var result = new List<AgendaItemDto>();
+        foreach (var group in lessons.GroupBy(x => x.SchoolUserId))
+        {
+            var profiles = await ProfilesAsync(group.Key, reservations.Select(x => x.StudentUserId), ct);
+            foreach (var l in group)
+            {
+                var seats = reservations.Where(r => r.LessonSessionId == l.Id).ToList();
+                var vehicle = l.Vehicle is null
+                    ? "Clase de manejo"
+                    : $"Clase de manejo · {l.Vehicle.Label}{(string.IsNullOrWhiteSpace(l.Vehicle.Plate) ? "" : $" ({l.Vehicle.Plate})")}";
+                var instructor = names.TryGetValue(instructorUserId, out var instructorName)
+                    && !string.IsNullOrWhiteSpace(instructorName)
+                        ? instructorName
+                        : null;
+                result.Add(new AgendaItemDto(
+                    "practical",
+                    l.Id,
+                    D(l.SessionDate),
+                    T(l.StartTime),
+                    T(l.EndTime),
+                    vehicle,
+                    instructor,
+                    l.Status,
+                    l.Capacity,
+                    seats.Count,
+                    Math.Max(0, l.Capacity - seats.Count),
+                    seats.Select(r => ToAgendaStudent(r.StudentUserId, names, profiles, r.Status, r.ReservedAt))
+                        .ToList(),
+                    InstructorUserId: l.InstructorUserId,
+                    VehicleId: l.VehicleId,
+                    SessionKind: l.Kind));
+            }
+        }
+
+        return result;
     }
 
     private async Task<IReadOnlyList<AgendaItemDto>> ExamItemsAsync(
@@ -189,29 +368,31 @@ public sealed class SchoolAgendaService
         var profiles = await ProfilesAsync(schoolUserId, studentIds, ct);
 
         return week.Days
-            .SelectMany(day => day.Slots.Select(slot => new AgendaItemDto(
-                "exam",
-                0,
-                slot.Date,
-                slot.Time,
-                null,
-                "Examen teórico",
-                null,
-                slot.Status,
-                slot.Capacity,
-                slot.Occupied,
-                slot.Available,
-                slot.Bookings.Select(b =>
-                {
-                    profiles.TryGetValue(b.StudentUserId ?? 0, out var profile);
-                    return new AgendaStudentDto(
-                        b.StudentUserId,
-                        b.StudentName,
-                        b.Status,
-                        profile?.DocumentNumber,
-                        profile?.Phone,
-                        b.CreatedAt);
-                }).ToList())))
+            .SelectMany(day => day.Slots
+                .Where(slot => !string.Equals(slot.Status, "Closed", StringComparison.OrdinalIgnoreCase))
+                .Select(slot => new AgendaItemDto(
+                    "exam",
+                    0,
+                    slot.Date,
+                    slot.Time,
+                    null,
+                    "Examen teórico",
+                    null,
+                    slot.Status,
+                    slot.Capacity,
+                    slot.Occupied,
+                    slot.Available,
+                    slot.Bookings.Select(b =>
+                    {
+                        profiles.TryGetValue(b.StudentUserId ?? 0, out var profile);
+                        return new AgendaStudentDto(
+                            b.StudentUserId,
+                            b.StudentName,
+                            b.Status,
+                            profile?.DocumentNumber,
+                            profile?.Phone,
+                            b.CreatedAt);
+                    }).ToList())))
             .ToList();
     }
 

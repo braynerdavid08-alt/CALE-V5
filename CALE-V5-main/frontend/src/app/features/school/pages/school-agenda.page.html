@@ -1,15 +1,74 @@
 <section class="xe-page">
   <header class="xe-head page-banner">
-    <h1>Agenda de la semana</h1>
-    <p class="xe-lead">Consulta lo programado: clases teóricas, clases de manejo y exámenes teóricos.</p>
+    <h1>Agenda central</h1>
+    <p class="xe-lead">
+      Centro operativo: crea cupos aquí, supervisa ocupación y abre el módulo solo cuando necesites más detalle.
+    </p>
   </header>
 
+  <div class="program-actions">
+    <button type="button" class="xe-btn primary" (click)="openCreate('theory')">+ Teoría rápida</button>
+    <button type="button" class="xe-btn primary" (click)="openCreate('practical')">+ Manejo rápido</button>
+    <button type="button" class="xe-btn primary" (click)="openCreate('exam')">+ Examen rápido</button>
+    <a class="xe-btn" routerLink="/school/training">Teoría completa</a>
+    <a class="xe-btn" routerLink="/school/practical">Manejo completo</a>
+    <a class="xe-btn" routerLink="/school/theory-exams">Exámenes completo</a>
+    @if (view() === 'week' && catalogReady()) {
+      <button type="button" class="xe-btn" [disabled]="createBusy()" (click)="duplicatePracticalWeek()">
+        Duplicar semana (manejo)
+      </button>
+    }
+  </div>
+
+  @if (notice()) {
+    <p class="notice-ok" role="status">{{ notice() }}</p>
+  }
+
+  <section class="ops-strip" aria-label="Resumen del rango">
+    <div><strong>{{ opsStats().theory }}</strong><span>teoría</span></div>
+    <div><strong>{{ opsStats().practical }}</strong><span>manejo</span></div>
+    <div><strong>{{ opsStats().exam }}</strong><span>exámenes</span></div>
+    <div><strong>{{ opsStats().free }}</strong><span>cupos libres</span></div>
+    <div><strong>{{ opsStats().fillPct }}%</strong><span>ocupación</span></div>
+    @if (opsStats().highAlerts) {
+      <div class="hot"><strong>{{ opsStats().highAlerts }}</strong><span>alertas altas</span></div>
+    }
+  </section>
+
+  @if (alerts().length) {
+    <section class="ops-alerts" aria-label="Alertas operativas">
+      <h2>Alertas y recomendaciones</h2>
+      <ul>
+        @for (a of alerts(); track a.code) {
+          <li [attr.data-priority]="a.priority">
+            <strong>{{ a.title }}</strong>
+            <p>{{ a.detail }}</p>
+            @if (a.recommendedAction) {
+              <p class="hint">{{ a.recommendedAction }}</p>
+            }
+            @if (a.actionPath) {
+              <a [routerLink]="a.actionPath">Ir →</a>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  <div class="xe-chips" role="group" aria-label="Vista">
+    @for (v of views; track v.value) {
+      <button type="button" class="xe-chip" [attr.aria-pressed]="view() === v.value" (click)="setView(v.value)">
+        {{ v.label }}
+      </button>
+    }
+  </div>
+
   <div class="xe-weeknav">
-    <h2>{{ weekLabel() }}</h2>
+    <h2>{{ rangeLabel() }}</h2>
     <div class="xe-actions">
-      <button type="button" class="xe-btn" (click)="goWeek(-1)">← Semana anterior</button>
-      <button type="button" class="xe-btn" [disabled]="isThisWeek()" (click)="goWeek(0)">Esta semana</button>
-      <button type="button" class="xe-btn" (click)="goWeek(1)">Semana siguiente →</button>
+      <button type="button" class="xe-btn" (click)="go(-1)">← Anterior</button>
+      <button type="button" class="xe-btn" [disabled]="isCurrentRange()" (click)="go(0)">Hoy</button>
+      <button type="button" class="xe-btn" (click)="go(1)">Siguiente →</button>
     </div>
   </div>
 
@@ -29,20 +88,31 @@
     @if (!visibleCount()) {
       <div class="xe-empty">
         <span class="xe-empty-emoji" aria-hidden="true">📭</span>
-        <h2>No hay nada programado esta semana</h2>
-        <p>Cuando programes clases o exámenes en Programación de la escuela, aparecerán aquí.</p>
+        <h2>No hay nada programado en este rango</h2>
+        <p>Crea un cupo rápido o abre el módulo completo.</p>
+        <div class="xe-actions">
+          <button type="button" class="xe-btn primary" (click)="openCreate('theory')">Crear teoría</button>
+          <button type="button" class="xe-btn primary" (click)="openCreate('practical')">Crear manejo</button>
+        </div>
       </div>
     } @else {
       <div class="days">
         @for (d of days(); track d.date) {
           <section class="day" [attr.aria-label]="d.title">
-            <h2 class="day-title">{{ d.title }}@if (d.isToday) { <span class="today-tag">Hoy</span> }</h2>
+            <div class="day-head">
+              <h2 class="day-title">{{ d.title }}@if (d.isToday) { <span class="today-tag">Hoy</span> }</h2>
+              <div class="day-actions">
+                <button type="button" class="xe-btn small-btn" (click)="openCreate('theory', d.date)">+ Teoría</button>
+                <button type="button" class="xe-btn small-btn" (click)="openCreate('practical', d.date)">+ Manejo</button>
+                <button type="button" class="xe-btn small-btn" (click)="openCreate('exam', d.date)">+ Examen</button>
+              </div>
+            </div>
             @if (!d.items.length) {
               <p class="xe-text xe-muted">Nada programado.</p>
             } @else {
               <ul class="items">
                 @for (it of d.items; track key(it)) {
-                  <li class="item" [attr.data-kind]="it.kind">
+                  <li class="item" [attr.data-kind]="it.kind" [attr.data-fill]="fillTone(it)">
                     <div class="item-top">
                       <span class="kind" [attr.data-kind]="it.kind">{{ kindLabel(it.kind) }}</span>
                       <strong class="time">{{ timeRange(it) }}</strong>
@@ -53,7 +123,13 @@
                     <p class="title">{{ it.title }}</p>
                     <p class="meta">
                       @if (it.instructorName) { <span>👤 {{ it.instructorName }}</span> }
-                      @if (it.capacity > 0) { <span>🪑 {{ it.occupied }} de {{ it.capacity }} cupos</span> }
+                      @if (it.capacity > 0) {
+                        <span [attr.data-tone]="fillTone(it)">
+                          🪑 {{ it.occupied }} de {{ it.capacity }}
+                          @if (it.available > 0) { · {{ it.available }} libres }
+                          @else { · lleno }
+                        </span>
+                      }
                     </p>
                     @if (it.students.length) {
                       <button
@@ -78,7 +154,22 @@
                     } @else if (it.capacity > 0) {
                       <p class="xe-small xe-muted">Todavía no hay estudiantes.</p>
                     }
-                    <a class="go" [routerLink]="linkFor(it.kind)">Abrir {{ kindLabel(it.kind).toLowerCase() }} →</a>
+                    <div class="item-actions">
+                      @if (canEdit(it)) {
+                        <button type="button" class="xe-btn small-btn" (click)="openEdit(it)">Editar</button>
+                      }
+                      @if (canCancel(it)) {
+                        <button type="button" class="xe-btn small-btn danger-btn" (click)="openCancel(it)">
+                          {{ cancelLabel(it) }}
+                        </button>
+                      }
+                      <a
+                        class="go"
+                        [routerLink]="linkFor(it.kind)"
+                        [queryParams]="{ date: it.date.slice(0, 10) }">
+                        Abrir módulo →
+                      </a>
+                    </div>
                   </li>
                 }
               </ul>
@@ -89,3 +180,240 @@
     }
   }
 </section>
+
+<ui-sheet
+  [open]="createOpen()"
+  [title]="
+    createKind() === 'theory'
+      ? 'Crear clase teórica'
+      : createKind() === 'practical'
+        ? 'Crear cupo de manejo'
+        : 'Crear cupo de examen teórico'
+  "
+  (close)="closeCreate()">
+  <div class="create-form">
+    <div class="kind-switch" role="group" aria-label="Tipo">
+      <button type="button" class="xe-chip" [attr.aria-pressed]="createKind() === 'theory'" (click)="createKind.set('theory')">
+        Teoría
+      </button>
+      <button type="button" class="xe-chip" [attr.aria-pressed]="createKind() === 'practical'" (click)="createKind.set('practical')">
+        Manejo
+      </button>
+      <button type="button" class="xe-chip" [attr.aria-pressed]="createKind() === 'exam'" (click)="createKind.set('exam')">
+        Examen
+      </button>
+    </div>
+
+    <label>
+      Fecha
+      <input type="date" [value]="createDate()" (input)="createDate.set($any($event.target).value)" />
+    </label>
+    @if (createKind() === 'exam') {
+      <label>
+        Hora
+        <input type="time" [value]="createStart()" (input)="createStart.set($any($event.target).value)" />
+      </label>
+      <label>
+        Cupos
+        <input
+          type="number"
+          min="1"
+          [value]="examCapacity()"
+          (input)="examCapacity.set(+$any($event.target).value || 1)" />
+      </label>
+    } @else {
+      <div class="time-row">
+        <label>
+          Inicio
+          <input type="time" [value]="createStart()" (input)="createStart.set($any($event.target).value)" />
+        </label>
+        <label>
+          Fin
+          <input type="time" [value]="createEnd()" (input)="createEnd.set($any($event.target).value)" />
+        </label>
+      </div>
+    }
+
+    @if (createKind() === 'theory') {
+      <label>
+        Tema
+        <select [value]="topicId()" (change)="topicId.set(+$any($event.target).value)">
+          @for (t of topics(); track t.id) {
+            <option [value]="t.id">{{ t.name }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        Aula
+        <select [value]="classroomId()" (change)="classroomId.set(+$any($event.target).value)">
+          @for (c of classrooms(); track c.id) {
+            <option [value]="c.id">{{ c.name }} ({{ c.capacity }})</option>
+          }
+        </select>
+      </label>
+      @if (!topics().length || !classrooms().length) {
+        <p class="xe-text xe-muted">Faltan temas o aulas. Configúralos en Teoría completa.</p>
+      }
+    } @else if (createKind() === 'practical') {
+      <label>
+        Instructor
+        <select [value]="instructorId()" (change)="instructorId.set(+$any($event.target).value)">
+          @for (t of teachers(); track t.id) {
+            <option [value]="t.id">{{ t.name }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        Vehículo
+        <select [value]="vehicleId()" (change)="vehicleId.set(+$any($event.target).value)">
+          @for (v of vehicles(); track v.id) {
+            <option [value]="v.id">{{ v.label }}@if (v.plate) { ({{ v.plate }}) }</option>
+          }
+        </select>
+      </label>
+      @if (!teachers().length || !vehicles().length) {
+        <p class="xe-text xe-muted">Faltan instructores o vehículos activos.</p>
+      }
+    }
+
+    @if (conflictPreview().length) {
+      <div class="conflict-box">
+        <strong>Posible cruce en este rango</strong>
+        <ul>
+          @for (c of conflictPreview(); track c) {
+            <li>{{ c }}</li>
+          }
+        </ul>
+        <p>El backend valida cupos y conflictos al guardar.</p>
+      </div>
+    }
+
+    <ui-error [message]="createError()" />
+
+    <button type="button" class="xe-btn primary big block" [disabled]="createBusy()" (click)="submitCreate()">
+      {{ createBusy() ? 'Guardando…' : 'Crear en agenda' }}
+    </button>
+    <button type="button" class="xe-btn block" (click)="closeCreate()">Cancelar</button>
+  </div>
+</ui-sheet>
+
+<ui-sheet
+  [open]="editOpen()"
+  [title]="
+    editItem()?.kind === 'theory'
+      ? 'Editar clase teórica'
+      : editItem()?.kind === 'practical'
+        ? 'Editar cupo de manejo'
+        : 'Editar cupo de examen'
+  "
+  (close)="closeEdit()">
+  @if (editItem(); as item) {
+    <div class="create-form">
+      <label>
+        Fecha
+        <input type="date" [value]="editDate()" (input)="editDate.set($any($event.target).value)" />
+      </label>
+      @if (item.kind === 'exam') {
+        <label>
+          Hora
+          <input type="time" [value]="editStart()" (input)="editStart.set($any($event.target).value)" />
+        </label>
+        <label>
+          Cupos
+          <input
+            type="number"
+            min="1"
+            [value]="editCapacity()"
+            (input)="editCapacity.set(+$any($event.target).value || 1)" />
+        </label>
+      } @else {
+        <div class="time-row">
+          <label>
+            Inicio
+            <input type="time" [value]="editStart()" (input)="editStart.set($any($event.target).value)" />
+          </label>
+          <label>
+            Fin
+            <input type="time" [value]="editEnd()" (input)="editEnd.set($any($event.target).value)" />
+          </label>
+        </div>
+      }
+
+      @if (item.kind === 'theory') {
+        <label>
+          Tema
+          <select [value]="editTopicId()" (change)="editTopicId.set(+$any($event.target).value)">
+            @for (t of topics(); track t.id) {
+              <option [value]="t.id">{{ t.name }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Aula
+          <select [value]="editClassroomId()" (change)="editClassroomId.set(+$any($event.target).value)">
+            @for (c of classrooms(); track c.id) {
+              <option [value]="c.id">{{ c.name }} ({{ c.capacity }})</option>
+            }
+          </select>
+        </label>
+        <label>
+          Cupos
+          <input
+            type="number"
+            min="1"
+            [value]="editCapacity()"
+            (input)="editCapacity.set(+$any($event.target).value || 1)" />
+        </label>
+      }
+
+      @if (item.kind === 'practical') {
+        <label>
+          Instructor
+          <select [value]="editInstructorId()" (change)="editInstructorId.set(+$any($event.target).value)">
+            @for (t of teachers(); track t.id) {
+              <option [value]="t.id">{{ t.name }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Vehículo
+          <select [value]="editVehicleId()" (change)="editVehicleId.set(+$any($event.target).value)">
+            @for (v of vehicles(); track v.id) {
+              <option [value]="v.id">{{ v.label }}@if (v.plate) { ({{ v.plate }}) }</option>
+            }
+          </select>
+        </label>
+      }
+
+      <ui-error [message]="editError()" />
+
+      <button type="button" class="xe-btn primary big block" [disabled]="editBusy()" (click)="submitEdit()">
+        {{ editBusy() ? 'Guardando…' : 'Guardar cambios' }}
+      </button>
+      <button type="button" class="xe-btn block" (click)="closeEdit()">Volver</button>
+    </div>
+  }
+</ui-sheet>
+
+@if (cancelTarget(); as target) {
+  <ui-dialog
+    [open]="true"
+    [title]="target.kind === 'exam' ? 'Cerrar cupo de examen' : 'Cancelar en agenda'"
+    [message]="cancelMessage()"
+    [confirmLabel]="
+      cancelBusy()
+        ? 'Procesando…'
+        : cancelForceBookings()
+          ? 'Cerrar y cancelar reservas'
+          : target.kind === 'exam'
+            ? 'Cerrar cupo'
+            : 'Sí, cancelar'
+    "
+    cancelLabel="Volver"
+    [danger]="true"
+    (confirm)="confirmCancel()"
+    (cancel)="closeCancel()" />
+  @if (cancelError()) {
+    <p class="cancel-inline-error" role="alert">{{ cancelError() }}</p>
+  }
+}

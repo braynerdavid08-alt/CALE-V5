@@ -1,0 +1,99 @@
+<section class="xe-page">
+  <header class="xe-head page-banner">
+    <h1>Mis asignaciones</h1>
+    <p class="xe-lead">
+      Solo lectura: tus clases teóricas y de manejo programadas. Los cambios los hace la escuela.
+    </p>
+  </header>
+
+  <div class="xe-chips" role="group" aria-label="Vista">
+    @for (v of views; track v.value) {
+      <button type="button" class="xe-chip" [attr.aria-pressed]="view() === v.value" (click)="setView(v.value)">
+        {{ v.label }}
+      </button>
+    }
+  </div>
+
+  <div class="xe-weeknav">
+    <h2>{{ rangeLabel() }}</h2>
+    <div class="xe-actions">
+      <button type="button" class="xe-btn" (click)="go(-1)">← Anterior</button>
+      <button type="button" class="xe-btn" [disabled]="isCurrentRange()" (click)="go(0)">Hoy</button>
+      <button type="button" class="xe-btn" (click)="go(1)">Siguiente →</button>
+    </div>
+  </div>
+
+  <div class="xe-chips" role="group" aria-label="Filtro">
+    @for (f of filters; track f.value) {
+      <button type="button" class="xe-chip" [attr.aria-pressed]="filter() === f.value" (click)="filter.set(f.value)">
+        {{ f.label }}
+      </button>
+    }
+  </div>
+
+  <ui-error [message]="error()" />
+
+  @if (loading()) {
+    <ui-loading label="Cargando tus asignaciones…" />
+  } @else if (!error()) {
+    @if (!visibleCount()) {
+      <div class="xe-empty">
+        <h2>No tienes clases en este rango</h2>
+        <p>Cuando la escuela te asigne teoría o manejo, aparecerán aquí.</p>
+        <a class="xe-btn" routerLink="/teacher">Volver al inicio</a>
+      </div>
+    } @else {
+      <div class="days">
+        @for (d of days(); track d.date) {
+          <section class="day" [attr.aria-label]="d.title">
+            <h2 class="day-title">{{ d.title }}@if (d.isToday) { <span class="today-tag">Hoy</span> }</h2>
+            @if (!d.items.length) {
+              <p class="xe-text xe-muted">Sin asignaciones.</p>
+            } @else {
+              <ul class="items">
+                @for (it of d.items; track key(it)) {
+                  <li class="item" [attr.data-kind]="it.kind">
+                    <div class="item-top">
+                      <span class="kind" [attr.data-kind]="it.kind">{{ kindLabel(it.kind) }}</span>
+                      <strong class="time">{{ timeRange(it) }}</strong>
+                      @if (it.status) {
+                        <span class="xe-status" [attr.data-tone]="statusTone(it.status)">{{ statusLabel(it.status) }}</span>
+                      }
+                    </div>
+                    <p class="title">{{ it.title }}</p>
+                    <p class="meta">
+                      @if (it.capacity > 0) {
+                        <span>🪑 {{ it.occupied }} de {{ it.capacity }}</span>
+                      }
+                    </p>
+                    @if (it.students.length) {
+                      <button
+                        type="button"
+                        class="xe-btn small-btn"
+                        [attr.aria-expanded]="isOpen(it)"
+                        (click)="toggle(it)">
+                        {{ isOpen(it) ? 'Ocultar estudiantes' : 'Ver ' + plural(it.students.length, 'estudiante', 'estudiantes') }}
+                      </button>
+                      @if (isOpen(it)) {
+                        <ul class="students">
+                          @for (s of it.students; track $index) {
+                            <li>
+                              <span>{{ s.name }}</span>
+                              @if (s.status) {
+                                <span class="xe-status" [attr.data-tone]="statusTone(s.status)">{{ statusLabel(s.status) }}</span>
+                              }
+                            </li>
+                          }
+                        </ul>
+                      }
+                    }
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+        }
+      </div>
+    }
+  }
+</section>

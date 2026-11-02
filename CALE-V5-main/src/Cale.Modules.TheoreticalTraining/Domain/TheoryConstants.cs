@@ -123,6 +123,7 @@ public static class PracticalReservationStatuses
     public const string CancelledBySchool = "CancelledBySchool";
     public const string Attended = "Attended";
     public const string NoShow = "NoShow";
+    public const string Rescheduled = "Rescheduled";
 
     public static readonly string[] ActiveStatuses = [Reserved];
 
@@ -309,4 +310,22 @@ public static class EnrollmentAuthorizationActions
 {
     public const string Granted = "granted";
     public const string Revoked = "revoked";
+}
+
+public static class ScheduleWaitlistKinds
+{
+    public const string TheorySession = "theory_session";
+    public const string PracticalLesson = "practical_lesson";
+    public const string TheoryExam = "theory_exam";
+}
+
+public static class ScheduleWaitlistStatuses
+{
+    public const string Waiting = "Waiting";
+    public const string Offered = "Offered";
+    public const string Confirmed = "Confirmed";
+    public const string Expired = "Expired";
+    public const string Cancelled = "Cancelled";
+
+    public static readonly string[] QueueStatuses = [Waiting, Offered];
 }

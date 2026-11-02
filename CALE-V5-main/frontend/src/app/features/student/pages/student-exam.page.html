@@ -24,8 +24,8 @@
         <p class="xe-text">Llega unos minutos antes a tu escuela.</p>
         @if (b.canCancel) {
           <p class="xe-text xe-muted">
-            Si necesitas cambiar la hora, primero cancela esta cita y luego elige otra.
-            @if (b.cancelDeadline) { Puedes cancelar hasta el {{ formatDeadline(b.cancelDeadline) }}. }
+            Puedes mover la cita tocando otro horario abajo, o cancelarla.
+            @if (b.cancelDeadline) { Plazo hasta el {{ formatDeadline(b.cancelDeadline) }}. }
           </p>
           <div class="xe-actions">
             <button type="button" class="xe-btn danger-soft big" [disabled]="cancelling()" (click)="confirmCancel.set(true)">
@@ -63,7 +63,9 @@
       </div>
     </div>
 
-    @if (canPick()) {
+    @if (canPick() && isReschedule()) {
+      <p class="xe-text">Toca otra hora <strong>disponible</strong> para <strong>reprogramar</strong> tu examen.</p>
+    } @else if (canPick()) {
       <p class="xe-text">Toca una hora <strong>disponible</strong> para agendarla.</p>
     }
 
@@ -83,9 +85,14 @@
               @for (s of day.slots; track s.time) {
                 <li>
                   @if (isFull(s)) {
-                    <button type="button" class="slot full" disabled>
+                    <button
+                      type="button"
+                      class="slot full"
+                      [disabled]="!canPick()"
+                      [attr.aria-label]="'Lista de espera ' + day.title + ' a las ' + time12(s.time)"
+                      (click)="pick(s)">
                       <span class="slot-time">{{ time12(s.time) }}</span>
-                      <span class="slot-state">🔴 Agotado</span>
+                      <span class="slot-state">{{ canPick() ? 'Lista de espera' : 'Agotado' }}</span>
                     </button>
                   } @else {
                     <button
@@ -118,9 +125,17 @@
   (confirm)="doCancel()"
   (cancel)="confirmCancel.set(false)" />
 
-<ui-sheet
+  <ui-sheet
   [open]="!!picked()"
-  [title]="sheetState() === 'success' ? '¡Examen agendado!' : 'Confirma tu examen'"
+  [title]="sheetState() === 'success'
+    ? '¡Listo!'
+    : sheetState() === 'waitlist_ok'
+      ? 'Lista de espera'
+      : sheetState() === 'full'
+        ? 'Cupo agotado'
+        : sheetState() === 'reschedule'
+          ? 'Reprogramar examen'
+          : 'Confirma tu examen'"
   (close)="closeSheet()">
   @if (picked(); as s) {
     @switch (sheetState()) {
@@ -134,11 +149,46 @@
           <button type="button" class="xe-btn primary big block" (click)="closeSheet()">Entendido</button>
         </div>
       }
+      @case ('reschedule') {
+        <div class="xe-form">
+          <dl class="xe-facts">
+            <div><dt>Nueva fecha</dt><dd>{{ dayTitle(s.date) }}</dd></div>
+            <div><dt>Nueva hora</dt><dd>{{ time12(s.time) }}</dd></div>
+          </dl>
+          <p class="xe-text">Tu cita actual se libera solo si el nuevo cupo queda asegurado.</p>
+          <ui-error [message]="sheetError()" />
+          <button type="button" class="xe-btn primary big block confirm" [disabled]="booking()" (click)="reschedule()">
+            {{ booking() ? 'Reprogramando…' : 'CONFIRMAR CAMBIO' }}
+          </button>
+          <button type="button" class="xe-btn block" (click)="closeSheet()">Volver</button>
+        </div>
+      }
+      @case ('waitlist_ok') {
+        <div class="xe-form">
+          <p class="xe-banner success">
+            <span>Quedaste en lista de espera (puesto <strong>{{ waitlistPosition() }}</strong>)
+              para el <strong>{{ dayTitle(s.date) }}</strong> a las <strong>{{ time12(s.time) }}</strong>.</span>
+          </p>
+          <p class="xe-text">Si se libera un cupo te avisamos. Confírmalo en Mi formación dentro de 2 horas.</p>
+          <a routerLink="/student/formacion" class="xe-btn primary big block" (click)="closeSheet()">Ir a Mi formación</a>
+          <button type="button" class="xe-btn block" (click)="closeSheet()">Cerrar</button>
+        </div>
+      }
       @case ('full') {
         <div class="xe-form">
           <ui-error [message]="sheetError()" />
-          <p class="xe-text">Otra persona tomó el último cupo. Ya actualizamos la lista: elige otra hora.</p>
-          <button type="button" class="xe-btn primary big block" (click)="closeSheet()">Elegir otra hora</button>
+          <p class="xe-text">
+            Este horario está lleno. Puedes entrar a la lista de espera: te avisamos si se libera un cupo
+            y tú confirmas (no se reserva solo).
+          </p>
+          <button
+            type="button"
+            class="xe-btn primary big block"
+            [disabled]="waitlisting() || !canPick()"
+            (click)="joinWaitlist()">
+            {{ waitlisting() ? 'Inscribiendo…' : 'Entrar a lista de espera' }}
+          </button>
+          <button type="button" class="xe-btn block" (click)="closeSheet()">Elegir otra hora</button>
         </div>
       }
       @default {

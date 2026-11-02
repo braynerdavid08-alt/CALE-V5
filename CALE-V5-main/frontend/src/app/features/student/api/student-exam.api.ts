@@ -56,4 +56,19 @@ export class StudentExamApi {
   cancel(id: number) {
     return this.http.post<void>(`${this.base}/${id}/cancel`, {});
   }
+
+  reschedule(id: number, date: string, time: string) {
+    return this.http.post<StudentExamBookingDto>(`${this.base}/${id}/reschedule`, { date, time });
+  }
+
+  joinWaitlist(date: string, time: string) {
+    return this.http.post<{ id: number; position: number; status: string }>(
+      `${this.base}/waitlist`,
+      { date, time }
+    );
+  }
+
+  confirmWaitlist(waitlistId: number) {
+    return this.http.post<StudentExamBookingDto>(`${this.base}/waitlist/${waitlistId}/confirm`, {});
+  }
 }

@@ -149,10 +149,10 @@ export class StudentHomePage implements OnInit {
       tone: 'green'
     },
     {
-      id: 'progress',
-      label: 'Mi progreso',
-      hint: 'Teoría, manejo y avances',
-      path: '/student/progress',
+      id: 'formacion',
+      label: 'Mi formación',
+      hint: 'Etapas, requisitos y agenda',
+      path: '/student/formacion',
       icon: 'list',
       tone: 'green'
     },

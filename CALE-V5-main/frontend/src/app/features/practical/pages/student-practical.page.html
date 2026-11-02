@@ -20,6 +20,14 @@
   </nav>
 
   <ui-error [message]="error()" />
+  @if (notice()) {
+    <p class="notice-ok" role="status">
+      {{ notice() }}
+      @if (rescheduleFromId()) {
+        <button type="button" class="notice-cancel" (click)="cancelRescheduleMode()">Cancelar cambio</button>
+      }
+    </p>
+  }
 
   @if (loading()) {
     <ui-loading />
@@ -125,20 +133,31 @@
                 <p class="meta warn">{{ reason }}</p>
               }
             </div>
-            <button
-              type="button"
-              class="btn"
-              [class.reserve]="canReserve(session)"
-              [class.reserved]="session.bookingState === 'reserved'"
-              [class.blocked]="!canReserve(session) && session.bookingState !== 'reserved'"
-              [disabled]="actionLoading() || (!canReserve(session) && session.bookingState !== 'reserved')"
-              (click)="canReserve(session) ? reserve(session) : (session.bookingState === 'reserved' ? cancel(session) : null)">
-              @if (session.bookingState === 'reserved') { Reservada }
-              @else if (session.bookingState === 'full') { Sin cupos }
-              @else if (isExam(session) && canReserve(session)) { Agendar examen }
-              @else if (canReserve(session)) { Reservar }
-              @else { Bloqueado }
-            </button>
+            @if (session.bookingState === 'reserved') {
+              <div class="btn-row">
+                <button type="button" class="btn reserved" [disabled]="actionLoading()" (click)="cancel(session)">
+                  Cancelar reserva
+                </button>
+                <button type="button" class="btn reserve" [disabled]="actionLoading()" (click)="startReschedule(session)">
+                  Cambiar horario
+                </button>
+              </div>
+            } @else {
+              <button
+                type="button"
+                class="btn"
+                [class.reserve]="canReserve(session) || canJoinWaitlist(session)"
+                [class.blocked]="!canReserve(session) && !canJoinWaitlist(session)"
+                [disabled]="actionLoading() || (!canReserve(session) && !canJoinWaitlist(session))"
+                (click)="onSessionAction(session)">
+                @if (canReserve(session) && rescheduleFromId()) { Mover aquí }
+                @else if (canJoinWaitlist(session)) { Entrar a lista de espera }
+                @else if (isExam(session) && canReserve(session)) { Agendar examen }
+                @else if (canReserve(session)) { Reservar }
+                @else if (session.bookingState === 'full') { Sin cupos }
+                @else { Bloqueado }
+              </button>
+            }
           </li>
         } @empty {
           <li class="empty">

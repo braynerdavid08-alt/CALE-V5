@@ -196,6 +196,8 @@ public sealed partial class TheoryExamScheduleService
                 "exam_cancel_too_late");
         }
 
+        var freedDate = booking.ExamDate;
+        var freedTime = booking.SlotTime;
         MarkCancelled(booking, studentUserId);
         SchoolAudit.Add(_db, _clock.UtcNow, schoolUserId, studentUserId, SchoolAuditAreas.ExamBooking,
             "booking_cancelled",
@@ -212,6 +214,94 @@ public sealed partial class TheoryExamScheduleService
             RelatedEntity: "theory_exam_appointment",
             RelatedId: booking.Id,
             Link: "/school/theory-exams"), ct);
+
+        await OfferNextExamWaitlistAsync(schoolUserId, freedDate, freedTime, ct);
+    }
+
+    public async Task<StudentExamBookingDto> RescheduleAsStudentAsync(
+        int studentUserId,
+        int bookingId,
+        StudentRescheduleExamRequest request,
+        CancellationToken ct)
+    {
+        var schoolUserId = await ResolveStudentSchoolAsync(studentUserId, ct);
+        var booking = await _db.Set<TheoryExamAppointment>()
+            .FirstOrDefaultAsync(x => x.Id == bookingId
+                && x.SchoolUserId == schoolUserId
+                && x.StudentUserId == studentUserId, ct)
+            ?? throw new NotFoundException("Cita no encontrada.", "booking_not_found");
+
+        if (booking.Status != TheoryExamBookingStatuses.Active || IsPast(booking.ExamDate, booking.SlotTime))
+        {
+            throw new DomainException("Esta cita ya no se puede reprogramar.", 400, "exam_cancel_too_late");
+        }
+
+        var minCancel = await MinCancelHoursAsync(schoolUserId, ct);
+        if (_clock.UtcNow > ColombiaTime.ToUtc(booking.ExamDate, booking.SlotTime).AddHours(-minCancel))
+        {
+            throw new DomainException(
+                $"Solo puedes reprogramar hasta {minCancel} hora(s) antes del examen. Comunícate con tu escuela.",
+                400,
+                "exam_cancel_too_late");
+        }
+
+        var time = ParseSlotTime(request.Time);
+        if (booking.ExamDate == request.Date && booking.SlotTime == time)
+        {
+            throw new DomainException("Elige un horario distinto al actual.", 400, "same_exam_slot");
+        }
+
+        var start = ColombiaTime.ToUtc(request.Date, time);
+        if (start <= _clock.UtcNow)
+        {
+            throw new DomainException("Ese horario ya pasó.", 400, "exam_slot_past");
+        }
+
+        if (start < _clock.UtcNow.AddMinutes(StudentMinLeadMinutes))
+        {
+            throw new DomainException(
+                $"Debes agendar con al menos {StudentMinLeadMinutes / 60} horas de anticipación.",
+                400,
+                "exam_booking_too_soon");
+        }
+
+        if (request.Date > TodayColombia().AddDays(StudentMaxDaysAhead))
+        {
+            throw new DomainException(
+                $"Solo puedes agendar hasta {StudentMaxDaysAhead} días adelante.",
+                400,
+                "exam_booking_too_far");
+        }
+
+        await _eligibility.EnsureEligibleAsync(schoolUserId, studentUserId, ct);
+        await EnsureNoOtherUpcomingBookingAsync(schoolUserId, studentUserId, booking.Id, ct);
+
+        var oldDate = booking.ExamDate;
+        var oldTime = booking.SlotTime;
+        var moved = await BookCoreAsync(new BookingRequest(
+            schoolUserId,
+            request.Date,
+            time,
+            studentUserId,
+            null,
+            null,
+            studentUserId,
+            ByStudent: true,
+            GrowCapacityIfNeeded: false,
+            ReplaceBookingId: booking.Id), ct);
+
+        await OfferNextExamWaitlistAsync(schoolUserId, oldDate, oldTime, ct);
+
+        var studentName = (await LoadUserNamesAsync([studentUserId], ct)).GetValueOrDefault(studentUserId, "Un estudiante");
+        await NotifySafeAsync(schoolUserId, new NotificationDraft(
+            "Examen teórico reprogramado",
+            $"{studentName} movió su examen al {Human(moved.ExamDate, moved.SlotTime)}.",
+            NotificationTypes.TheoryClass,
+            RelatedEntity: "theory_exam_appointment",
+            RelatedId: moved.Id,
+            Link: "/school/theory-exams"), ct);
+
+        return MapStudentBooking(moved, minCancel);
     }
 
     private async Task<TheoryExamAppointment?> FindUpcomingBookingAsync(

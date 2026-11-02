@@ -79,6 +79,13 @@ public sealed class SchoolPracticalController : ControllerBase
         CancellationToken ct) =>
         Ok(await _service.BulkCreateLessonsAsync(SchoolId, request, ct));
 
+    [HttpPut("lessons/{id:int}")]
+    public async Task<IActionResult> UpdateLesson(
+        int id,
+        UpdatePracticalLessonRequest request,
+        CancellationToken ct) =>
+        Ok(await _service.UpdateLessonAsync(SchoolId, id, request, ct));
+
     [HttpPost("lessons/{id:int}/cancel")]
     public async Task<IActionResult> CancelLesson(int id, CancellationToken ct)
     {
@@ -133,6 +140,21 @@ public sealed class StudentPracticalController : ControllerBase
     [HttpPost("lessons/{id:int}/reserve")]
     public async Task<IActionResult> Reserve(int id, CancellationToken ct) =>
         Ok(await _service.ReserveAsync(StudentId, id, ct));
+
+    [HttpPost("lessons/{id:int}/waitlist")]
+    public async Task<IActionResult> JoinWaitlist(int id, CancellationToken ct) =>
+        Ok(await _service.JoinPracticalWaitlistAsync(StudentId, id, ct));
+
+    [HttpPost("waitlist/{id:int}/confirm")]
+    public async Task<IActionResult> ConfirmWaitlist(int id, CancellationToken ct) =>
+        Ok(await _service.ConfirmPracticalWaitlistOfferAsync(StudentId, id, ct));
+
+    [HttpPost("reservations/{id:int}/reschedule")]
+    public async Task<IActionResult> Reschedule(
+        int id,
+        [FromBody] ReschedulePracticalReservationRequest body,
+        CancellationToken ct) =>
+        Ok(await _service.RescheduleReservationAsync(StudentId, id, body.NewLessonId, ct));
 
     [HttpDelete("reservations/{id:int}")]
     public async Task<IActionResult> CancelReservation(int id, CancellationToken ct)

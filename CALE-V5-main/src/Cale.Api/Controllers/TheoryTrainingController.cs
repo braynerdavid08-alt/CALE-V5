@@ -213,6 +213,32 @@ public sealed class StudentTheoryController : ControllerBase
     public async Task<IActionResult> Reserve(int id, CancellationToken ct) =>
         Ok(await _service.ReserveAsync(StudentId, id, ct));
 
+    [HttpPost("sessions/{id:int}/waitlist")]
+    public async Task<IActionResult> JoinWaitlist(int id, CancellationToken ct) =>
+        Ok(await _service.JoinTheoryWaitlistAsync(StudentId, id, ct));
+
+    [HttpGet("waitlist")]
+    public async Task<IActionResult> MyWaitlist(CancellationToken ct) =>
+        Ok(await _service.ListMyTheoryWaitlistAsync(StudentId, ct));
+
+    [HttpPost("waitlist/{id:int}/confirm")]
+    public async Task<IActionResult> ConfirmWaitlist(int id, CancellationToken ct) =>
+        Ok(await _service.ConfirmTheoryWaitlistOfferAsync(StudentId, id, ct));
+
+    [HttpDelete("waitlist/{id:int}")]
+    public async Task<IActionResult> LeaveWaitlist(int id, CancellationToken ct)
+    {
+        await _service.CancelTheoryWaitlistAsync(StudentId, id, ct);
+        return NoContent();
+    }
+
+    [HttpPost("reservations/{id:int}/reschedule")]
+    public async Task<IActionResult> Reschedule(
+        int id,
+        [FromBody] RescheduleTheoryReservationRequest body,
+        CancellationToken ct) =>
+        Ok(await _service.RescheduleReservationAsync(StudentId, id, body.NewSessionId, ct));
+
     [HttpDelete("reservations/{id:int}")]
     public async Task<IActionResult> CancelReservation(int id, CancellationToken ct)
     {
@@ -226,4 +252,20 @@ public sealed class StudentTheoryController : ControllerBase
         await _service.CheckInAsync(StudentId, ct);
         return NoContent();
     }
+}
+
+[ApiController]
+[Authorize(Policy = "StudentOnly")]
+[Route("api/student/formation")]
+public sealed class StudentFormationController : ControllerBase
+{
+    private readonly StudentFormationFacade _formation;
+
+    public StudentFormationController(StudentFormationFacade formation) => _formation = formation;
+
+    private int StudentId => CurrentUser.GetId(User);
+
+    [HttpGet]
+    public async Task<IActionResult> Status(CancellationToken ct) =>
+        Ok(await _formation.GetStatusAsync(StudentId, ct));
 }

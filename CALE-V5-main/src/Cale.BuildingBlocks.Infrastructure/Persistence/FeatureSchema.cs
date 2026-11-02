@@ -842,6 +842,39 @@ public static class FeatureSchema
                 """ALTER TABLE "AuthRefreshTokens" ADD COLUMN "GraceUses" INTEGER NOT NULL DEFAULT 0;""",
                 ct);
 
+            await TrySqliteAsync(
+                db,
+                """
+                CREATE TABLE IF NOT EXISTS "ScheduleWaitlistEntries" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_ScheduleWaitlistEntries" PRIMARY KEY AUTOINCREMENT,
+                    "SchoolUserId" INTEGER NOT NULL,
+                    "Kind" TEXT NOT NULL,
+                    "TargetId" INTEGER NOT NULL,
+                    "TargetDate" TEXT NULL,
+                    "TargetTime" TEXT NULL,
+                    "StudentUserId" INTEGER NOT NULL,
+                    "Position" INTEGER NOT NULL,
+                    "Status" TEXT NOT NULL,
+                    "OfferedAt" TEXT NULL,
+                    "OfferExpiresAt" TEXT NULL,
+                    "CreatedAt" TEXT NOT NULL,
+                    "UpdatedAt" TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS "IX_ScheduleWaitlistEntries_Kind_Target_Status_Position"
+                    ON "ScheduleWaitlistEntries" ("Kind", "TargetId", "Status", "Position");
+                CREATE INDEX IF NOT EXISTS "IX_ScheduleWaitlistEntries_School_Student_Kind_Target"
+                    ON "ScheduleWaitlistEntries" ("SchoolUserId", "StudentUserId", "Kind", "TargetId");
+                """,
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "ScheduleWaitlistEntries" ADD COLUMN "TargetDate" TEXT NULL;""",
+                ct);
+            await TryAddSqliteColumnAsync(
+                db,
+                """ALTER TABLE "ScheduleWaitlistEntries" ADD COLUMN "TargetTime" TEXT NULL;""",
+                ct);
+
             return;
         }
 
@@ -1608,6 +1641,38 @@ public static class FeatureSchema
                 ct);
             await TryPostgresAsync(db,
                 """ALTER TABLE "AuthRefreshTokens" ADD COLUMN IF NOT EXISTS "GraceUses" integer NOT NULL DEFAULT 0;""",
+                ct);
+
+            await TryPostgresAsync(db,
+                """
+                CREATE TABLE IF NOT EXISTS "ScheduleWaitlistEntries" (
+                    "Id" serial PRIMARY KEY,
+                    "SchoolUserId" integer NOT NULL,
+                    "Kind" varchar(32) NOT NULL,
+                    "TargetId" integer NOT NULL,
+                    "TargetDate" date NULL,
+                    "TargetTime" time NULL,
+                    "StudentUserId" integer NOT NULL,
+                    "Position" integer NOT NULL,
+                    "Status" varchar(32) NOT NULL,
+                    "OfferedAt" timestamp with time zone NULL,
+                    "OfferExpiresAt" timestamp with time zone NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL,
+                    "UpdatedAt" timestamp with time zone NOT NULL
+                );
+                """,
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "ScheduleWaitlistEntries" ADD COLUMN IF NOT EXISTS "TargetDate" date NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """ALTER TABLE "ScheduleWaitlistEntries" ADD COLUMN IF NOT EXISTS "TargetTime" time NULL;""",
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_ScheduleWaitlistEntries_Kind_Target_Status_Position" ON "ScheduleWaitlistEntries" ("Kind", "TargetId", "Status", "Position");""",
+                ct);
+            await TryPostgresAsync(db,
+                """CREATE INDEX IF NOT EXISTS "IX_ScheduleWaitlistEntries_School_Student_Kind_Target" ON "ScheduleWaitlistEntries" ("SchoolUserId", "StudentUserId", "Kind", "TargetId");""",
                 ct);
 
             // Homepage CMS tables are not created by EnsureCreated on existing DBs.

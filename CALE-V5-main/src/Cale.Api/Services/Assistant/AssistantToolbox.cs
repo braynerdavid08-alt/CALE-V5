@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json.Nodes;
+using Cale.Api.Services.Play;
 using Cale.BuildingBlocks.Domain.Auth;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
 using Cale.Modules.Identity.Application.Abstractions;
@@ -33,10 +34,10 @@ public interface IAssistantToolbox
     Task<string> ReadAsync(AssistantUser user, string tool, JsonObject args, CancellationToken ct);
 
     /// <summary>
-    /// Same as <see cref="ReadAsync"/>, plus an optional structured card for the chat UI
-    /// (exam availability). Text stays for the model; the UI prefers the card when present.
+    /// Same as <see cref="ReadAsync"/>, plus optional structured cards for the chat UI
+    /// (schedule / quiz). Text stays for the model; the UI prefers the card when present.
     /// </summary>
-    Task<(string Text, AssistantExamAvailabilityUi? ExamAvailability)> ReadWithUiAsync(
+    Task<(string Text, AssistantExamAvailabilityUi? ExamAvailability, AssistantQuizUi? Quiz)> ReadWithUiAsync(
         AssistantUser user, string tool, JsonObject args, CancellationToken ct);
 
     /// <summary>Validates a write tool and returns the confirmation text shown to the user (built from real data).</summary>
@@ -44,6 +45,14 @@ public interface IAssistantToolbox
 
     /// <summary>Executes a confirmed write tool through the regular services and returns the result for the user.</summary>
     Task<string> ExecuteAsync(AssistantUser user, string tool, JsonObject args, CancellationToken ct);
+
+    /// <summary>Answers a practice question from mistakes or daily challenge; may return the next quiz card.</summary>
+    Task<(string Text, AssistantQuizUi? NextQuiz)> AnswerPracticeAsync(
+        AssistantUser user,
+        int questionId,
+        int optionId,
+        string source,
+        CancellationToken ct);
 }
 
 /// <summary>
@@ -59,6 +68,9 @@ public sealed class AssistantToolbox : IAssistantToolbox
     private readonly TheoryExamScheduleService _exams;
     private readonly ApprenticeRegistryService _registry;
     private readonly SchoolAgendaService _agenda;
+    private readonly StudentFormationFacade _formation;
+    private readonly SchoolOpsAlertService _opsAlerts;
+    private readonly PlayService _play;
 
     public AssistantToolbox(
         CaleDbContext db,
@@ -67,7 +79,10 @@ public sealed class AssistantToolbox : IAssistantToolbox
         PracticalTrainingService practical,
         TheoryExamScheduleService exams,
         ApprenticeRegistryService registry,
-        SchoolAgendaService agenda)
+        SchoolAgendaService agenda,
+        StudentFormationFacade formation,
+        SchoolOpsAlertService opsAlerts,
+        PlayService play)
     {
         _db = db;
         _users = users;
@@ -76,6 +91,9 @@ public sealed class AssistantToolbox : IAssistantToolbox
         _exams = exams;
         _registry = registry;
         _agenda = agenda;
+        _formation = formation;
+        _opsAlerts = opsAlerts;
+        _play = play;
     }
 
     // ── Definitions ─────────────────────────────────────────────────────
@@ -83,6 +101,9 @@ public sealed class AssistantToolbox : IAssistantToolbox
     private static readonly AssistantToolDefinition[] StudentTools =
     [
         Read("mi_progreso", "Progreso del estudiante: horas de teoría y taller, faltas, reservas, examen teórico, clases de manejo y saldo."),
+        Read("mi_siguiente_paso", "Etapa actual de la formación, acción recomendada, bloqueos y próximas actividades (sin inventar requisitos)."),
+        Read("que_estudiar", "Qué repasar ahora: nivel de preparación, temas débiles, errores pendientes y lecciones recomendadas (datos reales de simulacros/retos)."),
+        Read("practicar", "Trae una pregunta para practicar en el chat (errores pendientes o reto del día). El estudiante responde tocando una opción."),
         Read("clases_teoricas", "Clases teóricas de una semana con cupos y si el estudiante puede reservar.",
             P("semana_inicio", "string", "Lunes de la semana en formato AAAA-MM-DD. Vacío = semana actual."),
             P("completo", "boolean", "true para listar todas las clases de la semana; si no, un resumen razonable.")),
@@ -90,6 +111,13 @@ public sealed class AssistantToolbox : IAssistantToolbox
             P("clase_id", "integer", "clase_id de la lista de clases teóricas.", true)),
         Write("cancelar_reserva_teorica", "Prepara la cancelación de una reserva de clase teórica.",
             P("reserva_id", "integer", "reserva_id de la clase reservada.", true)),
+        Write("reprogramar_clase_teorica", "Prepara mover una reserva teórica a otra clase (atómico; confirma el usuario).",
+            P("reserva_id", "integer", "reserva_id actual.", true),
+            P("clase_id", "integer", "clase_id del nuevo horario.", true)),
+        Write("lista_espera_teoria", "Prepara inscripción a la lista de espera de una clase teórica llena.",
+            P("clase_id", "integer", "clase_id llena.", true)),
+        Write("confirmar_lista_espera_teoria", "Prepara la confirmación de una oferta de lista de espera teórica.",
+            P("espera_id", "integer", "id de la oferta de lista de espera.", true)),
         Read("cupos_examen", "Cupos disponibles para el examen teórico y la cita actual del estudiante.",
             P("desde", "string", "Fecha inicial AAAA-MM-DD (opcional)."),
             P("hasta", "string", "Fecha final AAAA-MM-DD (opcional)."),
@@ -99,6 +127,15 @@ public sealed class AssistantToolbox : IAssistantToolbox
             P("hora", "string", "Hora HH:mm tal como aparece en los cupos.", true)),
         Write("cancelar_examen", "Prepara la cancelación de la cita de examen teórico.",
             P("cita_id", "integer", "cita_id de la cita actual.", true)),
+        Write("reprogramar_examen", "Prepara mover la cita de examen teórico a otra fecha/hora (atómico).",
+            P("cita_id", "integer", "cita_id actual.", true),
+            P("fecha", "string", "Nueva fecha AAAA-MM-DD.", true),
+            P("hora", "string", "Nueva hora HH:mm.", true)),
+        Write("lista_espera_examen", "Prepara inscripción a lista de espera de un cupo de examen teórico lleno.",
+            P("fecha", "string", "Fecha AAAA-MM-DD.", true),
+            P("hora", "string", "Hora HH:mm.", true)),
+        Write("confirmar_lista_espera_examen", "Prepara la confirmación de una oferta de lista de espera de examen.",
+            P("espera_id", "integer", "id de la oferta.", true)),
         Read("clases_manejo", "Clases y examen de manejo: progreso (N-1 clases + examen), cupos y si ya puede agendar el examen.",
             P("completo", "boolean", "true para listar todos los cupos publicados.")),
         Write("reservar_clase_manejo", "Prepara la reserva de una clase de manejo (no examen).",
@@ -106,12 +143,20 @@ public sealed class AssistantToolbox : IAssistantToolbox
         Write("reservar_examen_manejo", "Prepara la reserva del examen de manejo (última hora del programa). Solo si ya completó todas las clases menos una.",
             P("clase_id", "integer", "clase_id de tipo Examen en la lista de clases_manejo.", true)),
         Write("cancelar_reserva_manejo", "Prepara la cancelación de una clase o examen de manejo reservado.",
-            P("reserva_id", "integer", "reserva_id de la clase o examen de manejo.", true))
+            P("reserva_id", "integer", "reserva_id de la clase o examen de manejo.", true)),
+        Write("reprogramar_clase_manejo", "Prepara mover una reserva de manejo a otro cupo (atómico; confirma el usuario).",
+            P("reserva_id", "integer", "reserva_id actual.", true),
+            P("clase_id", "integer", "clase_id del nuevo cupo.", true)),
+        Write("lista_espera_manejo", "Prepara inscripción a lista de espera de un cupo de manejo lleno.",
+            P("clase_id", "integer", "clase_id lleno.", true)),
+        Write("confirmar_lista_espera_manejo", "Prepara la confirmación de una oferta de lista de espera de manejo.",
+            P("espera_id", "integer", "id de la oferta.", true))
     ];
 
     private static readonly AssistantToolDefinition[] SchoolTools =
     [
         Read("resumen_escuela", "Resumen general: estudiantes, saldos, listos para examen o manejo, exámenes próximos."),
+        Read("alertas_operativas", "Alertas de operación de la escuela: cupos vs demanda, habilitados sin cita, baja ocupación, estudiantes estancados (reglas, sin IA)."),
         Read("progreso_estudiantes", "Progreso de los estudiantes (horas, examen, manejo, saldo). Se puede filtrar o buscar por nombre.",
             P("filtro", "string", "todos | listos_examen | autorizados_examen | listos_manejo | en_manejo | con_saldo | pendientes | faltan_horas"),
             P("buscar", "string", "Parte del nombre o correo del estudiante."),
@@ -164,28 +209,182 @@ public sealed class AssistantToolbox : IAssistantToolbox
 
     public async Task<string> ReadAsync(AssistantUser user, string tool, JsonObject args, CancellationToken ct)
     {
-        var (text, _) = await ReadWithUiAsync(user, tool, args, ct);
+        var (text, _, _) = await ReadWithUiAsync(user, tool, args, ct);
         return text;
     }
 
-    public async Task<(string Text, AssistantExamAvailabilityUi? ExamAvailability)> ReadWithUiAsync(
+    public async Task<(string Text, AssistantExamAvailabilityUi? ExamAvailability, AssistantQuizUi? Quiz)> ReadWithUiAsync(
         AssistantUser user, string tool, JsonObject args, CancellationToken ct)
     {
         EnsureAllowed(user, tool, write: false);
         return tool switch
         {
-            "mi_progreso" => (await MyProgressAsync(user, ct), null),
-            "clases_teoricas" => await TheoryWeekAsync(user, OptDate(args, "semana_inicio"), WantsFullList(args), ct),
-            "cupos_examen" => await StudentExamSlotsRichAsync(user, OptDate(args, "desde"), OptDate(args, "hasta"), WantsFullList(args), ct),
-            "clases_manejo" => await StudentPracticalAsync(user, WantsFullList(args), ct),
-            "resumen_escuela" => (await SchoolSummaryAsync(user, ct), null),
-            "progreso_estudiantes" => (await StudentsProgressAsync(user, Str(args, "filtro"), Str(args, "buscar"), WantsFullList(args), ct), null),
-            "detalle_estudiante" => (await StudentDetailAsync(user, ReqInt(args, "estudiante_id"), ct), null),
-            "agenda_escuela" => (await SchoolAgendaAsync(user, OptDate(args, "desde"), OptDate(args, "hasta"), WantsFullList(args), ct), null),
-            "cupos_examen_escuela" => await SchoolExamSlotsRichAsync(user, OptDate(args, "desde"), OptDate(args, "hasta"), WantsFullList(args), ct),
-            "opciones_manejo" => (await PracticalOptionsAsync(user, WantsFullList(args), ct), null),
+            "mi_progreso" => (await MyProgressAsync(user, ct), null, null),
+            "mi_siguiente_paso" => (await MyNextStepAsync(user, ct), null, null),
+            "que_estudiar" => (await WhatToStudyAsync(user, ct), null, null),
+            "practicar" => await PracticeAsUiAsync(user, ct),
+            "clases_teoricas" => WrapExam(await TheoryWeekAsync(user, OptDate(args, "semana_inicio"), WantsFullList(args), ct)),
+            "cupos_examen" => WrapExam(await StudentExamSlotsRichAsync(user, OptDate(args, "desde"), OptDate(args, "hasta"), WantsFullList(args), ct)),
+            "clases_manejo" => WrapExam(await StudentPracticalAsync(user, WantsFullList(args), ct)),
+            "resumen_escuela" => (await SchoolSummaryAsync(user, ct), null, null),
+            "alertas_operativas" => (await SchoolOpsAlertsAsync(user, ct), null, null),
+            "progreso_estudiantes" => (await StudentsProgressAsync(user, Str(args, "filtro"), Str(args, "buscar"), WantsFullList(args), ct), null, null),
+            "detalle_estudiante" => (await StudentDetailAsync(user, ReqInt(args, "estudiante_id"), ct), null, null),
+            "agenda_escuela" => (await SchoolAgendaAsync(user, OptDate(args, "desde"), OptDate(args, "hasta"), WantsFullList(args), ct), null, null),
+            "cupos_examen_escuela" => WrapExam(await SchoolExamSlotsRichAsync(user, OptDate(args, "desde"), OptDate(args, "hasta"), WantsFullList(args), ct)),
+            "opciones_manejo" => (await PracticalOptionsAsync(user, WantsFullList(args), ct), null, null),
             _ => throw new AssistantToolException($"Herramienta desconocida: {tool}.")
         };
+    }
+
+    private static (string, AssistantExamAvailabilityUi?, AssistantQuizUi?) WrapExam(
+        (string Text, AssistantExamAvailabilityUi Ui) pair) =>
+        (pair.Text, pair.Ui, null);
+
+    private async Task<(string Text, AssistantExamAvailabilityUi? Exam, AssistantQuizUi? Quiz)> PracticeAsUiAsync(
+        AssistantUser user,
+        CancellationToken ct)
+    {
+        var (text, quiz) = await PracticeQuestionAsync(user, ct);
+        return (text, null, quiz);
+    }
+
+    public async Task<(string Text, AssistantQuizUi? Quiz)> PracticeQuestionAsync(
+        AssistantUser user,
+        CancellationToken ct)
+    {
+        if (user.Role != Roles.Student)
+        {
+            throw new AssistantToolException("Solo los estudiantes pueden practicar preguntas aquí.");
+        }
+
+        var mistakes = await _play.GetMistakesAsync(user.UserId, ct);
+        if (mistakes.Questions.Count > 0)
+        {
+            var q = mistakes.Questions[0];
+            var quiz = ToQuizUi(q, "mistakes", "Repasa un error");
+            return (FormatQuizText(quiz, mistakesLeft: mistakes.DueCount), quiz);
+        }
+
+        var daily = await _play.GetDailyAsync(user.UserId, ct);
+        var answered = daily.Answers.Select(a => a.QuestionId).ToHashSet();
+        var next = daily.Questions.FirstOrDefault(q => !answered.Contains(q.Id));
+        if (next is not null)
+        {
+            var left = daily.Questions.Count - answered.Count;
+            var quiz = ToQuizUi(next, "daily", "Reto del día");
+            return (FormatQuizText(quiz, dailyLeft: left), quiz);
+        }
+
+        if (daily.Completed)
+        {
+            return (
+                "Ya completaste el reto de hoy y no tienes errores pendientes de repaso.\n\n" +
+                "Puedes abrir **Preparación** → /student/play/readiness o **Cursos** → /student/cursos.",
+                null);
+        }
+
+        return (
+            "No hay preguntas listas ahora. Abre el reto del día → /student/play/daily",
+            null);
+    }
+
+    public async Task<(string Text, AssistantQuizUi? NextQuiz)> AnswerPracticeAsync(
+        AssistantUser user,
+        int questionId,
+        int optionId,
+        string source,
+        CancellationToken ct)
+    {
+        if (user.Role != Roles.Student)
+        {
+            throw new AssistantToolException("Solo los estudiantes pueden responder aquí.");
+        }
+
+        var src = (source ?? "").Trim().ToLowerInvariant();
+        bool correct;
+        string? explanation;
+
+        if (src == "mistakes")
+        {
+            var result = await _play.AnswerMistakeAsync(user.UserId, new PlayAnswerRequest(questionId, optionId), ct);
+            correct = result.Correct;
+            explanation = result.Explanation;
+        }
+        else if (src == "daily")
+        {
+            var result = await _play.AnswerDailyAsync(user.UserId, new PlayAnswerRequest(questionId, optionId), ct);
+            correct = result.Correct;
+            explanation = result.Explanation;
+        }
+        else
+        {
+            throw new AssistantToolException("Origen de pregunta no válido.");
+        }
+
+        var (prompt, next) = await PracticeQuestionAsync(user, ct);
+        var feedback = correct ? "**¡Correcto!**" : "**Incorrecto.**";
+        if (!string.IsNullOrWhiteSpace(explanation))
+        {
+            feedback += "\n" + explanation.Trim();
+        }
+
+        if (next is not null)
+        {
+            feedback += "\n\nSiguiente pregunta:";
+        }
+        else
+        {
+            feedback += "\n\n" + prompt;
+        }
+
+        return (feedback.TrimEnd(), next);
+    }
+
+    private static AssistantQuizUi ToQuizUi(PlayQuestionDto q, string source, string title)
+    {
+        var options = q.Options
+            .Select((o, i) => new AssistantQuizOptionUi(o.Id, ((char)('A' + i)).ToString(), o.Text))
+            .ToList();
+        return new AssistantQuizUi(
+            source,
+            title,
+            q.Id,
+            q.Text,
+            q.ImageUrl,
+            q.Topic,
+            options);
+    }
+
+    private static string FormatQuizText(AssistantQuizUi quiz, int? mistakesLeft = null, int? dailyLeft = null)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"**{quiz.Title}**");
+        if (mistakesLeft is int m)
+        {
+            sb.AppendLine($"Errores listos: {m}");
+        }
+
+        if (dailyLeft is int d)
+        {
+            sb.AppendLine($"Preguntas del reto restantes: {d}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(quiz.Topic))
+        {
+            sb.AppendLine($"Tema: {quiz.Topic}");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine(quiz.QuestionText);
+        foreach (var o in quiz.Options)
+        {
+            sb.AppendLine($"{o.Label}) {o.Text}");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("Toca una opción abajo para responder.");
+        return sb.ToString().TrimEnd();
     }
 
     private async Task<string> MyProgressAsync(AssistantUser user, CancellationToken ct)
@@ -276,6 +475,160 @@ public sealed class AssistantToolbox : IAssistantToolbox
             sb.AppendLine($"• {d.NextAction}");
         }
 
+        return sb.ToString().TrimEnd();
+    }
+
+    private async Task<string> WhatToStudyAsync(AssistantUser user, CancellationToken ct)
+    {
+        var readiness = await _play.GetReadinessAsync(user.UserId, ct);
+        var mistakes = await _play.GetMistakesAsync(user.UserId, ct);
+        var summary = await _play.GetSummaryAsync(user.UserId, ct);
+
+        var sb = new StringBuilder();
+        sb.AppendLine("**Qué estudiar ahora**");
+        sb.AppendLine($"• Preparación: {readiness.Overall}% — {readiness.Label}");
+        if (!string.IsNullOrWhiteSpace(readiness.Recommendation))
+        {
+            sb.AppendLine($"• Recomendación: {readiness.Recommendation}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(summary.WeakestTopic))
+        {
+            sb.AppendLine($"• Tema más débil: {summary.WeakestTopic}");
+        }
+
+        if (mistakes.DueCount + mistakes.PendingCount > 0)
+        {
+            sb.AppendLine(
+                $"• Errores por repasar: {mistakes.DueCount} listos ahora" +
+                (mistakes.PendingCount > 0 ? $", {mistakes.PendingCount} en espera" : ""));
+            sb.AppendLine("  → /student/play/mistakes");
+        }
+
+        if (readiness.StudyLessons.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("**Lecciones a reforzar**");
+            foreach (var lesson in readiness.StudyLessons.Take(3))
+            {
+                var link = lesson.Lesson;
+                sb.AppendLine(
+                    $"• {link.LessonTitle} ({link.CourseTitle}) — {lesson.Percent}% aciertos ({lesson.Wrong} fallos)" +
+                    $" → /student/cursos/leccion/{link.LessonId}");
+            }
+        }
+
+        var weakTopics = readiness.Topics
+            .Where(t => t.Answered >= 5 && t.Percent < 80)
+            .OrderBy(t => t.Percent)
+            .Take(3)
+            .ToList();
+        if (weakTopics.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("**Temas bajos**");
+            foreach (var t in weakTopics)
+            {
+                sb.AppendLine($"• {t.Name}: {t.Percent}% ({t.Correct}/{t.Answered})");
+            }
+        }
+
+        if (!summary.DailyCompleted)
+        {
+            sb.AppendLine();
+            sb.AppendLine($"Reto del día: {summary.DailyAnswered}/{summary.DailyTotal} → /student/play/daily");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("También: preparación → /student/play/readiness · cursos → /student/cursos · señales → /student/play/signs");
+        return sb.ToString().TrimEnd();
+    }
+
+    private async Task<string> MyNextStepAsync(AssistantUser user, CancellationToken ct)
+    {
+        var s = await _formation.GetStatusAsync(user.UserId, ct);
+        var sb = new StringBuilder();
+        sb.AppendLine("**Tu siguiente paso**");
+        sb.AppendLine($"• Etapa actual: {s.CurrentStageLabel}");
+        if (!string.IsNullOrWhiteSpace(s.NextRecommendedAction))
+        {
+            sb.AppendLine($"• Acción recomendada: {s.NextRecommendedAction}");
+        }
+
+        if (s.BalanceDue > 0)
+        {
+            sb.AppendLine($"• Saldo pendiente: {Money(s.BalanceDue)}");
+        }
+
+        var blocked = s.Stages
+            .Where(x => (x.Status is FormationStageStatuses.Blocked or FormationStageStatuses.NeedsAuthorization)
+                && !string.IsNullOrWhiteSpace(x.BlockReason))
+            .Take(4)
+            .ToList();
+        if (blocked.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("**Qué te detiene**");
+            foreach (var b in blocked)
+            {
+                sb.AppendLine($"• {b.Title}: {b.BlockReason}");
+            }
+        }
+
+        var bookable = s.Stages.Where(x => x.CanBook).Take(3).ToList();
+        if (bookable.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("**Puedes agendar**");
+            foreach (var b in bookable)
+            {
+                sb.AppendLine($"• {b.Title}" + (string.IsNullOrWhiteSpace(b.CtaPath) ? "" : $" → {b.CtaPath}"));
+            }
+        }
+
+        if (s.Upcoming.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("**Próximas actividades**");
+            foreach (var u in s.Upcoming.Take(5))
+            {
+                sb.AppendLine($"• {u.Title} — {u.Date} {u.StartTime}");
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(s.NextRecommendedPath))
+        {
+            sb.AppendLine();
+            sb.AppendLine($"Abre **Mi formación** ({s.NextRecommendedPath}) para ver el detalle.");
+        }
+
+        return sb.ToString().TrimEnd();
+    }
+
+    private async Task<string> SchoolOpsAlertsAsync(AssistantUser user, CancellationToken ct)
+    {
+        var schoolId = SchoolOf(user);
+        var summary = await _opsAlerts.GetAlertsAsync(schoolId, ct);
+        var sb = new StringBuilder();
+        sb.AppendLine("**Alertas de operación** (reglas, sin IA)");
+        if (summary.Alerts.Count == 0)
+        {
+            sb.AppendLine("• No hay alertas por ahora.");
+            return sb.ToString().TrimEnd();
+        }
+
+        foreach (var a in summary.Alerts.Take(8))
+        {
+            sb.AppendLine($"• [{a.Priority}] {a.Title}");
+            sb.AppendLine($"  {a.Detail}");
+            if (!string.IsNullOrWhiteSpace(a.RecommendedAction))
+            {
+                sb.AppendLine($"  → {a.RecommendedAction}");
+            }
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("Revisa también **Agenda** → alertas de la semana.");
         return sb.ToString().TrimEnd();
     }
 
@@ -728,6 +1081,19 @@ public sealed class AssistantToolbox : IAssistantToolbox
                 var r = await TheoryReservationAsync(user, ReqInt(args, "reserva_id"), ct);
                 return $"Cancelar tu clase teórica: {r.ClassSession?.Topic?.Name ?? "clase"}, {Day(r.ClassSession!.SessionDate)} a las {Time(r.ClassSession.StartTime)}.";
             }
+            case "reprogramar_clase_teorica":
+            {
+                var r = await TheoryReservationAsync(user, ReqInt(args, "reserva_id"), ct);
+                var s = await TheorySessionAsync(user, ReqInt(args, "clase_id"), ct);
+                return $"Reprogramar teoría: de {Day(r.ClassSession!.SessionDate)} {Time(r.ClassSession.StartTime)} a {Day(s.SessionDate)} {Time(s.StartTime)} ({s.Topic?.Name ?? "clase"}).";
+            }
+            case "lista_espera_teoria":
+            {
+                var s = await TheorySessionAsync(user, ReqInt(args, "clase_id"), ct);
+                return $"Entrar a lista de espera: {s.Topic?.Name ?? "clase"}, {Day(s.SessionDate)} a las {Time(s.StartTime)}.";
+            }
+            case "confirmar_lista_espera_teoria":
+                return $"Confirmar oferta de lista de espera teórica (espera_id={ReqInt(args, "espera_id")}).";
             case "agendar_examen":
                 return $"Agendar tu examen teórico: {Day(ReqDate(args, "fecha"))} a las {ReqTime(args, "hora")}.";
             case "cancelar_examen":
@@ -735,6 +1101,15 @@ public sealed class AssistantToolbox : IAssistantToolbox
                 var a = await ExamAppointmentAsync(user, ReqInt(args, "cita_id"), ct);
                 return $"Cancelar tu cita de examen teórico del {Day(a.ExamDate)} a las {Time(a.SlotTime)}.";
             }
+            case "reprogramar_examen":
+            {
+                var a = await ExamAppointmentAsync(user, ReqInt(args, "cita_id"), ct);
+                return $"Reprogramar examen teórico: de {Day(a.ExamDate)} {Time(a.SlotTime)} a {Day(ReqDate(args, "fecha"))} {ReqTime(args, "hora")}.";
+            }
+            case "lista_espera_examen":
+                return $"Entrar a lista de espera de examen: {Day(ReqDate(args, "fecha"))} a las {ReqTime(args, "hora")}.";
+            case "confirmar_lista_espera_examen":
+                return $"Confirmar oferta de lista de espera de examen (espera_id={ReqInt(args, "espera_id")}).";
             case "reservar_clase_manejo":
             {
                 var l = await PracticalLessonAsync(user, ReqInt(args, "clase_id"), ct);
@@ -763,6 +1138,19 @@ public sealed class AssistantToolbox : IAssistantToolbox
                 var kind = PracticalSessionKinds.IsExam(r.LessonSession?.Kind) ? "examen" : "clase";
                 return $"Cancelar tu {kind} de manejo del {Day(r.LessonSession!.SessionDate)} a las {Time(r.LessonSession.StartTime)}.";
             }
+            case "reprogramar_clase_manejo":
+            {
+                var r = await PracticalReservationAsync(user, ReqInt(args, "reserva_id"), ct);
+                var l = await PracticalLessonAsync(user, ReqInt(args, "clase_id"), ct);
+                return $"Reprogramar manejo: de {Day(r.LessonSession!.SessionDate)} {Time(r.LessonSession.StartTime)} a {Day(l.SessionDate)} {Time(l.StartTime)}.";
+            }
+            case "lista_espera_manejo":
+            {
+                var l = await PracticalLessonAsync(user, ReqInt(args, "clase_id"), ct);
+                return $"Entrar a lista de espera de manejo: {Day(l.SessionDate)} a las {Time(l.StartTime)}.";
+            }
+            case "confirmar_lista_espera_manejo":
+                return $"Confirmar oferta de lista de espera de manejo (espera_id={ReqInt(args, "espera_id")}).";
             case "autorizar_examen":
             {
                 var name = await SchoolStudentNameAsync(user, ReqInt(args, "estudiante_id"), ct);
@@ -825,6 +1213,22 @@ public sealed class AssistantToolbox : IAssistantToolbox
             case "cancelar_reserva_teorica":
                 await _theory.CancelReservationAsync(user.UserId, ReqInt(args, "reserva_id"), ct);
                 return "Listo. Cancelamos tu reserva de clase teórica.";
+            case "reprogramar_clase_teorica":
+            {
+                var s = await _theory.RescheduleReservationAsync(
+                    user.UserId, ReqInt(args, "reserva_id"), ReqInt(args, "clase_id"), ct);
+                return $"Listo. Tu clase quedó el {Day(s.SessionDate)} a las {s.StartTime} ({s.TopicName}).";
+            }
+            case "lista_espera_teoria":
+            {
+                var w = await _theory.JoinTheoryWaitlistAsync(user.UserId, ReqInt(args, "clase_id"), ct);
+                return $"Listo. Quedaste en la lista de espera (posición {w.Position}). Te avisamos si se libera un cupo.";
+            }
+            case "confirmar_lista_espera_teoria":
+            {
+                var s = await _theory.ConfirmTheoryWaitlistOfferAsync(user.UserId, ReqInt(args, "espera_id"), ct);
+                return $"Listo. Confirmaste el cupo: {s.TopicName} el {Day(s.SessionDate)} a las {s.StartTime}.";
+            }
             case "agendar_examen":
             {
                 var b = await _exams.BookAsStudentAsync(
@@ -836,6 +1240,28 @@ public sealed class AssistantToolbox : IAssistantToolbox
             case "cancelar_examen":
                 await _exams.CancelAsStudentAsync(user.UserId, ReqInt(args, "cita_id"), ct);
                 return "Listo. Cancelamos tu cita de examen teórico.";
+            case "reprogramar_examen":
+            {
+                var b = await _exams.RescheduleAsStudentAsync(
+                    user.UserId,
+                    ReqInt(args, "cita_id"),
+                    new StudentRescheduleExamRequest(ReqDate(args, "fecha"), ReqTime(args, "hora")),
+                    ct);
+                return $"Listo. Tu examen teórico quedó el {DayIso(b.Date)} a las {b.Time}.";
+            }
+            case "lista_espera_examen":
+            {
+                var w = await _exams.JoinExamWaitlistAsync(
+                    user.UserId,
+                    new StudentBookExamRequest(ReqDate(args, "fecha"), ReqTime(args, "hora")),
+                    ct);
+                return $"Listo. Quedaste en lista de espera de examen (posición {w.Position}).";
+            }
+            case "confirmar_lista_espera_examen":
+            {
+                var b = await _exams.ConfirmExamWaitlistOfferAsync(user.UserId, ReqInt(args, "espera_id"), ct);
+                return $"Listo. Confirmaste el examen el {DayIso(b.Date)} a las {b.Time}.";
+            }
             case "reservar_clase_manejo":
             {
                 var lessonId = ReqInt(args, "clase_id");
@@ -865,6 +1291,23 @@ public sealed class AssistantToolbox : IAssistantToolbox
             case "cancelar_reserva_manejo":
                 await _practical.CancelReservationAsync(user.UserId, ReqInt(args, "reserva_id"), ct);
                 return "Listo. Cancelamos tu reserva de manejo.";
+            case "reprogramar_clase_manejo":
+            {
+                var s = await _practical.RescheduleReservationAsync(
+                    user.UserId, ReqInt(args, "reserva_id"), ReqInt(args, "clase_id"), ct);
+                var kind = PracticalSessionKinds.IsExam(s.Kind) ? "examen" : "clase";
+                return $"Listo. Tu {kind} de manejo quedó el {DayIso(s.SessionDate)} a las {s.StartTime}.";
+            }
+            case "lista_espera_manejo":
+            {
+                var w = await _practical.JoinPracticalWaitlistAsync(user.UserId, ReqInt(args, "clase_id"), ct);
+                return $"Listo. Quedaste en lista de espera de manejo (posición {w.Position}).";
+            }
+            case "confirmar_lista_espera_manejo":
+            {
+                var s = await _practical.ConfirmPracticalWaitlistOfferAsync(user.UserId, ReqInt(args, "espera_id"), ct);
+                return $"Listo. Confirmaste el cupo de manejo el {DayIso(s.SessionDate)} a las {s.StartTime}.";
+            }
             case "autorizar_examen":
             case "autorizar_manejo":
             {

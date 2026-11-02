@@ -70,6 +70,19 @@ public sealed class TheoryClassReservationConfiguration : IEntityTypeConfigurati
     }
 }
 
+public sealed class ScheduleWaitlistEntryConfiguration : IEntityTypeConfiguration<ScheduleWaitlistEntry>
+{
+    public void Configure(EntityTypeBuilder<ScheduleWaitlistEntry> builder)
+    {
+        builder.ToTable("ScheduleWaitlistEntries");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Kind).HasMaxLength(32).IsRequired();
+        builder.Property(x => x.Status).HasMaxLength(32).IsRequired();
+        builder.HasIndex(x => new { x.Kind, x.TargetId, x.TargetDate, x.TargetTime, x.Status, x.Position });
+        builder.HasIndex(x => new { x.SchoolUserId, x.StudentUserId, x.Kind, x.TargetId, x.TargetDate, x.TargetTime });
+    }
+}
+
 public sealed class TheoryAttendanceRecordConfiguration : IEntityTypeConfiguration<TheoryAttendanceRecord>
 {
     public void Configure(EntityTypeBuilder<TheoryAttendanceRecord> builder)

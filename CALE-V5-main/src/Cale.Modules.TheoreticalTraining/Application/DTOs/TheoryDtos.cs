@@ -337,6 +337,15 @@ public sealed record CreatePracticalLessonRequest(
     string? Notes,
     string? Kind = null);
 
+public sealed record UpdatePracticalLessonRequest(
+    DateOnly SessionDate,
+    string StartTime,
+    string EndTime,
+    int InstructorUserId,
+    int VehicleId,
+    string? Notes = null,
+    string? Kind = null);
+
 /// <summary>
 /// Publishes empty practical slots (no student) on each selected weekday between FromDate and ToDate.
 /// DaysOfWeek uses .NET values: 0=Sunday … 6=Saturday. Sundays are always skipped.
@@ -393,3 +402,18 @@ public sealed record UpdateEnrollmentRequest(
     string? LicenseCategories = null,
     bool? TheoryExamAuthorized = null,
     bool? PracticalAuthorized = null);
+
+public sealed record RescheduleTheoryReservationRequest(int NewSessionId);
+
+public sealed record ReschedulePracticalReservationRequest(int NewLessonId);
+
+public sealed record ScheduleWaitlistEntryDto(
+    int Id,
+    string Kind,
+    int TargetId,
+    int Position,
+    string Status,
+    string? OfferedAt,
+    string? OfferExpiresAt,
+    string? TargetDate,
+    string? TargetStartTime);

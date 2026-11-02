@@ -198,3 +198,31 @@
     padding: 0.75rem;
   }
 }
+
+.notice-ok {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, #2e7d32 12%, #fff);
+  border: 1px solid color-mix(in srgb, #2e7d32 35%, #c8e6c9);
+  color: #1b5e20;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.btn-row .btn { flex: 1 1 auto; }
+.notice-cancel {
+  display: inline-block;
+  margin-left: 0.65rem;
+  border: 0;
+  background: transparent;
+  color: #1565c0;
+  font-weight: 800;
+  cursor: pointer;
+  text-decoration: underline;
+}
