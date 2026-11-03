@@ -34,10 +34,13 @@ public sealed class SchoolOpsAlertService
         var today = ColombiaTime.TodayInColombia();
         var weekEnd = today.AddDays(6);
 
+        // Stable sample: OrderBy before Take so counts are deterministic across ticks.
         var enrollments = await _db.Set<SchoolStudentEnrollment>()
             .AsNoTracking()
             .Where(x => x.SchoolUserId == schoolUserId
                 && StudentEnrollmentStatuses.CanReserveStatuses.Contains(x.Status))
+            .OrderBy(x => x.StudentUserId)
+            .Take(200)
             .ToListAsync(ct);
 
         var readyTheoryExam = 0;
@@ -45,7 +48,7 @@ public sealed class SchoolOpsAlertService
         var readyPractical = 0;
         var stagnant = 0;
 
-        foreach (var e in enrollments.Take(200))
+        foreach (var e in enrollments)
         {
             try
             {

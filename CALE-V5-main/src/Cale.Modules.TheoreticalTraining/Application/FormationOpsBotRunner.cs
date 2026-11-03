@@ -44,6 +44,7 @@ public sealed class FormationOpsBotRunner
             .Where(x => StudentEnrollmentStatuses.CanReserveStatuses.Contains(x.Status))
             .Select(x => x.StudentUserId)
             .Distinct()
+            .OrderBy(id => id)
             .Take(400)
             .ToListAsync(ct);
 
@@ -107,6 +108,9 @@ public sealed class FormationOpsBotRunner
                 && x.LessonSession.Status != PracticalLessonStatuses.Cancelled
                 && x.LessonSession.SessionDate >= today
                 && x.LessonSession.SessionDate <= until)
+            .OrderBy(x => x.LessonSession!.SessionDate)
+            .ThenBy(x => x.LessonSession!.StartTime)
+            .ThenBy(x => x.Id)
             .Take(500)
             .ToListAsync(ct);
 
@@ -152,6 +156,7 @@ public sealed class FormationOpsBotRunner
             .AsNoTracking()
             .Select(x => x.SchoolUserId)
             .Distinct()
+            .OrderBy(id => id)
             .Take(200)
             .ToListAsync(ct);
 
@@ -164,6 +169,7 @@ public sealed class FormationOpsBotRunner
                 var summary = await _opsAlerts.GetAlertsAsync(schoolId, ct);
                 var high = summary.Alerts
                     .Where(a => a.Priority == "high" && a.Code != "ops_ok")
+                    .OrderBy(a => a.Code, StringComparer.Ordinal)
                     .Take(3)
                     .ToList();
                 if (high.Count == 0)
