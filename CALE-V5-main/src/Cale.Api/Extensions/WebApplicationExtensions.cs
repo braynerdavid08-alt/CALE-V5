@@ -52,7 +52,7 @@ public static class WebApplicationExtensions
         app.UseMiddleware<CsrfOriginMiddleware>();
         app.UseMiddleware<SignImageRedirectMiddleware>();
         app.UseMiddleware<CourseVideoGateMiddleware>();
-        app.UseDefaultFiles();
+        // Do not UseDefaultFiles(): serving /index.html for "/" would bypass SPA SEO rewriting.
         var spaFiles = new StaticFileOptions { OnPrepareResponse = ctx => ApplySpaCacheHeaders(ctx.Context) };
         app.UseStaticFiles(spaFiles);
         app.UseAuthentication();
@@ -74,8 +74,16 @@ public static class WebApplicationExtensions
                 "application/problem+json");
         });
 
-        // Angular SPA deep links (keep /api/* on controllers).
-        app.MapFallbackToFile("index.html", spaFiles);
+        // Angular SPA deep links: rewrite canonical/title/robots in the HTML shell so crawlers
+        // do not see every route as https://www.cealuzverde.com/ (SeoService still runs in the browser).
+        app.MapFallback(async context =>
+        {
+            await Cale.Api.Services.Spa.SpaHtmlSeo.WriteIndexAsync(
+                context,
+                context.RequestServices.GetRequiredService<IWebHostEnvironment>(),
+                context.RequestServices.GetRequiredService<IConfiguration>(),
+                context.RequestAborted);
+        });
 
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<CaleDbContext>();
