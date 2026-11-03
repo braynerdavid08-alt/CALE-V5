@@ -604,9 +604,10 @@ export class LandingPage implements OnInit {
   }
 
   private applySeo(data: PublicHomeDto): void {
-    // Prefer CMS SEO when set; otherwise B2B defaults (software for CEA).
-    const t = data.seoTitle?.trim() || PAGE_SEO.home.title;
-    const d = data.seoDescription?.trim() || PAGE_SEO.home.description;
+    // Prefer CMS SEO when set; ignore known pre-rebrand leftovers so Angular
+    // never overwrites SpaHtmlSeo / PAGE_SEO B2B tags with old brand copy.
+    const t = this.resolveHomeSeoField(data.seoTitle, PAGE_SEO.home.title);
+    const d = this.resolveHomeSeoField(data.seoDescription, PAGE_SEO.home.description);
     this.seo.apply({
       title: t,
       description: d,
@@ -614,6 +615,22 @@ export class LandingPage implements OnInit {
       index: true
     });
     this.seo.injectHomeJsonLd();
+  }
+
+  /** Empty or exact legacy CMS defaults → PAGE_SEO; admin custom text kept. */
+  private resolveHomeSeoField(raw: string | null | undefined, fallback: string): string {
+    const value = raw?.trim() ?? '';
+    if (!value) {
+      return fallback;
+    }
+    const legacy = new Set([
+      'Mi CALE',
+      'Mi CALE — tu CALE, en tu CEA',
+      'Luz Verde — Formación que impulsa tu camino.',
+      'Mi CALE: tu CALE, en tu CEA. Formación vial con tu centro de enseñanza automovilística.',
+      'Luz Verde: practica gratis el simulacro del examen CALE todas las veces que quieras y sigue tu formación vial con tu escuela.'
+    ]);
+    return legacy.has(value) ? fallback : value;
   }
 
   private buildLocalFallback(): PublicHomeDto {

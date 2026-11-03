@@ -82,11 +82,32 @@ public class SpaHtmlSeoTests
     [InlineData("/contacto", "https://www.cealuzverde.com/contacto")]
     [InlineData("/cursos", "https://www.cealuzverde.com/cursos")]
     [InlineData("/escuelas", "https://www.cealuzverde.com/escuelas")]
+    [InlineData("/instructores", "https://www.cealuzverde.com/instructores")]
+    [InlineData("/tienda", "https://www.cealuzverde.com/tienda")]
+    [InlineData("/tienda/catalogo", "https://www.cealuzverde.com/tienda/catalogo")]
+    [InlineData("/blog", "https://www.cealuzverde.com/blog")]
+    [InlineData("/apoyar", "https://www.cealuzverde.com/apoyar")]
+    [InlineData("/pqr", "https://www.cealuzverde.com/pqr")]
     public void Public_routes_declare_matching_canonical(string path, string canonical)
     {
         var html = SpaHtmlSeo.Rewrite(Shell, path, SpaHtmlSeo.DefaultOrigin);
         Assert.Contains($"<link rel=\"canonical\" href=\"{canonical}\">", html);
         Assert.Contains("name=\"robots\" content=\"index, follow\"", html);
         Assert.Contains($"property=\"og:url\" content=\"{canonical}\"", html);
+        Assert.DoesNotContain("name=\"robots\" content=\"noindex, nofollow\"", html);
+    }
+
+    [Theory]
+    [InlineData("/login")]
+    [InlineData("/school")]
+    [InlineData("/school/dashboard")]
+    [InlineData("/admin")]
+    [InlineData("/legal/terms")]
+    public void Private_routes_are_crawlable_shell_with_noindex(string path)
+    {
+        var html = SpaHtmlSeo.Rewrite(Shell, path, SpaHtmlSeo.DefaultOrigin);
+        Assert.Contains("name=\"robots\" content=\"noindex, nofollow\"", html);
+        Assert.Contains($"<link rel=\"canonical\" href=\"https://www.cealuzverde.com{path}\">", html);
     }
 }
+

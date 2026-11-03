@@ -32,16 +32,17 @@ public sealed class HomepageSettings
     public bool BenefitsSectionVisible { get; set; } = true;
     public bool StepsSectionVisible { get; set; } = true;
 
-    public string SeoTitle { get; set; } = "Luz Verde — Formación que impulsa tu camino.";
+    public string SeoTitle { get; set; } =
+        "Luz Verde | Plataforma y software para CEA y escuelas de conducción";
     public string SeoDescription { get; set; } =
-        "Luz Verde: practica gratis el simulacro del examen CALE todas las veces que quieras y sigue tu formación vial con tu escuela.";
+        "Luz Verde es la plataforma digital para Centros de Enseñanza Automovilística en Colombia: gestión de estudiantes e instructores, agenda de clases, exámenes y formación con simulacro teórico.";
 
-    public string ContactEmail { get; set; } = "contacto@cale.local";
+    public string ContactEmail { get; set; } = "notificaciones@cealuzverde.com";
     public string ContactPhone { get; set; } = "";
     public string AboutHtml { get; set; } =
-        "<p><strong>Luz Verde</strong> — Formación que impulsa tu camino. Simulacros gratis e ilimitados, formación teórica, práctica y evaluación en un solo lugar, junto a tu centro de enseñanza automovilística.</p>";
+        "<p><strong>Luz Verde</strong> es una plataforma digital para CEA y escuelas de conducción en Colombia. Formación que impulsa tu camino: gestión, agenda, formación y simulacro teórico en un solo lugar.</p>";
     public string BlogIntro { get; set; } =
-        "Pronto publicaremos artículos sobre formación vial. Mientras tanto, explora cursos y escuelas.";
+        "Pronto publicaremos artículos sobre software para CEA y formación vial en Colombia. Mientras tanto, explora cursos y escuelas.";
 
     public DateTime UpdatedAt { get; set; }
     public int? UpdatedByUserId { get; set; }
@@ -69,14 +70,30 @@ public sealed class HomepageSettings
         HeroImageAlt = Swap(HeroImageAlt, "Mi CALE — formación vial", current.HeroImageAlt);
         StepsSectionTitle = Swap(StepsSectionTitle, "¿Cómo funciona Mi CALE?", current.StepsSectionTitle);
         SeoTitle = Swap(SeoTitle, "Mi CALE — tu CALE, en tu CEA", current.SeoTitle);
+        // Production DB leftover brand stub (not a deliberate admin rewrite).
+        SeoTitle = Swap(SeoTitle, "Mi CALE", current.SeoTitle);
+        SeoTitle = Swap(SeoTitle, "Luz Verde — Formación que impulsa tu camino.", current.SeoTitle);
         SeoDescription = Swap(
             SeoDescription,
             "Mi CALE: tu CALE, en tu CEA. Formación vial con tu centro de enseñanza automovilística.",
+            current.SeoDescription);
+        SeoDescription = Swap(
+            SeoDescription,
+            "Luz Verde: practica gratis el simulacro del examen CALE todas las veces que quieras y sigue tu formación vial con tu escuela.",
             current.SeoDescription);
         AboutHtml = Swap(
             AboutHtml,
             "<p><strong>Mi CALE</strong> — tu CALE, en tu CEA. Formación teórica, práctica y evaluación en un solo lugar, junto a tu centro de enseñanza automovilística.</p>",
             current.AboutHtml);
+        AboutHtml = Swap(
+            AboutHtml,
+            "<p><strong>Luz Verde</strong> — Formación que impulsa tu camino. Simulacros gratis e ilimitados, formación teórica, práctica y evaluación en un solo lugar, junto a tu centro de enseñanza automovilística.</p>",
+            current.AboutHtml);
+        ContactEmail = Swap(ContactEmail, "contacto@cale.local", current.ContactEmail);
+        BlogIntro = Swap(
+            BlogIntro,
+            "Pronto publicaremos artículos sobre formación vial. Mientras tanto, explora cursos y escuelas.",
+            current.BlogIntro);
 
         return changed;
     }
