@@ -3,6 +3,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { resolveMediaUrl } from '../../core/media/resolve-media-url';
 import { BRAND } from '../../core/brand';
+import { PAGE_SEO } from '../../core/seo/page-seo';
 import { SeoService } from '../../core/seo/seo.service';
 import { SessionStore } from '../../core/auth/session.store';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
@@ -119,12 +120,12 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                         </span>
                       } @else {
                         <span class="trust-text"
-                          >Formación vial, gestión para CEA y equipo de protección en un solo lugar.</span
+                          >Software para CEA: gestión, agenda, formación y simulacro en un solo lugar.</span
                         >
                       }
                     } @else {
                       <span class="trust-text"
-                        >Formación vial, gestión para CEA y equipo de protección en un solo lugar.</span
+                        >Software para CEA: gestión, agenda, formación y simulacro en un solo lugar.</span
                       >
                     }
                   </div>
@@ -603,8 +604,9 @@ export class LandingPage implements OnInit {
   }
 
   private applySeo(data: PublicHomeDto): void {
-    const t = data.seoTitle?.trim() || BRAND.seoTitle;
-    const d = data.seoDescription?.trim() || BRAND.seoDescription;
+    // Prefer CMS SEO when set; otherwise B2B defaults (software for CEA).
+    const t = data.seoTitle?.trim() || PAGE_SEO.home.title;
+    const d = data.seoDescription?.trim() || PAGE_SEO.home.description;
     this.seo.apply({
       title: t,
       description: d,
@@ -618,11 +620,11 @@ export class LandingPage implements OnInit {
     return {
       hero: {
         visible: true,
-        badge: 'Formación vial y protección',
+        badge: 'Plataforma para CEA',
         title: 'Luz Verde',
-        titleHighlight: 'seguridad en la vía',
+        titleHighlight: 'software para tu escuela de conducción',
         description:
-          'Plataforma de formación para conductores y CEA, con tienda de equipo de protección.',
+          'Gestiona estudiantes, instructores, agenda de clases y exámenes, y forma conductores con simulacro teórico — en una sola plataforma digital.',
         ctaPrimaryLabel: 'Explorar tienda',
         ctaPrimaryPath: '/tienda',
         ctaSecondaryLabel: 'Para CEA',

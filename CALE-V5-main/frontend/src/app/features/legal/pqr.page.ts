@@ -4,6 +4,8 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { SessionStore } from '../../core/auth/session.store';
 import { mapApiError } from '../../core/http/map-api-error';
+import { PAGE_SEO } from '../../core/seo/page-seo';
+import { SeoService } from '../../core/seo/seo.service';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../shared/ui/ui-error.component';
 import { Pqr, PqrApi, PqrCreated, PqrKind } from './pqr.api';
@@ -17,11 +19,11 @@ import { PqrTimelineComponent } from './pqr-timeline.component';
   template: `
     <section class="pqr">
       <header>
-        <h1>PQR y datos personales</h1>
+        <h1>PQR y derechos sobre datos personales</h1>
         <p class="lead">
-          Envía una petición, queja o reclamo, o ejerce tus derechos sobre tus datos personales: conocerlos, actualizarlos,
-          corregirlos, pedir que se eliminen o revocar tu autorización. Cada solicitud recibe un número de radicado y una
-          fecha máxima de respuesta.
+          Canal de Luz Verde para peticiones, quejas o reclamos, y para ejercer derechos sobre tus datos personales:
+          conocerlos, actualizarlos, corregirlos, pedir que se eliminen o revocar tu autorización. Cada solicitud recibe
+          un número de radicado y una fecha máxima de respuesta.
         </p>
       </header>
 
@@ -135,6 +137,7 @@ export class PqrPage {
   private readonly api = inject(PqrApi);
   private readonly fb = inject(FormBuilder);
   private readonly session = inject(SessionStore);
+  private readonly seo = inject(SeoService);
 
   readonly loggedIn = computed(() => this.session.isAuthenticated());
   readonly kinds = signal<PqrKind[]>([]);
@@ -156,6 +159,12 @@ export class PqrPage {
   });
 
   constructor() {
+    this.seo.apply({
+      title: PAGE_SEO.pqr.title,
+      description: PAGE_SEO.pqr.description,
+      path: '/pqr',
+      index: true
+    });
     if (this.loggedIn()) {
       this.form.controls.name.disable();
       this.form.controls.email.disable();

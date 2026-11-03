@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { BRAND, brandPageTitle } from '../../core/brand';
+import { BRAND } from '../../core/brand';
+import { PAGE_SEO } from '../../core/seo/page-seo';
 import { SeoService } from '../../core/seo/seo.service';
 import { mapApiError } from '../../core/http/map-api-error';
 import { UiErrorComponent } from '../../shared/ui/ui-error.component';
@@ -14,8 +15,11 @@ import { PublicHomeApi } from './public-home.api';
     <div class="page">
       <header class="head">
         <p class="eyebrow">Nosotros</p>
-        <h1>Quiénes somos</h1>
-        <p class="lead">Conoce {{ brand.name }} en Barranquilla y su misión: formación que impulsa tu camino.</p>
+        <h1>Plataforma tecnológica para CEA</h1>
+        <p class="lead">
+          {{ brand.name }} construye software para Centros de Enseñanza Automovilística:
+          {{ brand.slogan }} No somos una escuela física; impulsamos la operación digital de las escuelas.
+        </p>
       </header>
 
       @if (loading()) {
@@ -67,8 +71,8 @@ export class PublicAboutPage implements OnInit {
 
   ngOnInit(): void {
     this.seo.apply({
-      title: brandPageTitle('Nosotros'),
-      description: `${BRAND.name} en Barranquilla: ${BRAND.slogan} Plataforma de formación vial y apoyo a escuelas de conducción (CEA).`,
+      title: PAGE_SEO.about.title,
+      description: PAGE_SEO.about.description,
       path: '/nosotros',
       index: true
     });
@@ -76,7 +80,7 @@ export class PublicAboutPage implements OnInit {
     this.api.getHome().subscribe({
       next: (data) => {
         const html = data.aboutHtml?.trim()
-          || `<p><strong>${BRAND.name}</strong> — ${BRAND.slogan}.</p>`;
+          || `<p><strong>${BRAND.name}</strong> es una plataforma digital para CEA y escuelas de conducción en Colombia. ${BRAND.slogan}</p><p>Ayudamos a administrar estudiantes e instructores, programar clases y exámenes, y formar conductores con herramientas digitales — sin reemplazar la habilitación presencial de cada escuela.</p>`;
         this.aboutHtml.set(html);
         this.loading.set(false);
       },

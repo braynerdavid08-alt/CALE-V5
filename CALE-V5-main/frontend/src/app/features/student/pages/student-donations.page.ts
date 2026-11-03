@@ -1,8 +1,10 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { SessionStore } from '../../../core/auth/session.store';
+import { PAGE_SEO } from '../../../core/seo/page-seo';
+import { SeoService } from '../../../core/seo/seo.service';
 
 const SHARE_TEXT =
-  'Estoy usando Luz Verde para practicar gratis el examen de conducción. Es gratis para estudiantes, instructores y escuelas:';
+  'Estoy usando Luz Verde, la plataforma para CEA y formación vial. Es gratis para estudiantes, instructores y escuelas:';
 
 @Component({
   selector: 'app-student-donations-page',
@@ -167,11 +169,11 @@ const SHARE_TEXT =
     <section class="donate">
       <header class="hero">
         <p class="kicker">Apoyar Luz Verde</p>
-        <h1>Luz Verde es gratis para todos 💚</h1>
+        <h1>Apoya la plataforma Luz Verde</h1>
         <p>
-          Estudiantes, instructores y escuelas usan todas las funciones sin pagar nada.
-          Mantener la app en línea cuesta dinero cada mes (servidor, base de datos y dominio),
-          así que Luz Verde vive de las donaciones de quienes la usan.
+          Estudiantes, instructores y escuelas CEA usan las funciones de formación y gestión sin pagar por acceso básico.
+          Mantener la plataforma en línea cuesta dinero cada mes (servidor, base de datos y dominio),
+          así que Luz Verde también se sostiene con donaciones voluntarias.
         </p>
         <div class="chips">
           <span class="chip">✅ Todo gratis</span>
@@ -241,9 +243,19 @@ const SHARE_TEXT =
     </section>
   `
 })
-export class StudentDonationsPage {
+export class StudentDonationsPage implements OnInit {
   private readonly session = inject(SessionStore);
+  private readonly seo = inject(SeoService);
   readonly copied = signal(false);
+
+  ngOnInit(): void {
+    this.seo.apply({
+      title: PAGE_SEO.support.title,
+      description: PAGE_SEO.support.description,
+      path: '/apoyar',
+      index: true
+    });
+  }
 
   readonly roleNote = computed(() => {
     const role = this.session.user()?.role;

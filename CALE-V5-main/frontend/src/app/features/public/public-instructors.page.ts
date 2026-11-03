@@ -4,7 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { mapApiError } from '../../core/http/map-api-error';
-import { BRAND, brandPageTitle } from '../../core/brand';
+import { BRAND } from '../../core/brand';
+import { PAGE_SEO } from '../../core/seo/page-seo';
 import { SeoService } from '../../core/seo/seo.service';
 import { env } from '../../core/config/env';
 import { SessionStore } from '../../core/auth/session.store';
@@ -43,9 +44,9 @@ interface ReviewDto {
     <div class="page">
       <header class="head">
         <p class="eyebrow">Instructores</p>
-        <h1>Instructores de Luz Verde</h1>
+        <h1>Instructores en la plataforma Luz Verde</h1>
         <p class="lead">
-          Directorio público. Puedes pedir una clase particular o dejar una calificación.
+          Directorio público de instructores vinculados a la plataforma. Puedes pedir una clase particular o dejar una calificación.
           Luz Verde solo conecta: el acuerdo y el pago se hacen directamente con el instructor.
         </p>
         <div class="filters">
@@ -342,9 +343,8 @@ export class PublicInstructorsPage implements OnInit {
 
   ngOnInit(): void {
     this.seo.apply({
-      title: brandPageTitle('Instructores'),
-      description:
-        'Instructores de conducción en Luz Verde: clases particulares y formación vial en Barranquilla.',
+      title: PAGE_SEO.instructors.title,
+      description: PAGE_SEO.instructors.description,
       path: '/instructores',
       index: true
     });

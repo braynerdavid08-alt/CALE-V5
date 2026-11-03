@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { mapApiError } from '../../core/http/map-api-error';
-import { brandPageTitle } from '../../core/brand';
+import { PAGE_SEO } from '../../core/seo/page-seo';
 import { SeoService } from '../../core/seo/seo.service';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../shared/ui/ui-error.component';
@@ -16,7 +16,7 @@ import { PublicHomeApi } from './public-home.api';
     <div class="page">
       <header class="head">
         <p class="eyebrow">Blog</p>
-        <h1>Novedades y formación vial</h1>
+        <h1>Gestión de CEA y formación vial</h1>
       </header>
 
       @if (loading()) {
@@ -27,12 +27,14 @@ import { PublicHomeApi } from './public-home.api';
         <article class="panel">
           <p class="intro">{{ intro() }}</p>
           <p class="muted">
-            Los artículos públicos se publicarán aquí. Mientras tanto puedes explorar
-            escuelas e instructores, o crear tu cuenta para acceder a cursos.
+            Aquí publicaremos guías sobre plataforma para CEA, agenda de clases, simulacro teórico
+            y operación de escuelas de conducción en Colombia. Mientras tanto puedes conocer la
+            plataforma o ver escuelas e instructores.
           </p>
           <div class="actions">
+            <ui-button routerLink="/contacto" type="button">Demo para CEA</ui-button>
             <ui-button routerLink="/escuelas" type="button" variant="secondary">Ver escuelas</ui-button>
-            <ui-button routerLink="/register" type="button">Registrarme</ui-button>
+            <ui-button routerLink="/cursos" type="button" variant="secondary">Ver cursos</ui-button>
           </div>
         </article>
       }
@@ -91,9 +93,8 @@ export class PublicBlogPage implements OnInit {
 
   ngOnInit(): void {
     this.seo.apply({
-      title: brandPageTitle('Blog'),
-      description:
-        'Novedades de formación vial, licencias de conducción y escuelas CEA con Luz Verde en Barranquilla.',
+      title: PAGE_SEO.blog.title,
+      description: PAGE_SEO.blog.description,
       path: '/blog',
       index: true
     });
@@ -102,7 +103,7 @@ export class PublicBlogPage implements OnInit {
       next: (data) => {
         this.intro.set(
           data.blogIntro?.trim()
-          || 'Pronto publicaremos artículos sobre formación vial.'
+          || 'Pronto publicaremos artículos sobre software para CEA y formación vial en Colombia.'
         );
         this.loading.set(false);
       },

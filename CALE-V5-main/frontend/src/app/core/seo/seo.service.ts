@@ -133,6 +133,18 @@ export class SeoService {
           about: { '@id': `${SITE_ORIGIN}/#organization` },
           description: BRAND.seoDescription,
           inLanguage: 'es-CO'
+        },
+        {
+          '@type': 'SoftwareApplication',
+          '@id': `${SITE_ORIGIN}/#software`,
+          name: BRAND.name,
+          url: `${SITE_ORIGIN}/`,
+          applicationCategory: 'BusinessApplication',
+          applicationSubCategory: 'EducationalApplication',
+          operatingSystem: 'Web',
+          description: BRAND.seoDescription,
+          publisher: { '@id': `${SITE_ORIGIN}/#organization` },
+          inLanguage: 'es-CO'
         }
       ]
     };

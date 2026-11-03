@@ -32,9 +32,12 @@ import { UiThemeToggleComponent } from '../../shared/ui/ui-theme-toggle.componen
 
           <nav class="nav desktop" aria-label="Principal">
             <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Inicio</a>
-            <a routerLink="/tienda" routerLinkActive="active">Tienda</a>
+            <a routerLink="/cursos" routerLinkActive="active">Cursos</a>
+            <a routerLink="/escuelas" routerLinkActive="active">Escuelas</a>
+            <a routerLink="/instructores" routerLinkActive="active">Instructores</a>
             <a routerLink="/contacto" routerLinkActive="active">Para CEA</a>
-            <a routerLink="/nosotros" routerLinkActive="active">Nosotros</a>
+            <a routerLink="/blog" routerLinkActive="active">Blog</a>
+            <a routerLink="/tienda" routerLinkActive="active">Tienda</a>
           </nav>
 
           <div class="actions desktop">
@@ -64,9 +67,15 @@ import { UiThemeToggleComponent } from '../../shared/ui/ui-theme-toggle.componen
           <div id="public-mobile-nav" class="mobile-panel">
             <nav aria-label="Móvil">
               <a routerLink="/" (click)="closeMenu()">Inicio</a>
-              <a routerLink="/tienda" (click)="closeMenu()">Tienda</a>
+              <a routerLink="/cursos" (click)="closeMenu()">Cursos</a>
+              <a routerLink="/escuelas" (click)="closeMenu()">Escuelas</a>
+              <a routerLink="/instructores" (click)="closeMenu()">Instructores</a>
               <a routerLink="/contacto" (click)="closeMenu()">Para CEA</a>
+              <a routerLink="/blog" (click)="closeMenu()">Blog</a>
+              <a routerLink="/tienda" (click)="closeMenu()">Tienda</a>
               <a routerLink="/nosotros" (click)="closeMenu()">Nosotros</a>
+              <a routerLink="/apoyar" (click)="closeMenu()">Apoyar</a>
+              <a routerLink="/pqr" (click)="closeMenu()">PQR</a>
             </nav>
             <div class="mobile-actions">
               <span class="theme-slot">
@@ -90,6 +99,29 @@ import { UiThemeToggleComponent } from '../../shared/ui/ui-theme-toggle.componen
       <main class="main">
         <router-outlet />
       </main>
+
+      <footer class="site-footer">
+        <div class="footer-inner">
+          <div class="footer-brand">
+            <p class="footer-name">{{ brand.name }}</p>
+            <p class="footer-tag">{{ brand.slogan }}</p>
+            <p class="footer-pitch">
+              Plataforma digital para CEA y escuelas de conducción en Colombia.
+            </p>
+          </div>
+          <nav class="footer-nav" aria-label="Pie de página">
+            <a routerLink="/cursos">Cursos</a>
+            <a routerLink="/escuelas">Escuelas</a>
+            <a routerLink="/instructores">Instructores</a>
+            <a routerLink="/contacto">Contacto / Demo CEA</a>
+            <a routerLink="/blog">Blog</a>
+            <a routerLink="/tienda">Tienda</a>
+            <a routerLink="/nosotros">Nosotros</a>
+            <a routerLink="/apoyar">Apoyar</a>
+            <a routerLink="/pqr">PQR</a>
+          </nav>
+        </div>
+      </footer>
     </div>
   `,
   styleUrl: './public-shell.component.css'

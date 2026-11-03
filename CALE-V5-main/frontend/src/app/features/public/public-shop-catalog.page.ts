@@ -1,8 +1,8 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Meta, Title } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { brandPageTitle } from '../../core/brand';
+import { PAGE_SEO } from '../../core/seo/page-seo';
+import { SeoService } from '../../core/seo/seo.service';
 import { mapApiError } from '../../core/http/map-api-error';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../shared/ui/ui-error.component';
@@ -463,8 +463,7 @@ const PAGE_SIZE = 12;
 export class PublicShopCatalogPage implements OnInit {
   private readonly api = inject(ShopApi);
   private readonly analytics = inject(ShopAnalyticsService);
-  private readonly title = inject(Title);
-  private readonly meta = inject(Meta);
+  private readonly seo = inject(SeoService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly fav = inject(ShopFavoritesService);
@@ -563,8 +562,13 @@ export class PublicShopCatalogPage implements OnInit {
       next: (data) => {
         this.shop.set(data);
         this.analytics.track('view_shop');
-        this.title.setTitle(brandPageTitle('Catálogo — ' + data.pageTitle));
-        this.meta.updateTag({ name: 'description', content: data.pageSubtitle });
+        const pageTitle = data.pageTitle?.trim() || 'Catálogo';
+        this.seo.apply({
+          title: `Catálogo — ${pageTitle} | Luz Verde`,
+          description: data.pageSubtitle?.trim() || PAGE_SEO.shopCatalog.description,
+          path: '/tienda/catalogo',
+          index: true
+        });
         this.loading.set(false);
       },
       error: (err) => {

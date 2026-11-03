@@ -3,16 +3,16 @@ export const BRAND = {
   /** Primary product name (hero / logo wordmark). */
   name: 'Luz Verde',
   /** Short tagline for tight UI (sidebar, nav). */
-  sloganShort: 'Formación vial',
+  sloganShort: 'Plataforma para CEA',
   /** Full tagline for auth, footer, meta. */
   slogan: 'Formación que impulsa tu camino.',
   /** Compact mark inside the round logo. */
   mark: 'L',
-  /** Document / SEO fallback title. */
-  seoTitle: 'Luz Verde | Formación vial en Barranquilla — A2, B1 y C1',
+  /** Document / SEO fallback title (B2B — software for driving schools). */
+  seoTitle: 'Luz Verde | Plataforma y software para CEA y escuelas de conducción',
   /** Document / SEO fallback description. */
   seoDescription:
-    'Luz Verde: formación que impulsa tu camino. Plataforma de formación de conductores en Barranquilla con simulacro CALE gratis, cursos de conducción y categorías A2, B1 y C1 para escuelas CEA.',
+    'Luz Verde es la plataforma digital para Centros de Enseñanza Automovilística en Colombia: gestión de estudiantes e instructores, agenda de clases, exámenes y formación con simulacro teórico.',
   /** Full horizontal logo (traffic light + wordmark + slogan) on a transparent background; its dark text needs a light surface behind it. */
   logoWide: '/brand/luz-verde-logo.png',
   /** Same logo with light lettering, for dark surfaces. */

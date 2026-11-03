@@ -1,6 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { brandPageTitle } from '../../core/brand';
+import { PAGE_SEO } from '../../core/seo/page-seo';
 import { SeoService } from '../../core/seo/seo.service';
 import { mapApiError } from '../../core/http/map-api-error';
 import { resolveMediaUrl } from '../../core/media/resolve-media-url';
@@ -38,10 +38,10 @@ import { PublicShopDto, PublicShopProductDto, SHOP_CATEGORIES } from './shop.mod
           }
           <div class="hero-copy">
             <p class="eyebrow">Tienda Luz Verde</p>
-            <h1>Equípate para un camino más seguro</h1>
+            <h1>Tienda de protección para conductores</h1>
             <p class="lead">
-              Encuentra cascos, guantes y accesorios para motociclistas con excelentes precios. Explora
-              las ofertas y consulta por WhatsApp, sin compromiso.
+              Complemento de la plataforma Luz Verde: cascos, guantes y accesorios. Explora ofertas
+              y consulta por WhatsApp, sin compromiso.
             </p>
             <div class="hero-actions">
               <ui-button type="button" (click)="scrollTo('ofertas')">Ver ofertas</ui-button>
@@ -407,10 +407,10 @@ export class PublicShopPage implements OnInit {
         this.shop.set(data);
         this.analytics.track('view_shop');
         this.seo.apply({
-          title: brandPageTitle(data.pageTitle || 'Tienda'),
-          description:
-            data.pageSubtitle ||
-            'Cascos y equipo de protección para conductores. Consulta por WhatsApp desde Luz Verde en Barranquilla.',
+          title: data.pageTitle?.trim()
+            ? `${data.pageTitle.trim()} — Luz Verde`
+            : PAGE_SEO.shop.title,
+          description: data.pageSubtitle?.trim() || PAGE_SEO.shop.description,
           path: '/tienda',
           index: true
         });

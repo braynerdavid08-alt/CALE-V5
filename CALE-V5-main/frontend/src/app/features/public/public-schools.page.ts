@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { mapApiError } from '../../core/http/map-api-error';
-import { brandPageTitle } from '../../core/brand';
+import { PAGE_SEO } from '../../core/seo/page-seo';
 import { SeoService } from '../../core/seo/seo.service';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../shared/ui/ui-error.component';
@@ -17,8 +17,10 @@ import { PublicSchoolCardDto } from './public.models';
     <div class="page">
       <header class="head">
         <p class="eyebrow">Escuelas</p>
-        <h1>Escuelas de manejo aliadas</h1>
-        <p class="lead">Centros de enseñanza automovilística que ya forman a sus estudiantes con Luz Verde.</p>
+        <h1>CEA que operan con Luz Verde</h1>
+        <p class="lead">
+          Escuelas de conducción que usan la plataforma para gestionar formación, estudiantes e instructores.
+        </p>
       </header>
 
       @if (loading()) {
@@ -103,9 +105,8 @@ export class PublicSchoolsPage implements OnInit {
 
   ngOnInit(): void {
     this.seo.apply({
-      title: brandPageTitle('Escuelas de conducción'),
-      description:
-        'Escuelas de conducción (CEA) aliadas de Luz Verde. Formación de conductores y licencias con apoyo digital en Barranquilla y Colombia.',
+      title: PAGE_SEO.schools.title,
+      description: PAGE_SEO.schools.description,
       path: '/escuelas',
       index: true
     });

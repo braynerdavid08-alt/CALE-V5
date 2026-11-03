@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { mapApiError } from '../../core/http/map-api-error';
-import { brandPageTitle } from '../../core/brand';
+import { PAGE_SEO } from '../../core/seo/page-seo';
 import { SeoService } from '../../core/seo/seo.service';
 import { env } from '../../core/config/env';
 import { SessionStore } from '../../core/auth/session.store';
@@ -19,10 +19,10 @@ import { PublicCourseCardDto } from './public.models';
     <div class="page">
       <header class="head">
         <p class="eyebrow">Cursos</p>
-        <h1>Formación vial con Luz Verde</h1>
+        <h1>Malla de formación vial en la plataforma</h1>
         <p class="lead">
-          Formación de conductores en Barranquilla: señales, normas, vía, vehículo y
-          categorías A2, B1 y C1. Para estudiar las lecciones inicia sesión o crea tu cuenta.
+          Contenido digital para que tu CEA forme conductores: señales, normas, vía, vehículo
+          y categorías A2, B1 y C1. Las lecciones se estudian con cuenta de estudiante vinculada a la escuela.
         </p>
       </header>
 
@@ -160,9 +160,8 @@ export class PublicCoursesPage implements OnInit {
 
   ngOnInit(): void {
     this.seo.apply({
-      title: brandPageTitle('Cursos de conducción'),
-      description:
-        'Cursos de conducción y formación vial en Barranquilla con Luz Verde: señales, normas, vía, vehículo y categorías A2, B1 y C1.',
+      title: PAGE_SEO.courses.title,
+      description: PAGE_SEO.courses.description,
       path: '/cursos',
       index: true
     });

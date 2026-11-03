@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { mapApiError } from '../../core/http/map-api-error';
-import { brandPageTitle } from '../../core/brand';
+import { PAGE_SEO } from '../../core/seo/page-seo';
 import { SeoService } from '../../core/seo/seo.service';
 import { UiErrorComponent } from '../../shared/ui/ui-error.component';
 import { UiIconComponent } from '../../shared/ui/ui-icon.component';
@@ -15,8 +15,11 @@ import { PublicHomeApi } from './public-home.api';
     <div class="page">
       <header class="head">
         <p class="eyebrow">Contacto</p>
-        <h1>Habla con el equipo de Luz Verde</h1>
-        <p class="lead">Estamos en Barranquilla para ayudarte con escuelas CEA, cuentas y formación de conductores.</p>
+        <h1>Demo y contacto para tu CEA</h1>
+        <p class="lead">
+          ¿Quieres conocer el software de gestión para tu escuela de conducción?
+          Escríbenos para una demostración de agenda, estudiantes, instructores y formación digital.
+        </p>
       </header>
 
       @if (loading()) {
@@ -116,9 +119,8 @@ export class PublicContactPage implements OnInit {
 
   ngOnInit(): void {
     this.seo.apply({
-      title: brandPageTitle('Contacto'),
-      description:
-        'Contacto Luz Verde en Barranquilla: formación de conductores, escuelas CEA y soporte de la plataforma.',
+      title: PAGE_SEO.contact.title,
+      description: PAGE_SEO.contact.description,
       path: '/contacto',
       index: true
     });
