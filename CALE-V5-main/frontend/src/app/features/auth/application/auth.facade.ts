@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { mapApiError } from '../../../core/http/map-api-error';
+import { apiErrorCode, mapApiError } from '../../../core/http/map-api-error';
 import { MotivationService } from '../../../core/motivation/motivation.service';
 import { PushService } from '../../../core/notifications/push.service';
 import { SessionStore } from '../../../core/auth/session.store';
@@ -41,21 +41,22 @@ export class AuthFacade {
   ): void {
     this.run(() => this.api.register(name, email, password, consent, birthDate, guardian).subscribe({
       next: (res) => this.afterRegister(res),
-      error: (err) => this.fail(err)
+      error: (err) => this.failRegister(err, email)
     }));
   }
 
   registerTeacher(name: string, email: string, password: string, consent: LegalConsent): void {
     this.run(() => this.api.registerTeacher(name, email, password, consent).subscribe({
       next: (res) => this.afterRegister(res),
-      error: (err) => this.fail(err)
+      error: (err) => this.failRegister(err, email)
     }));
   }
 
   registerSchool(body: Record<string, unknown>): void {
+    const email = typeof body['email'] === 'string' ? body['email'] : '';
     this.run(() => this.api.registerSchool(body).subscribe({
       next: (res) => this.afterRegister(res),
-      error: (err) => this.fail(err)
+      error: (err) => this.failRegister(err, email)
     }));
   }
 
@@ -169,6 +170,16 @@ export class AuthFacade {
   private fail(err: unknown): void {
     this.loading.set(false);
     this.error.set(mapApiError(err));
+  }
+
+  /** Account may already exist pending when delivery fails after create. */
+  private failRegister(err: unknown, email: string): void {
+    this.loading.set(false);
+    this.error.set(mapApiError(err));
+    const detail = apiErrorCode(err);
+    if ((detail === 'email_send_failed' || detail === 'email_delivery_misconfigured') && email) {
+      void this.router.navigate(['/verify-email'], { queryParams: { email } });
+    }
   }
 
   private failLogin(err: unknown, email: string): void {

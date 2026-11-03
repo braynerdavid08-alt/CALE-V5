@@ -26,6 +26,18 @@ public static class DependencyInjection
         services.AddSingleton<ITokenService, JwtTokenService>();
         services.AddSingleton<LoggingEmailSender>();
         services.AddSingleton<SmtpEmailSender>();
+        services.AddHttpClient(HostingerMailApiSender.HttpClientName, (sp, client) =>
+        {
+            var email = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<EmailOptions>>().Value;
+            var baseUrl = string.IsNullOrWhiteSpace(email.HostingerMail.BaseUrl)
+                ? "https://api.mail.hostinger.com"
+                : email.HostingerMail.BaseUrl.Trim().TrimEnd('/');
+            client.BaseAddress = new Uri(baseUrl + "/");
+            var seconds = email.HostingerMail.TimeoutSeconds <= 0 ? 15 : email.HostingerMail.TimeoutSeconds;
+            client.Timeout = TimeSpan.FromSeconds(seconds);
+            client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+        });
+        services.AddSingleton<HostingerMailApiSender>();
         services.AddSingleton<IEmailSender, ConfigurableEmailSender>();
         return services;
     }

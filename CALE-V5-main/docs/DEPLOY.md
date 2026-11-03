@@ -120,32 +120,60 @@ En producción: crea el primer admin por registro controlado o seed **offline**,
 
 ### Correo (verificación de cuenta)
 
-
 **Cambiar la clave en Mi perfil no envía correo.** Solo se guarda en el servidor.
 
-El código por email solo aplica al **registro** de cuentas nuevas, y **solo si SMTP está configurado**.
+El código por email aplica al **registro** de cuentas nuevas cuando el envío está habilitado y hay un proveedor real.
 
-Sin SMTP (como ahora en Render), la cuenta se activa al registrarse y puedes entrar directo.
+Render **Free bloquea SMTP** (puertos 25/465/587). Usar **Hostinger Mail API (HTTPS)**.
 
-Para enviar códigos de verdad (Gmail):
+#### Producción recomendada — Hostinger Mail API
 
-1. En Google: cuenta → Seguridad → Contraseñas de aplicaciones (con 2FA activo).
-2. En Render → Environment:
+1. En Hostinger → Email → **Agentic Mail → API access**: crear token (copiar una sola vez).
+2. Con el token: `GET https://api.mail.hostinger.com/api/v1/me` y anotar el `resourceId` del buzón `notificaciones@cealuzverde.com`.
+3. Revisar que la **allow list** de Agentic Mail no bloquee destinatarios reales (vacía = permitir todos).
+4. En Render → Environment:
 
 ```env
 Email__Enabled=true
-Email__From=tu@gmail.com
+Email__Provider=HostingerMail
+Email__From=notificaciones@cealuzverde.com
 Email__FromName=Luz Verde
-Email__Smtp__Host=smtp.gmail.com
+Email__HostingerMail__ApiToken=REEMPLAZAR_TOKEN
+Email__HostingerMail__MailboxResourceId=REEMPLAZAR_RESOURCE_ID
+Email__HostingerMail__BaseUrl=https://api.mail.hostinger.com
+Email__HostingerMail__TimeoutSeconds=15
+```
+
+5. Redeploy. Probar registro → pantalla `/verify-email` → código en el buzón.
+
+`Email__Provider` admite: `HostingerMail` | `Smtp` | `Auto` (Hostinger → SMTP → log).
+
+Si `Email__Enabled=true` pero falta token/mailbox (o SMTP host), **la API no arranca o falla de forma segura**; no auto-confirma usuarios.
+
+#### Desarrollo local — SMTP opcional
+
+```env
+Email__Enabled=true
+Email__Provider=Smtp
+Email__From=notificaciones@cealuzverde.com
+Email__FromName=Luz Verde
+Email__Smtp__Host=smtp.hostinger.com
 Email__Smtp__Port=587
-Email__Smtp__User=tu@gmail.com
-Email__Smtp__Password=xxxx-xxxx-xxxx-xxxx
+Email__Smtp__User=notificaciones@cealuzverde.com
+Email__Smtp__Password=REEMPLAZAR
 Email__Smtp__UseSsl=true
 ```
 
-3. Redeploy.
+Con `Email__Enabled=false` (default local) el registro **auto-confirma** y el cuerpo se escribe en logs (solo desarrollo).
 
-Sin SMTP configurado, el código se escribe solo en los **logs del servidor** (no llega al buzón).
+#### Diagnóstico
+
+| Síntoma | Causa probable |
+|---------|----------------|
+| `Network is unreachable` / SMTP | Plan Free de Render + SMTP |
+| `email_delivery_misconfigured` | Enabled sin proveedor completo |
+| `email_send_failed` | API Hostinger rechazó o timeout; usuario queda pendiente → reenviar |
+| Registro entra sin código | `Email__Enabled=false` o Provider no configurado en Render |
 
 ### Base de datos SQL (Render / producción)
 

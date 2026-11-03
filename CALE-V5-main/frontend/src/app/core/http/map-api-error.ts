@@ -10,6 +10,10 @@ const messages: Record<string, string> = {
   email_already_confirmed: 'Ese correo ya está confirmado. Puedes iniciar sesión.',
   invalid_confirmation_code: 'El código de verificación no es correcto.',
   confirmation_expired: 'El código expiró. Solicita uno nuevo.',
+  email_send_failed:
+    'Tu cuenta quedó creada, pero no pudimos enviar el correo. Abre verificación y pulsa reenviar código.',
+  email_delivery_misconfigured:
+    'El envío de correo no está disponible en el servidor. Intenta más tarde o escribe a soporte.',
   invalid_name: 'El nombre es obligatorio.',
   weak_password: 'La contraseña debe tener al menos 8 caracteres.',
   user_inactive: 'Tu cuenta está inactiva.',

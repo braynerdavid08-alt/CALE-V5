@@ -35,9 +35,18 @@ public sealed class EmailConfirmationService
 
     public async Task<EmailIssueResult> IssueAndSendAsync(User user, CancellationToken ct)
     {
-        // Without SMTP, do not block sign-up: activate the account and skip the code email.
+        // Auto-confirm only when delivery is explicitly disabled (local/dev).
+        // Enabled=true with a missing/broken provider must NOT confirm silently.
         if (!_email.IsConfigured)
         {
+            if (_options.Enabled)
+            {
+                throw new DomainException(
+                    "El envío de correo está activado pero no hay un proveedor configurado.",
+                    503,
+                    "email_delivery_misconfigured");
+            }
+
             user.MarkEmailConfirmed();
             await _users.SaveChangesAsync(ct);
             return new EmailIssueResult(EmailSent: false, AutoConfirmed: true);
@@ -56,11 +65,26 @@ public sealed class EmailConfirmationService
             $"Caduca en {minutes} minutos.\n" +
             "Si no creaste esta cuenta, ignora este mensaje.\n";
 
-        await _email.SendAsync(
-            user.Email,
-            "Código de verificación — Luz Verde",
-            body,
-            ct);
+        try
+        {
+            await _email.SendAsync(
+                user.Email,
+                "Código de verificación — Luz Verde",
+                body,
+                ct);
+        }
+        catch (DomainException)
+        {
+            // Keep pending confirmation so the user can resend; do not confirm.
+            throw;
+        }
+        catch (Exception)
+        {
+            throw new DomainException(
+                "No pudimos enviar el correo de verificación. Intenta reenviar el código en unos minutos.",
+                503,
+                "email_send_failed");
+        }
 
         return new EmailIssueResult(EmailSent: true, AutoConfirmed: false);
     }
