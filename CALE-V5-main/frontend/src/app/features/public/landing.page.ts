@@ -1,9 +1,9 @@
 import { CurrencyPipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { Meta, Title } from '@angular/platform-browser';
 import { RouterLink } from '@angular/router';
 import { resolveMediaUrl } from '../../core/media/resolve-media-url';
 import { BRAND } from '../../core/brand';
+import { SeoService } from '../../core/seo/seo.service';
 import { SessionStore } from '../../core/auth/session.store';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiIconComponent } from '../../shared/ui/ui-icon.component';
@@ -482,8 +482,7 @@ export class LandingPage implements OnInit {
   private readonly api = inject(PublicHomeApi);
   private readonly shopApi = inject(ShopApi);
   private readonly session = inject(SessionStore);
-  private readonly title = inject(Title);
-  private readonly meta = inject(Meta);
+  private readonly seo = inject(SeoService);
 
   readonly loading = signal(true);
   readonly home = signal<PublicHomeDto | null>(null);
@@ -606,8 +605,13 @@ export class LandingPage implements OnInit {
   private applySeo(data: PublicHomeDto): void {
     const t = data.seoTitle?.trim() || BRAND.seoTitle;
     const d = data.seoDescription?.trim() || BRAND.seoDescription;
-    this.title.setTitle(t);
-    this.meta.updateTag({ name: 'description', content: d });
+    this.seo.apply({
+      title: t,
+      description: d,
+      path: '/',
+      index: true
+    });
+    this.seo.injectHomeJsonLd();
   }
 
   private buildLocalFallback(): PublicHomeDto {

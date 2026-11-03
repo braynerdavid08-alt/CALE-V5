@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { Meta, Title } from '@angular/platform-browser';
 import { RouterLink } from '@angular/router';
 import { brandPageTitle } from '../../core/brand';
+import { SeoService } from '../../core/seo/seo.service';
 import { mapApiError } from '../../core/http/map-api-error';
 import { resolveMediaUrl } from '../../core/media/resolve-media-url';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
@@ -329,8 +329,7 @@ import { PublicShopDto, PublicShopProductDto, SHOP_CATEGORIES } from './shop.mod
 export class PublicShopPage implements OnInit {
   private readonly api = inject(ShopApi);
   private readonly analytics = inject(ShopAnalyticsService);
-  private readonly title = inject(Title);
-  private readonly meta = inject(Meta);
+  private readonly seo = inject(SeoService);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -407,12 +406,13 @@ export class PublicShopPage implements OnInit {
       next: (data) => {
         this.shop.set(data);
         this.analytics.track('view_shop');
-        this.title.setTitle(brandPageTitle(data.pageTitle || 'Tienda'));
-        this.meta.updateTag({
-          name: 'description',
-          content:
+        this.seo.apply({
+          title: brandPageTitle(data.pageTitle || 'Tienda'),
+          description:
             data.pageSubtitle ||
-            'Cascos y equipo de protección. Consulta por WhatsApp desde Luz Verde.'
+            'Cascos y equipo de protección para conductores. Consulta por WhatsApp desde Luz Verde en Barranquilla.',
+          path: '/tienda',
+          index: true
         });
         this.loading.set(false);
       },

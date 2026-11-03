@@ -1,8 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { Meta, Title } from '@angular/platform-browser';
 import { RouterLink } from '@angular/router';
 import { mapApiError } from '../../core/http/map-api-error';
 import { brandPageTitle } from '../../core/brand';
+import { SeoService } from '../../core/seo/seo.service';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../shared/ui/ui-loading.component';
@@ -83,18 +83,19 @@ import { PublicHomeApi } from './public-home.api';
 })
 export class PublicBlogPage implements OnInit {
   private readonly api = inject(PublicHomeApi);
-  private readonly title = inject(Title);
-  private readonly meta = inject(Meta);
+  private readonly seo = inject(SeoService);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly intro = signal('');
 
   ngOnInit(): void {
-    this.title.setTitle(brandPageTitle('Blog'));
-    this.meta.updateTag({
-      name: 'description',
-      content: 'Artículos y novedades de formación vial en Luz Verde.'
+    this.seo.apply({
+      title: brandPageTitle('Blog'),
+      description:
+        'Novedades de formación vial, licencias de conducción y escuelas CEA con Luz Verde en Barranquilla.',
+      path: '/blog',
+      index: true
     });
 
     this.api.getHome().subscribe({

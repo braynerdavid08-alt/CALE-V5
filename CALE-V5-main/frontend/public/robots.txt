@@ -1,0 +1,11 @@
+# Luz Verde — https://www.cealuzverde.com
+# HTML privada usa meta robots noindex (SeoService). No usar Disallow ahí:
+# si se bloquea el crawl, Google no puede leer el noindex.
+User-agent: *
+Allow: /
+
+Disallow: /api/
+Disallow: /hubs/
+Disallow: /uploads/
+
+Sitemap: https://www.cealuzverde.com/sitemap.xml

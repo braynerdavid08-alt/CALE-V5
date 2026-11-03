@@ -9,10 +9,10 @@ export const BRAND = {
   /** Compact mark inside the round logo. */
   mark: 'L',
   /** Document / SEO fallback title. */
-  seoTitle: 'Luz Verde — Formación que impulsa tu camino.',
+  seoTitle: 'Luz Verde | Formación vial en Barranquilla — A2, B1 y C1',
   /** Document / SEO fallback description. */
   seoDescription:
-    'Luz Verde: practica gratis el simulacro del examen CALE todas las veces que quieras y sigue tu formación vial con tu escuela.',
+    'Luz Verde: formación que impulsa tu camino. Plataforma de formación de conductores en Barranquilla con simulacro CALE gratis, cursos de conducción y categorías A2, B1 y C1 para escuelas CEA.',
   /** Full horizontal logo (traffic light + wordmark + slogan) on a transparent background; its dark text needs a light surface behind it. */
   logoWide: '/brand/luz-verde-logo.png',
   /** Same logo with light lettering, for dark surfaces. */

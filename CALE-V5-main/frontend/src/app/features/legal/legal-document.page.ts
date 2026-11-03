@@ -2,6 +2,8 @@ import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { brandPageTitle } from '../../core/brand';
+import { SeoService } from '../../core/seo/seo.service';
 import { mapApiError } from '../../core/http/map-api-error';
 import { UiErrorComponent } from '../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../shared/ui/ui-loading.component';
@@ -76,6 +78,7 @@ import { renderLegalMarkdown } from './simple-markdown';
 export class LegalDocumentPage {
   private readonly api = inject(LegalApi);
   private readonly route = inject(ActivatedRoute);
+  private readonly seo = inject(SeoService);
 
   readonly links = LEGAL_LINKS;
   readonly key = signal('');
@@ -94,6 +97,14 @@ export class LegalDocumentPage {
         next: (doc) => {
           this.doc.set(doc);
           this.loading.set(false);
+          const label = this.links.find((l) => l.key === key)?.label ?? doc.title;
+          this.seo.apply({
+            title: brandPageTitle(label),
+            description: `${label} de Luz Verde. Documento público de la plataforma de formación vial.`,
+            path: `/legal/${key}`,
+            // Borradores legales: crawlables + noindex (fuera del sitemap).
+            index: false
+          });
         },
         error: (err) => {
           this.doc.set(null);

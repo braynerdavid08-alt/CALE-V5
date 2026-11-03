@@ -1,8 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { Meta, Title } from '@angular/platform-browser';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { mapApiError } from '../../core/http/map-api-error';
 import { brandPageTitle } from '../../core/brand';
+import { SeoService } from '../../core/seo/seo.service';
 import { env } from '../../core/config/env';
 import { SessionStore } from '../../core/auth/session.store';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
@@ -21,8 +21,8 @@ import { PublicCourseCardDto } from './public.models';
         <p class="eyebrow">Cursos</p>
         <h1>Formación vial con Luz Verde</h1>
         <p class="lead">
-          Esta es la malla actual: señales, normas, vía, vehículo y categorías A2, B1 y C1.
-          Para estudiar las lecciones inicia sesión o crea tu cuenta.
+          Formación de conductores en Barranquilla: señales, normas, vía, vehículo y
+          categorías A2, B1 y C1. Para estudiar las lecciones inicia sesión o crea tu cuenta.
         </p>
       </header>
 
@@ -151,8 +151,7 @@ export class PublicCoursesPage implements OnInit {
   private readonly api = inject(PublicHomeApi);
   private readonly route = inject(ActivatedRoute);
   private readonly session = inject(SessionStore);
-  private readonly title = inject(Title);
-  private readonly meta = inject(Meta);
+  private readonly seo = inject(SeoService);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -160,10 +159,12 @@ export class PublicCoursesPage implements OnInit {
   readonly loggedIn = this.session.isAuthenticated;
 
   ngOnInit(): void {
-    this.title.setTitle(brandPageTitle('Cursos'));
-    this.meta.updateTag({
-      name: 'description',
-      content: 'Malla de formación vial de Luz Verde: señales, normas, vía, vehículo y categorías A2, B1 y C1.'
+    this.seo.apply({
+      title: brandPageTitle('Cursos de conducción'),
+      description:
+        'Cursos de conducción y formación vial en Barranquilla con Luz Verde: señales, normas, vía, vehículo y categorías A2, B1 y C1.',
+      path: '/cursos',
+      index: true
     });
 
     this.api.listCourses().subscribe({

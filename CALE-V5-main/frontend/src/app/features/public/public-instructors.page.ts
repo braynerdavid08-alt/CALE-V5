@@ -1,11 +1,11 @@
 import { DecimalPipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Meta, Title } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { mapApiError } from '../../core/http/map-api-error';
 import { BRAND, brandPageTitle } from '../../core/brand';
+import { SeoService } from '../../core/seo/seo.service';
 import { env } from '../../core/config/env';
 import { SessionStore } from '../../core/auth/session.store';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
@@ -311,8 +311,7 @@ export class PublicInstructorsPage implements OnInit {
   private readonly session = inject(SessionStore);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly title = inject(Title);
-  private readonly meta = inject(Meta);
+  private readonly seo = inject(SeoService);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -342,10 +341,12 @@ export class PublicInstructorsPage implements OnInit {
   });
 
   ngOnInit(): void {
-    this.title.setTitle(brandPageTitle('Instructores'));
-    this.meta.updateTag({
-      name: 'description',
-      content: 'Directorio de instructores de Luz Verde: pide clases particulares o califica a tu instructor.'
+    this.seo.apply({
+      title: brandPageTitle('Instructores'),
+      description:
+        'Instructores de conducción en Luz Verde: clases particulares y formación vial en Barranquilla.',
+      path: '/instructores',
+      index: true
     });
 
     const accion = this.route.snapshot.queryParamMap.get('accion');

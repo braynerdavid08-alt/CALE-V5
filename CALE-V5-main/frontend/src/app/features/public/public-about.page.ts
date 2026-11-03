@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { Meta, Title } from '@angular/platform-browser';
 import { BRAND, brandPageTitle } from '../../core/brand';
+import { SeoService } from '../../core/seo/seo.service';
 import { mapApiError } from '../../core/http/map-api-error';
 import { UiErrorComponent } from '../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../shared/ui/ui-loading.component';
@@ -15,7 +15,7 @@ import { PublicHomeApi } from './public-home.api';
       <header class="head">
         <p class="eyebrow">Nosotros</p>
         <h1>Quiénes somos</h1>
-        <p class="lead">Conoce {{ brand.name }} y su misión en la formación vial.</p>
+        <p class="lead">Conoce {{ brand.name }} en Barranquilla y su misión: formación que impulsa tu camino.</p>
       </header>
 
       @if (loading()) {
@@ -60,17 +60,17 @@ import { PublicHomeApi } from './public-home.api';
 export class PublicAboutPage implements OnInit {
   readonly brand = BRAND;
   private readonly api = inject(PublicHomeApi);
-  private readonly title = inject(Title);
-  private readonly meta = inject(Meta);
+  private readonly seo = inject(SeoService);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly aboutHtml = signal('');
 
   ngOnInit(): void {
-    this.title.setTitle(brandPageTitle('Nosotros'));
-    this.meta.updateTag({
-      name: 'description',
-      content: `${BRAND.name}: ${BRAND.slogan}. Formación vial con tu CEA.`
+    this.seo.apply({
+      title: brandPageTitle('Nosotros'),
+      description: `${BRAND.name} en Barranquilla: ${BRAND.slogan} Plataforma de formación vial y apoyo a escuelas de conducción (CEA).`,
+      path: '/nosotros',
+      index: true
     });
 
     this.api.getHome().subscribe({

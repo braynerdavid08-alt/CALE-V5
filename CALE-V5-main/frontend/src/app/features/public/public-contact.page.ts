@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { Meta, Title } from '@angular/platform-browser';
 import { mapApiError } from '../../core/http/map-api-error';
 import { brandPageTitle } from '../../core/brand';
+import { SeoService } from '../../core/seo/seo.service';
 import { UiErrorComponent } from '../../shared/ui/ui-error.component';
 import { UiIconComponent } from '../../shared/ui/ui-icon.component';
 import { UiLoadingComponent } from '../../shared/ui/ui-loading.component';
@@ -16,7 +16,7 @@ import { PublicHomeApi } from './public-home.api';
       <header class="head">
         <p class="eyebrow">Contacto</p>
         <h1>Habla con el equipo de Luz Verde</h1>
-        <p class="lead">Estamos para ayudarte con escuelas, cuentas y formación.</p>
+        <p class="lead">Estamos en Barranquilla para ayudarte con escuelas CEA, cuentas y formación de conductores.</p>
       </header>
 
       @if (loading()) {
@@ -107,8 +107,7 @@ import { PublicHomeApi } from './public-home.api';
 })
 export class PublicContactPage implements OnInit {
   private readonly api = inject(PublicHomeApi);
-  private readonly title = inject(Title);
-  private readonly meta = inject(Meta);
+  private readonly seo = inject(SeoService);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -116,10 +115,12 @@ export class PublicContactPage implements OnInit {
   readonly phone = signal('');
 
   ngOnInit(): void {
-    this.title.setTitle(brandPageTitle('Contacto'));
-    this.meta.updateTag({
-      name: 'description',
-      content: 'Contacto del equipo Luz Verde para formación vial.'
+    this.seo.apply({
+      title: brandPageTitle('Contacto'),
+      description:
+        'Contacto Luz Verde en Barranquilla: formación de conductores, escuelas CEA y soporte de la plataforma.',
+      path: '/contacto',
+      index: true
     });
 
     this.api.getHome().subscribe({

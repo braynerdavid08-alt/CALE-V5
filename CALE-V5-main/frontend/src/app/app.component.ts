@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { NavigationEnd, NavigationError, Router, RouterOutlet } from '@angular/router';
 import { ThemeService } from './core/theme/theme.service';
 import { ContentGuardService } from './core/security/content-guard.service';
+import { SeoService } from './core/seo/seo.service';
 
 const CHUNK_RELOAD_KEY = 'cale.chunk-reload';
 
@@ -18,6 +19,7 @@ export class AppComponent {
 
   constructor() {
     inject(ContentGuardService).start();
+    inject(SeoService).startRouteIndexing();
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {
         sessionStorage.removeItem(CHUNK_RELOAD_KEY);
