@@ -3,10 +3,12 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
+import { UiIconComponent } from '../../../shared/ui/ui-icon.component';
 import { UiThemeToggleComponent } from '../../../shared/ui/ui-theme-toggle.component';
 import { AuthBackHomeComponent } from '../components/auth-back-home.component';
 import { AuthFacade } from '../application/auth.facade';
 import { BRAND } from '../../../core/brand';
+import { ThemeService } from '../../../core/theme/theme.service';
 import { isSafeReturnUrl, peekReturnUrl, stashReturnUrl } from '../../../core/auth/return-url';
 
 @Component({
@@ -17,6 +19,7 @@ import { isSafeReturnUrl, peekReturnUrl, stashReturnUrl } from '../../../core/au
     RouterLink,
     UiButtonComponent,
     UiErrorComponent,
+    UiIconComponent,
     UiThemeToggleComponent,
     AuthBackHomeComponent
   ],
@@ -28,6 +31,7 @@ export class LoginPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly auth = inject(AuthFacade);
+  readonly theme = inject(ThemeService);
   readonly brand = BRAND;
 
   readonly showPassword = signal(false);
