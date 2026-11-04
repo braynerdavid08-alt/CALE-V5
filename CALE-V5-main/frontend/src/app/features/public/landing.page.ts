@@ -35,12 +35,46 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
       @if (home(); as h) {
         <div class="home-lead">
           @if (h.hero.visible) {
-            <section class="hero" aria-labelledby="home-heading">
+            <section
+              class="hero"
+              [class.has-vitrine-left]="vitrineOffers().length > 0"
+              [class.has-vitrine-right]="vitrineFeatured().length > 0"
+              aria-labelledby="home-heading">
               <div class="hero-bg" aria-hidden="true">
                 <span class="glow g1"></span>
                 <span class="glow g2"></span>
                 <span class="grid-lines"></span>
               </div>
+
+              @if (vitrineOffers().length) {
+                <aside class="vitrine vitrine-left" aria-label="En oferta">
+                  <p class="vitrine-title">En oferta</p>
+                  <div class="vitrine-list">
+                    @for (p of vitrineOffers(); track p.id) {
+                      <a class="vitrine-item" routerLink="/tienda">
+                        <span class="vitrine-thumb">
+                          @if (productImage(p)) {
+                            <img [src]="productImage(p)" [alt]="''" width="56" height="56" loading="lazy" />
+                          }
+                        </span>
+                        <span class="vitrine-meta">
+                          @if (productBadge(p); as badge) {
+                            <span class="vitrine-badge">{{ badge }}</span>
+                          }
+                          <strong>{{ p.name }}</strong>
+                          <span class="vitrine-price">
+                            {{ p.priceCop | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}
+                            @if (p.compareAtPriceCop && p.compareAtPriceCop > p.priceCop) {
+                              <s>{{ p.compareAtPriceCop | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</s>
+                            }
+                          </span>
+                        </span>
+                      </a>
+                    }
+                  </div>
+                  <a class="vitrine-more" routerLink="/tienda">Ver tienda →</a>
+                </aside>
+              }
 
               <div class="hero-inner">
                 <div class="hero-copy">
@@ -144,6 +178,36 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                   </div>
                 }
               </div>
+
+              @if (vitrineFeatured().length) {
+                <aside class="vitrine vitrine-right" aria-label="Destacados">
+                  <p class="vitrine-title">Destacados</p>
+                  <div class="vitrine-list">
+                    @for (p of vitrineFeatured(); track p.id) {
+                      <a class="vitrine-item" routerLink="/tienda">
+                        <span class="vitrine-thumb">
+                          @if (productImage(p)) {
+                            <img [src]="productImage(p)" [alt]="''" width="56" height="56" loading="lazy" />
+                          }
+                        </span>
+                        <span class="vitrine-meta">
+                          @if (productBadge(p); as badge) {
+                            <span class="vitrine-badge">{{ badge }}</span>
+                          }
+                          <strong>{{ p.name }}</strong>
+                          <span class="vitrine-price">
+                            {{ p.priceCop | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}
+                            @if (p.compareAtPriceCop && p.compareAtPriceCop > p.priceCop) {
+                              <s>{{ p.compareAtPriceCop | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</s>
+                            }
+                          </span>
+                        </span>
+                      </a>
+                    }
+                  </div>
+                  <a class="vitrine-more" routerLink="/tienda">Ver tienda →</a>
+                </aside>
+              }
 
               @if (mobileOffers().length) {
                 <div class="mobile-offers" aria-label="Ofertas de la tienda">
@@ -449,7 +513,23 @@ export class LandingPage implements OnInit {
     this.shopPromoCount() > 0 ? 'Equipo con precios vigentes' : 'Tienda de protección vial'
   );
 
-  /** Compact offer strip under the hero (mobile / narrow layouts). */
+  /** Desktop left rail: real promos only. */
+  readonly vitrineOffers = computed(() => {
+    const list = this.shop()?.products ?? [];
+    const promos = list.filter((p) => p.hasPromo || this.hasCompare(p));
+    return (promos.length ? promos : list).slice(0, 3);
+  });
+
+  /** Desktop right rail: featured (or remaining items). */
+  readonly vitrineFeatured = computed(() => {
+    const list = this.shop()?.products ?? [];
+    const offerIds = new Set(this.vitrineOffers().map((p) => p.id));
+    const featured = list.filter((p) => p.isFeatured && !offerIds.has(p.id));
+    const pool = featured.length ? featured : list.filter((p) => !offerIds.has(p.id));
+    return pool.slice(0, 3);
+  });
+
+  /** Mobile: compact horizontal strip under the hero. */
   readonly mobileOffers = computed(() => {
     const list = this.shop()?.products ?? [];
     if (!list.length) return [] as PublicShopProductDto[];
