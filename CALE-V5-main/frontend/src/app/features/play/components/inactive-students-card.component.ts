@@ -16,7 +16,7 @@ const PREVIEW = 6;
       <header class="head">
         <div>
           <h2 id="inactive-title">Estudiantes sin practicar</h2>
-          <p>Envíales un recordatorio para que no pierdan el ritmo.</p>
+          <p>Recordatorio para que no pierdan el ritmo.</p>
         </div>
         <label class="days">
           Sin actividad en
@@ -39,7 +39,7 @@ const PREVIEW = 6;
       @if (loading()) {
         <p class="muted">Cargando…</p>
       } @else if (!students().length) {
-        <p class="muted">🎉 Todos tus estudiantes han practicado en los últimos {{ days() }} días.</p>
+        <p class="muted">Todos han practicado en los últimos {{ days() }} días.</p>
       } @else {
         <p class="count"><strong>{{ students().length }}</strong> {{ students().length === 1 ? 'estudiante' : 'estudiantes' }} sin actividad</p>
         <ul class="list">
@@ -49,14 +49,14 @@ const PREVIEW = 6;
                 <strong>{{ s.name }}</strong>
                 <small>
                   @if (s.lastActivityAt) {
-                    Última actividad: {{ s.lastActivityAt | date: 'd MMM' }} ({{ s.daysInactive }} días)
+                    {{ s.lastActivityAt | date: 'd MMM' }} · {{ s.daysInactive }} días
                   } @else {
                     Nunca ha practicado
                   }
                 </small>
               </span>
               <button type="button" class="link" [disabled]="sending() || reminded().has(s.userId)" (click)="remind([s.userId])">
-                {{ reminded().has(s.userId) ? 'Enviado ✓' : 'Recordar' }}
+                {{ reminded().has(s.userId) ? 'Enviado' : 'Recordar' }}
               </button>
             </li>
           }
@@ -77,19 +77,42 @@ const PREVIEW = 6;
   styles: [`
     .card {
       display: grid;
-      gap: 0.75rem;
-      padding: 1.1rem 1.2rem;
-      border-radius: var(--radius-lg);
+      gap: 0.65rem;
+      padding: 0.9rem 1rem;
+      border-radius: 14px;
       border: 1px solid var(--color-border);
-      border-left: 4px solid #f59e0b;
+      border-left: 4px solid var(--color-warning);
       background: var(--color-surface);
+      box-shadow: var(--shadow-sm);
     }
-    .head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.75rem; align-items: flex-start; }
-    h2 { margin: 0; font-size: var(--text-lg); }
-    .head p { margin: 0.2rem 0 0; color: var(--color-text-secondary); font-size: var(--text-sm); }
-    .days { display: grid; gap: 0.2rem; font-size: var(--text-xs); color: var(--color-text-secondary); }
+    .head {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 0.65rem;
+      align-items: flex-start;
+    }
+    h2 {
+      margin: 0;
+      font-size: 0.98rem;
+      font-weight: 750;
+      letter-spacing: -0.02em;
+    }
+    .head p {
+      margin: 0.15rem 0 0;
+      color: var(--color-text-secondary);
+      font-size: var(--text-sm);
+      line-height: 1.35;
+    }
+    .days {
+      display: grid;
+      gap: 0.15rem;
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
+    }
     .days select {
-      padding: 0.35rem 0.5rem;
+      min-height: 2.25rem;
+      padding: 0.3rem 0.5rem;
       font: inherit;
       font-size: var(--text-sm);
       color: var(--color-text);
@@ -97,18 +120,31 @@ const PREVIEW = 6;
       border: 1px solid var(--color-border);
       border-radius: var(--radius-sm);
     }
-    .count { margin: 0; }
-    .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; }
+    .count { margin: 0; font-size: var(--text-sm); }
+    .list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0;
+    }
     .list li {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 0.75rem;
-      padding: 0.55rem 0.75rem;
-      border-radius: var(--radius-md);
-      background: var(--color-surface-raised);
+      gap: 0.65rem;
+      padding: 0.45rem 0;
+      border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+      background: transparent;
     }
-    .who { display: grid; }
+    .list li:last-child { border-bottom: 0; padding-bottom: 0; }
+    .who { display: grid; gap: 0.05rem; min-width: 0; }
+    .who strong {
+      font-size: 0.92rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     .who small { color: var(--color-text-secondary); font-size: var(--text-xs); }
     .link {
       border: 0;
@@ -116,14 +152,24 @@ const PREVIEW = 6;
       color: var(--color-primary);
       font: inherit;
       font-weight: 700;
+      font-size: var(--text-sm);
       cursor: pointer;
       white-space: nowrap;
+      min-height: 2.25rem;
+      padding: 0 0.15rem;
     }
     .link:disabled { color: var(--color-text-secondary); cursor: default; }
-    .actions { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.6rem; }
-    .muted { margin: 0; color: var(--color-text-secondary); }
-    .error { margin: 0; color: var(--color-danger); }
-    .ok { margin: 0; color: var(--color-success); font-weight: 600; }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.55rem;
+      padding-top: 0.15rem;
+    }
+    .muted { margin: 0; color: var(--color-text-secondary); font-size: var(--text-sm); }
+    .error { margin: 0; color: var(--color-danger); font-size: var(--text-sm); }
+    .ok { margin: 0; color: var(--color-success); font-weight: 600; font-size: var(--text-sm); }
   `]
 })
 export class InactiveStudentsCardComponent implements OnInit {

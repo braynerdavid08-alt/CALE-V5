@@ -1,4 +1,4 @@
-<section class="dash">
+<section class="dash teacher-home">
   <header class="dash-hero">
     <div class="dash-hero-copy">
       <p class="dash-kicker">Panel del instructor</p>
@@ -57,8 +57,10 @@
         tone="primary" />
     </div>
 
-    <div class="dash-main">
-      <div class="dash-side">
+    <div class="dash-main teacher-ops">
+      <div class="dash-side ops-primary">
+        <app-inactive-students-card class="priority-card" />
+
         <section class="dash-panel feature-card">
           <div class="dash-panel-head">
             <h2>Mis presentaciones</h2>
@@ -88,38 +90,38 @@
           }
         </section>
 
-        <section class="dash-panel">
-          <div class="dash-panel-head">
-            <h2>Carga de trabajo</h2>
-            <a routerLink="/teacher/results">Informes</a>
-          </div>
-          <ui-dash-bars [items]="workloadBars()" />
-        </section>
+        <div class="ops-pair">
+          <section class="dash-panel">
+            <div class="dash-panel-head">
+              <h2>Carga de trabajo</h2>
+              <a routerLink="/teacher/results">Informes</a>
+            </div>
+            <ui-dash-bars [items]="workloadBars()" />
+          </section>
 
-        <section class="dash-panel">
-          <div class="dash-panel-head">
-            <h2>Entregas pendientes</h2>
-          </div>
-          @if (!d.pendingGrades.length) {
-            <p class="dash-empty">Nada pendiente por calificar.</p>
-          } @else {
-            <ul class="dash-feed">
-              @for (item of d.pendingGrades; track item.id) {
-                <li>
-                  <a class="block" [routerLink]="['/teacher/groups', item.groupId]">
-                    <strong>{{ item.userName }}</strong>
-                    <p class="meta">Actividad {{ item.activityId }}</p>
-                  </a>
-                </li>
-              }
-            </ul>
-          }
-        </section>
+          <section class="dash-panel">
+            <div class="dash-panel-head">
+              <h2>Entregas pendientes</h2>
+            </div>
+            @if (!d.pendingGrades.length) {
+              <p class="dash-empty">Nada pendiente por calificar.</p>
+            } @else {
+              <ul class="dash-feed compact-feed">
+                @for (item of d.pendingGrades; track item.id) {
+                  <li>
+                    <a class="block" [routerLink]="['/teacher/groups', item.groupId]">
+                      <strong>{{ item.userName }}</strong>
+                      <p class="meta">Actividad {{ item.activityId }}</p>
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+        </div>
       </div>
 
-      <div class="dash-side">
-        <app-inactive-students-card />
-
+      <div class="dash-side ops-secondary">
         <ui-dash-notifs [items]="notifs()" (open)="openNotif($event)" />
 
         <section class="dash-panel">
@@ -130,7 +132,7 @@
           @if (!d.groups.length) {
             <p class="dash-empty">Crea tu primer grupo para empezar.</p>
           } @else {
-            <ul class="dash-feed">
+            <ul class="dash-feed compact-feed">
               @for (group of d.groups; track group.id) {
                 <li>
                   <a class="block" [routerLink]="['/teacher/groups', group.id]">
@@ -143,7 +145,7 @@
           }
         </section>
 
-        <section class="dash-panel">
+        <section class="dash-panel school-panel">
           <div class="dash-panel-head">
             <h2>Escuela</h2>
             <a routerLink="/profile">Perfil</a>
@@ -165,18 +167,18 @@
           }
         </section>
 
-        <section class="dash-panel">
+        <section class="dash-panel low-score-panel">
           <div class="dash-panel-head">
             <h2>Bajo rendimiento</h2>
           </div>
           @if (!d.lowScores.length) {
             <p class="dash-empty">Sin intentos reprobados recientes.</p>
           } @else {
-            <ul class="dash-feed">
+            <ul class="dash-feed compact-feed">
               @for (item of d.lowScores; track item.userId) {
-                <li>
+                <li class="low-score-row">
                   <strong>{{ item.userName }}</strong>
-                  <p class="meta">{{ item.percent }}%</p>
+                  <span class="score-pill">{{ item.percent }}%</span>
                 </li>
               }
             </ul>
