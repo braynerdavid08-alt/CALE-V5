@@ -495,6 +495,31 @@ type Tab = 'queue' | 'schools';
                       </ui-button>
                     </div>
 
+                    <h3>Presencia comercial</h3>
+                    @if (commercial(); as c) {
+                      <dl class="kv">
+                        <div><dt>Estado</dt><dd>{{ c.publicationStatus }}{{ c.isPublished ? ' (visible)' : '' }}</dd></div>
+                        <div><dt>Elegible</dt><dd>{{ c.presenceEligible ? 'Sí' : 'No' }}{{ c.presenceDenyReason ? ' · ' + c.presenceDenyReason : '' }}</dd></div>
+                        <div><dt>Slug</dt><dd>{{ c.slug || '—' }}</dd></div>
+                        @if (c.isCommerciallySuspended) {
+                          <div><dt>Suspensión comercial</dt><dd>{{ c.commercialSuspensionReason || 'Suspendida' }}</dd></div>
+                        }
+                      </dl>
+                      <div class="row actions">
+                        @if (c.isCommerciallySuspended) {
+                          <ui-button type="button" variant="secondary" [disabled]="busyId() === s.userId" (click)="unsuspendCommercial(s.userId)">
+                            Quitar suspensión comercial
+                          </ui-button>
+                        } @else {
+                          <ui-button type="button" variant="ghost" [disabled]="busyId() === s.userId" (click)="suspendCommercial(s.userId)">
+                            Suspender vitrina comercial
+                          </ui-button>
+                        }
+                      </div>
+                    } @else {
+                      <p class="muted">Cargando estado comercial…</p>
+                    }
+
                     <h3>Instructores y estudiantes ({{ detail()!.members.length }})</h3>
                     @if (!detail()!.members.length) {
                       <p class="muted">Aún no hay miembros vinculados a esta escuela.</p>
@@ -611,6 +636,17 @@ export class AdminMembershipsPage implements OnInit {
   readonly detailLoading = signal(false);
   readonly detail = signal<SchoolDetailDto | null>(null);
   readonly editingInfo = signal(false);
+  readonly commercial = signal<{
+    schoolUserId: number;
+    legalName: string;
+    slug: string | null;
+    publicationStatus: string;
+    isPublished: boolean;
+    isCommerciallySuspended: boolean;
+    commercialSuspensionReason: string | null;
+    presenceEligible: boolean;
+    presenceDenyReason: string | null;
+  } | null>(null);
 
   readonly rejectForm = this.fb.nonNullable.group({
     note: ['', [Validators.required, Validators.minLength(3)]]
@@ -1009,6 +1045,7 @@ export class AdminMembershipsPage implements OnInit {
     this.detailId.set(userId);
     this.detailLoading.set(true);
     this.detail.set(null);
+    this.commercial.set(null);
     this.http.get<SchoolDetailDto>(`${env.apiUrl}/api/admin/schools/${userId}`).subscribe({
       next: (dto) => {
         this.detail.set(dto);
@@ -1017,6 +1054,54 @@ export class AdminMembershipsPage implements OnInit {
       error: (err) => {
         this.detailLoading.set(false);
         this.error.set(mapApiError(err));
+      }
+    });
+    this.http.get<{
+      schoolUserId: number;
+      legalName: string;
+      slug: string | null;
+      publicationStatus: string;
+      isPublished: boolean;
+      isCommerciallySuspended: boolean;
+      commercialSuspensionReason: string | null;
+      presenceEligible: boolean;
+      presenceDenyReason: string | null;
+    }>(`${env.apiUrl}/api/admin/commercial/schools/${userId}`).subscribe({
+      next: (dto) => this.commercial.set(dto),
+      error: () => this.commercial.set(null)
+    });
+  }
+
+  suspendCommercial(schoolUserId: number): void {
+    const reason = prompt('Motivo de la suspensión comercial:');
+    if (!reason?.trim()) return;
+    this.busyId.set(schoolUserId);
+    this.http.post(`${env.apiUrl}/api/admin/commercial/schools/${schoolUserId}/suspend`, {
+      reason: reason.trim()
+    }).subscribe({
+      next: (dto) => {
+        this.commercial.set(dto as never);
+        this.ok.set('Vitrina comercial suspendida.');
+        this.busyId.set(null);
+      },
+      error: (err) => {
+        this.error.set(mapApiError(err));
+        this.busyId.set(null);
+      }
+    });
+  }
+
+  unsuspendCommercial(schoolUserId: number): void {
+    this.busyId.set(schoolUserId);
+    this.http.post(`${env.apiUrl}/api/admin/commercial/schools/${schoolUserId}/unsuspend`, {}).subscribe({
+      next: (dto) => {
+        this.commercial.set(dto as never);
+        this.ok.set('Suspensión comercial retirada.');
+        this.busyId.set(null);
+      },
+      error: (err) => {
+        this.error.set(mapApiError(err));
+        this.busyId.set(null);
       }
     });
   }

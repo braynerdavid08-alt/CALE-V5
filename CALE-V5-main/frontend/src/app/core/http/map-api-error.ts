@@ -264,7 +264,23 @@ const messages: Record<string, string> = {
   invalid_compare_price: 'El precio tachado debe ser mayor que el precio de venta.',
   invalid_stock: 'El stock debe estar entre 0 y 10.000.',
   shop_limit: 'Alcanzaste el máximo de productos del catálogo.',
-  product_not_found: 'Producto no encontrado.'
+  product_not_found: 'Producto no encontrado.',
+  commercial_suspended: 'La presencia comercial está suspendida por Luz Verde.',
+  commercial_profile_missing: 'Aún no has creado la ficha comercial.',
+  commercial_not_eligible: 'Tu escuela aún no cumple los requisitos para publicarse en el directorio.',
+  commercial_forbidden: 'No puedes administrar la presencia comercial de otra escuela.',
+  commercial_school_not_found: 'Escuela no encontrada en el directorio comercial.',
+  commercial_post_not_found: 'Publicación no encontrada.',
+  commercial_promotion_not_found: 'Promoción no encontrada.',
+  commercial_slug_required: 'El slug comercial es obligatorio para publicar.',
+  commercial_sheet_incomplete: 'Completa la ficha comercial antes de publicar.',
+  commercially_suspended: 'La vitrina comercial está suspendida.',
+  invalid_commercial_whatsapp: 'El WhatsApp debe tener entre 10 y 15 dígitos (con indicativo, ej. 573001234567).',
+  invalid_commercial_email: 'El correo público no es válido.',
+  invalid_commercial_slug: 'El slug solo puede usar letras minúsculas, números y guiones.',
+  invalid_commercial_event: 'Tipo de evento inválido.',
+  invalid_promotion_window: 'La fecha final de la promoción debe ser igual o posterior a la inicial.',
+  invalid_promotion_title: 'Escribe un título de promoción válido.'
 };
 
 /** Machine error code sent by the API (`detail` of the problem response), if any. */

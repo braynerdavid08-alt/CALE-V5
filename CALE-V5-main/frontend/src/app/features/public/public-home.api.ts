@@ -5,6 +5,8 @@ import { env } from '../../core/config/env';
 import { compressImage } from '../../core/media/compress-image';
 import {
   AdminHomepageDto,
+  CommercialSchoolCardDto,
+  CommercialSchoolDetailDto,
   PublicCourseCardDto,
   PublicHomeDto,
   PublicInstructorCardDto,
@@ -26,6 +28,27 @@ export class PublicHomeApi {
     return this.http.get<PublicSchoolCardDto[]>(
       `${this.base}/api/public/schools`,
       { params: { take } }
+    );
+  }
+
+  /** Paid + published commercial directory (does not replace listSchools). */
+  listCommercialSchools(take = 48) {
+    return this.http.get<CommercialSchoolCardDto[]>(
+      `${this.base}/api/public/commercial-schools`,
+      { params: { take } }
+    );
+  }
+
+  getCommercialSchool(slug: string) {
+    return this.http.get<CommercialSchoolDetailDto>(
+      `${this.base}/api/public/commercial-schools/${encodeURIComponent(slug)}`
+    );
+  }
+
+  recordCommercialEvent(slug: string, eventType: string) {
+    return this.http.post<void>(
+      `${this.base}/api/public/commercial-schools/${encodeURIComponent(slug)}/events`,
+      { eventType }
     );
   }
 

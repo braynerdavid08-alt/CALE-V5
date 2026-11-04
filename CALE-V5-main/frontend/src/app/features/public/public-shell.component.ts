@@ -46,7 +46,7 @@ import { PublicShopProductDto } from './shop.models';
 
           <nav class="nav desktop" aria-label="Principal">
             <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Inicio</a>
-            <a routerLink="/escuelas" routerLinkActive="active">Escuelas vinculadas</a>
+            <a routerLink="/escuelas" routerLinkActive="active">Directorio CEA</a>
             <a routerLink="/register-school" routerLinkActive="active">Registra Tu CEA</a>
             <a routerLink="/tienda" routerLinkActive="active">Tienda</a>
           </nav>
@@ -180,7 +180,7 @@ import { PublicShopProductDto } from './shop.models';
 
             <nav aria-label="Móvil">
               <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeMenu()">Inicio</a>
-              <a routerLink="/escuelas" routerLinkActive="active" (click)="closeMenu()">Escuelas vinculadas</a>
+              <a routerLink="/escuelas" routerLinkActive="active" (click)="closeMenu()">Directorio CEA</a>
               <a routerLink="/register-school" routerLinkActive="active" (click)="closeMenu()">Registra Tu CEA</a>
               <a routerLink="/tienda" routerLinkActive="active" (click)="closeMenu()">Tienda</a>
             </nav>

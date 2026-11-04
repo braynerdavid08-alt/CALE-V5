@@ -192,6 +192,13 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
         exact: true,
         section: administracion
       },
+      {
+        label: 'Mi presencia digital',
+        path: '/school/comercial',
+        icon: 'home',
+        exact: true,
+        section: administracion
+      },
       ...(free
         ? []
         : [
