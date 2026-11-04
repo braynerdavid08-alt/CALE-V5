@@ -5,10 +5,6 @@
   align-content: start;
 }
 
-.school-auth .brand-content {
-  justify-content: flex-end;
-}
-
 fieldset {
   display: grid;
   gap: 0.85rem;
