@@ -311,6 +311,21 @@ export class TheoryApi {
     );
   }
 
+  bulkCancelSessions(body: {
+    fromDate: string;
+    toDate: string;
+    daysOfWeek: number[];
+    startTime: string;
+    endTime: string;
+    topicId: number;
+    classroomId: number;
+  }) {
+    return this.http.post<{ cancelled: number; withReservations: number; skippedInvalidDay: number }>(
+      `${this.schoolBase}/sessions/bulk-cancel`,
+      body
+    );
+  }
+
   updateSession(
     id: number,
     body: {

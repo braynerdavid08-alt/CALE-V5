@@ -107,14 +107,8 @@ export class SchoolHomePage implements OnInit {
     {
       emoji: '📝',
       label: 'Exámenes teóricos',
-      hint: 'Cupos y citas',
+      hint: 'Cupos, citas y horarios disponibles',
       path: '/school/theory-exams'
-    },
-    {
-      emoji: '⏰',
-      label: 'Crear horarios disponibles',
-      hint: 'Plantilla de cupos de examen',
-      path: '/school/theory-exams/schedule'
     },
     { emoji: '🚗', label: 'Clases de manejo', hint: 'Programar prácticas y examen', path: '/school/practical' },
     { emoji: '📊', label: 'Resultados', hint: 'Notas y progreso', path: '/school/results' },

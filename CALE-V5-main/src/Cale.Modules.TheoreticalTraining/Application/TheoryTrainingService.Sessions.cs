@@ -211,6 +211,131 @@ public sealed partial class TheoryTrainingService
         return new BulkCreateTheoryClassesResult(created, skippedExisting, skippedInvalid);
     }
 
+    public async Task<BulkCancelTheoryClassesResult> BulkCancelSessionsAsync(
+        int schoolUserId,
+        BulkCancelTheoryClassesRequest request,
+        CancellationToken ct)
+    {
+        await EnsureSchoolMembershipActiveAsync(schoolUserId, ct);
+
+        if (request.ToDate < request.FromDate)
+        {
+            throw new DomainException("La fecha final debe ser posterior o igual a la inicial.", 400, "invalid_date_range");
+        }
+
+        if (request.ToDate.DayNumber - request.FromDate.DayNumber > 366)
+        {
+            throw new DomainException("El rango máximo es de un año.", 400, "range_too_long");
+        }
+
+        var days = (request.DaysOfWeek ?? Array.Empty<int>())
+            .Where(d => d is >= 0 and <= 6)
+            .Distinct()
+            .ToHashSet();
+        if (days.Count == 0)
+        {
+            throw new DomainException("Selecciona al menos un día de la semana.", 400, "days_required");
+        }
+
+        var start = ParseTime(request.StartTime);
+        var end = ParseTime(request.EndTime);
+        if (end <= start)
+        {
+            throw new DomainException("La hora de fin debe ser posterior al inicio.", 400, "invalid_time");
+        }
+
+        _ = await _db.Set<TheoryTopic>()
+            .FirstOrDefaultAsync(x => x.Id == request.TopicId && x.SchoolUserId == schoolUserId, ct)
+            ?? throw new DomainException("Tema no válido.", 400, "invalid_topic");
+        _ = await _db.Set<TheoryClassroom>()
+            .FirstOrDefaultAsync(x => x.Id == request.ClassroomId && x.SchoolUserId == schoolUserId, ct)
+            ?? throw new DomainException("Aula no válida.", 400, "invalid_classroom");
+
+        var candidates = await _db.Set<TheoryClassSession>()
+            .Where(x => x.SchoolUserId == schoolUserId
+                && x.SessionDate >= request.FromDate
+                && x.SessionDate <= request.ToDate
+                && x.StartTime == start
+                && x.EndTime == end
+                && x.TopicId == request.TopicId
+                && x.ClassroomId == request.ClassroomId
+                && x.Status != TheoryClassStatuses.Cancelled)
+            .ToListAsync(ct);
+
+        var skippedInvalid = 0;
+        var sessions = new List<TheoryClassSession>();
+        foreach (var session in candidates)
+        {
+            if (!days.Contains((int)session.SessionDate.DayOfWeek)
+                || session.SessionDate.DayOfWeek == DayOfWeek.Sunday)
+            {
+                skippedInvalid++;
+                continue;
+            }
+
+            sessions.Add(session);
+        }
+
+        if (sessions.Count == 0)
+        {
+            return new BulkCancelTheoryClassesResult(0, 0, skippedInvalid);
+        }
+
+        var sessionIds = sessions.Select(s => s.Id).ToList();
+        var reservations = await _db.Set<TheoryClassReservation>()
+            .Where(x => sessionIds.Contains(x.ClassSessionId))
+            .ToListAsync(ct);
+        var attendance = await _db.Set<TheoryAttendanceRecord>()
+            .Where(x => sessionIds.Contains(x.ClassSessionId))
+            .ToListAsync(ct);
+
+        var withReservations = reservations
+            .Where(r => TheoryReservationStatuses.OccupiesSeatStatuses.Contains(r.Status))
+            .Select(r => r.ClassSessionId)
+            .Distinct()
+            .Count();
+
+        var notifyByStudent = reservations
+            .Where(r => TheoryReservationStatuses.OccupiesSeatStatuses.Contains(r.Status))
+            .GroupBy(r => r.StudentUserId)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        if (attendance.Count > 0)
+        {
+            _db.Set<TheoryAttendanceRecord>().RemoveRange(attendance);
+        }
+
+        if (reservations.Count > 0)
+        {
+            _db.Set<TheoryClassReservation>().RemoveRange(reservations);
+        }
+
+        _db.Set<TheoryClassSession>().RemoveRange(sessions);
+        await _db.SaveChangesAsync(ct);
+
+        if (notifyByStudent.Count > 0)
+        {
+            var timeLabel = $"{start:HH\\:mm}";
+            foreach (var (studentId, count) in notifyByStudent)
+            {
+                var body = count == 1
+                    ? $"La escuela eliminó 1 clase teórica ({timeLabel}) entre {request.FromDate:dd/MM/yyyy} y {request.ToDate:dd/MM/yyyy}."
+                    : $"La escuela eliminó {count} clases teóricas ({timeLabel}) entre {request.FromDate:dd/MM/yyyy} y {request.ToDate:dd/MM/yyyy}.";
+                await _notifications.NotifyUsersAsync(
+                    [studentId],
+                    "Clases teóricas eliminadas",
+                    body,
+                    NotificationTypes.TheoryClass,
+                    null,
+                    "theory_class_bulk",
+                    null,
+                    ct);
+            }
+        }
+
+        return new BulkCancelTheoryClassesResult(sessions.Count, withReservations, skippedInvalid);
+    }
+
     public async Task<TheoryClassSessionDto> UpdateSessionAsync(
         int schoolUserId,
         int sessionId,

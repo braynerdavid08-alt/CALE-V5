@@ -97,6 +97,12 @@ public sealed class SchoolTheoryController : ControllerBase
         CancellationToken ct) =>
         Ok(await _service.BulkCreateSessionsAsync(SchoolId, request, ct));
 
+    [HttpPost("sessions/bulk-cancel")]
+    public async Task<IActionResult> BulkCancelSessions(
+        BulkCancelTheoryClassesRequest request,
+        CancellationToken ct) =>
+        Ok(await _service.BulkCancelSessionsAsync(SchoolId, request, ct));
+
     [HttpPut("sessions/{id:int}")]
     public async Task<IActionResult> UpdateSession(
         int id,

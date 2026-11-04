@@ -1064,14 +1064,14 @@ export class SchoolTheoryPage implements OnInit {
     this.bulkTo = formatDateOnly(end);
   }
 
-  private saveBulkSessions(): void {
+  private resolveBulkDays(): number[] | null {
     if (!this.bulkFrom || !this.bulkTo || !this.createForm.topicId || !this.createForm.classroomId) {
       this.error.set('Completa el rango de fechas, tema y aula.');
-      return;
+      return null;
     }
     if (!this.bulkDays.length) {
       this.error.set('Selecciona al menos un día de la semana.');
-      return;
+      return null;
     }
     const allowedDays = this.bulkDays.filter((d) => {
       const idx = d === 0 ? 6 : d - 1;
@@ -1079,6 +1079,14 @@ export class SchoolTheoryPage implements OnInit {
     });
     if (!allowedDays.length) {
       this.error.set(this.schedulingDaysMessage());
+      return null;
+    }
+    return allowedDays;
+  }
+
+  private saveBulkSessions(): void {
+    const allowedDays = this.resolveBulkDays();
+    if (!allowedDays) {
       return;
     }
     this.saving.set(true);
@@ -1106,7 +1114,64 @@ export class SchoolTheoryPage implements OnInit {
             parts.push(`${res.skippedInvalidDay} cayeron en días no habilitados.`);
           }
           this.notice.set(parts.join(' '));
-          // Prefer a real class day (not the 1st if it's Sunday) and keep the open week when possible.
+          const anchor =
+            this.firstMatchingBulkDate(this.bulkFrom, this.bulkTo, allowedDays) ?? this.bulkFrom;
+          this.retainOrFocusWeek(anchor);
+          this.refreshScheduleAfterPublish();
+        },
+        error: (err) => {
+          this.saving.set(false);
+          this.error.set(mapApiError(err));
+        }
+      });
+  }
+
+  bulkDeleteSessions(): void {
+    const allowedDays = this.resolveBulkDays();
+    if (!allowedDays) {
+      return;
+    }
+    const dayNames = this.bulkDayChoices
+      .filter((d) => allowedDays.includes(d.value))
+      .map((d) => d.label)
+      .join(', ');
+    const ok = confirm(
+      `¿Eliminar todas las clases con este horario?\n\n` +
+        `${this.bulkFrom} → ${this.bulkTo}\n` +
+        `${this.createForm.startTime}–${this.createForm.endTime} · ${dayNames}\n\n` +
+        `Se borran coincidencias de tema y aula. Si había estudiantes inscritos, se les avisa.`
+    );
+    if (!ok) {
+      return;
+    }
+
+    this.saving.set(true);
+    this.error.set(null);
+    this.notice.set(null);
+    this.api
+      .bulkCancelSessions({
+        fromDate: this.bulkFrom,
+        toDate: this.bulkTo,
+        daysOfWeek: allowedDays,
+        startTime: this.createForm.startTime,
+        endTime: this.createForm.endTime,
+        topicId: this.createForm.topicId,
+        classroomId: this.createForm.classroomId
+      })
+      .subscribe({
+        next: (res) => {
+          this.saving.set(false);
+          if (res.cancelled === 0) {
+            this.notice.set('No había clases que coincidieran con ese rango y horario.');
+          } else {
+            const parts = [`Se eliminaron ${res.cancelled} clase${res.cancelled === 1 ? '' : 's'}.`];
+            if (res.withReservations) {
+              parts.push(
+                `${res.withReservations} tenían cupos ocupados (se avisó a los estudiantes).`
+              );
+            }
+            this.notice.set(parts.join(' '));
+          }
           const anchor =
             this.firstMatchingBulkDate(this.bulkFrom, this.bulkTo, allowedDays) ?? this.bulkFrom;
           this.retainOrFocusWeek(anchor);

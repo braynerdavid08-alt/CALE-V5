@@ -134,6 +134,24 @@ public sealed record BulkCreateTheoryClassesResult(
     int SkippedExisting,
     int SkippedInvalidDay);
 
+/// <summary>
+/// Deletes matching theory class slots (same filters as bulk create).
+/// DaysOfWeek uses .NET values: 0=Sunday … 6=Saturday.
+/// </summary>
+public sealed record BulkCancelTheoryClassesRequest(
+    DateOnly FromDate,
+    DateOnly ToDate,
+    IReadOnlyList<int> DaysOfWeek,
+    string StartTime,
+    string EndTime,
+    int TopicId,
+    int ClassroomId);
+
+public sealed record BulkCancelTheoryClassesResult(
+    int Cancelled,
+    int WithReservations,
+    int SkippedInvalidDay);
+
 public sealed record UpdateTheoryClassRequest(
     DateOnly SessionDate,
     string StartTime,

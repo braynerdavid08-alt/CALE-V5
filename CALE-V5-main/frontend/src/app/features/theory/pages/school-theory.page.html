@@ -179,6 +179,15 @@
               Publicar clase
             }
           </ui-button>
+          @if (!editingSessionId() && createMode === 'range') {
+            <button
+              type="button"
+              class="link-btn danger"
+              [disabled]="saving()"
+              (click)="bulkDeleteSessions()">
+              Eliminar rango
+            </button>
+          }
           @if (editingSessionId()) {
             <button type="button" class="link-btn" (click)="resetSessionForm()">Nueva clase</button>
             <button type="button" class="link-btn danger" (click)="cancelEditingSession()">Eliminar clase</button>
@@ -186,8 +195,9 @@
         </div>
         @if (!editingSessionId() && createMode === 'range') {
           <p class="muted tip">
-            Crea la misma hora (tema y aula) en todos los días elegidos del rango.
-            Si ya existe una clase a esa hora en el aula, se omite.
+            Publica o elimina la misma hora (tema y aula) en los días elegidos del rango.
+            Al publicar, si ya existe esa hora en el aula se omite. Al eliminar, quita las coincidencias
+            (también avisa a quienes tenían cupo).
           </p>
         }
       </aside>
