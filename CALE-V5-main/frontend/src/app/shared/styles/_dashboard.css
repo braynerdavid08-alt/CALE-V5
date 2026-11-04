@@ -19,14 +19,20 @@
   justify-content: space-between;
   align-items: center;
   gap: 1rem 1.25rem;
-  padding: clamp(1.15rem, 2.6vw, 1.6rem) clamp(1.15rem, 2.8vw, 1.75rem);
-  border-radius: 1.25rem;
+  min-height: 168px;
+  padding: clamp(1.25rem, 2.8vw, 1.75rem) clamp(1.15rem, 2.8vw, 1.75rem);
+  border-radius: 20px;
   color: #fff;
+  isolation: isolate;
   background:
-    radial-gradient(110% 150% at 0% 0%, rgba(7, 138, 69, 0.35), transparent 55%),
-    radial-gradient(80% 120% at 100% 100%, rgba(9, 35, 52, 0.35), transparent 55%),
-    linear-gradient(135deg, #092334, #075c36 70%, #078a45);
-  box-shadow: 0 16px 36px rgba(9, 35, 52, 0.18);
+    linear-gradient(
+      105deg,
+      rgba(9, 35, 52, 0.78) 0%,
+      rgba(7, 90, 54, 0.52) 42%,
+      rgba(9, 35, 52, 0.38) 100%
+    ),
+    url('/assets/luz-verde/student/student-road-banner.jpg') center 55% / cover no-repeat;
+  box-shadow: 0 16px 36px rgba(9, 35, 52, 0.22);
 }
 
 .dash-hero::before {
@@ -34,28 +40,33 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
+  opacity: 0.35;
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
   background-size: 32px 32px;
-  mask-image: linear-gradient(90deg, #000 15%, transparent 85%);
+  mask-image: linear-gradient(90deg, #000 12%, transparent 78%);
 }
 
 .dash-hero > * {
   position: relative;
+  z-index: 1;
 }
 
-.dash .dash-hero .dash-kicker {
-  color: #86efac;
+.dash-hero .dash-kicker {
+  color: #b7f0cb;
+  font-weight: 800;
+  letter-spacing: 0.1em;
 }
 
-.dash .dash-hero h1 {
+.dash-hero h1 {
   color: #fff;
+  font-size: clamp(1.55rem, 2.8vw, 2rem);
 }
 
-.dash .dash-hero .dash-sub,
-.dash .dash-hero .meta {
-  color: rgba(226, 239, 247, 0.8);
+.dash-hero .dash-sub,
+.dash-hero .meta {
+  color: rgba(242, 247, 245, 0.9);
 }
 
 .dash-pills {
@@ -128,28 +139,32 @@ a.dash-pill:hover {
 .dash-kicker {
   margin: 0 0 0.2rem;
   font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: 800;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-secondary);
 }
 
 .dash-hero h1 {
   margin: 0;
-  font-size: clamp(1.35rem, 2.4vw, 1.75rem);
-  letter-spacing: -0.03em;
-  line-height: var(--leading-tight);
+  letter-spacing: -0.02em;
+  line-height: 1.12;
   font-weight: 800;
-  color: var(--color-text);
 }
 
-.dash-sub,
-.dash-hero .meta {
+.dash-sub {
   margin: 0.35rem 0 0;
   color: var(--color-text-secondary);
   font-size: var(--text-sm);
   line-height: 1.4;
   max-width: 40rem;
+}
+
+.dash-hero .dash-sub,
+.dash-hero .meta {
+  margin: 0.4rem 0 0;
+  font-size: 1.02rem;
+  max-width: 42rem;
 }
 
 .dash-hero .eyebrow,

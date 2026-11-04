@@ -57,33 +57,28 @@
       <nav class="easy-ops-grid" aria-label="Operación de la escuela">
         @for (card of operationCards(); track card.key) {
           @if (card.downloadToday) {
-            <div class="easy-op-card-wrap">
-              <button
-                type="button"
-                class="easy-op-card easy-op-card--btn"
-                [disabled]="downloadingReport()"
-                (click)="downloadReportToday()">
-                <span class="easy-op-top">
-                  <span class="easy-emoji" aria-hidden="true">{{ card.emoji }}</span>
-                  <span class="easy-op-arrow" aria-hidden="true">↓</span>
-                </span>
-                <strong class="easy-op-label">
-                  {{ downloadingReport() ? 'Generando…' : card.label }}
-                </strong>
-                @if (card.metrics.length) {
-                  <div class="easy-op-metrics">
-                    @for (m of card.metrics; track m.label) {
-                      <p class="easy-op-metric">
-                        <span class="easy-op-value">{{ m.value }}</span>
-                        <span class="easy-op-metric-label">{{ m.label }}</span>
-                      </p>
-                    }
-                  </div>
+            <button
+              type="button"
+              class="easy-op-card easy-op-card--btn"
+              [disabled]="downloadingReport()"
+              (click)="downloadReportToday()">
+              <span class="easy-op-top">
+                <span class="easy-emoji" aria-hidden="true">{{ card.emoji }}</span>
+                <span class="easy-op-arrow" aria-hidden="true">↓</span>
+              </span>
+              <strong class="easy-op-label">
+                {{ downloadingReport() ? 'Generando…' : card.label }}
+              </strong>
+              <div class="easy-op-metrics">
+                @for (m of card.metrics; track m.label) {
+                  <p class="easy-op-metric">
+                    <span class="easy-op-value">{{ m.value }}</span>
+                    <span class="easy-op-metric-label">{{ m.label }}</span>
+                  </p>
                 }
-                <small class="easy-op-hint">{{ card.hint }}</small>
-              </button>
-              <a class="easy-op-more" routerLink="/school/reports">Opciones del reporte →</a>
-            </div>
+              </div>
+              <small class="easy-op-hint">{{ card.hint }}</small>
+            </button>
           } @else {
             <a
               class="easy-op-card"
@@ -94,21 +89,22 @@
                 <span class="easy-op-arrow" aria-hidden="true">→</span>
               </span>
               <strong class="easy-op-label">{{ card.label }}</strong>
-              @if (card.metrics.length) {
-                <div class="easy-op-metrics">
-                  @for (m of card.metrics; track m.label) {
-                    <p class="easy-op-metric">
-                      <span class="easy-op-value">{{ m.value }}</span>
-                      <span class="easy-op-metric-label">{{ m.label }}</span>
-                    </p>
-                  }
-                </div>
-              }
+              <div class="easy-op-metrics">
+                @for (m of card.metrics; track m.label) {
+                  <p class="easy-op-metric">
+                    <span class="easy-op-value">{{ m.value }}</span>
+                    <span class="easy-op-metric-label">{{ m.label }}</span>
+                  </p>
+                }
+              </div>
               <small class="easy-op-hint">{{ card.hint }}</small>
             </a>
           }
         }
       </nav>
+      <p class="easy-ops-foot">
+        <a routerLink="/school/reports">Opciones del reporte Excel →</a>
+      </p>
     </section>
 
     <section class="easy-panel" aria-labelledby="todo-title">

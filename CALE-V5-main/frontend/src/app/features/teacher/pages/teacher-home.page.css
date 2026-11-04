@@ -1,3 +1,7 @@
+:host {
+  display: block;
+}
+
 .school-name {
   margin: 0;
   font-weight: 750;
@@ -8,10 +12,11 @@
 .membership-banner {
   border: 1px solid color-mix(in srgb, var(--color-warning, #b54708) 35%, var(--color-border));
   background: color-mix(in srgb, var(--color-warning, #b54708) 10%, var(--color-surface));
-  border-radius: 14px;
+  border-radius: 1.1rem;
   padding: 1rem 1.1rem;
   display: grid;
   gap: 0.35rem;
+  box-shadow: var(--shadow-sm);
 }
 .membership-banner strong {
   font-size: 1rem;
@@ -28,12 +33,19 @@
 }
 
 .feature-card {
+  border-color: color-mix(in srgb, var(--color-primary) 22%, var(--color-border));
   background:
     linear-gradient(
       145deg,
-      color-mix(in srgb, var(--color-primary) 16%, var(--color-surface)),
+      color-mix(in srgb, var(--color-primary) 14%, var(--color-surface)),
       var(--color-surface) 55%
     );
+}
+
+@media (max-width: 720px) {
+  .dash-hero {
+    min-height: 0;
+  }
 }
 
 .feature-body {

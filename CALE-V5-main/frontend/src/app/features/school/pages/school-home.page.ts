@@ -156,14 +156,39 @@ export class SchoolHomePage implements OnInit {
     const examsWeek = o?.examsNext7Days ?? null;
     const readyPractical = o?.readyForPracticalCount ?? null;
 
+    const programHintParts: string[] = [];
+    if (readyPractical != null && readyPractical > 0) {
+      programHintParts.push(
+        readyPractical === 1 ? '1 listo para manejo' : `${readyPractical} listos para manejo`
+      );
+    }
+    programHintParts.push('Agenda, cupos y demanda');
+
+    const carteraHint =
+      balanceCount != null && balanceCount > 0
+        ? `${balanceCount} con saldo · ver y registrar pagos`
+        : 'Sin saldos pendientes · ver cartera';
+
+    const todayParts: string[] = [];
+    if ((o?.noExamAppointmentCount ?? 0) > 0) {
+      todayParts.push(`${o!.noExamAppointmentCount} sin cita`);
+    }
+    if ((o?.pendingEnrollmentCount ?? 0) > 0) {
+      todayParts.push(`${o!.pendingEnrollmentCount} sin enrolar`);
+    }
+    const todayHint =
+      todayParts.length > 0
+        ? `${todayParts.join(' · ')} · asistencia en vivo`
+        : 'Asistencia, exámenes y clases en vivo';
+
     return [
       {
         key: 'reports',
         emoji: '📑',
         label: 'Reporte del día',
-        hint: 'Toca para descargar el Excel de hoy',
+        hint: 'Descarga el Excel de hoy',
         path: '/school/reports',
-        metrics: [{ value: 'Excel', label: 'descarga rápida' }],
+        metrics: [{ value: 'Excel', label: 'listo para compartir' }],
         downloadToday: true
       },
       {
@@ -172,71 +197,63 @@ export class SchoolHomePage implements OnInit {
         label: 'Estudiantes',
         hint: 'Expedientes, progreso y autorizaciones',
         path: '/school/apprentices',
-        metrics: studentsValue != null
-          ? [{ value: String(studentsValue), label: 'en expediente' }]
-          : []
+        metrics: [
+          {
+            value: studentsValue != null ? String(studentsValue) : '—',
+            label: 'en expediente'
+          }
+        ]
       },
       {
         key: 'program',
         emoji: '📅',
         label: 'Programación',
-        hint: 'Agenda central, alertas de cupos y demanda',
+        hint: programHintParts.join(' · '),
         path: '/school/agenda',
         metrics: [
-          ...(examsWeek != null
-            ? [{ value: String(examsWeek), label: 'exámenes (7 días)' }]
-            : []),
-          ...(readyPractical != null && readyPractical > 0
-            ? [{ value: String(readyPractical), label: 'listos para manejo' }]
-            : [])
+          {
+            value: examsWeek != null ? String(examsWeek) : '—',
+            label: 'exámenes (7 días)'
+          }
         ]
       },
       {
         key: 'cartera',
         emoji: '💰',
         label: 'Cartera',
-        hint: 'Quién debe y registro de pagos',
+        hint: carteraHint,
         path: '/school/apprentices',
         query: { withBalance: true },
-        metrics:
-          balanceTotal != null && balanceTotal > 0
-            ? [
-                { value: this.formatMoney(balanceTotal), label: 'pendiente' },
-                ...(balanceCount != null
-                  ? [{ value: String(balanceCount), label: 'con saldo' }]
-                  : [])
-              ]
-            : balanceCount != null
-              ? [{ value: String(balanceCount), label: 'con saldo' }]
-              : [{ value: 'Al día', label: 'sin saldos pendientes' }]
+        metrics: [
+          {
+            value:
+              balanceTotal != null && balanceTotal > 0
+                ? this.formatMoneyCompact(balanceTotal)
+                : 'Al día',
+            label: balanceTotal != null && balanceTotal > 0 ? 'pendiente' : 'sin saldos'
+          }
+        ]
       },
       {
         key: 'today',
         emoji: '✅',
         label: 'Operación de hoy',
-        hint: 'Asistencia, exámenes y clases en tiempo real',
+        hint: todayHint,
         path: '/school/attendance',
         metrics: [
-          ...(examsToday != null
-            ? [{ value: String(examsToday), label: 'exámenes hoy' }]
-            : []),
-          ...(o?.noExamAppointmentCount != null && o.noExamAppointmentCount > 0
-            ? [
-                {
-                  value: String(o.noExamAppointmentCount),
-                  label: 'sin cita de examen'
-                }
-              ]
-            : []),
-          ...(o?.pendingEnrollmentCount != null && o.pendingEnrollmentCount > 0
-            ? [
-                {
-                  value: String(o.pendingEnrollmentCount),
-                  label: 'sin enrolar'
-                }
-              ]
-            : [])
+          {
+            value: examsToday != null ? String(examsToday) : '—',
+            label: 'exámenes hoy'
+          }
         ]
+      },
+      {
+        key: 'training',
+        emoji: '📚',
+        label: 'Teoría',
+        hint: 'Clases, aulas y reservas',
+        path: '/school/training',
+        metrics: [{ value: 'Clases', label: 'programar teoría' }]
       }
     ];
   });
@@ -421,6 +438,22 @@ export class SchoolHomePage implements OnInit {
       currency: 'COP',
       maximumFractionDigits: 0
     }).format(value);
+  }
+
+  /** Shorter money for equal-height op cards (avoids wrapping $1.500.000). */
+  formatMoneyCompact(value: number): string {
+    if (value >= 1_000_000) {
+      const millions = value / 1_000_000;
+      const text =
+        millions >= 10
+          ? millions.toFixed(0)
+          : millions.toFixed(1).replace(/\.0$/, '');
+      return `$${text} M`;
+    }
+    if (value >= 1_000) {
+      return `$${Math.round(value / 1_000)} mil`;
+    }
+    return this.formatMoney(value);
   }
 
   downloadReportToday(): void {
