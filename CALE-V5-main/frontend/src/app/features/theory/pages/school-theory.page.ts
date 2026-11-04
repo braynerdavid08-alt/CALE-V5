@@ -239,10 +239,53 @@ export class SchoolTheoryPage implements OnInit {
   }
 
   jumpToSessionWeek(sessionDate: string): void {
+    this.focusWeekOn(sessionDate);
+    this.loadScheduleData();
+  }
+
+  /** Move the week cursor without fetching (caller refreshes). */
+  private focusWeekOn(sessionDate: string): void {
     this.weekStart.set(startOfWeekIso(parseDate(sessionDate)));
     const [y, m] = sessionDate.split('-');
     this.monthKey.set(`${y}-${m}`);
+  }
+
+  /** Keep the visible week after publishing; only jump if the new date is outside it. */
+  private retainOrFocusWeek(sessionDate: string): void {
+    const week = this.weekStart();
+    const weekEnd = addDaysIso(week, 6);
+    if (sessionDate < week || sessionDate > weekEnd) {
+      this.focusWeekOn(sessionDate);
+      return;
+    }
+    const [y, m] = sessionDate.split('-');
+    this.monthKey.set(`${y}-${m}`);
+  }
+
+  /** First calendar day in [from, to] that matches .NET DayOfWeek values (Mon=1…Sat=6). */
+  private firstMatchingBulkDate(from: string, to: string, daysOfWeek: number[]): string | null {
+    if (!from || !to || !daysOfWeek.length) {
+      return null;
+    }
+    const wanted = new Set(daysOfWeek);
+    let cursor = parseDate(from);
+    const end = parseDate(to);
+    while (cursor <= end) {
+      const dow = cursor.getDay(); // Sun=0…Sat=6
+      if (dow !== 0 && wanted.has(dow)) {
+        return formatDateOnly(cursor);
+      }
+      cursor = addDays(cursor, 1);
+    }
+    return null;
+  }
+
+  private refreshScheduleAfterPublish(): void {
     this.loadScheduleData();
+    this.api.schoolDashboard().subscribe({
+      next: (d) => this.dashboard.set(d),
+      error: () => this.dashboard.set(null)
+    });
   }
 
   selectSessionForEdit(session: TheoryClassSessionDto): void {
@@ -963,8 +1006,8 @@ export class SchoolTheoryPage implements OnInit {
         this.saving.set(false);
         this.createForm.notes = '';
         this.editingSessionId.set(null);
-        this.jumpToSessionWeek(body.sessionDate);
-        this.reload();
+        this.retainOrFocusWeek(body.sessionDate);
+        this.refreshScheduleAfterPublish();
       },
       error: (err) => {
         this.saving.set(false);
@@ -1063,8 +1106,11 @@ export class SchoolTheoryPage implements OnInit {
             parts.push(`${res.skippedInvalidDay} cayeron en días no habilitados.`);
           }
           this.notice.set(parts.join(' '));
-          this.jumpToSessionWeek(this.bulkFrom);
-          this.reload();
+          // Prefer a real class day (not the 1st if it's Sunday) and keep the open week when possible.
+          const anchor =
+            this.firstMatchingBulkDate(this.bulkFrom, this.bulkTo, allowedDays) ?? this.bulkFrom;
+          this.retainOrFocusWeek(anchor);
+          this.refreshScheduleAfterPublish();
         },
         error: (err) => {
           this.saving.set(false);
