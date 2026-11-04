@@ -14,6 +14,9 @@ public sealed class VerificationEmailTemplateTests
         Assert.Contains("FORMACIÓN QUE IMPULSA TU CAMINO", msg.Html, StringComparison.Ordinal);
         Assert.Contains("Verifica tu cuenta", msg.Html, StringComparison.Ordinal);
         Assert.Contains(EmailLayout.NightBlue, msg.Html, StringComparison.Ordinal);
+        Assert.Contains(EmailLayout.AccentGreen, msg.Html, StringComparison.Ordinal);
+        Assert.Contains(EmailLayout.PageBg, msg.Html, StringComparison.Ordinal);
+        Assert.Contains(EmailLayout.CardBg, msg.Html, StringComparison.Ordinal);
         Assert.Contains("Luz Verde", msg.Html, StringComparison.Ordinal);
         Assert.Contains(EmailLayout.ClosingLine, msg.Html, StringComparison.Ordinal);
         Assert.Contains("cid:luzverde-logo", msg.Html, StringComparison.Ordinal);

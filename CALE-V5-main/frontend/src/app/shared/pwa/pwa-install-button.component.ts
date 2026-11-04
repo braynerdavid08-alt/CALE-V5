@@ -51,7 +51,7 @@ import { UiIconComponent } from '../ui/ui-icon.component';
               <div>
                 <h2 id="pwa-install-title">Instalar {{ brand.name }}</h2>
                 <p class="muted">
-                  Agrégala a la pantalla de inicio de tu celular y ábrela como una app,
+                  Agrega {{ brand.name }} a la pantalla de inicio de tu celular y ábrela como una app,
                   sin ocupar la tienda.
                 </p>
               </div>

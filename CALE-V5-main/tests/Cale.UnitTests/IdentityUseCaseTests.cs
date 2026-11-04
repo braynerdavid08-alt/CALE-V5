@@ -33,8 +33,10 @@ public class IdentityUseCaseTests : IDisposable
         var request = new RegisterRequest("Ana", "ana@test.com", "Password1");
         await handler.HandleAsync(request, CancellationToken.None);
 
-        await Assert.ThrowsAsync<ConflictException>(() =>
+        // With Email:Enabled=false the first register auto-confirms → email_taken on retry.
+        var ex = await Assert.ThrowsAsync<ConflictException>(() =>
             handler.HandleAsync(request, CancellationToken.None));
+        Assert.Equal("email_taken", ex.ErrorCode);
     }
 
     [Fact]

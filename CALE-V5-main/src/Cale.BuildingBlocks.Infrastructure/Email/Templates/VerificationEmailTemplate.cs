@@ -38,7 +38,7 @@ public static class VerificationEmailTemplate
             : logo is null ? null : "cid:" + EmailBrandAssets.LogoContentId;
 
         var inner = $"""
-            <h1 style="margin:0 0 16px 0;font-family:Arial,Helvetica,sans-serif;font-size:28px;font-weight:700;line-height:1.25;color:{EmailLayout.NightBlue};text-align:center;">
+            <h1 style="margin:0 0 16px 0;font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:700;line-height:1.3;color:{EmailLayout.NightBlue};text-align:center;">
               Verifica tu cuenta
             </h1>
             <p style="margin:0 0 8px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:{EmailLayout.TextBody};text-align:center;">
@@ -47,19 +47,22 @@ public static class VerificationEmailTemplate
             <p style="margin:0 0 22px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:{EmailLayout.TextBody};text-align:center;">
               Gracias por registrarte. Para completar tu acceso, utiliza el siguiente código de verificación:
             </p>
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto 18px auto;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 18px 0;">
               <tr>
-                <td align="center" style="border:1px solid #111827;border-radius:8px;padding:16px 28px;background-color:#FFFFFF;">
-                  <div style="font-family:Arial,Helvetica,sans-serif;font-size:28px;font-weight:700;letter-spacing:0.35em;color:{EmailLayout.NightBlue};line-height:1.2;padding-left:0.35em;">
+                <td align="center" style="background-color:#F9FAFB;border:1px solid {EmailLayout.Border};border-left:4px solid {EmailLayout.AccentGreen};border-radius:8px;padding:18px 20px;">
+                  <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:{EmailLayout.TextMuted};margin:0 0 10px 0;">
+                    Código de verificación
+                  </div>
+                  <div style="font-family:Arial,Helvetica,sans-serif;font-size:30px;font-weight:700;letter-spacing:0.35em;color:{EmailLayout.NightBlue};line-height:1.2;padding-left:0.35em;">
                     {codeEsc}
                   </div>
                 </td>
               </tr>
             </table>
-            <p style="margin:0 0 14px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;color:{EmailLayout.TextMuted};text-align:center;">
-              Este código expirará en {minutesEsc} minutos por motivos de seguridad.
+            <p style="margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;color:{EmailLayout.TextMuted};text-align:center;">
+              Este código expirará en <strong style="color:{EmailLayout.TextBody};">{minutesEsc} minutos</strong> por motivos de seguridad.
             </p>
-            <p style="margin:0 0 8px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;color:{EmailLayout.TextMuted};text-align:center;">
+            <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;color:{EmailLayout.TextMuted};text-align:center;">
               No compartas este código con nadie. Si no solicitaste esta verificación, ignora este mensaje.
             </p>
             """;

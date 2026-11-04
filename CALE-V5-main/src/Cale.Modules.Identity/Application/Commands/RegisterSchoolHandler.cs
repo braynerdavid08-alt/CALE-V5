@@ -55,12 +55,7 @@ public sealed class RegisterSchoolHandler
         var billingEmail = EmailAddress.NormalizeForRegistration(request.BillingEmail);
         var taxId = ColombianTaxId.Normalize(request.TaxId);
 
-        if (await _users.ExistsByEmailAsync(email, ct))
-        {
-            throw new ConflictException(
-                "Email already registered.",
-                "email_taken");
-        }
+        await EmailRegistrationGuard.EnsureAvailableOrPendingAsync(_users, email, ct);
 
         await SchoolTaxIdGuard.EnsureUniqueAsync(_profiles, taxId, exceptSchoolUserId: null, ct);
 

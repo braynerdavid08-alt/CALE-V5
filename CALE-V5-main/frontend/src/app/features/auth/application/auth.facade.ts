@@ -175,11 +175,18 @@ export class AuthFacade {
   /** Account may already exist pending when delivery fails after create. */
   private failRegister(err: unknown, email: string): void {
     this.loading.set(false);
-    this.error.set(mapApiError(err));
     const detail = apiErrorCode(err);
-    if ((detail === 'email_send_failed' || detail === 'email_delivery_misconfigured') && email) {
+    if (
+      email &&
+      (detail === 'email_send_failed' ||
+        detail === 'email_delivery_misconfigured' ||
+        detail === 'email_pending_confirmation')
+    ) {
+      this.error.set(mapApiError(err));
       void this.router.navigate(['/verify-email'], { queryParams: { email } });
+      return;
     }
+    this.error.set(mapApiError(err));
   }
 
   private failLogin(err: unknown, email: string): void {

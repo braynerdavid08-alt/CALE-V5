@@ -3,7 +3,9 @@ import { extractTraceId } from './observability.interceptor';
 
 const messages: Record<string, string> = {
   invalid_credentials: 'Correo o contraseña incorrectos.',
-  email_taken: 'Ese correo ya está registrado.',
+  email_taken: 'Ese correo ya está registrado. Inicia sesión o recupera tu acceso.',
+  email_pending_confirmation:
+    'Ese correo ya tiene una cuenta pendiente. Te llevamos a verificar el código (puedes reenviarlo).',
   invalid_email: 'El correo no es válido.',
   email_not_public: 'Usa un correo real (Gmail, Outlook, institucional, etc.).',
   email_not_confirmed: 'Debes confirmar tu correo con el código que te enviamos.',

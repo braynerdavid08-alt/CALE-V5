@@ -25,5 +25,24 @@ public sealed class RateLimitTests : IDisposable
         Assert.Equal(HttpStatusCode.TooManyRequests, statuses[^1]);
     }
 
+    [Fact]
+    public async Task Excessive_resend_confirmation_gets_429()
+    {
+        // EmailCode policy: 10 permits / 10 minutes. Does not create or overwrite users.
+        var client = _api.ClientFor(null);
+        var statuses = new List<HttpStatusCode>();
+        for (var i = 0; i < 12; i++)
+        {
+            var res = await client.PostAsJsonAsync(
+                "/api/auth/resend-confirmation",
+                new { email = $"rate-limit-{i}@pruebas.test" });
+            statuses.Add(res.StatusCode);
+        }
+
+        Assert.Contains(HttpStatusCode.TooManyRequests, statuses);
+        Assert.Equal(HttpStatusCode.TooManyRequests, statuses[^1]);
+        Assert.True(statuses.Count(s => s == HttpStatusCode.TooManyRequests) >= 1);
+    }
+
     public void Dispose() => _api.Dispose();
 }

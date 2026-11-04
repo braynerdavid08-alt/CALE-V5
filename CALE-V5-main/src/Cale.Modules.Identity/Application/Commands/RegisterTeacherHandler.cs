@@ -39,12 +39,7 @@ public sealed class RegisterTeacherHandler
         Validate(request);
         var email = EmailAddress.NormalizeForRegistration(request.Email);
 
-        if (await _users.ExistsByEmailAsync(email, ct))
-        {
-            throw new ConflictException(
-                "Email already registered.",
-                "email_taken");
-        }
+        await EmailRegistrationGuard.EnsureAvailableOrPendingAsync(_users, email, ct);
 
         var user = User.CreateTeacher(
             request.Name,

@@ -35,50 +35,43 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
       @if (home(); as h) {
         <div class="home-lead">
           @if (h.hero.visible) {
-            <section
-              class="hero"
-              [class.has-vitrine-left]="vitrineOffers().length > 0"
-              [class.has-vitrine-right]="vitrineFeatured().length > 0"
-              aria-labelledby="home-heading">
+            <section class="hero" aria-labelledby="home-heading">
               <div class="hero-bg" aria-hidden="true">
-                <span class="glow g1"></span>
-                <span class="glow g2"></span>
-                <span class="grid-lines"></span>
+                <div class="hero-photo"></div>
+                <div class="hero-overlay"></div>
+                <span class="swoosh s1"></span>
+                <span class="swoosh s2"></span>
+                <span class="swoosh s3"></span>
+                <span class="swoosh s4"></span>
               </div>
 
-              @if (vitrineOffers().length) {
-                <aside class="vitrine vitrine-left" aria-label="En oferta">
-                  <p class="vitrine-title">En oferta</p>
-                  <div class="vitrine-list">
-                    @for (p of vitrineOffers(); track p.id) {
-                      <a class="vitrine-item" routerLink="/tienda">
-                        <span class="vitrine-thumb">
-                          @if (productImage(p)) {
-                            <img [src]="productImage(p)" [alt]="''" width="56" height="56" loading="lazy" />
-                          }
-                        </span>
-                        <span class="vitrine-meta">
-                          @if (productBadge(p); as badge) {
-                            <span class="vitrine-badge">{{ badge }}</span>
-                          }
-                          <strong>{{ p.name }}</strong>
-                          <span class="vitrine-price">
-                            {{ p.priceCop | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}
-                            @if (p.compareAtPriceCop && p.compareAtPriceCop > p.priceCop) {
-                              <s>{{ p.compareAtPriceCop | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</s>
-                            }
-                          </span>
-                        </span>
-                      </a>
-                    }
-                  </div>
-                  <a class="vitrine-more" routerLink="/tienda">Ver tienda →</a>
-                </aside>
-              }
+              <div class="hero-stage">
+                @if (featuredOffer(); as offer) {
+                  <aside class="offer-card" aria-label="Producto en oferta">
+                    <p class="offer-tag">EN OFERTA</p>
+                    <a class="offer-body" [routerLink]="['/tienda', offer.slug]">
+                      <span class="offer-media">
+                        @if (productImage(offer)) {
+                          <img [src]="productImage(offer)" [alt]="offer.name" width="160" height="120" loading="lazy" />
+                        }
+                        @if (productBadge(offer); as badge) {
+                          <span class="offer-discount">{{ badge }}</span>
+                        }
+                      </span>
+                      <strong>{{ offer.name }}</strong>
+                      <span class="offer-price">
+                        {{ offer.priceCop | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}
+                        @if (offer.compareAtPriceCop && offer.compareAtPriceCop > offer.priceCop) {
+                          <s>{{ offer.compareAtPriceCop | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</s>
+                        }
+                      </span>
+                    </a>
+                    <a class="offer-link" routerLink="/tienda">Ver tienda →</a>
+                  </aside>
+                }
 
-              <div class="hero-inner">
                 <div class="hero-copy">
-                  <p class="eyebrow home-kicker">Inicio Luz Verde</p>
+                  <p class="eyebrow home-kicker">INICIO LUZ VERDE</p>
                   @if (h.hero.badge && !isUnverifiableBadge(h.hero.badge)) {
                     <p class="badge"><span class="dot" aria-hidden="true"></span>{{ h.hero.badge }}</p>
                   }
@@ -89,27 +82,33 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                     }
                   </h1>
                   <p class="lead">{{ h.hero.description }}</p>
-                  <div class="cta-row">
-                    @if (loggedIn()) {
-                      <ui-button [routerLink]="accountPath()">Mi cuenta</ui-button>
-                    } @else {
-                      <ui-button routerLink="/login">Iniciar sesión</ui-button>
-                      <ui-button routerLink="/register">Crear cuenta</ui-button>
-                    }
-                    <ui-button routerLink="/tienda">Explorar tienda</ui-button>
-                    <ui-button routerLink="/contacto">
-                      <ui-icon name="building" size="sm" />
-                      Plataforma para CEA
-                    </ui-button>
+
+                  <div class="cta-stack">
+                    <div class="cta-row">
+                      @if (loggedIn()) {
+                        <ui-button [routerLink]="accountPath()">Mi cuenta</ui-button>
+                      } @else {
+                        <ui-button routerLink="/login">Iniciar sesión</ui-button>
+                        <ui-button routerLink="/register">Crear cuenta</ui-button>
+                      }
+                    </div>
+                    <div class="cta-row">
+                      <ui-button routerLink="/tienda">
+                        <ui-icon name="grid" size="sm" />
+                        Explorar tienda
+                      </ui-button>
+                      <ui-button routerLink="/contacto">
+                        <ui-icon name="building" size="sm" />
+                        Plataforma para CEA
+                      </ui-button>
+                    </div>
                   </div>
 
                   <div class="trust">
                     @if (reviews(); as r) {
                       @if (r.count > 0) {
-                        <span class="avatars" aria-hidden="true">
-                          @for (t of r.items.slice(0, 4); track t.id) {
-                            <span class="av">{{ initials(t.displayName) }}</span>
-                          }
+                        <span class="trust-score" aria-hidden="true">
+                          <span class="trust-dot"><ui-icon name="star" size="sm" /></span>
                         </span>
                         <span class="trust-text">
                           <span class="stars" [attr.aria-label]="r.average + ' de 5 estrellas'">{{
@@ -131,83 +130,47 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                   </div>
                 </div>
 
-                @if (h.hero.imageEnabled && heroImageUrl(h)) {
-                  <div class="hero-media">
-                    <img [src]="heroImageUrl(h)" [alt]="h.hero.imageAlt || brand.name" loading="eager" />
-                  </div>
-                } @else {
-                  <div class="device-wrap" aria-hidden="true">
-                    <div class="device">
-                      <div class="device-notch"></div>
-                      <div class="device-screen">
-                        <div class="mock-top">
-                          <span>Simulacro CALE</span>
-                          <span class="mock-timer">⏱ 24:10</span>
-                        </div>
-                        <div class="mock-progress"><span></span></div>
-                        <p class="mock-q-num">Pregunta 12 de 25</p>
-                        <div class="mock-sign">
-                          <svg viewBox="0 0 100 100" width="64" height="64">
-                            <polygon
-                              points="30,4 70,4 96,30 96,70 70,96 30,96 4,70 4,30"
-                              fill="#c0352b"
-                              stroke="#fff"
-                              stroke-width="4" />
-                            <text
-                              x="50"
-                              y="59"
-                              text-anchor="middle"
-                              font-size="24"
-                              font-weight="800"
-                              fill="#fff"
-                              font-family="system-ui">
-                              PARE
-                            </text>
-                          </svg>
-                        </div>
-                        <p class="mock-q">¿Qué debe hacer el conductor ante esta señal?</p>
-                        <div class="mock-opt">A. Reducir la velocidad</div>
-                        <div class="mock-opt ok">B. Detenerse por completo ✓</div>
-                        <div class="mock-opt">C. Tocar el pito y seguir</div>
-                        <div class="mock-ready">
-                          <span>¿Listo para el examen?</span>
-                          <strong>86%</strong>
-                        </div>
+                <div class="device-wrap" aria-hidden="true">
+                  <div class="device">
+                    <div class="device-notch"></div>
+                    <div class="device-screen">
+                      <div class="mock-top">
+                        <span>Simulacro CALE</span>
+                        <span class="mock-timer">⏱ 24:10</span>
+                      </div>
+                      <div class="mock-progress"><span></span></div>
+                      <p class="mock-q-num">Pregunta 12 de 25</p>
+                      <div class="mock-sign">
+                        <svg viewBox="0 0 100 100" width="64" height="64">
+                          <polygon
+                            points="30,4 70,4 96,30 96,70 70,96 30,96 4,70 4,30"
+                            fill="#c0352b"
+                            stroke="#fff"
+                            stroke-width="4" />
+                          <text
+                            x="50"
+                            y="59"
+                            text-anchor="middle"
+                            font-size="24"
+                            font-weight="800"
+                            fill="#fff"
+                            font-family="system-ui">
+                            PARE
+                          </text>
+                        </svg>
+                      </div>
+                      <p class="mock-q">¿Qué debe hacer el conductor ante esta señal?</p>
+                      <div class="mock-opt">A. Reducir la velocidad</div>
+                      <div class="mock-opt ok">B. Detenerse por completo ✓</div>
+                      <div class="mock-opt">C. Tocar el pito y seguir</div>
+                      <div class="mock-ready">
+                        <span>¿Listo para el examen?</span>
+                        <strong>86%</strong>
                       </div>
                     </div>
                   </div>
-                }
+                </div>
               </div>
-
-              @if (vitrineFeatured().length) {
-                <aside class="vitrine vitrine-right" aria-label="Destacados">
-                  <p class="vitrine-title">Destacados</p>
-                  <div class="vitrine-list">
-                    @for (p of vitrineFeatured(); track p.id) {
-                      <a class="vitrine-item" routerLink="/tienda">
-                        <span class="vitrine-thumb">
-                          @if (productImage(p)) {
-                            <img [src]="productImage(p)" [alt]="''" width="56" height="56" loading="lazy" />
-                          }
-                        </span>
-                        <span class="vitrine-meta">
-                          @if (productBadge(p); as badge) {
-                            <span class="vitrine-badge">{{ badge }}</span>
-                          }
-                          <strong>{{ p.name }}</strong>
-                          <span class="vitrine-price">
-                            {{ p.priceCop | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}
-                            @if (p.compareAtPriceCop && p.compareAtPriceCop > p.priceCop) {
-                              <s>{{ p.compareAtPriceCop | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</s>
-                            }
-                          </span>
-                        </span>
-                      </a>
-                    }
-                  </div>
-                  <a class="vitrine-more" routerLink="/tienda">Ver tienda →</a>
-                </aside>
-              }
 
               @if (mobileOffers().length) {
                 <div class="mobile-offers" aria-label="Ofertas de la tienda">
@@ -217,7 +180,7 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                   </div>
                   <div class="mobile-offers-track">
                     @for (p of mobileOffers(); track p.id) {
-                      <a class="mobile-offer-card" routerLink="/tienda">
+                      <a class="mobile-offer-card" [routerLink]="['/tienda', p.slug]">
                         <span class="mobile-offer-media">
                           @if (productImage(p)) {
                             <img [src]="productImage(p)" [alt]="p.name" width="120" height="90" loading="lazy" />
@@ -513,20 +476,12 @@ export class LandingPage implements OnInit {
     this.shopPromoCount() > 0 ? 'Equipo con precios vigentes' : 'Tienda de protección vial'
   );
 
-  /** Desktop left rail: real promos only. */
-  readonly vitrineOffers = computed(() => {
+  /** Left hero card: real promo or first catalog product. */
+  readonly featuredOffer = computed(() => {
     const list = this.shop()?.products ?? [];
+    if (!list.length) return null;
     const promos = list.filter((p) => p.hasPromo || this.hasCompare(p));
-    return (promos.length ? promos : list).slice(0, 3);
-  });
-
-  /** Desktop right rail: featured (or remaining items). */
-  readonly vitrineFeatured = computed(() => {
-    const list = this.shop()?.products ?? [];
-    const offerIds = new Set(this.vitrineOffers().map((p) => p.id));
-    const featured = list.filter((p) => p.isFeatured && !offerIds.has(p.id));
-    const pool = featured.length ? featured : list.filter((p) => !offerIds.has(p.id));
-    return pool.slice(0, 3);
+    return (promos.length ? promos : list)[0] ?? null;
   });
 
   /** Mobile: compact horizontal strip under the hero. */
@@ -563,10 +518,6 @@ export class LandingPage implements OnInit {
       next: (s) => this.shop.set(s),
       error: () => this.shop.set(null)
     });
-  }
-
-  heroImageUrl(h: PublicHomeDto): string {
-    return resolveMediaUrl(h.hero.imageUrl);
   }
 
   productImage(p: { imageUrl: string | null; imageUrls?: string[] }): string {
@@ -637,11 +588,11 @@ export class LandingPage implements OnInit {
     return {
       hero: {
         visible: true,
-        badge: 'Plataforma para CEA',
-        title: 'Luz Verde',
-        titleHighlight: 'software para tu escuela de conducción',
+        badge: '',
+        title: 'Aprende a conducir de',
+        titleHighlight: 'manera segura y responsable',
         description:
-          'Gestiona estudiantes, instructores, agenda de clases y exámenes, y forma conductores con simulacro teórico — en una sola plataforma digital.',
+          'Practica gratis el simulacro del examen CALE todas las veces que quieras y sigue tu formación con las mejores escuelas e instructores.',
         ctaPrimaryLabel: 'Explorar tienda',
         ctaPrimaryPath: '/tienda',
         ctaSecondaryLabel: 'Para CEA',
