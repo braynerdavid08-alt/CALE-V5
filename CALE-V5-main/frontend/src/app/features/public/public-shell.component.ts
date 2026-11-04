@@ -33,7 +33,7 @@ import { PublicShopProductDto } from './shop.models';
   ],
   template: `
     <div class="public-shell">
-      <header class="top">
+      <header class="top" [class.is-scrolled]="scrolled()">
         <div class="top-inner">
           <a routerLink="/" class="brand" aria-label="Inicio — Luz Verde" (click)="closeMenu()">
             <img
@@ -241,6 +241,7 @@ export class PublicShellComponent implements OnInit {
 
   readonly brand = BRAND;
   readonly menuOpen = signal(false);
+  readonly scrolled = signal(false);
   readonly loggedIn = computed(() => this.session.isAuthenticated());
   readonly accountPath = computed(() => this.session.homeRoute());
 
@@ -310,6 +311,12 @@ export class PublicShellComponent implements OnInit {
 
   closeMenu(): void {
     this.menuOpen.set(false);
+  }
+
+  @HostListener('window:scroll')
+  onScroll(): void {
+    if (typeof window === 'undefined') return;
+    this.scrolled.set(window.scrollY > 12);
   }
 
   @HostListener('window:resize')

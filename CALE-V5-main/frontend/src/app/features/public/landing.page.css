@@ -720,6 +720,64 @@
   border-block: 1px solid var(--color-border);
 }
 
+.section-tienda,
+.section-avanzar,
+.section-herramientas,
+.section-como-funciona {
+  position: relative;
+  isolation: isolate;
+  background-color: #f4f9f5;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  color: #102a2e;
+}
+
+.section-tienda {
+  background-image:
+    linear-gradient(90deg, rgba(244, 249, 245, 0.94), rgba(244, 249, 245, 0.72)),
+    url('/assets/luz-verde/sections/tienda-precios.jpg');
+}
+
+.section-avanzar {
+  background-image:
+    linear-gradient(90deg, rgba(244, 249, 245, 0.96), rgba(244, 249, 245, 0.78)),
+    url('/assets/luz-verde/sections/avanzar-rutas.png');
+}
+
+.section-herramientas {
+  background-image:
+    linear-gradient(90deg, rgba(244, 249, 245, 0.94), rgba(244, 249, 245, 0.72)),
+    url('/assets/luz-verde/sections/herramientas-aprendizaje.jpg');
+}
+
+.section-como-funciona {
+  background-image:
+    linear-gradient(90deg, rgba(244, 249, 245, 0.94), rgba(244, 249, 245, 0.72)),
+    url('/assets/luz-verde/sections/como-funciona.jpg');
+}
+
+.section-tienda .eyebrow,
+.section-avanzar .eyebrow,
+.section-herramientas .eyebrow,
+.section-como-funciona .eyebrow {
+  color: #16a34a;
+}
+
+.section-tienda .sec-head h2,
+.section-avanzar .sec-head h2,
+.section-herramientas .sec-head h2,
+.section-como-funciona .sec-head h2 {
+  color: #102a2e;
+}
+
+.section-tienda .sec-head p,
+.section-avanzar .sec-head p,
+.section-herramientas .sec-head p,
+.section-como-funciona .sec-head p {
+  color: #5b6b70;
+}
+
 .section.pwa-band {
   padding: clamp(1.25rem, 3vw, 2rem) 0;
   background: var(--color-surface-raised);
@@ -809,23 +867,26 @@
   display: grid;
   gap: 1rem;
   align-content: start;
+  height: 100%;
   padding: clamp(1.5rem, 3vw, 2.2rem);
   border-radius: 1.4rem;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  box-shadow: 0 12px 30px color-mix(in srgb, #0f172a 6%, transparent);
+  border: 1px solid rgba(16, 42, 46, 0.08);
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(7, 26, 43, 0.06);
 }
 
 .aud-card.school {
   background:
-    radial-gradient(ellipse 80% 60% at 100% 0%, color-mix(in srgb, #22c55e 12%, transparent), transparent 60%),
-    var(--color-surface);
+    linear-gradient(180deg, rgba(13, 38, 56, 0.04), transparent 42%),
+    #ffffff;
+  border-color: rgba(13, 38, 56, 0.12);
 }
 
 .aud-card.student {
   background:
-    radial-gradient(ellipse 80% 60% at 100% 0%, color-mix(in srgb, #15803d 14%, transparent), transparent 60%),
-    var(--color-surface);
+    linear-gradient(180deg, rgba(220, 252, 231, 0.85), transparent 48%),
+    #ffffff;
+  border-color: rgba(22, 163, 74, 0.18);
 }
 
 .aud-tag {
@@ -936,14 +997,15 @@
   align-content: start;
   padding: 1.5rem;
   border-radius: 1.25rem;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid rgba(16, 42, 46, 0.08);
+  background: #ffffff;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
 
 .bento-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 16px 36px color-mix(in srgb, #0f172a 10%, transparent);
+  border-color: rgba(22, 163, 74, 0.35);
+  box-shadow: 0 14px 28px rgba(7, 26, 43, 0.08);
 }
 
 .bento-card.wide {
@@ -977,7 +1039,7 @@
   place-items: center;
   width: 3rem;
   height: 3rem;
-  border-radius: 14px;
+  border-radius: 999px;
 }
 
 [data-tone='blue'] .tone-icon,
@@ -1030,12 +1092,33 @@
 
 /* Games */
 
-.games {
+.games,
+.section-practica {
+  position: relative;
+  isolation: isolate;
   color: #e8eef3;
-  background:
-    radial-gradient(ellipse 60% 80% at 0% 100%, rgba(34, 197, 94, 0.18), transparent 60%),
-    radial-gradient(ellipse 50% 70% at 100% 0%, rgba(132, 204, 22, 0.2), transparent 60%),
-    #0a1628;
+  background-color: #071a2b;
+  background-image:
+    linear-gradient(90deg, rgba(7, 26, 43, 0.94), rgba(7, 26, 43, 0.76)),
+    url('/assets/luz-verde/sections/practica-progreso.jpg');
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+}
+
+.section-practica::before {
+  content: '';
+  position: absolute;
+  inset: -20% -30%;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 20% 50%, rgba(22, 163, 74, 0.16), transparent 42%);
+  animation: lvGlowDrift 16s ease-in-out infinite alternate;
+}
+
+.section-practica > .wrap {
+  position: relative;
+  z-index: 1;
 }
 
 .games-inner {
@@ -1076,14 +1159,14 @@
   padding: 1.25rem;
   border-radius: 1.1rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(6px);
-  transition: transform 0.2s ease, background 0.2s ease;
+  background: rgba(13, 38, 56, 0.72);
+  transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease;
 }
 
 .game:hover {
   transform: translateY(-3px);
-  background: rgba(255, 255, 255, 0.09);
+  background: rgba(13, 38, 56, 0.88);
+  border-color: rgba(22, 163, 74, 0.35);
 }
 
 .game-emoji {
@@ -1133,8 +1216,15 @@
   left: 12%;
   right: 12%;
   height: 2px;
-  background: linear-gradient(90deg, var(--color-primary), #22c55e);
-  opacity: 0.35;
+  background: linear-gradient(90deg, #86efac, #16a34a);
+  opacity: 0.55;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.9s ease;
+}
+
+.timeline.lv-reveal.is-visible::before {
+  transform: scaleX(1);
 }
 
 .t-step {
@@ -1378,12 +1468,13 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg, 1rem);
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 8px 20px rgba(7, 26, 43, 0.05);
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 .shop-card:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
+  transform: translateY(-4px) scale(1.01);
+  border-color: rgba(22, 163, 74, 0.35);
+  box-shadow: 0 14px 28px rgba(7, 26, 43, 0.1);
 }
 .shop-media {
   position: relative;
@@ -1515,17 +1606,54 @@
   }
 }
 
+.lv-reveal {
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s ease;
+  transition-delay: var(--lv-delay, 0ms);
+}
+
+.lv-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes lvGlowDrift {
+  from {
+    transform: translate3d(-2%, 0, 0);
+  }
+  to {
+    transform: translate3d(4%, -2%, 0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .glow,
   .device,
-  .float-chip {
-    animation: none;
+  .float-chip,
+  .section-practica::before {
+    animation: none !important;
   }
 
   .bento-card,
   .game,
-  .person {
-    transition: none;
+  .person,
+  .shop-card,
+  .lv-reveal,
+  .timeline::before {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .lv-reveal {
+    opacity: 1;
+    transform: none;
+  }
+
+  .timeline::before {
+    transform: none;
   }
 }
 

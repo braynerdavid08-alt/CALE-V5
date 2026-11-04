@@ -1,5 +1,14 @@
 import { CurrencyPipe } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  DestroyRef,
+  ElementRef,
+  OnInit,
+  computed,
+  inject,
+  signal
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { resolveMediaUrl } from '../../core/media/resolve-media-url';
 import { BRAND } from '../../core/brand';
@@ -207,9 +216,9 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
             </div>
           </section>
 
-          <section class="section shop-band" aria-labelledby="shop-heading">
+          <section class="section shop-band section-tienda" aria-labelledby="shop-heading">
             <div class="wrap">
-              <header class="sec-head row">
+              <header class="sec-head row lv-reveal">
                 <div>
                   <p class="eyebrow">Tienda Luz Verde</p>
                   <h2 id="shop-heading">{{ shopHeadline() }}</h2>
@@ -229,8 +238,11 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                   class="shop-grid"
                   [class.cols-3]="shopProducts().length === 3"
                   [class.cols-5]="shopProducts().length >= 5">
-                  @for (p of shopProducts(); track p.id) {
-                    <a class="shop-card" routerLink="/tienda">
+                  @for (p of shopProducts(); track p.id; let i = $index) {
+                    <a
+                      class="shop-card lv-reveal"
+                      [style.--lv-delay]="i * 70 + 'ms'"
+                      [routerLink]="['/tienda', p.slug]">
                       <div class="shop-media">
                         @if (productImage(p)) {
                           <img [src]="productImage(p)" [alt]="p.name" width="280" height="200" loading="lazy" />
@@ -263,16 +275,16 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
             </div>
           </section>
 
-          <section class="section" aria-labelledby="audience-heading">
+          <section class="section section-avanzar" aria-labelledby="audience-heading">
             <div class="wrap">
-              <header class="sec-head center">
+              <header class="sec-head center lv-reveal">
                 <p class="eyebrow">Estudiantes y escuelas</p>
                 <h2 id="audience-heading">Todo lo que necesitas para avanzar</h2>
                 <p>Aprende, practica y gestiona tu escuela de conducción en un solo lugar.</p>
               </header>
 
               <div class="audience">
-                <article class="aud-card student">
+                <article class="aud-card student lv-reveal" style="--lv-delay: 80ms">
                   <span class="aud-tag">Para estudiantes</span>
                   <h3>Prepárate para tu licencia</h3>
                   <p class="aud-lead">
@@ -301,7 +313,7 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                   </div>
                 </article>
 
-                <article class="aud-card school">
+                <article class="aud-card school lv-reveal" style="--lv-delay: 160ms">
                   <span class="aud-tag">Para CEA</span>
                   <h3>Gestiona tu escuela</h3>
                   <p class="aud-lead">
@@ -334,31 +346,31 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
             </div>
           </section>
 
-          <section class="section alt" aria-labelledby="benefits-heading">
+          <section class="section section-herramientas" aria-labelledby="benefits-heading">
             <div class="wrap">
-              <header class="sec-head center">
+              <header class="sec-head center lv-reveal">
                 <p class="eyebrow">Beneficios</p>
                 <h2 id="benefits-heading">Aprende con herramientas que te ayudan a avanzar</h2>
                 <p>Todo lo que necesitas para prepararte, practicar y mejorar tus conocimientos viales.</p>
               </header>
 
               <div class="bento even-4">
-                <article class="bento-card" data-tone="blue">
+                <article class="bento-card lv-reveal" data-tone="green" style="--lv-delay: 0ms">
                   <span class="tone-icon" aria-hidden="true"><ui-icon name="book" size="lg" /></span>
                   <h3>Aprende a tu ritmo</h3>
                   <p>Accede a los contenidos disponibles y estudia según tu progreso.</p>
                 </article>
-                <article class="bento-card" data-tone="green">
+                <article class="bento-card lv-reveal" data-tone="green" style="--lv-delay: 70ms">
                   <span class="tone-icon" aria-hidden="true"><ui-icon name="play" size="lg" /></span>
                   <h3>Formación práctica</h3>
                   <p>Refuerza tus conocimientos con herramientas y actividades de aprendizaje.</p>
                 </article>
-                <article class="bento-card" data-tone="yellow">
+                <article class="bento-card lv-reveal" data-tone="green" style="--lv-delay: 140ms">
                   <span class="tone-icon" aria-hidden="true"><ui-icon name="exam" size="lg" /></span>
                   <h3>Evaluaciones</h3>
                   <p>Practica y comprueba tus conocimientos con las evaluaciones disponibles.</p>
                 </article>
-                <article class="bento-card" data-tone="green">
+                <article class="bento-card lv-reveal" data-tone="green" style="--lv-delay: 210ms">
                   <span class="tone-icon" aria-hidden="true"><ui-icon name="chart" size="lg" /></span>
                   <h3>Seguimiento de progreso</h3>
                   <p>Consulta tus resultados y reconoce oportunidades de mejora en tu perfil.</p>
@@ -367,7 +379,7 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
             </div>
           </section>
 
-          <section class="section games" aria-labelledby="practice-heading">
+          <section class="section games section-practica" aria-labelledby="practice-heading">
             <div class="wrap games-inner">
               <div class="games-copy">
                 <p class="eyebrow">Práctica</p>
@@ -379,22 +391,22 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                 <ui-button [routerLink]="practicePath()">Empezar a practicar</ui-button>
               </div>
               <div class="games-grid">
-                <article class="game">
+                <article class="game lv-reveal" style="--lv-delay: 70ms">
                   <span class="game-icon" aria-hidden="true"><ui-icon name="star" size="lg" /></span>
                   <h3>Reto diario</h3>
                   <p>Preguntas del día para mantener el hábito de estudio.</p>
                 </article>
-                <article class="game">
+                <article class="game lv-reveal" style="--lv-delay: 140ms">
                   <span class="game-icon" aria-hidden="true"><ui-icon name="users" size="lg" /></span>
                   <h3>Duelo 1 vs. 1</h3>
                   <p>Compite con otro estudiante y refuerza lo aprendido.</p>
                 </article>
-                <article class="game">
+                <article class="game lv-reveal" style="--lv-delay: 210ms">
                   <span class="game-icon" aria-hidden="true"><ui-icon name="graduate" size="lg" /></span>
                   <h3>Insignias</h3>
                   <p>Reconocimientos por rachas, retos y logros reales de tu cuenta.</p>
                 </article>
-                <article class="game">
+                <article class="game lv-reveal" style="--lv-delay: 280ms">
                   <span class="game-icon" aria-hidden="true"><ui-icon name="chart" size="lg" /></span>
                   <h3>Clasificación</h3>
                   <p>Consulta el ranking según los resultados registrados en la plataforma.</p>
@@ -403,16 +415,16 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
             </div>
           </section>
 
-          <section class="section" aria-labelledby="steps-heading">
+          <section class="section section-como-funciona" aria-labelledby="steps-heading">
             <div class="wrap">
-              <header class="sec-head center">
+              <header class="sec-head center lv-reveal">
                 <p class="eyebrow">Cómo funciona</p>
                 <h2 id="steps-heading">Así funciona Luz Verde</h2>
                 <p>Cuatro pasos para comenzar tu preparación.</p>
               </header>
 
-              <ol class="timeline">
-                <li class="t-step" data-tone="blue">
+              <ol class="timeline lv-reveal">
+                <li class="t-step" data-tone="green">
                   <span class="t-num" aria-hidden="true">1</span>
                   <h3>Regístrate</h3>
                   <p>Crea una cuenta y accede a las funciones de tu perfil.</p>
@@ -422,7 +434,7 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                   <h3>Estudia</h3>
                   <p>Consulta contenidos y recursos de formación disponibles.</p>
                 </li>
-                <li class="t-step" data-tone="yellow">
+                <li class="t-step" data-tone="green">
                   <span class="t-num" aria-hidden="true">3</span>
                   <h3>Practica</h3>
                   <p>Realiza simulacros y actividades según tu perfil.</p>
@@ -441,12 +453,15 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
   `,
   styleUrl: './landing.page.css'
 })
-export class LandingPage implements OnInit {
+export class LandingPage implements OnInit, AfterViewInit {
   readonly brand = BRAND;
   private readonly api = inject(PublicHomeApi);
   private readonly shopApi = inject(ShopApi);
   private readonly session = inject(SessionStore);
   private readonly seo = inject(SeoService);
+  private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly destroyRef = inject(DestroyRef);
+  private revealObserver: IntersectionObserver | null = null;
 
   readonly loading = signal(true);
   readonly home = signal<PublicHomeDto | null>(null);
@@ -502,12 +517,14 @@ export class LandingPage implements OnInit {
         this.home.set(data);
         this.applySeo(data);
         this.loading.set(false);
+        queueMicrotask(() => this.bindReveals());
       },
       error: () => {
         const fallback = this.buildLocalFallback();
         this.home.set(fallback);
         this.applySeo(fallback);
         this.loading.set(false);
+        queueMicrotask(() => this.bindReveals());
       }
     });
     this.api.listTestimonials(6).subscribe({
@@ -515,9 +532,43 @@ export class LandingPage implements OnInit {
       error: () => this.reviews.set(null)
     });
     this.shopApi.getPublic().subscribe({
-      next: (s) => this.shop.set(s),
+      next: (s) => {
+        this.shop.set(s);
+        queueMicrotask(() => this.bindReveals());
+      },
       error: () => this.shop.set(null)
     });
+  }
+
+  ngAfterViewInit(): void {
+    this.bindReveals();
+    this.destroyRef.onDestroy(() => this.revealObserver?.disconnect());
+  }
+
+  private bindReveals(): void {
+    if (typeof IntersectionObserver === 'undefined') {
+      this.host.nativeElement
+        .querySelectorAll('.lv-reveal')
+        .forEach((el: Element) => el.classList.add('is-visible'));
+      return;
+    }
+    this.revealObserver?.disconnect();
+    this.revealObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            this.revealObserver?.unobserve(entry.target);
+          }
+        }
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -6% 0px' }
+    );
+    this.host.nativeElement
+      .querySelectorAll('.lv-reveal:not(.is-visible)')
+      .forEach((el: Element) => {
+        this.revealObserver?.observe(el);
+      });
   }
 
   productImage(p: { imageUrl: string | null; imageUrls?: string[] }): string {
