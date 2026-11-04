@@ -1,6 +1,7 @@
 using Cale.BuildingBlocks.Domain.Email;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Infrastructure.Email;
+using Cale.BuildingBlocks.Infrastructure.Email.Templates;
 using Cale.Modules.Identity.Application.Services;
 using Cale.Modules.Identity.Domain;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -78,6 +79,47 @@ public sealed class EmailConfirmationServiceTests
     }
 
     [Fact]
+    public async Task IssueAndSend_uses_html_verification_template_without_changing_hash_rules()
+    {
+        var fx = new IdentityTestFixture();
+        var options = Options.Create(new EmailOptions
+        {
+            Enabled = true,
+            CodeLength = 6,
+            CodeExpiresMinutes = 15
+        });
+        var capturing = new CapturingEmailSender();
+        var svc = new EmailConfirmationService(fx.Users, capturing, fx.Clock, options);
+
+        var user = User.RegisterStudent("braynner", "ana-html@test.com", "hash", fx.Clock.UtcNow);
+        await fx.Users.AddAsync(user, CancellationToken.None);
+        await fx.Users.SaveChangesAsync(CancellationToken.None);
+
+        var result = await svc.IssueAndSendAsync(user, CancellationToken.None);
+
+        Assert.True(result.EmailSent);
+        Assert.False(result.AutoConfirmed);
+        Assert.False(user.EmailConfirmed);
+        Assert.Equal(VerificationEmailTemplate.Subject, capturing.Subject);
+        Assert.Contains("Hola Braynner", capturing.PlainText, StringComparison.Ordinal);
+        Assert.False(string.IsNullOrWhiteSpace(capturing.Html));
+        Assert.Contains("Verifica tu cuenta", capturing.Html!, StringComparison.Ordinal);
+        Assert.Contains(EmailLayout.NightBlue, capturing.Html!, StringComparison.Ordinal);
+        Assert.Contains("FORMACIÓN QUE IMPULSA TU CAMINO", capturing.Html!, StringComparison.Ordinal);
+        Assert.Contains("cid:luzverde-logo", capturing.Html!, StringComparison.Ordinal);
+        Assert.NotEmpty(capturing.EmbeddedImages);
+        Assert.Equal(EmailBrandAssets.LogoContentId, capturing.EmbeddedImages[0].ContentId);
+
+        // Code in the email still matches the stored hash (generation/validation unchanged).
+        var code = System.Text.RegularExpressions.Regex.Match(
+                capturing.PlainText!,
+                @"(?m)^(\d{6})$")
+            .Groups[1].Value;
+        Assert.Equal(6, code.Length);
+        Assert.Equal(EmailConfirmationService.HashCode(code), user.EmailConfirmationCodeHash);
+    }
+
+    [Fact]
     public async Task Confirm_with_valid_code_then_login_path_ok()
     {
         var fx = new IdentityTestFixture();
@@ -128,7 +170,38 @@ public sealed class EmailConfirmationServiceTests
     {
         public bool IsConfigured => true;
 
-        public Task SendAsync(string toEmail, string subject, string plainTextBody, CancellationToken ct = default) =>
+        public Task SendAsync(
+            string toEmail,
+            string subject,
+            string plainTextBody,
+            CancellationToken ct = default,
+            string? htmlBody = null,
+            IReadOnlyList<EmailEmbeddedImage>? embeddedImages = null) =>
             throw new InvalidOperationException("boom");
+    }
+
+    private sealed class CapturingEmailSender : IEmailSender
+    {
+        public bool IsConfigured => true;
+        public string? Subject { get; private set; }
+        public string? PlainText { get; private set; }
+        public string? Html { get; private set; }
+        public IReadOnlyList<EmailEmbeddedImage> EmbeddedImages { get; private set; } =
+            Array.Empty<EmailEmbeddedImage>();
+
+        public Task SendAsync(
+            string toEmail,
+            string subject,
+            string plainTextBody,
+            CancellationToken ct = default,
+            string? htmlBody = null,
+            IReadOnlyList<EmailEmbeddedImage>? embeddedImages = null)
+        {
+            Subject = subject;
+            PlainText = plainTextBody;
+            Html = htmlBody;
+            EmbeddedImages = embeddedImages ?? Array.Empty<EmailEmbeddedImage>();
+            return Task.CompletedTask;
+        }
     }
 }

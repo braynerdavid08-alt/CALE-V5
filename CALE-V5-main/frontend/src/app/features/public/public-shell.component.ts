@@ -32,12 +32,9 @@ import { UiThemeToggleComponent } from '../../shared/ui/ui-theme-toggle.componen
 
           <nav class="nav desktop" aria-label="Principal">
             <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Inicio</a>
-            <a routerLink="/cursos" routerLinkActive="active">Cursos</a>
             <a routerLink="/escuelas" routerLinkActive="active">Escuelas</a>
-            <a routerLink="/instructores" routerLinkActive="active">Instructores</a>
-            <a routerLink="/contacto" routerLinkActive="active">Para CEA</a>
-            <a routerLink="/blog" routerLinkActive="active">Blog</a>
             <a routerLink="/tienda" routerLinkActive="active">Tienda</a>
+            <a routerLink="/contacto" routerLinkActive="active">Para CEA</a>
           </nav>
 
           <div class="actions desktop">
@@ -67,15 +64,9 @@ import { UiThemeToggleComponent } from '../../shared/ui/ui-theme-toggle.componen
           <div id="public-mobile-nav" class="mobile-panel">
             <nav aria-label="Móvil">
               <a routerLink="/" (click)="closeMenu()">Inicio</a>
-              <a routerLink="/cursos" (click)="closeMenu()">Cursos</a>
               <a routerLink="/escuelas" (click)="closeMenu()">Escuelas</a>
-              <a routerLink="/instructores" (click)="closeMenu()">Instructores</a>
-              <a routerLink="/contacto" (click)="closeMenu()">Para CEA</a>
-              <a routerLink="/blog" (click)="closeMenu()">Blog</a>
               <a routerLink="/tienda" (click)="closeMenu()">Tienda</a>
-              <a routerLink="/nosotros" (click)="closeMenu()">Nosotros</a>
-              <a routerLink="/apoyar" (click)="closeMenu()">Apoyar</a>
-              <a routerLink="/pqr" (click)="closeMenu()">PQR</a>
+              <a routerLink="/contacto" (click)="closeMenu()">Para CEA</a>
             </nav>
             <div class="mobile-actions">
               <span class="theme-slot">

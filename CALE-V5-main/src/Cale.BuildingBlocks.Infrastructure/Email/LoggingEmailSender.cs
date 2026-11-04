@@ -20,12 +20,16 @@ public sealed class LoggingEmailSender : IEmailSender
         string toEmail,
         string subject,
         string plainTextBody,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        string? htmlBody = null,
+        IReadOnlyList<EmailEmbeddedImage>? embeddedImages = null)
     {
         _logger.LogWarning(
-            "EMAIL (no SMTP configured) to={To} subject={Subject}\n{Body}",
+            "EMAIL (no SMTP configured) to={To} subject={Subject} htmlChars={HtmlChars} embeds={Embeds}\n{Body}",
             PersonalData.MaskEmail(toEmail),
             subject,
+            htmlBody?.Length ?? 0,
+            embeddedImages?.Count ?? 0,
             plainTextBody);
         return Task.CompletedTask;
     }

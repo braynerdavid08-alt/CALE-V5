@@ -9,8 +9,8 @@ import {
   TourStep
 } from './tour.types';
 
-/** v4: one step per home feature (reto, simulacro, tienda, … Kazu). */
-const KEY_PREFIX = 'luzverde.tour.student.v4.';
+/** v5: adds Vincula tu escuela + Mi formación highlight for new students. */
+const KEY_PREFIX = 'luzverde.tour.student.v5.';
 
 @Injectable({ providedIn: 'root' })
 export class TourService {

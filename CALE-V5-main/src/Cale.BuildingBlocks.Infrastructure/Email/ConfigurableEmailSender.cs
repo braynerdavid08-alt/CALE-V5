@@ -30,8 +30,10 @@ public sealed class ConfigurableEmailSender : IEmailSender
         string toEmail,
         string subject,
         string plainTextBody,
-        CancellationToken ct = default) =>
-        _inner.SendAsync(toEmail, subject, plainTextBody, ct);
+        CancellationToken ct = default,
+        string? htmlBody = null,
+        IReadOnlyList<EmailEmbeddedImage>? embeddedImages = null) =>
+        _inner.SendAsync(toEmail, subject, plainTextBody, ct, htmlBody, embeddedImages);
 
     private IEmailSender Resolve(
         EmailOptions cfg,

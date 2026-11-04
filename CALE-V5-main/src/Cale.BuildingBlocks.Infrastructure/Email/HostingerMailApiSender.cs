@@ -48,7 +48,9 @@ public sealed class HostingerMailApiSender : IEmailSender
         string toEmail,
         string subject,
         string plainTextBody,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        string? htmlBody = null,
+        IReadOnlyList<EmailEmbeddedImage>? embeddedImages = null)
     {
         if (!IsConfigured)
         {
@@ -60,18 +62,24 @@ public sealed class HostingerMailApiSender : IEmailSender
 
         var mail = _options.HostingerMail;
         var path = $"api/v1/mailboxes/{Uri.EscapeDataString(mail.MailboxResourceId.Trim())}/send";
+        var html = string.IsNullOrWhiteSpace(htmlBody) ? null : htmlBody;
+        var attachments = MapAttachments(embeddedImages);
         var payload = new HostingerSendRequest(
             To: [toEmail],
             DisplayName: string.IsNullOrWhiteSpace(_options.FromName) ? null : _options.FromName.Trim(),
             Subject: subject,
-            Text: plainTextBody);
+            Text: plainTextBody,
+            Html: html,
+            Attachments: attachments);
 
         using var request = new HttpRequestMessage(HttpMethod.Post, path);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", mail.ApiToken.Trim());
         request.Content = JsonContent.Create(payload, options: JsonOpts);
 
         var approxBytes = System.Text.Encoding.UTF8.GetByteCount(subject)
-            + System.Text.Encoding.UTF8.GetByteCount(plainTextBody ?? "");
+            + System.Text.Encoding.UTF8.GetByteCount(plainTextBody ?? "")
+            + System.Text.Encoding.UTF8.GetByteCount(html ?? "")
+            + (embeddedImages?.Sum(i => i.Content.Length) ?? 0);
 
         var http = _httpClientFactory.CreateClient(HttpClientName);
 
@@ -127,9 +135,36 @@ public sealed class HostingerMailApiSender : IEmailSender
         }
     }
 
+    private static IReadOnlyList<HostingerAttachment>? MapAttachments(
+        IReadOnlyList<EmailEmbeddedImage>? embeddedImages)
+    {
+        if (embeddedImages is null || embeddedImages.Count == 0)
+        {
+            return null;
+        }
+
+        return embeddedImages
+            .Select(img => new HostingerAttachment(
+                Filename: img.FileName,
+                Content: Convert.ToBase64String(img.Content),
+                ContentType: img.ContentType,
+                Cid: img.ContentId,
+                Encoding: "base64"))
+            .ToArray();
+    }
+
     private sealed record HostingerSendRequest(
         [property: JsonPropertyName("to")] IReadOnlyList<string> To,
         [property: JsonPropertyName("displayName")] string? DisplayName,
         [property: JsonPropertyName("subject")] string Subject,
-        [property: JsonPropertyName("text")] string Text);
+        [property: JsonPropertyName("text")] string Text,
+        [property: JsonPropertyName("html")] string? Html,
+        [property: JsonPropertyName("attachments")] IReadOnlyList<HostingerAttachment>? Attachments);
+
+    private sealed record HostingerAttachment(
+        [property: JsonPropertyName("filename")] string Filename,
+        [property: JsonPropertyName("content")] string Content,
+        [property: JsonPropertyName("contentType")] string ContentType,
+        [property: JsonPropertyName("cid")] string Cid,
+        [property: JsonPropertyName("encoding")] string Encoding);
 }

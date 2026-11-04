@@ -1,8 +1,8 @@
 import { MASCOT_NAME, TourStep } from './tour.types';
 
 /**
- * Student tour v4: one step per home feature (top → bottom), narrated by Kazu.
- * Duplicate “reto diario” from the product list was merged into a single daily step.
+ * Student tour v5: one step per home feature (top → bottom), narrated by Kazu.
+ * Adds “Vincula tu escuela” for new accounts and highlights “Mi formación”.
  */
 export const STUDENT_TOUR_STEPS: TourStep[] = [
   {
@@ -25,6 +25,13 @@ export const STUDENT_TOUR_STEPS: TourStep[] = [
     target: '[data-tour="student-shop"]',
     title: 'Tienda Luz Verde',
     body: 'Cascos, guantes y equipo para moteros con descuento. Con cada compra ayudas a financiar la app.'
+  },
+  {
+    id: 'link-school',
+    route: '/student',
+    target: '[data-tour="student-link-school"]',
+    title: 'Vincula tu escuela',
+    body: 'Si estudias en un CEA, vincúlalo aquí con el NIT o el correo de la escuela. Así ves clases, agenda y tu proceso de formación.'
   },
   {
     id: 'mistakes',
@@ -76,11 +83,11 @@ export const STUDENT_TOUR_STEPS: TourStep[] = [
     body: 'Normas de tránsito y la Ley 769 para consultar cuando estudies o tengas una duda concreta.'
   },
   {
-    id: 'progress',
+    id: 'formacion',
     route: '/student',
-    target: '[data-tour="student-progress"]',
-    title: 'Mi progreso',
-    body: 'Revisa tu avance y agenda teoría, manejo y lo demás de tu proceso en la escuela.'
+    target: '[data-tour="student-formacion"]',
+    title: 'Mi formación',
+    body: 'Aquí ves las etapas de tu curso, requisitos, avance y la agenda de teoría y manejo con tu escuela.'
   },
   {
     id: 'exam',

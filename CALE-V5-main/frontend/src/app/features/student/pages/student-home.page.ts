@@ -201,8 +201,8 @@ export class StudentHomePage implements OnInit {
         return 'student-classes';
       case 'biblioteca-juridica':
         return 'student-library';
-      case 'progress':
-        return 'student-progress';
+      case 'formacion':
+        return 'student-formacion';
       case 'exam':
         return 'student-exam';
       default:

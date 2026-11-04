@@ -4,6 +4,7 @@ using Cale.BuildingBlocks.Domain.Email;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Domain.Time;
 using Cale.BuildingBlocks.Infrastructure.Email;
+using Cale.BuildingBlocks.Infrastructure.Email.Templates;
 using Cale.Modules.Identity.Application.Abstractions;
 using Cale.Modules.Identity.Domain;
 using Microsoft.Extensions.Options;
@@ -59,19 +60,17 @@ public sealed class EmailConfirmationService
         user.BeginEmailConfirmation(HashCode(code), expires);
         await _users.SaveChangesAsync(ct);
 
-        var body =
-            $"Hola {user.Name},\n\n" +
-            $"Tu código de verificación de Luz Verde es: {code}\n\n" +
-            $"Caduca en {minutes} minutos.\n" +
-            "Si no creaste esta cuenta, ignora este mensaje.\n";
+        var message = VerificationEmailTemplate.Build(user.Name, code, minutes);
 
         try
         {
             await _email.SendAsync(
                 user.Email,
-                "Código de verificación — Luz Verde",
-                body,
-                ct);
+                message.Subject,
+                message.PlainText,
+                ct,
+                message.Html,
+                message.EmbeddedImages);
         }
         catch (DomainException)
         {

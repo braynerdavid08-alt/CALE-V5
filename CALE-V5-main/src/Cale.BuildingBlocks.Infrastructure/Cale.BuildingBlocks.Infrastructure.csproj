@@ -30,4 +30,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Email\Assets\luz-verde-logo.png" />
+  </ItemGroup>
+
 </Project>

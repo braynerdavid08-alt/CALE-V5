@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Cale.BuildingBlocks.Domain.Email;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.BuildingBlocks.Infrastructure.Email;
 using Microsoft.Extensions.Logging;
@@ -49,6 +50,54 @@ public sealed class HostingerMailApiSenderTests
         Assert.Equal(text, root.GetProperty("text").GetString());
         Assert.False(root.TryGetProperty("html", out _));
         Assert.DoesNotContain("test-token-secret", handler.LastBody!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SendAsync_includes_html_when_provided()
+    {
+        var handler = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+        var sender = CreateSender(handler, complete: true);
+        const string html = "<p>Tu código es <strong>123456</strong></p>";
+
+        await sender.SendAsync(
+            "user@example.com",
+            "Código de verificación – Luz Verde",
+            "Tu código es: 123456",
+            CancellationToken.None,
+            html);
+
+        using var doc = JsonDocument.Parse(handler.LastBody!);
+        var root = doc.RootElement;
+        Assert.Equal("Tu código es: 123456", root.GetProperty("text").GetString());
+        Assert.Equal(html, root.GetProperty("html").GetString());
+    }
+
+    [Fact]
+    public async Task SendAsync_includes_cid_logo_attachment()
+    {
+        var handler = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+        var sender = CreateSender(handler, complete: true);
+        var logo = new EmailEmbeddedImage(
+            "luzverde-logo",
+            "luz-verde-logo.png",
+            "image/png",
+            [1, 2, 3, 4]);
+
+        await sender.SendAsync(
+            "user@example.com",
+            "Asunto",
+            "texto",
+            CancellationToken.None,
+            "<img src=\"cid:luzverde-logo\" />",
+            [logo]);
+
+        using var doc = JsonDocument.Parse(handler.LastBody!);
+        var att = doc.RootElement.GetProperty("attachments")[0];
+        Assert.Equal("luz-verde-logo.png", att.GetProperty("filename").GetString());
+        Assert.Equal("luzverde-logo", att.GetProperty("cid").GetString());
+        Assert.Equal("image/png", att.GetProperty("contentType").GetString());
+        Assert.Equal("base64", att.GetProperty("encoding").GetString());
+        Assert.Equal(Convert.ToBase64String([1, 2, 3, 4]), att.GetProperty("content").GetString());
     }
 
     [Theory]
