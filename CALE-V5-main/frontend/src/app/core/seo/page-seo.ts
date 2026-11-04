@@ -16,9 +16,9 @@ export const PAGE_SEO = {
       'Malla de formación vial en Luz Verde (señales, normas, vía, vehículo y categorías A2, B1 y C1) para que tu CEA forme conductores dentro de la plataforma.'
   },
   schools: {
-    title: 'Escuelas CEA en Luz Verde | Directorio',
+    title: 'Directorio comercial de CEA | Luz Verde',
     description:
-      'Escuelas de conducción y CEA que usan Luz Verde para gestionar estudiantes, agenda y formación digital.'
+      'Escuelas de conducción con membresía activa en Luz Verde que autorizaron su publicación en el directorio comercial.'
   },
   instructors: {
     title: 'Instructores | Luz Verde',

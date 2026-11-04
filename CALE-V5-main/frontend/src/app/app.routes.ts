@@ -69,6 +69,12 @@ export const routes: Routes = [
             .then((m) => m.PublicSchoolsPage)
       },
       {
+        path: 'escuelas/:slug',
+        loadComponent: () =>
+          import('./features/public/public-school-detail.page')
+            .then((m) => m.PublicSchoolDetailPage)
+      },
+      {
         path: 'instructores',
         loadComponent: () =>
           import('./features/public/public-instructors.page')
@@ -220,6 +226,15 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/school/pages/school-membership.page')
             .then((m) => m.SchoolMembershipPage)
+      },
+      {
+        path: 'school/comercial',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['School'] },
+        loadComponent: () =>
+          import('./features/school/pages/school-commercial.page')
+            .then((m) => m.SchoolCommercialPage)
       },
       {
         path: 'school/users',

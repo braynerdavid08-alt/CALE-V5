@@ -60,6 +60,58 @@ export interface PublicSchoolCardDto {
   detailPath: string;
 }
 
+/** Commercial directory card (GET /api/public/commercial-schools). */
+export interface CommercialSchoolCardDto {
+  id: number;
+  name: string;
+  city: string;
+  department: string;
+  about: string;
+  licenseCategories: string;
+  coverUrl: string | null;
+  logoUrl: string | null;
+  slug: string | null;
+  detailPath: string;
+}
+
+export interface CommercialSchoolPostDto {
+  id: number;
+  body: string;
+  mediaUrl: string | null;
+  publishedAt: string | null;
+}
+
+export interface CommercialSchoolPromotionDto {
+  id: number;
+  title: string;
+  body: string;
+  mediaUrl: string | null;
+  startsOn: string;
+  endsOn: string;
+}
+
+/** Commercial school page (GET /api/public/commercial-schools/{slug}). */
+export interface CommercialSchoolDetailDto {
+  id: number;
+  name: string;
+  city: string;
+  department: string;
+  address: string;
+  phone: string;
+  about: string;
+  licenseCategories: string;
+  coverUrl: string | null;
+  logoUrl: string | null;
+  slug: string;
+  detailPath: string;
+  mapsUrl: string | null;
+  whatsApp: string | null;
+  publicEmail: string | null;
+  whatsAppUrl: string | null;
+  posts: CommercialSchoolPostDto[];
+  promotions: CommercialSchoolPromotionDto[];
+}
+
 export interface PublicInstructorCardDto {
   id: number;
   displayName: string;

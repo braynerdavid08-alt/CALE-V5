@@ -3,6 +3,8 @@ using System.Text.Json;
 using Cale.Api.Extensions;
 using Cale.Api.Services;
 using Cale.BuildingBlocks.Domain.Auth;
+using Cale.Modules.Identity.Application.DTOs;
+using Cale.Modules.Identity.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,8 +21,15 @@ public sealed class PublicHomeController : ControllerBase
     };
 
     private readonly HomepageService _home;
+    private readonly CommercialDirectoryService _commercialDirectory;
 
-    public PublicHomeController(HomepageService home) => _home = home;
+    public PublicHomeController(
+        HomepageService home,
+        CommercialDirectoryService commercialDirectory)
+    {
+        _home = home;
+        _commercialDirectory = commercialDirectory;
+    }
 
     [HttpGet("home")]
     public async Task<IActionResult> Home(CancellationToken ct)
@@ -52,6 +61,34 @@ public sealed class PublicHomeController : ControllerBase
         [FromQuery] int take = 24,
         CancellationToken ct = default) =>
         _home.ListPublicSchoolsAsync(take, ct);
+
+    /// <summary>
+    /// Commercial directory: only schools that pass <see cref="Cale.Modules.Identity.Application.Services.ISchoolCommercialPresenceGate"/>.
+    /// Does not change <c>GET /api/public/schools</c>.
+    /// </summary>
+    [HttpGet("commercial-schools")]
+    public Task<IReadOnlyList<CommercialSchoolCardDto>> CommercialSchools(
+        [FromQuery] int take = 48,
+        CancellationToken ct = default) =>
+        _commercialDirectory.ListAsync(take, ct);
+
+    /// <summary>Public commercial school page. Returns 404 when missing or not gate-eligible.</summary>
+    [HttpGet("commercial-schools/{slug}")]
+    public Task<CommercialSchoolDetailDto> CommercialSchoolBySlug(
+        string slug,
+        CancellationToken ct = default) =>
+        _commercialDirectory.GetBySlugAsync(slug, ct);
+
+    [HttpPost("commercial-schools/{slug}/events")]
+    public async Task<IActionResult> CommercialSchoolEvent(
+        string slug,
+        [FromBody] RecordCommercialEventRequest body,
+        [FromServices] ISchoolCommercialContentService content,
+        CancellationToken ct = default)
+    {
+        await content.RecordPublicEventAsync(slug, body.EventType, ct);
+        return NoContent();
+    }
 
     [HttpGet("instructors")]
     public Task<IReadOnlyList<PublicInstructorCardDto>> Instructors(

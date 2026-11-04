@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { env } from '../../core/config/env';
 import { mapApiError } from '../../core/http/map-api-error';
 import { PAGE_SEO } from '../../core/seo/page-seo';
 import { SeoService } from '../../core/seo/seo.service';
@@ -7,7 +8,7 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../shared/ui/ui-loading.component';
 import { PublicHomeApi } from './public-home.api';
-import { PublicSchoolCardDto } from './public.models';
+import { CommercialSchoolCardDto } from './public.models';
 
 @Component({
   selector: 'app-public-schools-page',
@@ -16,10 +17,11 @@ import { PublicSchoolCardDto } from './public.models';
   template: `
     <div class="page">
       <header class="head">
-        <p class="eyebrow">Escuelas</p>
-        <h1>CEA que operan con Luz Verde</h1>
+        <p class="eyebrow">Directorio comercial</p>
+        <h1>Escuelas CEA en Luz Verde</h1>
         <p class="lead">
-          Escuelas de conducción que usan la plataforma para gestionar formación, estudiantes e instructores.
+          Centros de enseñanza automovilística con membresía activa que eligieron
+          publicarse. Solo aparecen escuelas elegibles y autorizadas.
         </p>
       </header>
 
@@ -28,17 +30,37 @@ import { PublicSchoolCardDto } from './public.models';
       } @else if (error()) {
         <ui-error [message]="error()" />
       } @else if (!schools().length) {
-        <p class="empty">Aún no hay escuelas publicadas.</p>
-        <ui-button routerLink="/register-school" type="button">Registrar mi escuela</ui-button>
+        <section class="empty-block" aria-live="polite">
+          <p class="empty">
+            Aún no hay escuelas publicadas en el directorio comercial.
+          </p>
+          <p class="empty-hint">
+            Si representas un CEA con plan mensual o anual activo, podrás completar
+            tu ficha y autorizar la publicación cuando el panel comercial esté disponible.
+          </p>
+          <ui-button routerLink="/register-school" type="button">Registrar mi escuela</ui-button>
+        </section>
       } @else {
         <div class="grid">
           @for (s of schools(); track s.id) {
-            <article class="card">
-              <h2>{{ s.name }}</h2>
-              <p class="muted">
-                {{ s.city }}{{ s.department ? ', ' + s.department : '' }}
-              </p>
-            </article>
+            <a class="card" [routerLink]="s.detailPath || '/escuelas'">
+              @if (mediaSrc(s); as media) {
+                <div class="media" [style.background-image]="'url(' + media + ')'" role="img" [attr.aria-label]="s.name"></div>
+              }
+              <div class="body">
+                <h2>{{ s.name }}</h2>
+                <p class="muted">
+                  {{ s.city }}{{ s.department ? ', ' + s.department : '' }}
+                </p>
+                @if (s.licenseCategories) {
+                  <p class="cats">{{ s.licenseCategories }}</p>
+                }
+                @if (s.about) {
+                  <p class="about">{{ s.about }}</p>
+                }
+                <p class="visit">Ver ficha</p>
+              </div>
+            </a>
           }
         </div>
       }
@@ -58,50 +80,107 @@ import { PublicSchoolCardDto } from './public.models';
       letter-spacing: 0.08em;
       text-transform: uppercase;
     }
-    h1 { margin: 0 0 0.5rem; }
+    h1 {
+      margin: 0 0 0.5rem;
+      font-family: var(--font-display, inherit);
+      letter-spacing: -0.02em;
+    }
     .lead {
       margin: 0 0 1.75rem;
       color: var(--color-text-secondary);
-      max-width: 40rem;
+      max-width: 42rem;
       line-height: var(--leading-body);
     }
     .grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 1rem;
+      gap: 1.1rem;
     }
     .card {
+      display: flex;
+      flex-direction: column;
       background: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
-      padding: 1.2rem;
+      overflow: hidden;
       box-shadow: var(--shadow-sm);
+      color: inherit;
+      text-decoration: none;
+      transition: transform 180ms ease, box-shadow 180ms ease;
     }
-    h2 { margin: 0 0 0.35rem; font-size: var(--text-md); }
-    .muted { margin: 0; color: var(--color-text-secondary); font-size: var(--text-sm); }
-    .meta {
-      margin: 0.6rem 0 0;
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md, var(--shadow-sm));
+    }
+    .visit {
+      margin: 0.85rem 0 0;
       font-size: var(--text-xs);
-      font-weight: 700;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
       color: var(--color-primary);
     }
-    .empty { color: var(--color-text-secondary); margin: 0 0 1rem; }
+    .media {
+      min-height: 9.5rem;
+      background:
+        linear-gradient(160deg, color-mix(in srgb, var(--color-primary) 18%, transparent), transparent 55%),
+        var(--color-surface-2, var(--color-border)) center / cover no-repeat;
+    }
+    .body { padding: 1.05rem 1.15rem 1.2rem; }
+    h2 {
+      margin: 0 0 0.3rem;
+      font-size: var(--text-md);
+      line-height: 1.25;
+    }
+    .muted {
+      margin: 0;
+      color: var(--color-text-secondary);
+      font-size: var(--text-sm);
+    }
+    .cats {
+      margin: 0.55rem 0 0;
+      font-size: var(--text-xs);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--color-primary);
+    }
+    .about {
+      margin: 0.55rem 0 0;
+      color: var(--color-text-secondary);
+      font-size: var(--text-sm);
+      line-height: var(--leading-body);
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .empty-block { max-width: 36rem; }
+    .empty { color: var(--color-text-secondary); margin: 0 0 0.65rem; }
+    .empty-hint {
+      margin: 0 0 1.15rem;
+      color: var(--color-text-secondary);
+      font-size: var(--text-sm);
+      line-height: var(--leading-body);
+    }
     a { text-decoration: none; }
     @media (max-width: 900px) {
       .grid { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 600px) {
       .grid { grid-template-columns: 1fr; }
+      .page { padding-top: 1.75rem; }
     }
   `]
 })
 export class PublicSchoolsPage implements OnInit {
   private readonly api = inject(PublicHomeApi);
   private readonly seo = inject(SeoService);
+  private readonly apiBase = env.apiUrl.replace(/\/$/, '');
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
-  readonly schools = signal<PublicSchoolCardDto[]>([]);
+  readonly schools = signal<CommercialSchoolCardDto[]>([]);
 
   ngOnInit(): void {
     this.seo.apply({
@@ -111,7 +190,7 @@ export class PublicSchoolsPage implements OnInit {
       index: true
     });
 
-    this.api.listSchools().subscribe({
+    this.api.listCommercialSchools().subscribe({
       next: (rows) => {
         this.schools.set(rows);
         this.loading.set(false);
@@ -121,5 +200,16 @@ export class PublicSchoolsPage implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+
+  mediaSrc(school: CommercialSchoolCardDto): string | null {
+    const path = school.coverUrl || school.logoUrl;
+    if (!path) {
+      return null;
+    }
+    if (/^https?:\/\//i.test(path)) {
+      return path;
+    }
+    return `${this.apiBase}${path.startsWith('/') ? path : `/${path}`}`;
   }
 }

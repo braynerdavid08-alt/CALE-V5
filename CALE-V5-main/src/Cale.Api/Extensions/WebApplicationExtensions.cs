@@ -160,6 +160,7 @@ public static class WebApplicationExtensions
             await CommercialSchemaGuard.EnsureAsync(db, bootLogger);
             await PracticalSessionKindSchemaGuard.EnsureAsync(db, bootLogger);
             await InstructorListingSchemaGuard.EnsureAsync(db, bootLogger);
+            await SchoolCommercialSchemaGuard.EnsureAsync(db, bootLogger);
             await Cale.Modules.GameShow.Infrastructure.Persistence.GameShowPackSchemaGuard
                 .EnsureAsync(db, bootLogger);
             await Cale.Modules.Courses.Infrastructure.Persistence.CourseSchemaGuard.EnsureAsync(db, bootLogger);
