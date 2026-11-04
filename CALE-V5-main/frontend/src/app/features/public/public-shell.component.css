@@ -717,10 +717,57 @@
 
   .mobile-panel {
     display: block;
+    padding: 0.75rem max(0.85rem, env(safe-area-inset-right, 0px))
+      calc(1rem + env(safe-area-inset-bottom, 0px))
+      max(0.85rem, env(safe-area-inset-left, 0px));
+  }
+
+  .top-inner {
+    width: min(1280px, calc(100% - 1rem));
+    min-height: 58px;
+    gap: 0.65rem;
   }
 
   .brand-logo {
+    height: 2.25rem;
+    max-width: min(48vw, 10.5rem);
+    padding: 0.1rem 0.35rem;
+  }
+
+  .mobile-search .search-field {
+    min-height: 2.65rem;
+  }
+
+  .site-footer {
+    padding: 1.75rem 0 calc(2rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .footer-inner {
+    width: min(1180px, calc(100% - 1.25rem));
+    gap: 1.15rem;
+  }
+
+  .footer-nav {
+    gap: 0.45rem 0.85rem;
+  }
+
+  .footer-nav a {
+    min-height: 2.5rem;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+@media (max-width: 420px) {
+  .brand-logo {
+    height: 2.05rem;
+    max-width: min(52vw, 9.75rem);
+  }
+
+  .burger {
+    width: 2.5rem;
     height: 2.5rem;
-    max-width: min(42vw, 11rem);
+    min-width: 2.5rem;
+    min-height: 2.5rem;
   }
 }

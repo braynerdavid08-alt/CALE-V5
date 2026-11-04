@@ -227,9 +227,15 @@
 }
 
 @media (max-width: 1099px) {
+  .hero {
+    min-height: 0;
+  }
+
   .hero-stage {
     grid-template-columns: 1fr;
-    width: min(720px, calc(100% - 1.5rem));
+    width: min(720px, calc(100% - 1.25rem));
+    padding: 1.5rem 0 1.75rem;
+    gap: 1.25rem;
   }
 
   .hero-stage:has(.offer-card) {
@@ -240,18 +246,52 @@
     display: none;
   }
 
+  .hero-copy {
+    order: 0;
+  }
+
   .device-wrap {
-    order: -1;
-    padding: 0.5rem 0 0.25rem;
+    order: 1;
+    justify-self: center;
+    padding: 0.35rem 0 0;
   }
 
   .device {
-    width: min(250px, 62vw);
+    width: min(200px, 48vw);
     transform: rotate(-2deg);
+    animation: none;
+  }
+
+  .hero-photo {
+    background-position: 65% center;
+  }
+
+  .hero-overlay {
+    background:
+      linear-gradient(180deg, rgba(5, 13, 31, 0.72) 0%, rgba(5, 13, 31, 0.82) 45%, rgba(5, 13, 31, 0.92) 100%),
+      linear-gradient(90deg, rgba(5, 13, 31, 0.55), rgba(5, 13, 31, 0.35));
+  }
+
+  .swoosh {
+    opacity: 0.28;
   }
 
   .hero h1 {
-    font-size: clamp(1.85rem, 7vw, 2.6rem);
+    font-size: clamp(1.7rem, 7vw, 2.35rem);
+  }
+
+  .lead {
+    margin: 0.85rem 0 1.15rem;
+    font-size: 0.98rem;
+  }
+
+  .cta-stack .cta-row {
+    justify-content: stretch;
+  }
+
+  .cta-stack .cta-row > ui-button,
+  .cta-stack .cta-row > a {
+    flex: 1 1 calc(50% - 0.4rem);
   }
 
   .mobile-offers {
@@ -1687,15 +1727,28 @@
   }
 
   .hero-copy {
-    text-align: center;
+    text-align: left;
   }
 
   .hero-copy .cta-row {
-    justify-content: center;
+    justify-content: flex-start;
   }
 
   .hero-copy .trust {
-    justify-content: center;
+    justify-content: flex-start;
+    margin-top: 1.15rem;
+  }
+
+  .section {
+    padding: clamp(2.25rem, 6vw, 3.5rem) 0;
+  }
+
+  .sec-head {
+    margin-bottom: 1.5rem;
+  }
+
+  .sec-head.row {
+    align-items: flex-start;
   }
 
   .audience {
@@ -1705,6 +1758,10 @@
   .bento,
   .bento.even-4 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .games-inner {
+    gap: 1.5rem;
   }
 
   .timeline {
@@ -1719,9 +1776,52 @@
   .rating-box {
     justify-items: start;
   }
+
+  .wrap {
+    width: min(1160px, calc(100% - 1.25rem));
+  }
 }
 
 @media (max-width: 600px) {
+  .hero-stage {
+    padding: 1.15rem 0 1.35rem;
+    gap: 1rem;
+  }
+
+  .hero h1 {
+    font-size: clamp(1.55rem, 8vw, 1.95rem);
+    line-height: 1.12;
+  }
+
+  .home-kicker {
+    margin-bottom: 0.45rem;
+  }
+
+  .cta-row {
+    gap: 0.55rem;
+  }
+
+  .cta-row > ui-button ::ng-deep .btn,
+  .ghost-btn {
+    min-height: 2.65rem;
+    width: 100%;
+    padding: 0 0.9rem;
+  }
+
+  .cta-stack .cta-row {
+    flex-direction: column;
+  }
+
+  .cta-stack .cta-row > ui-button,
+  .cta-stack .cta-row > a {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .device-wrap {
+    display: none;
+  }
+
   .bento,
   .bento.even-4,
   .games-grid,
@@ -1734,10 +1834,6 @@
     grid-column: auto;
   }
 
-  .device-wrap {
-    padding: 1rem 0.5rem;
-  }
-
   .float-chip {
     font-size: 0.72rem;
   }
@@ -1745,5 +1841,15 @@
   .trust {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .section-tienda .sec-head.row > ui-button,
+  .shop-band .sec-head.row > ui-button {
+    width: 100%;
+  }
+
+  .mobile-offers {
+    width: min(1160px, calc(100% - 1.25rem));
+    padding-bottom: 1.1rem;
   }
 }
