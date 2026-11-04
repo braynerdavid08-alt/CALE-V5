@@ -127,7 +127,7 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
       top: 0.7rem;
       left: 0.7rem;
       background: var(--color-primary);
-      color: #06210f;
+      color: var(--color-on-primary);
       font-size: 0.72rem;
       font-weight: 800;
       padding: 0.28rem 0.55rem;
@@ -178,10 +178,14 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
       margin: 0;
       font-size: var(--text-md);
       line-height: 1.25;
+      color: var(--color-text);
     }
     h2 a {
-      color: inherit;
+      color: var(--color-text);
       text-decoration: none;
+    }
+    h2 a:hover {
+      color: var(--color-primary);
     }
     .price-row {
       display: flex;

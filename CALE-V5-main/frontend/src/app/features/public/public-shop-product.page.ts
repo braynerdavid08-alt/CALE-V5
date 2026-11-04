@@ -213,7 +213,7 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
       top: 0.75rem;
       left: 0.75rem;
       background: var(--color-primary);
-      color: #06210f;
+      color: var(--color-on-primary);
       font-weight: 800;
       font-size: 0.75rem;
       padding: 0.3rem 0.55rem;

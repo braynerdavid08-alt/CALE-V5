@@ -156,7 +156,7 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
       top: 0.15rem;
       left: 0.15rem;
       background: var(--color-primary);
-      color: #06210f;
+      color: var(--color-on-primary);
       font-size: 0.58rem;
       font-weight: 800;
       padding: 0.08rem 0.28rem;

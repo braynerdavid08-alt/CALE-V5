@@ -95,6 +95,22 @@ ui-theme-toggle {
   animation: lv-auth-in 220ms ease-out both;
 }
 
+.auth.auth--register {
+  grid-template-columns: 0.42fr 0.58fr;
+  align-items: stretch;
+}
+
+.auth.auth--school {
+  width: min(1280px, 100%);
+  grid-template-columns: 0.4fr 0.6fr;
+  align-items: stretch;
+}
+
+.auth.auth--school .auth-card,
+.auth.auth--register .auth-card {
+  align-content: start;
+}
+
 @keyframes lv-auth-in {
   from {
     opacity: 0;
@@ -303,10 +319,12 @@ form {
   height: 100%;
 }
 
-.field input {
+.field input,
+.field select,
+.field textarea {
   width: 100%;
   min-height: 50px;
-  padding: 0.7rem 0.95rem 0.7rem 2.65rem;
+  padding: 0.7rem 0.95rem;
   border-radius: 10px;
   border: 1px solid var(--lv-input-border);
   background: var(--lv-input-bg);
@@ -317,17 +335,26 @@ form {
   transition: border-color 180ms ease, box-shadow 180ms ease;
 }
 
-.field input::placeholder {
+.field-control input {
+  padding-left: 2.65rem;
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
   color: color-mix(in srgb, var(--lv-text-2) 78%, transparent);
 }
 
-.field input:focus {
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
   outline: none;
   border-color: var(--lv-green);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--lv-green) 16%, transparent);
 }
 
-.field input[aria-invalid='true'] {
+.field input[aria-invalid='true'],
+.field select[aria-invalid='true'],
+.field textarea[aria-invalid='true'] {
   border-color: #c0392b;
 }
 
@@ -335,6 +362,11 @@ form {
   color: #c0392b;
   font-size: 0.8rem;
   font-weight: 600;
+}
+
+.pwd {
+  position: relative;
+  display: block;
 }
 
 .pwd input {
@@ -440,11 +472,34 @@ form ui-button {
   grid-column: 1 / -1;
 }
 
+.signup-option.is-current {
+  border-color: var(--lv-green);
+  background: var(--lv-green-hover-bg);
+  pointer-events: none;
+}
+
 .signup-option:hover {
   border-color: var(--lv-green);
   background: var(--lv-green-hover-bg);
   transform: translateY(-2px);
   box-shadow: 0 6px 14px rgba(9, 35, 52, 0.06);
+}
+
+.hint {
+  margin: 0.85rem 0 0;
+  color: var(--lv-text-2);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.hint a {
+  color: var(--lv-green);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.hint a:hover {
+  color: var(--lv-green-dark);
 }
 
 .signup-option:focus-visible {
@@ -515,7 +570,9 @@ form ui-button {
     justify-items: center;
   }
 
-  .auth {
+  .auth,
+  .auth.auth--register,
+  .auth.auth--school {
     grid-template-columns: 1fr;
     width: min(560px, 100%);
   }

@@ -6,10 +6,12 @@ import { AuthFacade } from '../application/auth.facade';
 import { AuthApi, SchoolPlanDto } from '../api/auth.api';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
+import { UiIconComponent } from '../../../shared/ui/ui-icon.component';
 import { UiThemeToggleComponent } from '../../../shared/ui/ui-theme-toggle.component';
 import { AuthBackHomeComponent } from '../components/auth-back-home.component';
 import { LegalConsentComponent, legalConsentGroup } from '../components/legal-consent.component';
 import { BRAND } from '../../../core/brand';
+import { ThemeService } from '../../../core/theme/theme.service';
 
 @Component({
   selector: 'app-register-school-page',
@@ -20,6 +22,7 @@ import { BRAND } from '../../../core/brand';
     CurrencyPipe,
     UiButtonComponent,
     UiErrorComponent,
+    UiIconComponent,
     UiThemeToggleComponent,
     AuthBackHomeComponent,
     LegalConsentComponent
@@ -31,6 +34,7 @@ export class RegisterSchoolPage implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(AuthApi);
   readonly auth = inject(AuthFacade);
+  readonly theme = inject(ThemeService);
   readonly brand = BRAND;
   readonly showPassword = signal(false);
 

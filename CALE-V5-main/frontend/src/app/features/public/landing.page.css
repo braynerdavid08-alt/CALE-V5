@@ -170,7 +170,7 @@
   padding: 0.15rem 0.45rem;
   border-radius: 999px;
   background: var(--color-primary, #22c55e);
-  color: #06210f;
+  color: var(--color-on-primary, #06210f);
   font-size: 0.68rem;
   font-weight: 800;
 }
@@ -826,6 +826,105 @@
   color: #5b6b70;
 }
 
+/* Night mode: keep photo sections readable (dark wash + light text) */
+:host-context([data-theme='dark']) .section-tienda,
+:host-context([data-theme='dark']) .section-avanzar,
+:host-context([data-theme='dark']) .section-herramientas,
+:host-context([data-theme='dark']) .section-como-funciona {
+  background-color: #0b1511;
+  color: var(--color-text);
+}
+
+:host-context([data-theme='dark']) .section-tienda {
+  background-image:
+    linear-gradient(90deg, rgba(8, 18, 14, 0.94), rgba(8, 18, 14, 0.78)),
+    url('/assets/luz-verde/sections/tienda-precios.jpg');
+}
+
+:host-context([data-theme='dark']) .section-avanzar {
+  background-image:
+    linear-gradient(90deg, rgba(8, 18, 14, 0.95), rgba(8, 18, 14, 0.8)),
+    url('/assets/luz-verde/sections/avanzar-rutas.png');
+}
+
+:host-context([data-theme='dark']) .section-herramientas {
+  background-image:
+    linear-gradient(90deg, rgba(8, 18, 14, 0.94), rgba(8, 18, 14, 0.78)),
+    url('/assets/luz-verde/sections/herramientas-aprendizaje.jpg');
+}
+
+:host-context([data-theme='dark']) .section-como-funciona {
+  background-image:
+    linear-gradient(90deg, rgba(8, 18, 14, 0.94), rgba(8, 18, 14, 0.78)),
+    url('/assets/luz-verde/sections/como-funciona.jpg');
+}
+
+:host-context([data-theme='dark']) .section-tienda .eyebrow,
+:host-context([data-theme='dark']) .section-avanzar .eyebrow,
+:host-context([data-theme='dark']) .section-herramientas .eyebrow,
+:host-context([data-theme='dark']) .section-como-funciona .eyebrow {
+  color: var(--color-primary);
+}
+
+:host-context([data-theme='dark']) .section-tienda .sec-head h2,
+:host-context([data-theme='dark']) .section-avanzar .sec-head h2,
+:host-context([data-theme='dark']) .section-herramientas .sec-head h2,
+:host-context([data-theme='dark']) .section-como-funciona .sec-head h2,
+:host-context([data-theme='dark']) .section-tienda .sec-head h3,
+:host-context([data-theme='dark']) .section-avanzar .sec-head h3,
+:host-context([data-theme='dark']) .section-herramientas .sec-head h3,
+:host-context([data-theme='dark']) .section-como-funciona .sec-head h3,
+:host-context([data-theme='dark']) .section-tienda .t-step h3,
+:host-context([data-theme='dark']) .section-como-funciona .t-step h3,
+:host-context([data-theme='dark']) .section-avanzar .aud-card h3,
+:host-context([data-theme='dark']) .section-herramientas .bento-card h3 {
+  color: var(--color-text);
+}
+
+:host-context([data-theme='dark']) .section-tienda .sec-head p,
+:host-context([data-theme='dark']) .section-avanzar .sec-head p,
+:host-context([data-theme='dark']) .section-herramientas .sec-head p,
+:host-context([data-theme='dark']) .section-como-funciona .sec-head p {
+  color: var(--color-text-secondary);
+}
+
+:host-context([data-theme='dark']) .aud-card,
+:host-context([data-theme='dark']) .bento-card {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-text);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+}
+
+:host-context([data-theme='dark']) .aud-card.student {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 14%, transparent), transparent 48%),
+    var(--color-surface);
+  border-color: color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
+}
+
+:host-context([data-theme='dark']) .aud-card.school {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #7dd3fc 10%, transparent), transparent 42%),
+    var(--color-surface);
+  border-color: var(--color-border);
+}
+
+:host-context([data-theme='dark']) .bento-card.wide {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 14%, transparent), transparent 60%),
+    var(--color-surface);
+}
+
+:host-context([data-theme='dark']) .ghost-btn.soft {
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}
+
+:host-context([data-theme='dark']) .check {
+  color: var(--color-on-primary);
+}
+
 .section.pwa-band {
   padding: clamp(1.25rem, 3vw, 2rem) 0;
   background: var(--color-surface-raised);
@@ -1474,7 +1573,7 @@
     padding-top: 1.25rem;
     padding-bottom: clamp(1.75rem, 3vw, 2.5rem);
     border-top: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
-    background: var(--color-background);
+    /* Do not set `background` here — it wipes section photo + forces dark text on dark bg. */
   }
 
   .home-lead .device-wrap {
@@ -1511,7 +1610,7 @@
   gap: 0.45rem;
   align-content: start;
   text-decoration: none;
-  color: inherit;
+  color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg, 1rem);
@@ -1554,7 +1653,7 @@
   top: 0.55rem;
   left: 0.55rem;
   background: var(--color-primary);
-  color: #06210f;
+  color: var(--color-on-primary);
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -1570,6 +1669,11 @@
 .shop-card > strong {
   font-size: var(--text-sm);
   line-height: 1.3;
+  color: var(--color-text);
+}
+
+:host-context([data-theme='dark']) .shop-card {
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
 }
 .shop-price {
   display: flex;

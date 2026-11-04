@@ -3,11 +3,13 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
+import { UiIconComponent } from '../../../shared/ui/ui-icon.component';
 import { UiThemeToggleComponent } from '../../../shared/ui/ui-theme-toggle.component';
 import { AuthBackHomeComponent } from '../components/auth-back-home.component';
 import { LegalConsentComponent, consentValue, legalConsentGroup } from '../components/legal-consent.component';
 import { AuthFacade } from '../application/auth.facade';
 import { BRAND } from '../../../core/brand';
+import { ThemeService } from '../../../core/theme/theme.service';
 
 @Component({
   selector: 'app-register-teacher-page',
@@ -17,6 +19,7 @@ import { BRAND } from '../../../core/brand';
     RouterLink,
     UiButtonComponent,
     UiErrorComponent,
+    UiIconComponent,
     UiThemeToggleComponent,
     AuthBackHomeComponent,
     LegalConsentComponent
@@ -27,6 +30,7 @@ import { BRAND } from '../../../core/brand';
 export class RegisterTeacherPage {
   private readonly fb = inject(FormBuilder);
   readonly auth = inject(AuthFacade);
+  readonly theme = inject(ThemeService);
   readonly brand = BRAND;
   readonly showPassword = signal(false);
 

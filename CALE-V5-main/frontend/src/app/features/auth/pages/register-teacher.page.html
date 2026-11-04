@@ -1,36 +1,52 @@
 <ui-theme-toggle />
 <auth-back-home />
-<section class="auth">
-  <div class="brand-side">
-    <a class="brand-wordmark" routerLink="/">
-      <img [src]="brand.logoWide" [alt]="brand.name + ' — ' + brand.slogan" width="790" height="316" />
-    </a>
-    <h1>Enseña con <span class="hl">herramientas modernas</span></h1>
-    <p class="brand-lead">Todo lo que necesitas para dar clase y seguir el avance de tus estudiantes.</p>
-    <ul class="perks">
-      <li>Aula en vivo con simulacros proyectados y código QR</li>
-      <li>Grupos, actividades y bancos de preguntas reutilizables</li>
-      <li>Informes de rendimiento por estudiante y por tema</li>
-      <li>Alertas de estudiantes que dejaron de practicar</li>
-    </ul>
-    <div class="brand-foot">
-      <span class="foot-icon" aria-hidden="true">🎯</span>
-      <span>
-        <strong>100 Estudiantes Dijeron</strong>
-        Juego en clase para repasar normas de forma divertida.
-      </span>
+
+<section class="auth auth--register" aria-label="Registro de instructor">
+  <aside class="brand-side">
+    <div class="brand-media" role="img" aria-label="Carretera de montaña al atardecer"></div>
+    <div class="brand-overlay" aria-hidden="true"></div>
+    <div class="brand-content">
+      <p class="brand-kicker">Formación y enseñanza</p>
+      <h1>Comparte tu experiencia. Forma mejores conductores.</h1>
+      <p class="brand-lead">
+        Gestiona tus clases, acompaña a tus estudiantes y organiza tu actividad desde Luz Verde.
+      </p>
+      <ul class="perks">
+        <li>
+          <span class="perk-icon" aria-hidden="true"><ui-icon name="users" /></span>
+          <span>Grupos y acompañamiento</span>
+        </li>
+        <li>
+          <span class="perk-icon" aria-hidden="true"><ui-icon name="play" /></span>
+          <span>Aula en vivo y práctica</span>
+        </li>
+        <li>
+          <span class="perk-icon" aria-hidden="true"><ui-icon name="chart" /></span>
+          <span>Seguimiento de avance</span>
+        </li>
+      </ul>
     </div>
-  </div>
+  </aside>
 
   <div class="auth-card">
-    <p class="eyebrow">Cuenta de instructor</p>
-    <h2>Crear cuenta</h2>
-    <p class="lead">Tu escuela te vincula a su equipo. El acceso a las herramientas del CEA lo otorga el plan de la escuela.</p>
+    <a class="form-logo" routerLink="/" [attr.aria-label]="brand.name">
+      <img
+        [src]="theme.mode() === 'dark' ? brand.logoWideDark : brand.logoWide"
+        [alt]="brand.name"
+        width="200"
+        height="80" />
+    </a>
+
+    <h2>Crear cuenta de instructor</h2>
+    <p class="lead">Tu escuela te vincula a su equipo. El acceso lo otorga el plan de la escuela.</p>
+
     <ui-error [message]="auth.error()" />
-    <form [formGroup]="form" (ngSubmit)="submit()">
-      <label class="field">
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <label class="field" for="teacher-name">
         Nombre completo
         <input
+          id="teacher-name"
           type="text"
           formControlName="name"
           autocomplete="name"
@@ -41,23 +57,41 @@
           <span id="teacher-name-error" class="field-error" role="alert">El nombre es obligatorio.</span>
         }
       </label>
-      <label class="field">
+
+      <label class="field" for="teacher-email">
         Correo
-        <input
-          type="email"
-          formControlName="email"
-          autocomplete="email"
-          placeholder="tucorreo@ejemplo.com"
-          [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid"
-          [attr.aria-describedby]="form.controls.email.touched && form.controls.email.invalid ? 'teacher-email-error' : null" />
+        <span class="field-control">
+          <span class="field-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <path d="m4 7 8 6 8-6" />
+            </svg>
+          </span>
+          <input
+            id="teacher-email"
+            type="email"
+            formControlName="email"
+            autocomplete="email"
+            placeholder="tu correo@ejemplo.com"
+            [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid"
+            [attr.aria-describedby]="form.controls.email.touched && form.controls.email.invalid ? 'teacher-email-error' : null" />
+        </span>
         @if (form.controls.email.touched && form.controls.email.invalid) {
           <span id="teacher-email-error" class="field-error" role="alert">Ingresa un correo válido.</span>
         }
       </label>
-      <label class="field">
+
+      <label class="field" for="teacher-password">
         Contraseña
-        <span class="pwd">
+        <span class="field-control pwd">
+          <span class="field-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="5" y="11" width="14" height="10" rx="2" />
+              <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+            </svg>
+          </span>
           <input
+            id="teacher-password"
             [type]="showPassword() ? 'text' : 'password'"
             formControlName="password"
             autocomplete="new-password"
@@ -76,9 +110,11 @@
           <span id="teacher-password-error" class="field-error" role="alert">Mínimo 8 caracteres.</span>
         }
       </label>
+
       <auth-legal-consent [group]="form.controls.consent" />
       <ui-button type="submit" [loading]="auth.loading()">Crear cuenta de instructor</ui-button>
     </form>
+
     <p class="hint">
       ¿Ya tienes cuenta?
       <a routerLink="/login">Iniciar sesión</a>
@@ -87,14 +123,27 @@
     <p class="divider">Otros tipos de cuenta</p>
     <div class="signup-options">
       <a class="signup-option" routerLink="/register">
-        <span class="opt-icon" aria-hidden="true">🎓</span>
-        <span class="opt-title">Estudiante</span>
-        <span class="opt-desc">Prepárate para el examen</span>
+        <span class="opt-icon" aria-hidden="true"><ui-icon name="graduate" /></span>
+        <span class="opt-copy">
+          <span class="opt-title">Estudiante</span>
+          <span class="opt-desc">Prepárate para el examen</span>
+        </span>
+        <span class="opt-arrow" aria-hidden="true"><ui-icon name="chevron" /></span>
       </a>
-      <a class="signup-option" routerLink="/register-school">
-        <span class="opt-icon" aria-hidden="true">🏫</span>
-        <span class="opt-title">Escuela (CEA)</span>
-        <span class="opt-desc">Gestiona tu escuela</span>
+      <a class="signup-option is-current" aria-current="page">
+        <span class="opt-icon" aria-hidden="true"><ui-icon name="instructor" /></span>
+        <span class="opt-copy">
+          <span class="opt-title">Instructor</span>
+          <span class="opt-desc">Estás aquí</span>
+        </span>
+      </a>
+      <a class="signup-option signup-option--wide" routerLink="/register-school">
+        <span class="opt-icon" aria-hidden="true"><ui-icon name="building" /></span>
+        <span class="opt-copy">
+          <span class="opt-title">Escuela o CEA</span>
+          <span class="opt-desc">Administra tu escuela</span>
+        </span>
+        <span class="opt-arrow" aria-hidden="true"><ui-icon name="chevron" /></span>
       </a>
     </div>
   </div>
