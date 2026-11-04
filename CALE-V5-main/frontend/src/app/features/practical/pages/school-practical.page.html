@@ -23,6 +23,7 @@
       <label class="filter">
         Instructor
         <select [ngModel]="instructorId()" (ngModelChange)="onInstructorChange($event)">
+          <option [ngValue]="0" disabled>Elige instructor</option>
           @for (t of teachers(); track t.id) {
             <option [ngValue]="t.id">{{ t.name }}</option>
           }
@@ -31,6 +32,7 @@
       <label class="filter">
         Vehículo
         <select [ngModel]="vehicleId()" (ngModelChange)="onVehicleChange($event)">
+          <option [ngValue]="0" disabled>Elige vehículo</option>
           @for (v of vehicles(); track v.id) {
             <option [ngValue]="v.id">{{ v.label }} @if (v.plate) { ({{ v.plate }}) }</option>
           }
@@ -185,8 +187,31 @@
     </section>
   }
 
+  @if (!teachers().length || !vehicles().length) {
+    <section class="school-card setup-card" role="status">
+      <h2>Falta lo básico para programar</h2>
+      <ul class="setup-list">
+        @if (!teachers().length) {
+          <li>
+            No hay instructores vinculados a esta escuela.
+            <a routerLink="/school/users">Invita o crea un instructor</a>
+            y vuelve a esta página.
+          </li>
+        }
+        @if (!vehicles().length) {
+          <li>
+            No hay vehículos activos.
+            Usa el formulario de abajo (o
+            <button type="button" class="link-btn" (click)="showVehicles.set(true)">Gestionar vehículos</button>)
+            para agregar al menos uno con nombre y placa.
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
   @if (!instructorId() || !vehicleId()) {
-    <p class="muted hint">Agrega al menos un instructor y un vehículo para programar.</p>
+    <p class="muted hint">Selecciona instructor y vehículo arriba para ver la grilla y publicar cupos.</p>
   } @else {
     @if (gridLoading()) {
       <div class="grid-loading"><ui-loading /></div>

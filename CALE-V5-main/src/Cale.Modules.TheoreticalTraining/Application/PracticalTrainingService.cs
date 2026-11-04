@@ -1700,11 +1700,12 @@ public sealed class PracticalTrainingService
         var required = PracticalLessonRequirements.GetRequired(licenseCategories);
         var practiceRequired = PracticalLessonRequirements.GetPracticeRequired(licenseCategories);
 
+        // Compare Kind to the constant — IsExam() is not EF-translatable inside IQueryable.
         var practiceReservations = await _db.Set<PracticalLessonReservation>()
             .Include(x => x.LessonSession)
             .Where(x => x.StudentUserId == studentUserId
                 && x.LessonSession!.SchoolUserId == schoolUserId
-                && !PracticalSessionKinds.IsExam(x.LessonSession.Kind)
+                && x.LessonSession.Kind != PracticalSessionKinds.Exam
                 && PracticalReservationStatuses.OccupiesSeatStatuses.Contains(x.Status))
             .OrderBy(x => x.LessonSession!.SessionDate)
             .ThenBy(x => x.LessonSession!.StartTime)
@@ -1717,7 +1718,7 @@ public sealed class PracticalTrainingService
             .Include(x => x.LessonSession)
             .Where(x => x.StudentUserId == studentUserId
                 && x.LessonSession!.SchoolUserId == schoolUserId
-                && PracticalSessionKinds.IsExam(x.LessonSession.Kind)
+                && x.LessonSession.Kind == PracticalSessionKinds.Exam
                 && PracticalReservationStatuses.OccupiesSeatStatuses.Contains(x.Status))
             .ToListAsync(ct);
 
@@ -1818,7 +1819,7 @@ public sealed class PracticalTrainingService
             .Include(x => x.LessonSession)
             .Where(x => x.StudentUserId == reservation.StudentUserId
                 && x.LessonSession!.SchoolUserId == schoolUserId
-                && !PracticalSessionKinds.IsExam(x.LessonSession.Kind)
+                && x.LessonSession.Kind != PracticalSessionKinds.Exam
                 && PracticalReservationStatuses.OccupiesSeatStatuses.Contains(x.Status))
             .OrderBy(x => x.LessonSession!.SessionDate)
             .ThenBy(x => x.LessonSession!.StartTime)

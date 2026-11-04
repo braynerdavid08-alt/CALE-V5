@@ -43,6 +43,10 @@ public static class PracticalSessionKinds
     public static string Normalize(string? value) =>
         string.Equals(value, Exam, StringComparison.OrdinalIgnoreCase) ? Exam : Lesson;
 
+    /// <summary>
+    /// In-memory helper only. Do not call inside IQueryable — EF cannot translate it;
+    /// compare <see cref="Exam"/> / <see cref="Lesson"/> directly in queries.
+    /// </summary>
     public static bool IsExam(string? value) =>
         string.Equals(Normalize(value), Exam, StringComparison.Ordinal);
 }

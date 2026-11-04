@@ -232,6 +232,28 @@
 .hint { margin-top: 0.5rem; font-size: 0.95rem; }
 .muted { color: var(--color-text-secondary); }
 
+.setup-card {
+  border-color: color-mix(in srgb, var(--color-warning) 35%, var(--color-border));
+  background: color-mix(in srgb, var(--color-warning) 8%, var(--color-surface));
+}
+.setup-card h2 {
+  margin: 0 0 0.55rem;
+  font-size: 1.05rem;
+}
+.setup-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.55rem;
+  color: var(--color-text);
+  line-height: 1.45;
+}
+.setup-list a,
+.setup-list .link-btn {
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
 .fixed-hours-card h2 { margin: 0 0 0.35rem; font-size: 1.1rem; }
 .fixed-hours-card .tip {
   margin: 0 0 0.75rem;

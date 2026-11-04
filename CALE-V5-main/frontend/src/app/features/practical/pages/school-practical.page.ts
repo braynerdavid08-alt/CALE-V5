@@ -1,7 +1,7 @@
-import { forkJoin } from 'rxjs';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { RouterLink } from '@angular/router';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
@@ -31,6 +31,7 @@ interface MemberRow {
   name: string;
   email: string;
   role: string;
+  isActive?: boolean;
 }
 
 interface PickerCell {
@@ -45,6 +46,7 @@ interface PickerCell {
   standalone: true,
   imports: [
     FormsModule,
+    RouterLink,
     UiButtonComponent,
     UiErrorComponent,
     UiLoadingComponent,
@@ -162,31 +164,70 @@ export class SchoolPracticalPage implements OnInit {
   reload(): void {
     this.loading.set(true);
     this.error.set(null);
+    // Load independently: a students 500 must not blank instructor/vehicle selectors.
+    let pending = 3;
+    const done = () => {
+      pending -= 1;
+      if (pending > 0) {
+        return;
+      }
+      this.loading.set(false);
+      if (!this.teachers().length || !this.vehicles().length) {
+        this.showVehicles.set(true);
+      }
+      this.loadWeek();
+    };
 
-    forkJoin({
-      members: this.http.get<MemberRow[]>(`${env.apiUrl}/api/school/members`),
-      vehicles: this.api.listVehicles(true),
-      students: this.api.listSchedulingStudents()
-    }).subscribe({
-      next: ({ members, vehicles, students }) => {
-        const teachers = members.filter((m) => m.role === 'Teacher');
+    this.http.get<MemberRow[]>(`${env.apiUrl}/api/school/members`).subscribe({
+      next: (members) => {
+        const teachers = members.filter(
+          (m) =>
+            (m.role === 'Teacher' || m.role === 'Instructor' || m.role === 'Profesor') &&
+            m.isActive !== false
+        );
         this.teachers.set(teachers);
         if (!this.instructorId() && teachers[0]) {
           this.instructorId.set(teachers[0].id);
+        } else if (this.instructorId() && !teachers.some((t) => t.id === this.instructorId())) {
+          this.instructorId.set(teachers[0]?.id ?? 0);
         }
+        done();
+      },
+      error: (err) => {
+        this.teachers.set([]);
+        this.instructorId.set(0);
+        this.error.set(mapApiError(err));
+        done();
+      }
+    });
 
+    this.api.listVehicles(true).subscribe({
+      next: (vehicles) => {
         this.vehicles.set(vehicles);
         if (!this.vehicleId() && vehicles[0]) {
           this.vehicleId.set(vehicles[0].id);
+        } else if (this.vehicleId() && !vehicles.some((v) => v.id === this.vehicleId())) {
+          this.vehicleId.set(vehicles[0]?.id ?? 0);
         }
-
-        this.students.set(students);
-        this.loading.set(false);
-        this.loadWeek();
+        done();
       },
       error: (err) => {
-        this.loading.set(false);
+        this.vehicles.set([]);
+        this.vehicleId.set(0);
         this.error.set(mapApiError(err));
+        done();
+      }
+    });
+
+    this.api.listSchedulingStudents().subscribe({
+      next: (students) => {
+        this.students.set(students);
+        done();
+      },
+      error: (err) => {
+        this.students.set([]);
+        this.error.set(mapApiError(err));
+        done();
       }
     });
   }
@@ -729,11 +770,18 @@ export class SchoolPracticalPage implements OnInit {
       plate: this.vehicleForm.plate.trim() || null,
       isActive: this.vehicleForm.isActive
     }).subscribe({
-      next: () => {
+      next: (created) => {
         this.saving.set(false);
         this.vehicleForm = { label: '', plate: '', isActive: true };
         this.api.listVehicles(true).subscribe({
-          next: (v) => this.vehicles.set(v)
+          next: (rows) => {
+            this.vehicles.set(rows);
+            const id = created?.id || rows[0]?.id || 0;
+            if (id) {
+              this.vehicleId.set(id);
+              this.loadWeek();
+            }
+          }
         });
       },
       error: (err) => {
