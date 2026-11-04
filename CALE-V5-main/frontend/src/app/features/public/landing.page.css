@@ -155,6 +155,8 @@
 }
 
 .offer-media img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -309,7 +311,13 @@
     background: #101812;
   }
 
+  .mobile-offer-media {
+    position: relative;
+  }
+
   .mobile-offer-media img {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -1483,6 +1491,8 @@
   overflow: hidden;
 }
 .shop-media img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;

@@ -5,6 +5,8 @@ import {
   DestroyRef,
   ElementRef,
   OnInit,
+  Injector,
+  afterNextRender,
   computed,
   inject,
   signal
@@ -461,6 +463,7 @@ export class LandingPage implements OnInit, AfterViewInit {
   private readonly seo = inject(SeoService);
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(Injector);
   private revealObserver: IntersectionObserver | null = null;
 
   readonly loading = signal(true);
@@ -517,14 +520,14 @@ export class LandingPage implements OnInit, AfterViewInit {
         this.home.set(data);
         this.applySeo(data);
         this.loading.set(false);
-        queueMicrotask(() => this.bindReveals());
+        this.scheduleRevealBind();
       },
       error: () => {
         const fallback = this.buildLocalFallback();
         this.home.set(fallback);
         this.applySeo(fallback);
         this.loading.set(false);
-        queueMicrotask(() => this.bindReveals());
+        this.scheduleRevealBind();
       }
     });
     this.api.listTestimonials(6).subscribe({
@@ -534,15 +537,20 @@ export class LandingPage implements OnInit, AfterViewInit {
     this.shopApi.getPublic().subscribe({
       next: (s) => {
         this.shop.set(s);
-        queueMicrotask(() => this.bindReveals());
+        this.scheduleRevealBind();
       },
       error: () => this.shop.set(null)
     });
   }
 
   ngAfterViewInit(): void {
-    this.bindReveals();
+    this.scheduleRevealBind();
     this.destroyRef.onDestroy(() => this.revealObserver?.disconnect());
+  }
+
+  /** Wait for Angular to paint shop cards before observing .lv-reveal nodes. */
+  private scheduleRevealBind(): void {
+    afterNextRender(() => this.bindReveals(), { injector: this.injector });
   }
 
   private bindReveals(): void {
@@ -552,18 +560,19 @@ export class LandingPage implements OnInit, AfterViewInit {
         .forEach((el: Element) => el.classList.add('is-visible'));
       return;
     }
-    this.revealObserver?.disconnect();
-    this.revealObserver = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-visible');
-            this.revealObserver?.unobserve(entry.target);
+    if (!this.revealObserver) {
+      this.revealObserver = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible');
+              this.revealObserver?.unobserve(entry.target);
+            }
           }
-        }
-      },
-      { threshold: 0.12, rootMargin: '0px 0px -6% 0px' }
-    );
+        },
+        { threshold: 0.08, rootMargin: '0px 0px -4% 0px' }
+      );
+    }
     this.host.nativeElement
       .querySelectorAll('.lv-reveal:not(.is-visible)')
       .forEach((el: Element) => {
