@@ -192,16 +192,6 @@ export function navForRole(role?: string, options?: NavOptions): NavItem[] {
         exact: true,
         section: administracion
       },
-      {
-        label: 'Importaciones y bancos',
-        icon: 'grid',
-        section: administracion,
-        children: [
-          { label: 'Importar expedientes', path: '/school/import', exact: true },
-          { label: 'Ver preguntas', path: '/school/questions', exact: true },
-          { label: 'Ver bancos de preguntas', path: '/school/banks', exact: true }
-        ]
-      },
       ...(free
         ? []
         : [

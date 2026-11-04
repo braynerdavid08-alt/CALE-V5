@@ -223,11 +223,23 @@
   padding: 0.2rem 0.45rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
-  background: #fff;
+  background: var(--color-surface);
+  color: var(--color-text);
   cursor: pointer;
   font-size: 0.8rem;
+  font-weight: 650;
 }
-.cell-actions button.danger { color: #b91c1c; }
+.cell-actions button:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.cell-actions button.danger {
+  color: var(--color-danger, #b91c1c);
+}
+.cell-actions button.danger:hover {
+  border-color: var(--color-danger, #b91c1c);
+  color: var(--color-danger, #b91c1c);
+}
 
 .hint { margin-top: 0.5rem; font-size: 0.95rem; }
 .muted { color: var(--color-text-secondary); }
