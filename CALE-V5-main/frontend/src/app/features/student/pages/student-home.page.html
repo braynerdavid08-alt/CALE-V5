@@ -2,26 +2,33 @@
   <app-next-step-banner [theory]="theory()" />
 
   <header class="hero">
-    <div class="hero-glow" aria-hidden="true"></div>
+    <div class="hero-media" role="img" aria-label="Carretera panorámica al amanecer"></div>
+    <div class="hero-overlay" aria-hidden="true"></div>
+
     <div class="hero-copy">
       <p class="kicker">Panel del estudiante</p>
-      <h1>Hola, {{ greetingName() }} 👋</h1>
+      <h1>Hola, {{ greetingName() }}.</h1>
       <p class="sub">
         @if (summary(); as s) {
           @if (s.streak.activeToday) {
             ¡Ya practicaste hoy! Sigue así.
           } @else if (s.streak.current > 0) {
-            Practica hoy para no perder tu racha de {{ s.streak.current }} {{ s.streak.current === 1 ? 'día' : 'días' }}.
+            Practica hoy para no perder tu racha de {{ s.streak.current }}
+            {{ s.streak.current === 1 ? 'día' : 'días' }}.
           } @else {
             Empieza hoy tu racha con el reto diario.
           }
         } @else {
-          Elige por dónde quieres continuar.
+          Empieza hoy tu racha con el reto diario.
         }
       </p>
       <div class="hero-actions">
         <a class="btn-primary" routerLink="/student/play/daily" data-tour="student-daily">
-          @if (summary()?.dailyCompleted) { Ver mi reto de hoy } @else { Jugar reto diario }
+          @if (summary()?.dailyCompleted) {
+            Ver mi reto de hoy
+          } @else {
+            Jugar reto diario
+          }
         </a>
         <a class="btn-ghost" routerLink="/student/simulator" data-tour="student-simulator">
           <ui-icon name="exam" />
@@ -31,7 +38,7 @@
       @if (summary(); as s) {
         <div class="hero-stats">
           <a class="pill streak" routerLink="/student/play/daily" [class.on]="s.streak.activeToday">
-            <span class="flame" aria-hidden="true">🔥</span>
+            <span class="pill-ico" aria-hidden="true"><ui-icon name="star" /></span>
             <strong>{{ s.streak.current }}</strong>
             <small>{{ s.streak.current === 1 ? 'día de racha' : 'días de racha' }}</small>
           </a>
@@ -44,7 +51,7 @@
             <small>{{ s.level.xp }} XP</small>
           </a>
           <a class="pill" routerLink="/student/play/achievements">
-            <span aria-hidden="true">🏅</span>
+            <span class="pill-ico" aria-hidden="true"><ui-icon name="star" /></span>
             <strong>{{ s.earnedBadges }}/{{ s.totalBadges }}</strong>
             <small>insignias</small>
           </a>
@@ -64,7 +71,7 @@
         </span>
       </span>
       <span class="ring-label">
-        {{ summary()?.readinessLabel || 'Haz un simulacro para medir tu nivel' }}
+        {{ summary()?.readinessLabel || 'Sin datos todavía' }}
       </span>
       @if (summary()?.weakestTopic; as topic) {
         <span class="ring-hint">Refuerza: {{ topic }}</span>
@@ -74,7 +81,7 @@
 
   <section class="priority" aria-label="Tienda y apoyo">
     <a class="priority-card shop" routerLink="/tienda" data-tour="student-shop">
-      <span class="priority-icon" aria-hidden="true"><ui-icon name="image" size="lg" /></span>
+      <span class="priority-icon" aria-hidden="true"><ui-icon name="grid" size="lg" /></span>
       <span class="priority-copy">
         <strong>Tienda Luz Verde</strong>
         <small>Cascos y equipo con descuentos · consulta por WhatsApp</small>
@@ -98,7 +105,9 @@
         <strong>Vincula tu escuela</strong>
         <p>Para ver tus clases de teoría y manejo necesitas estar registrado en un CEA.</p>
       </div>
-      <ui-button routerLink="/profile" [queryParams]="{ tab: 'context' }" type="button" variant="secondary">Vincular ahora</ui-button>
+      <ui-button routerLink="/profile" [queryParams]="{ tab: 'context' }" type="button" variant="secondary"
+        >Vincular ahora</ui-button
+      >
     </section>
   }
 
@@ -107,16 +116,22 @@
     <section class="today" aria-label="Tu práctica de hoy">
       <a
         class="today-card"
-        data-tone="amber"
+        data-tone="green"
         data-tour="student-daily-card"
         routerLink="/student/play/daily"
         [class.done]="s.dailyCompleted">
         <span class="today-head">
-          <span class="today-icon" aria-hidden="true">{{ s.dailyCompleted ? '✅' : '🎯' }}</span>
+          <span class="today-icon" aria-hidden="true"><ui-icon name="star" /></span>
           <span class="today-kicker">Reto diario</span>
         </span>
         <strong>
-          @if (s.dailyCompleted) { ¡Completado! } @else if (s.dailyAnswered > 0) { Vas {{ s.dailyAnswered }} de {{ s.dailyTotal }} } @else { 5 preguntas te esperan }
+          @if (s.dailyCompleted) {
+            ¡Completado!
+          } @else if (s.dailyAnswered > 0) {
+            Vas {{ s.dailyAnswered }} de {{ s.dailyTotal }}
+          } @else {
+            5 preguntas te esperan
+          }
         </strong>
         <span class="dots" aria-hidden="true">
           @for (i of [0, 1, 2, 3, 4]; track i) {
@@ -126,15 +141,19 @@
         <span class="today-cta">{{ s.dailyCompleted ? 'Ver resultado' : 'Jugar ahora' }} →</span>
       </a>
 
-      <a class="today-card" data-tone="rose" routerLink="/student/play/mistakes" data-tour="student-mistakes">
+      <a class="today-card" data-tone="blue" routerLink="/student/play/mistakes" data-tour="student-mistakes">
         <span class="today-head">
-          <span class="today-icon" aria-hidden="true">🔁</span>
+          <span class="today-icon" aria-hidden="true"><ui-icon name="exam" /></span>
           <span class="today-kicker">Repaso de errores</span>
         </span>
         <strong>
-          @if (s.mistakesDue > 0) { {{ s.mistakesDue }} {{ s.mistakesDue === 1 ? 'pregunta' : 'preguntas' }} para hoy }
-          @else if (s.mistakesPending > 0) { Al día · {{ s.mistakesPending }} en repaso }
-          @else { Sin errores pendientes }
+          @if (s.mistakesDue > 0) {
+            {{ s.mistakesDue }} {{ s.mistakesDue === 1 ? 'pregunta' : 'preguntas' }} para hoy
+          } @else if (s.mistakesPending > 0) {
+            Al día · {{ s.mistakesPending }} en repaso
+          } @else {
+            Sin errores pendientes
+          }
         </strong>
         <span class="today-hint">Lo que fallas vuelve hasta que lo domines.</span>
         <span class="today-cta">Repasar →</span>
@@ -142,11 +161,15 @@
 
       <a class="today-card" data-tone="sky" routerLink="/student/play/ranking" data-tour="student-ranking">
         <span class="today-head">
-          <span class="today-icon" aria-hidden="true">🏁</span>
+          <span class="today-icon" aria-hidden="true"><ui-icon name="chart" /></span>
           <span class="today-kicker">Ranking (2 años)</span>
         </span>
         <strong>
-          @if (s.weeklyRank && s.weeklyXp > 0) { Vas en el puesto #{{ s.weeklyRank }} } @else { Aún sin puesto en el ranking }
+          @if (s.weeklyRank && s.weeklyXp > 0) {
+            Vas en el puesto #{{ s.weeklyRank }}
+          } @else {
+            Aún sin puesto en el ranking
+          }
         </strong>
         <span class="today-hint">{{ s.weeklyXp }} XP en los últimos 2 años.</span>
         <span class="today-cta">Ver ranking →</span>
@@ -161,7 +184,7 @@
       <div class="games-grid">
         @for (g of games; track g.id) {
           <a class="game" [routerLink]="g.path">
-            <span class="game-emoji" aria-hidden="true">{{ g.emoji }}</span>
+            <span class="game-ico" aria-hidden="true"><ui-icon [name]="g.icon" /></span>
             <span>
               <strong>{{ g.label }}</strong>
               <small>{{ g.hint }}</small>
