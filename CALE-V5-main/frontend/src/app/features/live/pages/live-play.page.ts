@@ -24,6 +24,7 @@ import {
   LiveAnswerRosterDto,
   LiveDoubtDto,
   LiveLobbyDto,
+  LivePersonalResultDto,
   LivePresentationDto,
   LiveQuestionPayloadDto,
   LiveRankingDto,
@@ -106,9 +107,11 @@ export class LivePlayPage implements OnInit, OnDestroy {
   readonly displayName = signal('');
   readonly doubtText = signal('');
   readonly lastPoints = signal<number | null>(null);
+  readonly lastIsCorrect = signal<boolean | null>(null);
   readonly rematchCode = signal<string | null>(null);
   readonly answerRoster = signal<LiveAnswerRosterDto | null>(null);
   readonly roundRanking = signal(false);
+  readonly personalResult = signal<LivePersonalResultDto | null>(null);
 
   readonly presentationSlides = signal<EditorSlide[]>([]);
   readonly presentationTitle = signal('');
@@ -204,6 +207,17 @@ export class LivePlayPage implements OnInit, OnDestroy {
       return false;
     }
     return !!(l.config?.showRanking || l.mode === 'Competitive' || l.status === 'Ended');
+  }
+
+  /** Exam stays open until the host advances; Competencia/Práctica use a real timer. */
+  isHostMonitored(): boolean {
+    return this.lobby()?.mode === 'Exam';
+  }
+
+  /** Competencia and Práctica reveal right/wrong when the question closes. */
+  showsAnswerFeedback(): boolean {
+    const mode = this.lobby()?.mode;
+    return mode === 'Competitive' || mode === 'Pedagogical';
   }
 
   hasLinkedPresentation(): boolean {
@@ -350,40 +364,55 @@ export class LivePlayPage implements OnInit, OnDestroy {
   }
 
   myRosterResult(): 'correct' | 'incorrect' | 'unanswered' | null {
+    const l = this.lobby();
+    const q = l?.currentQuestion;
+    if (!q || !this.showsAnswerFeedback()) {
+      return null;
+    }
+
+    // Competencia/Práctica: show right/wrong when the timer ends (or host closes), not on submit.
+    const timeUp = !!(l?.revealCorrect || this.roundRanking());
+    if (!timeUp) {
+      return null;
+    }
+
     const roster = this.answerRoster();
-    const q = this.lobby()?.currentQuestion;
-    if (!roster || !q || roster.sessionQuestionId !== q.sessionQuestionId || !roster.revealCorrectness) {
-      return null;
+    if (roster && roster.sessionQuestionId === q.sessionQuestionId && roster.revealCorrectness) {
+      const id =
+        readLiveParticipant(this.sessionId)?.participantId
+        ?? this.ranking()?.myParticipantId
+        ?? null;
+      if (id != null) {
+        if (roster.correct.some((r) => r.participantId === id)) {
+          return 'correct';
+        }
+        if (roster.incorrect.some((r) => r.participantId === id)) {
+          return 'incorrect';
+        }
+        if (roster.unanswered.some((r) => r.participantId === id)) {
+          return 'unanswered';
+        }
+      }
     }
-    const id =
-      readLiveParticipant(this.sessionId)?.participantId
-      ?? this.ranking()?.myParticipantId
-      ?? null;
-    if (id == null) {
-      // Fallback: infer from selected option vs reveal
-      const selected = this.selectedOptionId();
-      if (selected == null) {
-        return this.submitted() ? 'unanswered' : null;
-      }
-      const opt = q.options.find((o) => o.id === selected);
-      if (opt?.isCorrect === true) {
-        return 'correct';
-      }
-      if (opt?.isCorrect === false) {
-        return 'incorrect';
-      }
-      return null;
-    }
-    if (roster.correct.some((r) => r.participantId === id)) {
+
+    if (this.lastIsCorrect() === true) {
       return 'correct';
     }
-    if (roster.incorrect.some((r) => r.participantId === id)) {
+    if (this.lastIsCorrect() === false) {
       return 'incorrect';
     }
-    if (roster.unanswered.some((r) => r.participantId === id)) {
+    const selected = this.selectedOptionId();
+    if (selected == null) {
       return 'unanswered';
     }
-    return null;
+    const opt = q.options.find((o) => o.id === selected);
+    if (opt?.isCorrect === true) {
+      return 'correct';
+    }
+    if (opt?.isCorrect === false) {
+      return 'incorrect';
+    }
+    return 'unanswered';
   }
 
   select(optionId: number): void {
@@ -407,6 +436,9 @@ export class LivePlayPage implements OnInit, OnDestroy {
         this.submitted.set(true);
         if (typeof res?.points === 'number') {
           this.lastPoints.set(res.points);
+        }
+        if (typeof res?.isCorrect === 'boolean') {
+          this.lastIsCorrect.set(res.isCorrect);
         }
       },
       error: (err) => {
@@ -629,18 +661,29 @@ export class LivePlayPage implements OnInit, OnDestroy {
     if (lobby.ranking) {
       this.ranking.set(lobby.ranking);
     }
+    if (lobby.personalResult) {
+      this.personalResult.set(lobby.personalResult);
+    }
     if (lobby.currentQuestion?.sessionQuestionId !== prevId) {
       this.selectedOptionId.set(null);
       this.submitted.set(false);
       this.lastPoints.set(null);
+      this.lastIsCorrect.set(null);
       this.roundRanking.set(false);
+      this.answerRoster.set(null);
     }
     if (lobby.status === 'Lobby' || lobby.status === 'Ended' || !lobby.currentQuestion) {
       this.roundRanking.set(false);
-    } else if (lobby.currentQuestion.closesAt && (lobby.config?.questionCount ?? 0) <= 0) {
-      const closesAt = Date.parse(lobby.currentQuestion.closesAt);
-      if (Number.isFinite(closesAt) && closesAt <= Date.now()) {
+    } else if (
+      lobby.revealCorrect ||
+      (lobby.currentQuestion.closesAt && !this.isHostMonitored())
+    ) {
+      const closesAt = lobby.currentQuestion.closesAt
+        ? Date.parse(lobby.currentQuestion.closesAt)
+        : NaN;
+      if (lobby.revealCorrect || (Number.isFinite(closesAt) && closesAt <= Date.now())) {
         this.roundRanking.set(true);
+        this.submitted.set(true);
       }
     }
     this.syncTimer(lobby.currentQuestion ?? null);
@@ -673,9 +716,11 @@ export class LivePlayPage implements OnInit, OnDestroy {
       }
       const synced = computeSecondsLeft(q, this.lobby()?.config?.secondsPerQuestion);
       const left = synced ?? Math.max(0, Math.ceil((this.localDeadlineMs - Date.now()) / 1000));
-      const hostMonitored = (this.lobby()?.config?.questionCount ?? 0) > 0;
-      // Suggested time only — bank rooms stay open until the host advances.
-      this.secondsLeft.set(hostMonitored && left === 0 ? null : left);
+      // Exam: soft guide only. Competencia/Práctica: real countdown to 0.
+      this.secondsLeft.set(this.isHostMonitored() && left === 0 ? null : left);
+      if (left === 0 && !this.isHostMonitored() && !this.submitted()) {
+        this.submitted.set(true);
+      }
     };
     tick();
     this.timerId = setInterval(tick, 250);
@@ -693,6 +738,7 @@ export class LivePlayPage implements OnInit, OnDestroy {
     this.hub.onreconnected(() => {
       this.connectionNotice.set('Conexión restablecida.');
       void this.hub!.invoke('JoinAsParticipant', this.sessionId, this.token).finally(() => {
+        this.reload();
         window.setTimeout(() => {
           if (this.connectionNotice() === 'Conexión restablecida.') {
             this.connectionNotice.set(null);
@@ -729,6 +775,7 @@ export class LivePlayPage implements OnInit, OnDestroy {
       this.selectedOptionId.set(null);
       this.submitted.set(false);
       this.lastPoints.set(null);
+      this.lastIsCorrect.set(null);
       this.answerRoster.set(null);
       this.roundRanking.set(false);
       this.syncTimer(payload);
@@ -736,6 +783,7 @@ export class LivePlayPage implements OnInit, OnDestroy {
     this.hub.on('QuestionClosed', () => {
       this.submitted.set(true);
       this.roundRanking.set(true);
+      this.secondsLeft.set(0);
     });
     this.hub.on('RevealUpdated', (payload: LiveQuestionPayloadDto) => {
       const current = this.lobby();
@@ -754,12 +802,20 @@ export class LivePlayPage implements OnInit, OnDestroy {
         this.rematchCode.set(payload.joinCode);
       }
     });
-    this.hub.on('SessionEnded', () => {
-      const current = this.lobby();
-      if (current) {
-        this.applyLobby({ ...current, status: 'Ended', currentQuestion: null });
+    this.hub.on(
+      'SessionEnded',
+      (payload?: { ranking?: LiveRankingDto; passPercent?: number; questionCount?: number }) => {
+        if (payload?.ranking) {
+          this.ranking.set(payload.ranking);
+        }
+        const current = this.lobby();
+        if (current) {
+          this.applyLobby({ ...current, status: 'Ended', currentQuestion: null });
+        }
+        // Pull per-student pass/fail report from the API.
+        this.reload();
       }
-    });
+    );
     this.hub.on('PresentationSlideChanged', (payload: { slideIndex?: number }) => {
       if (typeof payload?.slideIndex === 'number') {
         this.setPresentationSlide(payload.slideIndex);

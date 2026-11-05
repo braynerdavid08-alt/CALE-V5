@@ -322,9 +322,9 @@ export class TeacherLiveHostPage implements OnInit, OnDestroy {
     return !!(l.config?.showRanking || l.mode === 'Competitive' || l.status === 'Ended');
   }
 
-  /** Bank-driven rooms: host advances; timer is display-only. */
+  /** Examen: host advances; timer is display-only. Competencia/Práctica use a real close timer. */
   isHostMonitored(): boolean {
-    return (this.lobby()?.config?.questionCount ?? 0) > 0;
+    return this.lobby()?.mode === 'Exam';
   }
 
   configSummaryLines(): string[] {

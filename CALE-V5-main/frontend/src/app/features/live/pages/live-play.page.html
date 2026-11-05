@@ -135,9 +135,51 @@
     }
 
     @if (l.status === 'Ended') {
-      <div class="panel">
-        <h2>Actividad finalizada</h2>
+      <div class="panel end-report">
+        <h2>Tu reporte</h2>
+        @if (personalResult(); as mine) {
+          <p class="verdict" [attr.data-passed]="mine.passed">
+            @if (mine.passed) {
+              Aprobaste
+            } @else {
+              No aprobaste
+            }
+          </p>
+          <ul class="report-stats">
+            <li>
+              <span>Aciertos</span>
+              <strong>{{ mine.correctCount }} / {{ mine.questionCount }}</strong>
+            </li>
+            <li>
+              <span>Porcentaje</span>
+              <strong>{{ mine.percentCorrect }}%</strong>
+            </li>
+            <li>
+              <span>Mínimo para aprobar</span>
+              <strong>{{ mine.passPercent }}%</strong>
+            </li>
+            <li>
+              <span>Respondidas</span>
+              <strong>{{ mine.answerCount }}</strong>
+            </li>
+            @if (mine.score != null) {
+              <li>
+                <span>Puntos</span>
+                <strong>{{ mine.score }}</strong>
+              </li>
+            }
+            @if (mine.rank != null) {
+              <li>
+                <span>Tu puesto</span>
+                <strong>#{{ mine.rank }}</strong>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p>Actividad finalizada. Cargando tu resultado…</p>
+        }
         @if (showRanking() && ranking(); as rank) {
+          <h3>Clasificación</h3>
           <ol class="rank">
             @for (row of rank.top; track row.participantId) {
               <li [class.me]="row.participantId === rank.myParticipantId">
@@ -166,7 +208,7 @@
         }
         <p class="count">{{ l.participantCount }} en la sala</p>
       </div>
-    } @else if (roundRanking() && showRanking()) {
+    } @else if (roundRanking() && showRanking() && !showsAnswerFeedback()) {
       <div class="panel round-ranking">
         <p class="eyebrow">Clasificación de la ronda</p>
         <h2>Top de jugadores</h2>
@@ -233,13 +275,16 @@
           <ui-button type="button" [loading]="loading()" [disabled]="selectedOptionId() == null" (click)="confirm()">
             Confirmar respuesta
           </ui-button>
-        } @else {
-          <p class="sent">Respuesta enviada. Espera la siguiente pregunta.</p>
+        } @else if (!myRosterResult()) {
+          <p class="sent">Respuesta enviada. Espera el resultado…</p>
         }
         @if (myRosterResult(); as mine) {
           <p class="result" [attr.data-result]="mine">
             @if (mine === 'correct') {
               ¡Correcto!
+              @if (lastPoints() != null) {
+                <span class="pts">+{{ lastPoints() }} pts</span>
+              }
             } @else if (mine === 'incorrect') {
               Incorrecto.
             } @else {
@@ -247,12 +292,24 @@
             }
           </p>
         }
+        @if (showsAnswerFeedback() && roundRanking() && showRanking() && ranking(); as rank) {
+          <div class="mini-rank">
+            @if (rank.myRank != null) {
+              <p class="my-round-rank">
+                Tu puesto: <strong>#{{ rank.myRank }}</strong> · {{ rank.myScore ?? 0 }} puntos
+              </p>
+            }
+          </div>
+        }
         @if (answerRoster(); as roster) {
           @if (roster.revealCorrectness && roster.sessionQuestionId === l.currentQuestion.sessionQuestionId) {
             <div class="mini-roster">
               <p><strong>{{ roster.correctCount }}</strong> bien · <strong>{{ roster.incorrectCount }}</strong> mal · <strong>{{ roster.unansweredCount }}</strong> sin respuesta</p>
             </div>
           }
+        }
+        @if (roundRanking()) {
+          <p class="ranking-wait">Espera: el instructor mostrará la siguiente pregunta.</p>
         }
       </div>
     }

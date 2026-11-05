@@ -16,7 +16,8 @@ public sealed record LiveSessionConfigDto(
     Dictionary<int, List<string>>? BankTopicFilters = null,
     Dictionary<int, int>? BankQuestionQuotas = null,
     IReadOnlyList<string>? DifficultyFilters = null,
-    int? PresentationId = null);
+    int? PresentationId = null,
+    int PassPercent = 60);
 
 public sealed record CreateLiveSessionRequest(
     string? Title,
@@ -81,6 +82,17 @@ public sealed record LiveRankingDto(
     int? MyRank,
     int? MyScore);
 
+/// <summary>Per-student end-of-session summary (pass/fail uses PassPercent).</summary>
+public sealed record LivePersonalResultDto(
+    int CorrectCount,
+    int AnswerCount,
+    int QuestionCount,
+    int Score,
+    int? Rank,
+    int PassPercent,
+    bool Passed,
+    int PercentCorrect);
+
 public sealed record LiveAnswerRosterEntryDto(
     int ParticipantId,
     string DisplayName,
@@ -119,7 +131,8 @@ public sealed record LiveLobbyDto(
     string JoinUrl,
     LiveRankingDto? Ranking = null,
     string? RemoteCode = null,
-    string? RemoteUrl = null);
+    string? RemoteUrl = null,
+    LivePersonalResultDto? PersonalResult = null);
 
 public sealed record ResolveRemoteCodeResponse(
     int SessionId,

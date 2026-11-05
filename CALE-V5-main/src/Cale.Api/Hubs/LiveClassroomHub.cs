@@ -96,11 +96,7 @@ public sealed class LiveClassroomHub : Hub
         var session = await _sessions.GetByIdAsync(sessionId, Context.ConnectionAborted)
             ?? throw new HubException("Sesión no encontrada.");
 
-        if (session.Status == LiveSessionStatuses.Ended || session.EndedAt is not null)
-        {
-            throw new HubException("Esta clase ya terminó.");
-        }
-
+        var ended = session.Status == LiveSessionStatuses.Ended || session.EndedAt is not null;
         var previousConnectionId = participant.ConnectionId;
         await _handler.SetConnectionAsync(
             token,
@@ -108,21 +104,29 @@ public sealed class LiveClassroomHub : Hub
             connected: true,
             Context.ConnectionAborted);
         await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(sessionId));
-        if (!string.IsNullOrEmpty(previousConnectionId) && previousConnectionId != Context.ConnectionId)
+        if (!ended
+            && !string.IsNullOrEmpty(previousConnectionId)
+            && previousConnectionId != Context.ConnectionId)
         {
             // Newest tab wins: the old one stops receiving the class and is told why.
             await Groups.RemoveFromGroupAsync(previousConnectionId, GroupName(sessionId));
             await Clients.Client(previousConnectionId).SendAsync(ReplacedByAnotherTabEvent, Context.ConnectionAborted);
         }
-        var slideIndex = await _presentationSlides.GetSlideIndexAsync(sessionId, Context.ConnectionAborted);
-        await Clients.Caller.SendAsync(
-            "PresentationSlideChanged",
-            new { slideIndex },
-            Context.ConnectionAborted);
+
+        if (!ended)
+        {
+            var slideIndex = await _presentationSlides.GetSlideIndexAsync(sessionId, Context.ConnectionAborted);
+            await Clients.Caller.SendAsync(
+                "PresentationSlideChanged",
+                new { slideIndex },
+                Context.ConnectionAborted);
+        }
+
         _logger.LogInformation(
-            "Live participant connected {ConnectionId} session {SessionId}",
+            "Live participant connected {ConnectionId} session {SessionId} ended={Ended}",
             Context.ConnectionId,
-            sessionId);
+            sessionId,
+            ended);
     }
 
     public async Task SyncPresentationSlide(int sessionId, int slideIndex)

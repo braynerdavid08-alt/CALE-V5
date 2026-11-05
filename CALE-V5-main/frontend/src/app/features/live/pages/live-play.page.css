@@ -120,6 +120,33 @@
 .result[data-result='correct'] { color: #3dd68c; }
 .result[data-result='incorrect'] { color: #f07178; }
 .result[data-result='unanswered'] { color: #f0b429; }
+.result .pts { margin-left: 0.4rem; font-weight: 700; opacity: 0.9; }
+.mini-rank { margin-top: 0.75rem; }
+.end-report .verdict {
+  font-size: 1.45rem;
+  font-weight: 900;
+  margin: 0.35rem 0 1rem;
+}
+.end-report .verdict[data-passed='true'] { color: #3dd68c; }
+.end-report .verdict[data-passed='false'] { color: #f07178; }
+.report-stats {
+  list-style: none;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+.report-stats li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  background: #0f1620;
+  border: 1px solid #243041;
+}
+.report-stats span { color: #9aa4b2; }
+.end-report h3 { margin: 1rem 0 0.5rem; font-size: 1rem; }
 .mini-roster { margin-top: 0.65rem; color: #9aa4b2; font-size: 0.9rem; }
 .explain { margin-top: 0.85rem; color: #c9d4e3; }
 img { max-width: 100%; border-radius: 12px; margin: 0.5rem 0; }

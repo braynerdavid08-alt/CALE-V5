@@ -169,7 +169,7 @@ public sealed class LiveSessionHandler
         var config = ReadConfig(session);
         var includeCorrect = session.RevealCorrect
             && session.Mode is not LiveSessionModes.Exam
-            && !KeepOpenUntilHost(config);
+            && !KeepOpenUntilHost(session, config);
         return await ToLobbyAsync(
             session,
             publicBaseUrl,
@@ -253,9 +253,14 @@ public sealed class LiveSessionHandler
         {
             participant.Connect(connectionId);
         }
+        else if (string.Equals(participant.ConnectionId, connectionId, StringComparison.Ordinal))
+        {
+            // Ignore stale disconnects from an older tab/connection after a newer one joined.
+            participant.Disconnect();
+        }
         else
         {
-            participant.Disconnect();
+            return;
         }
 
         await _store.SaveChangesAsync(ct);
@@ -272,6 +277,12 @@ public sealed class LiveSessionHandler
 
         var participant = await _store.GetParticipantByConnectionIdAsync(connectionId, ct);
         if (participant is null)
+        {
+            return;
+        }
+
+        // Only clear if this connection is still the active one (reconnect race safety).
+        if (!string.Equals(participant.ConnectionId, connectionId, StringComparison.Ordinal))
         {
             return;
         }
@@ -364,12 +375,17 @@ public sealed class LiveSessionHandler
                         "no_more_questions");
                 }
 
+                // Competencia/Práctica: close + reveal before advancing so students see the result.
+                if (session.IsQuestionOpen(now) && !KeepOpenUntilHost(session, config))
+                {
+                    await CloseQuestionInternalAsync(session, config, now, ct);
+                }
+
                 if (next >= session.Questions.Count)
                 {
                     session.End(now);
                     await _store.SaveChangesAsync(ct);
-                    await _broadcast.SessionEndedAsync(session.Id, new { sessionId = session.Id }, ct);
-                    await BroadcastRankingAsync(session, ct);
+                    await BroadcastSessionEndedAsync(session, ct);
                     break;
                 }
                 OpenAt(session, next, config, now);
@@ -391,10 +407,13 @@ public sealed class LiveSessionHandler
                 break;
 
             case "end":
+                if (session.IsQuestionOpen(now) && !KeepOpenUntilHost(session, config))
+                {
+                    await CloseQuestionInternalAsync(session, config, now, ct);
+                }
                 session.End(now);
                 await _store.SaveChangesAsync(ct);
-                await _broadcast.SessionEndedAsync(session.Id, new { sessionId = session.Id }, ct);
-                await BroadcastRankingAsync(session, ct);
+                await BroadcastSessionEndedAsync(session, ct);
                 break;
 
             case "surprise":
@@ -461,7 +480,7 @@ public sealed class LiveSessionHandler
                 config.FeedbackTiming,
                 "immediate",
                 StringComparison.OrdinalIgnoreCase)
-            || session.Mode == LiveSessionModes.Pedagogical;
+            || session.Mode is LiveSessionModes.Pedagogical or LiveSessionModes.Competitive;
         if (autoReveal)
         {
             session.SetReveal(true);
@@ -574,9 +593,9 @@ public sealed class LiveSessionHandler
         await BroadcastAnswerRosterAsync(session, ct);
         await BroadcastRankingAsync(session, ct);
 
-        // Bank rooms stay open for the host; only timed quick/slide questions auto-close.
+        // Exam bank rooms stay open for the host; Competencia/Práctica close when all answer or timer ends.
         var closeNow = _clock.UtcNow;
-        if (!KeepOpenUntilHost(config)
+        if (!KeepOpenUntilHost(session, config)
             && session.IsQuestionOpen(closeNow)
             && connected > 0)
         {
@@ -591,8 +610,8 @@ public sealed class LiveSessionHandler
             }
         }
 
-        // Students never learn the key from the answer ACK in host-monitored rooms.
-        if (KeepOpenUntilHost(config) || session.Mode is LiveSessionModes.Exam)
+        // Exam / host-monitored: students never learn the key from the answer ACK.
+        if (KeepOpenUntilHost(session, config) || session.Mode is LiveSessionModes.Exam)
         {
             return new { ok = true, points = (int?)null, isCorrect = (bool?)null };
         }
@@ -1168,11 +1187,11 @@ public sealed class LiveSessionHandler
     }
 
     /// <summary>
-    /// Bank-driven rooms stay open until the host advances so they can monitor
-    /// who answered what. The client may still show a soft countdown from OpensAt.
+    /// Exam bank rooms stay open until the host advances (monitor without revealing keys).
+    /// Competencia and Práctica use a real timer and auto-reveal when the question closes.
     /// </summary>
-    private static bool KeepOpenUntilHost(LiveSessionConfig config) =>
-        config.QuestionCount > 0;
+    private static bool KeepOpenUntilHost(LiveSession session, LiveSessionConfig config) =>
+        config.QuestionCount > 0 && session.Mode == LiveSessionModes.Exam;
 
     private static void OpenAt(
         LiveSession session,
@@ -1180,7 +1199,7 @@ public sealed class LiveSessionHandler
         LiveSessionConfig config,
         DateTime now)
     {
-        var closes = KeepOpenUntilHost(config) || config.SecondsPerQuestion <= 0
+        var closes = KeepOpenUntilHost(session, config) || config.SecondsPerQuestion <= 0
             ? (DateTime?)null
             : now.AddSeconds(config.SecondsPerQuestion);
         session.OpenQuestion(index, now, closes);
@@ -1212,8 +1231,8 @@ public sealed class LiveSessionHandler
     private async Task BroadcastRevealAsync(LiveSession session, CancellationToken ct)
     {
         var config = ReadConfig(session);
-        // Host sees keys via HTTP; students in bank/exam rooms never get the answer key.
-        if (session.Mode is LiveSessionModes.Exam || KeepOpenUntilHost(config))
+        // Host sees keys via HTTP; Exam students never get the answer key mid-session.
+        if (session.Mode is LiveSessionModes.Exam || KeepOpenUntilHost(session, config))
         {
             var studentPayload = BuildCurrentQuestion(session, includeCorrect: false);
             await _broadcast.RevealUpdatedAsync(session.Id, studentPayload!, ct);
@@ -1223,6 +1242,7 @@ public sealed class LiveSessionHandler
 
         var payload = BuildCurrentQuestion(session, includeCorrect: session.RevealCorrect);
         await _broadcast.RevealUpdatedAsync(session.Id, payload!, ct);
+        await BroadcastLobbyAsync(session, ct);
     }
 
     private async Task BroadcastAnswerRosterAsync(LiveSession session, CancellationToken ct)
@@ -1264,7 +1284,7 @@ public sealed class LiveSessionHandler
         var revealCorrectness = forceRevealForHost
             || (session.RevealCorrect
                 && session.Mode is not LiveSessionModes.Exam
-                && !KeepOpenUntilHost(config));
+                && !KeepOpenUntilHost(session, config));
 
         var correct = new List<LiveAnswerRosterEntryDto>();
         var incorrect = new List<LiveAnswerRosterEntryDto>();
@@ -1371,9 +1391,15 @@ public sealed class LiveSessionHandler
         }
 
         LiveRankingDto? ranking = null;
-        if (ShouldIncludeRanking(session, config))
+        if (ShouldIncludeRanking(session, config) || session.Status == LiveSessionStatuses.Ended)
         {
             ranking = await BuildRankingAsync(session, myParticipantId, ct);
+        }
+
+        LivePersonalResultDto? personal = null;
+        if (session.Status == LiveSessionStatuses.Ended && myParticipantId is int pid)
+        {
+            personal = BuildPersonalResult(session, config, ranking, pid);
         }
 
         return new LiveLobbyDto(
@@ -1395,8 +1421,57 @@ public sealed class LiveSessionHandler
             joinUrl,
             ranking,
             remoteCode,
-            remoteUrl);
+            remoteUrl,
+            personal);
     }
+
+    private async Task BroadcastSessionEndedAsync(LiveSession session, CancellationToken ct)
+    {
+        var ranking = await BuildRankingAsync(session, myParticipantId: null, ct);
+        var config = ReadConfig(session);
+        await _broadcast.SessionEndedAsync(
+            session.Id,
+            new
+            {
+                sessionId = session.Id,
+                questionCount = session.Questions.Count,
+                passPercent = NormalizePassPercent(config.PassPercent),
+                ranking
+            },
+            ct);
+        await _broadcast.RankingUpdatedAsync(session.Id, ranking, ct);
+        await BroadcastLobbyAsync(session, ct);
+    }
+
+    private static LivePersonalResultDto BuildPersonalResult(
+        LiveSession session,
+        LiveSessionConfig config,
+        LiveRankingDto? ranking,
+        int participantId)
+    {
+        var questionCount = Math.Max(session.Questions.Count, 0);
+        var passPercent = NormalizePassPercent(config.PassPercent);
+        var entry = ranking?.Top.FirstOrDefault(r => r.ParticipantId == participantId);
+        var correct = entry?.CorrectCount ?? 0;
+        var answered = entry?.AnswerCount ?? 0;
+        var score = entry?.Score ?? 0;
+        var rank = entry?.Rank;
+        var percent = questionCount <= 0
+            ? 0
+            : (int)Math.Round(100.0 * correct / questionCount);
+        return new LivePersonalResultDto(
+            correct,
+            answered,
+            questionCount,
+            score,
+            rank,
+            passPercent,
+            percent >= passPercent,
+            percent);
+    }
+
+    private static int NormalizePassPercent(int value) =>
+        value is < 1 or > 100 ? 60 : value;
 
     private async Task<LiveRankingDto> BuildRankingAsync(
         LiveSession session,
@@ -1920,6 +1995,7 @@ public sealed class LiveSessionHandler
             ShowRanking = dto.ShowRanking,
             AnonymousNames = dto.AnonymousNames,
             FeedbackTiming = string.IsNullOrWhiteSpace(dto.FeedbackTiming) ? "end" : dto.FeedbackTiming,
+            PassPercent = NormalizePassPercent(dto.PassPercent),
             TopicFilter = dto.TopicFilter,
             DifficultyFilter = dto.DifficultyFilter,
             CaleStandardPreset = dto.CaleStandardPreset,
@@ -2022,7 +2098,8 @@ public sealed class LiveSessionHandler
             c.BankTopicFilters.Count > 0 ? c.BankTopicFilters : null,
             c.BankQuestionQuotas.Count > 0 ? c.BankQuestionQuotas : null,
             c.DifficultyFilters.Count > 0 ? c.DifficultyFilters : null,
-            c.PresentationId);
+            c.PresentationId,
+            NormalizePassPercent(c.PassPercent));
 
     private async Task<IReadOnlyList<LiveOptionTallyDto>> BuildOptionTalliesAsync(
         int sessionQuestionId,

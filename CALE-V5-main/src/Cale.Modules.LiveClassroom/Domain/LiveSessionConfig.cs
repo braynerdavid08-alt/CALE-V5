@@ -9,6 +9,8 @@ public sealed class LiveSessionConfig
     public bool ShowRanking { get; set; }
     public bool AnonymousNames { get; set; }
     public string FeedbackTiming { get; set; } = "end"; // end | immediate
+    /// <summary>Minimum percent correct to pass (Competencia / Práctica / reportes finales).</summary>
+    public int PassPercent { get; set; } = 60;
     public string? TopicFilter { get; set; }
     public string? DifficultyFilter { get; set; }
     public List<string> DifficultyFilters { get; set; } = [];
