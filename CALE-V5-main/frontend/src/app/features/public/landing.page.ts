@@ -11,7 +11,9 @@ import {
   inject,
   signal
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { Subject, TimeoutError, catchError, of, switchMap, tap, timeout } from 'rxjs';
 import { resolveMediaUrl } from '../../core/media/resolve-media-url';
 import { BRAND } from '../../core/brand';
 import { PAGE_SEO } from '../../core/seo/page-seo';
@@ -25,6 +27,9 @@ import { PublicHomeApi } from './public-home.api';
 import { PublicHomeDto, PublicTestimonialsDto } from './public.models';
 import { ShopApi } from './shop.api';
 import { PublicShopDto, PublicShopProductDto } from './shop.models';
+
+/** Avoid an indefinite spinner if /api/public/home hangs (proxy, SW, DB). */
+const HOME_LOAD_TIMEOUT_MS = 20_000;
 
 @Component({
   selector: 'app-landing-page',
@@ -43,6 +48,12 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
         <ui-loading label="Cargando página de inicio..." />
       </div>
     } @else {
+      @if (loadError()) {
+        <div class="pad home-load-error" role="alert">
+          <p>{{ loadError() }}</p>
+          <ui-button type="button" (click)="reloadHome()">Reintentar</ui-button>
+        </div>
+      }
       @if (home(); as h) {
         <div class="home-lead">
           @if (h.hero.visible) {
@@ -465,8 +476,10 @@ export class LandingPage implements OnInit, AfterViewInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
   private revealObserver: IntersectionObserver | null = null;
+  private readonly homeReload$ = new Subject<void>();
 
   readonly loading = signal(true);
+  readonly loadError = signal<string | null>(null);
   readonly home = signal<PublicHomeDto | null>(null);
   readonly reviews = signal<PublicTestimonialsDto | null>(null);
   readonly shop = signal<PublicShopDto | null>(null);
@@ -515,32 +528,81 @@ export class LandingPage implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
-    this.api.getHome().subscribe({
-      next: (data) => {
-        this.home.set(data);
-        this.applySeo(data);
-        this.loading.set(false);
-        this.scheduleRevealBind();
-      },
-      error: () => {
-        const fallback = this.buildLocalFallback();
-        this.home.set(fallback);
-        this.applySeo(fallback);
-        this.loading.set(false);
-        this.scheduleRevealBind();
-      }
-    });
-    this.api.listTestimonials(6).subscribe({
-      next: (r) => this.reviews.set(r),
-      error: () => this.reviews.set(null)
-    });
-    this.shopApi.getPublic().subscribe({
-      next: (s) => {
-        this.shop.set(s);
-        this.scheduleRevealBind();
-      },
-      error: () => this.shop.set(null)
-    });
+    this.homeReload$
+      .pipe(
+        tap(() => {
+          this.loading.set(true);
+          this.loadError.set(null);
+        }),
+        switchMap(() =>
+          this.api.getHome().pipe(
+            timeout({ first: HOME_LOAD_TIMEOUT_MS }),
+            catchError((err: unknown) => {
+              const timedOut = err instanceof TimeoutError;
+              this.loadError.set(
+                timedOut
+                  ? 'La página de inicio tardó demasiado en responder. Puedes reintentar.'
+                  : 'No pudimos cargar el contenido de inicio. Puedes reintentar o seguir explorando.'
+              );
+              return of(this.buildLocalFallback());
+            })
+          )
+        ),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: (data) => {
+          try {
+            const dto = this.isPublicHomeDto(data) ? data : this.buildLocalFallback();
+            if (!this.isPublicHomeDto(data)) {
+              this.loadError.set(
+                'La respuesta de inicio no es válida. Mostramos el contenido esencial; puedes reintentar.'
+              );
+            }
+            this.home.set(dto);
+            try {
+              this.applySeo(dto);
+            } catch {
+              /* SEO must never block the landing paint. */
+            }
+            this.scheduleRevealBind();
+          } finally {
+            // Always leave the spinner — even if SEO/DOM side effects throw.
+            this.loading.set(false);
+          }
+        }
+      });
+
+    this.reloadHome();
+    this.api
+      .listTestimonials(6)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (r) => this.reviews.set(r),
+        error: () => this.reviews.set(null)
+      });
+    this.shopApi
+      .getPublic()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (s) => {
+          this.shop.set(s);
+          this.scheduleRevealBind();
+        },
+        error: () => this.shop.set(null)
+      });
+  }
+
+  reloadHome(): void {
+    this.homeReload$.next();
+  }
+
+  private isPublicHomeDto(value: unknown): value is PublicHomeDto {
+    if (!value || typeof value !== 'object') {
+      return false;
+    }
+    const hero = (value as PublicHomeDto).hero;
+    return !!hero && typeof hero === 'object' && typeof hero.title === 'string';
   }
 
   ngAfterViewInit(): void {

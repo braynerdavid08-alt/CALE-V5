@@ -180,14 +180,18 @@ export class SeoService {
   }
 
   private writeJsonLd(data: unknown): void {
-    let el = document.getElementById(JSON_LD_ID) as HTMLScriptElement | null;
-    if (!el) {
-      el = document.createElement('script');
-      el.type = 'application/ld+json';
-      el.id = JSON_LD_ID;
-      document.head.appendChild(el);
+    try {
+      let el = document.getElementById(JSON_LD_ID) as HTMLScriptElement | null;
+      if (!el) {
+        el = document.createElement('script');
+        el.type = 'application/ld+json';
+        el.id = JSON_LD_ID;
+        document.head.appendChild(el);
+      }
+      el.textContent = JSON.stringify(data);
+    } catch {
+      // CSP / DOM edge cases must not break page paint (e.g. public home loading gate).
     }
-    el.textContent = JSON.stringify(data);
   }
 
   clearJsonLd(): void {

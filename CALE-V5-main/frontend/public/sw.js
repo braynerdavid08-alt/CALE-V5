@@ -1,5 +1,5 @@
 /* Service worker — install to home screen (PWA) and Web Push notifications. */
-const CACHE = 'mi-cale-shell-v10';
+const CACHE = 'mi-cale-shell-v11';
 const SHELL = ['/', '/index.html', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
@@ -30,6 +30,8 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) {
     return;
   }
+  // Never substitute index.html for API (or that poisons Angular JSON / wire decrypt).
+  const isApi = url.pathname.startsWith('/api/');
   event.respondWith(
     fetch(event.request)
       .then((response) => {
@@ -39,7 +41,15 @@ self.addEventListener('fetch', (event) => {
         }
         return response;
       })
-      .catch(() => caches.match(event.request).then((r) => r || caches.match('/index.html')))
+      .catch(() => {
+        if (isApi) {
+          return new Response(JSON.stringify({ detail: 'offline' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json; charset=utf-8' }
+          });
+        }
+        return caches.match(event.request).then((r) => r || caches.match('/index.html'));
+      })
   );
 });
 
