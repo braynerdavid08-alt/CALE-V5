@@ -79,8 +79,25 @@ export const wireInterceptor: HttpInterceptorFn = (req, next) => {
       if (!(event instanceof HttpResponse)) {
         return from([event]);
       }
+      const wire = event.headers.get(HEADER);
+      // Service-worker HTML fallbacks (or non-API bodies) must not be treated as ciphertext.
+      if (!wire || !(event.body instanceof ArrayBuffer)) {
+        return from(
+          decodeBody(event.body, null).then((body) => event.clone({ body }))
+        );
+      }
       return from(
-        decodeBody(event.body, event.headers.get(HEADER)).then((body) => event.clone({ body }))
+        decodeBody(event.body, wire)
+          .then((body) => event.clone({ body }))
+          .catch((cause: unknown) => {
+            throw new HttpErrorResponse({
+              error: { detail: 'wire_decode_failed', cause: String(cause) },
+              headers: event.headers,
+              status: event.status,
+              statusText: event.statusText,
+              url: event.url ?? undefined
+            });
+          })
       );
     }),
     catchError((err: unknown) => {

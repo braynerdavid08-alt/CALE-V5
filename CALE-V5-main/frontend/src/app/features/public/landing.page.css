@@ -3,6 +3,26 @@
   margin: 2rem auto;
 }
 
+.home-load-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-bottom: 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--lv-danger, #b42318) 35%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--lv-danger, #b42318) 8%, #fff);
+  color: var(--lv-ink, #14201a);
+}
+
+.home-load-error p {
+  margin: 0;
+  flex: 1 1 16rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
 .wrap {
   width: min(1160px, calc(100% - 2rem));
   margin: 0 auto;
