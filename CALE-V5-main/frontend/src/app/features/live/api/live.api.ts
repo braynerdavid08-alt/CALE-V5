@@ -24,6 +24,19 @@ export interface LiveSessionConfigDto {
   bankQuestionQuotas?: Record<number, number> | null;
   difficultyFilters?: string[] | null;
   presentationId?: number | null;
+  /** Minimum % correct to pass (default 60). */
+  passPercent?: number;
+}
+
+export interface LivePersonalResultDto {
+  correctCount: number;
+  answerCount: number;
+  questionCount: number;
+  score: number;
+  rank?: number | null;
+  passPercent: number;
+  passed: boolean;
+  percentCorrect: number;
 }
 
 export interface LiveOptionDto {
@@ -121,6 +134,8 @@ export interface LiveLobbyDto {
   /** Teacher phone remote (not the student join code). */
   remoteCode?: string | null;
   remoteUrl?: string | null;
+  /** Filled for the calling participant when the session has ended. */
+  personalResult?: LivePersonalResultDto | null;
 }
 
 export interface ResolveRemoteCodeResponse {

@@ -506,6 +506,8 @@
             }
             @if (isHostMonitored()) {
               <ui-button type="button" (click)="control('next')">Siguiente pregunta</ui-button>
+            } @else if (roundRanking() || l.revealCorrect) {
+              <ui-button type="button" (click)="control('next')">Siguiente pregunta</ui-button>
             } @else if (showRanking()) {
               <ui-button type="button" (click)="control('close')">Cerrar y ver top</ui-button>
             } @else {
