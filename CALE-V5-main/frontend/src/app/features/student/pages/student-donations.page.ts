@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { SessionStore } from '../../../core/auth/session.store';
 import { PAGE_SEO } from '../../../core/seo/page-seo';
 import { SeoService } from '../../../core/seo/seo.service';
@@ -246,14 +247,16 @@ const SHARE_TEXT =
 export class StudentDonationsPage implements OnInit {
   private readonly session = inject(SessionStore);
   private readonly seo = inject(SeoService);
+  private readonly router = inject(Router);
   readonly copied = signal(false);
 
   ngOnInit(): void {
+    const path = this.router.url.split('?')[0].startsWith('/donaciones') ? '/donaciones' : '/apoyar';
     this.seo.apply({
       title: PAGE_SEO.support.title,
       description: PAGE_SEO.support.description,
-      path: '/apoyar',
-      index: true
+      path,
+      index: path === '/apoyar'
     });
   }
 

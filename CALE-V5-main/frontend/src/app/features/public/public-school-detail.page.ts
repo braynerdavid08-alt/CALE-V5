@@ -27,13 +27,21 @@ import { CommercialSchoolDetailDto } from './public.models';
           <ui-button routerLink="/escuelas" type="button" variant="secondary">Volver al directorio</ui-button>
         </section>
       } @else if (school()) {
-        <header class="hero" [class.has-cover]="!!coverSrc()">
+        <header class="hero">
           @if (coverSrc(); as cover) {
-            <div class="cover" [style.background-image]="'url(' + cover + ')'" role="img" [attr.aria-label]="'Portada de ' + school()!.name"></div>
+            <div class="cover-wrap">
+              <img class="cover contain" [src]="cover" [alt]="'Portada de ' + school()!.name" />
+            </div>
+          } @else {
+            @if (logoSrc(); as logo) {
+              <div class="cover-wrap logo-banner">
+                <img class="cover contain" [src]="logo" [alt]="'Logo de ' + school()!.name" />
+              </div>
+            }
           }
           <div class="hero-inner">
             @if (logoSrc(); as logo) {
-              <img class="logo" [src]="logo" [alt]="'Logo de ' + school()!.name" width="88" height="88" />
+              <img class="logo" [src]="logo" [alt]="'Logo de ' + school()!.name" width="96" height="96" />
             }
             <div class="hero-copy">
               <p class="eyebrow">CEA en Luz Verde</p>
@@ -119,7 +127,6 @@ import { CommercialSchoolDetailDto } from './public.models';
     .back a:hover { color: var(--color-primary); }
     .missing { display: grid; gap: 1rem; max-width: 28rem; }
     .hero {
-      position: relative;
       border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
       overflow: hidden;
@@ -127,26 +134,46 @@ import { CommercialSchoolDetailDto } from './public.models';
       margin-bottom: 1.5rem;
       box-shadow: var(--shadow-sm);
     }
+    .cover-wrap {
+      min-height: 11rem;
+      max-height: 16rem;
+      background: color-mix(in srgb, var(--color-surface-2, #111) 85%, #000);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+    .cover-wrap.logo-banner {
+      background: color-mix(in srgb, var(--color-surface-2, var(--color-border)) 55%, var(--color-surface));
+      min-height: 9.5rem;
+    }
     .cover {
-      min-height: 12rem;
-      background:
-        linear-gradient(180deg, transparent 30%, color-mix(in srgb, var(--color-surface) 88%, transparent)),
-        var(--color-surface-2, var(--color-border)) center / cover no-repeat;
+      width: 100%;
+      height: 100%;
+      min-height: 11rem;
+      max-height: 16rem;
+      object-fit: contain;
+      object-position: center;
+      display: block;
+      padding: 0.75rem 1rem;
+      box-sizing: border-box;
     }
     .hero-inner {
       display: flex;
       gap: 1rem;
-      align-items: flex-end;
+      align-items: center;
       padding: 1.15rem 1.25rem 1.35rem;
+      background: var(--color-surface);
+      position: relative;
+      z-index: 1;
     }
-    .hero.has-cover .hero-inner { margin-top: -3.25rem; position: relative; }
     .logo {
       width: 5.5rem;
       height: 5.5rem;
-      object-fit: cover;
+      object-fit: contain;
       border-radius: var(--radius-md, 0.75rem);
-      border: 3px solid var(--color-surface);
+      border: 1px solid var(--color-border);
       background: var(--color-surface);
+      padding: 0.35rem;
       flex-shrink: 0;
       box-shadow: var(--shadow-sm);
     }
@@ -230,7 +257,12 @@ import { CommercialSchoolDetailDto } from './public.models';
     .cta.secondary { border: 1px solid var(--color-border); color: var(--color-text); background: transparent; }
     @media (max-width: 800px) {
       .layout { grid-template-columns: 1fr; }
-      .cover { min-height: 9.5rem; }
+      .cover-wrap, .cover {
+        min-height: 8.5rem;
+        max-height: 12rem;
+      }
+      .hero-inner { align-items: flex-start; }
+      .logo { width: 4.5rem; height: 4.5rem; }
     }
   `]
 })

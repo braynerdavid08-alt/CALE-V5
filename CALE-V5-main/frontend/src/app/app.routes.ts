@@ -57,6 +57,24 @@ export const routes: Routes = [
             .then((m) => m.PublicAboutPage)
       },
       {
+        path: 'para-cea',
+        loadComponent: () =>
+          import('./features/public/public-para-cea.page')
+            .then((m) => m.PublicParaCeaPage)
+      },
+      {
+        path: 'estudiantes',
+        loadComponent: () =>
+          import('./features/public/public-estudiantes.page')
+            .then((m) => m.PublicEstudiantesPage)
+      },
+      {
+        path: 'simulacro-cale',
+        loadComponent: () =>
+          import('./features/public/public-simulacro-cale.page')
+            .then((m) => m.PublicSimulacroCalePage)
+      },
+      {
         path: 'cursos',
         loadComponent: () =>
           import('./features/public/public-courses.page')
@@ -67,6 +85,11 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/public/public-schools.page')
             .then((m) => m.PublicSchoolsPage)
+      },
+      {
+        path: 'escuelas-vinculadas',
+        redirectTo: 'escuelas',
+        pathMatch: 'full'
       },
       {
         path: 'escuelas/:slug',

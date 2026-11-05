@@ -18,7 +18,7 @@ import { CommercialSchoolCardDto } from './public.models';
     <div class="page">
       <header class="head">
         <p class="eyebrow">Directorio comercial</p>
-        <h1>Escuelas CEA en Luz Verde</h1>
+        <h1>Encuentra escuelas de conducción vinculadas a Luz Verde</h1>
         <p class="lead">
           Centros de enseñanza automovilística con membresía activa que eligieron
           publicarse. Solo aparecen escuelas elegibles y autorizadas.
@@ -44,10 +44,22 @@ import { CommercialSchoolCardDto } from './public.models';
         <div class="grid">
           @for (s of schools(); track s.id) {
             <a class="card" [routerLink]="s.detailPath || '/escuelas'">
-              @if (mediaSrc(s); as media) {
-                <div class="media" [style.background-image]="'url(' + media + ')'" role="img" [attr.aria-label]="s.name"></div>
-              }
+              <div
+                class="media"
+                [class.has-cover]="!!coverSrc(s)"
+                [class.has-logo]="!coverSrc(s) && !!logoSrc(s)">
+                @if (coverSrc(s); as cover) {
+                  <img class="cover" [src]="cover" [alt]="'Portada de ' + s.name" />
+                } @else {
+                  @if (logoSrc(s); as logo) {
+                    <img class="logo" [src]="logo" [alt]="'Logo de ' + s.name" />
+                  }
+                }
+              </div>
               <div class="body">
+                @if (coverSrc(s) && logoSrc(s); as logo) {
+                  <img class="logo-badge" [src]="logo" [alt]="'Logo de ' + s.name" />
+                }
                 <h2>{{ s.name }}</h2>
                 <p class="muted">
                   {{ s.city }}{{ s.department ? ', ' + s.department : '' }}
@@ -121,12 +133,50 @@ import { CommercialSchoolCardDto } from './public.models';
       color: var(--color-primary);
     }
     .media {
-      min-height: 9.5rem;
+      height: 10.5rem;
+      background: color-mix(in srgb, var(--color-surface-2, var(--color-border)) 70%, var(--color-surface));
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .media:not(.has-cover):not(.has-logo) {
       background:
         linear-gradient(160deg, color-mix(in srgb, var(--color-primary) 18%, transparent), transparent 55%),
-        var(--color-surface-2, var(--color-border)) center / cover no-repeat;
+        var(--color-surface-2, var(--color-border));
     }
-    .body { padding: 1.05rem 1.15rem 1.2rem; }
+    .media .cover,
+    .media .logo {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+      display: block;
+      padding: 0.65rem;
+      box-sizing: border-box;
+    }
+    .media.has-cover .cover {
+      /* Wide photo covers fill; logos/composites still readable via contain above.
+         Prefer contain so uploaded logos are never cropped on cards. */
+      padding: 0.35rem;
+    }
+    .body {
+      position: relative;
+      padding: 1.05rem 1.15rem 1.2rem;
+      display: grid;
+      gap: 0;
+    }
+    .logo-badge {
+      width: 3.25rem;
+      height: 3.25rem;
+      object-fit: contain;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md, 0.7rem);
+      padding: 0.2rem;
+      margin: 0 0 0.65rem;
+      display: block;
+    }
     h2 {
       margin: 0 0 0.3rem;
       font-size: var(--text-md);
@@ -202,14 +252,17 @@ export class PublicSchoolsPage implements OnInit {
     });
   }
 
-  mediaSrc(school: CommercialSchoolCardDto): string | null {
-    const path = school.coverUrl || school.logoUrl;
-    if (!path) {
-      return null;
-    }
-    if (/^https?:\/\//i.test(path)) {
-      return path;
-    }
+  coverSrc(school: CommercialSchoolCardDto): string | null {
+    return this.resolveMedia(school.coverUrl);
+  }
+
+  logoSrc(school: CommercialSchoolCardDto): string | null {
+    return this.resolveMedia(school.logoUrl);
+  }
+
+  private resolveMedia(path: string | null | undefined): string | null {
+    if (!path) return null;
+    if (/^https?:\/\//i.test(path)) return path;
     return `${this.apiBase}${path.startsWith('/') ? path : `/${path}`}`;
   }
 }

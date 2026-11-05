@@ -1,14 +1,29 @@
 /** Titles and descriptions for public marketing pages (B2B / plataforma CEA). */
 export const PAGE_SEO = {
   home: {
-    title: 'Luz Verde | Plataforma y software para CEA y escuelas de conducción',
+    title: 'Luz Verde | Plataforma para CEA y Escuelas de Conducción en Colombia',
     description:
-      'Luz Verde es la plataforma digital para Centros de Enseñanza Automovilística en Colombia: gestión de estudiantes e instructores, agenda de clases, exámenes y formación con simulacro teórico.'
+      'Luz Verde es una plataforma tecnológica para escuelas de manejo, escuelas de conducción y Centros de Enseñanza Automovilística. Descubre herramientas de formación vial, gestión académica y preparación para el examen CALE.'
   },
   about: {
     title: 'Nosotros | Luz Verde — Plataforma para CEA',
     description:
       'Conoce Luz Verde: software y plataforma tecnológica para que las escuelas de conducción (CEA) operen, formen y administren su operación en un solo lugar.'
+  },
+  forCea: {
+    title: 'Software para CEA y Escuelas de Conducción | Luz Verde',
+    description:
+      'Gestiona tu Centro de Enseñanza Automovilística con Luz Verde: estudiantes, instructores, agenda, clases teóricas y prácticas, exámenes e informes en una sola plataforma.'
+  },
+  students: {
+    title: 'Formación Vial y Preparación para Conducir | Luz Verde',
+    description:
+      'Comienza tu formación vial con Luz Verde: prepara evaluaciones, practica el examen CALE, estudia normas y señales de tránsito y encuentra escuelas de conducción vinculadas.'
+  },
+  simulacroCale: {
+    title: 'Simulacro CALE | Practica tu Examen de Conducción — Luz Verde',
+    description:
+      'Practica tu examen CALE con Luz Verde. Resuelve preguntas de normas de tránsito, señales viales y seguridad vial, evalúa tus conocimientos y prepárate para tu formación como conductor.'
   },
   courses: {
     title: 'Cursos y malla vial | Luz Verde',
@@ -16,14 +31,14 @@ export const PAGE_SEO = {
       'Malla de formación vial en Luz Verde (señales, normas, vía, vehículo y categorías A2, B1 y C1) para que tu CEA forme conductores dentro de la plataforma.'
   },
   schools: {
-    title: 'Directorio comercial de CEA | Luz Verde',
+    title: 'Escuelas de Conducción y CEA Vinculados | Luz Verde',
     description:
-      'Escuelas de conducción con membresía activa en Luz Verde que autorizaron su publicación en el directorio comercial.'
+      'Encuentra escuelas de conducción y Centros de Enseñanza Automovilística con presencia comercial activa en Luz Verde. Directorio de CEA autorizados a publicar su ficha.'
   },
   instructors: {
-    title: 'Instructores | Luz Verde',
+    title: 'Herramientas para Instructores de Conducción | Luz Verde',
     description:
-      'Directorio de instructores en Luz Verde: apoyo a la formación vial y solicitud de clases particulares a través de la plataforma.'
+      'Directorio y herramientas para instructores en Luz Verde: apoyo a la formación vial, seguimiento de estudiantes y solicitud de clases a través de la plataforma.'
   },
   shop: {
     title: 'Tienda | Equipo de protección — Luz Verde',
