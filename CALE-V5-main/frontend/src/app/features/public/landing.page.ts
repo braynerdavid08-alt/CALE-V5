@@ -127,27 +127,36 @@ const HOME_LOAD_TIMEOUT_MS = 20_000;
                   </div>
 
                   <div class="trust">
-                    @if (reviews(); as r) {
-                      @if (r.count > 0) {
-                        <span class="trust-score" aria-hidden="true">
-                          <span class="trust-dot"><ui-icon name="star" size="sm" /></span>
-                        </span>
-                        <span class="trust-text">
-                          <span class="stars" [attr.aria-label]="r.average + ' de 5 estrellas'">{{
-                            starString(r.average)
-                          }}</span>
-                          <strong>{{ r.average }}/5</strong> · {{ r.count }}
-                          {{ r.count === 1 ? 'valoración' : 'valoraciones' }} de estudiantes
-                        </span>
+                    <div class="trust-row">
+                      @if (reviews(); as r) {
+                        @if (r.count > 0) {
+                          <span class="trust-score" aria-hidden="true">
+                            <span class="trust-dot"><ui-icon name="star" size="sm" /></span>
+                          </span>
+                          <span class="trust-text">
+                            <span class="stars" [attr.aria-label]="r.average + ' de 5 estrellas'">{{
+                              starString(r.average)
+                            }}</span>
+                            <strong>{{ r.average }}/5</strong> · {{ r.count }}
+                            {{ r.count === 1 ? 'valoración' : 'valoraciones' }} de estudiantes
+                          </span>
+                        } @else {
+                          <span class="trust-text"
+                            >Software para CEA: gestión, agenda, formación y simulacro en un solo lugar.</span
+                          >
+                        }
                       } @else {
                         <span class="trust-text"
                           >Software para CEA: gestión, agenda, formación y simulacro en un solo lugar.</span
                         >
                       }
-                    } @else {
-                      <span class="trust-text"
-                        >Software para CEA: gestión, agenda, formación y simulacro en un solo lugar.</span
-                      >
+                    </div>
+                    @if (reviewQuotes().length) {
+                      <ul class="trust-quotes" aria-label="Comentarios de estudiantes">
+                        @for (q of reviewQuotes(); track q.id) {
+                          <li>{{ q.comment }}</li>
+                        }
+                      </ul>
                     }
                   </div>
                 </div>
@@ -483,6 +492,17 @@ export class LandingPage implements OnInit, AfterViewInit {
   readonly home = signal<PublicHomeDto | null>(null);
   readonly reviews = signal<PublicTestimonialsDto | null>(null);
   readonly shop = signal<PublicShopDto | null>(null);
+  /** Hero quotes: comment only (no student names). */
+  readonly reviewQuotes = computed(() => {
+    const items = this.reviews()?.items ?? [];
+    return items
+      .map((item) => ({
+        id: item.id,
+        comment: (item.comment ?? '').replace(/\s+/g, ' ').trim()
+      }))
+      .filter((item) => item.comment.length >= 12)
+      .slice(0, 3);
+  });
   readonly loggedIn = computed(() => this.session.isAuthenticated());
   readonly accountPath = computed(() => this.session.homeRoute());
   readonly studentExplorePath = computed(() =>

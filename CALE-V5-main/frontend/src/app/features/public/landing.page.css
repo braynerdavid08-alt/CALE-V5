@@ -503,11 +503,39 @@
 
 .trust {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.65rem;
   margin-top: 1.75rem;
   color: #9db0bf;
   font-size: var(--text-sm);
+  max-width: min(36rem, 100%);
+}
+
+.trust-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.trust-quotes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.trust-quotes li {
+  margin: 0;
+  padding: 0.35rem 0 0.35rem 0.7rem;
+  border-left: 2px solid rgba(34, 197, 94, 0.45);
+  color: #c5d4df;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  font-style: italic;
 }
 
 .trust-score {
@@ -1964,7 +1992,10 @@
 
   .trust {
     align-items: flex-start;
-    flex-direction: column;
+  }
+
+  .trust-quotes li {
+    font-size: 0.85rem;
   }
 
   .section-tienda .sec-head.row > ui-button,
