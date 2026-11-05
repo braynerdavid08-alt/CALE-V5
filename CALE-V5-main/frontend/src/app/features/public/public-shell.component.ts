@@ -46,6 +46,8 @@ import { PublicShopProductDto } from './shop.models';
 
           <nav class="nav desktop" aria-label="Principal">
             <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Inicio</a>
+            <a routerLink="/para-cea" routerLinkActive="active">Para CEA</a>
+            <a routerLink="/simulacro-cale" routerLinkActive="active">Simulacro CALE</a>
             <a routerLink="/escuelas" routerLinkActive="active">Directorio CEA</a>
             <a routerLink="/register-school" routerLinkActive="active">Registra Tu CEA</a>
             <a routerLink="/tienda" routerLinkActive="active">Tienda</a>
@@ -180,6 +182,9 @@ import { PublicShopProductDto } from './shop.models';
 
             <nav aria-label="Móvil">
               <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeMenu()">Inicio</a>
+              <a routerLink="/para-cea" routerLinkActive="active" (click)="closeMenu()">Para CEA</a>
+              <a routerLink="/simulacro-cale" routerLinkActive="active" (click)="closeMenu()">Simulacro CALE</a>
+              <a routerLink="/estudiantes" routerLinkActive="active" (click)="closeMenu()">Estudiantes</a>
               <a routerLink="/escuelas" routerLinkActive="active" (click)="closeMenu()">Directorio CEA</a>
               <a routerLink="/register-school" routerLinkActive="active" (click)="closeMenu()">Registra Tu CEA</a>
               <a routerLink="/tienda" routerLinkActive="active" (click)="closeMenu()">Tienda</a>
@@ -217,8 +222,11 @@ import { PublicShopProductDto } from './shop.models';
             </p>
           </div>
           <nav class="footer-nav" aria-label="Pie de página">
+            <a routerLink="/para-cea">Software para CEA</a>
+            <a routerLink="/estudiantes">Estudiantes</a>
+            <a routerLink="/simulacro-cale">Simulacro CALE</a>
             <a routerLink="/cursos">Cursos</a>
-            <a routerLink="/escuelas">Escuelas</a>
+            <a routerLink="/escuelas">Escuelas vinculadas</a>
             <a routerLink="/instructores">Instructores</a>
             <a routerLink="/contacto">Contacto / Demo CEA</a>
             <a routerLink="/register-school">Registra Tu CEA</a>

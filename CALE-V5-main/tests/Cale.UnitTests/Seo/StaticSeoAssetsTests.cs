@@ -52,7 +52,7 @@ public sealed class StaticSeoAssetsTests
     }
 
     [Fact]
-    public void Sitemap_lists_exactly_the_eleven_public_www_urls()
+    public void Sitemap_lists_exactly_the_public_www_urls()
     {
         var path = FindRepoFile("frontend", "public", "sitemap.xml");
         var doc = XDocument.Load(path);
@@ -68,6 +68,9 @@ public sealed class StaticSeoAssetsTests
         [
             "https://www.cealuzverde.com/",
             "https://www.cealuzverde.com/nosotros",
+            "https://www.cealuzverde.com/para-cea",
+            "https://www.cealuzverde.com/estudiantes",
+            "https://www.cealuzverde.com/simulacro-cale",
             "https://www.cealuzverde.com/cursos",
             "https://www.cealuzverde.com/escuelas",
             "https://www.cealuzverde.com/instructores",

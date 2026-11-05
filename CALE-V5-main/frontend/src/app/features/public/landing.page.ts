@@ -340,7 +340,7 @@ import { PublicShopDto, PublicShopProductDto } from './shop.models';
                     </li>
                   </ul>
                   <div class="aud-actions">
-                    <ui-button routerLink="/contacto" variant="secondary">Conocer plataforma CEA</ui-button>
+                    <ui-button routerLink="/para-cea" variant="secondary">Conocer plataforma CEA</ui-button>
                     <a class="ghost-btn soft" routerLink="/register-school">Registrar escuela</a>
                   </div>
                 </article>
@@ -473,7 +473,7 @@ export class LandingPage implements OnInit, AfterViewInit {
   readonly loggedIn = computed(() => this.session.isAuthenticated());
   readonly accountPath = computed(() => this.session.homeRoute());
   readonly studentExplorePath = computed(() =>
-    this.loggedIn() ? this.accountPath() || '/student' : '/register'
+    this.loggedIn() ? this.accountPath() || '/student' : '/estudiantes'
   );
   readonly practicePath = computed(() =>
     this.loggedIn() ? '/student/play/daily' : '/login'

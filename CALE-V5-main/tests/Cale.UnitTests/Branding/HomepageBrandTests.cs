@@ -46,7 +46,7 @@ public sealed class HomepageBrandTests
         Assert.Equal(fresh.ContactEmail, settings.ContactEmail);
         Assert.Equal(fresh.BlogIntro, settings.BlogIntro);
         Assert.Equal(
-            "Luz Verde | Plataforma y software para CEA y escuelas de conducción",
+            "Luz Verde | Plataforma para CEA y Escuelas de Conducción en Colombia",
             settings.SeoTitle);
         Assert.False(settings.ReplaceLegacyBrandDefaults());
     }
@@ -76,10 +76,10 @@ public sealed class HomepageBrandTests
     {
         var settings = new HomepageSettings();
         Assert.Equal(
-            "Luz Verde | Plataforma y software para CEA y escuelas de conducción",
+            "Luz Verde | Plataforma para CEA y Escuelas de Conducción en Colombia",
             settings.SeoTitle);
         Assert.StartsWith(
-            "Luz Verde es la plataforma digital para Centros de Enseñanza Automovilística",
+            "Luz Verde es una plataforma tecnológica para escuelas de manejo",
             settings.SeoDescription);
         Assert.False(settings.ReplaceLegacyBrandDefaults());
     }

@@ -33,9 +33,9 @@ public sealed class HomepageSettings
     public bool StepsSectionVisible { get; set; } = true;
 
     public string SeoTitle { get; set; } =
-        "Luz Verde | Plataforma y software para CEA y escuelas de conducción";
+        "Luz Verde | Plataforma para CEA y Escuelas de Conducción en Colombia";
     public string SeoDescription { get; set; } =
-        "Luz Verde es la plataforma digital para Centros de Enseñanza Automovilística en Colombia: gestión de estudiantes e instructores, agenda de clases, exámenes y formación con simulacro teórico.";
+        "Luz Verde es una plataforma tecnológica para escuelas de manejo, escuelas de conducción y Centros de Enseñanza Automovilística. Descubre herramientas de formación vial, gestión académica y preparación para el examen CALE.";
 
     public string ContactEmail { get; set; } = "notificaciones@cealuzverde.com";
     public string ContactPhone { get; set; } = "";
@@ -73,6 +73,10 @@ public sealed class HomepageSettings
         // Production DB leftover brand stub (not a deliberate admin rewrite).
         SeoTitle = Swap(SeoTitle, "Mi CALE", current.SeoTitle);
         SeoTitle = Swap(SeoTitle, "Luz Verde — Formación que impulsa tu camino.", current.SeoTitle);
+        SeoTitle = Swap(
+            SeoTitle,
+            "Luz Verde | Plataforma y software para CEA y escuelas de conducción",
+            current.SeoTitle);
         SeoDescription = Swap(
             SeoDescription,
             "Mi CALE: tu CALE, en tu CEA. Formación vial con tu centro de enseñanza automovilística.",
@@ -80,6 +84,10 @@ public sealed class HomepageSettings
         SeoDescription = Swap(
             SeoDescription,
             "Luz Verde: practica gratis el simulacro del examen CALE todas las veces que quieras y sigue tu formación vial con tu escuela.",
+            current.SeoDescription);
+        SeoDescription = Swap(
+            SeoDescription,
+            "Luz Verde es la plataforma digital para Centros de Enseñanza Automovilística en Colombia: gestión de estudiantes e instructores, agenda de clases, exámenes y formación con simulacro teórico.",
             current.SeoDescription);
         AboutHtml = Swap(
             AboutHtml,

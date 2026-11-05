@@ -67,6 +67,11 @@ export class SeoService {
       : `${SITE_ORIGIN}${options.image || BRAND.logoWide}`;
     const index = options.index ?? !this.isNoIndexPath(path);
 
+    // Home owns the site-wide graph; clear leftovers after SPA navigations.
+    if (path !== '/') {
+      this.clearJsonLd();
+    }
+
     this.title.setTitle(options.title);
     this.meta.updateTag({ name: 'description', content: options.description });
     this.meta.updateTag({
@@ -101,17 +106,18 @@ export class SeoService {
           '@type': 'Organization',
           '@id': `${SITE_ORIGIN}/#organization`,
           name: BRAND.name,
+          alternateName: BRAND.alternateName,
           url: `${SITE_ORIGIN}/`,
-          logo: `${SITE_ORIGIN}${BRAND.logoWide}`,
+          logo: {
+            '@type': 'ImageObject',
+            url: `${SITE_ORIGIN}${BRAND.logoWide}`
+          },
           slogan: BRAND.slogan,
+          description: BRAND.seoDescription,
           email: 'notificaciones@cealuzverde.com',
           areaServed: {
-            '@type': 'City',
-            name: 'Barranquilla',
-            containedInPlace: {
-              '@type': 'AdministrativeArea',
-              name: 'Atlántico'
-            }
+            '@type': 'Country',
+            name: 'Colombia'
           },
           sameAs: [`${SITE_ORIGIN}/`]
         },
@@ -120,6 +126,7 @@ export class SeoService {
           '@id': `${SITE_ORIGIN}/#website`,
           url: `${SITE_ORIGIN}/`,
           name: BRAND.name,
+          alternateName: BRAND.alternateName,
           description: BRAND.seoDescription,
           publisher: { '@id': `${SITE_ORIGIN}/#organization` },
           inLanguage: 'es-CO'
@@ -138,6 +145,7 @@ export class SeoService {
           '@type': 'SoftwareApplication',
           '@id': `${SITE_ORIGIN}/#software`,
           name: BRAND.name,
+          alternateName: BRAND.alternateName,
           url: `${SITE_ORIGIN}/`,
           applicationCategory: 'BusinessApplication',
           applicationSubCategory: 'EducationalApplication',
@@ -149,6 +157,29 @@ export class SeoService {
       ]
     };
 
+    this.writeJsonLd(data);
+  }
+
+  /** FAQPage JSON-LD for public educational landings (no private data). */
+  injectFaqJsonLd(faqs: ReadonlyArray<{ question: string; answer: string }>): void {
+    if (typeof document === 'undefined' || !faqs.length) {
+      return;
+    }
+    this.writeJsonLd({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqs.map((f) => ({
+        '@type': 'Question',
+        name: f.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: f.answer
+        }
+      }))
+    });
+  }
+
+  private writeJsonLd(data: unknown): void {
     let el = document.getElementById(JSON_LD_ID) as HTMLScriptElement | null;
     if (!el) {
       el = document.createElement('script');

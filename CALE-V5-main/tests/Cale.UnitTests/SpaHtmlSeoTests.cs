@@ -8,7 +8,7 @@ public class SpaHtmlSeoTests
         <!doctype html>
         <html lang="es-CO">
         <head>
-          <title>Luz Verde | Plataforma y software para CEA y escuelas de conducción</title>
+          <title>Luz Verde | Plataforma para CEA y Escuelas de Conducción en Colombia</title>
           <meta name="description" content="Descripcion home">
           <meta name="robots" content="index, follow">
           <link rel="canonical" href="https://www.cealuzverde.com/">
@@ -27,7 +27,7 @@ public class SpaHtmlSeoTests
     {
         var html = SpaHtmlSeo.Rewrite(Shell, "/", SpaHtmlSeo.DefaultOrigin);
         Assert.Contains("href=\"https://www.cealuzverde.com/\"", html);
-        Assert.Contains("<title>Luz Verde | Plataforma y software para CEA y escuelas de conducción</title>", html);
+        Assert.Contains("<title>Luz Verde | Plataforma para CEA y Escuelas de Conducción en Colombia</title>", html);
         Assert.Contains("name=\"robots\" content=\"index, follow\"", html);
     }
 
@@ -73,12 +73,25 @@ public class SpaHtmlSeoTests
         Assert.Contains("name=\"robots\" content=\"noindex, nofollow\"", html);
         Assert.Contains("<link rel=\"canonical\" href=\"https://www.cealuzverde.com/ruta-que-no-existe-xyz\">", html);
         Assert.Contains("<title>Página no encontrada | Luz Verde</title>", html);
-        Assert.DoesNotContain("<title>Luz Verde | Plataforma y software para CEA y escuelas de conducción</title>", html);
+        Assert.DoesNotContain("<title>Luz Verde | Plataforma para CEA y Escuelas de Conducción en Colombia</title>", html);
+    }
+
+    [Fact]
+    public void Commercial_school_slug_stays_indexable_for_crawlers()
+    {
+        var html = SpaHtmlSeo.Rewrite(Shell, "/escuelas/cea-demo", SpaHtmlSeo.DefaultOrigin);
+        Assert.Contains("name=\"robots\" content=\"index, follow\"", html);
+        Assert.Contains("<link rel=\"canonical\" href=\"https://www.cealuzverde.com/escuelas/cea-demo\">", html);
+        Assert.Contains("<title>Escuela de conducción | Luz Verde</title>", html);
+        Assert.DoesNotContain("<title>Página no encontrada | Luz Verde</title>", html);
     }
 
     [Theory]
     [InlineData("/", "https://www.cealuzverde.com/")]
     [InlineData("/nosotros", "https://www.cealuzverde.com/nosotros")]
+    [InlineData("/para-cea", "https://www.cealuzverde.com/para-cea")]
+    [InlineData("/estudiantes", "https://www.cealuzverde.com/estudiantes")]
+    [InlineData("/simulacro-cale", "https://www.cealuzverde.com/simulacro-cale")]
     [InlineData("/contacto", "https://www.cealuzverde.com/contacto")]
     [InlineData("/cursos", "https://www.cealuzverde.com/cursos")]
     [InlineData("/escuelas", "https://www.cealuzverde.com/escuelas")]
