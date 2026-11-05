@@ -398,6 +398,12 @@ public sealed class HomepageService
     private static bool IsEligiblePublicSchool(SchoolProfile profile, DateTime now)
     {
         profile.RefreshStatus(now);
+        // DEMO CEAs operate via Courtesy for internal demos; never list them on the public homepage.
+        if (profile.LegalName.StartsWith("CEA DEMO", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
         return !profile.IsPendingApproval
             && profile.CanOperateProduct(now)
             && profile.SubscriptionStatus is not (
