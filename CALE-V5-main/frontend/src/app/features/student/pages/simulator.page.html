@@ -460,14 +460,28 @@
       }
 
       <h2>Valoración</h2>
-      <label class="field">Estrellas (1-5)
-        <input type="number" min="1" max="5" [(ngModel)]="stars" />
-      </label>
-      <label class="field">Comentario
-        <textarea [(ngModel)]="comment" placeholder="Opcional"></textarea>
-      </label>
+      @if (alreadyRated()) {
+        <p class="muted tip">
+          Ya valoraste la aplicación. Solo se permite una valoración por cuenta.
+        </p>
+      } @else {
+        <label class="field">Estrellas (1-5)
+          <input type="number" min="1" max="5" [(ngModel)]="stars" />
+        </label>
+        <label class="field">Comentario (obligatorio)
+          <textarea
+            [(ngModel)]="comment"
+            maxlength="500"
+            required
+            placeholder="Cuéntanos tu experiencia (mínimo 5 caracteres)"></textarea>
+        </label>
+        <div class="row">
+          <ui-button type="button" [disabled]="ratingBusy()" (click)="rate()">
+            Enviar valoración
+          </ui-button>
+        </div>
+      }
       <div class="row">
-        <ui-button type="button" (click)="rate()">Enviar valoración</ui-button>
         <ui-button type="button" variant="secondary" (click)="openReview(true)">
           Ver buenas y malas
         </ui-button>

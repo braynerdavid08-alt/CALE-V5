@@ -1,4 +1,5 @@
 using Cale.Api.Extensions;
+using Cale.Modules.Assessment.Application.Abstractions;
 using Cale.Modules.Assessment.Application.Commands;
 using Cale.Modules.Assessment.Application.DTOs;
 using Cale.Modules.Assessment.Application.Queries;
@@ -33,6 +34,21 @@ public sealed class RatingsController : ControllerBase
     {
         await _save.HandleAsync(request, CurrentUser.GetId(User), ct);
         return NoContent();
+    }
+
+    /// <summary>Current user's single app rating, if any.</summary>
+    [HttpGet("mine")]
+    public async Task<ActionResult<MyAppRatingDto>> Mine(
+        [FromServices] IAttemptStore attempts,
+        CancellationToken ct)
+    {
+        var row = await attempts.FindRatingByUserIdAsync(CurrentUser.GetId(User), ct);
+        if (row is null)
+        {
+            return NoContent();
+        }
+
+        return Ok(new MyAppRatingDto(row.Stars, row.Comment));
     }
 
     [HttpGet]

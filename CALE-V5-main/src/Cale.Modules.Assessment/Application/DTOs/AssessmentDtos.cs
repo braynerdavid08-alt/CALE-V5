@@ -84,6 +84,8 @@ public sealed record ReviewResponse(
 
 public sealed record SaveRatingRequest(int AttemptId, int Stars, string? Comment);
 
+public sealed record MyAppRatingDto(int Stars, string? Comment);
+
 public sealed record ManageRatingRequest(
     bool? Reviewed,
     bool? Hidden,

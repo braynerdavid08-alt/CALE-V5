@@ -32,6 +32,14 @@ public sealed class SaveRatingHandler
                 "attempt_not_finished");
         }
 
+        // One app rating per user, across every exam / practice / attempt.
+        if (await _attempts.FindRatingByUserIdAsync(userId, ct) is not null)
+        {
+            throw new ConflictException(
+                "You already rated the app.",
+                "rating_exists");
+        }
+
         if (await _attempts.FindRatingAsync(request.AttemptId, ct) is not null)
         {
             throw new ConflictException(
