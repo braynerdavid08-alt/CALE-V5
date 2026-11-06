@@ -150,11 +150,17 @@ export class ExamApi {
     );
   }
 
-  rate(attemptId: number, stars: number, comment?: string) {
+  rate(attemptId: number, stars: number, comment: string) {
     return this.http.post<void>(`${this.base}/ratings`, {
       attemptId,
       stars,
       comment
     });
+  }
+
+  myRating() {
+    return this.http.get<{ stars: number; comment: string | null } | null>(
+      `${this.base}/ratings/mine`
+    );
   }
 }

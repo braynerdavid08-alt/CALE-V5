@@ -136,6 +136,8 @@ export class SimulatorPage implements OnInit, OnDestroy {
   timeMinutes = 30;
   stars = 5;
   comment = '';
+  readonly alreadyRated = signal(false);
+  readonly ratingBusy = signal(false);
 
   readonly selectedBank = computed(() => {
     const id = this.bankId();
@@ -383,6 +385,7 @@ export class SimulatorPage implements OnInit, OnDestroy {
         this.finishing.set(false);
         this.result.set(result);
         this.step.set('result');
+        this.refreshMyRating();
         this.openReview(false);
         if (result.passed) {
           this.fx.celebrate();
@@ -472,15 +475,40 @@ export class SimulatorPage implements OnInit, OnDestroy {
 
   rate(): void {
     const attemptId = this.session()?.attemptId;
-    if (!attemptId) {
+    if (!attemptId || this.alreadyRated() || this.ratingBusy()) {
       return;
     }
-    this.api.rate(attemptId, this.stars, this.comment).subscribe({
+    const comment = this.comment.trim();
+    if (comment.length < 5) {
+      this.error.set('El comentario es obligatorio (mínimo 5 caracteres).');
+      return;
+    }
+    this.ratingBusy.set(true);
+    this.api.rate(attemptId, this.stars, comment).subscribe({
       next: () => {
+        this.ratingBusy.set(false);
+        this.alreadyRated.set(true);
         this.error.set(null);
-        this.ok.set('Valoración enviada.');
+        this.ok.set('Valoración enviada. Gracias por tu comentario.');
       },
-      error: (err) => this.error.set(mapApiError(err))
+      error: (err) => {
+        this.ratingBusy.set(false);
+        const detail =
+          err instanceof HttpErrorResponse ? String(err.error?.detail ?? '') : '';
+        if (detail === 'rating_exists') {
+          this.alreadyRated.set(true);
+        }
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  private refreshMyRating(): void {
+    this.api.myRating().subscribe({
+      next: (mine) => this.alreadyRated.set(!!mine),
+      error: () => {
+        /* Keep the form available if the probe fails. */
+      }
     });
   }
 

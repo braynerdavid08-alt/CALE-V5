@@ -4,6 +4,9 @@ namespace Cale.Modules.Assessment.Domain;
 
 public sealed class AttemptRating
 {
+    public const int CommentMinLength = 5;
+    public const int CommentMaxLength = 500;
+
     public int Id { get; private set; }
     public int UserId { get; private set; }
     public int? BankId { get; private set; }
@@ -36,13 +39,30 @@ public sealed class AttemptRating
                 "invalid_stars");
         }
 
+        var trimmed = comment?.Trim() ?? string.Empty;
+        if (trimmed.Length < CommentMinLength)
+        {
+            throw new DomainException(
+                "A comment is required to rate the app.",
+                400,
+                "comment_required");
+        }
+
+        if (trimmed.Length > CommentMaxLength)
+        {
+            throw new DomainException(
+                $"Comment is too long (max {CommentMaxLength} characters).",
+                400,
+                "comment_too_long");
+        }
+
         return new AttemptRating
         {
             UserId = userId,
             BankId = bankId,
             AttemptId = attemptId,
             Stars = stars,
-            Comment = comment?.Trim(),
+            Comment = trimmed,
             CreatedAt = utcNow,
             UpdatedAt = utcNow
         };

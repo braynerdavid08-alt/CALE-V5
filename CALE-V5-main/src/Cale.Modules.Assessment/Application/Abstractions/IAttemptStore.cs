@@ -42,6 +42,8 @@ public interface IAttemptStore
     Task<int> CountAnswersAsync(CancellationToken ct);
 
     Task<AttemptRating?> FindRatingAsync(int attemptId, CancellationToken ct);
+    /// <summary>Any prior app rating by this user (one rating per account).</summary>
+    Task<AttemptRating?> FindRatingByUserIdAsync(int userId, CancellationToken ct);
     Task<AttemptRating?> GetRatingByIdAsync(int id, CancellationToken ct);
     Task AddRatingAsync(AttemptRating rating, CancellationToken ct);
     Task<IReadOnlyList<AttemptRating>> ListRatingsAsync(CancellationToken ct);

@@ -151,6 +151,11 @@ public sealed class AttemptStore : IAttemptStore
             x => x.AttemptId == attemptId,
             ct);
 
+    public Task<AttemptRating?> FindRatingByUserIdAsync(int userId, CancellationToken ct) =>
+        _db.Set<AttemptRating>()
+            .OrderBy(x => x.CreatedAt)
+            .FirstOrDefaultAsync(x => x.UserId == userId, ct);
+
     public Task<AttemptRating?> GetRatingByIdAsync(int id, CancellationToken ct) =>
         _db.Set<AttemptRating>().FirstOrDefaultAsync(x => x.Id == id, ct);
 
