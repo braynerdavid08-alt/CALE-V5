@@ -19,6 +19,10 @@ backups/
 *.dump
 appsettings.Development.local.json
 appsettings.Development.local.json.bak
+docs/demo-luzverde-credenciales.local.md
+docs/demo-luzverde-promote-status.local.md
+**/cale-demo-luzverde.db
+**/cale-demo-luzverde.db-*
 src/Cale.Api/wwwroot/uploads/*
 !src/Cale.Api/wwwroot/uploads/.gitkeep
 .build-out/

@@ -57,22 +57,29 @@ Pesos `RankingWeightsV1` (50/30/20). Métricas: general/xp/trophies/achievements
 | Carga 16 jugadores / 8 matches concurrentes | PASS | `elapsedMs=2067; httpErrors=0; finishedFirstRound=8` (máquina local, in-process) |
 | Seguridad endpoints (anon/outsider/no-jugador) | PASS | 401/403 |
 | UI responsive CSS (listado/bracket/stats) | PASS | media queries 768/480 + overflow-x bracket |
-| UI autenticada en navegador real (lobby/match/home) | NOT TESTED | falta API+`ng serve` con cuentas demo; pasos abajo |
-| SignalR dos browsers vivos + desconexión de red | NOT TESTED | requiere 2 clientes UI manuales |
 | Redis multi-instancia real | BLOCKED | sin Redis contratado; arquitectura documentada en DEPLOY.md |
 | Staging/producción remoto | BLOCKED | sin merge/deploy |
 
-### Pasos manuales pendientes (UI navegador)
-1. Arrancar API + `ng serve`.
-2. Login Teacher → `/teacher/tournaments` → crear torneo capacidad 4.
-3. Login 4 Students → listado → lobby → SignalR participantes.
-4. Teacher inicia → verificar bracket + match en dos ventanas.
-5. Cortar red en uno → esperar 60s → walkover visible en bracket.
-6. Revisar ranking/home/perfil/trofeos en Student.
-7. Viewports 1440 / 768 / 390.
+### Fase 3 — navegador real (2026-11-06 / 07)
+Entorno: API local **SQLite** (`cale-dev.db`) + `ng serve` con proxy `/api` y `/hubs`.  
+Cuentas locales sembradas con `tools/SeedFase3Competitive` (no producción).  
+E2E: `frontend/e2e/fase3-competitive.spec.ts` (Playwright Chromium, 2 browser contexts).  
+Evidencias: `docs/competitive/fase3-evidencias/`.
+
+| Prueba | Resultado | Cómo se verificó |
+|---|---|---|
+| Recorrido autenticado Teacher (login/sesión, listado, crear, lobby, admin) | PASS | Navegador real Playwright + capturas `01-*`, `02-*` |
+| Recorrido autenticado Student (lobby, partida, bracket, ranking, perfil, sin admin) | PASS | Navegador real + capturas `03-*`, `05-*`, `07-*`–`10-*`; botón Iniciar ausente para student |
+| SignalR dos navegadores independientes | PASS | Dos `BrowserContext` Chromium en la misma sala/partida; chip en vivo / estado compartido |
+| Desconexión + reconexión de un cliente | PASS | `context.setOffline(true/false)` + reload; estado UI recuperado (`05b-reconexion-s2`) |
+| Avance de bracket / campeón / trofeos / XP / ranking | PASS | Partidas aceleradas vía API (misma lógica aprobada F1/F2); UI bracket/perfil/ranking en navegador |
+| Responsive 1366 / 768 / 480 / 375 | PASS | Capturas `11-responsive-*` + assert sin overflow horizontal en 375 |
+| Walkover 60s observado visualmente en UI | NOT TESTED | Cubierto en Fase 2 automatizado; Fase 3 validó corte/reconexión corta, no el timer completo de 60s |
+| SignalR TestServer | PASS (Fase 2) | No sustituye la prueba de dos browsers (ya hecha arriba) |
 
 Corrección Fase 1: BYE nunca vs BYE.  
-Corrección Fase 2: walkover con ambos offline elige desconexión más reciente.
+Corrección Fase 2: walkover con ambos offline elige desconexión más reciente.  
+Corrección Fase 3: proxy Angular `/hubs` (ws) para SignalR vía `ng serve`.
 
 
 ## 15. Archivos clave
