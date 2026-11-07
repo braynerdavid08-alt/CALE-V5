@@ -198,7 +198,7 @@ test('Fase 3 browser + SignalR + responsive', async ({ browser }) => {
   await teacher.getByRole('link', { name: /Crear torneo/i }).click();
   await teacher.locator('#t-name').fill(`Fase3 Copa ${Date.now()}`);
   await teacher.locator('#t-desc').fill('Validación Fase 3 local');
-  await teacher.locator('#t-cap').selectOption({ label: '4 jugadores' });
+  await teacher.locator('#t-cap').fill('4');
   await teacher.locator('#t-secs').fill('10');
   await shot(teacher, '01-teacher-crear-torneo');
   await teacher.getByRole('button', { name: /Crear torneo/i }).click();

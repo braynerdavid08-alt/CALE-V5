@@ -1,9 +1,9 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
-import { TournamentApi } from '../api/tournament.api';
+import { TournamentApi, TournamentQuestionBank } from '../api/tournament.api';
 import { PlayTopbarComponent } from '../components/play-topbar.component';
 
 /** Value for <input type="datetime-local"> (local time, no seconds). */
@@ -11,6 +11,12 @@ function toLocalInput(date: Date): string {
   const pad = (n: number) => n.toString().padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
+
+const KIND_LABEL: Record<string, string> = {
+  official: 'Oficial',
+  exam: 'Examen',
+  school: 'Escuela'
+};
 
 @Component({
   selector: 'app-tournament-create-page',
@@ -63,11 +69,16 @@ function toLocalInput(date: Date): string {
           </div>
           <div class="t-field">
             <label for="t-cap">Cupos</label>
-            <select id="t-cap" class="t-input" name="capacity" [(ngModel)]="capacity">
-              @for (c of capacities; track c) {
-                <option [ngValue]="c">{{ c }} jugadores</option>
-              }
-            </select>
+            <input
+              id="t-cap"
+              class="t-input"
+              type="number"
+              name="capacity"
+              min="4"
+              max="20"
+              step="1"
+              [(ngModel)]="capacity" />
+            <small>Entre 4 y 20. El cuadro se arma con quienes se inscriban (BYE si hace falta).</small>
           </div>
         </div>
 
@@ -85,12 +96,29 @@ function toLocalInput(date: Date): string {
               [(ngModel)]="secondsPerQuestion" />
             <small>Entre 10 y 120.</small>
           </div>
-          <div class="t-field">
-            <label for="t-mode">Preguntas</label>
-            <select id="t-mode" class="t-input" name="questionMode" [(ngModel)]="questionMode">
-              <option value="random">Aleatorias del banco oficial</option>
-            </select>
-          </div>
+        </div>
+
+        <div class="t-field">
+          <span class="t-label">Bancos de preguntas</span>
+          <small>
+            Elige uno o varios (oficiales, de escuela o de examen). Si no eliges ninguno, se usa la mezcla
+            por defecto (oficial + escuela).
+          </small>
+          @if (banksLoading()) {
+            <p class="t-banks-hint">Cargando bancos…</p>
+          } @else if (banks().length === 0) {
+            <p class="t-banks-hint">No hay bancos disponibles. Se usará la mezcla por defecto.</p>
+          } @else {
+            <div class="t-banks" role="group" aria-label="Bancos de preguntas">
+              @for (b of banks(); track b.id) {
+                <label class="t-bank">
+                  <input type="checkbox" [checked]="isSelected(b.id)" (change)="toggleBank(b.id, $event)" />
+                  <span>{{ b.name }}</span>
+                  <em>{{ kindLabel(b.kind) }}</em>
+                </label>
+              }
+            </div>
+          }
         </div>
 
         <div class="play-actions">
@@ -101,32 +129,65 @@ function toLocalInput(date: Date): string {
     </section>
   `
 })
-export class TournamentCreatePage {
+export class TournamentCreatePage implements OnInit {
   private readonly api = inject(TournamentApi);
   private readonly router = inject(Router);
 
   readonly base: string = inject(ActivatedRoute).snapshot.data['base'] ?? '/teacher/tournaments';
 
-  readonly capacities = [4, 8, 16];
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
+  readonly banks = signal<TournamentQuestionBank[]>([]);
+  readonly banksLoading = signal(true);
+  readonly selectedBankIds = signal<number[]>([]);
 
   name = '';
   description = '';
   scheduledAt = toLocalInput(new Date(Date.now() + 60 * 60 * 1000));
-  capacity = 8;
+  capacity = 20;
   secondsPerQuestion = 30;
-  questionMode = 'random';
+
+  ngOnInit(): void {
+    this.api.questionBanks().subscribe({
+      next: (list) => {
+        this.banks.set(list);
+        this.banksLoading.set(false);
+      },
+      error: () => {
+        this.banks.set([]);
+        this.banksLoading.set(false);
+      }
+    });
+  }
+
+  kindLabel(kind: string): string {
+    return KIND_LABEL[kind] ?? kind;
+  }
+
+  isSelected(id: number): boolean {
+    return this.selectedBankIds().includes(id);
+  }
+
+  toggleBank(id: number, event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    const current = this.selectedBankIds();
+    this.selectedBankIds.set(
+      checked ? [...current, id] : current.filter((x) => x !== id)
+    );
+  }
 
   valid(): boolean {
     const name = this.name.trim();
     const seconds = Number(this.secondsPerQuestion);
+    const capacity = Number(this.capacity);
     return (
       name.length >= 3 &&
       name.length <= 120 &&
       !!this.scheduledAt &&
       !Number.isNaN(new Date(this.scheduledAt).getTime()) &&
-      this.capacities.includes(this.capacity) &&
+      Number.isFinite(capacity) &&
+      capacity >= 4 &&
+      capacity <= 20 &&
       Number.isFinite(seconds) &&
       seconds >= 10 &&
       seconds <= 120
@@ -137,14 +198,16 @@ export class TournamentCreatePage {
     if (this.busy() || !this.valid()) return;
     this.busy.set(true);
     this.error.set(null);
+    const bankIds = this.selectedBankIds();
     this.api
       .create({
         name: this.name.trim(),
         description: this.description.trim() || null,
         scheduledAt: new Date(this.scheduledAt).toISOString(),
-        capacity: this.capacity,
+        capacity: Math.round(Number(this.capacity)),
         secondsPerQuestion: Math.round(Number(this.secondsPerQuestion)),
-        questionMode: this.questionMode
+        questionMode: 'random',
+        bankIds: bankIds.length > 0 ? bankIds : null
       })
       .subscribe({
         next: (created) => {

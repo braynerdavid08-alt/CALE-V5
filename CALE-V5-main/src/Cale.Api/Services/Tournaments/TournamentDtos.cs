@@ -10,7 +10,10 @@ public sealed record CreateTournamentRequest(
     int SecondsPerQuestion,
     string QuestionMode,
     IReadOnlyList<string>? Categories,
-    IReadOnlyList<int>? ManualQuestionIds);
+    IReadOnlyList<int>? ManualQuestionIds,
+    IReadOnlyList<int>? BankIds = null);
+
+public sealed record TournamentQuestionBankDto(int Id, string Name, string Kind);
 
 public sealed record TournamentListItemDto(
     int Id,
@@ -30,7 +33,8 @@ public sealed record TournamentParticipantDto(
     string Name,
     bool IsConnected,
     bool IsEliminated,
-    int? BracketSlot);
+    int? BracketSlot,
+    string? PhotoUrl = null);
 
 public sealed record TournamentLobbyDto(
     int Id,
@@ -48,7 +52,8 @@ public sealed record TournamentLobbyDto(
     bool CanJoin,
     int? MyMatchId,
     int? ChampionUserId,
-    string? ChampionName);
+    string? ChampionName,
+    string? ChampionPhotoUrl = null);
 
 public sealed record TournamentBracketMatchDto(
     int Id,
@@ -65,7 +70,9 @@ public sealed record TournamentBracketMatchDto(
     int? WinnerUserId,
     string? FinishReason,
     int Player1Correct,
-    int Player2Correct);
+    int Player2Correct,
+    string? Player1PhotoUrl = null,
+    string? Player2PhotoUrl = null);
 
 public sealed record TournamentBracketDto(
     int TournamentId,
@@ -74,7 +81,8 @@ public sealed record TournamentBracketDto(
     int CurrentRoundNumber,
     IReadOnlyList<TournamentBracketMatchDto> Matches,
     int? ChampionUserId,
-    string? ChampionName);
+    string? ChampionName,
+    string? ChampionPhotoUrl = null);
 
 public sealed record TournamentMatchViewDto(
     int MatchId,
@@ -102,7 +110,9 @@ public sealed record TournamentMatchViewDto(
     bool WaitingOpponent,
     int? WinnerUserId,
     string? FinishReason,
-    IReadOnlyList<AnsweredQuestionDto> MyAnswers);
+    IReadOnlyList<AnsweredQuestionDto> MyAnswers,
+    string? Player1PhotoUrl = null,
+    string? Player2PhotoUrl = null);
 
 public sealed record TournamentAnswerRequest(int MatchQuestionId, int? OptionId);
 

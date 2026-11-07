@@ -22,6 +22,11 @@ public sealed class TournamentsController : ControllerBase
     public Task<IReadOnlyList<TournamentListItemDto>> List(CancellationToken ct) =>
         _tournaments.ListForActorAsync(UserId, Role, ct);
 
+    [HttpGet("question-banks")]
+    [Authorize(Roles = Roles.Teacher)]
+    public Task<IReadOnlyList<TournamentQuestionBankDto>> QuestionBanks(CancellationToken ct) =>
+        _tournaments.ListQuestionBanksAsync(UserId, ct);
+
     [HttpPost]
     [Authorize(Roles = Roles.Teacher)]
     public Task<TournamentListItemDto> Create([FromBody] CreateTournamentRequest request, CancellationToken ct) =>

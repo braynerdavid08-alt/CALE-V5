@@ -25,6 +25,7 @@ public static class TournamentSchemaGuard
             "QuestionMode" varchar(20) NOT NULL,
             "CategoryFilterJson" varchar(2000) NULL,
             "ManualQuestionIdsJson" varchar(4000) NULL,
+            "BankIdsJson" varchar(2000) NULL,
             "Status" varchar(40) NOT NULL,
             "BracketSize" integer NOT NULL,
             "CurrentRoundNumber" integer NOT NULL,
@@ -131,7 +132,8 @@ public static class TournamentSchemaGuard
         """CREATE UNIQUE INDEX IF NOT EXISTS "IX_TrofeosTorneo_TournamentId_UserId" ON "TrofeosTorneo" ("TournamentId", "UserId");""",
         """CREATE INDEX IF NOT EXISTS "IX_TrofeosTorneo_UserId_ObtainedAt" ON "TrofeosTorneo" ("UserId", "ObtainedAt");""",
         """ALTER TABLE "PartidasJuego" ADD COLUMN IF NOT EXISTS "SourceKey" varchar(120) NULL;""",
-        """CREATE UNIQUE INDEX IF NOT EXISTS "IX_PartidasJuego_SourceKey" ON "PartidasJuego" ("SourceKey") WHERE "SourceKey" IS NOT NULL;"""
+        """CREATE UNIQUE INDEX IF NOT EXISTS "IX_PartidasJuego_SourceKey" ON "PartidasJuego" ("SourceKey") WHERE "SourceKey" IS NOT NULL;""",
+        """ALTER TABLE "Torneos" ADD COLUMN IF NOT EXISTS "BankIdsJson" varchar(2000) NULL;"""
     ];
 
     private static readonly string[] SqliteStatements =
@@ -150,6 +152,7 @@ public static class TournamentSchemaGuard
             "QuestionMode" TEXT NOT NULL,
             "CategoryFilterJson" TEXT NULL,
             "ManualQuestionIdsJson" TEXT NULL,
+            "BankIdsJson" TEXT NULL,
             "Status" TEXT NOT NULL,
             "BracketSize" INTEGER NOT NULL,
             "CurrentRoundNumber" INTEGER NOT NULL,
@@ -256,7 +259,8 @@ public static class TournamentSchemaGuard
         """CREATE UNIQUE INDEX IF NOT EXISTS "IX_TrofeosTorneo_TournamentId_UserId" ON "TrofeosTorneo" ("TournamentId", "UserId");""",
         """CREATE INDEX IF NOT EXISTS "IX_TrofeosTorneo_UserId_ObtainedAt" ON "TrofeosTorneo" ("UserId", "ObtainedAt");""",
         """ALTER TABLE "PartidasJuego" ADD COLUMN "SourceKey" TEXT NULL;""",
-        """CREATE UNIQUE INDEX IF NOT EXISTS "IX_PartidasJuego_SourceKey" ON "PartidasJuego" ("SourceKey") WHERE "SourceKey" IS NOT NULL;"""
+        """CREATE UNIQUE INDEX IF NOT EXISTS "IX_PartidasJuego_SourceKey" ON "PartidasJuego" ("SourceKey") WHERE "SourceKey" IS NOT NULL;""",
+        """ALTER TABLE "Torneos" ADD COLUMN "BankIdsJson" TEXT NULL;"""
     ];
 
     public static async Task EnsureAsync(

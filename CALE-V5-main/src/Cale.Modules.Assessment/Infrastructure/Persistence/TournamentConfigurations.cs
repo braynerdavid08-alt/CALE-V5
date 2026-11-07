@@ -16,6 +16,7 @@ public sealed class TournamentConfiguration : IEntityTypeConfiguration<Tournamen
         builder.Property(x => x.QuestionMode).HasMaxLength(20).IsRequired();
         builder.Property(x => x.CategoryFilterJson).HasMaxLength(2000);
         builder.Property(x => x.ManualQuestionIdsJson).HasMaxLength(4000);
+        builder.Property(x => x.BankIdsJson).HasMaxLength(2000);
         builder.Property(x => x.RowVersion).IsConcurrencyToken();
         builder.HasIndex(x => new { x.SchoolUserId, x.Status });
         builder.HasIndex(x => x.ScheduledAt);

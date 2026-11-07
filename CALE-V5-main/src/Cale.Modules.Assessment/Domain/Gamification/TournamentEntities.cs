@@ -32,7 +32,7 @@ public static class TournamentQuestionModes
     public const string Manual = "manual";
 }
 
-/// <summary>School-scoped elimination tournament (V1: 4–16 players).</summary>
+/// <summary>School-scoped elimination tournament (V1: 4–20 players; bracket uses BYEs).</summary>
 public sealed class Tournament
 {
     public int Id { get; set; }
@@ -47,6 +47,8 @@ public sealed class Tournament
     public string QuestionMode { get; set; } = TournamentQuestionModes.Random;
     public string? CategoryFilterJson { get; set; }
     public string? ManualQuestionIdsJson { get; set; }
+    /// <summary>Optional JSON array of bank ids; null/empty = default school+official mix.</summary>
+    public string? BankIdsJson { get; set; }
     public string Status { get; set; } = TournamentStatuses.RegistrationOpen;
     public int BracketSize { get; set; }
     public int CurrentRoundNumber { get; set; }

@@ -16,6 +16,7 @@ import {
 } from '../api/tournament.api';
 import { PlayTopbarComponent } from '../components/play-topbar.component';
 import { PlayFxService } from '../play-fx.service';
+import { tournamentInitials, tournamentPhotoSrc } from '../tournament-avatar';
 
 /** Fallback when the socket is down; the hub pushes changes in real time. */
 const FALLBACK_REFRESH_MS = 8000;
@@ -106,6 +107,13 @@ const FALLBACK_REFRESH_MS = 8000;
           @if (l.status === 'finished' && l.championName) {
             <div class="play-card champion">
               <p class="big">🏆</p>
+              <span class="t-avatar lg" aria-hidden="true">
+                @if (photoSrc(l.championPhotoUrl); as src) {
+                  <img [src]="src" alt="" />
+                } @else {
+                  {{ initials(l.championName) }}
+                }
+              </span>
               <span class="muted">Campeón</span>
               <strong>{{ l.championName }}</strong>
             </div>
@@ -120,7 +128,14 @@ const FALLBACK_REFRESH_MS = 8000;
                 @for (p of l.participants; track p.userId) {
                   <li [class.me]="p.userId === myId()" [class.out]="p.isEliminated">
                     <span class="dot" [class.on]="p.isConnected" [attr.title]="p.isConnected ? 'Conectado' : 'Desconectado'"></span>
-                    <span>{{ p.name }}{{ p.userId === myId() ? ' (tú)' : '' }}</span>
+                    <span class="t-avatar" aria-hidden="true">
+                      @if (photoSrc(p.photoUrl); as src) {
+                        <img [src]="src" alt="" />
+                      } @else {
+                        {{ initials(p.name) }}
+                      }
+                    </span>
+                    <span class="who">{{ p.name }}{{ p.userId === myId() ? ' (tú)' : '' }}</span>
                     @if (p.bracketSlot != null) {
                       <span class="slot">Llave {{ p.bracketSlot + 1 }}</span>
                     }
@@ -158,6 +173,9 @@ export class TournamentLobbyPage implements OnInit, OnDestroy {
 
   readonly label = tournamentStatusLabel;
   readonly tone = tournamentStatusTone;
+
+  photoSrc = tournamentPhotoSrc;
+  initials = tournamentInitials;
 
   private hub: TournamentHubHandle | null = null;
   private destroyed = false;
