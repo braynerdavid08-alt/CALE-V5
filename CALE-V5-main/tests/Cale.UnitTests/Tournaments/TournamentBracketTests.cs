@@ -21,17 +21,21 @@ public sealed class TournamentBracketTests
         Assert.Equal(13, slots.Count(s => s is not null));
         Assert.Equal(3, slots.Count(s => s is null));
         Assert.Equal(ids.OrderBy(x => x), slots.Where(s => s is not null).Cast<int>().OrderBy(x => x));
+
+        var pairs = TournamentBracket.FirstRoundPairs(slots);
+        Assert.Equal(3, pairs.Count(p => p.P1Bye ^ p.P2Bye));
+        Assert.DoesNotContain(pairs, p => p.P1Bye && p.P2Bye);
     }
 
     [Fact]
     public void FirstRoundPairs_MarksByeSides()
     {
-        int?[] slots = [1, null, 2, 3, null, null, 4, 5];
+        int?[] slots = [1, null, 2, null, 3, 4, 5, 6];
         var pairs = TournamentBracket.FirstRoundPairs(slots);
         Assert.Equal(4, pairs.Count);
         Assert.True(pairs[0].P2Bye);
-        Assert.False(pairs[1].P1Bye);
-        Assert.True(pairs[2].P1Bye && pairs[2].P2Bye);
+        Assert.True(pairs[1].P2Bye);
+        Assert.False(pairs[2].P1Bye || pairs[2].P2Bye);
     }
 
     [Fact]

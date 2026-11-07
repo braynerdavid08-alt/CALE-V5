@@ -41,7 +41,8 @@ public static class TournamentBracket
         };
 
     /// <summary>
-    /// Shuffles participants and places them into bracketSize slots; remaining slots are BYE.
+    /// Shuffles participants and places them into bracketSize slots.
+    /// BYEs are paired against players in the first round (never BYE vs BYE).
     /// Returns slot → userId (null = BYE).
     /// </summary>
     public static int?[] SeedSlots(IReadOnlyList<int> participantUserIds, int bracketSize, Random rng)
@@ -51,11 +52,27 @@ public static class TournamentBracket
             throw new ArgumentException("Bracket size must be a power of two.", nameof(bracketSize));
         }
 
+        if (participantUserIds.Count > bracketSize)
+        {
+            throw new ArgumentException("Too many participants for bracket size.", nameof(participantUserIds));
+        }
+
         var shuffled = participantUserIds.OrderBy(_ => rng.Next()).ToList();
         var slots = new int?[bracketSize];
-        for (var i = 0; i < shuffled.Count && i < bracketSize; i++)
+        var byes = bracketSize - shuffled.Count;
+        var playerIndex = 0;
+
+        // First `byes` first-round matches: player vs BYE.
+        for (var i = 0; i < byes; i++)
         {
-            slots[i] = shuffled[i];
+            slots[i * 2] = shuffled[playerIndex++];
+            slots[i * 2 + 1] = null;
+        }
+
+        var nextSlot = byes * 2;
+        while (playerIndex < shuffled.Count)
+        {
+            slots[nextSlot++] = shuffled[playerIndex++];
         }
 
         return slots;
