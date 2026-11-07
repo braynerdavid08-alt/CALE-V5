@@ -102,6 +102,26 @@ Corrección Fase 3: proxy Angular `/hubs` (ws) para SignalR vía `ng serve`.
 
 Smoke post-merge (cuando el propietario autorice deploy): ver `POSTGRES_SCHEMA_STAGING.md` + login Teacher/Student + crear torneo 4 + start.
 
+### Fase 6 — CI rojo (diagnóstico + corrección de fixtures)
+
+**Comparación A/B (mismo filtro de 9 pruebas):** `origin/main` @ `b5fc550` → 9 FAIL; rama PR @ `fccd7b0` → 9 FAIL idénticos. **Clasificación: B + D** (preexistentes en main; fixtures/tests desactualizados tras `Access:FreeForAll=false` / escuelas de pago). No son regresiones del ecosistema competitivo.
+
+| Prueba | main | PR (antes) | Causa | Corrección | Estado |
+|---|---|---|---|---|---|
+| PublicSchoolsListing…lists_those_with_members | FAIL | FAIL | Listado exige `CanOperateProduct`; fixture sin plan operable | Test: escuela con cortesía/plan operable | PASS |
+| AttackMatrix Teacher_cannot_read_private… | FAIL | FAIL | `membership_inactive` → 403 antes del aislamiento | Fixture: cortesía en School1/2 | PASS |
+| AttackMatrix Owner_teacher_still_sees… | FAIL | FAIL | Idem (teacher sin escuela operable) | Fixture cortesía | PASS |
+| AttackMatrix Teacher_question_listing… | FAIL | FAIL | Idem | Fixture cortesía | PASS |
+| SchoolApproval Self_registered… | FAIL | FAIL | Accept join exige membresía operable | Test: admin courtesy tras approve | PASS |
+| SchoolLinking Invitation_links… | FAIL | FAIL | Invite bloqueado por `membership_inactive` | Fixture cortesía | PASS |
+| SchoolLinking Rejected_invitation… | FAIL | FAIL | Idem | Fixture cortesía | PASS |
+| SchoolLinking Student_request… | FAIL | FAIL | Idem | Fixture cortesía | PASS |
+| SchoolLinking School_cannot_invite… | FAIL | FAIL | BadRequest (inactive) vs NotFound (ya vinculado) | Fixture cortesía | PASS |
+
+**CI reestructurado** (`.github/workflows/ci.yml`): jobs independientes A API Build · B Unit full · C TournamentBracket · D Angular · E Tournaments. Sin `continue-on-error`. B ya no bloquea C/E.
+
+**Validación local post-fix:** Unit 634/634 · Tournament* 15/15 · Angular production PASS · API Release PASS. Sin push hasta autorización.
+
 ## 15. Archivos clave
 Backend: `Services/Tournaments/*`, `TournamentHub`, `TournamentSchemaGuard`, Play ranking/badges.
 Frontend: `play/api/tournament.api.ts`, páginas tournament-*, ranking/home.

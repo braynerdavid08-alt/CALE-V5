@@ -145,7 +145,15 @@ public sealed class SecurityApiFactory : WebApplicationFactory<Program>
             u.MarkEmailConfirmed();
         }
         db.AddRange(loneInvited, loneRejecting, loneRequesting, loneTeacher);
-        db.Add(SchoolProfile.CreateDraft(school1.Id, school1.Name, school1.Email, SchoolPlans.Find(SchoolPlans.Monthly)!, now));
+
+        // Testing env keeps Access:FreeForAll=false (paid school model). Fixtures must grant
+        // operable membership or school/teacher flows fail with membership_inactive.
+        var plan = SchoolPlans.Find(SchoolPlans.Monthly)!;
+        var school1Profile = SchoolProfile.CreateDraft(school1.Id, school1.Name, school1.Email, plan, now);
+        var school2Profile = SchoolProfile.CreateDraft(school2.Id, school2.Name, school2.Email, plan, now);
+        school1Profile.GrantCourtesy(now.AddDays(30), "security-fixture", now);
+        school2Profile.GrantCourtesy(now.AddDays(30), "security-fixture", now);
+        db.AddRange(school1Profile, school2Profile);
 
         var attemptA = Attempt.Start(studentA.Id, privateBank.Id, null, "practice", 10, 30, now);
         db.Add(attemptA);

@@ -14,81 +14,111 @@ defaults:
   run:
     working-directory: CALE-V5-main
 
+# Independent jobs: tournament / Angular keep running even if full unit suite fails.
+# Failures are never ignored (no continue-on-error). The workflow is red if any required job fails.
+
 jobs:
-  api:
-    name: API build + unit tests
+  api-build:
+    name: A — API Build Release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup .NET 8
-        uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-
       - name: Restore
         run: dotnet restore Cale.sln
-
       - name: Build API
         run: dotnet build src/Cale.Api/Cale.Api.csproj -c Release --no-restore
+      - name: Upload API binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-build
+          path: |
+            CALE-V5-main/src/**/bin/Release/
+            CALE-V5-main/tests/**/bin/Release/
+          if-no-files-found: ignore
+          retention-days: 1
 
-      - name: Unit tests (full)
+  unit-tests:
+    name: B — Unit Tests (full suite)
+    runs-on: ubuntu-latest
+    needs: [api-build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore
+        run: dotnet restore tests/Cale.UnitTests/Cale.UnitTests.csproj
+      - name: Unit tests
         run: >
           dotnet test tests/Cale.UnitTests/Cale.UnitTests.csproj
-          -c Release --no-restore
+          -c Release
           --logger "trx;LogFileName=unit.trx"
           --results-directory TestResults
-
-      - name: Tournament bracket filter (explicit)
-        run: >
-          dotnet test tests/Cale.UnitTests/Cale.UnitTests.csproj
-          -c Release --no-build
-          --filter "FullyQualifiedName~TournamentBracket"
-
-      - name: Publish test results
+      - name: Publish unit TRX
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: api-test-results
+          name: unit-test-results
           path: CALE-V5-main/TestResults/
           if-no-files-found: ignore
 
-  frontend:
-    name: Angular production build
+  tournament-bracket:
+    name: C — TournamentBracketTests
+    runs-on: ubuntu-latest
+    needs: [api-build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore
+        run: dotnet restore tests/Cale.UnitTests/Cale.UnitTests.csproj
+      - name: Bracket unit tests
+        run: >
+          dotnet test tests/Cale.UnitTests/Cale.UnitTests.csproj
+          -c Release
+          --filter "FullyQualifiedName~TournamentBracket"
+          --logger "trx;LogFileName=bracket.trx"
+          --results-directory TestResults
+      - name: Publish bracket TRX
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bracket-test-results
+          path: CALE-V5-main/TestResults/
+          if-no-files-found: ignore
+
+  angular-build:
+    name: D — Angular Production Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node 20
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: npm
           cache-dependency-path: CALE-V5-main/frontend/package-lock.json
-
       - name: Install
         working-directory: CALE-V5-main/frontend
         run: npm ci
-
       - name: Production build
         working-directory: CALE-V5-main/frontend
         run: npx ng build --configuration=production
 
-  tournament-integration:
-    name: Tournament smoke + phase2 (CI-compatible)
+  tournament-competitive:
+    name: E — Tournament smoke + phase2
     runs-on: ubuntu-latest
-    needs: [api]
+    needs: [api-build]
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup .NET 8
-        uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-
       - name: Restore
         run: dotnet restore tests/Cale.UnitTests/Cale.UnitTests.csproj
-
       - name: Tournament integration tests
         run: >
           dotnet test tests/Cale.UnitTests/Cale.UnitTests.csproj
@@ -96,8 +126,7 @@ jobs:
           --filter "FullyQualifiedName~Tournaments"
           --logger "trx;LogFileName=tournaments.trx"
           --results-directory TestResults
-
-      - name: Publish tournament test results
+      - name: Publish tournament TRX
         if: always()
         uses: actions/upload-artifact@v4
         with:
