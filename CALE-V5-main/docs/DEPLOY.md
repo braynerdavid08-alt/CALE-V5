@@ -118,6 +118,14 @@ En producción: crea el primer admin por registro controlado o seed **offline**,
 - Estudiantes: `/live/join` o `/live/join/{CODE}` → `/live/play/{id}`
 - Una sola instancia Render Free: SignalR in-memory OK (multi-instancia requeriría Redis)
 
+### Torneos Luz Verde (SignalR)
+
+- Hub: `/hubs/tournaments` (JWT vía query `access_token`)
+- API: `/api/tournaments`
+- El estado del torneo (inscripciones, bracket, respuestas, campeón, trofeos) **persiste en PostgreSQL** (`TournamentSchemaGuard` / tablas `Torneos*`, `TrofeosTorneo`).
+- Una sola instancia Render Free: SignalR in-memory es suficiente.
+- **Multi-instancia:** falta backplane Redis (`AddStackExchangeRedis`) para que los grupos SignalR se vean entre nodos. Sin Redis, no escalar horizontalmente el API si se usan torneos en vivo. La persistencia DB sí permite recuperar partida tras reinicio de una instancia.
+
 ### Correo (verificación de cuenta)
 
 **Cambiar la clave en Mi perfil no envía correo.** Solo se guarda en el servidor.

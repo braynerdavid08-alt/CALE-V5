@@ -162,16 +162,18 @@
       <a class="today-card" data-tone="sky" routerLink="/student/play/ranking" data-tour="student-ranking">
         <span class="today-head">
           <span class="today-icon" aria-hidden="true"><ui-icon name="chart" /></span>
-          <span class="today-kicker">Ranking (2 años)</span>
+          <span class="today-kicker">Ranking general · 2 años</span>
         </span>
         <strong>
-          @if (s.weeklyRank && s.weeklyXp > 0) {
+          @if (s.weeklyRank) {
             Vas en el puesto #{{ s.weeklyRank }}
           } @else {
             Aún sin puesto en el ranking
           }
         </strong>
-        <span class="today-hint">{{ s.weeklyXp }} XP en los últimos 2 años.</span>
+        <span class="today-hint">
+          {{ s.weeklyXp }} XP · {{ s.trophyCount ?? 0 }} trofeos · {{ s.earnedBadges }} logros
+        </span>
         <span class="today-cta">Ver ranking →</span>
       </a>
     </section>
