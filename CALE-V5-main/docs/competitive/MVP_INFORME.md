@@ -36,27 +36,44 @@ Un `TournamentTrophy` por campeonato (snapshot de nombre).
 ## 11. Ranking
 Pesos `RankingWeightsV1` (50/30/20). Métricas: general/xp/trophies/achievements. Periodos: 30d–all (default 2y). Default scope escuela.
 
-## 12. Pruebas (validación MVP)
+## 12. Pruebas (Fase 1 + Fase 2)
 
+### Fase 1 (no repetidas)
 | Prueba | Resultado | Evidencia |
 |---|---|---|
-| Build API | PASS | `dotnet build` |
-| Build Angular | PASS | `ng build --configuration=development` |
+| Build API / Angular | PASS | builds previos |
 | TournamentBracketTests | PASS | 7/7 |
-| Smoke 13 jugadores (API real in-process SQLite) | PASS | `TournamentSmokeTests` — create → join×13 → start → 3 BYE → partidas → campeón → trofeo → `campeon_torneo` → sin XP por BYE → SourceKey único |
-| Roles Admin/School/Teacher/Student (HTTP) | PASS | mismos smoke tests (permisos create/start/join/list/ranking) |
-| Aislamiento entre escuelas | PASS | join/start cross-school → 403 |
-| Idempotencia trofeo (unique index) | PASS | segundo insert falla |
-| UI Angular visual en navegador | NOT TESTED | requiere entorno local/staging con datos |
-| SignalR reconexión / walkover 60s | NOT TESTED | worker deshabilitado en host de test; falta prueba dedicada |
-| Carga 16×8 simultáneos | NOT TESTED | falta entorno de carga |
-| Redis multi-instancia | BLOCKED | no hay Redis en Render Free; documentado en DEPLOY.md |
-| Smoke en producción / staging remoto | BLOCKED | no desplegado (política: sin merge/deploy) |
+| Smoke 13 jugadores | PASS | `TournamentSmokeTests` |
+| Roles HTTP + aislamiento escuelas | PASS | smoke |
+| Idempotencia trofeo | PASS | unique index |
 
-Corrección durante validación: BYEs se emparejan siempre contra jugadores (nunca BYE vs BYE).
+### Fase 2
+| Prueba | Resultado | Evidencia |
+|---|---|---|
+| Walkover 60s + sin XP + idempotencia | PASS | `TournamentPhase2Tests.Walkover_after_60s…` |
+| Walkover ambos desconectados (determinista) | PASS | gana quien se desconectó más tarde |
+| Reconexión / estado persistido vía API | PASS | disconnect/reconnect + GET match conserva respuestas |
+| SignalR `JoinTournament` autenticado | PASS | HubConnection contra TestServer |
+| Carga 16 jugadores / 8 matches concurrentes | PASS | `elapsedMs=2067; httpErrors=0; finishedFirstRound=8` (máquina local, in-process) |
+| Seguridad endpoints (anon/outsider/no-jugador) | PASS | 401/403 |
+| UI responsive CSS (listado/bracket/stats) | PASS | media queries 768/480 + overflow-x bracket |
+| UI autenticada en navegador real (lobby/match/home) | NOT TESTED | falta API+`ng serve` con cuentas demo; pasos abajo |
+| SignalR dos browsers vivos + desconexión de red | NOT TESTED | requiere 2 clientes UI manuales |
+| Redis multi-instancia real | BLOCKED | sin Redis contratado; arquitectura documentada en DEPLOY.md |
+| Staging/producción remoto | BLOCKED | sin merge/deploy |
 
-## 13–14. Carga / roles
-Roles HTTP: PASS en smoke. Carga 16×8: NOT TESTED. No merge ni deploy a producción.
+### Pasos manuales pendientes (UI navegador)
+1. Arrancar API + `ng serve`.
+2. Login Teacher → `/teacher/tournaments` → crear torneo capacidad 4.
+3. Login 4 Students → listado → lobby → SignalR participantes.
+4. Teacher inicia → verificar bracket + match en dos ventanas.
+5. Cortar red en uno → esperar 60s → walkover visible en bracket.
+6. Revisar ranking/home/perfil/trofeos en Student.
+7. Viewports 1440 / 768 / 390.
+
+Corrección Fase 1: BYE nunca vs BYE.  
+Corrección Fase 2: walkover con ambos offline elige desconexión más reciente.
+
 
 ## 15. Archivos clave
 Backend: `Services/Tournaments/*`, `TournamentHub`, `TournamentSchemaGuard`, Play ranking/badges.

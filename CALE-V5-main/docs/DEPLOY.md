@@ -123,8 +123,14 @@ En producción: crea el primer admin por registro controlado o seed **offline**,
 - Hub: `/hubs/tournaments` (JWT vía query `access_token`)
 - API: `/api/tournaments`
 - El estado del torneo (inscripciones, bracket, respuestas, campeón, trofeos) **persiste en PostgreSQL** (`TournamentSchemaGuard` / tablas `Torneos*`, `TrofeosTorneo`).
-- Una sola instancia Render Free: SignalR in-memory es suficiente.
-- **Multi-instancia:** falta backplane Redis (`AddStackExchangeRedis`) para que los grupos SignalR se vean entre nodos. Sin Redis, no escalar horizontalmente el API si se usan torneos en vivo. La persistencia DB sí permite recuperar partida tras reinicio de una instancia.
+- **Una instancia (Render Free actual):** SignalR in-memory es suficiente. Los clientes pueden recuperar estado con `GET /api/tournaments/{id}` y `GET /api/tournaments/matches/{id}` tras reconectar.
+- **Varias instancias:** SignalR **no** replica grupos entre nodos sin backplane. Hace falta Redis:
+  1. Servicio Redis gestionado (o Key Value en Render).
+  2. Paquete `Microsoft.AspNetCore.SignalR.StackExchangeRedis`.
+  3. En DI: `services.AddSignalR().AddStackExchangeRedis(Configuration["ConnectionStrings:Redis"])`.
+  4. Variable `ConnectionStrings__Redis=...`.
+- **Riesgo sin Redis al escalar:** un jugador puede unirse al hub en la instancia A y no recibir `MatchAssigned` emitido desde la instancia B. La DB sigue siendo la fuente de verdad, pero la UX en vivo se rompe.
+- **No contratar Redis en esta fase** si se mantiene una sola instancia.
 
 ### Correo (verificación de cuenta)
 

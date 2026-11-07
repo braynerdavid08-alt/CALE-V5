@@ -382,10 +382,20 @@ public sealed partial class TournamentService
             return;
         }
 
-        var winner = match.Player1UserId == userId ? match.Player2UserId : match.Player1UserId;
-        if (winner is not int w)
+        var opponentId = match.Player1UserId == userId ? match.Player2UserId : match.Player1UserId;
+        if (opponentId is not int w)
         {
             return;
+        }
+
+        // If both players exceeded the grace window, award the one who disconnected later
+        // (stayed longer). Avoids order-dependent results when the timeout worker scans both.
+        var opponent = t.Participants.FirstOrDefault(x => x.UserId == w);
+        if (opponent is { IsConnected: false, DisconnectedAt: DateTime oppAt }
+            && (_clock.UtcNow - oppAt).TotalSeconds >= DisconnectGraceSeconds
+            && p.DisconnectedAt is DateTime selfAt)
+        {
+            w = oppAt >= selfAt ? opponent.UserId : userId;
         }
 
         await CompleteMatchAsync(match, t, w, TournamentMatchFinishReasons.Walkover, awardXp: false, ct);

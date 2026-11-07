@@ -29,7 +29,7 @@ public sealed class TournamentSmokeTests : IAsyncLifetime
     {
         _api = new TournamentSmokeFactory();
         _ = _api.Server;
-        await _api.SeedAsync();
+        await _api.SeedAsync(studentCount: 13);
     }
 
     public Task DisposeAsync()
@@ -353,8 +353,13 @@ public sealed class TournamentSmokeFactory : WebApplicationFactory<Program>
         });
     }
 
-    public async Task SeedAsync()
+    public async Task SeedAsync(int studentCount = 13)
     {
+        if (studentCount is < 2 or > 16)
+        {
+            throw new ArgumentOutOfRangeException(nameof(studentCount));
+        }
+
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<CaleDbContext>();
         await TournamentSchemaGuard.EnsureAsync(db);
@@ -377,7 +382,8 @@ public sealed class TournamentSmokeFactory : WebApplicationFactory<Program>
         db.AddRange(Teacher, OtherTeacher);
         await db.SaveChangesAsync();
 
-        for (var i = 1; i <= 13; i++)
+        Students.Clear();
+        for (var i = 1; i <= studentCount; i++)
         {
             var s = User.RegisterStudent($"Student_Smoke_{i}", $"student.smoke.{i}@pruebas.test", hash, now, School.Id);
             s.MarkEmailConfirmed();
