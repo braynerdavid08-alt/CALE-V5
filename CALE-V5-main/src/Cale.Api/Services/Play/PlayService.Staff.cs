@@ -5,6 +5,7 @@ using Cale.BuildingBlocks.Domain.Engagement;
 using Cale.BuildingBlocks.Domain.Exceptions;
 using Cale.Modules.Assessment.Domain;
 using Cale.Modules.Assessment.Domain.Gamification;
+using Cale.Modules.Catalog.Domain;
 using Cale.Modules.Classroom.Domain;
 using Cale.Modules.Identity.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +29,76 @@ public sealed partial class PlayService
                 CorrectOptionId(questions[id]),
                 questions[id].Explanation))
             .ToList();
+    }
+
+    public sealed record TournamentPick(int QuestionId, int CorrectOptionId, PlayQuestionDto Dto);
+
+    /// <summary>Builds a shared question set for a tournament match (server keeps CorrectOptionId).</summary>
+    public async Task<IReadOnlyList<TournamentPick>> BuildTournamentQuestionsAsync(
+        int teacherUserId,
+        int schoolUserId,
+        int count,
+        string questionMode,
+        IReadOnlyList<string>? categories,
+        IReadOnlyList<int>? manualIds,
+        CancellationToken ct,
+        IReadOnlySet<int>? excludeIds = null)
+    {
+        count = Math.Clamp(count, 1, 40);
+        excludeIds ??= new HashSet<int>();
+        List<int> picked;
+        if (string.Equals(questionMode, "manual", StringComparison.OrdinalIgnoreCase)
+            && manualIds is { Count: > 0 })
+        {
+            picked = manualIds.Where(id => !excludeIds.Contains(id)).Distinct().Take(count).ToList();
+        }
+        else
+        {
+            var official = (await OfficialQuestionIdsAsync(ct)).Where(id => !excludeIds.Contains(id)).ToList();
+            var school = (await SchoolQuestionIdsAsync(teacherUserId, ct))
+                .Where(id => !excludeIds.Contains(id))
+                .ToList();
+            if (categories is { Count: > 0 })
+            {
+                var cats = categories.Select(c => c.Trim().ToLowerInvariant()).Where(c => c.Length > 0).ToHashSet();
+                if (cats.Count > 0)
+                {
+                    var filtered = await _db.Set<Question>().AsNoTracking()
+                        .Where(q => official.Contains(q.Id) || school.Contains(q.Id))
+                        .Select(q => new { q.Id, q.Topic })
+                        .ToListAsync(ct);
+                    var allowed = filtered
+                        .Where(q => q.Topic != null && cats.Contains(q.Topic.Trim().ToLowerInvariant()))
+                        .Select(q => q.Id)
+                        .ToHashSet();
+                    official = official.Where(allowed.Contains).ToList();
+                    school = school.Where(allowed.Contains).ToList();
+                }
+            }
+
+            var seed = Random.Shared.Next();
+            picked = MixPools(school, official, seed, count, Math.Min(DuelSchoolShare + 2, count));
+        }
+
+        var questions = await LoadQuestionsAsync(picked, ct);
+        var result = new List<TournamentPick>();
+        foreach (var id in picked)
+        {
+            if (!questions.TryGetValue(id, out var q))
+            {
+                continue;
+            }
+
+            var correct = CorrectOptionId(q);
+            if (correct is null)
+            {
+                continue;
+            }
+
+            result.Add(new TournamentPick(id, correct.Value, ToDto(q, id)));
+        }
+
+        return result;
     }
 
     public async Task<string> GetDisplayNameAsync(int userId, CancellationToken ct)

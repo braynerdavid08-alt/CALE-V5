@@ -73,8 +73,10 @@ public sealed class PlayController : ControllerBase
     public Task<RankingDto> Ranking(
         [FromQuery] string? scope,
         [FromQuery] int? groupId,
+        [FromQuery] string? period,
+        [FromQuery] string? metric,
         CancellationToken ct) =>
-        _play.GetRankingAsync(UserId, scope, groupId, ct);
+        _play.GetRankingAsync(UserId, scope, groupId, period, metric, ct);
 
     [HttpPut("ranking/visibility")]
     public async Task<IActionResult> RankingVisibility(RankingVisibilityRequest request, CancellationToken ct)

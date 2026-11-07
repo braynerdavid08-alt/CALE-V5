@@ -289,6 +289,7 @@ export class TheoryApi {
     topicId: number;
     classroomId: number;
     capacity?: number;
+    instructorUserId?: number | null;
     notes?: string;
   }) {
     return this.http.post<TheoryClassSessionDto>(`${this.schoolBase}/sessions`, body);
@@ -303,6 +304,7 @@ export class TheoryApi {
     topicId: number;
     classroomId: number;
     capacity?: number;
+    instructorUserId?: number | null;
     notes?: string;
   }) {
     return this.http.post<{ created: number; skippedExisting: number; skippedInvalidDay: number }>(

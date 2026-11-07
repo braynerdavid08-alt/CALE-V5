@@ -144,9 +144,16 @@ public sealed record RankingEntryDto(
     int Xp,
     bool IsMe,
     string? PhotoUrl = null,
-    DateTime? PositionHeldSinceUtc = null);
+    DateTime? PositionHeldSinceUtc = null,
+    int Trophies = 0,
+    int Achievements = 0,
+    double? GeneralScore = null,
+    string? LastTrophyName = null,
+    string? LastAchievementCode = null);
 
 public sealed record RankingScopeDto(string Scope, string Label, int? GroupId);
+
+public sealed record RankingPeriodDto(string Key, string Label);
 
 public sealed record RankingDto(
     string Scope,
@@ -159,7 +166,14 @@ public sealed record RankingDto(
     int MyXp,
     int Participants,
     bool ShowInRanking,
-    IReadOnlyList<RankingScopeDto> Scopes);
+    IReadOnlyList<RankingScopeDto> Scopes,
+    string Metric = "xp",
+    string PeriodKey = "2y",
+    string FormulaVersion = RankingWeightsV1.Version,
+    int MyTrophies = 0,
+    int MyAchievements = 0,
+    double? MyGeneralScore = null,
+    IReadOnlyList<RankingPeriodDto>? Periods = null);
 
 public sealed record RankingVisibilityRequest(bool ShowInRanking);
 
@@ -181,7 +195,8 @@ public sealed record PlaySummaryDto(
     int TotalBadges,
     decimal? LastPercent,
     bool? LastPassed,
-    IReadOnlyList<BadgeDto> NewBadges);
+    IReadOnlyList<BadgeDto> NewBadges,
+    int TrophyCount = 0);
 
 public sealed record InactiveStudentDto(
     int UserId,

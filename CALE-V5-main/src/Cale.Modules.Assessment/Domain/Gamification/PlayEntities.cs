@@ -46,6 +46,10 @@ public sealed class GameResult
     public bool Won { get; set; }
     public int? OpponentId { get; set; }
     public DateTime PlayedAt { get; set; }
+    /// <summary>
+    /// Idempotency key for rewards (e.g. tournament:{matchId}:{userId}:win). Unique when set.
+    /// </summary>
+    public string? SourceKey { get; set; }
 }
 
 public sealed class PlayerProfile
@@ -71,4 +75,5 @@ public static class GameKinds
     public const string Duel = "duel";
     /** Canvas HTML mobility minigames (cond / cruce / sen / freno). */
     public const string Movilidad = "movilidad";
+    public const string Tournament = "tournament";
 }

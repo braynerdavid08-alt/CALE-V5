@@ -77,6 +77,13 @@ export class StudentHomePage implements OnInit {
       icon: 'users'
     },
     {
+      id: 'tournaments',
+      label: 'Torneos',
+      hint: 'Llaves, trofeos y campeones',
+      path: '/student/play/tournaments',
+      icon: 'star'
+    },
+    {
       id: 'achievements',
       label: 'Mis logros',
       hint: 'Nivel e insignias',
