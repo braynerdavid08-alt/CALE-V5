@@ -53,6 +53,11 @@ public sealed partial class TheoryTrainingService
             ? Math.Min(request.Capacity.Value, classroom.Capacity)
             : classroom.Capacity;
 
+        var instructorUserId = await ResolveInstructorUserIdAsync(
+            schoolUserId,
+            request.InstructorUserId,
+            ct);
+
         var (openUtc, closeUtc) = ColombiaTime.ComputeReservationWindow(
             request.SessionDate,
             start,
@@ -65,7 +70,7 @@ public sealed partial class TheoryTrainingService
             SchoolUserId = schoolUserId,
             TopicId = topic.Id,
             ClassroomId = classroom.Id,
-            InstructorUserId = request.InstructorUserId,
+            InstructorUserId = instructorUserId,
             SessionDate = request.SessionDate,
             StartTime = start,
             EndTime = end,
@@ -125,6 +130,10 @@ public sealed partial class TheoryTrainingService
         var capacity = request.Capacity is > 0
             ? Math.Min(request.Capacity.Value, classroom.Capacity)
             : classroom.Capacity;
+        var instructorUserId = await ResolveInstructorUserIdAsync(
+            schoolUserId,
+            request.InstructorUserId,
+            ct);
         var notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
         var today = ColombiaTime.TodayInColombia();
         var from = request.FromDate < today ? today : request.FromDate;
@@ -187,7 +196,7 @@ public sealed partial class TheoryTrainingService
                 SchoolUserId = schoolUserId,
                 TopicId = topic.Id,
                 ClassroomId = classroom.Id,
-                InstructorUserId = request.InstructorUserId,
+                InstructorUserId = instructorUserId,
                 SessionDate = date,
                 StartTime = start,
                 EndTime = end,
@@ -399,9 +408,14 @@ public sealed partial class TheoryTrainingService
             settings.ReservationCloseMinutesBefore,
             TheoryBookingPolicy.ReservationOpenDaysBefore(settings, request.SessionDate));
 
+        var instructorUserId = await ResolveInstructorUserIdAsync(
+            schoolUserId,
+            request.InstructorUserId,
+            ct);
+
         session.TopicId = topic.Id;
         session.ClassroomId = classroom.Id;
-        session.InstructorUserId = request.InstructorUserId;
+        session.InstructorUserId = instructorUserId;
         session.SessionDate = request.SessionDate;
         session.StartTime = start;
         session.EndTime = end;

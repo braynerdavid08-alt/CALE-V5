@@ -21,6 +21,29 @@ public sealed partial class TheoryTrainingService
 {
     // ── Helpers ─────────────────────────────────────────────────────────
 
+    private async Task<int?> ResolveInstructorUserIdAsync(
+        int schoolUserId,
+        int? instructorUserId,
+        CancellationToken ct)
+    {
+        if (instructorUserId is null or <= 0)
+        {
+            return null;
+        }
+
+        var instructor = await _users.GetByIdAsync(instructorUserId.Value, ct)
+            ?? throw new DomainException("Instructor no válido.", 400, "invalid_instructor");
+        if (instructor.SchoolId != schoolUserId || instructor.Role != Roles.Teacher)
+        {
+            throw new DomainException(
+                "El instructor debe pertenecer a tu escuela.",
+                400,
+                "invalid_instructor");
+        }
+
+        return instructor.Id;
+    }
+
     private async Task<TheoryClassSessionDto> MapSessionAsync(
         int sessionId,
         int? studentUserId,
