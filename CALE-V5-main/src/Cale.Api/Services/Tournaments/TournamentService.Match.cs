@@ -197,7 +197,8 @@ public sealed partial class TournamentService
             ParseCategories(tournament.CategoryFilterJson),
             null,
             ct,
-            excludeIds: existingIds);
+            excludeIds: existingIds,
+            bankIds: ParseIds(tournament.BankIdsJson));
 
         if (extra.Count == 0)
         {
@@ -285,6 +286,7 @@ public sealed partial class TournamentService
             .Include(m => m.Questions)
             .Include(m => m.Answers)
             .Where(m => m.Status == TournamentMatchStatuses.Active && m.QuestionStartedAt != null)
+            .OrderBy(m => m.Id)
             .Take(100)
             .ToListAsync(ct);
 
@@ -338,6 +340,7 @@ public sealed partial class TournamentService
         // Walkover after disconnect grace
         var disconnected = await _db.Set<TournamentParticipant>()
             .Where(p => !p.IsConnected && p.DisconnectedAt != null && !p.IsEliminated)
+            .OrderBy(p => p.Id)
             .Take(50)
             .ToListAsync(ct);
         foreach (var p in disconnected)
@@ -524,6 +527,11 @@ public sealed partial class TournamentService
         var names = await _db.Set<TournamentParticipant>().AsNoTracking()
             .Where(p => p.TournamentId == tournament.Id)
             .ToDictionaryAsync(p => p.UserId, p => p.DisplayNameSnapshot, ct);
+        var photos = await PhotoUrlsAsync(
+            new[] { match.Player1UserId, match.Player2UserId }
+                .Where(id => id is int)
+                .Select(id => id!.Value),
+            ct);
 
         var currentQ = match.Questions.FirstOrDefault(q => q.Ordinal == match.CurrentQuestionIndex);
         PlayQuestionDto? questionDto = null;
@@ -585,6 +593,8 @@ public sealed partial class TournamentService
             false,
             match.WinnerUserId,
             match.FinishReason,
-            myAnswers);
+            myAnswers,
+            match.Player1UserId is int a ? photos.GetValueOrDefault(a) : null,
+            match.Player2UserId is int b ? photos.GetValueOrDefault(b) : null);
     }
 }

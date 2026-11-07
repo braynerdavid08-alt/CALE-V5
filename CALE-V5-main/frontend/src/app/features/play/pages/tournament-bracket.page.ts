@@ -16,6 +16,7 @@ import {
   tournamentStatusTone
 } from '../api/tournament.api';
 import { PlayTopbarComponent } from '../components/play-topbar.component';
+import { tournamentInitials, tournamentPhotoSrc } from '../tournament-avatar';
 
 const FALLBACK_REFRESH_MS = 8000;
 
@@ -60,6 +61,13 @@ interface BracketRound {
           @if (b.championName) {
             <div class="play-card champion">
               <p class="big">🏆</p>
+              <span class="t-avatar lg" aria-hidden="true">
+                @if (photoSrc(b.championPhotoUrl); as src) {
+                  <img [src]="src" alt="" />
+                } @else {
+                  {{ initials(b.championName) }}
+                }
+              </span>
               <span class="muted">Campeón</span>
               <strong>{{ b.championName }}</strong>
             </div>
@@ -103,6 +111,13 @@ interface BracketRound {
           [class.winner]="m.winnerUserId != null && m.winnerUserId === m.player1UserId"
           [class.empty]="!m.player1Name"
           [class.me]="m.player1UserId === myId()">
+          <span class="t-avatar sm" aria-hidden="true">
+            @if (slotPhoto(m, 1); as src) {
+              <img [src]="src" alt="" />
+            } @else {
+              {{ initials(slotName(m, 1)) }}
+            }
+          </span>
           <strong>{{ slotName(m, 1) }}</strong>
           <span class="bm-score">{{ m.player1Correct }}</span>
         </div>
@@ -111,6 +126,13 @@ interface BracketRound {
           [class.winner]="m.winnerUserId != null && m.winnerUserId === m.player2UserId"
           [class.empty]="!m.player2Name"
           [class.me]="m.player2UserId === myId()">
+          <span class="t-avatar sm" aria-hidden="true">
+            @if (slotPhoto(m, 2); as src) {
+              <img [src]="src" alt="" />
+            } @else {
+              {{ initials(slotName(m, 2)) }}
+            }
+          </span>
           <strong>{{ slotName(m, 2) }}</strong>
           <span class="bm-score">{{ m.player2Correct }}</span>
         </div>
@@ -155,6 +177,8 @@ export class TournamentBracketPage implements OnInit, OnDestroy {
 
   readonly label = tournamentStatusLabel;
   readonly tone = tournamentStatusTone;
+  photoSrc = tournamentPhotoSrc;
+  initials = tournamentInitials;
 
   private hub: TournamentHubHandle | null = null;
   private destroyed = false;
@@ -197,6 +221,12 @@ export class TournamentBracketPage implements OnInit, OnDestroy {
     const name = player === 1 ? m.player1Name : m.player2Name;
     if (isBye) return 'BYE';
     return name || 'Por definir';
+  }
+
+  slotPhoto(m: TournamentBracketMatch, player: 1 | 2): string | null {
+    const isBye = player === 1 ? m.player1IsBye : m.player2IsBye;
+    if (isBye) return null;
+    return this.photoSrc(player === 1 ? m.player1PhotoUrl : m.player2PhotoUrl);
   }
 
   footText(m: TournamentBracketMatch): string {

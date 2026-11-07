@@ -33,7 +33,7 @@ public sealed partial class TournamentService
 
         if (participants.Count > MaxCapacity)
         {
-            throw new DomainException($"Máximo {MaxCapacity} participantes en V1.", 400, "too_many_players");
+            throw new DomainException($"Máximo {MaxCapacity} participantes por aula.", 400, "too_many_players");
         }
 
         // School isolation
@@ -189,6 +189,13 @@ public sealed partial class TournamentService
         await EnsureCanViewAsync(t, actorUserId, ct);
 
         var names = t.Participants.ToDictionary(p => p.UserId, p => p.DisplayNameSnapshot);
+        var photos = await PhotoUrlsAsync(
+            t.Participants.Select(p => p.UserId)
+                .Concat(t.Rounds.SelectMany(r => r.Matches)
+                    .SelectMany(m => new[] { m.Player1UserId, m.Player2UserId, m.WinnerUserId })
+                    .Where(id => id is int)
+                    .Select(id => id!.Value)),
+            ct);
         var matches = t.Rounds
             .SelectMany(r => r.Matches.Select(m => new TournamentBracketMatchDto(
                 m.Id,
@@ -205,15 +212,19 @@ public sealed partial class TournamentService
                 m.WinnerUserId,
                 m.FinishReason,
                 m.Player1Correct,
-                m.Player2Correct)))
+                m.Player2Correct,
+                m.Player1UserId is int a ? photos.GetValueOrDefault(a) : null,
+                m.Player2UserId is int b ? photos.GetValueOrDefault(b) : null)))
             .OrderBy(m => m.RoundNumber)
             .ThenBy(m => m.SlotIndex)
             .ToList();
 
         string? championName = null;
+        string? championPhoto = null;
         if (t.ChampionUserId is int c)
         {
             championName = names.GetValueOrDefault(c);
+            championPhoto = photos.GetValueOrDefault(c);
         }
 
         return new TournamentBracketDto(
@@ -223,7 +234,8 @@ public sealed partial class TournamentService
             t.CurrentRoundNumber,
             matches,
             t.ChampionUserId,
-            championName);
+            championName,
+            championPhoto);
     }
 
     private async Task FinishMatchAsByeAsync(TournamentMatch match, int winnerUserId, CancellationToken ct)
@@ -247,7 +259,8 @@ public sealed partial class TournamentService
             tournament.QuestionMode,
             ParseCategories(tournament.CategoryFilterJson),
             ParseIds(tournament.ManualQuestionIdsJson),
-            ct);
+            ct,
+            bankIds: ParseIds(tournament.BankIdsJson));
 
         if (questions.Count < tournament.QuestionsPerMatch)
         {

@@ -42,7 +42,8 @@ public sealed partial class PlayService
         IReadOnlyList<string>? categories,
         IReadOnlyList<int>? manualIds,
         CancellationToken ct,
-        IReadOnlySet<int>? excludeIds = null)
+        IReadOnlySet<int>? excludeIds = null,
+        IReadOnlyList<int>? bankIds = null)
     {
         count = Math.Clamp(count, 1, 40);
         excludeIds ??= new HashSet<int>();
@@ -51,6 +52,42 @@ public sealed partial class PlayService
             && manualIds is { Count: > 0 })
         {
             picked = manualIds.Where(id => !excludeIds.Contains(id)).Distinct().Take(count).ToList();
+        }
+        else if (bankIds is { Count: > 0 })
+        {
+            var bankSet = bankIds.Where(id => id > 0).Distinct().ToList();
+            var pool = await _db.Set<Question>().AsNoTracking()
+                .Where(q => q.IsActive
+                    && bankSet.Contains(q.BankId)
+                    && !excludeIds.Contains(q.Id)
+                    && (q.Explanation == null || !q.Explanation.Contains("Importada sin clave"))
+                    && q.Options.Count() >= 2
+                    && q.Options.Count(o => o.IsCorrect) == 1)
+                .OrderBy(q => q.Id)
+                .Select(q => q.Id)
+                .ToListAsync(ct);
+            if (categories is { Count: > 0 })
+            {
+                var cats = categories.Select(c => c.Trim().ToLowerInvariant()).Where(c => c.Length > 0).ToHashSet();
+                if (cats.Count > 0)
+                {
+                    var topics = await _db.Set<Question>().AsNoTracking()
+                        .Where(q => pool.Contains(q.Id))
+                        .OrderBy(q => q.Id)
+                        .Select(q => new { q.Id, q.Topic })
+                        .ToListAsync(ct);
+                    pool = topics
+                        .Where(q => q.Topic != null && cats.Contains(q.Topic.Trim().ToLowerInvariant()))
+                        .Select(q => q.Id)
+                        .ToList();
+                }
+            }
+
+            var seed = Random.Shared.Next();
+            picked = pool
+                .OrderBy(id => StableHash(seed, id))
+                .Take(count)
+                .ToList();
         }
         else
         {
@@ -65,6 +102,7 @@ public sealed partial class PlayService
                 {
                     var filtered = await _db.Set<Question>().AsNoTracking()
                         .Where(q => official.Contains(q.Id) || school.Contains(q.Id))
+                        .OrderBy(q => q.Id)
                         .Select(q => new { q.Id, q.Topic })
                         .ToListAsync(ct);
                     var allowed = filtered

@@ -24,7 +24,7 @@ export interface CreateTournamentRequest {
   description?: string | null;
   /** ISO 8601 (UTC). */
   scheduledAt: string;
-  /** 4 | 8 | 16 */
+  /** 4..20 registration cap (bracket uses BYEs for actual count). */
   capacity: number;
   /** 10..120 */
   secondsPerQuestion: number;
@@ -32,6 +32,15 @@ export interface CreateTournamentRequest {
   questionMode: string;
   categories?: string[] | null;
   manualQuestionIds?: number[] | null;
+  /** Optional bank ids (official / school / exam). Empty = default mix. */
+  bankIds?: number[] | null;
+}
+
+export interface TournamentQuestionBank {
+  id: number;
+  name: string;
+  /** 'official' | 'school' | 'exam' */
+  kind: string;
 }
 
 export interface TournamentListItem {
@@ -54,6 +63,7 @@ export interface TournamentParticipant {
   isConnected: boolean;
   isEliminated: boolean;
   bracketSlot?: number | null;
+  photoUrl?: string | null;
 }
 
 export interface TournamentLobby {
@@ -73,6 +83,7 @@ export interface TournamentLobby {
   myMatchId?: number | null;
   championUserId?: number | null;
   championName?: string | null;
+  championPhotoUrl?: string | null;
 }
 
 export interface TournamentBracketMatch {
@@ -91,6 +102,8 @@ export interface TournamentBracketMatch {
   finishReason?: TournamentFinishReason | string | null;
   player1Correct: number;
   player2Correct: number;
+  player1PhotoUrl?: string | null;
+  player2PhotoUrl?: string | null;
 }
 
 export interface TournamentBracket {
@@ -101,6 +114,7 @@ export interface TournamentBracket {
   matches: TournamentBracketMatch[];
   championUserId?: number | null;
   championName?: string | null;
+  championPhotoUrl?: string | null;
 }
 
 export interface TournamentMatchView {
@@ -130,6 +144,8 @@ export interface TournamentMatchView {
   winnerUserId?: number | null;
   finishReason?: TournamentFinishReason | string | null;
   myAnswers: AnsweredQuestion[];
+  player1PhotoUrl?: string | null;
+  player2PhotoUrl?: string | null;
 }
 
 export interface TournamentAnswerRequest {
@@ -227,6 +243,10 @@ export class TournamentApi {
 
   list() {
     return this.http.get<TournamentListItem[]>(this.base);
+  }
+
+  questionBanks() {
+    return this.http.get<TournamentQuestionBank[]>(`${this.base}/question-banks`);
   }
 
   create(body: CreateTournamentRequest) {

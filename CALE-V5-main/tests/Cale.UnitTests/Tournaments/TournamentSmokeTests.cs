@@ -355,7 +355,7 @@ public sealed class TournamentSmokeFactory : WebApplicationFactory<Program>
 
     public async Task SeedAsync(int studentCount = 13)
     {
-        if (studentCount is < 2 or > 16)
+        if (studentCount is < 2 or > 20)
         {
             throw new ArgumentOutOfRangeException(nameof(studentCount));
         }

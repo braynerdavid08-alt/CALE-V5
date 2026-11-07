@@ -18,6 +18,7 @@ import { PlayBadgesToastComponent } from '../components/play-badges-toast.compon
 import { PlayQuestionComponent } from '../components/play-question.component';
 import { PlayTopbarComponent } from '../components/play-topbar.component';
 import { PlayFxService } from '../play-fx.service';
+import { tournamentInitials, tournamentPhotoSrc } from '../tournament-avatar';
 
 /** Safety net: the hub pushes MatchUpdated, polling covers dropped sockets and timeouts. */
 const POLL_MS = 3000;
@@ -55,6 +56,13 @@ interface HeldAnswer {
           <div class="play-card">
             <div class="versus">
               <div class="player">
+                <span class="t-avatar lg" aria-hidden="true">
+                  @if (photoSrc(s.player1PhotoUrl); as src) {
+                    <img [src]="src" alt="" />
+                  } @else {
+                    {{ initials(s.player1Name) }}
+                  }
+                </span>
                 <strong>{{ s.player1Name }}{{ s.player1UserId === myId() ? ' (tú)' : '' }}</strong>
                 <span class="score">{{ s.player1Correct }}</span>
                 <small>aciertos</small>
@@ -65,6 +73,13 @@ interface HeldAnswer {
                 <span class="vs">VS</span>
               }
               <div class="player right">
+                <span class="t-avatar lg" aria-hidden="true">
+                  @if (photoSrc(s.player2PhotoUrl); as src) {
+                    <img [src]="src" alt="" />
+                  } @else {
+                    {{ initials(s.player2Name) }}
+                  }
+                </span>
                 <strong>{{ s.player2Name }}{{ s.player2UserId === myId() ? ' (tú)' : '' }}</strong>
                 <span class="score">{{ s.player2Correct }}</span>
                 <small>aciertos</small>
@@ -159,6 +174,8 @@ export class TournamentMatchPage implements OnInit, OnDestroy {
   private readonly now = signal(Date.now());
 
   readonly myId = computed(() => this.session.user()?.id ?? -1);
+  photoSrc = tournamentPhotoSrc;
+  initials = tournamentInitials;
 
   readonly backLink = computed(() => {
     const s = this.state();

@@ -7,6 +7,7 @@ using Cale.BuildingBlocks.Domain.Time;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
 using Cale.Modules.Assessment.Domain;
 using Cale.Modules.Assessment.Domain.Gamification;
+using Cale.Modules.Catalog.Domain;
 using Cale.Modules.Identity.Domain;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,10 +16,9 @@ namespace Cale.Api.Services.Tournaments;
 public sealed partial class TournamentService
 {
     public const int MinCapacity = 4;
-    public const int MaxCapacity = 16;
+    public const int MaxCapacity = 20;
     public const int DefaultQuestions = 10;
     public const int DisconnectGraceSeconds = 60;
-    private static readonly int[] AllowedCapacities = [4, 8, 16];
     private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web);
 
     private readonly CaleDbContext _db;
@@ -63,10 +63,15 @@ public sealed partial class TournamentService
             throw new DomainException("El nombre del torneo debe tener entre 3 y 120 caracteres.", 400, "invalid_name");
         }
 
-        var capacity = AllowedCapacities.Contains(request.Capacity)
-            ? request.Capacity
-            : throw new DomainException("La capacidad debe ser 4, 8 o 16.", 400, "invalid_capacity");
+        if (request.Capacity is < MinCapacity or > MaxCapacity)
+        {
+            throw new DomainException(
+                $"La capacidad debe estar entre {MinCapacity} y {MaxCapacity}.",
+                400,
+                "invalid_capacity");
+        }
 
+        var capacity = request.Capacity;
         var seconds = Math.Clamp(request.SecondsPerQuestion is > 0 ? request.SecondsPerQuestion : 30, 10, 120);
         var mode = string.Equals(request.QuestionMode, TournamentQuestionModes.Manual, StringComparison.OrdinalIgnoreCase)
             ? TournamentQuestionModes.Manual
@@ -80,6 +85,8 @@ public sealed partial class TournamentService
                 400,
                 "questions_required");
         }
+
+        var bankIds = await NormalizeBankIdsAsync(teacherUserId, schoolId, request.BankIds, ct);
 
         var now = _clock.UtcNow;
         var tournament = new Tournament
@@ -100,6 +107,9 @@ public sealed partial class TournamentService
                 : null,
             ManualQuestionIdsJson = mode == TournamentQuestionModes.Manual
                 ? JsonSerializer.Serialize(request.ManualQuestionIds!.Distinct().Take(40).ToList(), JsonOpts)
+                : null,
+            BankIdsJson = bankIds is { Count: > 0 }
+                ? JsonSerializer.Serialize(bankIds, JsonOpts)
                 : null,
             Status = TournamentStatuses.RegistrationOpen,
             BracketSize = 0,
@@ -203,7 +213,8 @@ public sealed partial class TournamentService
             participant.DisplayNameSnapshot,
             false,
             false,
-            null);
+            null,
+            student.PhotoUrl);
         await _broadcast.ParticipantJoined(t.Id, dto, ct);
         var lobby = await ToLobbyAsync(t, studentUserId, ct);
         await _broadcast.LobbyUpdated(t.Id, lobby, ct);
@@ -385,6 +396,7 @@ public sealed partial class TournamentService
 
     private async Task<TournamentLobbyDto> ToLobbyAsync(Tournament t, int actorUserId, CancellationToken ct)
     {
+        var photos = await PhotoUrlsAsync(t.Participants.Select(p => p.UserId), ct);
         var participants = t.Participants
             .OrderBy(p => p.JoinedAt)
             .Select(p => new TournamentParticipantDto(
@@ -392,14 +404,17 @@ public sealed partial class TournamentService
                 p.DisplayNameSnapshot,
                 p.IsConnected,
                 p.IsEliminated,
-                p.BracketSlot))
+                p.BracketSlot,
+                photos.GetValueOrDefault(p.UserId)))
             .ToList();
 
         string? championName = null;
+        string? championPhoto = null;
         if (t.ChampionUserId is int champ)
         {
-            championName = participants.FirstOrDefault(p => p.UserId == champ)?.Name
-                ?? await OrganizerNameAsync(champ, ct);
+            var champRow = participants.FirstOrDefault(p => p.UserId == champ);
+            championName = champRow?.Name ?? await OrganizerNameAsync(champ, ct);
+            championPhoto = champRow?.PhotoUrl ?? photos.GetValueOrDefault(champ);
         }
 
         var amI = participants.Any(p => p.UserId == actorUserId);
@@ -419,7 +434,21 @@ public sealed partial class TournamentService
             t.Status == TournamentStatuses.RegistrationOpen && !amI && participants.Count < t.Capacity,
             await FindActiveMatchIdAsync(t.Id, actorUserId, ct),
             t.ChampionUserId,
-            championName);
+            championName,
+            championPhoto);
+    }
+
+    private async Task<Dictionary<int, string?>> PhotoUrlsAsync(IEnumerable<int> userIds, CancellationToken ct)
+    {
+        var ids = userIds.Where(id => id > 0).Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, string?>();
+        }
+
+        return await _db.Set<User>().AsNoTracking()
+            .Where(u => ids.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.PhotoUrl, ct);
     }
 
     private async Task<int?> FindActiveMatchIdAsync(int tournamentId, int userId, CancellationToken ct)
@@ -430,5 +459,118 @@ public sealed partial class TournamentService
                 && (m.Player1UserId == userId || m.Player2UserId == userId))
             .Select(m => (int?)m.Id)
             .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<TournamentQuestionBankDto>> ListQuestionBanksAsync(
+        int teacherUserId,
+        CancellationToken ct)
+    {
+        var teacher = await RequireUserAsync(teacherUserId, ct);
+        if (teacher.Role != Roles.Teacher)
+        {
+            throw new DomainException("Solo un profesor puede listar bancos de torneo.", 403, "forbidden");
+        }
+
+        if (teacher.SchoolId is not int schoolId)
+        {
+            throw new DomainException("El profesor debe pertenecer a una escuela.", 400, "no_school");
+        }
+
+        var catalog = await BuildAccessibleBankCatalogAsync(teacherUserId, schoolId, ct);
+        return catalog
+            .OrderBy(b => b.Kind == "official" ? 0 : b.Kind == "exam" ? 1 : 2)
+            .ThenBy(b => b.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private async Task<List<int>?> NormalizeBankIdsAsync(
+        int teacherUserId,
+        int schoolId,
+        IReadOnlyList<int>? requested,
+        CancellationToken ct)
+    {
+        if (requested is null || requested.Count == 0)
+        {
+            return null;
+        }
+
+        var distinct = requested.Where(id => id > 0).Distinct().Take(40).ToList();
+        if (distinct.Count == 0)
+        {
+            return null;
+        }
+
+        var allowed = (await BuildAccessibleBankCatalogAsync(teacherUserId, schoolId, ct))
+            .Select(b => b.Id)
+            .ToHashSet();
+        if (distinct.Any(id => !allowed.Contains(id)))
+        {
+            throw new DomainException(
+                "Uno o más bancos no están disponibles para tu escuela.",
+                400,
+                "invalid_bank");
+        }
+
+        return distinct;
+    }
+
+    private async Task<List<TournamentQuestionBankDto>> BuildAccessibleBankCatalogAsync(
+        int teacherUserId,
+        int schoolId,
+        CancellationToken ct)
+    {
+        var staffIds = await _db.Set<User>().AsNoTracking()
+            .Where(u => u.IsActive && (u.Id == schoolId || u.SchoolId == schoolId))
+            .Select(u => u.Id)
+            .ToListAsync(ct);
+        if (!staffIds.Contains(teacherUserId))
+        {
+            staffIds.Add(teacherUserId);
+        }
+
+        var staffSet = staffIds.ToHashSet();
+
+        var banks = await _db.Set<Bank>().AsNoTracking()
+            .Where(b => b.IsActive
+                && (b.CreatedById == null || (b.CreatedById != null && staffSet.Contains(b.CreatedById.Value))))
+            .Select(b => new { b.Id, b.Name, b.CreatedById })
+            .ToListAsync(ct);
+
+        var examBankIds = await _db.Set<Exam>().AsNoTracking()
+            .Where(e => e.Published
+                && e.IsActive
+                && e.BankId != null
+                && staffSet.Contains(e.CreatedById))
+            .Select(e => e.BankId!.Value)
+            .Distinct()
+            .ToListAsync(ct);
+
+        // Include banks that only appear via exam.BankId (even if CreatedById is outside staff).
+        if (examBankIds.Count > 0)
+        {
+            var known = banks.Select(b => b.Id).ToHashSet();
+            var missing = examBankIds.Where(id => !known.Contains(id)).ToList();
+            if (missing.Count > 0)
+            {
+                var extra = await _db.Set<Bank>().AsNoTracking()
+                    .Where(b => b.IsActive && missing.Contains(b.Id))
+                    .Select(b => new { b.Id, b.Name, b.CreatedById })
+                    .ToListAsync(ct);
+                banks.AddRange(extra);
+            }
+        }
+
+        var examSet = examBankIds.ToHashSet();
+        return banks
+            .GroupBy(b => b.Id)
+            .Select(g =>
+            {
+                var b = g.First();
+                var kind = b.CreatedById is null
+                    ? "official"
+                    : examSet.Contains(b.Id) ? "exam" : "school";
+                return new TournamentQuestionBankDto(b.Id, b.Name, kind);
+            })
+            .ToList();
     }
 }
