@@ -36,12 +36,27 @@ Un `TournamentTrophy` por campeonato (snapshot de nombre).
 ## 11. Ranking
 Pesos `RankingWeightsV1` (50/30/20). Métricas: general/xp/trophies/achievements. Periodos: 30d–all (default 2y). Default scope escuela.
 
-## 12. Pruebas
-Unit: `TournamentBracketTests` (7 OK). Build API + Angular OK.
-Pendiente en entorno real: smoke 13 jugadores + carga 16×8 + roles.
+## 12. Pruebas (validación MVP)
+
+| Prueba | Resultado | Evidencia |
+|---|---|---|
+| Build API | PASS | `dotnet build` |
+| Build Angular | PASS | `ng build --configuration=development` |
+| TournamentBracketTests | PASS | 7/7 |
+| Smoke 13 jugadores (API real in-process SQLite) | PASS | `TournamentSmokeTests` — create → join×13 → start → 3 BYE → partidas → campeón → trofeo → `campeon_torneo` → sin XP por BYE → SourceKey único |
+| Roles Admin/School/Teacher/Student (HTTP) | PASS | mismos smoke tests (permisos create/start/join/list/ranking) |
+| Aislamiento entre escuelas | PASS | join/start cross-school → 403 |
+| Idempotencia trofeo (unique index) | PASS | segundo insert falla |
+| UI Angular visual en navegador | NOT TESTED | requiere entorno local/staging con datos |
+| SignalR reconexión / walkover 60s | NOT TESTED | worker deshabilitado en host de test; falta prueba dedicada |
+| Carga 16×8 simultáneos | NOT TESTED | falta entorno de carga |
+| Redis multi-instancia | BLOCKED | no hay Redis en Render Free; documentado en DEPLOY.md |
+| Smoke en producción / staging remoto | BLOCKED | no desplegado (política: sin merge/deploy) |
+
+Corrección durante validación: BYEs se emparejan siempre contra jugadores (nunca BYE vs BYE).
 
 ## 13–14. Carga / roles
-No ejecutadas en producción aún. No desplegar hasta verificar schema + roles.
+Roles HTTP: PASS en smoke. Carga 16×8: NOT TESTED. No merge ni deploy a producción.
 
 ## 15. Archivos clave
 Backend: `Services/Tournaments/*`, `TournamentHub`, `TournamentSchemaGuard`, Play ranking/badges.
