@@ -14,7 +14,10 @@ public sealed record PlayStats(
     int DuelWins,
     int DuelPlayed,
     int LessonsCompleted = 0,
-    int CoursesCompleted = 0)
+    int CoursesCompleted = 0,
+    int TournamentChampionships = 0,
+    int TournamentMatchWins = 0,
+    int TournamentMatchesPlayed = 0)
 {
     public int Xp =>
         TotalCorrect * XpRules.AttemptCorrect
@@ -25,6 +28,8 @@ public sealed record PlayStats(
         + SignsCorrect * XpRules.SignCorrect
         + DuelWins * XpRules.DuelWon
         + DuelPlayed * XpRules.DuelPlayed
+        + TournamentMatchWins * XpRules.DuelWon
+        + TournamentMatchesPlayed * XpRules.DuelPlayed
         + LessonsCompleted * XpRules.LessonCompleted
         + CoursesCompleted * XpRules.CourseCompleted;
 }
@@ -67,6 +72,9 @@ public static class BadgeCatalog
         new("senales_20", "Ojo de águila", "Acierta 20 señales en una partida de Señal relámpago.", "play", 20, s => s.SignsBest),
         new("duelista", "Primer duelo ganado", "Gana un duelo 1 contra 1.", "users", 1, s => s.DuelWins),
         new("duelo_10", "Campeón de duelos", "Gana 10 duelos.", "users", 10, s => s.DuelWins),
+        new("campeon_torneo", "Ganador del torneo", "Gana la gran final de un torneo Luz Verde.", "trophy", 1, s => s.TournamentChampionships),
+        new("campeon_torneo_5", "Pentacampeón", "Gana 5 torneos oficiales.", "trophy", 5, s => s.TournamentChampionships),
+        new("campeon_torneo_10", "Leyenda de torneos", "Gana 10 torneos oficiales.", "trophy", 10, s => s.TournamentChampionships),
         new("curso_1", "Estudiante virtual", "Termina tu primer curso virtual.", "book", 1, s => s.CoursesCompleted),
         new("lecciones_20", "Lector vial", "Completa 20 lecciones de cursos virtuales.", "book", 20, s => s.LessonsCompleted),
         new("cien_aciertos", "Cien respuestas", "Acierta 100 preguntas en simulacros.", "graduate", 100, s => s.TotalCorrect),
