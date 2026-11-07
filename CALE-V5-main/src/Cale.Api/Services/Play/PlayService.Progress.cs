@@ -47,6 +47,9 @@ public sealed partial class PlayService
 
         var signs = games.Where(g => g.Game == GameKinds.Signs).ToList();
         var duels = games.Where(g => g.Game == GameKinds.Duel).ToList();
+        var tournaments = games.Where(g => g.Game == GameKinds.Tournament).ToList();
+        var championships = await _db.Set<TournamentTrophy>().AsNoTracking()
+            .CountAsync(t => t.UserId == userId, ct);
 
         var stats = new PlayStats(
             attempts.Count,
@@ -62,7 +65,10 @@ public sealed partial class PlayService
             duels.Count(d => d.Won),
             duels.Count,
             courses.Lessons,
-            courses.Courses);
+            courses.Courses,
+            championships,
+            tournaments.Count(t => t.Won),
+            tournaments.Count);
         return (stats, streak);
     }
 
@@ -184,14 +190,31 @@ public sealed partial class PlayService
             Math.Min(def.Current(stats), def.Target),
             def.Target);
 
-    // ───────────────────────── Ranking (últimos 2 años) ─────────────────────────
+    // ───────────────────────── Ranking (periods + metrics) ─────────────────────────
 
-    private const int RankingYears = 2;
+    private static readonly RankingPeriodDto[] RankingPeriods =
+    [
+        new("30d", "Últimos 30 días"),
+        new("90d", "Últimos 90 días"),
+        new("6m", "Últimos 6 meses"),
+        new("1y", "Último año"),
+        new("2y", "Últimos 2 años"),
+        new("all", "Histórico general")
+    ];
+
+    public Task<RankingDto> GetRankingAsync(
+        int userId,
+        string? scope,
+        int? groupId,
+        CancellationToken ct) =>
+        GetRankingAsync(userId, scope, groupId, "2y", "xp", ct);
 
     public async Task<RankingDto> GetRankingAsync(
         int userId,
         string? scope,
         int? groupId,
+        string? period,
+        string? metric,
         CancellationToken ct)
     {
         var me = await _db.Set<User>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId, ct)
@@ -206,7 +229,6 @@ public sealed partial class PlayService
             .Select(g => new { g.Id, g.Name })
             .ToListAsync(ct);
 
-        // School + global always stay available; class groups are optional extras.
         var scopes = new List<RankingScopeDto>();
         if (me.SchoolId is not null)
         {
@@ -227,8 +249,9 @@ public sealed partial class PlayService
             ? groups.FirstOrDefault(g => g.Id == groupId) ?? groups[0]
             : null;
 
-        var periodEnd = ColombiaTime.TodayInColombia();
-        var periodStart = periodEnd.AddYears(-RankingYears);
+        var periodKey = NormalizePeriodKey(period);
+        var (periodStart, periodEnd) = ResolvePeriod(periodKey);
+        var metricKey = NormalizeMetricKey(metric);
 
         var holdScopeKey = resolved switch
         {
@@ -236,20 +259,26 @@ public sealed partial class PlayService
             "group" => $"group:{selectedGroup?.Id}",
             _ => "global"
         };
-        var boardKey = $"play:board:{holdScopeKey}:2y:{periodStart:yyyyMMdd}";
-        if (!_cache.TryGetValue(boardKey, out List<BoardRow>? cachedBoard) || cachedBoard is null)
+        var boardKey = $"play:board:{holdScopeKey}:{periodKey}:{periodStart:yyyyMMdd}:{metricKey}";
+        if (!_cache.TryGetValue(boardKey, out List<CompetitiveRow>? cachedBoard) || cachedBoard is null)
         {
-            cachedBoard = await LoadBoardAsync(resolved, me.SchoolId, selectedGroup?.Id, periodStart, periodEnd, ct);
+            cachedBoard = await LoadCompetitiveBoardAsync(
+                resolved,
+                me.SchoolId,
+                selectedGroup?.Id,
+                periodStart,
+                periodEnd,
+                ct);
             CacheSmall(boardKey, cachedBoard, TimeSpan.FromMinutes(2));
         }
 
         var myXp = (await ComputePeriodXpAsync([userId], periodStart, periodEnd, ct)).GetValueOrDefault(userId);
+        var myTrophies = await CountTrophiesAsync(userId, periodStart, periodEnd, ct);
+        var myAchievements = await CountAchievementsAsync(userId, periodStart, periodEnd, ct);
         var students = cachedBoard
             .Where(s => s.Id != userId)
-            .Append(new BoardRow(userId, me.Name, myXp, me.PhotoUrl))
+            .Append(new CompetitiveRow(userId, me.Name, myXp, myTrophies, myAchievements, me.PhotoUrl, null, null))
             .ToList();
-        var xp = students.ToDictionary(s => s.Id, s => s.Xp);
-        var photos = students.ToDictionary(s => s.Id, s => s.PhotoUrl);
 
         var hidden = await _db.Set<PlayerProfile>().AsNoTracking()
             .Where(p => !p.ShowInRanking)
@@ -257,27 +286,20 @@ public sealed partial class PlayService
             .ToListAsync(ct);
         var myVisible = !hidden.Contains(userId);
 
-        var board = students
-            .Where(s => !hidden.Contains(s.Id))
-            .Select(s => new { s.Id, s.Name, Xp = xp.GetValueOrDefault(s.Id), PhotoUrl = photos.GetValueOrDefault(s.Id) })
-            .Where(s => s.Xp > 0 || s.Id == userId)
-            .OrderByDescending(s => s.Xp)
-            .ThenBy(s => s.Name)
-            .ToList();
+        var visible = students.Where(s => !hidden.Contains(s.Id)).ToList();
+        var entries = RankCompetitive(visible, userId, metricKey, PublicName);
 
-        var ranked = board
-            .Select((s, i) => (Position: i + 1, s.Id, s.Name, s.Xp, s.PhotoUrl, IsMe: s.Id == userId))
-            .ToList();
-        var heldSince = await SyncRankingHoldsAsync(holdScopeKey, ranked, ct);
-        var entries = ranked
-            .Select(s => new RankingEntryDto(
-                s.Position,
-                s.Id,
-                PublicName(s.Name),
-                s.Xp,
-                s.IsMe,
-                s.PhotoUrl,
-                heldSince.GetValueOrDefault(s.Id)))
+        Dictionary<int, DateTime> heldSince = [];
+        if (metricKey == "xp")
+        {
+            var forHolds = entries
+                .Select(e => (e.Position, e.UserId, e.DisplayName, e.Xp, e.PhotoUrl, e.IsMe))
+                .ToList();
+            heldSince = await SyncRankingHoldsAsync(holdScopeKey, forHolds, ct);
+        }
+
+        entries = entries
+            .Select(e => e with { PositionHeldSinceUtc = heldSince.GetValueOrDefault(e.UserId) })
             .ToList();
         var mine = entries.FirstOrDefault(e => e.IsMe);
 
@@ -296,11 +318,195 @@ public sealed partial class PlayService
             periodEnd,
             entries.Take(20).Concat(mine is { Position: > 20 } ? [mine] : []).ToList(),
             mine?.Position,
-            xp.GetValueOrDefault(userId),
+            myXp,
             entries.Count,
             myVisible,
-            scopes);
+            scopes,
+            metricKey,
+            periodKey,
+            RankingWeightsV1.Version,
+            myTrophies,
+            myAchievements,
+            mine?.GeneralScore,
+            RankingPeriods);
     }
+
+    private static string NormalizePeriodKey(string? period) =>
+        period?.ToLowerInvariant() switch
+        {
+            "30d" or "90d" or "6m" or "1y" or "2y" or "all" => period.ToLowerInvariant(),
+            _ => "2y"
+        };
+
+    private static string NormalizeMetricKey(string? metric) =>
+        metric?.ToLowerInvariant() switch
+        {
+            "general" or "trophies" or "achievements" or "xp" => metric.ToLowerInvariant(),
+            _ => "xp"
+        };
+
+    private static (DateOnly Start, DateOnly End) ResolvePeriod(string periodKey)
+    {
+        var end = ColombiaTime.TodayInColombia();
+        var start = periodKey switch
+        {
+            "30d" => end.AddDays(-30),
+            "90d" => end.AddDays(-90),
+            "6m" => end.AddMonths(-6),
+            "1y" => end.AddYears(-1),
+            "all" => new DateOnly(2000, 1, 1),
+            _ => end.AddYears(-2)
+        };
+        return (start, end);
+    }
+
+    private async Task<int> CountTrophiesAsync(int userId, DateOnly start, DateOnly end, CancellationToken ct)
+    {
+        var since = ColombiaTime.StartOfDayUtc(start);
+        var until = ColombiaTime.StartOfDayUtc(end.AddDays(1));
+        return await _db.Set<TournamentTrophy>().AsNoTracking()
+            .CountAsync(t => t.UserId == userId && t.ObtainedAt >= since && t.ObtainedAt < until, ct);
+    }
+
+    private async Task<int> CountAchievementsAsync(int userId, DateOnly start, DateOnly end, CancellationToken ct)
+    {
+        var since = ColombiaTime.StartOfDayUtc(start);
+        var until = ColombiaTime.StartOfDayUtc(end.AddDays(1));
+        return await _db.Set<UserAchievement>().AsNoTracking()
+            .CountAsync(a => a.UserId == userId && a.EarnedAt >= since && a.EarnedAt < until, ct);
+    }
+
+    private async Task<List<CompetitiveRow>> LoadCompetitiveBoardAsync(
+        string scope,
+        int? schoolId,
+        int? groupId,
+        DateOnly periodStart,
+        DateOnly periodEnd,
+        CancellationToken ct)
+    {
+        var xpBoard = await LoadBoardAsync(scope, schoolId, groupId, periodStart, periodEnd, ct);
+        var ids = xpBoard.Select(x => x.Id).ToList();
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        var since = ColombiaTime.StartOfDayUtc(periodStart);
+        var until = ColombiaTime.StartOfDayUtc(periodEnd.AddDays(1));
+        var trophies = await _db.Set<TournamentTrophy>().AsNoTracking()
+            .Where(t => ids.Contains(t.UserId) && t.ObtainedAt >= since && t.ObtainedAt < until)
+            .GroupBy(t => t.UserId)
+            .Select(g => new
+            {
+                UserId = g.Key,
+                Count = g.Count(),
+                Last = g.OrderByDescending(x => x.ObtainedAt).Select(x => x.TournamentNameSnapshot).FirstOrDefault()
+            })
+            .ToListAsync(ct);
+        var trophyMap = trophies.ToDictionary(x => x.UserId, x => (x.Count, x.Last));
+
+        var achievements = await _db.Set<UserAchievement>().AsNoTracking()
+            .Where(a => ids.Contains(a.UserId) && a.EarnedAt >= since && a.EarnedAt < until)
+            .GroupBy(a => a.UserId)
+            .Select(g => new
+            {
+                UserId = g.Key,
+                Count = g.Count(),
+                Last = g.OrderByDescending(x => x.EarnedAt).Select(x => x.Code).FirstOrDefault()
+            })
+            .ToListAsync(ct);
+        var achievementMap = achievements.ToDictionary(x => x.UserId, x => (x.Count, x.Last));
+
+        return xpBoard.Select(r =>
+        {
+            trophyMap.TryGetValue(r.Id, out var t);
+            achievementMap.TryGetValue(r.Id, out var a);
+            return new CompetitiveRow(r.Id, r.Name, r.Xp, t.Count, a.Count, r.PhotoUrl, t.Last, a.Last);
+        }).ToList();
+    }
+
+    private static List<RankingEntryDto> RankCompetitive(
+        List<CompetitiveRow> rows,
+        int viewerId,
+        string metricKey,
+        Func<string, string> publicName)
+    {
+        var withPresence = rows
+            .Where(r => r.Id == viewerId || r.Xp > 0 || r.Trophies > 0 || r.Achievements > 0)
+            .ToList();
+
+        if (metricKey == "general")
+        {
+            var xpSorted = withPresence.OrderByDescending(r => r.Xp).Select(r => r.Xp).ToList();
+            var trophySorted = withPresence.OrderByDescending(r => r.Trophies).Select(r => r.Trophies).ToList();
+            var achSorted = withPresence.OrderByDescending(r => r.Achievements).Select(r => r.Achievements).ToList();
+            var scored = withPresence.Select(r =>
+            {
+                var xpIdx = xpSorted.FindIndex(v => v == r.Xp);
+                var tIdx = trophySorted.FindIndex(v => v == r.Trophies);
+                var aIdx = achSorted.FindIndex(v => v == r.Achievements);
+                var score = RankingWeightsV1.GeneralIndex(
+                    RankingWeightsV1.Percentile(Math.Max(0, xpIdx), xpSorted.Count, xpSorted),
+                    RankingWeightsV1.Percentile(Math.Max(0, tIdx), trophySorted.Count, trophySorted),
+                    RankingWeightsV1.Percentile(Math.Max(0, aIdx), achSorted.Count, achSorted));
+                return (Row: r, Score: score);
+            })
+            .OrderByDescending(x => x.Score)
+            .ThenByDescending(x => x.Row.Xp)
+            .ThenBy(x => x.Row.Name)
+            .Select((x, i) => new RankingEntryDto(
+                i + 1,
+                x.Row.Id,
+                publicName(x.Row.Name),
+                x.Row.Xp,
+                x.Row.Id == viewerId,
+                x.Row.PhotoUrl,
+                null,
+                x.Row.Trophies,
+                x.Row.Achievements,
+                Math.Round(x.Score, 2),
+                x.Row.LastTrophy,
+                x.Row.LastAchievement))
+            .ToList();
+            return scored;
+        }
+
+        Func<CompetitiveRow, int> key = metricKey switch
+        {
+            "trophies" => r => r.Trophies,
+            "achievements" => r => r.Achievements,
+            _ => r => r.Xp
+        };
+
+        return withPresence
+            .OrderByDescending(key)
+            .ThenByDescending(r => r.Xp)
+            .ThenBy(r => r.Name)
+            .Select((r, i) => new RankingEntryDto(
+                i + 1,
+                r.Id,
+                publicName(r.Name),
+                r.Xp,
+                r.Id == viewerId,
+                r.PhotoUrl,
+                null,
+                r.Trophies,
+                r.Achievements,
+                null,
+                r.LastTrophy,
+                r.LastAchievement))
+            .ToList();
+    }
+
+    private sealed record CompetitiveRow(
+        int Id,
+        string Name,
+        int Xp,
+        int Trophies,
+        int Achievements,
+        string? PhotoUrl,
+        string? LastTrophy,
+        string? LastAchievement);
 
     private async Task<List<BoardRow>> LoadBoardAsync(
         string scope,
@@ -510,7 +716,7 @@ public sealed partial class PlayService
             .ToListAsync(ct);
         foreach (var r in games)
         {
-            Add(r.UserId, r.Game == GameKinds.Duel
+            Add(r.UserId, r.Game is GameKinds.Duel or GameKinds.Tournament
                 ? XpRules.DuelPlayed + (r.Won ? XpRules.DuelWon : 0)
                 : r.Correct * XpRules.SignCorrect);
         }

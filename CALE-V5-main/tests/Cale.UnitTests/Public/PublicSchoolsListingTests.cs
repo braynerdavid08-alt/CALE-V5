@@ -48,19 +48,26 @@ public sealed class PublicSchoolsListingTests : IAsyncLifetime
                 emptyUser.Id, "CEA Vacia Sin Miembros", "900123456-8",
                 emptyUser.Email, "3000000001", "Calle 1", "Barranquilla", "Atlántico", plan, now));
 
-            var withPeople = await db.Set<SchoolProfile>().FirstOrDefaultAsync(p => p.UserId == _api.Users.School2.Id);
-            if (withPeople is null)
+            // Paid model (FreeForAll=false): public listing requires CanOperateProduct.
+            // Members alone no longer unlock visibility — seed an operable school instead.
+            var operable = await db.Set<SchoolProfile>().FirstOrDefaultAsync(p => p.UserId == _api.Users.School2.Id);
+            if (operable is null)
             {
-                withPeople = SchoolProfile.Create(
-                    _api.Users.School2.Id, "CEA Con Estudiantes", "901578798-8",
+                operable = SchoolProfile.Create(
+                    _api.Users.School2.Id, "CEA Con Plan Activo", "901578798-8",
                     "school2@pruebas.test", "3000000002", "Calle 2", "Barranquilla", "Atlántico", plan, now);
-                db.Add(withPeople);
+                db.Add(operable);
             }
             else
             {
-                withPeople.UpdateBilling(
-                    "CEA Con Estudiantes", "901578798-8", "school2@pruebas.test",
+                operable.UpdateBilling(
+                    "CEA Con Plan Activo", "901578798-8", "school2@pruebas.test",
                     "3000000002", "Calle 2", "Barranquilla", "Atlántico");
+            }
+
+            if (!operable.CanOperateProduct(now))
+            {
+                operable.GrantCourtesy(now.AddDays(30), "public-listing-fixture", now);
             }
 
             await db.SaveChangesAsync();
@@ -68,7 +75,7 @@ public sealed class PublicSchoolsListingTests : IAsyncLifetime
 
         var list = await _api.ClientFor(null).GetFromJsonAsync<JsonElement>("/api/public/schools?take=50");
         var names = list.EnumerateArray().Select(x => x.GetProperty("name").GetString()!).ToList();
-        Assert.Contains("CEA Con Estudiantes", names);
+        Assert.Contains("CEA Con Plan Activo", names);
         Assert.DoesNotContain("CEA Vacia Sin Miembros", names);
     }
 }

@@ -693,7 +693,7 @@ public sealed partial class PlayService
         RankingDto? ranking = null;
         try
         {
-            ranking = await GetRankingAsync(userId, null, null, ct);
+            ranking = await GetRankingAsync(userId, null, null, "2y", "general", ct);
         }
         catch (DomainException)
         {
@@ -704,6 +704,9 @@ public sealed partial class PlayService
             .OrderByDescending(x => x.FinishedAt)
             .Select(x => new { x.Percent, x.Passed })
             .FirstOrDefaultAsync(ct);
+
+        var trophies = await _db.Set<TournamentTrophy>().AsNoTracking()
+            .CountAsync(t => t.UserId == userId, ct);
 
         return new PlaySummaryDto(
             firstName,
@@ -723,7 +726,8 @@ public sealed partial class PlayService
             BadgeCatalog.All.Count,
             last?.Percent,
             last?.Passed,
-            newBadges);
+            newBadges,
+            trophies);
     }
 
     // ───────────────────────── Helpers ─────────────────────────

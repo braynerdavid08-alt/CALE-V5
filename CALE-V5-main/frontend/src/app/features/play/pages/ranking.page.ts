@@ -4,7 +4,7 @@ import { mapApiError } from '../../../core/http/map-api-error';
 import { resolveMediaUrl } from '../../../core/media/resolve-media-url';
 import { UiEmptyComponent } from '../../../shared/ui/ui-empty.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
-import { PlayApi, Ranking, RankingEntry, RankingScope } from '../api/play.api';
+import { PlayApi, Ranking, RankingEntry, RankingPeriod, RankingScope } from '../api/play.api';
 import { PlayTopbarComponent } from '../components/play-topbar.component';
 
 @Component({
@@ -25,6 +25,7 @@ import { PlayTopbarComponent } from '../components/play-topbar.component';
       cursor: pointer;
     }
     .scope.active { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-on-primary); }
+    .metrics { margin-top: 0.75rem; }
     .me { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.75rem; align-items: center; }
     .me strong { font-size: var(--text-lg); }
     .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.45rem; }
@@ -65,7 +66,7 @@ import { PlayTopbarComponent } from '../components/play-topbar.component';
     <section class="play-page">
       <play-topbar
         title="Ranking"
-        subtitle="Suma de los últimos 2 años. Mi escuela y Todo Luz Verde siempre están disponibles: el primero no desaparece." />
+        subtitle="XP, trofeos y logros. Por defecto: tu escuela y los últimos 2 años." />
 
       @if (error()) {
         <p class="alert" role="alert">{{ error() }}</p>
@@ -82,8 +83,26 @@ import { PlayTopbarComponent } from '../components/play-topbar.component';
           </label>
         </div>
 
+        <div class="scopes metrics" role="tablist" aria-label="Clasificación">
+          @for (m of metrics; track m.key) {
+            <button type="button" role="tab" class="scope" [class.active]="metric === m.key" (click)="selectMetric(m.key)">
+              {{ m.label }}
+            </button>
+          }
+        </div>
+
+        @if (d.periods?.length) {
+          <div class="scopes" role="tablist" aria-label="Periodo">
+            @for (p of d.periods; track p.key) {
+              <button type="button" role="tab" class="scope" [class.active]="period === p.key" (click)="selectPeriod(p)">
+                {{ p.label }}
+              </button>
+            }
+          </div>
+        }
+
         @if (d.scopes.length > 1) {
-          <div class="scopes" role="tablist" aria-label="Tipo de ranking">
+          <div class="scopes" role="tablist" aria-label="Ámbito">
             @for (s of d.scopes; track $index) {
               <button
                 type="button"
@@ -110,7 +129,9 @@ import { PlayTopbarComponent } from '../components/play-topbar.component';
               @else { Aún no sumas puntos en este periodo }
             </strong>
           </span>
-          <span class="chip good">⭐ {{ d.myXp }} XP (2 años)</span>
+          <span class="chip good">
+            {{ d.myXp }} XP · {{ d.myTrophies ?? 0 }} 🏆 · {{ d.myAchievements ?? 0 }} ⭐
+          </span>
         </div>
 
         @if (loading()) {
@@ -131,14 +152,14 @@ import { PlayTopbarComponent } from '../components/play-topbar.component';
                   <strong>{{ e.displayName }}{{ e.isMe ? ' (tú)' : '' }}</strong>
                   <span class="held">{{ heldLabel(e) }}</span>
                 </span>
-                <span class="xp">{{ e.xp }} XP</span>
+                <span class="xp">{{ scoreLabel(e) }}</span>
               </li>
             }
           </ol>
         } @else {
           <ui-empty
             title="Nadie ha sumado puntos aún"
-            message="¡Haz el reto diario o un simulacro y sé el primero del ranking!" />
+            message="¡Haz el reto diario, un simulacro o un torneo y sé el primero del ranking!" />
         }
       } @else if (loading()) {
         <ui-loading />
@@ -153,8 +174,16 @@ export class RankingPage implements OnInit {
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
   readonly data = signal<Ranking | null>(null);
+  readonly metrics = [
+    { key: 'general', label: 'General' },
+    { key: 'xp', label: 'XP' },
+    { key: 'trophies', label: 'Trofeos' },
+    { key: 'achievements', label: 'Logros' }
+  ];
   private scope: string | null = null;
   private groupId: number | null = null;
+  period = '2y';
+  metric = 'general';
 
   ngOnInit(): void {
     this.load();
@@ -166,9 +195,28 @@ export class RankingPage implements OnInit {
     this.load();
   }
 
+  selectMetric(key: string): void {
+    this.metric = key;
+    this.load();
+  }
+
+  selectPeriod(p: RankingPeriod): void {
+    this.period = p.key;
+    this.load();
+  }
+
   isActive(s: RankingScope): boolean {
     const d = this.data();
     return !!d && s.scope === d.scope && (s.scope !== 'group' || s.groupId === d.groupId);
+  }
+
+  scoreLabel(e: RankingEntry): string {
+    if (this.metric === 'trophies') return `${e.trophies ?? 0} 🏆`;
+    if (this.metric === 'achievements') return `${e.achievements ?? 0} ⭐`;
+    if (this.metric === 'general') {
+      return e.generalScore != null ? `${e.generalScore}` : `${e.xp} XP`;
+    }
+    return `${e.xp} XP`;
   }
 
   toggleVisibility(event: Event): void {
@@ -220,7 +268,7 @@ export class RankingPage implements OnInit {
   private load(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.api.ranking(this.scope, this.groupId).subscribe({
+    this.api.ranking(this.scope, this.groupId, this.period, this.metric).subscribe({
       next: (d) => {
         this.data.set(d);
         this.loading.set(false);

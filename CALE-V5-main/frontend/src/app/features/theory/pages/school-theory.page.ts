@@ -1,6 +1,8 @@
+import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { env } from '../../../core/config/env';
 import { UiPageHeaderComponent } from '../../../shared/ui/ui-page-header.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiErrorComponent } from '../../../shared/ui/ui-error.component';
@@ -26,6 +28,13 @@ import {
   listVisibleBookingPresets,
   presetFromSettings
 } from '../theory-booking-presets';
+
+interface TheoryTeacherOption {
+  id: number;
+  name: string;
+  role: string;
+  isActive?: boolean;
+}
 import {
   addDays,
   addDaysIso,
@@ -48,6 +57,7 @@ import { buildStudentBadges, SchoolBadge } from '../../school/utils/school-stude
 })
 export class SchoolTheoryPage implements OnInit {
   private readonly api = inject(TheoryApi);
+  private readonly http = inject(HttpClient);
 
   readonly loading = signal(true);
   readonly saving = signal(false);
@@ -63,6 +73,7 @@ export class SchoolTheoryPage implements OnInit {
   readonly scheduleLoading = signal(false);
   readonly topics = signal<TheoryTopicDto[]>([]);
   readonly classrooms = signal<TheoryClassroomDto[]>([]);
+  readonly teachers = signal<TheoryTeacherOption[]>([]);
   readonly settings = signal<TheorySettingsDto | null>(null);
   readonly bookingPresetName = signal('');
   readonly showNotifications = signal(false);
@@ -93,6 +104,7 @@ export class SchoolTheoryPage implements OnInit {
     endTime: '09:59',
     topicId: 0,
     classroomId: 0,
+    instructorUserId: 0 as number | null,
     capacity: 0,
     notes: ''
   };
@@ -131,6 +143,7 @@ export class SchoolTheoryPage implements OnInit {
       },
       error: () => this.topics.set([])
     });
+    this.loadTeachers();
     this.api.listClassrooms().subscribe({
       next: (c) => {
         this.classrooms.set(c);
@@ -296,6 +309,7 @@ export class SchoolTheoryPage implements OnInit {
       endTime: session.endTime.slice(0, 5),
       topicId: session.topicId,
       classroomId: session.classroomId,
+      instructorUserId: session.instructorUserId ?? 0,
       capacity: session.capacity,
       notes: session.notes ?? ''
     };
@@ -310,9 +324,30 @@ export class SchoolTheoryPage implements OnInit {
       endTime: '09:59',
       topicId: this.topics()[0]?.id ?? 0,
       classroomId: this.classrooms()[0]?.id ?? 0,
+      instructorUserId: this.teachers()[0]?.id ?? 0,
       capacity: 0,
       notes: ''
     };
+  }
+
+  private loadTeachers(): void {
+    this.http.get<TheoryTeacherOption[]>(`${env.apiUrl}/api/school/members`).subscribe({
+      next: (members) => {
+        const teachers = members.filter(
+          (m) => m.role === 'Teacher' && m.isActive !== false
+        );
+        this.teachers.set(teachers);
+        if (!this.createForm.instructorUserId && teachers[0]) {
+          this.createForm.instructorUserId = teachers[0].id;
+        }
+      },
+      error: () => this.teachers.set([])
+    });
+  }
+
+  private selectedInstructorId(): number | null {
+    const id = Number(this.createForm.instructorUserId ?? 0);
+    return id > 0 ? id : null;
   }
 
   cancelEditingSession(): void {
@@ -893,7 +928,9 @@ export class SchoolTheoryPage implements OnInit {
   }
 
   formatSessionLabel(s: TheoryClassSessionDto): string {
-    return `${s.sessionDate} · ${s.startTime.slice(0, 5)} · ${s.topicName} · ${s.classroomName}`;
+    const instructor = s.instructorName?.trim();
+    const base = `${s.sessionDate} · ${s.startTime.slice(0, 5)} · ${s.topicName} · ${s.classroomName}`;
+    return instructor ? `${base} · ${instructor}` : base;
   }
 
   sessionsAt(dayIndex: number, start: string): TheoryClassSessionDto[] {
@@ -993,6 +1030,7 @@ export class SchoolTheoryPage implements OnInit {
       topicId: this.createForm.topicId,
       classroomId: this.createForm.classroomId,
       capacity: this.createForm.capacity > 0 ? this.createForm.capacity : undefined,
+      instructorUserId: this.selectedInstructorId(),
       notes: this.createForm.notes || undefined
     };
     const editId = this.editingSessionId();
@@ -1101,6 +1139,7 @@ export class SchoolTheoryPage implements OnInit {
         topicId: this.createForm.topicId,
         classroomId: this.createForm.classroomId,
         capacity: this.createForm.capacity > 0 ? this.createForm.capacity : undefined,
+        instructorUserId: this.selectedInstructorId(),
         notes: this.createForm.notes || undefined
       })
       .subscribe({

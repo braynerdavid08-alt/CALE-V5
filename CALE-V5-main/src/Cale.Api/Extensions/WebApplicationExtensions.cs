@@ -63,6 +63,7 @@ public static class WebApplicationExtensions
         app.MapControllers();
         app.MapHub<Cale.Api.Hubs.LiveClassroomHub>("/hubs/live");
         app.MapHub<Cale.Api.Hubs.GameShowHub>("/hubs/game-show");
+        app.MapHub<Cale.Api.Hubs.TournamentHub>("/hubs/tournaments");
 
         // Unknown API routes get a JSON 404, never the SPA shell with 200.
         app.MapFallback("/api/{**rest}", static context =>
@@ -145,6 +146,7 @@ public static class WebApplicationExtensions
             await ShopSchemaGuard.EnsureAsync(db, bootLogger);
             await SchedulingReportsSchemaGuard.EnsureAsync(db, bootLogger);
             await PlaySchemaGuard.EnsureAsync(db, bootLogger);
+            await TournamentSchemaGuard.EnsureAsync(db, bootLogger);
             await PushSchemaGuard.EnsureAsync(db, bootLogger);
             await UserRequestSchemaGuard.EnsureAsync(db, bootLogger);
             await AccountStatusSchemaGuard.EnsureAsync(db, bootLogger);

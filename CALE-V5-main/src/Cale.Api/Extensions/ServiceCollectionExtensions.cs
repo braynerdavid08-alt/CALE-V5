@@ -186,6 +186,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<Cale.Api.Services.Play.SignImageOverrides>();
         services.AddSingleton<Cale.Api.Services.Play.DuelService>();
         services.AddScoped<Cale.Api.Services.Play.PlayService>();
+        services.AddScoped<Cale.Api.Services.Tournaments.TournamentService>();
+        services.AddScoped<Cale.Api.Services.Tournaments.ITournamentBroadcaster, Cale.Api.Services.Tournaments.TournamentBroadcaster>();
+        services.AddHostedService<Cale.Api.Services.Tournaments.TournamentTimeoutWorker>();
         services.AddScoped<Cale.Api.Services.Courses.CourseSeed>();
         services.AddScoped<Cale.Api.Services.Courses.CurriculumSync>();
         services.AddScoped<Cale.Api.Services.Admin.CatalogPurgeService>();

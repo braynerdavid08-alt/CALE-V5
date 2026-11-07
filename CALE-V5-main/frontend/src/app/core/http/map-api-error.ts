@@ -73,6 +73,7 @@ const messages: Record<string, string> = {
   school_already_approved: 'La escuela ya está aprobada.',
   self_rating: 'No puedes calificarte a ti mismo.',
   invalid_stars: 'La calificación va de 1 a 5 estrellas.',
+  invalid_instructor: 'Elige un instructor de tu escuela.',
   private_classes_closed: 'Este instructor no está recibiendo solicitudes de clases particulares.',
   private_class_duplicate: 'Ya tienes una solicitud pendiente con este instructor.',
   private_class_limit: 'Ya tienes el máximo de solicitudes pendientes. Espera respuesta o cancela alguna.',

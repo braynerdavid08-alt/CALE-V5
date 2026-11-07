@@ -81,6 +81,9 @@
                         (click)="selectSessionForEdit(s)">
                         <strong>{{ s.topicName }}</strong>
                         <small>{{ s.classroomName }}</small>
+                        @if (s.instructorName) {
+                          <small>{{ s.instructorName }}</small>
+                        }
                         <small>{{ s.reservedCount }}/{{ s.capacity }}</small>
                       </button>
                     }
@@ -167,6 +170,20 @@
             }
           </select>
         </label>
+        <label>Profesor
+          <select [(ngModel)]="createForm.instructorUserId">
+            <option [ngValue]="0">Sin asignar</option>
+            @for (t of teachers(); track t.id) {
+              <option [ngValue]="t.id">{{ t.name }}</option>
+            }
+          </select>
+        </label>
+        @if (!teachers().length) {
+          <p class="muted tip">
+            No hay instructores en la escuela.
+            <a routerLink="/school/users">Invita o acepta un instructor</a> para asignarlo aquí.
+          </p>
+        }
         <label>Cupo (opcional) <input type="number" min="0" [(ngModel)]="createForm.capacity" /></label>
         <label>Observaciones <textarea rows="2" [(ngModel)]="createForm.notes"></textarea></label>
         <div class="form-actions">

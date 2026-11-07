@@ -118,6 +118,37 @@ En producción: crea el primer admin por registro controlado o seed **offline**,
 - Estudiantes: `/live/join` o `/live/join/{CODE}` → `/live/play/{id}`
 - Una sola instancia Render Free: SignalR in-memory OK (multi-instancia requeriría Redis)
 
+### Torneos Luz Verde (SignalR)
+
+- Hub: `/hubs/tournaments` (JWT vía query `access_token`)
+- API: `/api/tournaments`
+- El estado del torneo (inscripciones, bracket, respuestas, campeón, trofeos) **persiste en PostgreSQL** (`TournamentSchemaGuard` / tablas `Torneos*`, `TrofeosTorneo`).
+- Detalle DDL / índices / staging: `docs/competitive/POSTGRES_SCHEMA_STAGING.md`.
+- **Una instancia (Render Free actual):** SignalR in-memory es suficiente. Los clientes pueden recuperar estado con `GET /api/tournaments/{id}` y `GET /api/tournaments/matches/{id}` tras reconectar.
+- **Varias instancias:** SignalR **no** replica grupos entre nodos sin backplane. Hace falta Redis:
+  1. Servicio Redis gestionado (o Key Value en Render).
+  2. Paquete `Microsoft.AspNetCore.SignalR.StackExchangeRedis`.
+  3. En DI: `services.AddSignalR().AddStackExchangeRedis(Configuration["ConnectionStrings:Redis"])`.
+  4. Variable `ConnectionStrings__Redis=...`.
+- **Riesgo sin Redis al escalar:** un jugador puede unirse al hub en la instancia A y no recibir `MatchAssigned` emitido desde la instancia B. La DB sigue siendo la fuente de verdad, pero la UX en vivo se rompe.
+- **No contratar Redis en esta fase** si se mantiene una sola instancia.
+
+### CI (GitHub Actions)
+
+Workflow: `.github/workflows/ci.yml` (raíz del repo).
+
+- **API:** restore → build Release → `dotnet test` unitarios → filtro `TournamentBracket`.
+- **Angular:** `npm ci` → `ng build --configuration=production`.
+- **Torneos:** tests `FullyQualifiedName~Tournaments` (smoke + phase2) con artefactos TRX.
+- **Sin deploy automático.**
+
+### Laboratorio competitivo (no producción)
+
+- Seed manual: `tools/SeedFase3Competitive` (requiere `FASE3_LAB_PASSWORD`; solo SQLite).
+- E2E: `frontend/e2e/fase3-competitive.spec.ts` (mismas env vars).
+- Guía: `tools/SeedFase3Competitive/README.md`.
+- **Nunca** apuntar el seed a Postgres de staging/producción.
+
 ### Correo (verificación de cuenta)
 
 **Cambiar la clave en Mi perfil no envía correo.** Solo se guarda en el servidor.

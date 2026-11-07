@@ -1,0 +1,266 @@
+import { NgTemplateOutlet } from '@angular/common';
+import { Component, DestroyRef, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { EMPTY, catchError } from 'rxjs';
+import { SessionStore } from '../../../core/auth/session.store';
+import { mapApiError } from '../../../core/http/map-api-error';
+import { pollWhileVisible } from '../../../core/rxjs/poll-while-visible';
+import {
+  FINISH_REASON_LABELS,
+  TournamentApi,
+  TournamentBracket,
+  TournamentBracketMatch,
+  TournamentHubHandle,
+  tournamentStatusLabel,
+  tournamentStatusTone
+} from '../api/tournament.api';
+import { PlayTopbarComponent } from '../components/play-topbar.component';
+
+const FALLBACK_REFRESH_MS = 8000;
+
+interface BracketRound {
+  number: number;
+  name: string;
+  matches: TournamentBracketMatch[];
+}
+
+@Component({
+  selector: 'app-tournament-bracket-page',
+  standalone: true,
+  imports: [NgTemplateOutlet, RouterLink, PlayTopbarComponent],
+  styleUrls: ['./play-page.css', './tournament-page.css'],
+  template: `
+    <section class="play-page wide">
+      <play-topbar
+        title="Llaves del torneo"
+        subtitle="Eliminación directa: quien gana avanza a la siguiente ronda."
+        [back]="base + '/' + id"
+        backLabel="Volver a la sala" />
+
+      @if (error()) {
+        <p class="alert" role="alert">{{ error() }}</p>
+      }
+
+      @if (!bracket()) {
+        @if (!error()) {
+          <div class="play-card result-hero"><p class="pulse">Cargando llaves…</p></div>
+        }
+      } @else {
+        @if (bracket(); as b) {
+          <div class="t-toolbar">
+            <span class="chip" [class.good]="tone(b.status) === 'good'" [class.warn]="tone(b.status) === 'warn'">
+              {{ label(b.status) }}
+            </span>
+            <span class="chip" [class.good]="live()" [class.neutral]="!live()">
+              {{ live() ? '● En vivo' : '○ Se actualiza cada pocos segundos' }}
+            </span>
+          </div>
+
+          @if (b.championName) {
+            <div class="play-card champion">
+              <p class="big">🏆</p>
+              <span class="muted">Campeón</span>
+              <strong>{{ b.championName }}</strong>
+            </div>
+          }
+
+          @if (!rounds().length) {
+            <div class="play-card result-hero">
+              <h2>Las llaves aún no se arman</h2>
+              <p>Aparecerán cuando el organizador inicie el torneo.</p>
+            </div>
+          } @else {
+            <div class="bracket-scroll" tabindex="0" aria-label="Llaves del torneo (desliza horizontalmente)">
+              <div class="bracket">
+                @for (r of rounds(); track r.number) {
+                  <div class="round">
+                    <h3>{{ r.name }}</h3>
+                    <div class="round-matches">
+                      @for (m of r.matches; track m.id) {
+                        @if (matchLink(m); as link) {
+                          <a class="bm" [class.active]="m.status === 'active'" [routerLink]="link">
+                            <ng-container *ngTemplateOutlet="card; context: { $implicit: m }" />
+                          </a>
+                        } @else {
+                          <div class="bm" [class.active]="m.status === 'active'">
+                            <ng-container *ngTemplateOutlet="card; context: { $implicit: m }" />
+                          </div>
+                        }
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        }
+      }
+
+      <ng-template #card let-m>
+        <div
+          class="bm-row"
+          [class.winner]="m.winnerUserId != null && m.winnerUserId === m.player1UserId"
+          [class.empty]="!m.player1Name"
+          [class.me]="m.player1UserId === myId()">
+          <strong>{{ slotName(m, 1) }}</strong>
+          <span class="bm-score">{{ m.player1Correct }}</span>
+        </div>
+        <div
+          class="bm-row"
+          [class.winner]="m.winnerUserId != null && m.winnerUserId === m.player2UserId"
+          [class.empty]="!m.player2Name"
+          [class.me]="m.player2UserId === myId()">
+          <strong>{{ slotName(m, 2) }}</strong>
+          <span class="bm-score">{{ m.player2Correct }}</span>
+        </div>
+        @if (footText(m); as foot) {
+          <div class="bm-foot">{{ foot }}</div>
+        }
+      </ng-template>
+    </section>
+  `
+})
+export class TournamentBracketPage implements OnInit, OnDestroy {
+  private readonly api = inject(TournamentApi);
+  private readonly session = inject(SessionStore);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly route = inject(ActivatedRoute);
+
+  readonly base: string = this.route.snapshot.data['base'] ?? '/student/play/tournaments';
+  readonly id = Number(this.route.snapshot.paramMap.get('id'));
+
+  readonly bracket = signal<TournamentBracket | null>(null);
+  readonly error = signal<string | null>(null);
+  readonly live = signal(false);
+
+  readonly myId = computed(() => this.session.user()?.id ?? -1);
+  private readonly isStudent = computed(() => this.session.user()?.role === 'Student');
+
+  readonly rounds = computed<BracketRound[]>(() => {
+    const matches = this.bracket()?.matches ?? [];
+    const byRound = new Map<number, BracketRound>();
+    for (const m of matches) {
+      let round = byRound.get(m.roundNumber);
+      if (!round) {
+        round = { number: m.roundNumber, name: m.roundName, matches: [] };
+        byRound.set(m.roundNumber, round);
+      }
+      round.matches.push(m);
+    }
+    return [...byRound.values()]
+      .sort((a, b) => a.number - b.number)
+      .map((r) => ({ ...r, matches: r.matches.sort((a, b) => a.slotIndex - b.slotIndex) }));
+  });
+
+  readonly label = tournamentStatusLabel;
+  readonly tone = tournamentStatusTone;
+
+  private hub: TournamentHubHandle | null = null;
+  private destroyed = false;
+  private loading = false;
+  private reloadQueued = false;
+
+  ngOnInit(): void {
+    if (!Number.isFinite(this.id)) {
+      this.error.set('Torneo no válido.');
+      return;
+    }
+
+    // Immediate load + fallback refresh while the socket is down.
+    pollWhileVisible(FALLBACK_REFRESH_MS, () => {
+      if (this.live() && this.bracket()) return EMPTY;
+      return this.api.bracket(this.id).pipe(
+        catchError((err) => {
+          this.error.set(mapApiError(err));
+          return EMPTY;
+        })
+      );
+    })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((b) => {
+        this.error.set(null);
+        this.bracket.set(b);
+      });
+
+    void this.connect();
+  }
+
+  ngOnDestroy(): void {
+    this.destroyed = true;
+    void this.hub?.close();
+    this.hub = null;
+  }
+
+  slotName(m: TournamentBracketMatch, player: 1 | 2): string {
+    const isBye = player === 1 ? m.player1IsBye : m.player2IsBye;
+    const name = player === 1 ? m.player1Name : m.player2Name;
+    if (isBye) return 'BYE';
+    return name || 'Por definir';
+  }
+
+  footText(m: TournamentBracketMatch): string {
+    if (m.status === 'active') return '● En juego';
+    if (m.status === 'finished') {
+      const reason = m.finishReason ? FINISH_REASON_LABELS[m.finishReason] : '';
+      return reason ? `Finalizado · ${reason}` : 'Finalizado';
+    }
+    return '';
+  }
+
+  /** Students can open a match that is being played or already finished. */
+  matchLink(m: TournamentBracketMatch): string | null {
+    if (!this.isStudent() || (m.status !== 'active' && m.status !== 'finished')) return null;
+    if (m.player1IsBye || m.player2IsBye) return null;
+    return `${this.base}/match/${m.id}`;
+  }
+
+  private reload(): void {
+    if (this.loading) {
+      this.reloadQueued = true;
+      return;
+    }
+    this.loading = true;
+    this.api.bracket(this.id).subscribe({
+      next: (b) => {
+        this.loading = false;
+        this.error.set(null);
+        this.bracket.set(b);
+        if (this.reloadQueued) {
+          this.reloadQueued = false;
+          this.reload();
+        }
+      },
+      error: (err) => {
+        this.loading = false;
+        this.reloadQueued = false;
+        this.error.set(mapApiError(err));
+      }
+    });
+  }
+
+  private async connect(): Promise<void> {
+    try {
+      const handle = await this.api.watch(this.id, (event) => {
+        if (event !== 'AchievementUnlocked' && event !== 'ParticipantDisconnected' && event !== 'ParticipantReconnected') {
+          this.reload();
+        }
+      });
+      if (this.destroyed) {
+        void handle.close();
+        return;
+      }
+      this.hub = handle;
+      this.live.set(true);
+      handle.connection.onclose(() => this.live.set(false));
+      handle.connection.onreconnecting(() => this.live.set(false));
+      handle.connection.onreconnected(() => {
+        this.live.set(true);
+        this.reload();
+      });
+      this.reload();
+    } catch {
+      this.live.set(false);
+    }
+  }
+}

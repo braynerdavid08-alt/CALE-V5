@@ -45,8 +45,10 @@ public sealed class GameResultConfiguration : IEntityTypeConfiguration<GameResul
         builder.ToTable("PartidasJuego");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Game).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.SourceKey).HasMaxLength(120);
         builder.HasIndex(x => new { x.UserId, x.Game });
         builder.HasIndex(x => x.PlayedAt);
+        builder.HasIndex(x => x.SourceKey).IsUnique().HasFilter("\"SourceKey\" IS NOT NULL");
     }
 }
 

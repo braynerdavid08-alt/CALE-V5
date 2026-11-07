@@ -7,6 +7,9 @@ import { roleGuard } from './core/guards/role.guard';
 import { LoginPage } from './features/auth/pages/login.page';
 
 const staffRoles = ['Teacher', 'Admin'] as const;
+const tournamentStaffRoles = ['Teacher', 'School', 'Admin'];
+const studentTournamentsBase = '/student/play/tournaments';
+const staffTournamentsBase = '/teacher/tournaments';
 
 const shopPageRoutes: Routes = [
   {
@@ -661,6 +664,41 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./features/play/pages/ranking.page')
                 .then((m) => m.RankingPage)
+          },
+          {
+            path: 'tournaments',
+            pathMatch: 'full',
+            data: { base: studentTournamentsBase },
+            loadComponent: () =>
+              import('./features/play/pages/tournaments-list.page')
+                .then((m) => m.TournamentsListPage)
+          },
+          {
+            path: 'tournaments/profile',
+            loadComponent: () =>
+              import('./features/play/pages/competitive-profile.page')
+                .then((m) => m.CompetitiveProfilePage)
+          },
+          {
+            path: 'tournaments/match/:matchId',
+            data: { base: studentTournamentsBase },
+            loadComponent: () =>
+              import('./features/play/pages/tournament-match.page')
+                .then((m) => m.TournamentMatchPage)
+          },
+          {
+            path: 'tournaments/:id/bracket',
+            data: { base: studentTournamentsBase },
+            loadComponent: () =>
+              import('./features/play/pages/tournament-bracket.page')
+                .then((m) => m.TournamentBracketPage)
+          },
+          {
+            path: 'tournaments/:id',
+            data: { base: studentTournamentsBase },
+            loadComponent: () =>
+              import('./features/play/pages/tournament-lobby.page')
+                .then((m) => m.TournamentLobbyPage)
           }
         ]
       },
@@ -856,6 +894,40 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/game-show/pages/game-show-host.page')
             .then((m) => m.GameShowHostPage)
+      },
+      {
+        path: 'teacher/tournaments',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: tournamentStaffRoles, base: staffTournamentsBase },
+        loadComponent: () =>
+          import('./features/play/pages/tournaments-list.page')
+            .then((m) => m.TournamentsListPage)
+      },
+      {
+        path: 'teacher/tournaments/new',
+        pathMatch: 'full',
+        canActivate: [roleGuard],
+        data: { roles: ['Teacher'], base: staffTournamentsBase },
+        loadComponent: () =>
+          import('./features/play/pages/tournament-create.page')
+            .then((m) => m.TournamentCreatePage)
+      },
+      {
+        path: 'teacher/tournaments/:id/bracket',
+        canActivate: [roleGuard],
+        data: { roles: tournamentStaffRoles, base: staffTournamentsBase },
+        loadComponent: () =>
+          import('./features/play/pages/tournament-bracket.page')
+            .then((m) => m.TournamentBracketPage)
+      },
+      {
+        path: 'teacher/tournaments/:id',
+        canActivate: [roleGuard],
+        data: { roles: tournamentStaffRoles, base: staffTournamentsBase },
+        loadComponent: () =>
+          import('./features/play/pages/tournament-lobby.page')
+            .then((m) => m.TournamentLobbyPage)
       },
       {
         path: 'teacher/normas-transito',

@@ -159,12 +159,22 @@ export interface RankingEntry {
   isMe: boolean;
   photoUrl?: string | null;
   positionHeldSinceUtc?: string | null;
+  trophies?: number;
+  achievements?: number;
+  generalScore?: number | null;
+  lastTrophyName?: string | null;
+  lastAchievementCode?: string | null;
 }
 
 export interface RankingScope {
   scope: string;
   label: string;
   groupId?: number | null;
+}
+
+export interface RankingPeriod {
+  key: string;
+  label: string;
 }
 
 export interface Ranking {
@@ -179,6 +189,13 @@ export interface Ranking {
   participants: number;
   showInRanking: boolean;
   scopes: RankingScope[];
+  metric?: string;
+  periodKey?: string;
+  formulaVersion?: string;
+  myTrophies?: number;
+  myAchievements?: number;
+  myGeneralScore?: number | null;
+  periods?: RankingPeriod[];
 }
 
 export interface PlaySummary {
@@ -200,6 +217,7 @@ export interface PlaySummary {
   lastPercent?: number | null;
   lastPassed?: boolean | null;
   newBadges: Badge[];
+  trophyCount?: number;
 }
 
 export interface DuelPlayer {
@@ -333,10 +351,17 @@ export class PlayApi {
     return this.http.post<GameSaved>(`${this.base}/movilidad/result`, body);
   }
 
-  ranking(scope?: string | null, groupId?: number | null) {
+  ranking(
+    scope?: string | null,
+    groupId?: number | null,
+    period?: string | null,
+    metric?: string | null
+  ) {
     let params = new HttpParams();
     if (scope) params = params.set('scope', scope);
     if (groupId != null) params = params.set('groupId', groupId);
+    if (period) params = params.set('period', period);
+    if (metric) params = params.set('metric', metric);
     return this.http.get<Ranking>(`${this.base}/ranking`, { params });
   }
 

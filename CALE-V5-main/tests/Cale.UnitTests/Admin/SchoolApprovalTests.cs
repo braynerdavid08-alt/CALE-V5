@@ -118,10 +118,16 @@ public sealed class SchoolApprovalTests : IAsyncLifetime
         Assert.True(joined.IsSuccessStatusCode, await joined.Content.ReadAsStringAsync());
         var joinId = (await joined.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
 
+        // Paid model: accepting members requires an operable school membership (not only admin approval).
+        var courtesy = await _api.ClientFor(_api.Users.Admin).PostAsJsonAsync(
+            $"/api/admin/schools/{schoolId}/courtesy",
+            new { courtesyUntil = DateTime.UtcNow.AddDays(30), reason = "approval-test" });
+        Assert.True(courtesy.IsSuccessStatusCode, await courtesy.Content.ReadAsStringAsync());
+
         var schoolClient = _api.ClientFor(await SchoolUserAsync(schoolId));
         var accepted = await schoolClient.PostAsync($"/api/school/join-requests/{joinId}/accept", null);
         Assert.True(accepted.IsSuccessStatusCode, await accepted.Content.ReadAsStringAsync());
-        Assert.True(await IsPubliclyListedAsync()); // linked member makes it visible
+        Assert.True(await IsPubliclyListedAsync()); // operable + linked member → visible
 
         var again = await _api.ClientFor(_api.Users.Admin).PostAsync($"/api/admin/schools/{schoolId}/approve", null);
         Assert.Equal(HttpStatusCode.BadRequest, again.StatusCode);
