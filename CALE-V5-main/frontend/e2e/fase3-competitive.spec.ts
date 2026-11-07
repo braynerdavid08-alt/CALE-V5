@@ -9,14 +9,23 @@ import * as path from 'node:path';
  */
 const API = process.env['E2E_API_URL'] || 'http://127.0.0.1:5000';
 const ORIGIN = process.env['E2E_BASE_URL'] || 'http://127.0.0.1:4200';
-const PASSWORD = 'Fase3-Prueba-2026!';
-const TEACHER = { email: 'profesor@cale.local', password: PASSWORD };
-const STUDENTS = [
-  { email: 'estudiante@cale.local', password: PASSWORD },
-  { email: 'estudiante2.fase3@cale.local', password: PASSWORD },
-  { email: 'estudiante3.fase3@cale.local', password: PASSWORD },
-  { email: 'estudiante4.fase3@cale.local', password: PASSWORD }
+/** Lab password from env only — never commit real secrets. See tools/SeedFase3Competitive/README.md */
+const PASSWORD = process.env['FASE3_LAB_PASSWORD'] || '';
+const TEACHER = {
+  email: process.env['E2E_TEACHER_EMAIL'] || 'profesor@cale.local',
+  password: PASSWORD
+};
+const DEFAULT_STUDENTS = [
+  'estudiante@cale.local',
+  'estudiante2.fase3@cale.local',
+  'estudiante3.fase3@cale.local',
+  'estudiante4.fase3@cale.local'
 ];
+const STUDENTS = (process.env['E2E_STUDENT_EMAILS'] || DEFAULT_STUDENTS.join(','))
+  .split(',')
+  .map((e) => e.trim())
+  .filter(Boolean)
+  .map((email) => ({ email, password: PASSWORD }));
 
 const EVIDENCE_DIR = path.resolve(process.cwd(), '..', 'docs', 'competitive', 'fase3-evidencias');
 
@@ -153,6 +162,11 @@ async function playMatchViaApi(session: ApiSession, matchId: number) {
 }
 
 test('Fase 3 browser + SignalR + responsive', async ({ browser }) => {
+  test.skip(
+    !PASSWORD || PASSWORD.length < 8 || STUDENTS.length < 4,
+    'Set FASE3_LAB_PASSWORD (and optionally E2E_STUDENT_EMAILS with 4 lab emails). See tools/SeedFase3Competitive/README.md'
+  );
+
   ensureEvidenceDir();
   fs.writeFileSync(
     path.join(EVIDENCE_DIR, 'README.md'),

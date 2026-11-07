@@ -81,10 +81,31 @@ Corrección Fase 1: BYE nunca vs BYE.
 Corrección Fase 2: walkover con ambos offline elige desconexión más reciente.  
 Corrección Fase 3: proxy Angular `/hubs` (ws) para SignalR vía `ng serve`.
 
+### Fase 4 — revisión pre-Draft (auditoría)
+| Ítem | Resultado |
+|---|---|
+| Diff vs main / conflictos | MERGEABLE / CLEAN |
+| Secretos de producción en el PR | No |
+| Seed automático en Production | No (herramienta manual) |
+| Checks GitHub previos | Ninguno (sin workflows) |
+| Recomendación | APTO CON OBSERVACIONES |
+
+### Fase 5 — preparación revisión humana
+| Ítem | Estado |
+|---|---|
+| Credenciales lab | Via `FASE3_LAB_PASSWORD` (sin password fijo en código) |
+| CI GitHub Actions | `.github/workflows/ci.yml` (API + Angular + torneos) |
+| Postgres staging doc | `docs/competitive/POSTGRES_SCHEMA_STAGING.md` |
+| Redis multi-instancia | Sigue BLOCKED / documentado |
+| PR | Sigue OPEN + **Draft** hasta decisión del propietario |
+| Merge / deploy | No realizados |
+
+Smoke post-merge (cuando el propietario autorice deploy): ver `POSTGRES_SCHEMA_STAGING.md` + login Teacher/Student + crear torneo 4 + start.
 
 ## 15. Archivos clave
 Backend: `Services/Tournaments/*`, `TournamentHub`, `TournamentSchemaGuard`, Play ranking/badges.
 Frontend: `play/api/tournament.api.ts`, páginas tournament-*, ranking/home.
+CI: `.github/workflows/ci.yml`. Lab: `tools/SeedFase3Competitive`.
 
 ## 16. Commits
 Ver historial de la rama `feat/theory-instructor-competitive-ecosystem`.
@@ -100,3 +121,4 @@ Ver `docs/competitive/V2_PENDIENTES.md` (Redis multi-instancia, 32/64, ledger XP
 2. Una instancia: OK.
 3. Multi-instancia: configurar Redis backplane antes.
 4. No activar hasta smoke de roles y torneo 13 jugadores con BYE.
+5. Validar log `TournamentSchemaGuard applied` en Postgres (staging preferible).
