@@ -494,11 +494,13 @@ public sealed partial class TournamentService
             if (m.Player1UserId is int u1)
             {
                 await _broadcast.MatchAssigned(t.Id, u1, await BuildMatchViewAsync(m.Id, u1, ct), ct);
+                await _broadcast.MatchReady(t.Id, u1, m.Id, ct);
             }
 
             if (m.Player2UserId is int u2)
             {
                 await _broadcast.MatchAssigned(t.Id, u2, await BuildMatchViewAsync(m.Id, u2, ct), ct);
+                await _broadcast.MatchReady(t.Id, u2, m.Id, ct);
             }
         }
 

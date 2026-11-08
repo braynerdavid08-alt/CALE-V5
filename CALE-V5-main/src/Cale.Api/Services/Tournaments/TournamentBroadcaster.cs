@@ -31,6 +31,9 @@ public sealed class TournamentBroadcaster : ITournamentBroadcaster
     public Task MatchAssigned(int tournamentId, int userId, TournamentMatchViewDto match, CancellationToken ct) =>
         _hub.Clients.Group(TournamentHub.UserGroup(userId)).SendAsync("MatchAssigned", match, ct);
 
+    public Task MatchReady(int tournamentId, int userId, int matchId, CancellationToken ct) =>
+        Group(tournamentId).SendAsync("MatchReady", new { userId, matchId }, ct);
+
     public Task MatchUpdated(int tournamentId, TournamentMatchViewDto match, CancellationToken ct) =>
         Group(tournamentId).SendAsync("MatchUpdated", match, ct);
 
