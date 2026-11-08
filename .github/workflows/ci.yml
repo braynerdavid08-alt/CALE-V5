@@ -133,3 +133,51 @@ jobs:
           name: tournament-test-results
           path: CALE-V5-main/TestResults/
           if-no-files-found: ignore
+
+  # Karma was restored in Fase 8.1 (rimraf/glob). Runs independently of API jobs.
+  angular-unit:
+    name: F — Angular unit tests (Karma)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: CALE-V5-main/frontend/package-lock.json
+      - name: Install
+        working-directory: CALE-V5-main/frontend
+        run: npm ci
+      - name: Setup Chrome
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v1
+      - name: Karma unit tests
+        working-directory: CALE-V5-main/frontend
+        env:
+          CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
+        run: npx ng test --watch=false --browsers=ChromeHeadless --no-progress
+
+  # Source/logic Playwright specs (no lab passwords, no demo accounts, no live server).
+  playwright-logic:
+    name: G — Playwright logic specs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: CALE-V5-main/frontend/package-lock.json
+      - name: Install
+        working-directory: CALE-V5-main/frontend
+        run: npm ci
+      - name: Install Chromium for Playwright
+        working-directory: CALE-V5-main/frontend
+        run: npx playwright install --with-deps chromium
+      - name: Playwright host + ranking logic
+        working-directory: CALE-V5-main/frontend
+        run: >
+          npx playwright test
+          e2e/tournament-host-angular.spec.ts
+          e2e/ranking-simplified.spec.ts
+          --project=chromium
