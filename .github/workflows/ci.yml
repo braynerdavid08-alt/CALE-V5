@@ -155,7 +155,8 @@ jobs:
         working-directory: CALE-V5-main/frontend
         env:
           CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
-        run: npx ng test --watch=false --browsers=ChromeHeadless --no-progress
+        # ChromeHeadlessCI adds --no-sandbox for Ubuntu AppArmor; local stays on ChromeHeadless.
+        run: npx ng test --watch=false --browsers=ChromeHeadlessCI --no-progress
 
   # Source/logic Playwright specs (no lab passwords, no demo accounts, no live server).
   playwright-logic:
