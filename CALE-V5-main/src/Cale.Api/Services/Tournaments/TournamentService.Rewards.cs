@@ -43,7 +43,22 @@ public sealed partial class TournamentService
             await TryAdd(loser, false);
         }
 
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            // SourceKey unique — concurrent CompleteMatch already awarded XP for this match.
+            foreach (var entry in _db.ChangeTracker.Entries<GameResult>().ToList())
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    entry.State = EntityState.Detached;
+                }
+            }
+        }
+
         await _play.CheckAchievementsAsync(winnerUserId, ct);
         if (loserUserId is int l)
         {
@@ -57,18 +72,21 @@ public sealed partial class TournamentService
         TournamentMatch finalMatch,
         CancellationToken ct)
     {
-        if (tournament.Status == TournamentStatuses.Finished && tournament.ChampionUserId == championUserId)
+        if (tournament.Status == TournamentStatuses.Finished)
         {
+            // Already settled (same or other concurrent declaration). Idempotent no-op.
             return;
         }
 
+        var tournamentId = tournament.Id;
         tournament.ChampionUserId = championUserId;
         tournament.Status = TournamentStatuses.Finished;
         tournament.UpdatedAt = _clock.UtcNow;
         tournament.RowVersion++;
 
         var existingTrophy = await _db.Set<TournamentTrophy>()
-            .AnyAsync(t => t.TournamentId == tournament.Id && t.UserId == championUserId, ct);
+            .AnyAsync(t => t.TournamentId == tournamentId && t.UserId == championUserId, ct);
+        var addedTrophy = false;
         if (!existingTrophy)
         {
             var result =
@@ -76,20 +94,41 @@ public sealed partial class TournamentService
             _db.Set<TournamentTrophy>().Add(new TournamentTrophy
             {
                 UserId = championUserId,
-                TournamentId = tournament.Id,
+                TournamentId = tournamentId,
                 TournamentNameSnapshot = tournament.Name,
                 ObtainedAt = _clock.UtcNow,
                 ChampionResult = result
             });
+            addedTrophy = true;
         }
 
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            ClearTrackedState();
+            _logger.LogInformation(
+                "Tournament {TournamentId} champion declaration lost RowVersion race; treating as idempotent.",
+                tournamentId);
+            return;
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            // UNIQUE TrofeosTorneo (TournamentId, UserId) or concurrent finish state.
+            ClearTrackedState();
+            _logger.LogInformation(
+                "Tournament {TournamentId} champion/trophy already persisted by concurrent request.",
+                tournamentId);
+            return;
+        }
 
         var badges = await _play.CheckAchievementsAsync(championUserId, ct);
         var name = await OrganizerNameAsync(championUserId, ct);
         // Prefer participant snapshot
         var snap = await _db.Set<TournamentParticipant>().AsNoTracking()
-            .Where(p => p.TournamentId == tournament.Id && p.UserId == championUserId)
+            .Where(p => p.TournamentId == tournamentId && p.UserId == championUserId)
             .Select(p => p.DisplayNameSnapshot)
             .FirstOrDefaultAsync(ct);
         if (!string.IsNullOrWhiteSpace(snap))
@@ -97,17 +136,18 @@ public sealed partial class TournamentService
             name = snap;
         }
 
-        await _broadcast.ChampionDeclared(tournament.Id, championUserId, name, ct);
-        await _broadcast.TournamentFinished(tournament.Id, ct);
+        await _broadcast.ChampionDeclared(tournamentId, championUserId, name, ct);
+        await _broadcast.TournamentFinished(tournamentId, ct);
         if (badges.Count > 0)
         {
             await _broadcast.AchievementUnlocked(championUserId, badges, ct);
         }
 
         _logger.LogInformation(
-            "Tournament {TournamentId} champion declared: {UserId}",
-            tournament.Id,
-            championUserId);
+            "Tournament {TournamentId} champion declared: {UserId} (trophyInserted={TrophyInserted})",
+            tournamentId,
+            championUserId,
+            addedTrophy);
     }
 
     public async Task<IReadOnlyList<TournamentTrophyDto>> ListTrophiesAsync(
