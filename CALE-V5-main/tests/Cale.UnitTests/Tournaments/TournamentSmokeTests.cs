@@ -335,6 +335,8 @@ public sealed class TournamentSmokeFactory : WebApplicationFactory<Program>
         builder.UseSetting("Seed:BootstrapAdmin", "false");
         builder.UseSetting("Email:Enabled", "false");
         builder.UseSetting("Assistant:Enabled", "false");
+        // Stress concurrency suites issue thousands of answer POSTs from one IP.
+        builder.UseSetting("RateLimiting:GlobalPerIpPerMinute", "100000");
         builder.ConfigureTestServices(services =>
         {
             foreach (var d in services.Where(d => d.ServiceType == typeof(DbContextOptions<CaleDbContext>)
