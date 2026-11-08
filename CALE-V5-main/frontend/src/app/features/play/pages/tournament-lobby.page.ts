@@ -18,8 +18,8 @@ import { PlayTopbarComponent } from '../components/play-topbar.component';
 import { PlayFxService } from '../play-fx.service';
 import { tournamentInitials, tournamentPhotoSrc } from '../tournament-avatar';
 
-/** Fallback when the socket is down; the hub pushes changes in real time. */
-const FALLBACK_REFRESH_MS = 8000;
+/** Keep polling even while SignalR is "live" so a missed MatchAssigned cannot leave students stuck. */
+const LOBBY_POLL_MS = 3000;
 
 @Component({
   selector: 'app-tournament-lobby-page',
@@ -102,6 +102,12 @@ const FALLBACK_REFRESH_MS = 8000;
             @if (isStudent() && l.amIRegistered && l.status === 'registration_open') {
               <p class="muted pulse">Esperando a que el organizador inicie el torneo…</p>
             }
+            @if (isStudent() && l.amIRegistered && l.status === 'in_progress' && !l.myMatchId) {
+              <p class="muted pulse">Torneo en curso. Te llevaremos al VS en cuanto toque tu enfrentamiento…</p>
+            }
+            @if (isStudent() && l.amIRegistered && l.myMatchId && l.status === 'in_progress') {
+              <p class="muted pulse">Abriendo tu enfrentamiento…</p>
+            }
           </div>
 
           @if (l.status === 'finished' && l.championName) {
@@ -182,6 +188,7 @@ export class TournamentLobbyPage implements OnInit, OnDestroy {
   private loading = false;
   private reloadQueued = false;
   private timer: ReturnType<typeof setInterval> | null = null;
+  private enteringMatchId: number | null = null;
 
   ngOnInit(): void {
     if (!Number.isFinite(this.id)) {
@@ -191,8 +198,8 @@ export class TournamentLobbyPage implements OnInit, OnDestroy {
     this.reload();
     void this.connect();
     this.timer = setInterval(() => {
-      if (!this.live() && document.visibilityState === 'visible') this.reload();
-    }, FALLBACK_REFRESH_MS);
+      if (document.visibilityState === 'visible') this.reload();
+    }, LOBBY_POLL_MS);
   }
 
   ngOnDestroy(): void {
@@ -258,6 +265,7 @@ export class TournamentLobbyPage implements OnInit, OnDestroy {
         this.loading = false;
         this.error.set(null);
         this.lobby.set(lobby);
+        this.maybeEnterMatch(lobby.myMatchId ?? null, lobby.status);
         if (this.reloadQueued) {
           this.reloadQueued = false;
           this.reload();
@@ -297,13 +305,40 @@ export class TournamentLobbyPage implements OnInit, OnDestroy {
     if (event === 'MatchAssigned') {
       const match = payload as TournamentMatchView;
       this.reload();
-      if (this.isStudent() && match?.matchId) {
-        this.fx.play('start');
-        void this.router.navigate([this.base, 'match', match.matchId]);
+      if (match?.matchId) {
+        this.enterMatch(match.matchId, true);
       }
+      return;
+    }
+    if (event === 'MatchReady') {
+      const ready = payload as { userId?: number; matchId?: number };
+      if (ready?.userId === this.myId() && ready.matchId) {
+        this.enterMatch(ready.matchId, true);
+      }
+      this.reload();
+      return;
+    }
+    if (event === 'TournamentStarted' || event === 'RoundStarted') {
+      this.reload();
       return;
     }
     if (event === 'AchievementUnlocked') return;
     this.reload();
+  }
+
+  /** Auto-open the VS page whenever the student has an active match. */
+  private maybeEnterMatch(matchId: number | null, status: string): void {
+    if (!this.isStudent() || status !== 'in_progress' || !matchId) return;
+    this.enterMatch(matchId, false);
+  }
+
+  private enterMatch(matchId: number, playStartSound: boolean): void {
+    if (!this.isStudent() || !matchId || this.destroyed) return;
+    if (this.enteringMatchId === matchId) return;
+    this.enteringMatchId = matchId;
+    if (playStartSound) this.fx.play('start');
+    void this.router.navigate([this.base, 'match', matchId]).then((ok) => {
+      if (!ok) this.enteringMatchId = null;
+    });
   }
 }

@@ -191,6 +191,7 @@ export const TOURNAMENT_HUB_EVENTS = [
   'LobbyUpdated',
   'TournamentStarted',
   'MatchAssigned',
+  'MatchReady',
   'MatchUpdated',
   'MatchFinished',
   'RoundStarted',
