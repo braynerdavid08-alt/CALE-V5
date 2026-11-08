@@ -13,10 +13,13 @@ public sealed class TournamentBracketTests
         Assert.Equal(expected, TournamentBracket.NextPowerOfTwo(count));
 
     [Theory]
+    [InlineData(3, 1, 1)]
     [InlineData(4, 2, 0)]
     [InlineData(5, 2, 1)]
     [InlineData(7, 3, 1)]
     [InlineData(9, 4, 1)]
+    [InlineData(11, 5, 1)]
+    [InlineData(15, 7, 1)]
     [InlineData(16, 8, 0)]
     [InlineData(8, 4, 0)]
     [InlineData(13, 6, 1)]
@@ -56,10 +59,13 @@ public sealed class TournamentBracketTests
     }
 
     [Theory]
+    [InlineData(3, 2)]
     [InlineData(4, 2)]
     [InlineData(5, 3)]
     [InlineData(7, 3)]
     [InlineData(9, 4)]
+    [InlineData(11, 4)]
+    [InlineData(15, 4)]
     [InlineData(16, 4)]
     public void EstimatedRoundCount_Matches_Living_Field(int players, int expectedRounds) =>
         Assert.Equal(expectedRounds, TournamentBracket.EstimatedRoundCount(players));

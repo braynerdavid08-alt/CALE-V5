@@ -36,6 +36,8 @@ public sealed class TournamentPairRoundFieldTests : IAsyncLifetime
     [InlineData(5, 2, 1)]
     [InlineData(7, 3, 1)]
     [InlineData(9, 4, 1)]
+    [InlineData(11, 5, 1)]
+    [InlineData(15, 7, 1)]
     [InlineData(16, 8, 0)]
     public async Task Start_shapes_round1_with_max_pairs_and_at_most_one_bye(
         int players,
@@ -71,17 +73,51 @@ public sealed class TournamentPairRoundFieldTests : IAsyncLifetime
 
     [Theory]
     [InlineData(5)]
+    [InlineData(7)]
     [InlineData(9)]
+    [InlineData(11)]
+    [InlineData(15)]
     public async Task Odd_field_reaches_champion_with_idempotent_trophy_and_no_bye_xp(int players)
     {
         var tournamentId = await CreateAndStartAsync(capacity: Math.Max(players, 4), takeStudents: players);
         using var teacher = _api.ClientFor(_api.Teacher);
 
         BracketDto? bracket = null;
-        for (var guard = 0; guard < 200; guard++)
+        var seenRounds = new HashSet<int>();
+        for (var guard = 0; guard < 400; guard++)
         {
             bracket = await teacher.GetFromJsonAsync<BracketDto>($"/api/tournaments/{tournamentId}/bracket", Json);
             Assert.NotNull(bracket);
+            foreach (var m in bracket.Matches)
+            {
+                seenRounds.Add(m.RoundNumber);
+            }
+
+            // Every populated round: ≤1 bye, no empty-vs-empty seats among filled matches, unique seats.
+            foreach (var round in bracket.Matches.GroupBy(m => m.RoundNumber))
+            {
+                var filled = round
+                    .Where(m => m.Player1UserId is int || m.Player2UserId is int)
+                    .ToList();
+                if (filled.Count == 0)
+                {
+                    continue;
+                }
+
+                var byeCount = filled.Count(m =>
+                    string.Equals(m.FinishReason, "bye", StringComparison.OrdinalIgnoreCase)
+                    || (m.Player1UserId is null ^ m.Player2UserId is null));
+                Assert.True(byeCount <= 1, $"round {round.Key} had {byeCount} byes");
+                Assert.DoesNotContain(filled, m => m.Player1UserId is null && m.Player2UserId is null);
+
+                var seated = filled
+                    .SelectMany(m => new[] { m.Player1UserId, m.Player2UserId })
+                    .Where(id => id is int)
+                    .Select(id => id!.Value)
+                    .ToList();
+                Assert.Equal(seated.Count, seated.Distinct().Count());
+            }
+
             if (bracket.Status == "finished")
             {
                 break;
@@ -103,6 +139,22 @@ public sealed class TournamentPairRoundFieldTests : IAsyncLifetime
         Assert.NotNull(bracket);
         Assert.Equal("finished", bracket.Status);
         Assert.NotNull(bracket.ChampionUserId);
+        Assert.True(seenRounds.Count >= 2, "odd fields must advance through multiple rounds");
+
+        // Bye winners must appear later as real players (auto-advance).
+        var byeWinners = bracket.Matches
+            .Where(m => string.Equals(m.FinishReason, "bye", StringComparison.OrdinalIgnoreCase) && m.WinnerUserId is int)
+            .Select(m => m.WinnerUserId!.Value)
+            .Distinct()
+            .ToList();
+        Assert.NotEmpty(byeWinners);
+        foreach (var winnerId in byeWinners)
+        {
+            Assert.Contains(
+                bracket.Matches,
+                m => m.FinishReason != "bye"
+                    && (m.Player1UserId == winnerId || m.Player2UserId == winnerId));
+        }
 
         using var scope = _api.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<CaleDbContext>();
@@ -135,6 +187,36 @@ public sealed class TournamentPairRoundFieldTests : IAsyncLifetime
             .CountAsync(p => p.TournamentId == tournamentId && p.IsEliminated);
         Assert.Equal(players - 1, eliminated);
         Assert.Equal(players, await db.Set<TournamentParticipant>().CountAsync(p => p.TournamentId == tournamentId));
+    }
+
+    /// <summary>
+    /// Product rule: MinCapacity=4. Three-player PairRound is unit-tested; live start is rejected.
+    /// Full 3-player champion path needs explicit authorization to lower MinCapacity.
+    /// </summary>
+    [Fact]
+    public async Task Start_rejects_three_participants_under_min_capacity()
+    {
+        using var teacher = _api.ClientFor(_api.Teacher);
+        var create = await teacher.PostAsJsonAsync("/api/tournaments", new
+        {
+            name = $"PairRound-3-{Guid.NewGuid():N}"[..28],
+            scheduledAt = DateTime.UtcNow.AddMinutes(20),
+            capacity = 4,
+            secondsPerQuestion = 20,
+            questionMode = "random"
+        });
+        create.EnsureSuccessStatusCode();
+        var item = await create.Content.ReadFromJsonAsync<IdDto>(Json);
+        Assert.NotNull(item);
+
+        foreach (var s in _api.Students.Take(3))
+        {
+            using var c = _api.ClientFor(s);
+            (await c.PostAsync($"/api/tournaments/{item.Id}/join", null)).EnsureSuccessStatusCode();
+        }
+
+        var start = await teacher.PostAsync($"/api/tournaments/{item.Id}/start", null);
+        Assert.Equal(HttpStatusCode.BadRequest, start.StatusCode);
     }
 
     [Fact]
