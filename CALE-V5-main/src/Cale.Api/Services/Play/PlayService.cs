@@ -693,7 +693,7 @@ public sealed partial class PlayService
         RankingDto? ranking = null;
         try
         {
-            ranking = await GetRankingAsync(userId, null, null, "2y", "general", ct);
+            ranking = await GetRankingAsync(userId, null, null, "all", "xp", ct);
         }
         catch (DomainException)
         {
