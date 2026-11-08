@@ -1,9 +1,11 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Cale.BuildingBlocks.Domain.Security;
 using Cale.BuildingBlocks.Infrastructure.Persistence;
 using Cale.Modules.Assessment.Domain.Gamification;
 using Cale.Modules.Classroom.Domain;
+using Cale.Modules.Identity.Domain;
 using Cale.UnitTests.Tournaments;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +20,9 @@ public sealed class RankingSimplificationTests : IAsyncLifetime
 {
     private static readonly JsonSerializerOptions Json = new() { PropertyNameCaseInsensitive = true };
     private TournamentSmokeFactory _api = null!;
+    private User _noSchoolNoGroup = null!;
+    private User _noSchoolWithGroups = null!;
+    private User _schoolNoGroup = null!;
 
     public async Task InitializeAsync()
     {
@@ -37,7 +42,10 @@ public sealed class RankingSimplificationTests : IAsyncLifetime
     {
         using var scope = _api.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<CaleDbContext>();
+        var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
         var now = DateTime.UtcNow;
+        var hash = hasher.Hash(TournamentSmokeFactory.Password);
+
         for (var i = 0; i < _api.Students.Count; i++)
         {
             var s = _api.Students[i];
@@ -63,6 +71,54 @@ public sealed class RankingSimplificationTests : IAsyncLifetime
         db.Set<GroupMember>().Add(GroupMember.Join(g1.Id, _api.Students[1].Id, now));
         db.Set<GroupMember>().Add(GroupMember.Join(g2.Id, _api.Students[0].Id, now));
         db.Set<GroupMember>().Add(GroupMember.Join(g2.Id, _api.Students[2].Id, now));
+
+        // School student without any group membership (Students[3] unused by groups above).
+        _schoolNoGroup = _api.Students[3];
+
+        _noSchoolNoGroup = User.RegisterStudent(
+            "Student_NoSchool",
+            "student.noschool@pruebas.test",
+            hash,
+            now,
+            schoolId: null);
+        _noSchoolNoGroup.MarkEmailConfirmed();
+
+        _noSchoolWithGroups = User.RegisterStudent(
+            "Student_NoSchool_Groups",
+            "student.noschool.groups@pruebas.test",
+            hash,
+            now,
+            schoolId: null);
+        _noSchoolWithGroups.MarkEmailConfirmed();
+
+        db.AddRange(_noSchoolNoGroup, _noSchoolWithGroups);
+        await db.SaveChangesAsync();
+
+        db.Set<GroupMember>().Add(GroupMember.Join(g1.Id, _noSchoolWithGroups.Id, now));
+        db.Set<GroupMember>().Add(GroupMember.Join(g2.Id, _noSchoolWithGroups.Id, now));
+
+        db.Set<GameResult>().Add(new GameResult
+        {
+            UserId = _noSchoolNoGroup.Id,
+            Game = GameKinds.Signs,
+            Score = 40,
+            Correct = 8,
+            Total = 10,
+            Won = true,
+            PlayedAt = now,
+            SourceKey = $"ranking-test:{_noSchoolNoGroup.Id}:signs"
+        });
+        db.Set<GameResult>().Add(new GameResult
+        {
+            UserId = _noSchoolWithGroups.Id,
+            Game = GameKinds.Signs,
+            Score = 35,
+            Correct = 7,
+            Total = 10,
+            Won = true,
+            PlayedAt = now,
+            SourceKey = $"ranking-test:{_noSchoolWithGroups.Id}:signs"
+        });
         await db.SaveChangesAsync();
     }
 
@@ -157,6 +213,75 @@ public sealed class RankingSimplificationTests : IAsyncLifetime
         Assert.DoesNotContain("\"positionHeldSinceUtc\":\"0001", raw, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task Ranking_without_school_or_group_defaults_to_global_without_school_chip()
+    {
+        using var student = _api.ClientFor(_noSchoolNoGroup);
+        var res = await student.GetFromJsonAsync<RankingDto>("/api/student/play/ranking", Json);
+        Assert.NotNull(res);
+        Assert.Equal("global", res.Scope);
+        Assert.Equal("Todo Luz Verde", res.ScopeLabel);
+        Assert.DoesNotContain(res.Scopes, s => s.Scope == "school");
+        Assert.DoesNotContain(res.Scopes, s => s.Scope == "group");
+        Assert.Contains(res.Scopes, s => s.Scope == "global");
+        Assert.Equal("all", res.PeriodKey);
+        Assert.Equal("xp", res.Metric);
+        Assert.True(res.MyXp > 0);
+        Assert.All(res.Entries, e => Assert.True(e.PositionHeldSinceUtc is null || e.PositionHeldSinceUtc.Value.Year >= 2000));
+
+        // Asking for school must not invent another school's board.
+        var forcedSchool = await student.GetFromJsonAsync<RankingDto>(
+            "/api/student/play/ranking?scope=school&metric=xp",
+            Json);
+        Assert.NotNull(forcedSchool);
+        Assert.Equal("global", forcedSchool.Scope);
+        Assert.DoesNotContain(forcedSchool.Scopes, s => s.Scope == "school");
+    }
+
+    [Fact]
+    public async Task Ranking_without_school_but_with_groups_offers_mi_grupo_and_global()
+    {
+        using var student = _api.ClientFor(_noSchoolWithGroups);
+        var res = await student.GetFromJsonAsync<RankingDto>("/api/student/play/ranking", Json);
+        Assert.NotNull(res);
+        Assert.Equal("group", res.Scope);
+        Assert.Equal("Mi grupo", res.ScopeLabel);
+        Assert.DoesNotContain(res.Scopes, s => s.Scope == "school");
+        Assert.Contains(res.Scopes, s => s.Scope == "group" && s.Label == "Mi grupo");
+        Assert.Single(res.Scopes, s => s.Scope == "group");
+        Assert.Contains(res.Scopes, s => s.Scope == "global");
+
+        var group = await student.GetFromJsonAsync<RankingDto>(
+            "/api/student/play/ranking?scope=group&metric=xp",
+            Json);
+        Assert.NotNull(group);
+        Assert.Equal("group", group.Scope);
+        var ids = group.Entries.Select(e => e.UserId).ToList();
+        Assert.Equal(ids.Count, ids.Distinct().Count());
+        Assert.Contains(_noSchoolWithGroups.Id, ids);
+        Assert.Contains(_api.Students[0].Id, ids);
+
+        var global = await student.GetFromJsonAsync<RankingDto>(
+            "/api/student/play/ranking?scope=global&metric=trophies",
+            Json);
+        Assert.NotNull(global);
+        Assert.Equal("global", global.Scope);
+        Assert.All(global.Entries, e => Assert.Null(e.PositionHeldSinceUtc));
+    }
+
+    [Fact]
+    public async Task Ranking_school_student_without_groups_omits_mi_grupo()
+    {
+        using var student = _api.ClientFor(_schoolNoGroup);
+        var res = await student.GetFromJsonAsync<RankingDto>("/api/student/play/ranking", Json);
+        Assert.NotNull(res);
+        Assert.Equal("school", res.Scope);
+        Assert.Contains(res.Scopes, s => s.Scope == "school");
+        Assert.DoesNotContain(res.Scopes, s => s.Scope == "group");
+        Assert.Contains(res.Scopes, s => s.Scope == "global");
+        Assert.DoesNotContain(res.Entries, e => e.UserId == _api.OtherSchoolStudent.Id);
+    }
+
     private sealed record RankingDto(
         string Scope,
         string ScopeLabel,
@@ -167,7 +292,9 @@ public sealed class RankingSimplificationTests : IAsyncLifetime
         string Metric,
         string PeriodKey,
         IReadOnlyList<ScopeDto> Scopes,
-        IReadOnlyList<object> Periods);
+        IReadOnlyList<object> Periods,
+        int MyXp = 0,
+        int MyTrophies = 0);
 
     private sealed record EntryDto(int UserId, DateTime? PositionHeldSinceUtc);
     private sealed record ScopeDto(string Scope, string Label, int? GroupId);
