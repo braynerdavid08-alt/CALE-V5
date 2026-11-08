@@ -157,7 +157,6 @@ export class TournamentBracketPage implements OnInit, OnDestroy {
   readonly live = signal(false);
 
   readonly myId = computed(() => this.session.user()?.id ?? -1);
-  private readonly isStudent = computed(() => this.session.user()?.role === 'Student');
 
   readonly rounds = computed<BracketRound[]>(() => {
     const matches = this.bracket()?.matches ?? [];
@@ -219,7 +218,7 @@ export class TournamentBracketPage implements OnInit, OnDestroy {
   slotName(m: TournamentBracketMatch, player: 1 | 2): string {
     const isBye = player === 1 ? m.player1IsBye : m.player2IsBye;
     const name = player === 1 ? m.player1Name : m.player2Name;
-    if (isBye) return 'BYE';
+    if (isBye) return 'Espera rival';
     return name || 'Por definir';
   }
 
@@ -230,17 +229,18 @@ export class TournamentBracketPage implements OnInit, OnDestroy {
   }
 
   footText(m: TournamentBracketMatch): string {
-    if (m.status === 'active') return '● En juego';
+    if (m.status === 'active') return '● En juego · tocar para ver';
     if (m.status === 'finished') {
+      if (m.finishReason === 'bye') return 'Esperando rival de la siguiente ronda';
       const reason = m.finishReason ? FINISH_REASON_LABELS[m.finishReason] : '';
       return reason ? `Finalizado · ${reason}` : 'Finalizado';
     }
     return '';
   }
 
-  /** Students can open a match that is being played or already finished. */
+  /** Anyone who can see the bracket can open live/finished matches (teachers host/spectate). */
   matchLink(m: TournamentBracketMatch): string | null {
-    if (!this.isStudent() || (m.status !== 'active' && m.status !== 'finished')) return null;
+    if (m.status !== 'active' && m.status !== 'finished') return null;
     if (m.player1IsBye || m.player2IsBye) return null;
     return `${this.base}/match/${m.id}`;
   }

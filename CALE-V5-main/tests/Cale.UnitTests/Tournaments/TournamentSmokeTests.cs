@@ -80,13 +80,14 @@ public sealed class TournamentSmokeTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK, start.StatusCode);
         var bracket = await start.Content.ReadFromJsonAsync<TournamentBracket>(Json);
         Assert.NotNull(bracket);
-        Assert.Equal(16, bracket.BracketSize);
+        Assert.Equal(13, bracket.BracketSize);
         Assert.Equal("in_progress", bracket.Status);
 
-        var byeMatches = bracket.Matches
-            .Where(m => m.RoundNumber == 1 && m.FinishReason == "bye")
-            .ToList();
-        Assert.Equal(3, byeMatches.Count);
+        var round1 = bracket.Matches.Where(m => m.RoundNumber == 1).ToList();
+        var byeMatches = round1.Where(m => m.FinishReason == "bye").ToList();
+        var liveMatches = round1.Where(m => m.Status == "active").ToList();
+        Assert.Single(byeMatches);
+        Assert.Equal(6, liveMatches.Count);
         Assert.All(byeMatches, m => Assert.NotNull(m.WinnerUserId));
 
         // No XP/GameResult for BYE winners

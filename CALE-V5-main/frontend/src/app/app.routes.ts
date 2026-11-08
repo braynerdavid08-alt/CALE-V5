@@ -914,6 +914,14 @@ export const routes: Routes = [
             .then((m) => m.TournamentCreatePage)
       },
       {
+        path: 'teacher/tournaments/match/:matchId',
+        canActivate: [roleGuard],
+        data: { roles: tournamentStaffRoles, base: staffTournamentsBase },
+        loadComponent: () =>
+          import('./features/play/pages/tournament-match.page')
+            .then((m) => m.TournamentMatchPage)
+      },
+      {
         path: 'teacher/tournaments/:id/bracket',
         canActivate: [roleGuard],
         data: { roles: tournamentStaffRoles, base: staffTournamentsBase },

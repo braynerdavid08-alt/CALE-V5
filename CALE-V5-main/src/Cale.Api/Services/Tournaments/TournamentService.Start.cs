@@ -63,74 +63,77 @@ public sealed partial class TournamentService
             // soft check — EF concurrency token handles the hard case
         }
 
-        var bracketSize = TournamentBracket.NextPowerOfTwo(participants.Count);
-        var slots = TournamentBracket.SeedSlots(
-            participants.Select(p => p.UserId).ToList(),
-            bracketSize,
-            Random.Shared);
-        var totalRounds = TournamentBracket.RoundCount(bracketSize);
-        var now = _clock.UtcNow;
-
-        for (var i = 0; i < slots.Length; i++)
-        {
-            if (slots[i] is int uid)
-            {
-                var p = participants.First(x => x.UserId == uid);
-                p.BracketSlot = i;
-            }
-        }
-
-        // Clear any previous rounds if restarting from preparing (shouldn't happen)
         if (t.Rounds.Count > 0)
         {
             throw new DomainException("El torneo ya tiene un cuadro generado.", 400, "bracket_exists");
         }
 
-        for (var roundNumber = 1; roundNumber <= totalRounds; roundNumber++)
-        {
-            var round = new TournamentRound
-            {
-                TournamentId = t.Id,
-                RoundNumber = roundNumber,
-                Name = TournamentBracket.RoundName(roundNumber, totalRounds),
-                Status = roundNumber == 1 ? TournamentMatchStatuses.Active : TournamentMatchStatuses.Pending,
-                StartedAt = roundNumber == 1 ? now : null
-            };
-            t.Rounds.Add(round);
+        var playerIds = participants.Select(p => p.UserId).ToList();
+        var pairs = TournamentBracket.PairRound(playerIds, Random.Shared);
+        var now = _clock.UtcNow;
 
-            var matchCount = bracketSize / (1 << roundNumber);
-            for (var slot = 0; slot < matchCount; slot++)
-            {
-                round.Matches.Add(new TournamentMatch
-                {
-                    TournamentId = t.Id,
-                    SlotIndex = slot,
-                    Status = TournamentMatchStatuses.Pending
-                });
-            }
-        }
-
-        var firstRound = t.Rounds.First(r => r.RoundNumber == 1);
-        var pairs = TournamentBracket.FirstRoundPairs(slots);
-        for (var i = 0; i < pairs.Count; i++)
-        {
-            var (p1, p2, p1Bye, p2Bye) = pairs[i];
-            var match = firstRound.Matches.First(m => m.SlotIndex == i);
-            match.Player1UserId = p1;
-            match.Player2UserId = p2;
-            match.Player1IsBye = p1Bye;
-            match.Player2IsBye = p2Bye;
-        }
-
-        t.BracketSize = bracketSize;
+        // BracketSize stores the starting field size (not a padded power-of-two).
+        t.BracketSize = participants.Count;
         t.CurrentRoundNumber = 1;
         t.Status = TournamentStatuses.InProgress;
         t.UpdatedAt = now;
         t.RowVersion++;
+
+        var firstRound = new TournamentRound
+        {
+            TournamentId = t.Id,
+            RoundNumber = 1,
+            Name = TournamentBracket.RoundNameForField(participants.Count),
+            Status = TournamentMatchStatuses.Active,
+            StartedAt = now
+        };
+        t.Rounds.Add(firstRound);
+
+        for (var i = 0; i < pairs.Count; i++)
+        {
+            var (p1, p2, p1Bye, p2Bye) = pairs[i];
+            firstRound.Matches.Add(new TournamentMatch
+            {
+                TournamentId = t.Id,
+                SlotIndex = i,
+                Status = TournamentMatchStatuses.Pending,
+                Player1UserId = p1,
+                Player2UserId = p2,
+                Player1IsBye = p1Bye,
+                Player2IsBye = p2Bye
+            });
+
+            if (p1 is int uid1)
+            {
+                participants.First(x => x.UserId == uid1).BracketSlot = i * 2;
+            }
+
+            if (p2 is int uid2)
+            {
+                participants.First(x => x.UserId == uid2).BracketSlot = i * 2 + 1;
+            }
+        }
+
         await _db.SaveChangesAsync(ct);
 
-        // Resolve BYEs and start real matches
-        foreach (var match in firstRound.Matches.OrderBy(m => m.SlotIndex).ToList())
+        await ActivateRoundMatchesAsync(t, firstRound.Matches.OrderBy(m => m.SlotIndex).ToList(), ct);
+        await _db.SaveChangesAsync(ct);
+        await MaybeAdvanceRoundAsync(t.Id, ct);
+
+        var bracket = await GetBracketAsync(t.Id, actorUserId, ct);
+        await _broadcast.TournamentStarted(t.Id, bracket, ct);
+        await _broadcast.RoundStarted(t.Id, 1, firstRound.Name, ct);
+        await NotifyActiveMatchAssignmentsAsync(t.Id, ct);
+
+        return bracket;
+    }
+
+    private async Task ActivateRoundMatchesAsync(
+        Tournament t,
+        IReadOnlyList<TournamentMatch> matches,
+        CancellationToken ct)
+    {
+        foreach (var match in matches)
         {
             if (match.Player1IsBye && match.Player2UserId is int only2)
             {
@@ -140,46 +143,38 @@ public sealed partial class TournamentService
             {
                 await FinishMatchAsByeAsync(match, only1, ct);
             }
-            else if (match.Player1UserId is int a && match.Player2UserId is int b)
+            else if (match.Player1UserId is int && match.Player2UserId is int)
             {
                 await ActivateMatchAsync(t, match, ct);
             }
             else
             {
-                // Both BYE — should not happen with proper seeding
                 match.Status = TournamentMatchStatuses.Finished;
                 match.FinishReason = TournamentMatchFinishReasons.Bye;
                 match.FinishedAt = _clock.UtcNow;
             }
         }
+    }
 
-        await _db.SaveChangesAsync(ct);
-        await MaybeAdvanceRoundAsync(t.Id, ct);
-
-        var bracket = await GetBracketAsync(t.Id, actorUserId, ct);
-        await _broadcast.TournamentStarted(t.Id, bracket, ct);
-        await _broadcast.RoundStarted(t.Id, 1, firstRound.Name, ct);
-
-        // Notify players of their matches
+    private async Task NotifyActiveMatchAssignmentsAsync(int tournamentId, CancellationToken ct)
+    {
         var active = await _db.Set<TournamentMatch>()
-            .Where(m => m.TournamentId == t.Id && m.Status == TournamentMatchStatuses.Active)
+            .Where(m => m.TournamentId == tournamentId && m.Status == TournamentMatchStatuses.Active)
             .ToListAsync(ct);
         foreach (var m in active)
         {
             if (m.Player1UserId is int u1)
             {
-                await _broadcast.MatchAssigned(t.Id, u1, await BuildMatchViewAsync(m.Id, u1, ct), ct);
-                await _broadcast.MatchReady(t.Id, u1, m.Id, ct);
+                await _broadcast.MatchAssigned(tournamentId, u1, await BuildMatchViewAsync(m.Id, u1, ct), ct);
+                await _broadcast.MatchReady(tournamentId, u1, m.Id, ct);
             }
 
             if (m.Player2UserId is int u2)
             {
-                await _broadcast.MatchAssigned(t.Id, u2, await BuildMatchViewAsync(m.Id, u2, ct), ct);
-                await _broadcast.MatchReady(t.Id, u2, m.Id, ct);
+                await _broadcast.MatchAssigned(tournamentId, u2, await BuildMatchViewAsync(m.Id, u2, ct), ct);
+                await _broadcast.MatchReady(tournamentId, u2, m.Id, ct);
             }
         }
-
-        return bracket;
     }
 
     public async Task<TournamentBracketDto> GetBracketAsync(

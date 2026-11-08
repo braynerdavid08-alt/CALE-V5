@@ -7,6 +7,7 @@ import { mapApiError } from '../../../core/http/map-api-error';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import {
   TournamentApi,
+  TournamentBracketMatch,
   TournamentHubEvent,
   TournamentHubHandle,
   TournamentLobby,
@@ -108,7 +109,28 @@ const LOBBY_POLL_MS = 3000;
             @if (isStudent() && l.amIRegistered && l.myMatchId && l.status === 'in_progress') {
               <p class="muted pulse">Abriendo tu enfrentamiento…</p>
             }
+            @if (canManage() && l.status === 'in_progress') {
+              <p class="muted">Como organizador podés abrir cualquier partido en vivo desde abajo o desde las llaves para proyectarlo.</p>
+            }
           </div>
+
+          @if (canManage() && l.status === 'in_progress') {
+            <div class="play-card t-card">
+              <h2>Partidos en vivo ({{ liveMatches().length }})</h2>
+              @if (!liveMatches().length) {
+                <p class="muted pulse">No hay enfrentamientos activos ahora. Puede haber alguien esperando rival.</p>
+              } @else {
+                <ul class="participants">
+                  @for (m of liveMatches(); track m.id) {
+                    <li>
+                      <span class="who">{{ m.player1Name || '?' }} vs {{ m.player2Name || '?' }}</span>
+                      <ui-button [routerLink]="base + '/match/' + m.id" variant="secondary">Ver / proyectar</ui-button>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          }
 
           @if (l.status === 'finished' && l.championName) {
             <div class="play-card champion">
@@ -166,6 +188,7 @@ export class TournamentLobbyPage implements OnInit, OnDestroy {
   readonly id = Number(this.route.snapshot.paramMap.get('id'));
 
   readonly lobby = signal<TournamentLobby | null>(null);
+  readonly liveMatches = signal<TournamentBracketMatch[]>([]);
   readonly error = signal<string | null>(null);
   readonly busy = signal<'join' | 'close' | 'start' | 'cancel' | null>(null);
   readonly live = signal(false);
@@ -266,6 +289,7 @@ export class TournamentLobbyPage implements OnInit, OnDestroy {
         this.error.set(null);
         this.lobby.set(lobby);
         this.maybeEnterMatch(lobby.myMatchId ?? null, lobby.status);
+        this.refreshLiveMatches(lobby.status);
         if (this.reloadQueued) {
           this.reloadQueued = false;
           this.reload();
@@ -276,6 +300,21 @@ export class TournamentLobbyPage implements OnInit, OnDestroy {
         this.reloadQueued = false;
         this.error.set(mapApiError(err));
       }
+    });
+  }
+
+  private refreshLiveMatches(status: string): void {
+    if (!this.canManage() || status !== 'in_progress') {
+      this.liveMatches.set([]);
+      return;
+    }
+    this.api.bracket(this.id).subscribe({
+      next: (b) => {
+        this.liveMatches.set(
+          (b.matches ?? []).filter((m) => m.status === 'active' && !m.player1IsBye && !m.player2IsBye)
+        );
+      },
+      error: () => this.liveMatches.set([])
     });
   }
 

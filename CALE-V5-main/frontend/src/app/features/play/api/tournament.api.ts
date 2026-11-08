@@ -24,7 +24,7 @@ export interface CreateTournamentRequest {
   description?: string | null;
   /** ISO 8601 (UTC). */
   scheduledAt: string;
-  /** 4..20 registration cap (bracket uses BYEs for actual count). */
+  /** 4..20 registration cap. Odd fields get at most one waiting player per round. */
   capacity: number;
   /** 10..120 */
   secondsPerQuestion: number;
@@ -231,7 +231,7 @@ export const FINISH_REASON_LABELS: Record<string, string> = {
   time: 'por tiempo',
   sudden_death: 'en muerte súbita',
   walkover: 'por W.O.',
-  bye: 'pase libre'
+  bye: 'esperando rival'
 };
 
 @Injectable({ providedIn: 'root' })
