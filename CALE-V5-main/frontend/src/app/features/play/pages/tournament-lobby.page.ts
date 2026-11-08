@@ -18,6 +18,7 @@ import {
 import { PlayTopbarComponent } from '../components/play-topbar.component';
 import { PlayFxService } from '../play-fx.service';
 import { tournamentInitials, tournamentPhotoSrc } from '../tournament-avatar';
+import { filterLiveRealMatches, teacherShowsLiveBoard } from '../tournament-host.logic';
 
 /** Keep polling even while SignalR is "live" so a missed MatchAssigned cannot leave students stuck. */
 const LOBBY_POLL_MS = 3000;
@@ -109,12 +110,12 @@ const LOBBY_POLL_MS = 3000;
             @if (isStudent() && l.amIRegistered && l.myMatchId && l.status === 'in_progress') {
               <p class="muted pulse">Abriendo tu enfrentamiento…</p>
             }
-            @if (canManage() && l.status === 'in_progress') {
+            @if (showLiveBoard(l.status)) {
               <p class="muted">Como organizador podés abrir cualquier partido en vivo desde abajo o desde las llaves para proyectarlo.</p>
             }
           </div>
 
-          @if (canManage() && l.status === 'in_progress') {
+          @if (showLiveBoard(l.status)) {
             <div class="play-card t-card">
               <h2>Partidos en vivo ({{ liveMatches().length }})</h2>
               @if (!liveMatches().length) {
@@ -236,6 +237,10 @@ export class TournamentLobbyPage implements OnInit, OnDestroy {
     return l.status !== 'finished' && l.status !== 'cancelled';
   }
 
+  showLiveBoard(status: string): boolean {
+    return teacherShowsLiveBoard(this.canManage(), status);
+  }
+
   join(): void {
     this.act('join', this.api.join(this.id), (lobby) => this.lobby.set(lobby));
   }
@@ -309,11 +314,7 @@ export class TournamentLobbyPage implements OnInit, OnDestroy {
       return;
     }
     this.api.bracket(this.id).subscribe({
-      next: (b) => {
-        this.liveMatches.set(
-          (b.matches ?? []).filter((m) => m.status === 'active' && !m.player1IsBye && !m.player2IsBye)
-        );
-      },
+      next: (b) => this.liveMatches.set(filterLiveRealMatches(b.matches ?? [])),
       error: () => this.liveMatches.set([])
     });
   }

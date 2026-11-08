@@ -17,6 +17,7 @@ import {
 } from '../api/tournament.api';
 import { PlayTopbarComponent } from '../components/play-topbar.component';
 import { tournamentInitials, tournamentPhotoSrc } from '../tournament-avatar';
+import { tournamentFootText, tournamentMatchLink, tournamentSlotName } from '../tournament-host.logic';
 
 const FALLBACK_REFRESH_MS = 8000;
 
@@ -216,10 +217,7 @@ export class TournamentBracketPage implements OnInit, OnDestroy {
   }
 
   slotName(m: TournamentBracketMatch, player: 1 | 2): string {
-    const isBye = player === 1 ? m.player1IsBye : m.player2IsBye;
-    const name = player === 1 ? m.player1Name : m.player2Name;
-    if (isBye) return 'Espera rival';
-    return name || 'Por definir';
+    return tournamentSlotName(m, player);
   }
 
   slotPhoto(m: TournamentBracketMatch, player: 1 | 2): string | null {
@@ -229,20 +227,12 @@ export class TournamentBracketPage implements OnInit, OnDestroy {
   }
 
   footText(m: TournamentBracketMatch): string {
-    if (m.status === 'active') return '● En juego · tocar para ver';
-    if (m.status === 'finished') {
-      if (m.finishReason === 'bye') return 'Esperando rival de la siguiente ronda';
-      const reason = m.finishReason ? FINISH_REASON_LABELS[m.finishReason] : '';
-      return reason ? `Finalizado · ${reason}` : 'Finalizado';
-    }
-    return '';
+    return tournamentFootText(m, FINISH_REASON_LABELS);
   }
 
   /** Anyone who can see the bracket can open live/finished matches (teachers host/spectate). */
   matchLink(m: TournamentBracketMatch): string | null {
-    if (m.status !== 'active' && m.status !== 'finished') return null;
-    if (m.player1IsBye || m.player2IsBye) return null;
-    return `${this.base}/match/${m.id}`;
+    return tournamentMatchLink(this.base, m);
   }
 
   private reload(): void {
