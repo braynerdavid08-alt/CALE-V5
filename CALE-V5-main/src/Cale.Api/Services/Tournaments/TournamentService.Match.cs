@@ -86,8 +86,25 @@ public sealed partial class TournamentService
         }
 
         match.RowVersion++;
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            // Concurrent duplicate answer for (MatchQuestionId, UserId).
+            ClearTrackedState();
+            throw new DomainException("Ya respondiste esta pregunta.", 400, "already_answered");
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            ClearTrackedState();
+            throw new DomainException("El enfrentamiento cambió. Intenta de nuevo.", 409, "conflict");
+        }
 
+        // Reload answers so a concurrent opponent answer is visible before advancing.
+        match = await LoadMatchAsync(matchId, ct, tracking: true);
+        tournament = await _db.Set<Tournament>().FirstAsync(t => t.Id == match.TournamentId, ct);
         await TryAdvanceQuestionOrFinishAsync(match, tournament, ct);
 
         var state = await BuildMatchViewAsync(match.Id, userId, ct);
@@ -257,7 +274,23 @@ public sealed partial class TournamentService
             }
         }
 
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Another request already finished this match (concurrent last answers).
+            ClearTrackedState();
+            var latest = await LoadMatchAsync(match.Id, ct, tracking: true);
+            if (latest.Status == TournamentMatchStatuses.Finished)
+            {
+                await MaybeAdvanceRoundAsync(latest.TournamentId, ct);
+                return;
+            }
+
+            throw;
+        }
 
         if (awardXp
             && reason is TournamentMatchFinishReasons.Score
@@ -426,6 +459,15 @@ public sealed partial class TournamentService
             return;
         }
 
+        var nextRoundNumber = t.CurrentRoundNumber + 1;
+        // Another concurrent finisher may already have persisted the next round.
+        if (t.Rounds.Any(r => r.RoundNumber == nextRoundNumber)
+            || await _db.Set<TournamentRound>().AsNoTracking()
+                .AnyAsync(r => r.TournamentId == tournamentId && r.RoundNumber == nextRoundNumber, ct))
+        {
+            return;
+        }
+
         round.Status = TournamentMatchStatuses.Finished;
         round.FinishedAt = _clock.UtcNow;
 
@@ -452,7 +494,7 @@ public sealed partial class TournamentService
         var nextRound = new TournamentRound
         {
             TournamentId = t.Id,
-            RoundNumber = t.CurrentRoundNumber + 1,
+            RoundNumber = nextRoundNumber,
             Name = TournamentBracket.RoundNameForField(winners.Count),
             Status = TournamentMatchStatuses.Active,
             StartedAt = _clock.UtcNow
@@ -477,7 +519,30 @@ public sealed partial class TournamentService
         t.CurrentRoundNumber = nextRound.RoundNumber;
         t.UpdatedAt = _clock.UtcNow;
         t.RowVersion++;
-        await _db.SaveChangesAsync(ct);
+
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Another request advanced CurrentRoundNumber / RowVersion first.
+            ClearTrackedState();
+            _logger.LogInformation(
+                "Tournament {TournamentId} round advance lost RowVersion race; treating as idempotent.",
+                tournamentId);
+            return;
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            // UNIQUE (TournamentId, RoundNumber) — the other request already created the round.
+            ClearTrackedState();
+            _logger.LogInformation(
+                "Tournament {TournamentId} round {RoundNumber} already created by concurrent request.",
+                tournamentId,
+                nextRoundNumber);
+            return;
+        }
 
         await ActivateRoundMatchesAsync(t, nextRound.Matches.OrderBy(m => m.SlotIndex).ToList(), ct);
         await _db.SaveChangesAsync(ct);
