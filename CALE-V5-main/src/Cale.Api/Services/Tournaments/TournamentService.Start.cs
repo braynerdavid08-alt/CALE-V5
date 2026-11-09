@@ -128,32 +128,53 @@ public sealed partial class TournamentService
         return bracket;
     }
 
-    private async Task ActivateRoundMatchesAsync(
+    /// <summary>
+    /// Activates only <see cref="TournamentMatchStatuses.Pending"/> matches. Active/Finished are left untouched
+    /// so recovery and concurrent workers are idempotent.
+    /// </summary>
+    /// <returns>Ids of matches that transitioned out of Pending in this call.</returns>
+    private async Task<IReadOnlyList<int>> ActivateRoundMatchesAsync(
         Tournament t,
         IReadOnlyList<TournamentMatch> matches,
         CancellationToken ct)
     {
-        foreach (var match in matches)
+        var changed = new List<int>();
+        foreach (var match in matches.OrderBy(m => m.SlotIndex))
         {
+            if (match.Status != TournamentMatchStatuses.Pending)
+            {
+                continue;
+            }
+
             if (match.Player1IsBye && match.Player2UserId is int only2)
             {
                 await FinishMatchAsByeAsync(match, only2, ct);
+                changed.Add(match.Id);
             }
             else if (match.Player2IsBye && match.Player1UserId is int only1)
             {
                 await FinishMatchAsByeAsync(match, only1, ct);
+                changed.Add(match.Id);
             }
             else if (match.Player1UserId is int && match.Player2UserId is int)
             {
                 await ActivateMatchAsync(t, match, ct);
+                if (match.Status == TournamentMatchStatuses.Active)
+                {
+                    changed.Add(match.Id);
+                }
             }
             else
             {
                 match.Status = TournamentMatchStatuses.Finished;
                 match.FinishReason = TournamentMatchFinishReasons.Bye;
                 match.FinishedAt = _clock.UtcNow;
+                match.RowVersion++;
+                changed.Add(match.Id);
             }
         }
+
+        return changed;
     }
 
     private async Task NotifyActiveMatchAssignmentsAsync(int tournamentId, CancellationToken ct)
@@ -161,7 +182,23 @@ public sealed partial class TournamentService
         var active = await _db.Set<TournamentMatch>()
             .Where(m => m.TournamentId == tournamentId && m.Status == TournamentMatchStatuses.Active)
             .ToListAsync(ct);
-        foreach (var m in active)
+        await NotifyMatchAssignmentsAsync(tournamentId, active.Select(m => m.Id).ToList(), ct);
+    }
+
+    private async Task NotifyMatchAssignmentsAsync(
+        int tournamentId,
+        IReadOnlyList<int> matchIds,
+        CancellationToken ct)
+    {
+        if (matchIds.Count == 0)
+        {
+            return;
+        }
+
+        var matches = await _db.Set<TournamentMatch>()
+            .Where(m => matchIds.Contains(m.Id) && m.Status == TournamentMatchStatuses.Active)
+            .ToListAsync(ct);
+        foreach (var m in matches)
         {
             if (m.Player1UserId is int u1)
             {
@@ -235,49 +272,65 @@ public sealed partial class TournamentService
             championPhoto);
     }
 
-    private async Task FinishMatchAsByeAsync(TournamentMatch match, int winnerUserId, CancellationToken ct)
+    private Task FinishMatchAsByeAsync(TournamentMatch match, int winnerUserId, CancellationToken ct)
     {
+        _ = ct;
+        if (match.Status == TournamentMatchStatuses.Finished)
+        {
+            return Task.CompletedTask;
+        }
+
         match.Status = TournamentMatchStatuses.Finished;
         match.WinnerUserId = winnerUserId;
         match.FinishReason = TournamentMatchFinishReasons.Bye;
-        match.StartedAt = _clock.UtcNow;
+        match.StartedAt ??= _clock.UtcNow;
         match.FinishedAt = _clock.UtcNow;
         match.RowVersion++;
-        await _db.SaveChangesAsync(ct);
+        // Persist with the caller's SaveChanges so recovery batches stay atomic.
         // No XP / no win stats for BYE
+        return Task.CompletedTask;
     }
 
     private async Task ActivateMatchAsync(Tournament tournament, TournamentMatch match, CancellationToken ct)
     {
-        var questions = await _play.BuildTournamentQuestionsAsync(
-            tournament.CreatedByUserId,
-            tournament.SchoolUserId,
-            tournament.QuestionsPerMatch,
-            tournament.QuestionMode,
-            ParseCategories(tournament.CategoryFilterJson),
-            ParseIds(tournament.ManualQuestionIdsJson),
-            ct,
-            bankIds: ParseIds(tournament.BankIdsJson));
-
-        if (questions.Count < tournament.QuestionsPerMatch)
+        if (match.Status != TournamentMatchStatuses.Pending)
         {
-            throw new DomainException(
-                "No hay suficientes preguntas para iniciar el enfrentamiento.",
-                400,
-                "no_questions");
+            return;
         }
 
-        match.Questions.Clear();
-        var ordinal = 0;
-        foreach (var q in questions.Take(tournament.QuestionsPerMatch))
+        // Crash mid-activation may leave Pending with questions already seeded — reuse them.
+        if (match.Questions.Count < tournament.QuestionsPerMatch)
         {
-            match.Questions.Add(new TournamentMatchQuestion
+            var questions = await _play.BuildTournamentQuestionsAsync(
+                tournament.CreatedByUserId,
+                tournament.SchoolUserId,
+                tournament.QuestionsPerMatch,
+                tournament.QuestionMode,
+                ParseCategories(tournament.CategoryFilterJson),
+                ParseIds(tournament.ManualQuestionIdsJson),
+                ct,
+                bankIds: ParseIds(tournament.BankIdsJson));
+
+            if (questions.Count < tournament.QuestionsPerMatch)
             {
-                Ordinal = ordinal++,
-                QuestionId = q.QuestionId,
-                CorrectOptionId = q.CorrectOptionId,
-                IsSuddenDeath = false
-            });
+                throw new DomainException(
+                    "No hay suficientes preguntas para iniciar el enfrentamiento.",
+                    400,
+                    "no_questions");
+            }
+
+            match.Questions.Clear();
+            var ordinal = 0;
+            foreach (var q in questions.Take(tournament.QuestionsPerMatch))
+            {
+                match.Questions.Add(new TournamentMatchQuestion
+                {
+                    Ordinal = ordinal++,
+                    QuestionId = q.QuestionId,
+                    CorrectOptionId = q.CorrectOptionId,
+                    IsSuddenDeath = false
+                });
+            }
         }
 
         match.Status = TournamentMatchStatuses.Active;

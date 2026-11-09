@@ -314,6 +314,9 @@ public sealed partial class TournamentService
 
     public async Task ProcessTimeoutsAsync(CancellationToken ct)
     {
+        // Hybrid recovery: wake tournaments stuck with Pending seats after a crash mid-activation.
+        await RecoverStuckPendingRoundsAsync(ct);
+
         var now = _clock.UtcNow;
         var active = await _db.Set<TournamentMatch>()
             .Include(m => m.Questions)
@@ -456,15 +459,24 @@ public sealed partial class TournamentService
             .ToListAsync(ct);
         if (matches.Count == 0 || matches.Any(m => m.Status != TournamentMatchStatuses.Finished))
         {
+            // Crash after round insert can leave CurrentRoundNumber on a Pending field.
+            // Concurrent finishers that already see the new round must recover activation on demand.
+            if (matches.Any(m => m.Status == TournamentMatchStatuses.Pending))
+            {
+                await EnsureRoundActivatedAsync(t, t.CurrentRoundNumber, ct);
+            }
+
             return;
         }
 
         var nextRoundNumber = t.CurrentRoundNumber + 1;
-        // Another concurrent finisher may already have persisted the next round.
+        // Another concurrent finisher may already have persisted the next round — recover activation if stuck.
         if (t.Rounds.Any(r => r.RoundNumber == nextRoundNumber)
             || await _db.Set<TournamentRound>().AsNoTracking()
                 .AnyAsync(r => r.TournamentId == tournamentId && r.RoundNumber == nextRoundNumber, ct))
         {
+            ClearTrackedState();
+            await EnsureRoundActivatedByNumberAsync(tournamentId, nextRoundNumber, ct);
             return;
         }
 
@@ -526,11 +538,12 @@ public sealed partial class TournamentService
         }
         catch (DbUpdateConcurrencyException)
         {
-            // Another request advanced CurrentRoundNumber / RowVersion first.
+            // Another request advanced CurrentRoundNumber / RowVersion first — recover their round if needed.
             ClearTrackedState();
             _logger.LogInformation(
                 "Tournament {TournamentId} round advance lost RowVersion race; treating as idempotent.",
                 tournamentId);
+            await EnsureRoundActivatedByNumberAsync(tournamentId, nextRoundNumber, ct);
             return;
         }
         catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
@@ -541,13 +554,17 @@ public sealed partial class TournamentService
                 "Tournament {TournamentId} round {RoundNumber} already created by concurrent request.",
                 tournamentId,
                 nextRoundNumber);
+            await EnsureRoundActivatedByNumberAsync(tournamentId, nextRoundNumber, ct);
             return;
         }
 
-        await ActivateRoundMatchesAsync(t, nextRound.Matches.OrderBy(m => m.SlotIndex).ToList(), ct);
+        var activated = await ActivateRoundMatchesAsync(
+            t,
+            nextRound.Matches.OrderBy(m => m.SlotIndex).ToList(),
+            ct);
         await _db.SaveChangesAsync(ct);
         await _broadcast.RoundStarted(t.Id, nextRound.RoundNumber, nextRound.Name, ct);
-        await NotifyActiveMatchAssignmentsAsync(t.Id, ct);
+        await NotifyMatchAssignmentsAsync(t.Id, activated, ct);
 
         // Pure-BYE rounds (should be rare) collapse immediately.
         await MaybeAdvanceRoundAsync(t.Id, ct);
