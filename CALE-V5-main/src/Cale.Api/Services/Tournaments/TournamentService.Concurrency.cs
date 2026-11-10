@@ -28,5 +28,43 @@ public sealed partial class TournamentService
         return false;
     }
 
+    /// <summary>
+    /// SQLite busy/locked under concurrent writers — expected in multi-request tests and
+    /// multi-instance pressure; callers should retry or map to conflict, never raw 500.
+    /// </summary>
+    private static bool IsSqliteBusy(DbUpdateException ex)
+    {
+        for (Exception? current = ex; current is not null; current = current.InnerException)
+        {
+            var msg = current.Message;
+            if (msg.Contains("database is locked", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("database is busy", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("SQLITE_BUSY", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("SQLITE_LOCKED", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private async Task SaveChangesResilientAsync(CancellationToken ct)
+    {
+        const int maxAttempts = 4;
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                await _db.SaveChangesAsync(ct);
+                return;
+            }
+            catch (DbUpdateException ex) when (IsSqliteBusy(ex) && attempt < maxAttempts)
+            {
+                await Task.Delay(15 * attempt, ct);
+            }
+        }
+    }
+
     private void ClearTrackedState() => _db.ChangeTracker.Clear();
 }

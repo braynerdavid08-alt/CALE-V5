@@ -345,7 +345,18 @@ public sealed class TournamentSmokeFactory : WebApplicationFactory<Program>
                 services.Remove(d);
             }
 
-            services.AddDbContext<CaleDbContext>(o => o.UseSqlite($"Data Source={_dbPath}"));
+            // Match production SQLite settings: shared cache + busy timeout so concurrent
+            // answer/finish writes do not surface as intermittent HTTP 500 db_error.
+            var sqliteCs = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder
+            {
+                DataSource = _dbPath,
+                Cache = Microsoft.Data.Sqlite.SqliteCacheMode.Shared,
+                DefaultTimeout = 30
+            }.ToString();
+            services.AddDbContext<CaleDbContext>(o => o.UseSqlite(sqliteCs, sqlite =>
+            {
+                sqlite.CommandTimeout(30);
+            }));
             foreach (var d in services
                 .Where(d => d.ServiceType == typeof(IHostedService)
                     && d.ImplementationType?.Namespace?.StartsWith("Cale.Api", StringComparison.Ordinal) == true)

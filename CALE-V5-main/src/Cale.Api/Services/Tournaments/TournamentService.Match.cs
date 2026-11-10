@@ -88,7 +88,7 @@ public sealed partial class TournamentService
         match.RowVersion++;
         try
         {
-            await _db.SaveChangesAsync(ct);
+            await SaveChangesResilientAsync(ct);
         }
         catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
         {
@@ -96,10 +96,27 @@ public sealed partial class TournamentService
             ClearTrackedState();
             throw new DomainException("Ya respondiste esta pregunta.", 400, "already_answered");
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateException ex) when (ex is DbUpdateConcurrencyException || IsSqliteBusy(ex))
         {
+            // Opponent answer / timeout bumped RowVersion, or SQLite was briefly busy.
+            // If our answer landed (or a duplicate), continue; otherwise ask the client to retry.
             ClearTrackedState();
-            throw new DomainException("El enfrentamiento cambió. Intenta de nuevo.", 409, "conflict");
+            match = await LoadMatchAsync(matchId, ct, tracking: true);
+            if (!match.Answers.Any(a => a.MatchQuestionId == question.Id && a.UserId == userId))
+            {
+                throw new DomainException("El enfrentamiento cambió. Intenta de nuevo.", 409, "conflict");
+            }
+
+            tournament = await _db.Set<Tournament>().FirstAsync(t => t.Id == match.TournamentId, ct);
+            await TryAdvanceQuestionOrFinishAsync(match, tournament, ct);
+            var racedState = await BuildMatchViewAsync(match.Id, userId, ct);
+            await _broadcast.MatchUpdated(tournament.Id, racedState, ct);
+            return new TournamentAnswerResultDto(
+                correct,
+                match.Status == TournamentMatchStatuses.Finished ? question.CorrectOptionId : null,
+                null,
+                racedState,
+                []);
         }
 
         // Reload answers so a concurrent opponent answer is visible before advancing.
@@ -157,7 +174,20 @@ public sealed partial class TournamentService
             match.CurrentQuestionIndex = nextOrdinal;
             match.QuestionStartedAt = _clock.UtcNow;
             match.RowVersion++;
-            await _db.SaveChangesAsync(ct);
+            try
+            {
+                await SaveChangesResilientAsync(ct);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // Concurrent opponent answer already advanced the question pointer — idempotent.
+                ClearTrackedState();
+            }
+            catch (DbUpdateException ex) when (IsSqliteBusy(ex))
+            {
+                ClearTrackedState();
+            }
+
             return;
         }
 
@@ -240,7 +270,24 @@ public sealed partial class TournamentService
         match.CurrentQuestionIndex = ordinal;
         match.QuestionStartedAt = _clock.UtcNow;
         match.RowVersion++;
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await SaveChangesResilientAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Concurrent resolver already moved the match (finish or sudden death).
+            ClearTrackedState();
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            // UNIQUE (MatchId, Ordinal) — the other request already seeded sudden death.
+            ClearTrackedState();
+        }
+        catch (DbUpdateException ex) when (IsSqliteBusy(ex))
+        {
+            ClearTrackedState();
+        }
     }
 
     private async Task CompleteMatchAsync(
@@ -276,7 +323,7 @@ public sealed partial class TournamentService
 
         try
         {
-            await _db.SaveChangesAsync(ct);
+            await SaveChangesResilientAsync(ct);
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -289,7 +336,21 @@ public sealed partial class TournamentService
                 return;
             }
 
-            throw;
+            // Lost RowVersion to a non-finish update — never leak as HTTP 500 db_error.
+            throw new DomainException("El enfrentamiento cambió. Intenta de nuevo.", 409, "conflict");
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex) || IsSqliteBusy(ex))
+        {
+            // Unique/busy during finish — reload; if already finished, treat as idempotent.
+            ClearTrackedState();
+            var latest = await LoadMatchAsync(match.Id, ct, tracking: true);
+            if (latest.Status == TournamentMatchStatuses.Finished)
+            {
+                await MaybeAdvanceRoundAsync(latest.TournamentId, ct);
+                return;
+            }
+
+            throw new DomainException("El enfrentamiento cambió. Intenta de nuevo.", 409, "conflict");
         }
 
         if (awardXp
