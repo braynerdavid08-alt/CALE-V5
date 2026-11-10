@@ -190,24 +190,14 @@ public sealed partial class PlayService
             Math.Min(def.Current(stats), def.Target),
             def.Target);
 
-    // ───────────────────────── Ranking (periods + metrics) ─────────────────────────
-
-    private static readonly RankingPeriodDto[] RankingPeriods =
-    [
-        new("30d", "Últimos 30 días"),
-        new("90d", "Últimos 90 días"),
-        new("6m", "Últimos 6 meses"),
-        new("1y", "Último año"),
-        new("2y", "Últimos 2 años"),
-        new("all", "Histórico general")
-    ];
+    // ───────────────────────── Ranking (historical XP / trophies) ─────────────────────────
 
     public Task<RankingDto> GetRankingAsync(
         int userId,
         string? scope,
         int? groupId,
         CancellationToken ct) =>
-        GetRankingAsync(userId, scope, groupId, "2y", "xp", ct);
+        GetRankingAsync(userId, scope, groupId, "all", "xp", ct);
 
     public async Task<RankingDto> GetRankingAsync(
         int userId,
@@ -224,39 +214,46 @@ public sealed partial class PlayService
             .Where(m => m.UserId == userId && (m.Status == MemberStatuses.Active || m.Status == "Active"))
             .Select(m => m.GroupId)
             .ToListAsync(ct);
-        var groups = await _db.Set<Group>().AsNoTracking()
+        var activeGroupIds = await _db.Set<Group>().AsNoTracking()
             .Where(g => myGroupIds.Contains(g.Id) && g.IsActive)
-            .Select(g => new { g.Id, g.Name })
+            .Select(g => g.Id)
+            .OrderBy(id => id)
             .ToListAsync(ct);
+        var hasGroups = activeGroupIds.Count > 0;
 
+        // Single "Mi grupo" chip: union of all active memberships (no per-class buttons).
         var scopes = new List<RankingScopeDto>();
         if (me.SchoolId is not null)
         {
             scopes.Add(new RankingScopeDto("school", "Mi escuela", null));
         }
 
-        scopes.AddRange(groups.Select(g => new RankingScopeDto("group", g.Name, g.Id)));
+        if (hasGroups)
+        {
+            scopes.Add(new RankingScopeDto("group", "Mi grupo", null));
+        }
+
         scopes.Add(new RankingScopeDto("global", "Todo Luz Verde", null));
 
         var resolved = scope?.ToLowerInvariant() switch
         {
             "school" when me.SchoolId is not null => "school",
-            "group" when groups.Count > 0 => "group",
+            "group" when hasGroups => "group",
             "global" => "global",
-            _ => me.SchoolId is not null ? "school" : groups.Count > 0 ? "group" : "global"
+            _ => me.SchoolId is not null ? "school" : hasGroups ? "group" : "global"
         };
-        var selectedGroup = resolved == "group"
-            ? groups.FirstOrDefault(g => g.Id == groupId) ?? groups[0]
-            : null;
 
+        // Period UI removed: always historical cumulative. groupId query is ignored (union).
+        _ = groupId;
         var periodKey = NormalizePeriodKey(period);
         var (periodStart, periodEnd) = ResolvePeriod(periodKey);
         var metricKey = NormalizeMetricKey(metric);
 
+        var groupUnionKey = hasGroups ? string.Join(',', activeGroupIds) : "";
         var holdScopeKey = resolved switch
         {
             "school" => $"school:{me.SchoolId}",
-            "group" => $"group:{selectedGroup?.Id}",
+            "group" => $"group:union:{groupUnionKey}",
             _ => "global"
         };
         var boardKey = $"play:board:{holdScopeKey}:{periodKey}:{periodStart:yyyyMMdd}:{metricKey}";
@@ -265,7 +262,7 @@ public sealed partial class PlayService
             cachedBoard = await LoadCompetitiveBoardAsync(
                 resolved,
                 me.SchoolId,
-                selectedGroup?.Id,
+                resolved == "group" ? activeGroupIds : null,
                 periodStart,
                 periodEnd,
                 ct);
@@ -298,22 +295,32 @@ public sealed partial class PlayService
             heldSince = await SyncRankingHoldsAsync(holdScopeKey, forHolds, ct);
         }
 
+        // Never invent DateTime.MinValue holds (frontend "2055 años" bug).
         entries = entries
-            .Select(e => e with { PositionHeldSinceUtc = heldSince.GetValueOrDefault(e.UserId) })
+            .Select(e =>
+            {
+                DateTime? since = null;
+                if (metricKey == "xp" && heldSince.TryGetValue(e.UserId, out var held) && held.Year >= 2000)
+                {
+                    since = held;
+                }
+
+                return e with { PositionHeldSinceUtc = since };
+            })
             .ToList();
         var mine = entries.FirstOrDefault(e => e.IsMe);
 
         var label = resolved switch
         {
             "school" => "Mi escuela",
-            "group" => selectedGroup?.Name ?? "Mi grupo",
+            "group" => "Mi grupo",
             _ => "Todo Luz Verde"
         };
 
         return new RankingDto(
             resolved,
             label,
-            selectedGroup?.Id,
+            null,
             periodStart,
             periodEnd,
             entries.Take(20).Concat(mine is { Position: > 20 } ? [mine] : []).ToList(),
@@ -328,20 +335,22 @@ public sealed partial class PlayService
             myTrophies,
             myAchievements,
             mine?.GeneralScore,
-            RankingPeriods);
+            Array.Empty<RankingPeriodDto>());
     }
 
-    private static string NormalizePeriodKey(string? period) =>
-        period?.ToLowerInvariant() switch
-        {
-            "30d" or "90d" or "6m" or "1y" or "2y" or "all" => period.ToLowerInvariant(),
-            _ => "2y"
-        };
+    private static string NormalizePeriodKey(string? period)
+    {
+        // Date filters removed from UI; always serve historical cumulative totals.
+        _ = period;
+        return "all";
+    }
 
     private static string NormalizeMetricKey(string? metric) =>
         metric?.ToLowerInvariant() switch
         {
-            "general" or "trophies" or "achievements" or "xp" => metric.ToLowerInvariant(),
+            "trophies" => "trophies",
+            // Legacy UI keys map to XP; achievements stay on profiles, not ranking tabs.
+            "general" or "achievements" or "xp" => "xp",
             _ => "xp"
         };
 
@@ -379,12 +388,12 @@ public sealed partial class PlayService
     private async Task<List<CompetitiveRow>> LoadCompetitiveBoardAsync(
         string scope,
         int? schoolId,
-        int? groupId,
+        IReadOnlyList<int>? groupIds,
         DateOnly periodStart,
         DateOnly periodEnd,
         CancellationToken ct)
     {
-        var xpBoard = await LoadBoardAsync(scope, schoolId, groupId, periodStart, periodEnd, ct);
+        var xpBoard = await LoadBoardAsync(scope, schoolId, groupIds, periodStart, periodEnd, ct);
         var ids = xpBoard.Select(x => x.Id).ToList();
         if (ids.Count == 0)
         {
@@ -511,7 +520,7 @@ public sealed partial class PlayService
     private async Task<List<BoardRow>> LoadBoardAsync(
         string scope,
         int? schoolId,
-        int? groupId,
+        IReadOnlyList<int>? groupIds,
         DateOnly periodStart,
         DateOnly periodEnd,
         CancellationToken ct)
@@ -521,11 +530,13 @@ public sealed partial class PlayService
         {
             query = query.Where(u => u.SchoolId == schoolId);
         }
-        else if (scope == "group" && groupId is not null)
+        else if (scope == "group" && groupIds is { Count: > 0 })
         {
+            // Union of all active group memberships; Distinct via Contains on user ids.
             var memberIds = await _db.Set<GroupMember>().AsNoTracking()
-                .Where(m => m.GroupId == groupId && (m.Status == MemberStatuses.Active || m.Status == "Active"))
+                .Where(m => groupIds.Contains(m.GroupId) && (m.Status == MemberStatuses.Active || m.Status == "Active"))
                 .Select(m => m.UserId)
+                .Distinct()
                 .ToListAsync(ct);
             query = query.Where(u => memberIds.Contains(u.Id));
         }
@@ -534,6 +545,8 @@ public sealed partial class PlayService
                 .Select(u => new { u.Id, u.Name, u.Role, u.PhotoUrl })
                 .ToListAsync(ct))
             .Where(u => Roles.Normalize(u.Role) == Roles.Student)
+            .GroupBy(u => u.Id)
+            .Select(g => g.First())
             .ToList();
         var xp = await ComputePeriodXpAsync(students.Select(s => s.Id).ToList(), periodStart, periodEnd, ct);
         return students

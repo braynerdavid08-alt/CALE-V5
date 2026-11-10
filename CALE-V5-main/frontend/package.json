@@ -12,8 +12,15 @@
   },
   "private": true,
   "overrides": {
-    "rimraf": "^5.0.10",
+    "rimraf": {
+      ".": "3.0.2",
+      "glob": "7.2.3"
+    },
     "glob": "^13.0.6",
+    "karma": {
+      "glob": "7.2.3",
+      "rimraf": "3.0.2"
+    },
     "tar": "^7.4.3",
     "uuid": "^11.1.0",
     "critters": "npm:beasties@^0.5.1"

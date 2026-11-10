@@ -1,6 +1,9 @@
 namespace Cale.Api.Services.Tournaments;
 
-/// <summary>Pure bracket helpers for single-elimination (power-of-two size with BYEs).</summary>
+/// <summary>
+/// Single-elimination helpers that maximize concurrent real matches.
+/// Odd counts get at most one BYE per round (e.g. 9 → 4 matches + 1 waiting).
+/// </summary>
 public static class TournamentBracket
 {
     public static int NextPowerOfTwo(int participantCount)
@@ -19,17 +22,34 @@ public static class TournamentBracket
         return size;
     }
 
-    public static int RoundCount(int bracketSize)
+    /// <summary>How many rounds until one champion, pairing max each round with ≤1 bye.</summary>
+    public static int EstimatedRoundCount(int participantCount)
     {
-        var n = 0;
-        for (var s = bracketSize; s > 1; s >>= 1)
+        if (participantCount < 2)
         {
-            n++;
+            return 1;
         }
 
-        return n;
+        var rounds = 0;
+        for (var n = participantCount; n > 1; n = (n / 2) + (n % 2))
+        {
+            rounds++;
+        }
+
+        return rounds;
     }
 
+    public static string RoundNameForField(int playersInRound) =>
+        playersInRound switch
+        {
+            <= 2 => "Gran final",
+            <= 4 => "Semifinal",
+            <= 8 => "Cuartos",
+            <= 16 => "Octavos",
+            _ => $"Ronda ({playersInRound})"
+        };
+
+    /// <summary>Legacy name helper kept for tests / power-of-two UIs.</summary>
     public static string RoundName(int roundNumber, int totalRounds) =>
         (totalRounds - roundNumber) switch
         {
@@ -41,9 +61,46 @@ public static class TournamentBracket
         };
 
     /// <summary>
-    /// Shuffles participants and places them into bracketSize slots.
-    /// BYEs are paired against players in the first round (never BYE vs BYE).
-    /// Returns slot → userId (null = BYE).
+    /// Shuffle and pair: if odd, one player gets a BYE; everyone else plays.
+    /// Never BYE vs BYE. Order: bye match first (slot 0), then real matches.
+    /// </summary>
+    public static IReadOnlyList<(int? Player1, int? Player2, bool P1Bye, bool P2Bye)> PairRound(
+        IReadOnlyList<int> participantUserIds,
+        Random rng)
+    {
+        if (participantUserIds.Count == 0)
+        {
+            return [];
+        }
+
+        if (participantUserIds.Count == 1)
+        {
+            return [(participantUserIds[0], null, false, true)];
+        }
+
+        // Distinct: a corrupt participant list must never create duplicate slots.
+        var shuffled = participantUserIds.Distinct().OrderBy(_ => rng.Next()).ToList();
+        var pairs = new List<(int? Player1, int? Player2, bool P1Bye, bool P2Bye)>();
+        var index = 0;
+
+        if (shuffled.Count % 2 == 1)
+        {
+            pairs.Add((shuffled[0], null, false, true));
+            index = 1;
+        }
+
+        while (index < shuffled.Count)
+        {
+            pairs.Add((shuffled[index], shuffled[index + 1], false, false));
+            index += 2;
+        }
+
+        return pairs;
+    }
+
+    /// <summary>
+    /// Power-of-two seeding kept for compatibility tests: BYEs sit in early slots
+    /// paired against players (never BYE vs BYE). Prefer <see cref="PairRound"/> for live tournaments.
     /// </summary>
     public static int?[] SeedSlots(IReadOnlyList<int> participantUserIds, int bracketSize, Random rng)
     {
@@ -62,7 +119,6 @@ public static class TournamentBracket
         var byes = bracketSize - shuffled.Count;
         var playerIndex = 0;
 
-        // First `byes` first-round matches: player vs BYE.
         for (var i = 0; i < byes; i++)
         {
             slots[i * 2] = shuffled[playerIndex++];
@@ -78,9 +134,6 @@ public static class TournamentBracket
         return slots;
     }
 
-    /// <summary>
-    /// First-round pairings: slot 0 vs 1, 2 vs 3, …
-    /// </summary>
     public static IReadOnlyList<(int? Player1, int? Player2, bool P1Bye, bool P2Bye)> FirstRoundPairs(
         int?[] slots)
     {

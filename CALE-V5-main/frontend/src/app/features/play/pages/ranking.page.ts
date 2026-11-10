@@ -1,16 +1,16 @@
-import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { mapApiError } from '../../../core/http/map-api-error';
 import { resolveMediaUrl } from '../../../core/media/resolve-media-url';
 import { UiEmptyComponent } from '../../../shared/ui/ui-empty.component';
 import { UiLoadingComponent } from '../../../shared/ui/ui-loading.component';
-import { PlayApi, Ranking, RankingEntry, RankingPeriod, RankingScope } from '../api/play.api';
+import { PlayApi, Ranking, RankingEntry, RankingScope } from '../api/play.api';
 import { PlayTopbarComponent } from '../components/play-topbar.component';
+import { rankingHeldLabel } from '../ranking-tenure';
 
 @Component({
   selector: 'app-ranking-page',
   standalone: true,
-  imports: [DatePipe, UiEmptyComponent, UiLoadingComponent, PlayTopbarComponent],
+  imports: [UiEmptyComponent, UiLoadingComponent, PlayTopbarComponent],
   styleUrl: './play-page.css',
   styles: [`
     .scopes { display: flex; flex-wrap: wrap; gap: 0.5rem; }
@@ -66,7 +66,7 @@ import { PlayTopbarComponent } from '../components/play-topbar.component';
     <section class="play-page">
       <play-topbar
         title="Ranking"
-        subtitle="XP, trofeos y logros. Por defecto: tu escuela y los últimos 2 años." />
+        subtitle="XP y trofeos · Histórico general · Mi escuela, Mi grupo o Todo Luz Verde." />
 
       @if (error()) {
         <p class="alert" role="alert">{{ error() }}</p>
@@ -91,16 +91,6 @@ import { PlayTopbarComponent } from '../components/play-topbar.component';
           }
         </div>
 
-        @if (d.periods?.length) {
-          <div class="scopes" role="tablist" aria-label="Periodo">
-            @for (p of d.periods; track p.key) {
-              <button type="button" role="tab" class="scope" [class.active]="period === p.key" (click)="selectPeriod(p)">
-                {{ p.label }}
-              </button>
-            }
-          </div>
-        }
-
         @if (d.scopes.length > 1) {
           <div class="scopes" role="tablist" aria-label="Ámbito">
             @for (s of d.scopes; track $index) {
@@ -119,18 +109,15 @@ import { PlayTopbarComponent } from '../components/play-topbar.component';
 
         <div class="play-card me">
           <span>
-            <small class="muted">
-              {{ d.periodStart | date: 'd MMM y' }} – {{ d.periodEnd | date: 'd MMM y' }}
-              · {{ d.scopeLabel }}
-            </small><br />
+            <small class="muted">Histórico general · {{ d.scopeLabel }}</small><br />
             <strong>
               @if (d.myPosition) { Vas en el puesto #{{ d.myPosition }} de {{ d.participants }} }
               @else if (!d.showInRanking) { Estás oculto del ranking }
-              @else { Aún no sumas puntos en este periodo }
+              @else { Aún no sumas puntos en este ranking }
             </strong>
           </span>
           <span class="chip good">
-            {{ d.myXp }} XP · {{ d.myTrophies ?? 0 }} 🏆 · {{ d.myAchievements ?? 0 }} ⭐
+            {{ d.myXp }} XP · {{ d.myTrophies ?? 0 }} 🏆
           </span>
         </div>
 
@@ -150,7 +137,9 @@ import { PlayTopbarComponent } from '../components/play-topbar.component';
                 </span>
                 <span class="who">
                   <strong>{{ e.displayName }}{{ e.isMe ? ' (tú)' : '' }}</strong>
-                  <span class="held">{{ heldLabel(e) }}</span>
+                  @if (heldLabel(e); as held) {
+                    <span class="held">{{ held }}</span>
+                  }
                 </span>
                 <span class="xp">{{ scoreLabel(e) }}</span>
               </li>
@@ -175,15 +164,13 @@ export class RankingPage implements OnInit {
   readonly error = signal<string | null>(null);
   readonly data = signal<Ranking | null>(null);
   readonly metrics = [
-    { key: 'general', label: 'General' },
     { key: 'xp', label: 'XP' },
-    { key: 'trophies', label: 'Trofeos' },
-    { key: 'achievements', label: 'Logros' }
+    { key: 'trophies', label: 'Trofeos' }
   ];
   private scope: string | null = null;
-  private groupId: number | null = null;
-  period = '2y';
-  metric = 'general';
+  /** Always historical cumulative; date filters removed. */
+  private readonly period = 'all';
+  metric = 'xp';
 
   ngOnInit(): void {
     this.load();
@@ -191,7 +178,6 @@ export class RankingPage implements OnInit {
 
   select(s: RankingScope): void {
     this.scope = s.scope;
-    this.groupId = s.groupId ?? null;
     this.load();
   }
 
@@ -200,22 +186,13 @@ export class RankingPage implements OnInit {
     this.load();
   }
 
-  selectPeriod(p: RankingPeriod): void {
-    this.period = p.key;
-    this.load();
-  }
-
   isActive(s: RankingScope): boolean {
     const d = this.data();
-    return !!d && s.scope === d.scope && (s.scope !== 'group' || s.groupId === d.groupId);
+    return !!d && s.scope === d.scope;
   }
 
   scoreLabel(e: RankingEntry): string {
     if (this.metric === 'trophies') return `${e.trophies ?? 0} 🏆`;
-    if (this.metric === 'achievements') return `${e.achievements ?? 0} ⭐`;
-    if (this.metric === 'general') {
-      return e.generalScore != null ? `${e.generalScore}` : `${e.xp} XP`;
-    }
     return `${e.xp} XP`;
   }
 
@@ -249,26 +226,16 @@ export class RankingPage implements OnInit {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
 
-  heldLabel(e: RankingEntry): string {
-    const raw = e.positionHeldSinceUtc;
-    if (!raw) return 'En este puesto desde hoy';
-    const since = new Date(raw).getTime();
-    if (Number.isNaN(since)) return 'En este puesto desde hoy';
-    const days = Math.max(0, Math.floor((Date.now() - since) / 86_400_000));
-    if (days <= 0) return 'En este puesto desde hoy';
-    if (days === 1) return '1 día en este puesto';
-    if (days < 30) return `${days} días en este puesto`;
-    const months = Math.floor(days / 30);
-    if (months === 1) return '1 mes en este puesto';
-    if (months < 12) return `${months} meses en este puesto`;
-    const years = Math.floor(months / 12);
-    return years === 1 ? '1 año en este puesto' : `${years} años en este puesto`;
+  heldLabel(e: RankingEntry): string | null {
+    // Trofeos: no tenure until a dedicated hold history exists.
+    if (this.metric !== 'xp') return null;
+    return rankingHeldLabel(e.positionHeldSinceUtc);
   }
 
   private load(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.api.ranking(this.scope, this.groupId, this.period, this.metric).subscribe({
+    this.api.ranking(this.scope, null, this.period, this.metric).subscribe({
       next: (d) => {
         this.data.set(d);
         this.loading.set(false);

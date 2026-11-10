@@ -184,6 +184,92 @@ public sealed class TournamentPhase2Tests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SignalR_teacher_spectates_match_without_player_slot_or_rewards()
+    {
+        var tournamentId = await CreateAndStartAsync(capacity: 4, takeStudents: 4);
+        var match = await FirstActiveMatchAsync(tournamentId);
+        Assert.NotNull(match.Player1UserId);
+        Assert.NotNull(match.Player2UserId);
+        Assert.DoesNotContain(
+            _api.Teacher.Id,
+            new[] { match.Player1UserId!.Value, match.Player2UserId!.Value });
+
+        var teacherToken = _api.TokenFor(_api.Teacher);
+        var hubUrl = new Uri(
+            _api.Server.BaseAddress!,
+            $"/hubs/tournaments?access_token={Uri.EscapeDataString(teacherToken)}");
+
+        await using var connection = new HubConnectionBuilder()
+            .WithUrl(hubUrl, options =>
+            {
+                options.HttpMessageHandlerFactory = _ => _api.Server.CreateHandler();
+            })
+            .Build();
+
+        var matchUpdated = 0;
+        var matchFinished = 0;
+        connection.On<object>("MatchUpdated", _ => Interlocked.Increment(ref matchUpdated));
+        connection.On<object>("MatchFinished", _ => Interlocked.Increment(ref matchFinished));
+
+        await connection.StartAsync();
+        await connection.InvokeAsync("JoinTournament", tournamentId);
+        await Task.Delay(150);
+        Assert.Equal(HubConnectionState.Connected, connection.State);
+
+        using (var scope = _api.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<CaleDbContext>();
+            Assert.False(await db.Set<TournamentParticipant>()
+                .AnyAsync(p => p.TournamentId == tournamentId && p.UserId == _api.Teacher.Id));
+        }
+
+        using (var teacher = _api.ClientFor(_api.Teacher))
+        {
+            var view = await teacher.GetFromJsonAsync<MatchViewDto>(
+                $"/api/tournaments/matches/{match.Id}",
+                Json);
+            Assert.NotNull(view);
+            Assert.False(view.AmIPlayer);
+            Assert.Equal(HttpStatusCode.Forbidden, (await teacher.PostAsJsonAsync(
+                $"/api/tournaments/matches/{match.Id}/answer",
+                new { matchQuestionId = view.CurrentMatchQuestionId, optionId = 1 })).StatusCode);
+        }
+
+        await PlayMatchAsync(match.Id);
+
+        // Hub group membership should deliver at least one live event while spectating.
+        var deadline = DateTime.UtcNow.AddSeconds(3);
+        while (DateTime.UtcNow < deadline && matchUpdated == 0 && matchFinished == 0)
+        {
+            await Task.Delay(50);
+        }
+
+        Assert.True(
+            matchUpdated + matchFinished >= 1,
+            $"teacher spectator received no hub events (updated={matchUpdated}, finished={matchFinished})");
+
+        using (var scope = _api.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<CaleDbContext>();
+            Assert.Equal(
+                0,
+                await db.Set<GameResult>()
+                    .CountAsync(g => g.UserId == _api.Teacher.Id && g.Game == GameKinds.Tournament));
+            Assert.Equal(
+                0,
+                await db.Set<TournamentTrophy>()
+                    .CountAsync(t => t.UserId == _api.Teacher.Id));
+            Assert.Equal(
+                0,
+                await db.Set<UserAchievement>()
+                    .CountAsync(a => a.UserId == _api.Teacher.Id && a.Code.StartsWith("campeon_torneo")));
+        }
+
+        await connection.InvokeAsync("LeaveTournament", tournamentId);
+        await connection.StopAsync();
+    }
+
+    [Fact]
     public async Task Load_sixteen_players_eight_concurrent_first_round_matches()
     {
         var sw = Stopwatch.StartNew();
@@ -373,5 +459,12 @@ public sealed class TournamentPhase2Tests : IAsyncLifetime
         int? WinnerUserId,
         string? FinishReason,
         IReadOnlyList<AnswerDto> MyAnswers);
+    private sealed record MatchViewDto(
+        int MatchId,
+        string Status,
+        int? Player1UserId,
+        int? Player2UserId,
+        int? CurrentMatchQuestionId,
+        bool AmIPlayer);
     private sealed record AnswerDto(int QuestionId, bool Correct);
 }

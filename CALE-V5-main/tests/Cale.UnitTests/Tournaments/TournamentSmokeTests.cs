@@ -80,13 +80,14 @@ public sealed class TournamentSmokeTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK, start.StatusCode);
         var bracket = await start.Content.ReadFromJsonAsync<TournamentBracket>(Json);
         Assert.NotNull(bracket);
-        Assert.Equal(16, bracket.BracketSize);
+        Assert.Equal(13, bracket.BracketSize);
         Assert.Equal("in_progress", bracket.Status);
 
-        var byeMatches = bracket.Matches
-            .Where(m => m.RoundNumber == 1 && m.FinishReason == "bye")
-            .ToList();
-        Assert.Equal(3, byeMatches.Count);
+        var round1 = bracket.Matches.Where(m => m.RoundNumber == 1).ToList();
+        var byeMatches = round1.Where(m => m.FinishReason == "bye").ToList();
+        var liveMatches = round1.Where(m => m.Status == "active").ToList();
+        Assert.Single(byeMatches);
+        Assert.Equal(6, liveMatches.Count);
         Assert.All(byeMatches, m => Assert.NotNull(m.WinnerUserId));
 
         // No XP/GameResult for BYE winners
@@ -334,6 +335,8 @@ public sealed class TournamentSmokeFactory : WebApplicationFactory<Program>
         builder.UseSetting("Seed:BootstrapAdmin", "false");
         builder.UseSetting("Email:Enabled", "false");
         builder.UseSetting("Assistant:Enabled", "false");
+        // Stress concurrency suites issue thousands of answer POSTs from one IP.
+        builder.UseSetting("RateLimiting:GlobalPerIpPerMinute", "100000");
         builder.ConfigureTestServices(services =>
         {
             foreach (var d in services.Where(d => d.ServiceType == typeof(DbContextOptions<CaleDbContext>)
@@ -342,7 +345,18 @@ public sealed class TournamentSmokeFactory : WebApplicationFactory<Program>
                 services.Remove(d);
             }
 
-            services.AddDbContext<CaleDbContext>(o => o.UseSqlite($"Data Source={_dbPath}"));
+            // Match production SQLite settings: shared cache + busy timeout so concurrent
+            // answer/finish writes do not surface as intermittent HTTP 500 db_error.
+            var sqliteCs = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder
+            {
+                DataSource = _dbPath,
+                Cache = Microsoft.Data.Sqlite.SqliteCacheMode.Shared,
+                DefaultTimeout = 30
+            }.ToString();
+            services.AddDbContext<CaleDbContext>(o => o.UseSqlite(sqliteCs, sqlite =>
+            {
+                sqlite.CommandTimeout(30);
+            }));
             foreach (var d in services
                 .Where(d => d.ServiceType == typeof(IHostedService)
                     && d.ImplementationType?.Namespace?.StartsWith("Cale.Api", StringComparison.Ordinal) == true)

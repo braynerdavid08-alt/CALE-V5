@@ -86,8 +86,42 @@ public sealed partial class TournamentService
         }
 
         match.RowVersion++;
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await SaveChangesResilientAsync(ct);
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            // Concurrent duplicate answer for (MatchQuestionId, UserId).
+            ClearTrackedState();
+            throw new DomainException("Ya respondiste esta pregunta.", 400, "already_answered");
+        }
+        catch (DbUpdateException ex) when (ex is DbUpdateConcurrencyException || IsSqliteBusy(ex))
+        {
+            // Opponent answer / timeout bumped RowVersion, or SQLite was briefly busy.
+            // If our answer landed (or a duplicate), continue; otherwise ask the client to retry.
+            ClearTrackedState();
+            match = await LoadMatchAsync(matchId, ct, tracking: true);
+            if (!match.Answers.Any(a => a.MatchQuestionId == question.Id && a.UserId == userId))
+            {
+                throw new DomainException("El enfrentamiento cambió. Intenta de nuevo.", 409, "conflict");
+            }
 
+            tournament = await _db.Set<Tournament>().FirstAsync(t => t.Id == match.TournamentId, ct);
+            await TryAdvanceQuestionOrFinishAsync(match, tournament, ct);
+            var racedState = await BuildMatchViewAsync(match.Id, userId, ct);
+            await _broadcast.MatchUpdated(tournament.Id, racedState, ct);
+            return new TournamentAnswerResultDto(
+                correct,
+                match.Status == TournamentMatchStatuses.Finished ? question.CorrectOptionId : null,
+                null,
+                racedState,
+                []);
+        }
+
+        // Reload answers so a concurrent opponent answer is visible before advancing.
+        match = await LoadMatchAsync(matchId, ct, tracking: true);
+        tournament = await _db.Set<Tournament>().FirstAsync(t => t.Id == match.TournamentId, ct);
         await TryAdvanceQuestionOrFinishAsync(match, tournament, ct);
 
         var state = await BuildMatchViewAsync(match.Id, userId, ct);
@@ -140,7 +174,20 @@ public sealed partial class TournamentService
             match.CurrentQuestionIndex = nextOrdinal;
             match.QuestionStartedAt = _clock.UtcNow;
             match.RowVersion++;
-            await _db.SaveChangesAsync(ct);
+            try
+            {
+                await SaveChangesResilientAsync(ct);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // Concurrent opponent answer already advanced the question pointer — idempotent.
+                ClearTrackedState();
+            }
+            catch (DbUpdateException ex) when (IsSqliteBusy(ex))
+            {
+                ClearTrackedState();
+            }
+
             return;
         }
 
@@ -223,7 +270,24 @@ public sealed partial class TournamentService
         match.CurrentQuestionIndex = ordinal;
         match.QuestionStartedAt = _clock.UtcNow;
         match.RowVersion++;
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await SaveChangesResilientAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Concurrent resolver already moved the match (finish or sudden death).
+            ClearTrackedState();
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            // UNIQUE (MatchId, Ordinal) — the other request already seeded sudden death.
+            ClearTrackedState();
+        }
+        catch (DbUpdateException ex) when (IsSqliteBusy(ex))
+        {
+            ClearTrackedState();
+        }
     }
 
     private async Task CompleteMatchAsync(
@@ -257,7 +321,37 @@ public sealed partial class TournamentService
             }
         }
 
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await SaveChangesResilientAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Another request already finished this match (concurrent last answers).
+            ClearTrackedState();
+            var latest = await LoadMatchAsync(match.Id, ct, tracking: true);
+            if (latest.Status == TournamentMatchStatuses.Finished)
+            {
+                await MaybeAdvanceRoundAsync(latest.TournamentId, ct);
+                return;
+            }
+
+            // Lost RowVersion to a non-finish update — never leak as HTTP 500 db_error.
+            throw new DomainException("El enfrentamiento cambió. Intenta de nuevo.", 409, "conflict");
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex) || IsSqliteBusy(ex))
+        {
+            // Unique/busy during finish — reload; if already finished, treat as idempotent.
+            ClearTrackedState();
+            var latest = await LoadMatchAsync(match.Id, ct, tracking: true);
+            if (latest.Status == TournamentMatchStatuses.Finished)
+            {
+                await MaybeAdvanceRoundAsync(latest.TournamentId, ct);
+                return;
+            }
+
+            throw new DomainException("El enfrentamiento cambió. Intenta de nuevo.", 409, "conflict");
+        }
 
         if (awardXp
             && reason is TournamentMatchFinishReasons.Score
@@ -281,6 +375,9 @@ public sealed partial class TournamentService
 
     public async Task ProcessTimeoutsAsync(CancellationToken ct)
     {
+        // Hybrid recovery: wake tournaments stuck with Pending seats after a crash mid-activation.
+        await RecoverStuckPendingRoundsAsync(ct);
+
         var now = _clock.UtcNow;
         var active = await _db.Set<TournamentMatch>()
             .Include(m => m.Questions)
@@ -423,88 +520,114 @@ public sealed partial class TournamentService
             .ToListAsync(ct);
         if (matches.Count == 0 || matches.Any(m => m.Status != TournamentMatchStatuses.Finished))
         {
+            // Crash after round insert can leave CurrentRoundNumber on a Pending field.
+            // Concurrent finishers that already see the new round must recover activation on demand.
+            if (matches.Any(m => m.Status == TournamentMatchStatuses.Pending))
+            {
+                await EnsureRoundActivatedAsync(t, t.CurrentRoundNumber, ct);
+            }
+
+            return;
+        }
+
+        var nextRoundNumber = t.CurrentRoundNumber + 1;
+        // Another concurrent finisher may already have persisted the next round — recover activation if stuck.
+        if (t.Rounds.Any(r => r.RoundNumber == nextRoundNumber)
+            || await _db.Set<TournamentRound>().AsNoTracking()
+                .AnyAsync(r => r.TournamentId == tournamentId && r.RoundNumber == nextRoundNumber, ct))
+        {
+            ClearTrackedState();
+            await EnsureRoundActivatedByNumberAsync(tournamentId, nextRoundNumber, ct);
             return;
         }
 
         round.Status = TournamentMatchStatuses.Finished;
         round.FinishedAt = _clock.UtcNow;
 
-        var nextRound = t.Rounds.FirstOrDefault(r => r.RoundNumber == t.CurrentRoundNumber + 1);
-        if (nextRound is null)
+        var winners = matches
+            .OrderBy(m => m.SlotIndex)
+            .Select(m => m.WinnerUserId)
+            .Where(id => id is int)
+            .Select(id => id!.Value)
+            .ToList();
+
+        if (winners.Count <= 1)
         {
-            // Champion
-            var final = matches.OrderBy(m => m.SlotIndex).First();
-            if (final.WinnerUserId is int champion)
+            if (winners.Count == 1)
             {
-                await DeclareChampionAsync(t, champion, final, ct);
+                var final = matches.OrderBy(m => m.SlotIndex).First(m => m.WinnerUserId == winners[0]);
+                await DeclareChampionAsync(t, winners[0], final, ct);
             }
 
             return;
         }
 
-        // Feed winners into next round matches
-        var orderedWinners = matches.OrderBy(m => m.SlotIndex).Select(m => m.WinnerUserId).ToList();
-        var nextMatches = await _db.Set<TournamentMatch>()
-            .Where(m => m.RoundId == nextRound.Id)
-            .OrderBy(m => m.SlotIndex)
-            .ToListAsync(ct);
-
-        for (var i = 0; i < nextMatches.Count; i++)
+        // Build the next round from the living field (max pairs + at most one BYE).
+        var pairs = TournamentBracket.PairRound(winners, Random.Shared);
+        var nextRound = new TournamentRound
         {
-            var m = nextMatches[i];
-            var w1 = orderedWinners.ElementAtOrDefault(i * 2);
-            var w2 = orderedWinners.ElementAtOrDefault(i * 2 + 1);
-            m.Player1UserId = w1;
-            m.Player2UserId = w2;
-            m.Player1IsBye = w1 is null;
-            m.Player2IsBye = w2 is null;
+            TournamentId = t.Id,
+            RoundNumber = nextRoundNumber,
+            Name = TournamentBracket.RoundNameForField(winners.Count),
+            Status = TournamentMatchStatuses.Active,
+            StartedAt = _clock.UtcNow
+        };
+        t.Rounds.Add(nextRound);
+
+        for (var i = 0; i < pairs.Count; i++)
+        {
+            var (p1, p2, p1Bye, p2Bye) = pairs[i];
+            nextRound.Matches.Add(new TournamentMatch
+            {
+                TournamentId = t.Id,
+                SlotIndex = i,
+                Status = TournamentMatchStatuses.Pending,
+                Player1UserId = p1,
+                Player2UserId = p2,
+                Player1IsBye = p1Bye,
+                Player2IsBye = p2Bye
+            });
         }
 
         t.CurrentRoundNumber = nextRound.RoundNumber;
-        nextRound.Status = TournamentMatchStatuses.Active;
-        nextRound.StartedAt = _clock.UtcNow;
         t.UpdatedAt = _clock.UtcNow;
         t.RowVersion++;
-        await _db.SaveChangesAsync(ct);
 
-        foreach (var m in nextMatches)
+        try
         {
-            if (m.Player1IsBye && m.Player2UserId is int only2)
-            {
-                await FinishMatchAsByeAsync(m, only2, ct);
-            }
-            else if (m.Player2IsBye && m.Player1UserId is int only1)
-            {
-                await FinishMatchAsByeAsync(m, only1, ct);
-            }
-            else if (m.Player1UserId is int && m.Player2UserId is int)
-            {
-                await ActivateMatchAsync(t, m, ct);
-            }
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Another request advanced CurrentRoundNumber / RowVersion first — recover their round if needed.
+            ClearTrackedState();
+            _logger.LogInformation(
+                "Tournament {TournamentId} round advance lost RowVersion race; treating as idempotent.",
+                tournamentId);
+            await EnsureRoundActivatedByNumberAsync(tournamentId, nextRoundNumber, ct);
+            return;
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            // UNIQUE (TournamentId, RoundNumber) — the other request already created the round.
+            ClearTrackedState();
+            _logger.LogInformation(
+                "Tournament {TournamentId} round {RoundNumber} already created by concurrent request.",
+                tournamentId,
+                nextRoundNumber);
+            await EnsureRoundActivatedByNumberAsync(tournamentId, nextRoundNumber, ct);
+            return;
         }
 
+        var activated = await ActivateRoundMatchesAsync(
+            t,
+            nextRound.Matches.OrderBy(m => m.SlotIndex).ToList(),
+            ct);
         await _db.SaveChangesAsync(ct);
         await _broadcast.RoundStarted(t.Id, nextRound.RoundNumber, nextRound.Name, ct);
+        await NotifyMatchAssignmentsAsync(t.Id, activated, ct);
 
-        var active = await _db.Set<TournamentMatch>()
-            .Where(m => m.RoundId == nextRound.Id && m.Status == TournamentMatchStatuses.Active)
-            .ToListAsync(ct);
-        foreach (var m in active)
-        {
-            if (m.Player1UserId is int u1)
-            {
-                await _broadcast.MatchAssigned(t.Id, u1, await BuildMatchViewAsync(m.Id, u1, ct), ct);
-                await _broadcast.MatchReady(t.Id, u1, m.Id, ct);
-            }
-
-            if (m.Player2UserId is int u2)
-            {
-                await _broadcast.MatchAssigned(t.Id, u2, await BuildMatchViewAsync(m.Id, u2, ct), ct);
-                await _broadcast.MatchReady(t.Id, u2, m.Id, ct);
-            }
-        }
-
-        // In case next round was all BYEs
+        // Pure-BYE rounds (should be rare) collapse immediately.
         await MaybeAdvanceRoundAsync(t.Id, ct);
     }
 

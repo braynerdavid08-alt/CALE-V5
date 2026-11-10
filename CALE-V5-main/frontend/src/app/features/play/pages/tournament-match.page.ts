@@ -97,9 +97,25 @@ interface HeldAnswer {
             @case ('active') {
               @if (!s.amIPlayer) {
                 <div class="play-card result-hero">
-                  <h2>Estás viendo este enfrentamiento</h2>
-                  <p class="pulse">{{ progressText() }}</p>
+                  <h2>Modo espectador</h2>
+                  <p class="pulse">Proyectá esta pantalla para transmitir el enfrentamiento · {{ progressText() }}</p>
                 </div>
+                @if (s.currentQuestion; as q) {
+                  <div class="play-card">
+                    <div class="play-progress">
+                      <span>{{ progressText() }}</span>
+                      <span class="bar">
+                        <span [style.width.%]="(secondsLeft() / (s.secondsPerQuestion || 1)) * 100"></span>
+                      </span>
+                    </div>
+                    <play-question
+                      [question]="q"
+                      [reportable]="false"
+                      [feedback]="null"
+                      [selectedId]="null"
+                      [busy]="true" />
+                  </div>
+                }
               } @else {
                 @if (shownQuestion(); as q) {
                   <div class="play-card">
