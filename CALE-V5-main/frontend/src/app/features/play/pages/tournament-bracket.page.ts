@@ -17,7 +17,12 @@ import {
 } from '../api/tournament.api';
 import { PlayTopbarComponent } from '../components/play-topbar.component';
 import { tournamentInitials, tournamentPhotoSrc } from '../tournament-avatar';
-import { tournamentFootText, tournamentMatchLink, tournamentSlotName } from '../tournament-host.logic';
+import {
+  tournamentFootText,
+  tournamentMatchLink,
+  tournamentNeedsRealtime,
+  tournamentSlotName
+} from '../tournament-host.logic';
 
 const FALLBACK_REFRESH_MS = 8000;
 
@@ -54,9 +59,11 @@ interface BracketRound {
             <span class="chip" [class.good]="tone(b.status) === 'good'" [class.warn]="tone(b.status) === 'warn'">
               {{ label(b.status) }}
             </span>
-            <span class="chip" [class.good]="live()" [class.neutral]="!live()">
-              {{ live() ? '● En vivo' : '○ Se actualiza cada pocos segundos' }}
-            </span>
+            @if (needsRealtime(b.status)) {
+              <span class="chip" [class.good]="live()" [class.neutral]="!live()">
+                {{ live() ? '● En vivo' : '○ Se actualiza cada pocos segundos' }}
+              </span>
+            }
           </div>
 
           @if (b.championName) {
@@ -177,6 +184,7 @@ export class TournamentBracketPage implements OnInit, OnDestroy {
 
   readonly label = tournamentStatusLabel;
   readonly tone = tournamentStatusTone;
+  readonly needsRealtime = tournamentNeedsRealtime;
   photoSrc = tournamentPhotoSrc;
   initials = tournamentInitials;
 
@@ -184,6 +192,8 @@ export class TournamentBracketPage implements OnInit, OnDestroy {
   private destroyed = false;
   private loading = false;
   private reloadQueued = false;
+  private connecting = false;
+  private pollingStarted = false;
 
   ngOnInit(): void {
     if (!Number.isFinite(this.id)) {
@@ -191,29 +201,20 @@ export class TournamentBracketPage implements OnInit, OnDestroy {
       return;
     }
 
-    // Immediate load + fallback refresh while the socket is down.
-    pollWhileVisible(FALLBACK_REFRESH_MS, () => {
-      if (this.live() && this.bracket()) return EMPTY;
-      return this.api.bracket(this.id).pipe(
-        catchError((err) => {
-          this.error.set(mapApiError(err));
-          return EMPTY;
-        })
-      );
-    })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((b) => {
+    // One-shot load; hub/poll only if the tournament can still change.
+    this.api.bracket(this.id).subscribe({
+      next: (b) => {
         this.error.set(null);
         this.bracket.set(b);
-      });
-
-    void this.connect();
+        this.syncRealtime(b.status);
+      },
+      error: (err) => this.error.set(mapApiError(err))
+    });
   }
 
   ngOnDestroy(): void {
     this.destroyed = true;
-    void this.hub?.close();
-    this.hub = null;
+    this.stopRealtime();
   }
 
   slotName(m: TournamentBracketMatch, player: 1 | 2): string {
@@ -246,6 +247,7 @@ export class TournamentBracketPage implements OnInit, OnDestroy {
         this.loading = false;
         this.error.set(null);
         this.bracket.set(b);
+        this.syncRealtime(b.status);
         if (this.reloadQueued) {
           this.reloadQueued = false;
           this.reload();
@@ -259,18 +261,66 @@ export class TournamentBracketPage implements OnInit, OnDestroy {
     });
   }
 
+  private syncRealtime(status: string): void {
+    if (!tournamentNeedsRealtime(status)) {
+      this.stopRealtime();
+      return;
+    }
+    this.ensurePolling();
+    if (!this.hub && !this.connecting) {
+      void this.connect();
+    }
+  }
+
+  private ensurePolling(): void {
+    if (this.pollingStarted) return;
+    this.pollingStarted = true;
+    // Fallback refresh while the socket is down (only for open tournaments).
+    pollWhileVisible(FALLBACK_REFRESH_MS, () => {
+      const status = this.bracket()?.status;
+      if (status && !tournamentNeedsRealtime(status)) return EMPTY;
+      if (this.live() && this.bracket()) return EMPTY;
+      return this.api.bracket(this.id).pipe(
+        catchError((err) => {
+          this.error.set(mapApiError(err));
+          return EMPTY;
+        })
+      );
+    })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((b) => {
+        this.error.set(null);
+        this.bracket.set(b);
+        if (!tournamentNeedsRealtime(b.status)) this.stopRealtime();
+      });
+  }
+
+  private stopRealtime(): void {
+    if (this.hub) {
+      void this.hub.close();
+      this.hub = null;
+    }
+    this.connecting = false;
+    this.live.set(false);
+  }
+
   private async connect(): Promise<void> {
+    this.connecting = true;
     try {
       const handle = await this.api.watch(this.id, (event) => {
         if (event !== 'AchievementUnlocked' && event !== 'ParticipantDisconnected' && event !== 'ParticipantReconnected') {
           this.reload();
         }
       });
-      if (this.destroyed) {
+      const status = this.bracket()?.status;
+      if (this.destroyed || (status != null && !tournamentNeedsRealtime(status))) {
         void handle.close();
+        this.connecting = false;
+        this.live.set(false);
         return;
       }
       this.hub = handle;
+      this.connecting = false;
       this.live.set(true);
       handle.connection.onclose(() => this.live.set(false));
       handle.connection.onreconnecting(() => this.live.set(false));
@@ -280,6 +330,7 @@ export class TournamentBracketPage implements OnInit, OnDestroy {
       });
       this.reload();
     } catch {
+      this.connecting = false;
       this.live.set(false);
     }
   }

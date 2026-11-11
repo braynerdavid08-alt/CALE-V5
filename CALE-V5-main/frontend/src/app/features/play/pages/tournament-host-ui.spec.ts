@@ -4,6 +4,7 @@ import {
   teacherShowsLiveBoard,
   tournamentFootText,
   tournamentMatchLink,
+  tournamentNeedsRealtime,
   tournamentSlotName
 } from '../tournament-host.logic';
 
@@ -42,6 +43,13 @@ describe('Tournament host / spectator UI logic', () => {
     expect(teacherShowsLiveBoard(true, 'in_progress')).toBe(true);
     expect(teacherShowsLiveBoard(true, 'registration_open')).toBe(false);
     expect(teacherShowsLiveBoard(false, 'in_progress')).toBe(false);
+  });
+
+  it('skips realtime for finished or cancelled tournaments', () => {
+    expect(tournamentNeedsRealtime('registration_open')).toBe(true);
+    expect(tournamentNeedsRealtime('in_progress')).toBe(true);
+    expect(tournamentNeedsRealtime('finished')).toBe(false);
+    expect(tournamentNeedsRealtime('cancelled')).toBe(false);
   });
 
   it('filters only active real matches for the live board', () => {
