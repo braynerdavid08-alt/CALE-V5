@@ -41,6 +41,11 @@ export function teacherShowsLiveBoard(canManage: boolean, status: string): boole
   return canManage && status === 'in_progress';
 }
 
+/** Hub + polling only while the tournament can still change. */
+export function tournamentNeedsRealtime(status: string): boolean {
+  return status !== 'finished' && status !== 'cancelled';
+}
+
 export function filterLiveRealMatches<T extends TournamentHostMatchLike>(matches: T[]): T[] {
   return matches.filter((m) => m.status === 'active' && !m.player1IsBye && !m.player2IsBye);
 }

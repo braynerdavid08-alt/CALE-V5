@@ -1,6 +1,6 @@
 import { Component, DestroyRef, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { EMPTY, catchError } from 'rxjs';
 import { SessionStore } from '../../../core/auth/session.store';
 import { mapApiError } from '../../../core/http/map-api-error';
@@ -18,6 +18,11 @@ import { PlayBadgesToastComponent } from '../components/play-badges-toast.compon
 import { PlayQuestionComponent } from '../components/play-question.component';
 import { PlayTopbarComponent } from '../components/play-topbar.component';
 import { PlayFxService } from '../play-fx.service';
+import {
+  decideMatchAssignmentNav,
+  decideMatchReadyNav,
+  isTransientHttpError
+} from '../tournament-assignment.nav';
 import { tournamentInitials, tournamentPhotoSrc } from '../tournament-avatar';
 
 /** Safety net: the hub pushes MatchUpdated, polling covers dropped sockets and timeouts. */
@@ -156,6 +161,11 @@ interface HeldAnswer {
                     {{ reasonText() }}
                   }
                 </p>
+                @if (assignmentNotice()) {
+                  <p class="pulse">{{ assignmentNotice() }}</p>
+                } @else if (waitingNextRound()) {
+                  <p class="pulse">Esperando siguiente ronda… Te llevaremos al nuevo VS automáticamente.</p>
+                }
                 <div class="play-actions center">
                   <ui-button [routerLink]="base + '/' + s.tournamentId + '/bracket'">Ver llaves</ui-button>
                   <ui-button [routerLink]="base + '/' + s.tournamentId" variant="secondary">Volver a la sala</ui-button>
@@ -175,9 +185,10 @@ export class TournamentMatchPage implements OnInit, OnDestroy {
   private readonly fx = inject(PlayFxService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   readonly base: string = this.route.snapshot.data['base'] ?? '/student/play/tournaments';
-  readonly matchId = Number(this.route.snapshot.paramMap.get('matchId'));
+  readonly matchId = signal(0);
 
   readonly state = signal<TournamentMatchView | null>(null);
   readonly error = signal<string | null>(null);
@@ -185,6 +196,8 @@ export class TournamentMatchPage implements OnInit, OnDestroy {
   readonly selected = signal<number | null>(null);
   readonly held = signal<HeldAnswer | null>(null);
   readonly newBadges = signal<Badge[]>([]);
+  readonly waitingNextRound = signal(false);
+  readonly assignmentNotice = signal<string | null>(null);
 
   private readonly fetchedAt = signal(Date.now());
   private readonly now = signal(Date.now());
@@ -257,18 +270,29 @@ export class TournamentMatchPage implements OnInit, OnDestroy {
   private refetchQueued = false;
   private lastStatus: string | null = null;
   private clock: ReturnType<typeof setInterval> | null = null;
+  private lastNavigatedMatchId: number | null = null;
+  private checkingAssignment = false;
 
   ngOnInit(): void {
-    if (!Number.isFinite(this.matchId)) {
-      this.error.set('Enfrentamiento no válido.');
-      return;
-    }
     this.clock = setInterval(() => this.now.set(Date.now()), 500);
-    this.refresh();
 
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const id = Number(params.get('matchId'));
+      if (!Number.isFinite(id) || id <= 0) {
+        this.error.set('Enfrentamiento no válido.');
+        return;
+      }
+      this.onRouteMatchId(id);
+    });
+
+    // Poll reads the live matchId signal so remount-on-param-reuse stays correct.
     pollWhileVisible(
       POLL_MS,
-      () => this.api.match(this.matchId).pipe(catchError(() => EMPTY)),
+      () => {
+        const id = this.matchId();
+        if (!id) return EMPTY;
+        return this.api.match(id).pipe(catchError(() => EMPTY));
+      },
       { leading: false }
     )
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -323,13 +347,33 @@ export class TournamentMatchPage implements OnInit, OnDestroy {
     });
   }
 
+  private onRouteMatchId(id: number): void {
+    if (this.matchId() === id && this.state()?.matchId === id) {
+      return;
+    }
+    this.matchId.set(id);
+    this.lastNavigatedMatchId = id;
+    this.waitingNextRound.set(false);
+    this.assignmentNotice.set(null);
+    this.state.set(null);
+    this.error.set(null);
+    this.held.set(null);
+    this.selected.set(null);
+    this.lastStatus = null;
+    this.fetching = false;
+    this.refetchQueued = false;
+    this.refresh();
+  }
+
   private refresh(): void {
+    const id = this.matchId();
+    if (!id) return;
     if (this.fetching) {
       this.refetchQueued = true;
       return;
     }
     this.fetching = true;
-    this.api.match(this.matchId).subscribe({
+    this.api.match(id).subscribe({
       next: (s) => {
         this.fetching = false;
         this.apply(s);
@@ -341,15 +385,23 @@ export class TournamentMatchPage implements OnInit, OnDestroy {
       error: (err) => {
         this.fetching = false;
         this.refetchQueued = false;
-        this.error.set(mapApiError(err));
+        if (!this.state()) {
+          this.error.set(mapApiError(err));
+        } else if (!isTransientHttpError(err)) {
+          this.error.set(mapApiError(err));
+        }
       }
     });
   }
 
   private apply(s: TournamentMatchView): void {
+    // Ignore stale responses after navigating to a new matchId.
+    if (s.matchId !== this.matchId()) return;
+
     const previous = this.lastStatus;
     this.lastStatus = s.status;
     this.state.set(s);
+    this.error.set(null);
     this.fetchedAt.set(Date.now());
     this.now.set(Date.now());
 
@@ -357,7 +409,24 @@ export class TournamentMatchPage implements OnInit, OnDestroy {
       if (s.winnerUserId === this.myId()) this.fx.celebrate();
       else this.fx.play('wrong');
     }
+
+    if (s.status === 'finished' && s.amIPlayer && s.winnerUserId === this.myId()) {
+      this.waitingNextRound.set(true);
+      // Only probe lobby when we first land on finished — not on every poll tick.
+      if (previous !== 'finished') {
+        this.checkPendingAssignment();
+      }
+    } else if (s.status !== 'finished') {
+      this.waitingNextRound.set(false);
+      this.assignmentNotice.set(null);
+    }
+
     if (this.hubTournamentId === null) {
+      this.hubTournamentId = s.tournamentId;
+      void this.connect(s.tournamentId);
+    } else if (this.hubTournamentId !== s.tournamentId) {
+      void this.hub?.close();
+      this.hub = null;
       this.hubTournamentId = s.tournamentId;
       void this.connect(s.tournamentId);
     }
@@ -366,13 +435,17 @@ export class TournamentMatchPage implements OnInit, OnDestroy {
   private async connect(tournamentId: number): Promise<void> {
     try {
       const handle = await this.api.watch(tournamentId, (event, payload) => this.onEvent(event, payload));
-      if (this.destroyed) {
+      if (this.destroyed || this.hubTournamentId !== tournamentId) {
         void handle.close();
         return;
       }
       this.hub = handle;
-      handle.connection.onreconnected(() => this.refresh());
+      handle.connection.onreconnected(() => {
+        this.refresh();
+        this.checkPendingAssignment();
+      });
       this.refresh();
+      this.checkPendingAssignment();
     } catch {
       /* polling keeps the match in sync */
     }
@@ -380,12 +453,33 @@ export class TournamentMatchPage implements OnInit, OnDestroy {
 
   private onEvent(event: TournamentHubEvent, payload: unknown): void {
     switch (event) {
+      case 'MatchAssigned': {
+        const next = decideMatchAssignmentNav({
+          myUserId: this.myId(),
+          currentTournamentId: this.state()?.tournamentId ?? this.hubTournamentId,
+          currentMatchId: this.matchId(),
+          lastNavigatedMatchId: this.lastNavigatedMatchId,
+          payload: payload as TournamentMatchView
+        });
+        if (next != null) this.navigateToAssignedMatch(next, true);
+        break;
+      }
+      case 'MatchReady': {
+        const next = decideMatchReadyNav(
+          this.myId(),
+          this.matchId(),
+          this.lastNavigatedMatchId,
+          payload as { userId?: number; matchId?: number }
+        );
+        if (next != null) this.navigateToAssignedMatch(next, true);
+        break;
+      }
       case 'MatchUpdated':
       case 'MatchFinished': {
         // Payloads are built for the player who answered; always re-read our own view.
-        const id = (payload as { matchId?: number; id?: number } | null);
+        const id = payload as { matchId?: number; id?: number } | null;
         const target = id?.matchId ?? id?.id;
-        if (target === undefined || target === this.matchId) this.refresh();
+        if (target === undefined || target === this.matchId()) this.refresh();
         break;
       }
       case 'AchievementUnlocked':
@@ -398,9 +492,51 @@ export class TournamentMatchPage implements OnInit, OnDestroy {
       case 'TournamentFinished':
       case 'ChampionDeclared':
         this.refresh();
+        this.checkPendingAssignment();
         break;
       default:
         break;
     }
+  }
+
+  private navigateToAssignedMatch(matchId: number, playSound: boolean): void {
+    if (this.destroyed || !matchId) return;
+    if (this.lastNavigatedMatchId === matchId) return;
+    this.lastNavigatedMatchId = matchId;
+    this.assignmentNotice.set('¡Tu nuevo enfrentamiento está listo!');
+    this.waitingNextRound.set(false);
+    if (playSound) this.fx.play('start');
+    void this.router.navigate([this.base, 'match', matchId]).then((ok) => {
+      if (!ok && !this.destroyed) {
+        // Allow a later retry if navigation was blocked.
+        this.lastNavigatedMatchId = this.matchId() || null;
+      }
+    });
+  }
+
+  /** PostgreSQL is source of truth when SignalR dropped the assignment. */
+  private checkPendingAssignment(): void {
+    const s = this.state();
+    if (!s || this.destroyed || this.checkingAssignment) return;
+    if (!s.amIPlayer || s.status !== 'finished' || s.winnerUserId !== this.myId()) return;
+
+    this.checkingAssignment = true;
+    this.api.lobby(s.tournamentId).subscribe({
+      next: (lobby) => {
+        this.checkingAssignment = false;
+        const mid = lobby.myMatchId ?? null;
+        if (mid && mid !== this.matchId()) {
+          this.navigateToAssignedMatch(mid, false);
+        } else if (lobby.status === 'finished' || lobby.status === 'cancelled') {
+          this.waitingNextRound.set(false);
+          this.assignmentNotice.set(null);
+        } else {
+          this.waitingNextRound.set(true);
+        }
+      },
+      error: () => {
+        this.checkingAssignment = false;
+      }
+    });
   }
 }

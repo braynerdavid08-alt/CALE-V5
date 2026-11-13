@@ -32,3 +32,9 @@ src/Cale.Api/wwwroot/uploads/*
 
 # Crawl HTML cache — regenerate with tools/transiteca-extract-codigo.js
 data/codigo-transito-transiteca/html/
+
+# Ad-hoc local probes / smoke (keep formal tools under tools/<Name>/)
+tools/_*
+tools/SeedLuzVerdeDemo/_*
+docs/phase1-directorio-vacio.png
+

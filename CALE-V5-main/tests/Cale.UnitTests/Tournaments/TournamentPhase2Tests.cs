@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
@@ -164,12 +165,18 @@ public sealed class TournamentPhase2Tests : IAsyncLifetime
             .Build();
 
         var lobbyUpdates = 0;
+        var reconnects = 0;
         connection.On<object>("LobbyUpdated", _ => Interlocked.Increment(ref lobbyUpdates));
+        connection.On<object>("ParticipantReconnected", _ => Interlocked.Increment(ref reconnects));
 
         await connection.StartAsync();
         await connection.InvokeAsync("JoinTournament", tournamentId);
-        await Task.Delay(200);
+        await Task.Delay(300);
         Assert.Equal(HubConnectionState.Connected, connection.State);
+
+        // Presence must not flood the group with a full LobbyUpdated (anti-storm).
+        Assert.Equal(0, lobbyUpdates);
+        Assert.True(reconnects >= 1);
 
         using (var scope = _api.Services.CreateScope())
         {
@@ -180,6 +187,47 @@ public sealed class TournamentPhase2Tests : IAsyncLifetime
         }
 
         await connection.InvokeAsync("LeaveTournament", tournamentId);
+        await connection.StopAsync();
+    }
+
+    [Fact]
+    public async Task SetConnection_does_not_require_LobbyUpdated_broadcast()
+    {
+        var tournamentId = await CreateAndStartAsync(capacity: 4, takeStudents: 4);
+        var student = _api.Students[0];
+        var token = _api.TokenFor(student);
+        var hubUrl = new Uri(_api.Server.BaseAddress!, $"/hubs/tournaments?access_token={Uri.EscapeDataString(token)}");
+
+        await using var connection = new HubConnectionBuilder()
+            .WithUrl(hubUrl, options =>
+            {
+                options.HttpMessageHandlerFactory = _ => _api.Server.CreateHandler();
+            })
+            .Build();
+
+        var lobbyUpdates = 0;
+        var disconnects = 0;
+        var reconnects = 0;
+        connection.On<object>("LobbyUpdated", _ => Interlocked.Increment(ref lobbyUpdates));
+        connection.On<object>("ParticipantDisconnected", _ => Interlocked.Increment(ref disconnects));
+        connection.On<object>("ParticipantReconnected", _ => Interlocked.Increment(ref reconnects));
+
+        await connection.StartAsync();
+        await connection.InvokeAsync("JoinTournament", tournamentId);
+        await Task.Delay(150);
+
+        using (var scope = _api.Services.CreateScope())
+        {
+            var svc = scope.ServiceProvider.GetRequiredService<TournamentService>();
+            await svc.SetConnectionAsync(tournamentId, student.Id, "conn-x", connected: false, CancellationToken.None);
+            await svc.SetConnectionAsync(tournamentId, student.Id, "conn-y", connected: true, CancellationToken.None);
+        }
+
+        await Task.Delay(300);
+        Assert.Equal(0, lobbyUpdates);
+        Assert.True(disconnects >= 1);
+        Assert.True(reconnects >= 1);
+
         await connection.StopAsync();
     }
 
@@ -361,6 +409,61 @@ public sealed class TournamentPhase2Tests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.Unauthorized, (await anon.GetAsync("/api/tournaments")).StatusCode);
     }
 
+    [Fact]
+    public async Task MatchAssigned_notifies_winners_after_round_advances()
+    {
+        var tournamentId = await CreateAndStartAsync(capacity: 4, takeStudents: 4);
+        using var teacher = _api.ClientFor(_api.Teacher);
+        var bracket = await teacher.GetFromJsonAsync<BracketDto>($"/api/tournaments/{tournamentId}/bracket", Json);
+        Assert.NotNull(bracket);
+        var firstRound = bracket.Matches.Where(m => m.Status == "active").ToList();
+        Assert.Equal(2, firstRound.Count);
+
+        var watcherId = firstRound[0].Player1UserId!.Value;
+        var token = _api.TokenFor(_api.Students.First(s => s.Id == watcherId));
+        var hubUrl = new Uri(_api.Server.BaseAddress!, $"/hubs/tournaments?access_token={Uri.EscapeDataString(token)}");
+
+        await using var connection = new HubConnectionBuilder()
+            .WithUrl(hubUrl, options =>
+            {
+                options.HttpMessageHandlerFactory = _ => _api.Server.CreateHandler();
+            })
+            .Build();
+
+        var assignedMatchIds = new ConcurrentBag<int>();
+        connection.On<System.Text.Json.JsonElement>("MatchAssigned", payload =>
+        {
+            if (payload.TryGetProperty("matchId", out var idProp) && idProp.TryGetInt32(out var mid))
+            {
+                assignedMatchIds.Add(mid);
+            }
+        });
+
+        await connection.StartAsync();
+        await connection.InvokeAsync("JoinTournament", tournamentId);
+
+        await Task.WhenAll(firstRound.Select(m => PlayMatchAsync(m.Id)));
+
+        // Finals activation + NotifyMatchAssignmentsAsync should push MatchAssigned to the winner.
+        var deadline = DateTime.UtcNow.AddSeconds(8);
+        while (DateTime.UtcNow < deadline && assignedMatchIds.IsEmpty)
+        {
+            await Task.Delay(100);
+        }
+
+        Assert.False(assignedMatchIds.IsEmpty);
+        Assert.All(assignedMatchIds, id => Assert.DoesNotContain(id, firstRound.Select(m => m.Id)));
+
+        using var winnerClient = _api.ClientFor(_api.Students.First(s => s.Id == watcherId));
+        var winnerLobby = await winnerClient.GetFromJsonAsync<LobbyDto>($"/api/tournaments/{tournamentId}", Json);
+        Assert.NotNull(winnerLobby);
+        // Watcher was player1 of match 0 and PlayMatchAsync makes player1 win → must have finals seat.
+        Assert.NotNull(winnerLobby.MyMatchId);
+        Assert.Contains(winnerLobby.MyMatchId!.Value, assignedMatchIds);
+
+        await connection.StopAsync();
+    }
+
     private async Task<int> CreateAndStartAsync(int capacity, int takeStudents)
     {
         using var teacher = _api.ClientFor(_api.Teacher);
@@ -442,6 +545,7 @@ public sealed class TournamentPhase2Tests : IAsyncLifetime
     }
 
     private sealed record IdDto(int Id);
+    private sealed record LobbyDto(int Id, string Status, int? MyMatchId);
     private sealed record BracketDto(int TournamentId, string Status, IReadOnlyList<BracketMatch> Matches);
     private sealed record BracketMatch(
         int Id,

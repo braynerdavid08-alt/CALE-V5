@@ -299,19 +299,24 @@ public sealed partial class TournamentService
         }
 
         // Crash mid-activation may leave Pending with questions already seeded — reuse them.
-        if (match.Questions.Count < tournament.QuestionsPerMatch)
+        // Never Clear()+reseed: concurrent recovery would race on UNIQUE (MatchId, Ordinal).
+        var existingCount = match.Questions.Count;
+        if (existingCount < tournament.QuestionsPerMatch)
         {
+            var need = tournament.QuestionsPerMatch - existingCount;
+            var excludeIds = match.Questions.Select(q => q.QuestionId).ToHashSet();
             var questions = await _play.BuildTournamentQuestionsAsync(
                 tournament.CreatedByUserId,
                 tournament.SchoolUserId,
-                tournament.QuestionsPerMatch,
+                need,
                 tournament.QuestionMode,
                 ParseCategories(tournament.CategoryFilterJson),
                 ParseIds(tournament.ManualQuestionIdsJson),
                 ct,
+                excludeIds: excludeIds,
                 bankIds: ParseIds(tournament.BankIdsJson));
 
-            if (questions.Count < tournament.QuestionsPerMatch)
+            if (questions.Count < need)
             {
                 throw new DomainException(
                     "No hay suficientes preguntas para iniciar el enfrentamiento.",
@@ -319,13 +324,14 @@ public sealed partial class TournamentService
                     "no_questions");
             }
 
-            match.Questions.Clear();
-            var ordinal = 0;
-            foreach (var q in questions.Take(tournament.QuestionsPerMatch))
+            var nextOrdinal = existingCount == 0
+                ? 0
+                : match.Questions.Max(q => q.Ordinal) + 1;
+            foreach (var q in questions.Take(need))
             {
                 match.Questions.Add(new TournamentMatchQuestion
                 {
-                    Ordinal = ordinal++,
+                    Ordinal = nextOrdinal++,
                     QuestionId = q.QuestionId,
                     CorrectOptionId = q.CorrectOptionId,
                     IsSuddenDeath = false

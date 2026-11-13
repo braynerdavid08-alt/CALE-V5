@@ -430,7 +430,28 @@ public sealed partial class TournamentService
             }
 
             match.RowVersion++;
-            await _db.SaveChangesAsync(ct);
+            try
+            {
+                await _db.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // Player answered / another timeout worker won the RowVersion race.
+                ClearTrackedState();
+                continue;
+            }
+            catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+            {
+                // UNIQUE (MatchQuestionId, UserId) — answer already persisted by player or peer worker.
+                ClearTrackedState();
+                continue;
+            }
+            catch (DbUpdateException ex) when (IsSqliteBusy(ex))
+            {
+                ClearTrackedState();
+                continue;
+            }
+
             await TryAdvanceQuestionOrFinishAsync(match, tournament, ct);
         }
 
@@ -623,7 +644,24 @@ public sealed partial class TournamentService
             t,
             nextRound.Matches.OrderBy(m => m.SlotIndex).ToList(),
             ct);
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            ClearTrackedState();
+            await EnsureRoundActivatedByNumberAsync(tournamentId, nextRoundNumber, ct);
+            return;
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex) || IsSqliteBusy(ex))
+        {
+            // Concurrent recovery may have seeded the same (MatchId, Ordinal) rows.
+            ClearTrackedState();
+            await EnsureRoundActivatedByNumberAsync(tournamentId, nextRoundNumber, ct);
+            return;
+        }
+
         await _broadcast.RoundStarted(t.Id, nextRound.RoundNumber, nextRound.Name, ct);
         await NotifyMatchAssignmentsAsync(t.Id, activated, ct);
 
