@@ -124,9 +124,29 @@ public sealed partial class TournamentService
         }
         catch (DbUpdateConcurrencyException)
         {
+            // Another worker activated the same seats first (match RowVersion).
             ClearTrackedState();
             _logger.LogInformation(
                 "Tournament {TournamentId} round {RoundNumber} activation lost RowVersion race; treating as idempotent.",
+                t.Id,
+                roundNumber);
+            return;
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            // UNIQUE (MatchId, Ordinal) — concurrent ActivateMatchAsync already seeded questions.
+            ClearTrackedState();
+            _logger.LogInformation(
+                "Tournament {TournamentId} round {RoundNumber} activation lost UNIQUE race on match questions; treating as idempotent.",
+                t.Id,
+                roundNumber);
+            return;
+        }
+        catch (DbUpdateException ex) when (IsSqliteBusy(ex))
+        {
+            ClearTrackedState();
+            _logger.LogInformation(
+                "Tournament {TournamentId} round {RoundNumber} activation hit SQLite busy; will retry on next tick.",
                 t.Id,
                 roundNumber);
             return;

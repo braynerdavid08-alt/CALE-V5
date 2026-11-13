@@ -274,6 +274,8 @@ public sealed partial class TournamentService
         p.DisconnectedAt = connected ? null : _clock.UtcNow;
         await _db.SaveChangesAsync(ct);
 
+        // Presence-only: never broadcast a full LobbyUpdated here — with N clients that
+        // each reload on LobbyUpdated, connect storms saturate API/Postgres.
         if (connected)
         {
             await _broadcast.ParticipantReconnected(tournamentId, userId, ct);
@@ -283,8 +285,6 @@ public sealed partial class TournamentService
             await _broadcast.ParticipantDisconnected(tournamentId, userId, ct);
             await TryResolveWalkoverOnDisconnectAsync(t, userId, ct);
         }
-
-        await _broadcast.LobbyUpdated(tournamentId, await ToLobbyAsync(t, userId, ct), ct);
     }
 
     private async Task<Tournament> LoadTournamentAsync(

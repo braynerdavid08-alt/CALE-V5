@@ -17,10 +17,10 @@ public sealed class TournamentBroadcaster : ITournamentBroadcaster
         Group(tournamentId).SendAsync("ParticipantJoined", participant, ct);
 
     public Task ParticipantDisconnected(int tournamentId, int userId, CancellationToken ct) =>
-        Group(tournamentId).SendAsync("ParticipantDisconnected", new { userId }, ct);
+        Group(tournamentId).SendAsync("ParticipantDisconnected", new { userId, isConnected = false }, ct);
 
     public Task ParticipantReconnected(int tournamentId, int userId, CancellationToken ct) =>
-        Group(tournamentId).SendAsync("ParticipantReconnected", new { userId }, ct);
+        Group(tournamentId).SendAsync("ParticipantReconnected", new { userId, isConnected = true }, ct);
 
     public Task LobbyUpdated(int tournamentId, TournamentLobbyDto lobby, CancellationToken ct) =>
         Group(tournamentId).SendAsync("LobbyUpdated", lobby, ct);

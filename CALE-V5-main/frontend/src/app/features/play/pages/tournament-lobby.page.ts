@@ -17,6 +17,10 @@ import {
 } from '../api/tournament.api';
 import { PlayTopbarComponent } from '../components/play-topbar.component';
 import { PlayFxService } from '../play-fx.service';
+import {
+  applyParticipantPresence,
+  isTransientHttpError
+} from '../tournament-assignment.nav';
 import { tournamentInitials, tournamentPhotoSrc } from '../tournament-avatar';
 import {
   filterLiveRealMatches,
@@ -24,8 +28,12 @@ import {
   tournamentNeedsRealtime
 } from '../tournament-host.logic';
 
-/** Keep polling even while SignalR is "live" so a missed MatchAssigned cannot leave students stuck. */
-const LOBBY_POLL_MS = 3000;
+/** Fallback poll when SignalR is down — keep snappy for missed MatchAssigned. */
+const LOBBY_POLL_OFFLINE_MS = 3000;
+/** Soft poll while SignalR is healthy — avoids N×GET storms on presence. */
+const LOBBY_POLL_LIVE_MS = 12000;
+const RELOAD_DEBOUNCE_MS = 500;
+const TRANSIENT_RETRY_BASE_MS = 800;
 
 @Component({
   selector: 'app-tournament-lobby-page',
@@ -220,6 +228,10 @@ export class TournamentLobbyPage implements OnInit, OnDestroy {
   private reloadQueued = false;
   private connecting = false;
   private timer: ReturnType<typeof setInterval> | null = null;
+  private pollMs = LOBBY_POLL_OFFLINE_MS;
+  private reloadDebounce: ReturnType<typeof setTimeout> | null = null;
+  private transientRetry: ReturnType<typeof setTimeout> | null = null;
+  private transientAttempts = 0;
   private enteringMatchId: number | null = null;
 
   ngOnInit(): void {
@@ -233,6 +245,8 @@ export class TournamentLobbyPage implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.destroyed = true;
+    this.clearReloadDebounce();
+    this.clearTransientRetry();
     this.stopRealtime();
   }
 
@@ -284,6 +298,29 @@ export class TournamentLobbyPage implements OnInit, OnDestroy {
     });
   }
 
+  /** Debounced full reload for chatty hub events (LobbyUpdated, RoundStarted, …). */
+  private scheduleReload(): void {
+    this.clearReloadDebounce();
+    this.reloadDebounce = setTimeout(() => {
+      this.reloadDebounce = null;
+      this.reload();
+    }, RELOAD_DEBOUNCE_MS);
+  }
+
+  private clearReloadDebounce(): void {
+    if (this.reloadDebounce) {
+      clearTimeout(this.reloadDebounce);
+      this.reloadDebounce = null;
+    }
+  }
+
+  private clearTransientRetry(): void {
+    if (this.transientRetry) {
+      clearTimeout(this.transientRetry);
+      this.transientRetry = null;
+    }
+  }
+
   private reload(): void {
     // Hub payloads are built for one viewer, so always re-read the lobby for ourselves.
     if (this.loading) {
@@ -294,6 +331,8 @@ export class TournamentLobbyPage implements OnInit, OnDestroy {
     this.api.lobby(this.id).subscribe({
       next: (lobby) => {
         this.loading = false;
+        this.transientAttempts = 0;
+        this.clearTransientRetry();
         this.error.set(null);
         this.lobby.set(lobby);
         this.maybeEnterMatch(lobby.myMatchId ?? null, lobby.status);
@@ -307,9 +346,36 @@ export class TournamentLobbyPage implements OnInit, OnDestroy {
       error: (err) => {
         this.loading = false;
         this.reloadQueued = false;
-        this.error.set(mapApiError(err));
+        // Keep last good lobby; only blank-screen on first failure.
+        if (!this.lobby()) {
+          this.error.set(mapApiError(err));
+        } else if (isTransientHttpError(err)) {
+          this.scheduleTransientRetry();
+        } else {
+          this.error.set(mapApiError(err));
+        }
       }
     });
+  }
+
+  private scheduleTransientRetry(): void {
+    if (this.destroyed || this.transientRetry) return;
+    const attempt = Math.min(this.transientAttempts, 4);
+    this.transientAttempts = attempt + 1;
+    const jitter = Math.floor(Math.random() * 400);
+    const delay = TRANSIENT_RETRY_BASE_MS * Math.pow(2, attempt) + jitter;
+    this.transientRetry = setTimeout(() => {
+      this.transientRetry = null;
+      if (!this.destroyed) this.reload();
+    }, delay);
+  }
+
+  private applyPresence(userId: number, isConnected: boolean): void {
+    const l = this.lobby();
+    if (!l || !Number.isFinite(userId)) return;
+    const participants = applyParticipantPresence(l.participants, userId, isConnected);
+    if (participants === l.participants) return;
+    this.lobby.set({ ...l, participants });
   }
 
   private refreshLiveMatches(status: string): void {
@@ -335,10 +401,23 @@ export class TournamentLobbyPage implements OnInit, OnDestroy {
   }
 
   private ensurePolling(): void {
-    if (this.timer) return;
+    const desired = this.live() ? LOBBY_POLL_LIVE_MS : LOBBY_POLL_OFFLINE_MS;
+    if (this.timer && this.pollMs === desired) return;
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+    this.pollMs = desired;
     this.timer = setInterval(() => {
       if (document.visibilityState === 'visible') this.reload();
-    }, LOBBY_POLL_MS);
+    }, this.pollMs);
+  }
+
+  private setLive(value: boolean): void {
+    this.live.set(value);
+    if (tournamentNeedsRealtime(this.lobby()?.status ?? '')) {
+      this.ensurePolling();
+    }
   }
 
   private stopRealtime(): void {
@@ -362,30 +441,41 @@ export class TournamentLobbyPage implements OnInit, OnDestroy {
       if (this.destroyed || (status != null && !tournamentNeedsRealtime(status))) {
         void handle.close();
         this.connecting = false;
-        this.live.set(false);
+        this.setLive(false);
         return;
       }
       this.hub = handle;
       this.connecting = false;
-      this.live.set(true);
-      handle.connection.onclose(() => this.live.set(false));
-      handle.connection.onreconnecting(() => this.live.set(false));
+      this.setLive(true);
+      handle.connection.onclose(() => this.setLive(false));
+      handle.connection.onreconnecting(() => this.setLive(false));
       handle.connection.onreconnected(() => {
-        this.live.set(true);
+        this.setLive(true);
         this.reload();
       });
       // Anything that happened while connecting.
       this.reload();
     } catch {
       this.connecting = false;
-      this.live.set(false);
+      this.setLive(false);
     }
   }
 
   private onEvent(event: TournamentHubEvent, payload: unknown): void {
+    if (event === 'ParticipantReconnected' || event === 'ParticipantDisconnected') {
+      const body = payload as { userId?: number; isConnected?: boolean } | null;
+      const userId = Number(body?.userId);
+      if (!Number.isFinite(userId)) return;
+      const connected =
+        typeof body?.isConnected === 'boolean'
+          ? body.isConnected
+          : event === 'ParticipantReconnected';
+      this.applyPresence(userId, connected);
+      return;
+    }
     if (event === 'MatchAssigned') {
       const match = payload as TournamentMatchView;
-      this.reload();
+      this.scheduleReload();
       if (match?.matchId) {
         this.enterMatch(match.matchId, true);
       }
@@ -396,15 +486,11 @@ export class TournamentLobbyPage implements OnInit, OnDestroy {
       if (ready?.userId === this.myId() && ready.matchId) {
         this.enterMatch(ready.matchId, true);
       }
-      this.reload();
-      return;
-    }
-    if (event === 'TournamentStarted' || event === 'RoundStarted') {
-      this.reload();
+      this.scheduleReload();
       return;
     }
     if (event === 'AchievementUnlocked') return;
-    this.reload();
+    this.scheduleReload();
   }
 
   /** Auto-open the VS page whenever the student has an active match. */

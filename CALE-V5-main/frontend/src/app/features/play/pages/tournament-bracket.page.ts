@@ -1,11 +1,8 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, DestroyRef, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { EMPTY, catchError } from 'rxjs';
 import { SessionStore } from '../../../core/auth/session.store';
 import { mapApiError } from '../../../core/http/map-api-error';
-import { pollWhileVisible } from '../../../core/rxjs/poll-while-visible';
 import {
   FINISH_REASON_LABELS,
   TournamentApi,
@@ -16,6 +13,7 @@ import {
   tournamentStatusTone
 } from '../api/tournament.api';
 import { PlayTopbarComponent } from '../components/play-topbar.component';
+import { isTransientHttpError } from '../tournament-assignment.nav';
 import { tournamentInitials, tournamentPhotoSrc } from '../tournament-avatar';
 import {
   tournamentFootText,
@@ -24,7 +22,9 @@ import {
   tournamentSlotName
 } from '../tournament-host.logic';
 
-const FALLBACK_REFRESH_MS = 8000;
+const POLL_OFFLINE_MS = 8000;
+const POLL_LIVE_MS = 12000;
+const RELOAD_DEBOUNCE_MS = 500;
 
 interface BracketRound {
   number: number;
@@ -154,7 +154,6 @@ interface BracketRound {
 export class TournamentBracketPage implements OnInit, OnDestroy {
   private readonly api = inject(TournamentApi);
   private readonly session = inject(SessionStore);
-  private readonly destroyRef = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);
 
   readonly base: string = this.route.snapshot.data['base'] ?? '/student/play/tournaments';
@@ -193,7 +192,9 @@ export class TournamentBracketPage implements OnInit, OnDestroy {
   private loading = false;
   private reloadQueued = false;
   private connecting = false;
-  private pollingStarted = false;
+  private timer: ReturnType<typeof setInterval> | null = null;
+  private pollMs = POLL_OFFLINE_MS;
+  private reloadDebounce: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit(): void {
     if (!Number.isFinite(this.id)) {
@@ -214,6 +215,10 @@ export class TournamentBracketPage implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.destroyed = true;
+    if (this.reloadDebounce) {
+      clearTimeout(this.reloadDebounce);
+      this.reloadDebounce = null;
+    }
     this.stopRealtime();
   }
 
@@ -236,6 +241,14 @@ export class TournamentBracketPage implements OnInit, OnDestroy {
     return tournamentMatchLink(this.base, m);
   }
 
+  private scheduleReload(): void {
+    if (this.reloadDebounce) clearTimeout(this.reloadDebounce);
+    this.reloadDebounce = setTimeout(() => {
+      this.reloadDebounce = null;
+      this.reload();
+    }, RELOAD_DEBOUNCE_MS);
+  }
+
   private reload(): void {
     if (this.loading) {
       this.reloadQueued = true;
@@ -256,7 +269,11 @@ export class TournamentBracketPage implements OnInit, OnDestroy {
       error: (err) => {
         this.loading = false;
         this.reloadQueued = false;
-        this.error.set(mapApiError(err));
+        if (!this.bracket()) {
+          this.error.set(mapApiError(err));
+        } else if (!isTransientHttpError(err)) {
+          this.error.set(mapApiError(err));
+        }
       }
     });
   }
@@ -273,29 +290,30 @@ export class TournamentBracketPage implements OnInit, OnDestroy {
   }
 
   private ensurePolling(): void {
-    if (this.pollingStarted) return;
-    this.pollingStarted = true;
-    // Fallback refresh while the socket is down (only for open tournaments).
-    pollWhileVisible(FALLBACK_REFRESH_MS, () => {
-      const status = this.bracket()?.status;
-      if (status && !tournamentNeedsRealtime(status)) return EMPTY;
-      if (this.live() && this.bracket()) return EMPTY;
-      return this.api.bracket(this.id).pipe(
-        catchError((err) => {
-          this.error.set(mapApiError(err));
-          return EMPTY;
-        })
-      );
-    })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((b) => {
-        this.error.set(null);
-        this.bracket.set(b);
-        if (!tournamentNeedsRealtime(b.status)) this.stopRealtime();
-      });
+    const desired = this.live() ? POLL_LIVE_MS : POLL_OFFLINE_MS;
+    if (this.timer && this.pollMs === desired) return;
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+    this.pollMs = desired;
+    this.timer = setInterval(() => {
+      if (document.visibilityState === 'visible') this.reload();
+    }, this.pollMs);
+  }
+
+  private setLive(value: boolean): void {
+    this.live.set(value);
+    if (tournamentNeedsRealtime(this.bracket()?.status ?? '')) {
+      this.ensurePolling();
+    }
   }
 
   private stopRealtime(): void {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
     if (this.hub) {
       void this.hub.close();
       this.hub = null;
@@ -308,30 +326,35 @@ export class TournamentBracketPage implements OnInit, OnDestroy {
     this.connecting = true;
     try {
       const handle = await this.api.watch(this.id, (event) => {
-        if (event !== 'AchievementUnlocked' && event !== 'ParticipantDisconnected' && event !== 'ParticipantReconnected') {
-          this.reload();
+        if (
+          event === 'AchievementUnlocked' ||
+          event === 'ParticipantDisconnected' ||
+          event === 'ParticipantReconnected'
+        ) {
+          return;
         }
+        this.scheduleReload();
       });
       const status = this.bracket()?.status;
       if (this.destroyed || (status != null && !tournamentNeedsRealtime(status))) {
         void handle.close();
         this.connecting = false;
-        this.live.set(false);
+        this.setLive(false);
         return;
       }
       this.hub = handle;
       this.connecting = false;
-      this.live.set(true);
-      handle.connection.onclose(() => this.live.set(false));
-      handle.connection.onreconnecting(() => this.live.set(false));
+      this.setLive(true);
+      handle.connection.onclose(() => this.setLive(false));
+      handle.connection.onreconnecting(() => this.setLive(false));
       handle.connection.onreconnected(() => {
-        this.live.set(true);
+        this.setLive(true);
         this.reload();
       });
       this.reload();
     } catch {
       this.connecting = false;
-      this.live.set(false);
+      this.setLive(false);
     }
   }
 }
