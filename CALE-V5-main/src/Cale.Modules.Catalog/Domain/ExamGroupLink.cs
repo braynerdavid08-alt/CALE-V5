@@ -29,4 +29,10 @@ public sealed class ExamGroupLink
             CreatedAt = utcNow
         };
     }
+
+    public void SetWindow(DateTime? startsAt, DateTime? endsAt)
+    {
+        StartsAt = startsAt;
+        EndsAt = endsAt;
+    }
 }
