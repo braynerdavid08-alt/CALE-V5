@@ -144,7 +144,7 @@ export class SimulatorPage implements OnInit, OnDestroy {
     return this.banks().find((b) => b.id === id) ?? null;
   });
 
-  /** Con escuela/grupo: todos los publicados asignados. Sin vínculo: solo oficiales de plataforma. */
+  /** Con escuela o grupo: publicados de la escuela/asignados. Sin vínculo: solo oficiales. */
   readonly mixableExams = computed(() =>
     this.exams().filter((exam) => exam.canMixInPractice !== false)
   );
@@ -178,6 +178,8 @@ export class SimulatorPage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.applyPreset('estandar');
+    // Refresh school context in case login raced ahead of /me.
+    this.sessionStore.refreshMe().subscribe({ error: () => { /* keep cached session */ } });
     this.api.banks().subscribe({
       next: (all) => {
         const banks = all.filter((b) => b.questionCount > 0);

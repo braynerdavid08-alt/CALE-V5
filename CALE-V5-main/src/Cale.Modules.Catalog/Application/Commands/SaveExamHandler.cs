@@ -61,6 +61,13 @@ public sealed class SaveExamHandler
             request.StartsAt,
             request.EndsAt,
             _clock.UtcNow);
+
+        // Keep group assignment windows aligned with the exam schedule.
+        foreach (var link in await _store.ListExamGroupsAsync(exam.Id, ct))
+        {
+            link.SetWindow(exam.StartsAt, exam.EndsAt);
+        }
+
         await _store.SaveChangesAsync(ct);
         return Map(exam);
     }

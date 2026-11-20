@@ -31,7 +31,27 @@ public sealed class GroupAccessService : IGroupAccess
         CancellationToken ct)
     {
         var memberships = await _store.ListMembershipsAsync(userId, ct);
-        return memberships.Where(x => x.IsActive).Select(x => x.GroupId).ToList();
+        var activeMemberGroupIds = memberships
+            .Where(x => x.IsActive)
+            .Select(x => x.GroupId)
+            .Distinct()
+            .ToList();
+        if (activeMemberGroupIds.Count == 0)
+        {
+            return activeMemberGroupIds;
+        }
+
+        var result = new List<int>(activeMemberGroupIds.Count);
+        foreach (var groupId in activeMemberGroupIds)
+        {
+            var group = await _store.GetGroupAsync(groupId, ct);
+            if (group is { IsActive: true })
+            {
+                result.Add(groupId);
+            }
+        }
+
+        return result;
     }
 
     public async Task<bool> CanManageGroupAsync(
