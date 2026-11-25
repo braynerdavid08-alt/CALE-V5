@@ -23,6 +23,7 @@ public sealed class StartExamHandler
     private readonly IAttemptStore _attempts;
     private readonly ICatalogStore _catalog;
     private readonly IGroupAccess _groups;
+    private readonly IUserLookup _users;
     private readonly ITrainingEligibilityService _trainingEligibility;
     private readonly FinishExamHandler _finish;
     private readonly IClock _clock;
@@ -32,6 +33,7 @@ public sealed class StartExamHandler
         IAttemptStore attempts,
         ICatalogStore catalog,
         IGroupAccess groups,
+        IUserLookup users,
         ITrainingEligibilityService trainingEligibility,
         FinishExamHandler finish,
         IClock clock,
@@ -40,6 +42,7 @@ public sealed class StartExamHandler
         _attempts = attempts;
         _catalog = catalog;
         _groups = groups;
+        _users = users;
         _trainingEligibility = trainingEligibility;
         _finish = finish;
         _clock = clock;
@@ -442,7 +445,12 @@ public sealed class StartExamHandler
         }
 
         var groupIds = (await _groups.GetActiveGroupIdsAsync(userId, ct)).ToHashSet();
-        var schoolOfficialExamId = groupIds.Count > 0
+        var schoolId = await _users.GetSchoolIdAsync(userId, ct);
+        var staffIds = schoolId is null
+            ? new HashSet<int>()
+            : (await _users.ListSchoolCatalogOwnerIdsAsync(userId, ct)).ToHashSet();
+        var affiliated = groupIds.Count > 0 || staffIds.Count > 0;
+        var schoolOfficialExamId = affiliated
             ? await _trainingEligibility.GetSchoolOfficialTheoryExamIdAsync(userId, ct)
             : null;
         var exams = new List<Exam>();
@@ -457,14 +465,29 @@ public sealed class StartExamHandler
                     "exam_closed");
             }
 
+            // El teórico oficial y los de un solo intento no entran en mezcla (misma regla que el listado).
+            if (schoolOfficialExamId == exam.Id)
+            {
+                throw new ForbiddenException(
+                    "El examen teórico oficial no se puede mezclar en un simulacro personalizado.",
+                    "official_exam_not_mixable");
+            }
+
+            if (exam.AllowedAttempts <= 1)
+            {
+                throw new ForbiddenException(
+                    "Los exámenes de un solo intento no se pueden mezclar en un simulacro personalizado.",
+                    "single_attempt_exam_not_mixable");
+            }
+
             var links = await _catalog.ListExamGroupsAsync(exam.Id, ct);
-            if (groupIds.Count == 0)
+            if (!affiliated)
             {
                 // Estudiante independiente: solo bancos oficiales no asignados a grupos escolares.
                 if (links.Count > 0)
                 {
                     throw new ForbiddenException(
-                        "Ese examen es de una escuela. Vincula tu cuenta a un grupo para usarlo.",
+                        "Ese examen es de una escuela. Vincula tu cuenta a una escuela o grupo para usarlo.",
                         "exam_not_assigned");
                 }
 
@@ -485,17 +508,16 @@ public sealed class StartExamHandler
             }
             else
             {
-                // Con grupo: exámenes asignados al grupo, o el teórico oficial de la escuela.
-                // mixed_practice no consume intentos formales del examen.
+                // Con escuela o grupo: exámenes del personal, asignados al grupo, o teóricos de práctica.
                 var assignedNow = links.Any(link =>
                     groupIds.Contains(link.GroupId)
                     && (link.StartsAt is null || link.StartsAt <= now)
                     && (link.EndsAt is null || link.EndsAt >= now));
-                var isSchoolOfficial = schoolOfficialExamId == exam.Id;
-                if (!assignedNow && !isSchoolOfficial)
+                var fromSchoolStaff = staffIds.Contains(exam.CreatedById);
+                if (!assignedNow && !fromSchoolStaff)
                 {
                     throw new ForbiddenException(
-                        "Uno de los exámenes seleccionados no está asignado a tu grupo.",
+                        "Uno de los exámenes seleccionados no está disponible para tu escuela o grupo.",
                         "exam_not_assigned");
                 }
             }
@@ -616,12 +638,19 @@ public sealed class StartExamHandler
             throw new ForbiddenException("Bank is inactive.");
         }
 
-        // Official banks (no owner) are practice-safe. Private teacher banks require ownership.
+        // Official banks (no owner) are practice-safe. School staff banks are OK for affiliated students.
         if (bank.CreatedById is int ownerId && ownerId != userId)
         {
-            throw new ForbiddenException(
-                "No tienes acceso a este banco de preguntas.",
-                "bank_not_visible");
+            var schoolId = await _users.GetSchoolIdAsync(userId, ct);
+            var staffIds = schoolId is null
+                ? new HashSet<int>()
+                : (await _users.ListSchoolCatalogOwnerIdsAsync(userId, ct)).ToHashSet();
+            if (!staffIds.Contains(ownerId))
+            {
+                throw new ForbiddenException(
+                    "No tienes acceso a este banco de preguntas.",
+                    "bank_not_visible");
+            }
         }
 
         var count = Math.Clamp(request.QuestionCount, MinimumBankPracticeQuestions, MaximumBankPracticeQuestions);
@@ -653,26 +682,33 @@ public sealed class StartExamHandler
                 "attempts_exhausted");
         }
 
+        var groupIds = (await _groups.GetActiveGroupIdsAsync(userId, ct)).ToHashSet();
+        var schoolId = await _users.GetSchoolIdAsync(userId, ct);
+        var staffIds = schoolId is null
+            ? new HashSet<int>()
+            : (await _users.ListSchoolCatalogOwnerIdsAsync(userId, ct)).ToHashSet();
+        var fromSchoolStaff = staffIds.Contains(exam.CreatedById);
         var links = await _catalog.ListExamGroupsAsync(exam.Id, ct);
         if (links.Count > 0)
         {
-            var groupIds = await _groups.GetActiveGroupIdsAsync(userId, ct);
             var match = links.FirstOrDefault(x => groupIds.Contains(x.GroupId));
-            if (match is null)
+            if (match is not null)
+            {
+                if (match.StartsAt is { } start && now < start)
+                {
+                    throw new ForbiddenException("Exam has not started.", "exam_closed");
+                }
+
+                if (match.EndsAt is { } end && now > end)
+                {
+                    throw new ForbiddenException("Exam window expired.", "exam_closed");
+                }
+            }
+            else if (!fromSchoolStaff)
             {
                 throw new ForbiddenException(
-                    "You are not in a group for this exam.",
+                    "Este examen no está disponible para tu escuela o grupo.",
                     "exam_not_assigned");
-            }
-
-            if (match.StartsAt is { } start && now < start)
-            {
-                throw new ForbiddenException("Exam has not started.", "exam_closed");
-            }
-
-            if (match.EndsAt is { } end && now > end)
-            {
-                throw new ForbiddenException("Exam window expired.", "exam_closed");
             }
         }
         else
@@ -680,10 +716,17 @@ public sealed class StartExamHandler
             var officialId = await _trainingEligibility.GetSchoolOfficialTheoryExamIdAsync(
                 userId,
                 ct);
-            if (officialId != exam.Id)
+            var independentOfficialBank = false;
+            if (groupIds.Count == 0 && schoolId is null && exam.BankId is int bankId)
+            {
+                var bank = await _catalog.GetBankAsync(bankId, ct);
+                independentOfficialBank = bank is { CreatedById: null, IsActive: true };
+            }
+
+            if (officialId != exam.Id && !fromSchoolStaff && !independentOfficialBank)
             {
                 throw new ForbiddenException(
-                    "This exam is not assigned to your group.",
+                    "Este examen no está disponible para tu escuela o grupo.",
                     "exam_not_assigned");
             }
         }

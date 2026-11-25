@@ -141,22 +141,31 @@ export class AuthFacade {
   private enter(res: Parameters<SessionStore['set']>[0], returnUrl?: string | null): void {
     this.motivation.clearSession();
     this.session.set(res);
+    // Wait for /me so schoolId/membership land before home/simulator (avoids "independent" flash).
     this.api.me().subscribe({
       next: (me) => {
-        this.session.applySchoolContext(me.school ?? null, me.freeAccess);
-        this.session.patchUser({ photoUrl: me.photoUrl ?? null });
+        this.session.applyMe(me);
+        this.finishEnter(res.role, !!res.mustChangePassword, returnUrl);
       },
-      error: () => { /* membership gates fall back to API errors */ }
+      error: () => {
+        // Membership gates fall back to API errors if /me fails.
+        this.finishEnter(res.role, !!res.mustChangePassword, returnUrl);
+      }
     });
-    this.motivation.ensureSessionTip(res.role);
+  }
+
+  private finishEnter(
+    role: string,
+    mustChangePassword: boolean,
+    returnUrl?: string | null
+  ): void {
+    this.motivation.ensureSessionTip(role);
     this.loading.set(false);
-    if (res.mustChangePassword) {
-      // Keep destination so profile can send the user back after the password change.
+    if (mustChangePassword) {
       stashReturnUrl(returnUrl);
       void this.router.navigateByUrl('/profile');
       return;
     }
-    // Prefer role home when returnUrl is missing or was a public marketing page.
     const target = takeReturnUrl(returnUrl) ?? this.session.homeRoute();
     void this.router.navigateByUrl(target);
   }

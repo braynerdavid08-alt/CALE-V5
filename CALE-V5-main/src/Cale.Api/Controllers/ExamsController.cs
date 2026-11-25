@@ -7,7 +7,6 @@ using Cale.Modules.Catalog.Application;
 using Cale.Modules.Catalog.Application.Commands;
 using Cale.Modules.Catalog.Application.DTOs;
 using Cale.Modules.Catalog.Application.Queries;
-using Cale.Modules.Classroom.Application.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,7 +22,8 @@ public sealed class ExamsController : ControllerBase
     private readonly ImportExamFromWordHandler _importWord;
     private readonly ExportExamToWordHandler _exportWord;
     private readonly AssignExamToGroupHandler _assign;
-    private readonly IClassroomStore _classroom;
+    private readonly IGroupAccess _groups;
+    private readonly IUserLookup _users;
     private readonly ITrainingEligibilityService _trainingEligibility;
     private readonly ICatalogAccessGuard _access;
     private readonly IClock _clock;
@@ -34,7 +34,8 @@ public sealed class ExamsController : ControllerBase
         ImportExamFromWordHandler importWord,
         ExportExamToWordHandler exportWord,
         AssignExamToGroupHandler assign,
-        IClassroomStore classroom,
+        IGroupAccess groups,
+        IUserLookup users,
         ITrainingEligibilityService trainingEligibility,
         ICatalogAccessGuard access,
         IClock clock)
@@ -44,7 +45,8 @@ public sealed class ExamsController : ControllerBase
         _importWord = importWord;
         _exportWord = exportWord;
         _assign = assign;
-        _classroom = classroom;
+        _groups = groups;
+        _users = users;
         _trainingEligibility = trainingEligibility;
         _access = access;
         _clock = clock;
@@ -79,20 +81,22 @@ public sealed class ExamsController : ControllerBase
             return Ok(Array.Empty<ExamDto>());
         }
 
-        var memberships = await _classroom.ListMembershipsAsync(
-            CurrentUser.GetId(User),
-            ct);
-        var groupIds = memberships
-            .Where(x => x.Status == Cale.BuildingBlocks.Domain.Classroom.MemberStatuses.Active || x.Status == "Active")
-            .Select(x => x.GroupId)
-            .ToList();
-        var officialTheoryExamId = await _trainingEligibility.GetAuthorizedSchoolOfficialTheoryExamIdAsync(
-            CurrentUser.GetId(User),
-            ct);
+        var userId = CurrentUser.GetId(User);
+        var groupIds = await _groups.GetActiveGroupIdsAsync(userId, ct);
+        var schoolId = await _users.GetSchoolIdAsync(userId, ct);
+        IReadOnlyList<int> schoolCatalogOwnerIds = schoolId is null
+            ? []
+            : await _users.ListSchoolCatalogOwnerIdsAsync(userId, ct);
+        var authorizedOfficialTheoryExamId =
+            await _trainingEligibility.GetAuthorizedSchoolOfficialTheoryExamIdAsync(userId, ct);
+        var configuredOfficialTheoryExamId =
+            await _trainingEligibility.GetSchoolOfficialTheoryExamIdAsync(userId, ct);
         return Ok(await _list.PublishedForStudentAsync(
             groupIds,
+            schoolCatalogOwnerIds,
             _clock.UtcNow,
-            officialTheoryExamId,
+            authorizedOfficialTheoryExamId,
+            configuredOfficialTheoryExamId,
             ct));
     }
 

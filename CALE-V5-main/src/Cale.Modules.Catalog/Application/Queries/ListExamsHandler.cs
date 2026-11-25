@@ -33,15 +33,21 @@ public sealed class ListExamsHandler
 
     public async Task<IReadOnlyList<ExamDto>> PublishedForStudentAsync(
         IReadOnlyList<int> groupIds,
+        IReadOnlyCollection<int> schoolCatalogOwnerIds,
         DateTime utcNow,
-        int? officialTheoryExamId,
+        int? authorizedOfficialTheoryExamId,
+        int? configuredOfficialTheoryExamId,
         CancellationToken ct)
     {
         var exams = await _store.ListPublishedExamsAsync(ct);
         var allLinks = await _store.ListAllExamGroupExamIdsAsync(ct);
+        var staffIds = schoolCatalogOwnerIds.Count > 0
+            ? schoolCatalogOwnerIds.ToHashSet()
+            : [];
+        var affiliated = groupIds.Count > 0 || staffIds.Count > 0;
 
-        // Sin escuela/grupo: solo exámenes de bancos oficiales (CreatedById null) no asignados a grupos.
-        if (groupIds.Count == 0)
+        // Sin escuela ni grupo: solo exámenes de bancos oficiales no asignados a grupos.
+        if (!affiliated)
         {
             var independent = new List<ExamDto>();
             foreach (var exam in exams)
@@ -67,14 +73,17 @@ public sealed class ListExamsHandler
                     continue;
                 }
 
-                independent.Add(Map(exam, canMixInPractice: true));
+                independent.Add(Map(exam, CanMix(exam, configuredOfficialTheoryExamId)));
             }
 
             return independent;
         }
 
-        var links = await _store.ListExamGroupsForGroupsAsync(groupIds, ct);
-        var linkedExamIds = links.Select(x => x.ExamId).ToHashSet();
+        var linkedExamIds = groupIds.Count == 0
+            ? new HashSet<int>()
+            : (await _store.ListExamGroupsForGroupsAsync(groupIds, ct))
+                .Select(x => x.ExamId)
+                .ToHashSet();
 
         return exams
             .Where(exam =>
@@ -84,24 +93,35 @@ public sealed class ListExamsHandler
                     return false;
                 }
 
-                if (officialTheoryExamId is int oid && oid == exam.Id)
+                // Teórico oficial de la escuela: solo si el estudiante está autorizado.
+                if (configuredOfficialTheoryExamId is int configured
+                    && configured == exam.Id)
+                {
+                    return authorizedOfficialTheoryExamId == exam.Id;
+                }
+
+                if (authorizedOfficialTheoryExamId is int authorized
+                    && authorized == exam.Id)
                 {
                     return true;
                 }
 
-                var hasAnyAssignment = allLinks.Contains(exam.Id);
-                if (!hasAnyAssignment)
+                // Escuela o grupo: exámenes del personal de la escuela, o asignados al grupo.
+                if (staffIds.Contains(exam.CreatedById))
                 {
-                    // Unassigned published exams are not public to school students.
-                    return false;
+                    return true;
                 }
 
                 return linkedExamIds.Contains(exam.Id);
             })
-            // Con grupo: todos los asignados se pueden mezclar en simulacro personalizado.
-            .Select(exam => Map(exam, canMixInPractice: true))
+            .Select(exam => Map(exam, CanMix(exam, configuredOfficialTheoryExamId)))
             .ToList();
     }
+
+    private static bool CanMix(Exam exam, int? configuredOfficialTheoryExamId) =>
+        exam.AllowedAttempts > 1
+        && (configuredOfficialTheoryExamId is null
+            || configuredOfficialTheoryExamId != exam.Id);
 
     private static bool IsOpen(Exam exam, DateTime utcNow)
     {
